@@ -4259,6 +4259,104 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_runtime_generation_domain_validation_requires_covered_advances(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "generation_domain_validation_probe.c"
+    binary = tmp_path / "generation_domain_validation_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateGenerationDomainMetadata mismatched_domain;
+  AppStateGenerationDomainMetadata missing_transition;
+  AppStateGenerationDomainMetadata uncovered_advance;
+  AppStateGenerationDomainMetadata missing_notes;
+  static const char *const missing_transition_ids[] = {
+      "transition.__ytnova_missing__",
+  };
+  static const char *const uncovered_advance_ids[] = {
+      "transition.command-completion.user-command",
+  };
+
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return 1;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return 2;
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return 3;
+  if (AppStateValidatedGenerationDomain(NULL))
+    return 4;
+  if (AppStateValidatedGenerationDomain(""))
+    return 5;
+  if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
+    return 6;
+
+  mismatched_domain =
+      *AppStateGenerationDomainLookup("generation.panel.local-authority");
+  mismatched_domain.domain_id = "generation.__ytnova_mismatch__";
+  if (AppStateValidateGenerationDomain("generation.panel.local-authority",
+                                       &mismatched_domain))
+    return 7;
+
+  missing_transition =
+      *AppStateGenerationDomainLookup("generation.panel.local-authority");
+  missing_transition.coverage_transition_ids = missing_transition_ids;
+  missing_transition.coverage_transition_id_count = 1;
+  if (AppStateValidateGenerationDomain("generation.panel.local-authority",
+                                       &missing_transition))
+    return 8;
+
+  uncovered_advance =
+      *AppStateGenerationDomainLookup("generation.panel.local-authority");
+  uncovered_advance.advances_on_transition_ids = uncovered_advance_ids;
+  uncovered_advance.advances_on_transition_id_count = 1;
+  if (AppStateValidateGenerationDomain("generation.panel.local-authority",
+                                       &uncovered_advance))
+    return 9;
+
+  missing_notes =
+      *AppStateGenerationDomainLookup("generation.panel.local-authority");
+  missing_notes.migration_notes = 0;
+  missing_notes.migration_note_count = 0;
+  if (AppStateValidateGenerationDomain("generation.panel.local-authority",
+                                       &missing_notes))
+    return 10;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
 def test_runtime_action_coverage_lookup_fails_closed(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
     probe = tmp_path / "action_coverage_lookup_probe.c"
