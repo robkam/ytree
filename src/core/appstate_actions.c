@@ -6977,14 +6977,102 @@ int AppStateValidatedEvent(const char *event_id) {
                                        AppStateEventCoverageLookup(event_id));
 }
 
+static int AppStateTransitionSequenceRefsCoverTransition(
+    const char *const *sequence_refs, size_t sequence_ref_count,
+    const char *transition_id) {
+  size_t ref_index;
+
+  if (!AppStateNonEmptyStringList(sequence_refs, sequence_ref_count) ||
+      !AppStateNonEmptyString(transition_id))
+    return 0;
+
+  for (ref_index = 0; ref_index < sequence_ref_count; ref_index++) {
+    const AppStateTransitionSequenceMetadata *sequence =
+        AppStateTransitionSequenceLookup(sequence_refs[ref_index]);
+    size_t previous_index;
+    size_t step_index;
+    int transition_seen = 0;
+
+    if (sequence == NULL || sequence->steps == NULL ||
+        sequence->step_count == 0)
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(sequence_refs[previous_index], sequence_refs[ref_index]) == 0)
+        return 0;
+    }
+    for (step_index = 0; step_index < sequence->step_count; step_index++) {
+      const AppStateTransitionSequenceStepMetadata *step =
+          &sequence->steps[step_index];
+
+      if (!AppStateNonEmptyString(step->transition_id))
+        return 0;
+      if (strcmp(step->transition_id, transition_id) == 0)
+        transition_seen = 1;
+    }
+    if (!transition_seen)
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateDispatchSurfaceAllowedWritesReady(
+    const AppStateDispatchSurfaceMetadata *metadata,
+    const AppStateTransitionMetadata *transition) {
+  size_t write_index;
+
+  if (metadata == NULL || transition == NULL)
+    return 0;
+  if (metadata->allowed_direct_write_count == 0)
+    return metadata->allowed_direct_writes == NULL;
+  if (metadata->allowed_direct_writes == NULL)
+    return 0;
+
+  for (write_index = 0; write_index < metadata->allowed_direct_write_count;
+       write_index++) {
+    const char *field = metadata->allowed_direct_writes[write_index];
+
+    if (!AppStateNonEmptyString(field))
+      return 0;
+    if (AppStateOwnerFieldLookup(field) == NULL)
+      return 0;
+    if (!AppStateStringListContains(transition->declared_write_set,
+                                    transition->declared_write_set_count,
+                                    field))
+      return 0;
+    if (AppStateStringListContains(metadata->allowed_direct_writes, write_index,
+                                   field))
+      return 0;
+  }
+
+  return 1;
+}
+
 static int AppStateValidateDispatchSurface(
     const char *surface_id, const AppStateDispatchSurfaceMetadata *metadata) {
+  const AppStateTransitionMetadata *transition;
+
   if (surface_id == NULL || surface_id[0] == '\0')
     return 0;
   if (metadata == NULL || metadata->surface_id == NULL ||
       strcmp(metadata->surface_id, surface_id))
     return 0;
-  if (!AppStateValidatedTransition(metadata->transition_id))
+  transition = AppStateTransitionLookup(metadata->transition_id);
+  if (!AppStateValidateTransition(metadata->transition_id, transition))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->category) ||
+      !AppStateNonEmptyString(metadata->source_path) ||
+      !AppStateNonEmptyString(metadata->entry_symbol_or_path) ||
+      !AppStateNonEmptyString(metadata->boundary_status))
+    return 0;
+  if (!AppStateDispatchSurfaceAllowedWritesReady(metadata, transition))
+    return 0;
+  if (!AppStateTransitionSequenceRefsCoverTransition(
+          metadata->transition_sequence_refs,
+          metadata->transition_sequence_ref_count, metadata->transition_id))
+    return 0;
+  if (!AppStateNonEmptyStringList(metadata->migration_notes,
+                                  metadata->migration_note_count))
     return 0;
 
   return 1;
