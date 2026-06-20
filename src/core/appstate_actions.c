@@ -6514,6 +6514,51 @@ static int AppStateTransitionFieldsRegistered(const char *const *fields,
   return 1;
 }
 
+static int AppStateStringListEquals(const char *const *left, size_t left_count,
+                                    const char *const *right,
+                                    size_t right_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(left, left_count) ||
+      !AppStateNonEmptyStringList(right, right_count) ||
+      left_count != right_count)
+    return 0;
+
+  for (index = 0; index < left_count; index++) {
+    if (strcmp(left[index], right[index]) != 0)
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateCoverageOwnerFieldsMatchWriteSet(
+    const char *const *owner_field_refs, size_t owner_field_ref_count,
+    const char *const *declared_write_set, size_t declared_write_set_count) {
+  size_t index;
+
+  if (!AppStateTransitionFieldsRegistered(owner_field_refs,
+                                          owner_field_ref_count) ||
+      !AppStateTransitionFieldsRegistered(declared_write_set,
+                                          declared_write_set_count))
+    return 0;
+
+  for (index = 0; index < owner_field_ref_count; index++) {
+    if (!AppStateStringListContains(declared_write_set,
+                                    declared_write_set_count,
+                                    owner_field_refs[index]))
+      return 0;
+  }
+
+  for (index = 0; index < declared_write_set_count; index++) {
+    if (!AppStateStringListContains(owner_field_refs, owner_field_ref_count,
+                                    declared_write_set[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
 static int
 AppStateTransitionIdsRegistered(const char *const *transition_ids,
                                 size_t transition_id_count) {
@@ -6831,11 +6876,43 @@ int AppStateValidatedTransitionSequence(const char *scenario_id) {
 
 static YtreeNovaAction AppStateValidateKeyActionCoverage(
     YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage) {
+  const AppStateTransitionMetadata *transition;
+
   if (action == ACTION_NONE)
     return ACTION_NONE;
   if (coverage == NULL || coverage->action != action)
     return ACTION_NONE;
-  if (!AppStateValidatedTransition(coverage->transition_id))
+  transition = AppStateTransitionLookup(coverage->transition_id);
+  if (!AppStateValidateTransition(coverage->transition_id, transition))
+    return ACTION_NONE;
+  if (!AppStateNonEmptyString(coverage->action_name) ||
+      !AppStateNonEmptyString(coverage->category) ||
+      !AppStateNonEmptyString(coverage->owner) ||
+      !AppStateNonEmptyString(coverage->boundary_status) ||
+      strcmp(coverage->category, transition->category) != 0 ||
+      strcmp(coverage->owner, transition->owner) != 0)
+    return ACTION_NONE;
+  if (!AppStateStringListEquals(coverage->declared_write_set,
+                                coverage->declared_write_set_count,
+                                transition->declared_write_set,
+                                transition->declared_write_set_count))
+    return ACTION_NONE;
+  if (!AppStateCoverageOwnerFieldsMatchWriteSet(
+          coverage->owner_field_refs, coverage->owner_field_ref_count,
+          coverage->declared_write_set, coverage->declared_write_set_count))
+    return ACTION_NONE;
+  if (!AppStateNonEmptyStringList(coverage->transition_sequence_refs,
+                                  coverage->transition_sequence_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->dispatch_surface_refs,
+                                  coverage->dispatch_surface_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->invariant_refs,
+                                  coverage->invariant_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->generation_domain_refs,
+                                  coverage->generation_domain_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->diff_harness_refs,
+                                  coverage->diff_harness_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->migration_notes,
+                                  coverage->migration_note_count))
     return ACTION_NONE;
 
   return action;
@@ -6849,12 +6926,47 @@ YtreeNovaAction AppStateValidatedKeyAction(YtreeNovaAction action) {
 static int
 AppStateValidateEventCoverage(const char *event_id,
                               const AppStateEventCoverageMetadata *coverage) {
+  const AppStateTransitionMetadata *transition;
+
   if (event_id == NULL || event_id[0] == '\0')
     return 0;
   if (coverage == NULL || coverage->event_id == NULL ||
       strcmp(coverage->event_id, event_id))
     return 0;
-  if (!AppStateValidatedTransition(coverage->transition_id))
+  transition = AppStateTransitionLookup(coverage->transition_id);
+  if (!AppStateValidateTransition(coverage->transition_id, transition))
+    return 0;
+  if (!AppStateNonEmptyString(coverage->event_class) ||
+      !AppStateNonEmptyString(coverage->category) ||
+      !AppStateNonEmptyString(coverage->source) ||
+      !AppStateNonEmptyString(coverage->owner) ||
+      !AppStateNonEmptyString(coverage->boundary_status) ||
+      strcmp(coverage->category, transition->category) != 0 ||
+      strcmp(coverage->owner, transition->owner) != 0)
+    return 0;
+  if (!AppStateStringListEquals(coverage->declared_write_set,
+                                coverage->declared_write_set_count,
+                                transition->declared_write_set,
+                                transition->declared_write_set_count))
+    return 0;
+  if (!AppStateCoverageOwnerFieldsMatchWriteSet(
+          coverage->owner_field_refs, coverage->owner_field_ref_count,
+          coverage->declared_write_set, coverage->declared_write_set_count))
+    return 0;
+  if (!AppStateNonEmptyStringList(coverage->trigger_paths,
+                                  coverage->trigger_path_count) ||
+      !AppStateNonEmptyStringList(coverage->transition_sequence_refs,
+                                  coverage->transition_sequence_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->dispatch_surface_refs,
+                                  coverage->dispatch_surface_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->invariant_refs,
+                                  coverage->invariant_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->generation_domain_refs,
+                                  coverage->generation_domain_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->diff_harness_refs,
+                                  coverage->diff_harness_ref_count) ||
+      !AppStateNonEmptyStringList(coverage->migration_notes,
+                                  coverage->migration_note_count))
     return 0;
 
   return 1;
