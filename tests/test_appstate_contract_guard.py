@@ -530,6 +530,11 @@ def _generation_domain(
         if advances_on_transition_ids is not None
         else ["transition.keybinding"]
     )
+    migration_notes = ["fixture coverage"]
+    if set(resolved_coverage_transition_ids) - set(
+        resolved_advances_on_transition_ids
+    ):
+        migration_notes = ["read-only/projection-only fixture coverage"]
     return {
         "domain_id": domain_id or f"domain.{category}",
         "category": category,
@@ -542,7 +547,7 @@ def _generation_domain(
         "fail_closed_fallback": "fixture fail-closed fallback",
         "restore_boundary": "fixture restore boundary",
         "enforcement_status": "documented_foundation_only",
-        "migration_notes": ["fixture coverage"],
+        "migration_notes": migration_notes,
     }
 
 
@@ -5986,6 +5991,38 @@ def test_guard_fails_when_runtime_generation_domain_stale_boundary_fields_drift(
     )
 
 
+def test_guard_fails_when_runtime_generation_domain_coverage_only_lacks_projection_note(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains[0]["coverage_transition_ids"] = [
+        "transition.keybinding.navigate-tree",
+        "transition.render-reflow.project-state",
+    ]
+    runtime_generation_domains[0]["advances_on_transition_ids"] = [
+        "transition.keybinding.navigate-tree"
+    ]
+    runtime_generation_domains[0]["migration_notes"] = [
+        "Coverage-only transition is not explained."
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "coverage_transition_ids without advances_on_transition_ids"
+        in failure
+        and "transition.render-reflow.project-state" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_generation_effect_names_unregistered_generation_field(
     tmp_path: Path,
 ) -> None:
@@ -11362,6 +11399,24 @@ def test_runtime_generation_domain_startup_separates_coverage_from_advances() ->
         ready_body,
         re.S,
     )
+
+
+def test_runtime_generation_domain_startup_requires_projection_note_for_coverage_only() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index(
+        "static int AppStateGenerationCoverageOnlyHasProjectionNote("
+    )
+    generation_start = source.index("static int AppStateGenerationDomainsReady(void)")
+    dispatch_start = source.index(
+        "static int AppStateDispatchSurfaceWriteHasInvariantCoverage("
+    )
+    helper_body = source[helper_start:generation_start]
+    ready_body = source[generation_start:dispatch_start]
+
+    assert "AppStateGenerationCoverageOnlyHasProjectionNote(metadata)" in ready_body
+    assert "metadata->migration_notes" in helper_body
+    assert '"read-only"' in helper_body
+    assert '"projection-only"' in helper_body
 
 
 def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:

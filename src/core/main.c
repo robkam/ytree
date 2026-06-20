@@ -977,6 +977,40 @@ static int AppStateTransitionRegistryReady(void) {
   return 1;
 }
 
+static int AppStateGenerationCoverageOnlyHasProjectionNote(
+    const AppStateGenerationDomainMetadata *metadata) {
+  size_t coverage_index;
+  int has_projection_note = 0;
+  size_t note_index;
+
+  if (metadata == NULL)
+    return 0;
+
+  for (note_index = 0; note_index < metadata->migration_note_count;
+       note_index++) {
+    const char *note = metadata->migration_notes[note_index];
+
+    if (note != NULL &&
+        (strstr(note, "read-only") != NULL ||
+         strstr(note, "projection-only") != NULL)) {
+      has_projection_note = 1;
+      break;
+    }
+  }
+
+  for (coverage_index = 0;
+       coverage_index < metadata->coverage_transition_id_count;
+       coverage_index++) {
+    if (!StringListContains(metadata->advances_on_transition_ids,
+                            metadata->advances_on_transition_id_count,
+                            metadata->coverage_transition_ids[coverage_index]) &&
+        !has_projection_note)
+      return 0;
+  }
+
+  return 1;
+}
+
 static int AppStateGenerationDomainsReady(void) {
   size_t index;
   size_t required_generation_domain_id_count =
@@ -1050,6 +1084,8 @@ static int AppStateGenerationDomainsReady(void) {
                                   [transition_index]))
         return 0;
     }
+    if (!AppStateGenerationCoverageOnlyHasProjectionNote(metadata))
+      return 0;
   }
 
   for (index = 0; index < required_generation_domain_id_count; index++) {
