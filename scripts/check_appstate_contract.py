@@ -4685,6 +4685,16 @@ def _runtime_validation_callsites_by_id(
     return callsites_by_id, failures
 
 
+def _runtime_validation_callsite_ids_in_file(
+    source_file: Path, pattern: re.Pattern[str]
+) -> tuple[set[str], list[str]]:
+    try:
+        source = source_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        return set(), [f"{source_file}: failed to read source file: {exc}"]
+    return {match.group(1) for match in pattern.finditer(source)}, []
+
+
 def _runtime_dispatch_surface_callsites_by_id(
     source_root: Path,
 ) -> tuple[dict[str, set[str]], list[str]]:
@@ -4716,21 +4726,26 @@ def _validate_runtime_dispatch_surface_callsites(
         or action_runtime_path.parent.parent.name != "src"
     ):
         return []
-    source_root = repository_root / "src"
-    callsites_by_id, failures = _runtime_dispatch_surface_callsites_by_id(source_root)
-    runtime_surface_ids = sorted(
-        {
-            surface_id.strip()
-            for record in runtime_records
-            if isinstance(record, dict)
-            and isinstance(record.get("surface_id"), str)
-            and (surface_id := record["surface_id"]).strip()
-        }
-    )
-    for surface_id in runtime_surface_ids:
-        if surface_id not in callsites_by_id:
+    failures: list[str] = []
+    for record in runtime_records:
+        if not isinstance(record, dict):
+            continue
+        surface_id = record.get("surface_id")
+        source_path = record.get("source_path")
+        if not isinstance(surface_id, str) or not surface_id.strip():
+            continue
+        if not isinstance(source_path, str) or not source_path.strip():
+            continue
+        source_file = repository_root / source_path
+        callsite_ids, read_failures = _runtime_validation_callsite_ids_in_file(
+            source_file, DISPATCH_SURFACE_CALLSITE_RE
+        )
+        failures.extend(read_failures)
+        if read_failures:
+            continue
+        if surface_id not in callsite_ids:
             failures.append(
-                f"{source_root}: {surface_id}: missing runtime validation callsite"
+                f"{source_path}: {surface_id}: missing runtime validation callsite"
             )
     return failures
 

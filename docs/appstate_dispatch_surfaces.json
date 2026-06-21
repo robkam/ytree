@@ -160,8 +160,8 @@
     {
       "surface_id": "surface.watcher-live-refresh",
       "category": "watcher_live_refresh",
-      "source_path": "src/fs/watcher.c",
-      "entry_symbol_or_path": "Watcher_ProcessEvents",
+      "source_path": "src/ui/key_engine.c",
+      "entry_symbol_or_path": "GetEventOrKey",
       "transition_id": "transition.refresh-rebuild.manual-refresh",
       "boundary_status": "documented_foundation_only",
       "allowed_direct_writes": [],
