@@ -379,6 +379,9 @@ DISPATCH_SURFACE_CALLSITE_RE = re.compile(
     r'AppStateValidatedDispatchSurface\s*\(\s*"([^"]+)"\s*\)'
 )
 EVENT_CALLSITE_RE = re.compile(r'AppStateValidatedEvent\s*\(\s*"([^"]+)"\s*\)')
+SHIM_CALLSITE_RE = re.compile(
+    r'AppStateValidatedCompatibilityShim\s*\(\s*"([^"]+)"\s*\)'
+)
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -4696,6 +4699,12 @@ def _runtime_event_callsites_by_id(
     return _runtime_validation_callsites_by_id(source_root, EVENT_CALLSITE_RE)
 
 
+def _runtime_shim_callsites_by_id(
+    source_root: Path,
+) -> tuple[dict[str, set[str]], list[str]]:
+    return _runtime_validation_callsites_by_id(source_root, SHIM_CALLSITE_RE)
+
+
 def _validate_runtime_dispatch_surface_callsites(
     *,
     runtime_records: list[dict[str, Any]],
@@ -4752,6 +4761,36 @@ def _validate_runtime_event_callsites(
         if event_id not in callsites_by_id:
             failures.append(
                 f"{source_root}: {event_id}: missing runtime validation callsite"
+            )
+    return failures
+
+
+def _validate_runtime_shim_callsites(
+    *,
+    runtime_records: list[dict[str, Any]],
+    repository_root: Path,
+    action_runtime_path: Path,
+) -> list[str]:
+    if (
+        action_runtime_path.parent.name != "core"
+        or action_runtime_path.parent.parent.name != "src"
+    ):
+        return []
+    source_root = repository_root / "src"
+    callsites_by_id, failures = _runtime_shim_callsites_by_id(source_root)
+    runtime_shim_ids = sorted(
+        {
+            shim_id.strip()
+            for record in runtime_records
+            if isinstance(record, dict)
+            and isinstance(record.get("id"), str)
+            and (shim_id := record["id"]).strip()
+        }
+    )
+    for shim_id in runtime_shim_ids:
+        if shim_id not in callsites_by_id:
+            failures.append(
+                f"{source_root}: {shim_id}: missing runtime validation callsite"
             )
     return failures
 
@@ -7341,6 +7380,13 @@ def validate_contract(
             runtime_diff_harness_generation_domain_ids=(
                 runtime_diff_harness_generation_domain_ids_by_harness
             ),
+        )
+    )
+    failures.extend(
+        _validate_runtime_shim_callsites(
+            runtime_records=runtime_shim_records,
+            repository_root=repository_root,
+            action_runtime_path=action_runtime_path,
         )
     )
 
