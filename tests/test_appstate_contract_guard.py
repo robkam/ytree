@@ -12525,3 +12525,127 @@ def test_appstate_diff_harness_accessor_fails_closed_on_invalid_metadata() -> No
         accessor_body,
         re.S,
     )
+
+
+def test_appstate_action_coverage_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateActionCoverageMetadata *AppStateActionCoverageAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateActionCoverageCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidateActionCoverage\(\s*"
+        r"kAppStateActionCoverages\[index\]\.action,\s*"
+        r"&kAppStateActionCoverages\[index\]\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
+
+
+def test_appstate_event_coverage_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateTransitionMetadata *AppStateTransitionAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateEventCoverageCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedEvent\(\s*"
+        r"kAppStateEventCoverages\[index\]\.event_id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
+
+
+def test_appstate_transition_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateTransitionMetadata *AppStateTransitionAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateTransitionCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedTransition\(\s*"
+        r"kAppStateTransitions\[index\]\.id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
+
+
+def test_appstate_dispatch_surface_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateCompatibilityShimMetadata *\n"
+        "AppStateCompatibilityShimAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateDispatchSurfaceCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedDispatchSurface\(\s*"
+        r"kAppStateDispatchSurfaces\[index\]\.surface_id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
+
+
+def test_appstate_shim_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateCompatibilityShimMetadata *\n"
+        "AppStateCompatibilityShimAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateInvariantMetadata *AppStateInvariantAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateCompatibilityShimCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedCompatibilityShim\(\s*"
+        r"kAppStateCompatibilityShims\[index\]\.id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
+
+
+def test_appstate_invariant_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateInvariantMetadata *AppStateInvariantAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateOwnerFieldMetadata *\n"
+        "AppStateOwnerFieldLookup(const char *field)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateInvariantCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedInvariant\(\s*"
+        r"kAppStateInvariants\[index\]\.invariant_id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
