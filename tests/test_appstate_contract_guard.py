@@ -120,7 +120,7 @@ def _transition(category: str, transition_id: str | None = None) -> dict[str, ob
         "generation_effect": generation_effect,
         "side_effects": ["none"],
         "render_invalidation": "view",
-        "boundary_status": "test",
+        "boundary_status": "documented_foundation_only",
         "notes_follow_up": "follow-up",
     }
 
@@ -174,7 +174,7 @@ def _action(
         ),
         "diff_harness_refs": _diff_harness_refs_for_transition(transition_id),
         "invariant_refs": _invariant_refs_for_transition(transition_id),
-        "boundary_status": "test",
+        "boundary_status": "documented_foundation_only",
         "migration_notes": ["fixture action coverage"],
     }
 
@@ -225,7 +225,7 @@ def _event(
         "invariant_refs": _invariant_refs_for_transition(
             resolved_transition_id
         ),
-        "boundary_status": "test",
+        "boundary_status": "documented_foundation_only",
         "trigger_paths": ["fixture trigger"],
         "migration_notes": ["fixture event coverage"],
     }
@@ -485,7 +485,7 @@ def _dispatch_surface(
         "source_path": "src/ui/key_engine.c",
         "entry_symbol_or_path": "GetEventOrKey",
         "transition_id": resolved_transition_id,
-        "boundary_status": "test",
+        "boundary_status": "documented_foundation_only",
         "allowed_direct_writes": allowed_direct_writes,
         "transition_sequence_refs": [sequence_by_surface_category[category]],
         "migration_notes": ["fixture coverage"],
@@ -744,7 +744,7 @@ def _owner_field(field: str = "field") -> dict[str, object]:
         "canonical_owner": "YtreeNovaPanel(fixture)",
         "runtime_carrier": "YtreeNovaPanel fixture carrier",
         "mutation_rule": "Fixture transitions may mutate only declared fields.",
-        "migration_status": "test",
+        "migration_status": "documented_foundation_only",
         "invariant_checks": ["invariant.inactive_panel_frozen"],
     }
 
@@ -4580,6 +4580,108 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_runtime_registry_status_validation_rejects_unknown_values(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "appstate_status_validation_probe.c"
+    binary = tmp_path / "appstate_status_validation_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateActionCoverageMetadata action_coverage;
+  AppStateDiffHarnessMetadata diff_harness;
+  AppStateDispatchSurfaceMetadata dispatch_surface;
+  AppStateEventCoverageMetadata event_coverage;
+  AppStateGenerationDomainMetadata generation_domain;
+  AppStateInvariantMetadata invariant;
+  AppStateOwnerFieldMetadata owner_field;
+  AppStateTransitionMetadata transition;
+
+  transition = *AppStateTransitionLookup("transition.keybinding.navigate-tree");
+  transition.boundary_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateTransition("transition.keybinding.navigate-tree",
+                                 &transition))
+    return 1;
+
+  action_coverage = *AppStateActionCoverageLookup(ACTION_ENTER);
+  action_coverage.boundary_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateKeyActionCoverage(ACTION_ENTER, &action_coverage) !=
+      ACTION_NONE)
+    return 2;
+
+  event_coverage =
+      *AppStateEventCoverageLookup("event.terminal-resize-signal");
+  event_coverage.boundary_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateEventCoverage("event.terminal-resize-signal",
+                                    &event_coverage))
+    return 3;
+
+  dispatch_surface =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  dispatch_surface.boundary_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &dispatch_surface))
+    return 4;
+
+  owner_field = *AppStateOwnerFieldLookup("ctx.active");
+  owner_field.migration_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateOwnerField("ctx.active", &owner_field))
+    return 5;
+
+  invariant = *AppStateInvariantLookup("invariant.inactive-panel-frozen");
+  invariant.enforcement_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateInvariant("invariant.inactive-panel-frozen", &invariant))
+    return 6;
+
+  generation_domain =
+      *AppStateGenerationDomainLookup("generation.panel.local-authority");
+  generation_domain.enforcement_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateGenerationDomain("generation.panel.local-authority",
+                                       &generation_domain))
+    return 7;
+
+  diff_harness =
+      *AppStateDiffHarnessLookup("harness.transition-before-after-snapshot");
+  diff_harness.enforcement_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateDiffHarness("harness.transition-before-after-snapshot",
+                                  &diff_harness))
+    return 8;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
 def test_runtime_dispatch_surface_validation_requires_registry_and_transition(
     tmp_path: Path,
 ) -> None:
@@ -7503,6 +7605,87 @@ def test_guard_fails_when_required_transition_field_is_missing(tmp_path: Path) -
     failures = _validate(paths)
 
     assert any("missing required field" in failure and "owner" in failure for failure in failures)
+
+
+def test_guard_fails_when_registry_status_is_unknown(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    events = _complete_events()
+    owner_fields = _complete_owner_fields()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    invariants = _complete_invariants()
+    generation_domains = _complete_generation_domains()
+    diff_harness_checks = _complete_diff_harness_checks()
+    transitions[0]["boundary_status"] = "boundary.__ytnova_unknown__"
+    actions[0]["boundary_status"] = "boundary.__ytnova_unknown__"
+    events[0]["boundary_status"] = "boundary.__ytnova_unknown__"
+    owner_fields[0]["migration_status"] = "boundary.__ytnova_unknown__"
+    dispatch_surfaces[0]["boundary_status"] = "boundary.__ytnova_unknown__"
+    invariants[0]["enforcement_status"] = "boundary.__ytnova_unknown__"
+    generation_domains[0]["enforcement_status"] = "boundary.__ytnova_unknown__"
+    diff_harness_checks[0]["enforcement_status"] = "boundary.__ytnova_unknown__"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        events=events,
+        owner_fields=owner_fields,
+        dispatch_surfaces=dispatch_surfaces,
+        invariants=invariants,
+        generation_domains=generation_domains,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition[0]" in failure
+        and "unknown boundary_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "action[0]" in failure
+        and "unknown boundary_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "event[0]" in failure
+        and "unknown boundary_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "owner_field[0]" in failure
+        and "unknown migration_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "unknown boundary_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "invariant[0]" in failure
+        and "unknown enforcement_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "generation_domain[0]" in failure
+        and "unknown enforcement_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "unknown enforcement_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_when_required_shim_field_is_missing(tmp_path: Path) -> None:
