@@ -12486,3 +12486,42 @@ def test_runtime_diff_harness_startup_requires_documented_harness_ids() -> None:
         source,
         re.S,
     )
+
+
+def test_appstate_generation_domain_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index("AppStateGenerationDomainAt(size_t index)")
+    next_accessor_start = source.index(
+        "const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateGenerationDomainCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedGenerationDomain\(\s*"
+        r"kAppStateGenerationDomains\[index\]\.domain_id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
+
+
+def test_appstate_diff_harness_accessor_fails_closed_on_invalid_metadata() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    accessor_start = source.index(
+        "const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index)"
+    )
+    next_accessor_start = source.index(
+        "const AppStateTransitionSequenceMetadata *\n"
+        "AppStateTransitionSequenceAt(size_t index)"
+    )
+    accessor_body = source[accessor_start:next_accessor_start]
+
+    assert "index >= AppStateDiffHarnessCount()" in accessor_body
+    assert re.search(
+        r"if \(!AppStateValidatedDiffHarness\(\s*"
+        r"kAppStateDiffHarnesses\[index\]\.harness_id\s*"
+        r"\)\)\s*return NULL;",
+        accessor_body,
+        re.S,
+    )
