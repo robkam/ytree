@@ -6186,6 +6186,13 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage."},
 };
 
+static int AppStateValidateActionCoverage(
+    YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage);
+int AppStateValidatedEvent(const char *event_id);
+int AppStateValidatedTransition(const char *transition_id);
+int AppStateValidatedDispatchSurface(const char *surface_id);
+int AppStateValidatedCompatibilityShim(const char *shim_id);
+int AppStateValidatedInvariant(const char *invariant_id);
 int AppStateValidatedOwnerField(const char *field);
 int AppStateValidatedTransitionSequence(const char *scenario_id);
 
@@ -6283,11 +6290,18 @@ const AppStateActionCoverageMetadata *AppStateActionCoverageAt(size_t index) {
   if (index >= AppStateActionCoverageCount())
     return NULL;
 
+  if (!AppStateValidateActionCoverage(kAppStateActionCoverages[index].action,
+                                      &kAppStateActionCoverages[index]))
+    return NULL;
+
   return &kAppStateActionCoverages[index];
 }
 
 const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index) {
   if (index >= AppStateEventCoverageCount())
+    return NULL;
+
+  if (!AppStateValidatedEvent(kAppStateEventCoverages[index].event_id))
     return NULL;
 
   return &kAppStateEventCoverages[index];
@@ -6297,11 +6311,18 @@ const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
   if (index >= AppStateTransitionCount())
     return NULL;
 
+  if (!AppStateValidatedTransition(kAppStateTransitions[index].id))
+    return NULL;
+
   return &kAppStateTransitions[index];
 }
 
 const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index) {
   if (index >= AppStateDispatchSurfaceCount())
+    return NULL;
+
+  if (!AppStateValidatedDispatchSurface(
+          kAppStateDispatchSurfaces[index].surface_id))
     return NULL;
 
   return &kAppStateDispatchSurfaces[index];
@@ -6312,11 +6333,17 @@ AppStateCompatibilityShimAt(size_t index) {
   if (index >= AppStateCompatibilityShimCount())
     return NULL;
 
+  if (!AppStateValidatedCompatibilityShim(kAppStateCompatibilityShims[index].id))
+    return NULL;
+
   return &kAppStateCompatibilityShims[index];
 }
 
 const AppStateInvariantMetadata *AppStateInvariantAt(size_t index) {
   if (index >= AppStateInvariantCount())
+    return NULL;
+
+  if (!AppStateValidatedInvariant(kAppStateInvariants[index].invariant_id))
     return NULL;
 
   return &kAppStateInvariants[index];
@@ -7170,35 +7197,35 @@ int AppStateValidatedTransitionSequence(const char *scenario_id) {
       scenario_id, AppStateTransitionSequenceLookup(scenario_id));
 }
 
-static YtreeNovaAction AppStateValidateKeyActionCoverage(
+static int AppStateValidateActionCoverage(
     YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage) {
   const AppStateTransitionMetadata *transition;
 
-  if (action == ACTION_NONE)
-    return ACTION_NONE;
+  if ((int)action < 0 || (size_t)action >= AppStateActionCoverageCount())
+    return 0;
   if (coverage == NULL || coverage->action != action)
-    return ACTION_NONE;
+    return 0;
   transition = AppStateTransitionLookup(coverage->transition_id);
   if (!AppStateValidateTransition(coverage->transition_id, transition))
-    return ACTION_NONE;
+    return 0;
   if (!AppStateNonEmptyString(coverage->action_name) ||
       !AppStateNonEmptyString(coverage->category) ||
       !AppStateNonEmptyString(coverage->owner) ||
       !AppStateNonEmptyString(coverage->boundary_status) ||
       strcmp(coverage->category, transition->category) != 0 ||
       strcmp(coverage->owner, transition->owner) != 0)
-    return ACTION_NONE;
+    return 0;
   if (!AppStateKnownBoundaryStatus(coverage->boundary_status))
-    return ACTION_NONE;
+    return 0;
   if (!AppStateStringListEquals(coverage->declared_write_set,
                                 coverage->declared_write_set_count,
                                 transition->declared_write_set,
                                 transition->declared_write_set_count))
-    return ACTION_NONE;
+    return 0;
   if (!AppStateCoverageOwnerFieldsMatchWriteSet(
           coverage->owner_field_refs, coverage->owner_field_ref_count,
           coverage->declared_write_set, coverage->declared_write_set_count))
-    return ACTION_NONE;
+    return 0;
   if (!AppStateNonEmptyStringList(coverage->transition_sequence_refs,
                                   coverage->transition_sequence_ref_count) ||
       !AppStateNonEmptyStringList(coverage->dispatch_surface_refs,
@@ -7211,6 +7238,14 @@ static YtreeNovaAction AppStateValidateKeyActionCoverage(
                                   coverage->diff_harness_ref_count) ||
       !AppStateNonEmptyStringList(coverage->migration_notes,
                                   coverage->migration_note_count))
+    return 0;
+
+  return 1;
+}
+
+static YtreeNovaAction AppStateValidateKeyActionCoverage(
+    YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage) {
+  if (!AppStateValidateActionCoverage(action, coverage))
     return ACTION_NONE;
 
   return action;
