@@ -5183,8 +5183,11 @@ def test_appstate_shim_lookup_fails_closed_through_runtime_metadata() -> None:
     assert "AppStateCompatibilityShimLookup(shim_id)" in body
     assert "AppStateTransitionLookup(metadata->target_transition)" in body
     assert "AppStateValidateTransition(metadata->target_transition, transition)" in body
-    assert "metadata->write_capability" in body
-    assert '"read_only_projection"' in body
+    assert "AppStateCompatibilityShimWriteCapabilityKnown(metadata)" in body
+    assert "AppStateCompatibilityShimInvariantRefsReady(metadata)" in body
+    assert "AppStateCompatibilityShimGenerationDomainRefsReady(metadata)" in body
+    assert "AppStateCompatibilityShimDiffHarnessRefsReady(metadata)" in body
+    assert "AppStateCompatibilityShimReadOnlyProjection(metadata)" in body
     assert "AppStateTransitionFieldsRegistered(metadata->owner_field_refs" in body
     assert "strcmp(metadata->id, shim_id)" in body
 
@@ -5505,6 +5508,12 @@ int main(void) {
   static const char *const missing_invariant_refs[] = {
       "invariant.__ytnova_missing__",
   };
+  static const char *const missing_generation_domain_refs[] = {
+      "generation.__ytnova_missing__",
+  };
+  static const char *const missing_diff_harness_refs[] = {
+      "harness.__ytnova_missing__",
+  };
 
   if (!AppStateValidatedTransition("transition.keybinding.navigate-tree"))
     return 1;
@@ -5585,6 +5594,37 @@ int main(void) {
   if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
                                         &invalid_shim))
     return 20;
+
+  invalid_shim =
+      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+  invalid_shim.invariant_checks = missing_invariant_refs;
+  invalid_shim.invariant_check_count = 1;
+  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+                                        &invalid_shim))
+    return 21;
+
+  invalid_shim =
+      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+  invalid_shim.generation_domain_refs = missing_generation_domain_refs;
+  invalid_shim.generation_domain_ref_count = 1;
+  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+                                        &invalid_shim))
+    return 22;
+
+  invalid_shim =
+      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+  invalid_shim.diff_harness_refs = missing_diff_harness_refs;
+  invalid_shim.diff_harness_ref_count = 1;
+  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+                                        &invalid_shim))
+    return 23;
+
+  invalid_shim =
+      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+  invalid_shim.owner = "";
+  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+                                        &invalid_shim))
+    return 24;
 
   return 0;
 }

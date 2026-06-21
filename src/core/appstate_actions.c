@@ -7288,25 +7288,135 @@ int AppStateValidatedDispatchSurface(const char *surface_id) {
       surface_id, AppStateDispatchSurfaceLookup(surface_id));
 }
 
+static int AppStateStringListHasDuplicate(const char *const *values,
+                                          size_t value_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(values, value_count))
+    return 1;
+
+  for (index = 0; index < value_count; index++) {
+    if (AppStateStringListContains(values, index, values[index]))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateCompatibilityShimWriteCapabilityKnown(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->write_capability))
+    return 0;
+
+  return strcmp(metadata->write_capability, "write_capable") == 0 ||
+         strcmp(metadata->write_capability, "read_only_projection") == 0 ||
+         strcmp(metadata->write_capability, "no_write") == 0;
+}
+
+static int AppStateCompatibilityShimWriteCapable(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  return metadata != NULL && AppStateNonEmptyString(metadata->write_capability) &&
+         strcmp(metadata->write_capability, "write_capable") == 0;
+}
+
+static int AppStateCompatibilityShimReadOnlyProjection(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  return metadata != NULL && AppStateNonEmptyString(metadata->write_capability) &&
+         strcmp(metadata->write_capability, "read_only_projection") == 0;
+}
+
+static int AppStateCompatibilityShimInvariantRefsReady(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  size_t index;
+
+  if (metadata == NULL ||
+      !AppStateNonEmptyStringList(metadata->invariant_checks,
+                                  metadata->invariant_check_count) ||
+      AppStateStringListHasDuplicate(metadata->invariant_checks,
+                                     metadata->invariant_check_count))
+    return 0;
+
+  for (index = 0; index < metadata->invariant_check_count; index++) {
+    if (!AppStateValidatedInvariant(metadata->invariant_checks[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateCompatibilityShimGenerationDomainRefsReady(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  size_t index;
+
+  if (metadata == NULL ||
+      !AppStateNonEmptyStringList(metadata->generation_domain_refs,
+                                  metadata->generation_domain_ref_count) ||
+      AppStateStringListHasDuplicate(metadata->generation_domain_refs,
+                                     metadata->generation_domain_ref_count))
+    return 0;
+
+  for (index = 0; index < metadata->generation_domain_ref_count; index++) {
+    if (!AppStateValidatedGenerationDomain(
+            metadata->generation_domain_refs[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateCompatibilityShimDiffHarnessRefsReady(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  size_t index;
+
+  if (metadata == NULL ||
+      !AppStateNonEmptyStringList(metadata->diff_harness_refs,
+                                  metadata->diff_harness_ref_count) ||
+      AppStateStringListHasDuplicate(metadata->diff_harness_refs,
+                                     metadata->diff_harness_ref_count))
+    return 0;
+
+  for (index = 0; index < metadata->diff_harness_ref_count; index++) {
+    if (!AppStateValidatedDiffHarness(metadata->diff_harness_refs[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
 static int AppStateValidateCompatibilityShim(
     const char *shim_id, const AppStateCompatibilityShimMetadata *metadata) {
   const AppStateTransitionMetadata *transition;
   size_t owner_field_index;
 
-  if (shim_id == NULL || shim_id[0] == '\0')
+  if (!AppStateNonEmptyString(shim_id))
     return 0;
-  if (metadata == NULL || metadata->id == NULL || strcmp(metadata->id, shim_id))
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->id) ||
+      strcmp(metadata->id, shim_id))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->owner) ||
+      !AppStateNonEmptyString(metadata->old_authority_path) ||
+      !AppStateNonEmptyString(metadata->read_permission) ||
+      !AppStateNonEmptyString(metadata->write_permission) ||
+      !AppStateCompatibilityShimWriteCapabilityKnown(metadata) ||
+      !AppStateNonEmptyString(metadata->removal_trigger) ||
+      !AppStateNonEmptyString(metadata->target_transition) ||
+      !AppStateNonEmptyString(metadata->follow_up_task) ||
+      !AppStateNonEmptyString(metadata->qa_enforcement))
     return 0;
   transition = AppStateTransitionLookup(metadata->target_transition);
   if (!AppStateValidateTransition(metadata->target_transition, transition))
     return 0;
-  if (metadata->write_capability == NULL ||
-      (strcmp(metadata->write_capability, "write_capable") &&
-       strcmp(metadata->write_capability, "read_only_projection") &&
-       strcmp(metadata->write_capability, "no_write")))
+  if (!AppStateCompatibilityShimInvariantRefsReady(metadata))
     return 0;
   if (!AppStateTransitionFieldsRegistered(metadata->owner_field_refs,
                                           metadata->owner_field_ref_count))
+    return 0;
+  if (AppStateStringListHasDuplicate(metadata->owner_field_refs,
+                                     metadata->owner_field_ref_count))
+    return 0;
+  if (!AppStateCompatibilityShimGenerationDomainRefsReady(metadata))
+    return 0;
+  if (!AppStateCompatibilityShimDiffHarnessRefsReady(metadata))
     return 0;
 
   for (owner_field_index = 0;
@@ -7316,10 +7426,9 @@ static int AppStateValidateCompatibilityShim(
         transition->declared_write_set, transition->declared_write_set_count,
         metadata->owner_field_refs[owner_field_index]);
 
-    if (!strcmp(metadata->write_capability, "write_capable") &&
-        !field_in_transition)
+    if (AppStateCompatibilityShimWriteCapable(metadata) && !field_in_transition)
       return 0;
-    if (!strcmp(metadata->write_capability, "read_only_projection") &&
+    if (AppStateCompatibilityShimReadOnlyProjection(metadata) &&
         field_in_transition)
       return 0;
   }
