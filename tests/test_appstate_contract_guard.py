@@ -4580,6 +4580,117 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_runtime_transition_sequence_validation_rejects_result_metadata_drift(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "transition_sequence_result_probe.c"
+    binary = tmp_path / "transition_sequence_result_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateTransitionSequenceStepMetadata step;
+  static const AppStateTransitionSequenceNoUnrelatedMutationMetadata
+      missing_harness = {"harness.__ytnova_missing__", "must remain unchanged"};
+  static const AppStateTransitionSequenceNoUnrelatedMutationMetadata
+      wrong_harness = {"harness.render-projection-read-only-diff",
+                       "must remain unchanged"};
+  static const AppStateTransitionSequenceNoUnrelatedMutationMetadata
+      valid_no_unrelated = {"harness.declared-write-set-diff",
+                            "must remain unchanged"};
+  static const AppStateTransitionSequenceDeterministicFallbackMetadata
+      valid_fallback = {"restore durable identity",
+                        "declared transition fields only"};
+  static const AppStateTransitionSequenceDeterministicFallbackMetadata
+      blank_fallback = {"", "declared transition fields only"};
+  const AppStateTransitionSequenceMetadata *sequence =
+      AppStateTransitionSequenceLookup("sequence.split-toggle-f8");
+
+  if (sequence == NULL || sequence->step_count < 2)
+    return 1;
+  step = sequence->steps[0];
+  if (!AppStateTransitionSequenceStepReady(&step))
+    return 2;
+
+  step.expected_result = "unknown";
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 3;
+
+  step = sequence->steps[0];
+  step.expected_result = "blocked";
+  step.no_unrelated_mutation = NULL;
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 4;
+
+  step.no_unrelated_mutation = &missing_harness;
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 5;
+
+  step.no_unrelated_mutation = &wrong_harness;
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 6;
+
+  step = sequence->steps[0];
+  step.expected_result = "fallback";
+  step.no_unrelated_mutation = &valid_no_unrelated;
+  step.deterministic_fallback = NULL;
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 7;
+
+  step.deterministic_fallback = &blank_fallback;
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 8;
+
+  step.deterministic_fallback = &valid_fallback;
+  if (!AppStateTransitionSequenceStepReady(&step))
+    return 12;
+
+  step = sequence->steps[1];
+  if (!AppStateTransitionSequenceStepReady(&step))
+    return 9;
+  step.no_unrelated_mutation = NULL;
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 10;
+
+  step = sequence->steps[0];
+  step.precondition = "unexpected";
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 11;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
 def test_runtime_registry_status_validation_rejects_unknown_values(
     tmp_path: Path,
 ) -> None:
