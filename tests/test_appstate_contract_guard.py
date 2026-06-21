@@ -6748,6 +6748,43 @@ def test_guard_fails_when_runtime_dispatch_surface_validation_callsite_is_missin
     )
 
 
+def test_guard_fails_when_runtime_event_validation_callsite_is_missing(
+    tmp_path: Path,
+) -> None:
+    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
+    source_path = tmp_path / "src" / "ui" / "display.c"
+    original = source_path.read_text(encoding="utf-8")
+    mutated = original.replace(
+        'AppStateValidatedEvent("event.render-reflow")',
+        'AppStateValidatedEvent("event.render-reflow-missing")',
+        1,
+    )
+    assert mutated != original
+    source_path.write_text(mutated, encoding="utf-8")
+
+    failures = guard.validate_contract(
+        guard.DEFAULT_TRANSITIONS,
+        guard.DEFAULT_SHIMS,
+        guard.DEFAULT_ACTION_COVERAGE,
+        guard.DEFAULT_ACTION_HEADER,
+        guard.DEFAULT_EVENT_COVERAGE,
+        guard.DEFAULT_OWNER_FIELDS,
+        guard.DEFAULT_DISPATCH_SURFACES,
+        guard.DEFAULT_INVARIANTS,
+        guard.DEFAULT_GENERATION_DOMAINS,
+        guard.DEFAULT_DIFF_HARNESS,
+        guard.DEFAULT_TRANSITION_SEQUENCES,
+        guard.DEFAULT_ACTION_RUNTIME,
+        repository_root=tmp_path,
+    )
+
+    assert any(
+        "event.render-reflow" in failure
+        and "missing runtime validation callsite" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_on_malformed_dispatch_surface_entry_symbol_or_path(
     tmp_path: Path,
 ) -> None:
