@@ -12714,3 +12714,44 @@ def test_appstate_string_lookup_boundaries_fail_closed_on_invalid_registry_keys(
             re.S,
         )
         assert f"strcmp({candidate}, {requested})" not in body
+
+
+def test_appstate_coverage_ref_lookup_boundaries_fail_closed_on_invalid_ids() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    lookups = {
+        "AppStateActionCoverageIdLookup": (
+            "AppStateActionCoverageMetadata",
+            "kAppStateActionCoverages[index].action_name",
+            "action_id",
+        ),
+        "AppStateEventCoverageIdLookup": (
+            "AppStateEventCoverageMetadata",
+            "kAppStateEventCoverages[index].event_id",
+            "event_id",
+        ),
+    }
+
+    assert "static int AppStateLookupIdMatches(" in source
+    for function_name, (metadata_type, candidate, requested) in lookups.items():
+        definition = re.search(
+            r"(?m)^static const "
+            + re.escape(metadata_type)
+            + r" \*\n"
+            + function_name
+            + r"\([^)]*\) \{",
+            source,
+        )
+        assert definition is not None
+        start = definition.start()
+        end = source.index("\n}", start) + 2
+        body = source[start:end]
+        assert re.search(
+            r"AppStateLookupIdMatches\(\s*"
+            + re.escape(candidate)
+            + r"\s*,\s*"
+            + requested
+            + r"\s*\)",
+            body,
+            re.S,
+        )
+        assert f"strcmp({candidate}, {requested})" not in body
