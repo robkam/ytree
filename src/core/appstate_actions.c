@@ -6880,6 +6880,91 @@ int AppStateValidatedDiffHarness(const char *harness_id) {
                                      AppStateDiffHarnessLookup(harness_id));
 }
 
+static int AppStateExpectedResultValid(const char *expected_result) {
+  if (!AppStateNonEmptyString(expected_result))
+    return 0;
+  return strcmp(expected_result, "allowed") == 0 ||
+         strcmp(expected_result, "blocked") == 0 ||
+         strcmp(expected_result, "fallback") == 0 ||
+         strcmp(expected_result, "invalid") == 0;
+}
+
+static int AppStateFallbackPreconditionValid(const char *precondition) {
+  if (precondition == NULL)
+    return 1;
+  if (!AppStateNonEmptyString(precondition))
+    return 0;
+  return strcmp(precondition, "generation_mismatch") == 0 ||
+         strcmp(precondition, "stale_snapshot") == 0;
+}
+
+static int AppStateDiffHarnessCoversTransition(const char *harness_id,
+                                               const char *transition_id) {
+  const AppStateDiffHarnessMetadata *harness;
+
+  if (!AppStateNonEmptyString(harness_id) ||
+      !AppStateNonEmptyString(transition_id))
+    return 0;
+
+  harness = AppStateDiffHarnessLookup(harness_id);
+  if (harness == NULL ||
+      !AppStateNonEmptyStringList(harness->transition_ids,
+                                  harness->transition_id_count))
+    return 0;
+
+  return AppStateStringListContains(harness->transition_ids,
+                                    harness->transition_id_count,
+                                    transition_id);
+}
+
+static int AppStateTransitionSequenceStepRequiresNoUnrelatedMutation(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  if (step == NULL || !AppStateExpectedResultValid(step->expected_result))
+    return 0;
+  return strcmp(step->expected_result, "blocked") == 0 ||
+         strcmp(step->expected_result, "fallback") == 0 ||
+         strcmp(step->expected_result, "invalid") == 0 ||
+         step->precondition != NULL;
+}
+
+static int AppStateTransitionSequenceStepNoUnrelatedMutationReady(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  if (step == NULL)
+    return 0;
+  if (!AppStateTransitionSequenceStepRequiresNoUnrelatedMutation(step) &&
+      step->no_unrelated_mutation == NULL)
+    return 1;
+  if (step->no_unrelated_mutation == NULL)
+    return 0;
+  if (!AppStateNonEmptyString(step->no_unrelated_mutation->diff_harness_id) ||
+      !AppStateNonEmptyString(step->no_unrelated_mutation->expectation))
+    return 0;
+  if (!AppStateStringListContains(step->diff_harness_ids,
+                                  step->diff_harness_id_count,
+                                  step->no_unrelated_mutation->diff_harness_id))
+    return 0;
+  if (!AppStateDiffHarnessCoversTransition(
+          step->no_unrelated_mutation->diff_harness_id, step->transition_id))
+    return 0;
+
+  return 1;
+}
+
+static int AppStateTransitionSequenceStepDeterministicFallbackReady(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  if (step == NULL)
+    return 0;
+  if ((step->precondition != NULL ||
+       strcmp(step->expected_result, "fallback") == 0) &&
+      step->deterministic_fallback == NULL)
+    return 0;
+  if (step->deterministic_fallback == NULL)
+    return 1;
+  return AppStateNonEmptyString(step->deterministic_fallback->outcome) &&
+         AppStateNonEmptyString(
+             step->deterministic_fallback->allowed_mutation_scope);
+}
+
 static int AppStateTransitionSequenceStepGenerationDomainOverlaps(
     const AppStateTransitionSequenceStepMetadata *step,
     const char *const *coverage_domain_refs, size_t coverage_domain_ref_count) {
@@ -7012,7 +7097,8 @@ AppStateTransitionSequenceStepReady(
 
   if (step == NULL || !AppStateNonEmptyString(step->step_id) ||
       !AppStateValidatedTransition(step->transition_id) ||
-      !AppStateNonEmptyString(step->expected_result))
+      !AppStateExpectedResultValid(step->expected_result) ||
+      !AppStateFallbackPreconditionValid(step->precondition))
     return 0;
   if (step->stimulus_action_id == NULL && step->stimulus_event_id == NULL)
     return 0;
@@ -7041,6 +7127,10 @@ AppStateTransitionSequenceStepReady(
         !AppStateValidatedGenerationDomain(expectation->domain_id))
       return 0;
   }
+  if (!AppStateTransitionSequenceStepNoUnrelatedMutationReady(step))
+    return 0;
+  if (!AppStateTransitionSequenceStepDeterministicFallbackReady(step))
+    return 0;
 
   return 1;
 }
