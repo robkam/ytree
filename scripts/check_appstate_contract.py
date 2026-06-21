@@ -334,6 +334,17 @@ VALID_SHIM_WRITE_CAPABILITIES = {
     "read_only_projection",
     "no_write",
 }
+VALID_BOUNDARY_STATUSES = {
+    "covered_by_transition_record",
+    "documented_foundation_only",
+    "mapped_to_existing_broad_transition",
+}
+VALID_ENFORCEMENT_STATUSES = {
+    "documented_foundation_only",
+}
+VALID_MIGRATION_STATUSES = {
+    "documented_foundation_only",
+}
 DISPATCH_LIST_FIELDS = {"migration_notes", "transition_sequence_refs"}
 INVARIANT_LIST_FIELDS = {
     "protected_fields",
@@ -423,6 +434,21 @@ def _validate_required_fields(
             failures.append(f"{label}: {field} must be non-empty")
 
     return failures
+
+
+def _validate_status_field(
+    *,
+    record: dict[str, Any],
+    label: str,
+    field: str,
+    valid_statuses: set[str],
+) -> list[str]:
+    value = record.get(field)
+    if not isinstance(value, str) or not value.strip():
+        return []
+    if value not in valid_statuses:
+        return [f"{label}: unknown {field}: {value}"]
+    return []
 
 
 def _parse_ytnova_actions(header_path: Path) -> tuple[list[str], list[str]]:
@@ -2156,6 +2182,14 @@ def _validate_runtime_action_coverage_registry(
         action_name = record.get("action_name")
         if not isinstance(action_name, str) or not action_name.strip():
             failures.append(f"{label}: action_name must be non-empty")
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
 
         action = record.get("action")
         if isinstance(action, str) and action.strip():
@@ -2386,6 +2420,14 @@ def _validate_runtime_transition_registry(
                         f"{runtime_id}: {record.get(field)}"
                     )
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
         failures.extend(
             _validate_registered_write_set(
                 record=record,
@@ -2626,6 +2668,14 @@ def _validate_runtime_owner_field_registry(
                         f"{runtime_field}: {record.get(field)}"
                     )
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="migration_status",
+                valid_statuses=VALID_MIGRATION_STATUSES,
+            )
+        )
         for field in sorted(REQUIRED_OWNER_FIELDS - {"invariant_checks"}):
             value = record.get(field)
             if not isinstance(value, str) or not value.strip():
@@ -2719,6 +2769,14 @@ def _validate_runtime_dispatch_surface_registry(
                         f"surface {runtime_id}: {record.get(field)}"
                     )
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
         writes = record.get("allowed_direct_writes")
         if not isinstance(writes, list):
             failures.append(f"{label}: allowed_direct_writes must be a list")
@@ -2829,6 +2887,14 @@ def _validate_runtime_invariant_registry(
                         f"{runtime_id}: {record.get(field)}"
                     )
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="enforcement_status",
+                valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
         for field in (
             "protected_fields",
             "transition_ids",
@@ -2953,6 +3019,14 @@ def _validate_runtime_generation_domain_registry(
                         f"domain {runtime_id}: {record.get(field)}"
                     )
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="enforcement_status",
+                valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
         for field in (
             "domain_id",
             "category",
@@ -3118,6 +3192,14 @@ def _validate_runtime_diff_harness_registry(
                         f"{runtime_id}: {record.get(field)}"
                     )
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="enforcement_status",
+                valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
         for field in (
             "harness_id",
             "check_category",
@@ -3800,6 +3882,14 @@ def _validate_owner_fields(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="migration_status",
+                valid_statuses=VALID_MIGRATION_STATUSES,
+            )
+        )
 
         field = record.get("field")
         if isinstance(field, str) and field.strip():
@@ -4385,6 +4475,14 @@ def _validate_appstate_diff_harness(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="enforcement_status",
+                valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
 
         harness_id = record.get("harness_id")
         harness_label = label
@@ -4652,6 +4750,14 @@ def _validate_dispatch_surfaces(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
         if "allowed_direct_writes" not in record:
             failures.append(f"{label}: missing required field(s): allowed_direct_writes")
         else:
@@ -4775,6 +4881,14 @@ def _validate_invariants(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="enforcement_status",
+                valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
         if "dispatch_surface_ids" not in record:
             failures.append(f"{label}: missing required field(s): dispatch_surface_ids")
         else:
@@ -4956,6 +5070,14 @@ def _validate_generation_domains(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="enforcement_status",
+                valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
 
         if "advances_on_transition_ids" not in record:
             failures.append(
@@ -5134,6 +5256,16 @@ def _validate_runtime_event_coverage_registry(
                 label=label,
             )
         )
+        if not isinstance(record, dict):
+            continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
         failures.extend(
             _validate_owner_field_coverage_refs(
                 record=record,
@@ -5299,6 +5431,14 @@ def _validate_event_coverage(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
         failures.extend(
             _validate_registered_write_set(
                 record=record,
@@ -6862,6 +7002,14 @@ def validate_contract(
         if not isinstance(record, dict):
             continue
         failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
+        failures.extend(
             _validate_registered_write_set(
                 record=record,
                 registered_fields=registered_owner_fields,
@@ -7181,6 +7329,14 @@ def validate_contract(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="boundary_status",
+                valid_statuses=VALID_BOUNDARY_STATUSES,
+            )
+        )
         failures.extend(
             _validate_registered_write_set(
                 record=record,

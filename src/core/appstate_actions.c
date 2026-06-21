@@ -6517,6 +6517,20 @@ static int AppStateStringListsOverlap(const char *const *left,
   return 0;
 }
 
+static int AppStateKnownBoundaryStatus(const char *status) {
+  if (!AppStateNonEmptyString(status))
+    return 0;
+  return strcmp(status, "covered_by_transition_record") == 0 ||
+         strcmp(status, "documented_foundation_only") == 0 ||
+         strcmp(status, "mapped_to_existing_broad_transition") == 0;
+}
+
+static int AppStateKnownFoundationStatus(const char *status) {
+  if (!AppStateNonEmptyString(status))
+    return 0;
+  return strcmp(status, "documented_foundation_only") == 0;
+}
+
 static const AppStateActionCoverageMetadata *
 AppStateActionCoverageIdLookup(const char *action_id) {
   size_t index;
@@ -6646,6 +6660,8 @@ AppStateValidateTransition(const char *transition_id,
       !AppStateNonEmptyString(metadata->boundary_status) ||
       !AppStateNonEmptyString(metadata->notes_follow_up))
     return 0;
+  if (!AppStateKnownBoundaryStatus(metadata->boundary_status))
+    return 0;
   if (!AppStateTransitionFieldsRegistered(metadata->declared_write_set,
                                           metadata->declared_write_set_count))
     return 0;
@@ -6686,6 +6702,8 @@ AppStateValidateOwnerField(const char *field,
       !AppStateNonEmptyString(metadata->runtime_carrier) ||
       !AppStateNonEmptyString(metadata->mutation_rule) ||
       !AppStateNonEmptyString(metadata->migration_status))
+    return 0;
+  if (!AppStateKnownFoundationStatus(metadata->migration_status))
     return 0;
   if (!AppStateInvariantIdsRegistered(metadata->invariant_checks,
                                       metadata->invariant_check_count))
@@ -6728,6 +6746,8 @@ AppStateValidateInvariant(const char *invariant_id,
       !AppStateNonEmptyString(metadata->enforcement_status) ||
       !AppStateNonEmptyString(metadata->test_strategy))
     return 0;
+  if (!AppStateKnownFoundationStatus(metadata->enforcement_status))
+    return 0;
   if (!AppStateTransitionFieldsRegistered(metadata->protected_fields,
                                           metadata->protected_field_count))
     return 0;
@@ -6766,6 +6786,8 @@ AppStateValidateGenerationDomain(
       !AppStateNonEmptyString(metadata->fail_closed_fallback) ||
       !AppStateNonEmptyString(metadata->restore_boundary) ||
       !AppStateNonEmptyString(metadata->enforcement_status))
+    return 0;
+  if (!AppStateKnownFoundationStatus(metadata->enforcement_status))
     return 0;
   if (AppStateOwnerFieldLookup(metadata->generation_owner_field) == NULL)
     return 0;
@@ -6825,6 +6847,8 @@ AppStateValidateDiffHarness(const char *harness_id,
       !AppStateNonEmptyString(metadata->expected_behavior) ||
       !AppStateNonEmptyString(metadata->failure_mode) ||
       !AppStateNonEmptyString(metadata->enforcement_status))
+    return 0;
+  if (!AppStateKnownFoundationStatus(metadata->enforcement_status))
     return 0;
   if (!AppStateNonEmptyStringList(metadata->snapshot_phases,
                                   metadata->snapshot_phase_count))
@@ -7067,6 +7091,8 @@ static YtreeNovaAction AppStateValidateKeyActionCoverage(
       strcmp(coverage->category, transition->category) != 0 ||
       strcmp(coverage->owner, transition->owner) != 0)
     return ACTION_NONE;
+  if (!AppStateKnownBoundaryStatus(coverage->boundary_status))
+    return ACTION_NONE;
   if (!AppStateStringListEquals(coverage->declared_write_set,
                                 coverage->declared_write_set_count,
                                 transition->declared_write_set,
@@ -7118,6 +7144,8 @@ AppStateValidateEventCoverage(const char *event_id,
       !AppStateNonEmptyString(coverage->boundary_status) ||
       strcmp(coverage->category, transition->category) != 0 ||
       strcmp(coverage->owner, transition->owner) != 0)
+    return 0;
+  if (!AppStateKnownBoundaryStatus(coverage->boundary_status))
     return 0;
   if (!AppStateStringListEquals(coverage->declared_write_set,
                                 coverage->declared_write_set_count,
@@ -7239,6 +7267,8 @@ static int AppStateValidateDispatchSurface(
       !AppStateNonEmptyString(metadata->source_path) ||
       !AppStateNonEmptyString(metadata->entry_symbol_or_path) ||
       !AppStateNonEmptyString(metadata->boundary_status))
+    return 0;
+  if (!AppStateKnownBoundaryStatus(metadata->boundary_status))
     return 0;
   if (!AppStateDispatchSurfaceAllowedWritesReady(metadata, transition))
     return 0;
