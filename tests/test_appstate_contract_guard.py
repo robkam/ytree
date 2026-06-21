@@ -4508,6 +4508,78 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_runtime_transition_sequence_validation_rejects_mismatched_action_ref(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "transition_sequence_action_ref_probe.c"
+    binary = tmp_path / "transition_sequence_action_ref_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  static const char *const bad_action_refs[] = {"ACTION_SWITCH_PANEL"};
+  static const char *const bad_event_refs[] = {"event.terminal-resize-signal"};
+  const AppStateTransitionSequenceMetadata *sequence =
+      AppStateTransitionSequenceLookup("sequence.split-toggle-f8");
+  const AppStateTransitionSequenceMetadata *modal_sequence =
+      AppStateTransitionSequenceLookup("sequence.esc-modal-dismissal");
+  AppStateTransitionSequenceStepMetadata step;
+
+  if (sequence == NULL || sequence->step_count == 0)
+    return 1;
+  step = sequence->steps[0];
+  if (!AppStateTransitionSequenceStepReady(&step))
+    return 2;
+  step.action_coverage_refs = bad_action_refs;
+  step.action_coverage_ref_count =
+      sizeof(bad_action_refs) / sizeof(bad_action_refs[0]);
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 3;
+  if (modal_sequence == NULL || modal_sequence->step_count == 0)
+    return 4;
+  step = modal_sequence->steps[0];
+  if (!AppStateTransitionSequenceStepReady(&step))
+    return 5;
+  step.event_coverage_refs = bad_event_refs;
+  step.event_coverage_ref_count =
+      sizeof(bad_event_refs) / sizeof(bad_event_refs[0]);
+  if (AppStateTransitionSequenceStepReady(&step))
+    return 6;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
 def test_runtime_dispatch_surface_validation_requires_registry_and_transition(
     tmp_path: Path,
 ) -> None:
