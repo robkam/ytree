@@ -6188,6 +6188,8 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
 
 static int AppStateValidateActionCoverage(
     YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage);
+static int AppStateLookupIdMatches(const char *candidate,
+                                   const char *requested);
 int AppStateValidatedEvent(const char *event_id);
 int AppStateValidatedTransition(const char *transition_id);
 int AppStateValidatedDispatchSurface(const char *surface_id);
@@ -6357,7 +6359,7 @@ AppStateOwnerFieldLookup(const char *field) {
     return NULL;
 
   for (index = 0; index < AppStateOwnerFieldCount(); index++) {
-    if (!strcmp(kAppStateOwnerFields[index].field, field))
+    if (AppStateLookupIdMatches(kAppStateOwnerFields[index].field, field))
       return &kAppStateOwnerFields[index];
   }
 
@@ -6372,7 +6374,8 @@ AppStateGenerationDomainLookup(const char *domain_id) {
     return NULL;
 
   for (index = 0; index < AppStateGenerationDomainCount(); index++) {
-    if (!strcmp(kAppStateGenerationDomains[index].domain_id, domain_id))
+    if (AppStateLookupIdMatches(kAppStateGenerationDomains[index].domain_id,
+                                domain_id))
       return &kAppStateGenerationDomains[index];
   }
 
@@ -6387,7 +6390,8 @@ AppStateDiffHarnessLookup(const char *harness_id) {
     return NULL;
 
   for (index = 0; index < AppStateDiffHarnessCount(); index++) {
-    if (!strcmp(kAppStateDiffHarnesses[index].harness_id, harness_id))
+    if (AppStateLookupIdMatches(kAppStateDiffHarnesses[index].harness_id,
+                                harness_id))
       return &kAppStateDiffHarnesses[index];
   }
 
@@ -6402,7 +6406,8 @@ AppStateTransitionSequenceLookup(const char *scenario_id) {
     return NULL;
 
   for (index = 0; index < AppStateTransitionSequenceCount(); index++) {
-    if (!strcmp(kAppStateTransitionSequences[index].scenario_id, scenario_id))
+    if (AppStateLookupIdMatches(
+            kAppStateTransitionSequences[index].scenario_id, scenario_id))
       return &kAppStateTransitionSequences[index];
   }
 
@@ -6417,7 +6422,8 @@ AppStateTransitionLookup(const char *transition_id) {
     return NULL;
 
   for (index = 0; index < AppStateTransitionCount(); index++) {
-    if (!strcmp(kAppStateTransitions[index].id, transition_id))
+    if (AppStateLookupIdMatches(kAppStateTransitions[index].id,
+                                transition_id))
       return &kAppStateTransitions[index];
   }
 
@@ -6432,7 +6438,8 @@ AppStateDispatchSurfaceLookup(const char *surface_id) {
     return NULL;
 
   for (index = 0; index < AppStateDispatchSurfaceCount(); index++) {
-    if (!strcmp(kAppStateDispatchSurfaces[index].surface_id, surface_id))
+    if (AppStateLookupIdMatches(kAppStateDispatchSurfaces[index].surface_id,
+                                surface_id))
       return &kAppStateDispatchSurfaces[index];
   }
 
@@ -6447,7 +6454,8 @@ AppStateCompatibilityShimLookup(const char *shim_id) {
     return NULL;
 
   for (index = 0; index < AppStateCompatibilityShimCount(); index++) {
-    if (!strcmp(kAppStateCompatibilityShims[index].id, shim_id))
+    if (AppStateLookupIdMatches(kAppStateCompatibilityShims[index].id,
+                                shim_id))
       return &kAppStateCompatibilityShims[index];
   }
 
@@ -6462,7 +6470,8 @@ AppStateInvariantLookup(const char *invariant_id) {
     return NULL;
 
   for (index = 0; index < AppStateInvariantCount(); index++) {
-    if (!strcmp(kAppStateInvariants[index].invariant_id, invariant_id))
+    if (AppStateLookupIdMatches(kAppStateInvariants[index].invariant_id,
+                                invariant_id))
       return &kAppStateInvariants[index];
   }
 
@@ -6499,6 +6508,12 @@ AppStateActionCoverageLookup(YtreeNovaAction action) {
 
 static int AppStateNonEmptyString(const char *value) {
   return value != NULL && value[0] != '\0';
+}
+
+static int AppStateLookupIdMatches(const char *candidate,
+                                   const char *requested) {
+  return AppStateNonEmptyString(candidate) &&
+         AppStateNonEmptyString(requested) && !strcmp(candidate, requested);
 }
 
 static int AppStateNonEmptyStringList(const char *const *values,
@@ -7581,7 +7596,8 @@ AppStateEventCoverageLookup(const char *event_id) {
     return NULL;
 
   for (index = 0; index < AppStateEventCoverageCount(); index++) {
-    if (!strcmp(kAppStateEventCoverages[index].event_id, event_id))
+    if (AppStateLookupIdMatches(kAppStateEventCoverages[index].event_id,
+                                event_id))
       return &kAppStateEventCoverages[index];
   }
 

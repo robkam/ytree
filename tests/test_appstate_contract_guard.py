@@ -12649,3 +12649,68 @@ def test_appstate_invariant_accessor_fails_closed_on_invalid_metadata() -> None:
         accessor_body,
         re.S,
     )
+
+
+def test_appstate_string_lookup_boundaries_fail_closed_on_invalid_registry_keys() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    lookups = {
+        "AppStateOwnerFieldLookup": (
+            "kAppStateOwnerFields[index].field",
+            "field",
+        ),
+        "AppStateGenerationDomainLookup": (
+            "kAppStateGenerationDomains[index].domain_id",
+            "domain_id",
+        ),
+        "AppStateDiffHarnessLookup": (
+            "kAppStateDiffHarnesses[index].harness_id",
+            "harness_id",
+        ),
+        "AppStateTransitionSequenceLookup": (
+            "kAppStateTransitionSequences[index].scenario_id",
+            "scenario_id",
+        ),
+        "AppStateTransitionLookup": (
+            "kAppStateTransitions[index].id",
+            "transition_id",
+        ),
+        "AppStateDispatchSurfaceLookup": (
+            "kAppStateDispatchSurfaces[index].surface_id",
+            "surface_id",
+        ),
+        "AppStateCompatibilityShimLookup": (
+            "kAppStateCompatibilityShims[index].id",
+            "shim_id",
+        ),
+        "AppStateInvariantLookup": (
+            "kAppStateInvariants[index].invariant_id",
+            "invariant_id",
+        ),
+        "AppStateEventCoverageLookup": (
+            "kAppStateEventCoverages[index].event_id",
+            "event_id",
+        ),
+    }
+
+    assert "static int AppStateLookupIdMatches(" in source
+    for function_name, (candidate, requested) in lookups.items():
+        definition = re.search(
+            r"(?m)^const AppState[A-Za-z]+Metadata \*\n"
+            + function_name
+            + r"\([^)]*\) \{",
+            source,
+        )
+        assert definition is not None
+        start = definition.start()
+        end = source.index("\n}", start) + 2
+        body = source[start:end]
+        assert re.search(
+            r"AppStateLookupIdMatches\(\s*"
+            + re.escape(candidate)
+            + r"\s*,\s*"
+            + requested
+            + r"\s*\)",
+            body,
+            re.S,
+        )
+        assert f"strcmp({candidate}, {requested})" not in body
