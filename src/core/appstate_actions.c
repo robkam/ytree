@@ -6250,11 +6250,18 @@ AppStateGenerationDomainAt(size_t index) {
   if (index >= AppStateGenerationDomainCount())
     return NULL;
 
+  if (!AppStateValidatedGenerationDomain(
+          kAppStateGenerationDomains[index].domain_id))
+    return NULL;
+
   return &kAppStateGenerationDomains[index];
 }
 
 const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index) {
   if (index >= AppStateDiffHarnessCount())
+    return NULL;
+
+  if (!AppStateValidatedDiffHarness(kAppStateDiffHarnesses[index].harness_id))
     return NULL;
 
   return &kAppStateDiffHarnesses[index];
