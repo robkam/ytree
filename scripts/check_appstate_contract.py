@@ -378,6 +378,7 @@ GENERATION_FIELD_RE = re.compile(r"\b(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+_generatio
 DISPATCH_SURFACE_CALLSITE_RE = re.compile(
     r'AppStateValidatedDispatchSurface\s*\(\s*"([^"]+)"\s*\)'
 )
+EVENT_CALLSITE_RE = re.compile(r'AppStateValidatedEvent\s*\(\s*"([^"]+)"\s*\)')
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -4658,8 +4659,8 @@ def _validate_dispatch_surface_source_anchor(
     return []
 
 
-def _runtime_dispatch_surface_callsites_by_id(
-    source_root: Path,
+def _runtime_validation_callsites_by_id(
+    source_root: Path, pattern: re.Pattern[str]
 ) -> tuple[dict[str, set[str]], list[str]]:
     callsites_by_id: dict[str, set[str]] = {}
     failures: list[str] = []
@@ -4676,9 +4677,23 @@ def _runtime_dispatch_surface_callsites_by_id(
             continue
 
         relative_path = source_file.relative_to(source_root.parent).as_posix()
-        for match in DISPATCH_SURFACE_CALLSITE_RE.finditer(source):
+        for match in pattern.finditer(source):
             callsites_by_id.setdefault(match.group(1), set()).add(relative_path)
     return callsites_by_id, failures
+
+
+def _runtime_dispatch_surface_callsites_by_id(
+    source_root: Path,
+) -> tuple[dict[str, set[str]], list[str]]:
+    return _runtime_validation_callsites_by_id(
+        source_root, DISPATCH_SURFACE_CALLSITE_RE
+    )
+
+
+def _runtime_event_callsites_by_id(
+    source_root: Path,
+) -> tuple[dict[str, set[str]], list[str]]:
+    return _runtime_validation_callsites_by_id(source_root, EVENT_CALLSITE_RE)
 
 
 def _validate_runtime_dispatch_surface_callsites(
@@ -4707,6 +4722,36 @@ def _validate_runtime_dispatch_surface_callsites(
         if surface_id not in callsites_by_id:
             failures.append(
                 f"{source_root}: {surface_id}: missing runtime validation callsite"
+            )
+    return failures
+
+
+def _validate_runtime_event_callsites(
+    *,
+    runtime_records: list[dict[str, Any]],
+    repository_root: Path,
+    action_runtime_path: Path,
+) -> list[str]:
+    if (
+        action_runtime_path.parent.name != "core"
+        or action_runtime_path.parent.parent.name != "src"
+    ):
+        return []
+    source_root = repository_root / "src"
+    callsites_by_id, failures = _runtime_event_callsites_by_id(source_root)
+    runtime_event_ids = sorted(
+        {
+            event_id.strip()
+            for record in runtime_records
+            if isinstance(record, dict)
+            and isinstance(record.get("event_id"), str)
+            and (event_id := record["event_id"]).strip()
+        }
+    )
+    for event_id in runtime_event_ids:
+        if event_id not in callsites_by_id:
+            failures.append(
+                f"{source_root}: {event_id}: missing runtime validation callsite"
             )
     return failures
 
@@ -7553,6 +7598,13 @@ def validate_contract(
             runtime_diff_harness_generation_domain_ids=(
                 runtime_diff_harness_generation_domain_ids_by_harness
             ),
+        )
+    )
+    failures.extend(
+        _validate_runtime_event_callsites(
+            runtime_records=runtime_event_coverage_records,
+            repository_root=repository_root,
+            action_runtime_path=action_runtime_path,
         )
     )
     failures.extend(
