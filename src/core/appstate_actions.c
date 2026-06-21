@@ -6588,7 +6588,8 @@ AppStateActionCoverageIdLookup(const char *action_id) {
     return NULL;
 
   for (index = 0; index < AppStateActionCoverageCount(); index++) {
-    if (!strcmp(kAppStateActionCoverages[index].action_name, action_id))
+    if (AppStateLookupIdMatches(kAppStateActionCoverages[index].action_name,
+                                action_id))
       return &kAppStateActionCoverages[index];
   }
 
@@ -6603,7 +6604,8 @@ AppStateEventCoverageIdLookup(const char *event_id) {
     return NULL;
 
   for (index = 0; index < AppStateEventCoverageCount(); index++) {
-    if (!strcmp(kAppStateEventCoverages[index].event_id, event_id))
+    if (AppStateLookupIdMatches(kAppStateEventCoverages[index].event_id,
+                                event_id))
       return &kAppStateEventCoverages[index];
   }
 
