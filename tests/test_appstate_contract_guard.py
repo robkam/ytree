@@ -589,6 +589,7 @@ def _transition_sequence(
         "category": category,
         "flow": flow,
         "description": "fixture transition sequence",
+        "coverage_status": "runtime_backed",
         "steps": steps or [_sequence_step()],
     }
 
@@ -1702,6 +1703,7 @@ def _runtime_source(
             f'"{record.get("category", "")}", '
             f'"{record.get("flow", "")}", '
             f'"{record.get("description", "")}", '
+            f'"{record.get("coverage_status", "")}", '
             f"{steps_table}, sizeof({steps_table}) / sizeof({steps_table}[0])}},"
         )
     action_rows = "\n".join(
@@ -2265,6 +2267,50 @@ def test_guard_fails_when_required_transition_sequence_field_is_missing(
         "transition_sequence[0]" in failure
         and "missing required field" in failure
         and "description" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_transition_sequence_coverage_status_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0].pop("coverage_status")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0]" in failure
+        and "missing required field" in failure
+        and "coverage_status" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_status_is_not_backed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    runtime_transition_sequences[0]["coverage_status"] = "documented_foundation_only"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0]" in failure
+        and "unknown coverage_status" in failure
+        and "documented_foundation_only" in failure
         for failure in failures
     )
 
@@ -4755,6 +4801,7 @@ int main(void) {
   AppStateGenerationDomainMetadata generation_domain;
   AppStateInvariantMetadata invariant;
   AppStateOwnerFieldMetadata owner_field;
+  AppStateTransitionSequenceMetadata transition_sequence;
   AppStateTransitionMetadata transition;
 
   transition = *AppStateTransitionLookup("transition.keybinding.navigate-tree");
@@ -4806,6 +4853,13 @@ int main(void) {
   if (AppStateValidateDiffHarness("harness.transition-before-after-snapshot",
                                   &diff_harness))
     return 8;
+
+  transition_sequence =
+      *AppStateTransitionSequenceLookup("sequence.split-toggle-f8");
+  transition_sequence.coverage_status = "boundary.__ytnova_unknown__";
+  if (AppStateValidateTransitionSequence("sequence.split-toggle-f8",
+                                         &transition_sequence))
+    return 9;
 
   return 0;
 }
@@ -8367,6 +8421,7 @@ def test_guard_fails_when_registry_status_is_unknown(tmp_path: Path) -> None:
     invariants = _complete_invariants()
     generation_domains = _complete_generation_domains()
     diff_harness_checks = _complete_diff_harness_checks()
+    transition_sequences = _complete_transition_sequences()
     transitions[0]["boundary_status"] = "boundary.__ytnova_unknown__"
     actions[0]["boundary_status"] = "boundary.__ytnova_unknown__"
     events[0]["boundary_status"] = "boundary.__ytnova_unknown__"
@@ -8375,6 +8430,7 @@ def test_guard_fails_when_registry_status_is_unknown(tmp_path: Path) -> None:
     invariants[0]["enforcement_status"] = "boundary.__ytnova_unknown__"
     generation_domains[0]["enforcement_status"] = "boundary.__ytnova_unknown__"
     diff_harness_checks[0]["enforcement_status"] = "boundary.__ytnova_unknown__"
+    transition_sequences[0]["coverage_status"] = "boundary.__ytnova_unknown__"
     paths = _write_fixture(
         tmp_path,
         transitions=transitions,
@@ -8385,6 +8441,7 @@ def test_guard_fails_when_registry_status_is_unknown(tmp_path: Path) -> None:
         invariants=invariants,
         generation_domains=generation_domains,
         diff_harness_checks=diff_harness_checks,
+        transition_sequences=transition_sequences,
     )
 
     failures = _validate(paths)
@@ -8428,6 +8485,12 @@ def test_guard_fails_when_registry_status_is_unknown(tmp_path: Path) -> None:
     assert any(
         "generation_domain[0]" in failure
         and "unknown enforcement_status" in failure
+        and "boundary.__ytnova_unknown__" in failure
+        for failure in failures
+    )
+    assert any(
+        "transition_sequence[0]" in failure
+        and "unknown coverage_status" in failure
         and "boundary.__ytnova_unknown__" in failure
         for failure in failures
     )

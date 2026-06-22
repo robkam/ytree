@@ -274,6 +274,7 @@ REQUIRED_SEQUENCE_FIELDS = {
     "category",
     "flow",
     "description",
+    "coverage_status",
     "steps",
 }
 
@@ -348,6 +349,9 @@ VALID_ENFORCEMENT_STATUSES = {
     "covered_by_runtime_registry",
 }
 VALID_MIGRATION_STATUSES = {
+    "runtime_backed",
+}
+VALID_SEQUENCE_COVERAGE_STATUSES = {
     "runtime_backed",
 }
 DISPATCH_LIST_FIELDS = {"migration_notes", "transition_sequence_refs"}
@@ -1959,6 +1963,7 @@ def _parse_runtime_transition_sequence_registry(
         r"\s*\"(?P<category>[^\"]*)\"\s*,"
         r"\s*\"(?P<flow>[^\"]*)\"\s*,"
         r"\s*\"(?P<description>[^\"]*)\"\s*,"
+        r"\s*\"(?P<coverage_status>[^\"]*)\"\s*,"
         r"\s*(?P<steps>kAppStateTransitionSequenceSteps[0-9]+)\s*,"
         r"\s*sizeof\((?P=steps)\)\s*/\s*sizeof\((?P=steps)\[0\]\)\s*\}",
         re.S,
@@ -1989,6 +1994,7 @@ def _parse_runtime_transition_sequence_registry(
                 "category": row_match.group("category"),
                 "flow": row_match.group("flow"),
                 "description": row_match.group("description"),
+                "coverage_status": row_match.group("coverage_status"),
                 "steps": steps,
             }
         )
@@ -6719,6 +6725,15 @@ def _validate_appstate_transition_sequences(
             if flow not in REQUIRED_SEQUENCE_FLOWS:
                 failures.append(f"{scenario_label}: unknown flow: {flow}")
 
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=scenario_label,
+                field="coverage_status",
+                valid_statuses=VALID_SEQUENCE_COVERAGE_STATUSES,
+            )
+        )
+
         steps = record.get("steps")
         if not isinstance(steps, list) or not steps:
             failures.append(f"{scenario_label}: steps must be a non-empty list")
@@ -6929,6 +6944,7 @@ def _normalize_transition_sequence_records(records: list[Any]) -> dict[str, dict
             "category": record.get("category"),
             "flow": record.get("flow"),
             "description": record.get("description"),
+            "coverage_status": record.get("coverage_status"),
             "steps": steps,
         }
     return normalized
@@ -6977,17 +6993,31 @@ def _validate_runtime_transition_sequence_registry(
                 f"{label}: scenario_id does not match a transition sequence: {runtime_id}"
             )
         else:
-            for field in ("category", "flow", "description", "steps"):
+            for field in (
+                "category",
+                "flow",
+                "description",
+                "coverage_status",
+                "steps",
+            ):
                 if record.get(field) != expected_record.get(field):
                     failures.append(
                         f"{label}: runtime {field} does not match transition "
                         f"sequence {runtime_id}: {record.get(field)}"
                     )
 
-        for field in ("category", "flow", "description"):
+        for field in ("category", "flow", "description", "coverage_status"):
             value = record.get(field)
             if not isinstance(value, str) or not value.strip():
                 failures.append(f"{label}: {field} must be a non-empty string")
+        failures.extend(
+            _validate_status_field(
+                record=record,
+                label=label,
+                field="coverage_status",
+                valid_statuses=VALID_SEQUENCE_COVERAGE_STATUSES,
+            )
+        )
 
         steps = record.get("steps")
         if not isinstance(steps, list) or not steps:
