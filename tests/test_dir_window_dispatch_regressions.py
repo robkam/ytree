@@ -493,6 +493,30 @@ def test_dir_window_hidden_toggle_uses_visible_selection_authority():
     )
 
 
+def test_dir_window_post_dispatch_refresh_uses_visible_selection_authority():
+    source = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    marker = "DebugLogDirLoopState(\"after_dispatch\""
+    log_start = source.find(marker)
+    assert log_start >= 0, "Missing after-dispatch debug marker"
+
+    switch_end = source.rfind("    } /* switch */", 0, log_start)
+    assert switch_end >= 0, "Missing HandleDirWindow switch terminator"
+    refresh_source = source[switch_end:log_start]
+
+    assert "ResolveActiveDirEntry(ctx, s)" in refresh_source, (
+        "Directory-window post-dispatch refresh must restore through the "
+        f"canonical visible active-dir resolver.\n{refresh_source}"
+    )
+    assert "disp_begin_pos + ctx->active->cursor_pos" not in refresh_source, (
+        "Directory-window post-dispatch refresh must not synthesize selection "
+        f"from raw row math.\n{refresh_source}"
+    )
+    assert "->dir_entry_list[" not in refresh_source, (
+        "Directory-window post-dispatch refresh must not index the raw "
+        f"directory row list directly.\n{refresh_source}"
+    )
+
+
 def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_split_tab"
     root.mkdir()
