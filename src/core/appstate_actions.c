@@ -3122,7 +3122,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds0) /
        sizeof(kAppStateInvariantDispatchSurfaceIds0[0]),
    "Fail if an active-only transition mutates inactive panel-local identity, viewport, focus, restore, or generation fields outside an explicitly targeted transition.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "State-sequence harness snapshots both panels before each active-panel transition and compares inactive panel fields after allowed and blocked outcomes.",
    kAppStateInvariantMigrationNotes0,
    sizeof(kAppStateInvariantMigrationNotes0) /
@@ -3140,7 +3140,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds1) /
        sizeof(kAppStateInvariantDispatchSurfaceIds1[0]),
    "Fail if render or reflow chooses new authoritative selection, focus, viewport, panel generation, or volume generation from projected rows or window geometry.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Transition-diff harness runs render/reflow passes after settled transitions and verifies only declared render projection fields change.",
    kAppStateInvariantMigrationNotes1,
    sizeof(kAppStateInvariantMigrationNotes1) /
@@ -3158,7 +3158,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds2) /
        sizeof(kAppStateInvariantDispatchSurfaceIds2[0]),
    "Fail if visible navigation lands on a hidden entry or resurrects a concealed identity after visibility/topology changes.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Generated navigation sequences toggle visibility, rebuild, and move through visible rows while asserting the selected identity remains visible or falls back deterministically.",
    kAppStateInvariantMigrationNotes2,
    sizeof(kAppStateInvariantMigrationNotes2) /
@@ -3176,7 +3176,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds3) /
        sizeof(kAppStateInvariantDispatchSurfaceIds3[0]),
    "Fail if focus restoration imports another panel's shape, briefly renders a different shape, or restores focus from session mirrors instead of panel-local records.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Sequence tests alternate modal dismissal, Tab/F8-style routing, and file/tree transitions while asserting each panel restores its own recorded focus shape.",
    kAppStateInvariantMigrationNotes3,
    sizeof(kAppStateInvariantMigrationNotes3) /
@@ -3194,7 +3194,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds4) /
        sizeof(kAppStateInvariantDispatchSurfaceIds4[0]),
    "Fail if rebuild, mutation, or resize restores viewport from raw rows when the stable identity is still visible or before deterministic fallback order is exhausted.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Snapshot/diff tests rebuild or resize around stable directory and file identities, then assert exact rebind when visible and deterministic fallback otherwise.",
    kAppStateInvariantMigrationNotes4,
    sizeof(kAppStateInvariantMigrationNotes4) /
@@ -3212,7 +3212,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds5) /
        sizeof(kAppStateInvariantDispatchSurfaceIds5[0]),
    "Fail if shared volume topology or registry changes overwrite panel-local selection, focus, tags, viewport, or restore snapshots by shared index or pointer aliasing.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Split-panel sequences share a volume, mutate shared topology, and verify each panel rebinds through its own identity without cross-panel field drift.",
    kAppStateInvariantMigrationNotes5,
    sizeof(kAppStateInvariantMigrationNotes5) /
@@ -3230,7 +3230,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds6) /
        sizeof(kAppStateInvariantDispatchSurfaceIds6[0]),
    "Fail if a generation mismatch reuses stale DirEntry/FileEntry pointers, stale flat-list rows, or stale snapshot payloads instead of exact rebind or deterministic fallback.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Harness corrupts or invalidates saved generations around rebuild/mutation transitions and asserts stale snapshots fail closed without unrelated mutation.",
    kAppStateInvariantMigrationNotes6,
    sizeof(kAppStateInvariantMigrationNotes6) /
@@ -3248,7 +3248,7 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
    sizeof(kAppStateInvariantDispatchSurfaceIds7) /
        sizeof(kAppStateInvariantDispatchSurfaceIds7[0]),
    "Fail if a blocked or invalid transition partially mutates authoritative panel/volume state, advances generations, performs hidden side effects, or chooses a non-deterministic fallback.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    "Negative state-sequence tests force guard failures and unavailable targets, then assert no unrelated owner fields differ and any message/modal output is declared.",
    kAppStateInvariantMigrationNotes7,
    sizeof(kAppStateInvariantMigrationNotes7) /
@@ -6993,6 +6993,8 @@ AppStateValidateInvariant(const char *invariant_id,
       !AppStateNonEmptyString(metadata->test_strategy))
     return 0;
   if (!AppStateKnownFoundationStatus(metadata->enforcement_status))
+    return 0;
+  if (strcmp(metadata->enforcement_status, "documented_foundation_only") == 0)
     return 0;
   if (!AppStateTransitionFieldsRegistered(metadata->protected_fields,
                                           metadata->protected_field_count))
