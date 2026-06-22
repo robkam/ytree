@@ -130,6 +130,7 @@ def _shim(
     owner_field_refs: list[str] | None = None,
     generation_domain_refs: list[str] | None = None,
     diff_harness_refs: list[str] | None = None,
+    source_boundary_refs: list[str] | None = None,
 ) -> dict[str, object]:
     return {
         "id": "shim.test",
@@ -143,6 +144,7 @@ def _shim(
         "generation_domain_refs": generation_domain_refs or ["domain.panel_generation"],
         "diff_harness_refs": diff_harness_refs
         or ["harness.transition_before_after_snapshot"],
+        "source_boundary_refs": source_boundary_refs or ["src/ui/display.c"],
         "removal_trigger": "trigger",
         "target_transition": target_transition,
         "follow_up_task": "task",
@@ -1319,6 +1321,7 @@ def _runtime_source(
     shim_owner_field_refs = []
     shim_generation_domain_refs = []
     shim_diff_harness_refs = []
+    shim_source_boundary_refs = []
     shim_rows = []
     for index, record in enumerate(shims):
         invariant_checks = record.get("invariant_checks")
@@ -1365,6 +1368,18 @@ def _runtime_source(
             "static const char *const kAppStateCompatibilityShimDiffHarnessRefs"
             f"{index}[] = {{\n{diff_ref_rows}\n}};\n"
         )
+        source_boundary_refs = record.get("source_boundary_refs")
+        if not isinstance(source_boundary_refs, list):
+            source_boundary_refs = []
+        source_boundary_ref_rows = "\n".join(
+            f'  "{source_path}",'
+            for source_path in source_boundary_refs
+            if isinstance(source_path, str)
+        )
+        shim_source_boundary_refs.append(
+            "static const char *const kAppStateCompatibilityShimSourceBoundaryRefs"
+            f"{index}[] = {{\n{source_boundary_ref_rows}\n}};\n"
+        )
         shim_rows.append(
             f'  {{"{record.get("id", "")}", "{record.get("owner", "")}", '
             f'"{record.get("old_authority_path", "")}", '
@@ -1383,6 +1398,9 @@ def _runtime_source(
             f"kAppStateCompatibilityShimDiffHarnessRefs{index}, "
             f"sizeof(kAppStateCompatibilityShimDiffHarnessRefs{index}) / "
             f"sizeof(kAppStateCompatibilityShimDiffHarnessRefs{index}[0]), "
+            f"kAppStateCompatibilityShimSourceBoundaryRefs{index}, "
+            f"sizeof(kAppStateCompatibilityShimSourceBoundaryRefs{index}) / "
+            f"sizeof(kAppStateCompatibilityShimSourceBoundaryRefs{index}[0]), "
             f'"{record.get("removal_trigger", "")}", '
             f'"{record.get("target_transition", "")}", '
             f'"{record.get("follow_up_task", "")}", '
@@ -1701,6 +1719,7 @@ def _runtime_source(
         + "".join(shim_owner_field_refs)
         + "".join(shim_generation_domain_refs)
         + "".join(shim_diff_harness_refs)
+        + "".join(shim_source_boundary_refs)
         + "".join(invariant_arrays)
         + "".join(generation_domain_arrays)
         + "".join(diff_harness_arrays)
@@ -6913,6 +6932,54 @@ def test_guard_fails_when_runtime_shim_validation_callsite_is_missing(
 
     assert any(
         "shim-render-derived-row-position" in failure
+        and "missing runtime validation callsite" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_validation_moves_outside_source_boundary(
+    tmp_path: Path,
+) -> None:
+    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
+    source_path = tmp_path / "src" / "ui" / "display.c"
+    original = source_path.read_text(encoding="utf-8")
+    mutated = original.replace(
+        'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")',
+        'AppStateValidatedCompatibilityShim("shim-render-derived-row-position-missing")',
+        1,
+    )
+    assert mutated != original
+    source_path.write_text(mutated, encoding="utf-8")
+
+    unrelated_source_path = tmp_path / "src" / "core" / "main.c"
+    unrelated_original = unrelated_source_path.read_text(encoding="utf-8")
+    injected = unrelated_original.replace(
+        "int main(int argc, char **argv) {",
+        'int main(int argc, char **argv) {\n  (void)AppStateValidatedCompatibilityShim("shim-render-derived-row-position");',
+        1,
+    )
+    assert injected != unrelated_original
+    unrelated_source_path.write_text(injected, encoding="utf-8")
+
+    failures = guard.validate_contract(
+        guard.DEFAULT_TRANSITIONS,
+        guard.DEFAULT_SHIMS,
+        guard.DEFAULT_ACTION_COVERAGE,
+        guard.DEFAULT_ACTION_HEADER,
+        guard.DEFAULT_EVENT_COVERAGE,
+        guard.DEFAULT_OWNER_FIELDS,
+        guard.DEFAULT_DISPATCH_SURFACES,
+        guard.DEFAULT_INVARIANTS,
+        guard.DEFAULT_GENERATION_DOMAINS,
+        guard.DEFAULT_DIFF_HARNESS,
+        guard.DEFAULT_TRANSITION_SEQUENCES,
+        guard.DEFAULT_ACTION_RUNTIME,
+        repository_root=tmp_path,
+    )
+
+    assert any(
+        "shim-render-derived-row-position" in failure
+        and "src/ui/display.c" in failure
         and "missing runtime validation callsite" in failure
         for failure in failures
     )

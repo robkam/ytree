@@ -1694,6 +1694,8 @@ static int AppStateCompatibilityShimsReady(void) {
                             metadata->generation_domain_ref_count) ||
         !NonEmptyStringList(metadata->diff_harness_refs,
                             metadata->diff_harness_ref_count) ||
+        !NonEmptyStringList(metadata->source_boundary_refs,
+                            metadata->source_boundary_ref_count) ||
         !NonEmptyString(metadata->removal_trigger) ||
         !NonEmptyString(metadata->target_transition) ||
         !NonEmptyString(metadata->follow_up_task) ||
