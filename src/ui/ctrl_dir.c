@@ -886,16 +886,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     case ACTION_TOGGLE_HIDDEN: {
       ToggleDotFiles(ctx, ctx->active);
 
-      /* Update current dir pointer using the new accessor function
-      because ToggleDotFiles might have changed the list layout */
-      if (ctx->active->vol->total_dirs > 0) {
-        dir_entry = ctx->active->vol
-                        ->dir_entry_list[ctx->active->disp_begin_pos +
-                                         ctx->active->cursor_pos]
-                        .dir_entry;
-      } else {
-        dir_entry = s->tree;
-      }
+      dir_entry = ResolveActiveDirEntry(ctx, s);
+      if (dir_entry == NULL)
+        return ESC;
 
       need_dsp_help = TRUE;
     } break;

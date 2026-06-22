@@ -479,6 +479,20 @@ def test_dir_window_split_transition_owner_path_is_canonical():
     )
 
 
+def test_dir_window_hidden_toggle_uses_visible_selection_authority():
+    toggle_case = _dir_navigation_action_case_source("ACTION_TOGGLE_HIDDEN")
+    post_toggle = toggle_case.split("ToggleDotFiles(ctx, ctx->active);", 1)[1]
+
+    assert "ResolveActiveDirEntry(ctx, s)" in post_toggle, (
+        "Hidden-file visibility toggles must restore selection through the "
+        f"canonical visible active-dir resolver.\n{toggle_case}"
+    )
+    assert "->dir_entry_list[" not in post_toggle, (
+        "Hidden-file visibility toggles must not synthesize restore authority "
+        f"from raw directory row indexes after changing visibility.\n{toggle_case}"
+    )
+
+
 def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_split_tab"
     root.mkdir()
