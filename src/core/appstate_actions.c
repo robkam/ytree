@@ -3305,7 +3305,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects0) /
        sizeof(kAppStateTransitionSideEffects0[0]),
    "tree_view,file_view,footer",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Route HandleDirWindow key dispatch through the canonical transition boundary in a later runtime migration.",
    kAppStateTransitionWriteSet0,
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0])},
@@ -3323,7 +3323,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects1) /
        sizeof(kAppStateTransitionSideEffects1[0]),
    "layout,tree_view,file_view,stats,footer",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Keep the loaded-volume preservation rule from the specification during runtime migration.",
    kAppStateTransitionWriteSet1,
    sizeof(kAppStateTransitionWriteSet1) / sizeof(kAppStateTransitionWriteSet1[0])},
@@ -3341,7 +3341,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects2) /
        sizeof(kAppStateTransitionSideEffects2[0]),
    "modal_overlay,footer,underlying_view_projection",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Modal migration must preserve severity versus neutral dialog routing.",
    kAppStateTransitionWriteSet2,
    sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0])},
@@ -3359,7 +3359,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects2) /
        sizeof(kAppStateTransitionSideEffects2[0]),
    "modal_overlay,footer,underlying_view_projection",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Runtime migration must preserve prompt/menu/dialog completion routing while destructive confirmations stay on their dedicated command transitions.",
    kAppStateTransitionWriteSet2,
    sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0])},
@@ -3377,7 +3377,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects3) /
        sizeof(kAppStateTransitionSideEffects3[0]),
    "tree_view,file_view,stats,footer",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Runtime migration must keep restore ordering: rebuild, generation advance, rebind/fallback, render.",
    kAppStateTransitionWriteSet3,
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
@@ -3395,7 +3395,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects15) /
        sizeof(kAppStateTransitionSideEffects15[0]),
    "tree_view,file_view,stats,footer",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Runtime migration must keep watcher debounce/settle routing distinct from explicit manual refresh commands while preserving rebuild ordering.",
    kAppStateTransitionWriteSet3,
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
@@ -3413,7 +3413,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects4) /
        sizeof(kAppStateTransitionSideEffects4[0]),
    "layout,tree_view,file_view,stats,footer",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Ensure inactive panels sharing a released volume use deterministic fallback instead of stale pointers.",
    kAppStateTransitionWriteSet4,
    sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0])},
@@ -3431,7 +3431,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects5) /
        sizeof(kAppStateTransitionSideEffects5[0]),
    "full_screen_projection",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Render reflow must remain projection-only and must not choose a new selection by row math.",
    kAppStateTransitionWriteSet5,
    sizeof(kAppStateTransitionWriteSet5) / sizeof(kAppStateTransitionWriteSet5[0])},
@@ -3449,7 +3449,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects6) /
        sizeof(kAppStateTransitionSideEffects6[0]),
    "tree_view,file_view,stats,footer",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Runtime migration must separate command side effects from AppState commit/rollback metadata.",
    kAppStateTransitionWriteSet6,
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0])},
@@ -3467,7 +3467,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects7) /
        sizeof(kAppStateTransitionSideEffects7[0]),
    "footer,stats_optional",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Later runtime boundary should declare whether each command completion queues refresh_rebuild.",
    kAppStateTransitionWriteSet7,
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0])},
@@ -3485,7 +3485,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects8) /
        sizeof(kAppStateTransitionSideEffects8[0]),
    "tree_view,file_view",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Use panel_anchor helpers as the canonical restore boundary during runtime migration.",
    kAppStateTransitionWriteSet8,
    sizeof(kAppStateTransitionWriteSet8) / sizeof(kAppStateTransitionWriteSet8[0])},
@@ -3503,7 +3503,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionSideEffects9) /
        sizeof(kAppStateTransitionSideEffects9[0]),
    "cleared_after_successful_projection",
-   "documented_foundation_only",
+   "covered_by_transition_record",
    "Audit render paths so temporary projections cannot become restore authority.",
    kAppStateTransitionWriteSet9,
    sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0])}

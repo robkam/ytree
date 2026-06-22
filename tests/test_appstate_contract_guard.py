@@ -120,7 +120,7 @@ def _transition(category: str, transition_id: str | None = None) -> dict[str, ob
         "generation_effect": generation_effect,
         "side_effects": ["none"],
         "render_invalidation": "view",
-        "boundary_status": "documented_foundation_only",
+        "boundary_status": "covered_by_transition_record",
         "notes_follow_up": "follow-up",
     }
 
@@ -10023,6 +10023,29 @@ def test_guard_fails_when_runtime_transition_registry_has_extra_id(
         "runtime_transition" in failure
         and "id does not match a transition matrix id" in failure
         and "transition.runtime.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_registry_keeps_foundation_status(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [dict(record) for record in transitions]
+    transitions[0]["boundary_status"] = "documented_foundation_only"
+    runtime_transitions[0]["boundary_status"] = "documented_foundation_only"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition[0]" in failure
+        and "boundary_status must use covered_by_transition_record once runtime transition is registered"
+        in failure
         for failure in failures
     )
 
