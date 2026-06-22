@@ -23,7 +23,9 @@
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.terminal-signal-resize"
       ],
@@ -32,6 +34,7 @@
         "surface.file-window-action-dispatch",
         "surface.volume-menu-selection",
         "surface.menu-modal-completion",
+        "surface.modal-completion-event",
         "surface.refresh-rebuild-rebind",
         "surface.volume-operation",
         "surface.resize-signal-handling"
@@ -91,6 +94,7 @@
       "transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "dispatch_surface_ids": [
@@ -124,12 +128,14 @@
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "dispatch_surface_ids": [
         "surface.directory-window-action-dispatch",
         "surface.file-window-action-dispatch",
         "surface.menu-modal-completion",
+        "surface.modal-completion-event",
         "surface.volume-operation"
       ],
       "failure_mode": "Fail if focus restoration imports another panel's shape, briefly renders a different shape, or restores focus from session mirrors instead of panel-local records.",
@@ -155,6 +161,7 @@
       ],
       "transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.terminal-signal-resize",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
@@ -194,6 +201,7 @@
       "transition_ids": [
         "transition.menu-action.volume-select",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
@@ -227,6 +235,7 @@
       ],
       "transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
@@ -266,7 +275,9 @@
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.terminal-signal-resize",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -279,6 +290,7 @@
         "surface.directory-window-action-dispatch",
         "surface.file-window-action-dispatch",
         "surface.menu-modal-completion",
+        "surface.modal-completion-event",
         "surface.resize-signal-handling",
         "surface.refresh-rebuild-rebind",
         "surface.filesystem-mutation-result",

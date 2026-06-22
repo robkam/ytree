@@ -20,7 +20,9 @@
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.terminal-signal-resize",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -30,7 +32,9 @@
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.terminal-signal-resize",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -58,11 +62,13 @@
       ],
       "coverage_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
@@ -88,12 +94,14 @@
       ],
       "coverage_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.volume-operation.release-cycle",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.volume-operation.release-cycle",
         "transition.rebuild-rebind-callback.panel-anchor"
@@ -119,11 +127,13 @@
       ],
       "coverage_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
@@ -147,12 +157,14 @@
       "coverage_transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.menu-action.volume-select",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.menu-action.volume-select",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
@@ -177,10 +189,12 @@
       ],
       "coverage_transition_ids": [
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.command-completion.user-command"
       ],
       "advances_on_transition_ids": [
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.command-completion.user-command"
       ],
       "stale_snapshot_policy": "Modal and command targets may write panel or volume state only through a declared follow-up transition boundary.",
@@ -205,11 +219,13 @@
       ],
       "coverage_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.keybinding.navigate-tree",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.keybinding.navigate-tree",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
@@ -233,11 +249,13 @@
       ],
       "coverage_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
@@ -261,11 +279,13 @@
       ],
       "coverage_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
       ],
@@ -291,12 +311,14 @@
       "coverage_transition_ids": [
         "transition.volume-operation.release-cycle",
         "transition.menu-action.volume-select",
-        "transition.refresh-rebuild.manual-refresh"
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh"
       ],
       "advances_on_transition_ids": [
         "transition.volume-operation.release-cycle",
         "transition.menu-action.volume-select",
-        "transition.refresh-rebuild.manual-refresh"
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh"
       ],
       "stale_snapshot_policy": "Panel volume bindings must resolve to an existing volume identity before per-volume snapshots can be restored.",
       "fail_closed_fallback": "Do not orphan panel bindings; use deterministic volume fallback and then panel identity fallback after release or cycle invalidation.",

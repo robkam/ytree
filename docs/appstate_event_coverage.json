@@ -226,7 +226,7 @@
     {
       "event_id": "event.watcher-live-refresh",
       "event_class": "watcher_live_refresh",
-      "transition_id": "transition.refresh-rebuild.manual-refresh",
+      "transition_id": "transition.refresh-rebuild.watcher-live-refresh",
       "category": "refresh_rebuild",
       "source": "Filesystem watcher or live-refresh notification after debounce/settle",
       "owner": "Volume(shared topology)",
@@ -244,17 +244,17 @@
         "panel.restore_snapshot",
         "panel.panel_generation"
       ],
-      "boundary_status": "mapped_to_existing_broad_transition",
+      "boundary_status": "covered_by_transition_record",
       "trigger_paths": [
         "Watcher notification",
         "Live refresh scheduling",
         "Settled topology refresh"
       ],
       "migration_notes": [
-        "Watcher/live-refresh intentionally maps to the broad refresh_rebuild transition until a dedicated watcher runtime boundary exists."
+        "Watcher/live-refresh now uses its own explicit covered transition record rather than borrowing the manual refresh boundary."
       ],
       "transition_sequence_refs": [
-        "sequence.refresh-rebuild"
+        "sequence.watcher-live-refresh"
       ],
       "dispatch_surface_refs": [
         "surface.watcher-live-refresh"
@@ -325,7 +325,7 @@
     {
       "event_id": "event.modal-completion",
       "event_class": "modal_completion",
-      "transition_id": "transition.modal-action.dismiss",
+      "transition_id": "transition.modal-action.completion",
       "category": "modal_action",
       "source": "Modal prompt, menu, or dialog completion",
       "owner": "ViewContext.modal_region",
@@ -341,20 +341,20 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "mapped_to_existing_broad_transition",
+      "boundary_status": "covered_by_transition_record",
       "trigger_paths": [
         "Modal Enter completion",
         "Modal Esc cancellation",
         "Neutral dialog dismissal"
       ],
       "migration_notes": [
-        "Modal completion maps to the modal_action dismiss record while destructive confirmations remain governed by their own command transitions."
+        "Modal completion now uses its own explicit covered transition record while destructive confirmations remain governed by their dedicated command transitions."
       ],
       "transition_sequence_refs": [
-        "sequence.esc-modal-dismissal"
+        "sequence.modal-completion"
       ],
       "dispatch_surface_refs": [
-        "surface.menu-modal-completion"
+        "surface.modal-completion-event"
       ],
       "invariant_refs": [
         "invariant.panel-local-focus-restore",
