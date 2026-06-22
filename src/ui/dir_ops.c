@@ -1011,12 +1011,17 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
 DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   InactiveFallbackSnapshot inactive_snapshot;
   PanelViewportSnapshot active_viewport;
+  const Statistic *s;
 
+  if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
+    return dir_entry;
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
     return dir_entry;
   if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
     return dir_entry;
 
+  s = (ctx && ctx->active && ctx->active->vol) ? &ctx->active->vol->vol_stats
+                                               : NULL;
   CaptureInactiveFallbackSnapshot(ctx, ctx->active, &inactive_snapshot);
   CapturePanelViewportSnapshot(ctx->active, ctx->active->vol, &active_viewport);
 
@@ -1041,9 +1046,7 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   }
   if (!ctx->active || !ctx->active->vol || !ctx->active->vol->dir_entry_list ||
       ctx->active->vol->total_dirs <= 0) {
-    dir_entry =
-        (ctx->active && ctx->active->vol) ? ctx->active->vol->vol_stats.tree
-                                          : NULL;
+    dir_entry = ResolveActiveDirEntry(ctx, s);
     if (dir_entry) {
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = -1;
@@ -1051,35 +1054,37 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
     }
     return dir_entry;
   }
-  dir_entry = ctx->active->vol
-                  ->dir_entry_list[ctx->active->disp_begin_pos +
-                                   ctx->active->cursor_pos]
-                  .dir_entry;
-  dir_entry->start_file = 0;
-  dir_entry->cursor_pos = -1;
-  RefreshView(ctx, dir_entry);
+  dir_entry = ResolveActiveDirEntry(ctx, s);
+  if (dir_entry) {
+    dir_entry->start_file = 0;
+    dir_entry->cursor_pos = -1;
+    RefreshView(ctx, dir_entry);
+  }
   return dir_entry;
 }
 
 DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   char new_name[PATH_LENGTH + 1];
+  const Statistic *s;
 
+  if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
+    return dir_entry;
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
     return dir_entry;
   if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
     return dir_entry;
 
+  s = (ctx && ctx->active && ctx->active->vol) ? &ctx->active->vol->vol_stats
+                                               : NULL;
   if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
     int rename_result = RenameDirectory(ctx, dir_entry, new_name);
     if (!rename_result) {
       ctx->active->vol->volume_generation++;
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
-      dir_entry = ctx->active->vol
-                      ->dir_entry_list[ctx->active->disp_begin_pos +
-                                       ctx->active->cursor_pos]
-                      .dir_entry;
+      dir_entry = ResolveActiveDirEntry(ctx, s);
     }
-    RefreshView(ctx, dir_entry);
+    if (dir_entry)
+      RefreshView(ctx, dir_entry);
   }
 
   return dir_entry;
