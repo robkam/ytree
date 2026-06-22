@@ -348,7 +348,7 @@ VALID_ENFORCEMENT_STATUSES = {
     "covered_by_runtime_registry",
 }
 VALID_MIGRATION_STATUSES = {
-    "documented_foundation_only",
+    "runtime_backed",
 }
 DISPATCH_LIST_FIELDS = {"migration_notes", "transition_sequence_refs"}
 INVARIANT_LIST_FIELDS = {

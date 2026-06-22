@@ -746,7 +746,7 @@ def _owner_field(field: str = "field") -> dict[str, object]:
         "canonical_owner": "YtreeNovaPanel(fixture)",
         "runtime_carrier": "YtreeNovaPanel fixture carrier",
         "mutation_rule": "Fixture transitions may mutate only declared fields.",
-        "migration_status": "documented_foundation_only",
+        "migration_status": "runtime_backed",
         "invariant_checks": ["invariant.inactive_panel_frozen"],
     }
 
@@ -4854,6 +4854,7 @@ int main(void) {
   AppStateDispatchSurfaceMetadata dispatch_surface;
   AppStateEventCoverageMetadata event_coverage;
   AppStateInvariantMetadata invariant;
+  AppStateOwnerFieldMetadata owner_field;
   AppStateTransitionMetadata transition;
 
   transition = *AppStateTransitionLookup("transition.keybinding.navigate-tree");
@@ -4882,10 +4883,15 @@ int main(void) {
                                        &dispatch_surface))
     return 4;
 
+  owner_field = *AppStateOwnerFieldLookup("ctx.active");
+  owner_field.migration_status = "documented_foundation_only";
+  if (AppStateValidateOwnerField("ctx.active", &owner_field))
+    return 5;
+
   invariant = *AppStateInvariantLookup("invariant.inactive-panel-frozen");
   invariant.enforcement_status = "documented_foundation_only";
   if (AppStateValidateInvariant("invariant.inactive-panel-frozen", &invariant))
-    return 5;
+    return 6;
 
   return 0;
 }
@@ -8038,6 +8044,22 @@ def test_guard_fails_on_unknown_owner_field_invariant_id(tmp_path: Path) -> None
         "owner_field[0]" in failure
         and "invariant_checks[0] does not match runtime invariant registry"
         and "invariant.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_rejects_foundation_only_owner_field_status(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    owner_fields[0]["migration_status"] = "documented_foundation_only"
+    paths = _write_fixture(tmp_path, transitions=transitions, owner_fields=owner_fields)
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure
+        and "unknown migration_status" in failure
+        and "documented_foundation_only" in failure
         for failure in failures
     )
 
