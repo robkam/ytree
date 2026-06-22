@@ -2781,6 +2781,65 @@ def test_guard_fails_when_sequence_step_coverage_ref_transition_mismatches(
 
 
 @pytest.mark.parametrize(
+    ("registry_source", "field", "expected_label", "expected_fragment"),
+    (
+        (
+            "documented",
+            "invariant_ids",
+            "transition_sequence[0].step[0]",
+            "after-step contract scenario must evaluate at least one invariant",
+        ),
+        (
+            "documented",
+            "diff_harness_ids",
+            "transition_sequence[0].step[0]",
+            "after-step contract scenario must evaluate at least one diff harness",
+        ),
+        (
+            "runtime",
+            "invariant_ids",
+            "runtime_transition_sequence[0].step[0]",
+            "after-step contract scenario must evaluate at least one invariant",
+        ),
+        (
+            "runtime",
+            "diff_harness_ids",
+            "runtime_transition_sequence[0].step[0]",
+            "after-step contract scenario must evaluate at least one diff harness",
+        ),
+    ),
+)
+def test_guard_sequence_harness_requires_after_step_contract_evaluation(
+    tmp_path: Path,
+    registry_source: str,
+    field: str,
+    expected_label: str,
+    expected_fragment: str,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = None
+    if registry_source == "runtime":
+        runtime_transition_sequences = copy.deepcopy(transition_sequences)
+        runtime_transition_sequences[0]["steps"][0][field] = []
+    else:
+        transition_sequences[0]["steps"][0][field] = []
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        expected_label in failure and expected_fragment in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
     ("coverage_field", "replacement_refs", "expected"),
     (
         (
