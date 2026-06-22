@@ -6043,6 +6043,23 @@ def _validate_step_reference_list(
     return failures
 
 
+def _validate_after_step_contract_evaluation(
+    *, step: dict[str, Any], label: str
+) -> list[str]:
+    failures: list[str] = []
+    for field, evaluation_name in (
+        ("invariant_ids", "invariant"),
+        ("diff_harness_ids", "diff harness"),
+    ):
+        value = step.get(field)
+        if isinstance(value, list) and not value:
+            failures.append(
+                f"{label}: after-step contract scenario must evaluate "
+                f"at least one {evaluation_name}"
+            )
+    return failures
+
+
 def _non_empty_string_set(value: Any) -> set[str] | None:
     if not isinstance(value, list):
         return None
@@ -6872,6 +6889,9 @@ def _validate_appstate_transition_sequences(
                 )
             )
             failures.extend(
+                _validate_after_step_contract_evaluation(step=step, label=label)
+            )
+            failures.extend(
                 _validate_step_invariant_transition_alignment(
                     invariant_refs=step.get("invariant_ids"),
                     transition_id=transition_id,
@@ -7185,6 +7205,9 @@ def _validate_runtime_transition_sequence_registry(
                         reference_label=reference_label,
                     )
                 )
+            failures.extend(
+                _validate_after_step_contract_evaluation(step=step, label=step_label)
+            )
             failures.extend(
                 _validate_step_invariant_transition_alignment(
                     invariant_refs=step.get("invariant_ids"),
