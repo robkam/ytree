@@ -6730,6 +6730,93 @@ def test_guard_fails_when_dispatch_surface_source_path_is_outside_src(
     )
 
 
+def test_guard_fails_when_runtime_action_validation_callsite_is_missing(
+    tmp_path: Path,
+) -> None:
+    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
+    source_path = tmp_path / "src" / "ui" / "ctrl_file.c"
+    original = source_path.read_text(encoding="utf-8")
+    mutated = original.replace(
+        "action = AppStateValidatedKeyAction(action);",
+        "action = action;",
+        1,
+    )
+    assert mutated != original
+    source_path.write_text(mutated, encoding="utf-8")
+
+    failures = guard.validate_contract(
+        guard.DEFAULT_TRANSITIONS,
+        guard.DEFAULT_SHIMS,
+        guard.DEFAULT_ACTION_COVERAGE,
+        guard.DEFAULT_ACTION_HEADER,
+        guard.DEFAULT_EVENT_COVERAGE,
+        guard.DEFAULT_OWNER_FIELDS,
+        guard.DEFAULT_DISPATCH_SURFACES,
+        guard.DEFAULT_INVARIANTS,
+        guard.DEFAULT_GENERATION_DOMAINS,
+        guard.DEFAULT_DIFF_HARNESS,
+        guard.DEFAULT_TRANSITION_SEQUENCES,
+        guard.DEFAULT_ACTION_RUNTIME,
+        repository_root=tmp_path,
+    )
+
+    assert any(
+        "AppStateValidatedKeyAction" in failure
+        and "src/ui/ctrl_file.c" in failure
+        and "missing runtime validation callsite" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_validation_moves_outside_source_boundary(
+    tmp_path: Path,
+) -> None:
+    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
+    source_path = tmp_path / "src" / "ui" / "ctrl_file.c"
+    original = source_path.read_text(encoding="utf-8")
+    mutated = original.replace(
+        "action = AppStateValidatedKeyAction(action);",
+        "action = action;",
+        1,
+    )
+    assert mutated != original
+    source_path.write_text(mutated, encoding="utf-8")
+
+    unrelated_source_path = tmp_path / "src" / "core" / "main.c"
+    unrelated_original = unrelated_source_path.read_text(encoding="utf-8")
+    injected = unrelated_original.replace(
+        "int main(int argc, char **argv) {",
+        "int main(int argc, char **argv) {\n"
+        "  (void)AppStateValidatedKeyAction(ACTION_ENTER);",
+        1,
+    )
+    assert injected != unrelated_original
+    unrelated_source_path.write_text(injected, encoding="utf-8")
+
+    failures = guard.validate_contract(
+        guard.DEFAULT_TRANSITIONS,
+        guard.DEFAULT_SHIMS,
+        guard.DEFAULT_ACTION_COVERAGE,
+        guard.DEFAULT_ACTION_HEADER,
+        guard.DEFAULT_EVENT_COVERAGE,
+        guard.DEFAULT_OWNER_FIELDS,
+        guard.DEFAULT_DISPATCH_SURFACES,
+        guard.DEFAULT_INVARIANTS,
+        guard.DEFAULT_GENERATION_DOMAINS,
+        guard.DEFAULT_DIFF_HARNESS,
+        guard.DEFAULT_TRANSITION_SEQUENCES,
+        guard.DEFAULT_ACTION_RUNTIME,
+        repository_root=tmp_path,
+    )
+
+    assert any(
+        "AppStateValidatedKeyAction" in failure
+        and "src/ui/ctrl_file.c" in failure
+        and "missing runtime validation callsite" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_dispatch_surface_validation_callsite_is_missing(
     tmp_path: Path,
 ) -> None:
