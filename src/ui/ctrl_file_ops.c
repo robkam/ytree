@@ -283,16 +283,7 @@ BOOL handle_file_window_preview_action(
       if (start_vol_ptr)
         *start_vol_ptr = ctx->active->vol;
 
-      if (ctx->active->vol->total_dirs > 0) {
-        int idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
-        if (idx >= ctx->active->vol->total_dirs)
-          idx = ctx->active->vol->total_dirs - 1;
-        if (idx < 0)
-          idx = 0;
-        dir_entry = ctx->active->vol->dir_entry_list[idx].dir_entry;
-      } else {
-        dir_entry = stats_local->tree;
-      }
+      dir_entry = ResolveActiveDirEntry(ctx, stats_local);
 
       ctx->ctx_dir_window = ctx->active->pan_dir_window;
       ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
