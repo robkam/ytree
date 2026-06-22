@@ -384,6 +384,12 @@ EVENT_CALLSITE_RE = re.compile(r'AppStateValidatedEvent\s*\(\s*"([^"]+)"\s*\)')
 SHIM_CALLSITE_RE = re.compile(
     r'AppStateValidatedCompatibilityShim\s*\(\s*"([^"]+)"\s*\)'
 )
+KEY_ACTION_CALLSITE_RE = re.compile(r"\bAppStateValidatedKeyAction\s*\(")
+DECODED_ACTION_DISPATCH_SURFACE_CATEGORIES = {
+    "key_decode_input_dispatch",
+    "directory_window_action_dispatch",
+    "file_window_action_dispatch",
+}
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -4763,6 +4769,16 @@ def _runtime_validation_callsite_ids_in_file(
     return {match.group(1) for match in pattern.finditer(source)}, []
 
 
+def _runtime_validation_callsite_exists_in_file(
+    source_file: Path, pattern: re.Pattern[str]
+) -> tuple[bool, list[str]]:
+    try:
+        source = source_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        return False, [f"{source_file}: failed to read source file: {exc}"]
+    return bool(pattern.search(source)), []
+
+
 def _runtime_dispatch_surface_callsites_by_id(
     source_root: Path,
 ) -> tuple[dict[str, set[str]], list[str]]:
@@ -4808,6 +4824,73 @@ def _validate_runtime_dispatch_surface_callsites(
         if surface_id not in callsite_ids:
             failures.append(
                 f"{source_path}: {surface_id}: missing runtime validation callsite"
+            )
+    return failures
+
+
+def _decoded_action_source_boundary_paths(
+    action_records: list[dict[str, Any]],
+    dispatch_surface_records: list[Any],
+) -> list[str]:
+    dispatch_surfaces = _dispatch_surfaces_by_id(dispatch_surface_records)
+    source_paths: list[str] = []
+    seen_paths: set[str] = set()
+    for record in action_records:
+        if not isinstance(record, dict):
+            continue
+        refs = record.get("dispatch_surface_refs")
+        if not isinstance(refs, list):
+            continue
+        for surface_id in refs:
+            if not isinstance(surface_id, str) or not surface_id.strip():
+                continue
+            surface = dispatch_surfaces.get(surface_id)
+            if surface is None:
+                continue
+            if (
+                surface.get("category")
+                not in DECODED_ACTION_DISPATCH_SURFACE_CATEGORIES
+            ):
+                continue
+            source_path = surface.get("source_path")
+            if (
+                not isinstance(source_path, str)
+                or not source_path.strip()
+                or source_path in seen_paths
+            ):
+                continue
+            source_paths.append(source_path)
+            seen_paths.add(source_path)
+    return source_paths
+
+
+def _validate_runtime_action_callsites(
+    *,
+    action_records: list[dict[str, Any]],
+    dispatch_surface_records: list[Any],
+    repository_root: Path,
+    action_runtime_path: Path,
+) -> list[str]:
+    if (
+        action_runtime_path.parent.name != "core"
+        or action_runtime_path.parent.parent.name != "src"
+    ):
+        return []
+    failures: list[str] = []
+    for source_path in _decoded_action_source_boundary_paths(
+        action_records, dispatch_surface_records
+    ):
+        source_file = repository_root / source_path
+        has_callsite, read_failures = _runtime_validation_callsite_exists_in_file(
+            source_file, KEY_ACTION_CALLSITE_RE
+        )
+        failures.extend(read_failures)
+        if read_failures:
+            continue
+        if not has_callsite:
+            failures.append(
+                f"{source_path}: AppStateValidatedKeyAction: missing runtime "
+                f"validation callsite"
             )
     return failures
 
@@ -7729,6 +7812,14 @@ def validate_contract(
             runtime_diff_harness_generation_domain_ids=(
                 runtime_diff_harness_generation_domain_ids_by_harness
             ),
+        )
+    )
+    failures.extend(
+        _validate_runtime_action_callsites(
+            action_records=action_records,
+            dispatch_surface_records=dispatch_surface_records,
+            repository_root=repository_root,
+            action_runtime_path=action_runtime_path,
         )
     )
 
