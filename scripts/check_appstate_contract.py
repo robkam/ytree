@@ -4703,12 +4703,6 @@ def _runtime_dispatch_surface_callsites_by_id(
     )
 
 
-def _runtime_event_callsites_by_id(
-    source_root: Path,
-) -> tuple[dict[str, set[str]], list[str]]:
-    return _runtime_validation_callsites_by_id(source_root, EVENT_CALLSITE_RE)
-
-
 def _runtime_shim_callsites_by_id(
     source_root: Path,
 ) -> tuple[dict[str, set[str]], list[str]]:
@@ -4753,6 +4747,7 @@ def _validate_runtime_dispatch_surface_callsites(
 def _validate_runtime_event_callsites(
     *,
     runtime_records: list[dict[str, Any]],
+    runtime_dispatch_surface_records: list[dict[str, Any]],
     repository_root: Path,
     action_runtime_path: Path,
 ) -> list[str]:
@@ -4761,21 +4756,52 @@ def _validate_runtime_event_callsites(
         or action_runtime_path.parent.parent.name != "src"
     ):
         return []
-    source_root = repository_root / "src"
-    callsites_by_id, failures = _runtime_event_callsites_by_id(source_root)
-    runtime_event_ids = sorted(
-        {
-            event_id.strip()
-            for record in runtime_records
-            if isinstance(record, dict)
-            and isinstance(record.get("event_id"), str)
-            and (event_id := record["event_id"]).strip()
-        }
-    )
-    for event_id in runtime_event_ids:
-        if event_id not in callsites_by_id:
+    failures: list[str] = []
+    dispatch_surfaces = _dispatch_surfaces_by_id(runtime_dispatch_surface_records)
+    for record in runtime_records:
+        if not isinstance(record, dict):
+            continue
+        event_id = record.get("event_id")
+        refs = record.get("dispatch_surface_refs")
+        if not isinstance(event_id, str) or not event_id.strip():
+            continue
+        if not isinstance(refs, list):
+            continue
+        source_paths: list[str] = []
+        seen_paths: set[str] = set()
+        for surface_id in refs:
+            if not isinstance(surface_id, str) or not surface_id.strip():
+                continue
+            surface = dispatch_surfaces.get(surface_id)
+            if surface is None:
+                continue
+            source_path = surface.get("source_path")
+            if (
+                not isinstance(source_path, str)
+                or not source_path.strip()
+                or source_path in seen_paths
+            ):
+                continue
+            source_paths.append(source_path)
+            seen_paths.add(source_path)
+        if not source_paths:
+            continue
+
+        event_found = False
+        for source_path in source_paths:
+            source_file = repository_root / source_path
+            callsite_ids, read_failures = _runtime_validation_callsite_ids_in_file(
+                source_file, EVENT_CALLSITE_RE
+            )
+            failures.extend(read_failures)
+            if read_failures:
+                continue
+            if event_id in callsite_ids:
+                event_found = True
+                break
+        if not event_found:
             failures.append(
-                f"{source_root}: {event_id}: missing runtime validation callsite"
+                f"{', '.join(source_paths)}: {event_id}: missing runtime validation callsite"
             )
     return failures
 
@@ -7664,6 +7690,7 @@ def validate_contract(
     failures.extend(
         _validate_runtime_event_callsites(
             runtime_records=runtime_event_coverage_records,
+            runtime_dispatch_surface_records=runtime_dispatch_surface_records,
             repository_root=repository_root,
             action_runtime_path=action_runtime_path,
         )
