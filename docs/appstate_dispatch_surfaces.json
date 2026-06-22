@@ -73,6 +73,21 @@
       ]
     },
     {
+      "surface_id": "surface.modal-completion-event",
+      "category": "menu_modal_completion",
+      "source_path": "src/ui/key_engine.c",
+      "entry_symbol_or_path": "InputChoice",
+      "transition_id": "transition.modal-action.completion",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [],
+      "migration_notes": [
+        "Current menu and modal choice completion returns a selected key to callers; the registry now tracks that completion through its own explicit transition boundary while runtime modal writes remain with the caller."
+      ],
+      "transition_sequence_refs": [
+        "sequence.modal-completion"
+      ]
+    },
+    {
       "surface_id": "surface.resize-signal-handling",
       "category": "resize_signal_handling",
       "source_path": "src/ui/key_engine.c",
@@ -162,14 +177,14 @@
       "category": "watcher_live_refresh",
       "source_path": "src/ui/key_engine.c",
       "entry_symbol_or_path": "GetEventOrKey",
-      "transition_id": "transition.refresh-rebuild.manual-refresh",
+      "transition_id": "transition.refresh-rebuild.watcher-live-refresh",
       "boundary_status": "documented_foundation_only",
       "allowed_direct_writes": [],
       "migration_notes": [
-        "Current watcher processing reports settled filesystem activity to input dispatch; topology mutation remains mapped to the broad refresh/rebuild transition."
+        "Current watcher processing reports settled filesystem activity to input dispatch; the registry now tracks that watcher completion through its own explicit refresh transition boundary."
       ],
       "transition_sequence_refs": [
-        "sequence.refresh-rebuild"
+        "sequence.watcher-live-refresh"
       ]
     },
     {

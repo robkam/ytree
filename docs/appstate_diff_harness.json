@@ -6,11 +6,20 @@
     {
       "harness_id": "harness.transition-before-after-snapshot",
       "check_category": "transition_before_after_snapshot",
-      "snapshot_phases": ["before_guard", "after_allowed_or_blocked_result"],
-      "snapshot_regions": ["ctx/session state", "panel-local state", "volume/shared topology and payload state", "render/projection/invalidation state"],
+      "snapshot_phases": [
+        "before_guard",
+        "after_allowed_or_blocked_result"
+      ],
+      "snapshot_regions": [
+        "ctx/session state",
+        "panel-local state",
+        "volume/shared topology and payload state",
+        "render/projection/invalidation state"
+      ],
       "transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor"
@@ -54,12 +63,20 @@
     {
       "harness_id": "harness.declared-write-set-diff",
       "check_category": "declared_write_set_diff",
-      "snapshot_phases": ["before_transition", "after_transition_commit"],
-      "snapshot_regions": ["ctx/session state", "panel-local state", "volume/shared topology and payload state"],
+      "snapshot_phases": [
+        "before_transition",
+        "after_transition_commit"
+      ],
+      "snapshot_regions": [
+        "ctx/session state",
+        "panel-local state",
+        "volume/shared topology and payload state"
+      ],
       "transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.command-completion.user-command"
       ],
       "owner_field_refs": [
@@ -98,8 +115,15 @@
     {
       "harness_id": "harness.render-projection-read-only-diff",
       "check_category": "render_projection_read_only_diff",
-      "snapshot_phases": ["before_render_projection", "after_render_projection"],
-      "snapshot_regions": ["panel-local state", "volume/shared topology and payload state", "render/projection/invalidation state"],
+      "snapshot_phases": [
+        "before_render_projection",
+        "after_render_projection"
+      ],
+      "snapshot_regions": [
+        "panel-local state",
+        "volume/shared topology and payload state",
+        "render/projection/invalidation state"
+      ],
       "transition_ids": [
         "transition.render-reflow.project-state"
       ],
@@ -133,10 +157,18 @@
     {
       "harness_id": "harness.generation-mismatch-check",
       "check_category": "generation_mismatch_check",
-      "snapshot_phases": ["saved_snapshot", "current_authority", "restore_attempt_result"],
-      "snapshot_regions": ["panel-local state", "volume/shared topology and payload state"],
+      "snapshot_phases": [
+        "saved_snapshot",
+        "current_authority",
+        "restore_attempt_result"
+      ],
+      "snapshot_regions": [
+        "panel-local state",
+        "volume/shared topology and payload state"
+      ],
       "transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
+        "transition.refresh-rebuild.watcher-live-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.rebuild-rebind-callback.panel-anchor",
         "transition.terminal-signal-resize"
@@ -181,11 +213,19 @@
     {
       "harness_id": "harness.blocked-transition-no-unrelated-mutation",
       "check_category": "blocked_transition_no_unrelated_mutation",
-      "snapshot_phases": ["before_guard", "after_blocked_result"],
-      "snapshot_regions": ["ctx/session state", "panel-local state", "volume/shared topology and payload state"],
+      "snapshot_phases": [
+        "before_guard",
+        "after_blocked_result"
+      ],
+      "snapshot_regions": [
+        "ctx/session state",
+        "panel-local state",
+        "volume/shared topology and payload state"
+      ],
       "transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.modal-action.dismiss",
+        "transition.modal-action.completion",
         "transition.volume-operation.release-cycle",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
         "transition.command-completion.user-command"

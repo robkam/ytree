@@ -240,12 +240,48 @@
           "step_id": "active-modal-escape-dismiss",
           "transition_id": "transition.modal-action.dismiss",
           "stimulus": {
-            "action_id": "ACTION_ESCAPE",
-            "event_id": "event.modal-completion"
+            "action_id": "ACTION_ESCAPE"
           },
           "action_coverage_refs": [
             "ACTION_ESCAPE"
           ],
+          "event_coverage_refs": [],
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.panel-local-focus-restore",
+            "invariant.blocked-transition-determinism"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "target.modal-command.session",
+              "expectation": "Modal target generation validates before applying completion or dismissal."
+            },
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.modal-completion",
+      "category": "modal_command",
+      "flow": "modal_completion",
+      "description": "Settle prompt, menu, and dialog completion through the explicit modal completion transition while preserving panel-local state.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "modal-completion-settle",
+          "transition_id": "transition.modal-action.completion",
+          "stimulus": {
+            "event_id": "event.modal-completion"
+          },
+          "action_coverage_refs": [],
           "event_coverage_refs": [
             "event.modal-completion"
           ],
@@ -441,6 +477,54 @@
             "outcome": "Fail closed to the nearest valid durable identity or preserve the prior valid selection without using stale rows.",
             "allowed_mutation_scope": "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."
           }
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.watcher-live-refresh",
+      "category": "refresh_rebuild",
+      "flow": "watcher_live_refresh",
+      "description": "Settle watcher-triggered refresh notifications through their explicit transition boundary while preserving rebuild and rebind ordering.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "watcher-live-refresh",
+          "transition_id": "transition.refresh-rebuild.watcher-live-refresh",
+          "stimulus": {
+            "event_id": "event.watcher-live-refresh"
+          },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.watcher-live-refresh"
+          ],
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.hidden-entry-visible-navigation",
+            "invariant.viewport-identity-rebind",
+            "invariant.shared-state-panel-local-isolation"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.generation-mismatch-check"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            },
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            }
+          ]
         }
       ]
     },

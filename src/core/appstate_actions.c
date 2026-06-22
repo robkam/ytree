@@ -430,7 +430,9 @@ static const char *const kAppStateGenerationDomainCoverageTransitionIds0[] = {
   "transition.keybinding.navigate-tree",
   "transition.menu-action.volume-select",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.terminal-signal-resize",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -438,42 +440,50 @@ static const char *const kAppStateGenerationDomainCoverageTransitionIds0[] = {
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds1[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds2[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.volume-operation.release-cycle",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds3[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds4[] = {
   "transition.keybinding.navigate-tree",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.menu-action.volume-select",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds5[] = {
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.command-completion.user-command",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds6[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.keybinding.navigate-tree",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds7[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds8[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
@@ -481,6 +491,7 @@ static const char *const kAppStateGenerationDomainCoverageTransitionIds9[] = {
   "transition.volume-operation.release-cycle",
   "transition.menu-action.volume-select",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
 };
 static const char *const kAppStateGenerationDomainCoverageTransitionIds10[] = {
   "transition.terminal-signal-resize",
@@ -490,7 +501,9 @@ static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds0[] = {
   "transition.keybinding.navigate-tree",
   "transition.menu-action.volume-select",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.terminal-signal-resize",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -498,42 +511,50 @@ static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds0[] = {
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds1[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds2[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.volume-operation.release-cycle",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds3[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds4[] = {
   "transition.keybinding.navigate-tree",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.menu-action.volume-select",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds5[] = {
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.command-completion.user-command",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds6[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.keybinding.navigate-tree",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds7[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds8[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
@@ -541,6 +562,7 @@ static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds9[] = {
   "transition.volume-operation.release-cycle",
   "transition.menu-action.volume-select",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
 };
 static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds10[] = {
   "transition.terminal-signal-resize",
@@ -774,6 +796,7 @@ static const char *const kAppStateDiffHarnessSnapshotRegions0[] = {
 static const char *const kAppStateDiffHarnessTransitionIds0[] = {
   "transition.keybinding.navigate-tree",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
@@ -830,6 +853,7 @@ static const char *const kAppStateDiffHarnessTransitionIds1[] = {
   "transition.keybinding.navigate-tree",
   "transition.menu-action.volume-select",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.command-completion.user-command",
 };
 
@@ -921,6 +945,7 @@ static const char *const kAppStateDiffHarnessSnapshotRegions3[] = {
 
 static const char *const kAppStateDiffHarnessTransitionIds3[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
   "transition.terminal-signal-resize",
@@ -977,6 +1002,7 @@ static const char *const kAppStateDiffHarnessSnapshotRegions4[] = {
 static const char *const kAppStateDiffHarnessTransitionIds4[] = {
   "transition.keybinding.navigate-tree",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.command-completion.user-command",
@@ -1380,11 +1406,11 @@ static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceS
    "active-modal-escape-dismiss",
    "transition.modal-action.dismiss",
    "ACTION_ESCAPE",
-   "event.modal-completion",
+   NULL,
    kAppStateTransitionSequenceStepActionCoverageRefs3_0,
    sizeof(kAppStateTransitionSequenceStepActionCoverageRefs3_0) / sizeof(kAppStateTransitionSequenceStepActionCoverageRefs3_0[0]),
-   kAppStateTransitionSequenceStepEventCoverageRefs3_0,
-   sizeof(kAppStateTransitionSequenceStepEventCoverageRefs3_0) / sizeof(kAppStateTransitionSequenceStepEventCoverageRefs3_0[0]),
+   NULL,
+   0,
    "allowed",
    kAppStateTransitionSequenceStepInvariantIds3_0,
    sizeof(kAppStateTransitionSequenceStepInvariantIds3_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds3_0[0]),
@@ -1526,6 +1552,10 @@ static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTr
 static const AppStateTransitionSequenceNoUnrelatedMutationMetadata kAppStateTransitionSequenceStepNoUnrelatedMutation5_1 = {"harness.generation-mismatch-check", "Fallback/stale-snapshot/generation-mismatch handling may mutate only the declared transition fields and must leave unrelated owner fields unchanged."};
 
 static const AppStateTransitionSequenceDeterministicFallbackMetadata kAppStateTransitionSequenceStepDeterministicFallback5_1 = {"Fail closed to the nearest valid durable identity or preserve the prior valid selection without using stale rows.", "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."};
+
+static const char *const kAppStateTransitionSequenceStepEventCoverageRefs16_0[] = {
+  "event.watcher-live-refresh",
+};
 
 static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps5[] = {
   {1,
@@ -2195,6 +2225,50 @@ static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceS
    NULL},
 };
 
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps15[] = {
+  {1,
+   "modal-completion-settle",
+   "transition.modal-action.completion",
+   NULL,
+   "event.modal-completion",
+   NULL,
+   0,
+   kAppStateTransitionSequenceStepEventCoverageRefs3_0,
+   sizeof(kAppStateTransitionSequenceStepEventCoverageRefs3_0) / sizeof(kAppStateTransitionSequenceStepEventCoverageRefs3_0[0]),
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds3_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds3_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds3_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds3_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds3_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds3_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations3_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations3_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations3_0[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps16[] = {
+  {1,
+   "watcher-live-refresh",
+   "transition.refresh-rebuild.watcher-live-refresh",
+   NULL,
+   "event.watcher-live-refresh",
+   NULL,
+   0,
+   kAppStateTransitionSequenceStepEventCoverageRefs16_0,
+   sizeof(kAppStateTransitionSequenceStepEventCoverageRefs16_0) / sizeof(kAppStateTransitionSequenceStepEventCoverageRefs16_0[0]),
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds5_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds5_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds5_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds5_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations5_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_0[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
 static const AppStateTransitionSequenceMetadata kAppStateTransitionSequences[] = {
   {"sequence.split-toggle-f8",
    "layout_split",
@@ -2220,6 +2294,12 @@ static const AppStateTransitionSequenceMetadata kAppStateTransitionSequences[] =
    "Dismiss command/modal ownership through the registered modal transition and preserve panel-local state.",
    kAppStateTransitionSequenceSteps3,
    sizeof(kAppStateTransitionSequenceSteps3) / sizeof(kAppStateTransitionSequenceSteps3[0])},
+  {"sequence.modal-completion",
+   "modal_command",
+   "modal_completion",
+   "Settle prompt, menu, and dialog completion through the explicit modal completion transition while preserving panel-local state.",
+   kAppStateTransitionSequenceSteps15,
+   sizeof(kAppStateTransitionSequenceSteps15) / sizeof(kAppStateTransitionSequenceSteps15[0])},
   {"sequence.dotfile-reveal-conceal",
    "visibility_filter",
    "dotfile_reveal_conceal",
@@ -2232,6 +2312,12 @@ static const AppStateTransitionSequenceMetadata kAppStateTransitionSequences[] =
    "Refresh and rebuild with generation validation and deterministic stale-snapshot fail-closed behavior.",
    kAppStateTransitionSequenceSteps5,
    sizeof(kAppStateTransitionSequenceSteps5) / sizeof(kAppStateTransitionSequenceSteps5[0])},
+  {"sequence.watcher-live-refresh",
+   "refresh_rebuild",
+   "watcher_live_refresh",
+   "Settle watcher-triggered refresh notifications through their explicit transition boundary while preserving rebuild and rebind ordering.",
+   kAppStateTransitionSequenceSteps16,
+   sizeof(kAppStateTransitionSequenceSteps16) / sizeof(kAppStateTransitionSequenceSteps16[0])},
   {"sequence.filesystem-mutation-result",
    "filesystem_mutation",
    "filesystem_mutation_result",
@@ -2398,11 +2484,11 @@ static const char *const kAppStateDispatchSurfaceMigrationNotes7[] = {
 };
 
 static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs8[] = {
-  "sequence.refresh-rebuild",
+  "sequence.watcher-live-refresh",
 };
 
 static const char *const kAppStateDispatchSurfaceMigrationNotes8[] = {
-  "Current watcher processing reports settled filesystem activity to input dispatch; topology mutation remains mapped to the broad refresh/rebuild transition.",
+  "Current watcher processing reports settled filesystem activity to input dispatch; the registry now tracks that watcher completion through its own explicit refresh transition boundary.",
 };
 
 static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs9[] = {
@@ -2418,6 +2504,12 @@ static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs10[] = {
 };
 static const char *const kAppStateDispatchSurfaceMigrationNotes10[] = {
   "Current command handlers settle completion state after external or user-command execution returns; runtime migration should lift that completion boundary without broadening write authority here.",
+};
+static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs15[] = {
+  "sequence.modal-completion",
+};
+static const char *const kAppStateDispatchSurfaceMigrationNotes15[] = {
+  "Current menu and modal choice completion returns a selected key to callers; the registry now tracks that completion through its own explicit transition boundary while runtime modal writes remain with the caller.",
 };
 static const char *const kAppStateDispatchSurfaceAllowedDirectWrites11[] = {
   "ctx.active",
@@ -2501,6 +2593,20 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
        sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs3[0]),
    kAppStateDispatchSurfaceMigrationNotes3,
    sizeof(kAppStateDispatchSurfaceMigrationNotes3) / sizeof(kAppStateDispatchSurfaceMigrationNotes3[0])},
+  {"surface.modal-completion-event",
+   "menu_modal_completion",
+   "src/ui/key_engine.c",
+   "InputChoice",
+   "transition.modal-action.completion",
+   "documented_foundation_only",
+   NULL,
+   0,
+   kAppStateDispatchSurfaceTransitionSequenceRefs15,
+   sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs15) /
+       sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs15[0]),
+   kAppStateDispatchSurfaceMigrationNotes15,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes15) /
+       sizeof(kAppStateDispatchSurfaceMigrationNotes15[0])},
   {"surface.resize-signal-handling",
    "resize_signal_handling",
    "src/ui/key_engine.c",
@@ -2561,7 +2667,7 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
    "watcher_live_refresh",
    "src/ui/key_engine.c",
    "GetEventOrKey",
-   "transition.refresh-rebuild.manual-refresh",
+   "transition.refresh-rebuild.watcher-live-refresh",
    "documented_foundation_only",
    NULL,
    0,
@@ -2749,7 +2855,9 @@ static const char *const kAppStateInvariantTransitionIds0[] = {
   "transition.keybinding.navigate-tree",
   "transition.menu-action.volume-select",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.terminal-signal-resize",
 };
@@ -2759,6 +2867,7 @@ static const char *const kAppStateInvariantDispatchSurfaceIds0[] = {
   "surface.file-window-action-dispatch",
   "surface.volume-menu-selection",
   "surface.menu-modal-completion",
+  "surface.modal-completion-event",
   "surface.refresh-rebuild-rebind",
   "surface.volume-operation",
   "surface.resize-signal-handling",
@@ -2809,6 +2918,7 @@ static const char *const kAppStateInvariantProtectedFields2[] = {
 static const char *const kAppStateInvariantTransitionIds2[] = {
   "transition.keybinding.navigate-tree",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 
@@ -2838,6 +2948,7 @@ static const char *const kAppStateInvariantTransitionIds3[] = {
   "transition.keybinding.navigate-tree",
   "transition.menu-action.volume-select",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.rebuild-rebind-callback.panel-anchor",
 };
 
@@ -2845,6 +2956,7 @@ static const char *const kAppStateInvariantDispatchSurfaceIds3[] = {
   "surface.directory-window-action-dispatch",
   "surface.file-window-action-dispatch",
   "surface.menu-modal-completion",
+  "surface.modal-completion-event",
   "surface.volume-operation",
 };
 
@@ -2865,6 +2977,7 @@ static const char *const kAppStateInvariantProtectedFields4[] = {
 
 static const char *const kAppStateInvariantTransitionIds4[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.terminal-signal-resize",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
@@ -2900,6 +3013,7 @@ static const char *const kAppStateInvariantProtectedFields5[] = {
 static const char *const kAppStateInvariantTransitionIds5[] = {
   "transition.menu-action.volume-select",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
 };
@@ -2929,6 +3043,7 @@ static const char *const kAppStateInvariantProtectedFields6[] = {
 
 static const char *const kAppStateInvariantTransitionIds6[] = {
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
   "transition.rebuild-rebind-callback.panel-anchor",
@@ -2964,7 +3079,9 @@ static const char *const kAppStateInvariantTransitionIds7[] = {
   "transition.keybinding.navigate-tree",
   "transition.menu-action.volume-select",
   "transition.modal-action.dismiss",
+  "transition.modal-action.completion",
   "transition.refresh-rebuild.manual-refresh",
+  "transition.refresh-rebuild.watcher-live-refresh",
   "transition.volume-operation.release-cycle",
   "transition.terminal-signal-resize",
   "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -2978,6 +3095,7 @@ static const char *const kAppStateInvariantDispatchSurfaceIds7[] = {
   "surface.directory-window-action-dispatch",
   "surface.file-window-action-dispatch",
   "surface.menu-modal-completion",
+  "surface.modal-completion-event",
   "surface.resize-signal-handling",
   "surface.refresh-rebuild-rebind",
   "surface.filesystem-mutation-result",
@@ -3149,6 +3267,10 @@ static const char *const kAppStateTransitionSideEffects2[] = {
 static const char *const kAppStateTransitionSideEffects3[] = {
   "Filesystem scan/read operations.",
 };
+
+static const char *const kAppStateTransitionSideEffects15[] = {
+  "Filesystem scan/read operations after watcher debounce/settle.",
+};
 static const char *const kAppStateTransitionSideEffects4[] = {
   "May close archive/filesystem resources.",
 };
@@ -3223,6 +3345,24 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    "Modal migration must preserve severity versus neutral dialog routing.",
    kAppStateTransitionWriteSet2,
    sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0])},
+  {"transition.modal-action.completion",
+   "modal_action",
+   "AppState.modal=prompt_menu_or_dialog_awaiting_completion",
+   "modal_completion:selected_key_or_cancel",
+   "The completion result belongs to the active modal source and destructive confirmations remain routed through their explicit command transitions.",
+   "Record the modal completion outcome, clear the modal region, and restore the previously recorded panel/session focus shape.",
+   "Ignore stale or mismatched modal completion and leave the modal plus underlying panel/volume state unchanged.",
+   "AppState.modal=none with the completion outcome returned to the owning command path and suspended panel state restored from its record.",
+   "ViewContext.modal_region",
+   "Increment panel_generation only if restoring the suspended focus shape changes panel-local state.",
+   kAppStateTransitionSideEffects2,
+   sizeof(kAppStateTransitionSideEffects2) /
+       sizeof(kAppStateTransitionSideEffects2[0]),
+   "modal_overlay,footer,underlying_view_projection",
+   "documented_foundation_only",
+   "Runtime migration must preserve prompt/menu/dialog completion routing while destructive confirmations stay on their dedicated command transitions.",
+   kAppStateTransitionWriteSet2,
+   sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0])},
   {"transition.refresh-rebuild.manual-refresh",
    "refresh_rebuild",
    "AppState.volume[current].topology=current_generation",
@@ -3239,6 +3379,24 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    "tree_view,file_view,stats,footer",
    "documented_foundation_only",
    "Runtime migration must keep restore ordering: rebuild, generation advance, rebind/fallback, render.",
+   kAppStateTransitionWriteSet3,
+   sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
+  {"transition.refresh-rebuild.watcher-live-refresh",
+   "refresh_rebuild",
+   "AppState.volume[current].topology=settled_generation awaiting watcher refresh",
+   "watcher_live_refresh:settled_notification",
+   "Watcher debounce/settle has completed for the active volume namespace and rebuild can complete or fail closed.",
+   "Complete rebuild for the settled watcher notification, advance volume_generation, then re-resolve panel snapshots by stable identity keys.",
+   "Keep the previous topology and surface the watcher refresh failure; do not apply partial row-index guesses.",
+   "AppState.volume[current] reflects the settled watcher refresh and panels are rebound or deterministically fallen back.",
+   "Volume(shared topology)",
+   "Increment volume_generation for any watcher-settled topology or visibility-set change; increment affected panel_generation after rebind/fallback.",
+   kAppStateTransitionSideEffects15,
+   sizeof(kAppStateTransitionSideEffects15) /
+       sizeof(kAppStateTransitionSideEffects15[0]),
+   "tree_view,file_view,stats,footer",
+   "documented_foundation_only",
+   "Runtime migration must keep watcher debounce/settle routing distinct from explicit manual refresh commands while preserving rebuild ordering.",
    kAppStateTransitionWriteSet3,
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
   {"transition.volume-operation.release-cycle",
@@ -3620,6 +3778,12 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs5[] = {
 static const char *const kAppStateEventCoverageTransitionSequenceRefs6[] = {
   "sequence.render-reflow-projection",
 };
+static const char *const kAppStateEventCoverageTransitionSequenceRefs7[] = {
+  "sequence.watcher-live-refresh",
+};
+static const char *const kAppStateEventCoverageTransitionSequenceRefs8[] = {
+  "sequence.modal-completion",
+};
 static const char *const kAppStateEventCoverageDispatchSurfaceRefs0[] = {
   "surface.resize-signal-handling",
 };
@@ -3639,7 +3803,7 @@ static const char *const kAppStateEventCoverageDispatchSurfaceRefs5[] = {
   "surface.command-completion-dispatch",
 };
 static const char *const kAppStateEventCoverageDispatchSurfaceRefs6[] = {
-  "surface.menu-modal-completion",
+  "surface.modal-completion-event",
 };
 static const char *const kAppStateEventCoverageDispatchSurfaceRefs7[] = {
   "surface.volume-operation",
@@ -3760,13 +3924,13 @@ static const char *const kAppStateEventCoverageMigrationNotes3[] = {
   "Command side effects remain outside AppState commit; only completed results may update AppState metadata.",
 };
 static const char *const kAppStateEventCoverageMigrationNotes4[] = {
-  "Watcher/live-refresh intentionally maps to the broad refresh_rebuild transition until a dedicated watcher runtime boundary exists.",
+  "Watcher/live-refresh now uses its own explicit covered transition record rather than borrowing the manual refresh boundary.",
 };
 static const char *const kAppStateEventCoverageMigrationNotes5[] = {
   "Command completion may schedule refresh only when the command contract declares filesystem impact.",
 };
 static const char *const kAppStateEventCoverageMigrationNotes6[] = {
-  "Modal completion maps to the modal_action dismiss record while destructive confirmations remain governed by their own command transitions.",
+  "Modal completion now uses its own explicit covered transition record while destructive confirmations remain governed by their dedicated command transitions.",
 };
 static const char *const kAppStateEventCoverageMigrationNotes7[] = {
   "Lifecycle coverage keeps inactive panels from inheriting stale volume pointers during migration.",
@@ -3879,7 +4043,7 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageMigrationNotes3) / sizeof(kAppStateEventCoverageMigrationNotes3[0])},
   {"event.watcher-live-refresh",
    "watcher_live_refresh",
-   "transition.refresh-rebuild.manual-refresh",
+   "transition.refresh-rebuild.watcher-live-refresh",
    "refresh_rebuild",
    "Filesystem watcher or live-refresh notification after debounce/settle",
    "Volume(shared topology)",
@@ -3887,11 +4051,11 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0]),
    kAppStateEventCoverageOwnerFieldRefs1,
    sizeof(kAppStateEventCoverageOwnerFieldRefs1) / sizeof(kAppStateEventCoverageOwnerFieldRefs1[0]),
-   "mapped_to_existing_broad_transition",
+   "covered_by_transition_record",
    kAppStateEventCoverageTriggerPaths4,
    sizeof(kAppStateEventCoverageTriggerPaths4) / sizeof(kAppStateEventCoverageTriggerPaths4[0]),
-   kAppStateEventCoverageTransitionSequenceRefs1,
-   sizeof(kAppStateEventCoverageTransitionSequenceRefs1) / sizeof(kAppStateEventCoverageTransitionSequenceRefs1[0]),
+   kAppStateEventCoverageTransitionSequenceRefs7,
+   sizeof(kAppStateEventCoverageTransitionSequenceRefs7) / sizeof(kAppStateEventCoverageTransitionSequenceRefs7[0]),
    kAppStateEventCoverageDispatchSurfaceRefs4,
    sizeof(kAppStateEventCoverageDispatchSurfaceRefs4) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs4[0]),
    kAppStateEventCoverageInvariantRefs1,
@@ -3929,7 +4093,7 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageMigrationNotes5) / sizeof(kAppStateEventCoverageMigrationNotes5[0])},
   {"event.modal-completion",
    "modal_completion",
-   "transition.modal-action.dismiss",
+   "transition.modal-action.completion",
    "modal_action",
    "Modal prompt, menu, or dialog completion",
    "ViewContext.modal_region",
@@ -3937,11 +4101,11 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0]),
    kAppStateEventCoverageOwnerFieldRefs5,
    sizeof(kAppStateEventCoverageOwnerFieldRefs5) / sizeof(kAppStateEventCoverageOwnerFieldRefs5[0]),
-   "mapped_to_existing_broad_transition",
+   "covered_by_transition_record",
    kAppStateEventCoverageTriggerPaths6,
    sizeof(kAppStateEventCoverageTriggerPaths6) / sizeof(kAppStateEventCoverageTriggerPaths6[0]),
-   kAppStateEventCoverageTransitionSequenceRefs4,
-   sizeof(kAppStateEventCoverageTransitionSequenceRefs4) / sizeof(kAppStateEventCoverageTransitionSequenceRefs4[0]),
+   kAppStateEventCoverageTransitionSequenceRefs8,
+   sizeof(kAppStateEventCoverageTransitionSequenceRefs8) / sizeof(kAppStateEventCoverageTransitionSequenceRefs8[0]),
    kAppStateEventCoverageDispatchSurfaceRefs6,
    sizeof(kAppStateEventCoverageDispatchSurfaceRefs6) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs6[0]),
    kAppStateEventCoverageInvariantRefs4,

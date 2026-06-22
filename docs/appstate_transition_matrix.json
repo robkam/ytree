@@ -13,9 +13,17 @@
       "blocked_result": "Leave AppState unchanged except for an explicit no-op or constraint message when user-visible clarity is required.",
       "target_state": "AppState.panel[active] records the new tree selection, viewport, and focus shape before render projection.",
       "owner": "YtreeNovaPanel(active)",
-      "declared_write_set": ["panel.tree_selection_key", "panel.tree_cursor_pos", "panel.tree_viewport_origin", "panel.focus_shape", "panel.panel_generation"],
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
       "generation_effect": "Increment panel_generation when selection, viewport, or focus shape changes; volume_generation is unchanged.",
-      "side_effects": ["May request directory payload load when Enter reveals an unlogged directory."],
+      "side_effects": [
+        "May request directory payload load when Enter reveals an unlogged directory."
+      ],
       "render_invalidation": "tree_view,file_view,footer",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Route HandleDirWindow key dispatch through the canonical transition boundary in a later runtime migration."
@@ -30,9 +38,16 @@
       "blocked_result": "Dismiss or keep the menu according to existing UI semantics without changing panel or volume ownership.",
       "target_state": "AppState.panel[active].volume_key matches the selected volume and uses the panel-local restore record.",
       "owner": "ViewContext(session routing) and YtreeNovaPanel(active)",
-      "declared_write_set": ["ctx.active", "panel.volume_key", "panel.restore_snapshot", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.active",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
       "generation_effect": "Increment panel_generation when the active panel binds to a different volume; volume_generation changes only for explicit relog/rebuild.",
-      "side_effects": ["May read the volume registry."],
+      "side_effects": [
+        "May read the volume registry."
+      ],
       "render_invalidation": "layout,tree_view,file_view,stats,footer",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Keep the loaded-volume preservation rule from the specification during runtime migration."
@@ -47,12 +62,43 @@
       "blocked_result": "Keep the modal active and leave underlying panel/volume state unchanged.",
       "target_state": "AppState.modal=none with the suspended panel state restored from its record.",
       "owner": "ViewContext.modal_region",
-      "declared_write_set": ["ctx.modal_state", "ctx.message_state", "panel.focus_shape", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.modal_state",
+        "ctx.message_state",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
       "generation_effect": "Increment panel_generation only if restoring the suspended focus shape changes panel-local state.",
-      "side_effects": ["No filesystem side effects."],
+      "side_effects": [
+        "No filesystem side effects."
+      ],
       "render_invalidation": "modal_overlay,footer,underlying_view_projection",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Modal migration must preserve severity versus neutral dialog routing."
+    },
+    {
+      "id": "transition.modal-action.completion",
+      "category": "modal_action",
+      "source_state": "AppState.modal=prompt_menu_or_dialog_awaiting_completion",
+      "event": "modal_completion:selected_key_or_cancel",
+      "guard": "The completion result belongs to the active modal source and destructive confirmations remain routed through their explicit command transitions.",
+      "allowed_result": "Record the modal completion outcome, clear the modal region, and restore the previously recorded panel/session focus shape.",
+      "blocked_result": "Ignore stale or mismatched modal completion and leave the modal plus underlying panel/volume state unchanged.",
+      "target_state": "AppState.modal=none with the completion outcome returned to the owning command path and suspended panel state restored from its record.",
+      "owner": "ViewContext.modal_region",
+      "declared_write_set": [
+        "ctx.modal_state",
+        "ctx.message_state",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "generation_effect": "Increment panel_generation only if restoring the suspended focus shape changes panel-local state.",
+      "side_effects": [
+        "No filesystem side effects."
+      ],
+      "render_invalidation": "modal_overlay,footer,underlying_view_projection",
+      "boundary_status": "documented_foundation_only",
+      "notes_follow_up": "Runtime migration must preserve prompt/menu/dialog completion routing while destructive confirmations stay on their dedicated command transitions."
     },
     {
       "id": "transition.refresh-rebuild.manual-refresh",
@@ -64,12 +110,45 @@
       "blocked_result": "Keep the previous topology and surface the refresh failure; do not apply partial row-index guesses.",
       "target_state": "AppState.volume[current] has settled topology and panels are rebound or deterministically fallen back.",
       "owner": "Volume(shared topology)",
-      "declared_write_set": ["volume.dir_tree", "volume.logged_state", "volume.volume_generation", "panel.restore_snapshot", "panel.panel_generation"],
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
       "generation_effect": "Increment volume_generation for any topology or visibility-set change; increment affected panel_generation after rebind/fallback.",
-      "side_effects": ["Filesystem scan/read operations."],
+      "side_effects": [
+        "Filesystem scan/read operations."
+      ],
       "render_invalidation": "tree_view,file_view,stats,footer",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Runtime migration must keep restore ordering: rebuild, generation advance, rebind/fallback, render."
+    },
+    {
+      "id": "transition.refresh-rebuild.watcher-live-refresh",
+      "category": "refresh_rebuild",
+      "source_state": "AppState.volume[current].topology=settled_generation awaiting watcher refresh",
+      "event": "watcher_live_refresh:settled_notification",
+      "guard": "Watcher debounce/settle has completed for the active volume namespace and rebuild can complete or fail closed.",
+      "allowed_result": "Complete rebuild for the settled watcher notification, advance volume_generation, then re-resolve panel snapshots by stable identity keys.",
+      "blocked_result": "Keep the previous topology and surface the watcher refresh failure; do not apply partial row-index guesses.",
+      "target_state": "AppState.volume[current] reflects the settled watcher refresh and panels are rebound or deterministically fallen back.",
+      "owner": "Volume(shared topology)",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "generation_effect": "Increment volume_generation for any watcher-settled topology or visibility-set change; increment affected panel_generation after rebind/fallback.",
+      "side_effects": [
+        "Filesystem scan/read operations after watcher debounce/settle."
+      ],
+      "render_invalidation": "tree_view,file_view,stats,footer",
+      "boundary_status": "documented_foundation_only",
+      "notes_follow_up": "Runtime migration must keep watcher debounce/settle routing distinct from explicit manual refresh commands while preserving rebuild ordering."
     },
     {
       "id": "transition.volume-operation.release-cycle",
@@ -81,9 +160,17 @@
       "blocked_result": "Preserve the existing active volume binding and report the constraint when the operation cannot proceed.",
       "target_state": "AppState session registry and active panel volume binding are consistent.",
       "owner": "ViewContext.volume_registry and YtreeNovaPanel(active)",
-      "declared_write_set": ["ctx.volumes_head", "panel.volume_key", "panel.restore_snapshot", "panel.panel_generation", "volume.volume_generation"],
+      "declared_write_set": [
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
       "generation_effect": "Increment panel_generation on binding changes; increment volume_generation on release/relog topology invalidation.",
-      "side_effects": ["May close archive/filesystem resources."],
+      "side_effects": [
+        "May close archive/filesystem resources."
+      ],
       "render_invalidation": "layout,tree_view,file_view,stats,footer",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Ensure inactive panels sharing a released volume use deterministic fallback instead of stale pointers."
@@ -98,9 +185,17 @@
       "blocked_result": "Keep existing authoritative AppState records; if geometry is unusable, render only the safe degraded message surface.",
       "target_state": "AppState.layout records current geometry while panel selection identities remain unchanged.",
       "owner": "ViewContext.layout_region",
-      "declared_write_set": ["ctx.layout", "ctx.window_handles", "panel.tree_viewport_origin", "panel.file_viewport_origin", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.layout",
+        "ctx.window_handles",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
       "generation_effect": "Increment panel_generation only when viewport bounds correction changes saved origins; volume_generation is unchanged.",
-      "side_effects": ["Ncurses window recreation in main loop only."],
+      "side_effects": [
+        "Ncurses window recreation in main loop only."
+      ],
       "render_invalidation": "full_screen_projection",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Render reflow must remain projection-only and must not choose a new selection by row math."
@@ -115,9 +210,18 @@
       "blocked_result": "Do not apply partial topology changes; keep panel snapshots and volume_generation unchanged unless a verified rebuild follows.",
       "target_state": "AppState.volume and affected panels reflect the completed mutation or the unchanged pre-mutation state.",
       "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
-      "declared_write_set": ["volume.dir_tree", "volume.payload_cache", "volume.volume_generation", "panel.restore_snapshot", "panel.panel_generation", "ctx.message_state"],
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
       "generation_effect": "Increment volume_generation for mutations that change topology, identity, or visible payload; increment affected panel_generation after rebind/fallback.",
-      "side_effects": ["Filesystem create/copy/move/delete/chmod-like operations already performed by command layer."],
+      "side_effects": [
+        "Filesystem create/copy/move/delete/chmod-like operations already performed by command layer."
+      ],
       "render_invalidation": "tree_view,file_view,stats,footer",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Runtime migration must separate command side effects from AppState commit/rollback metadata."
@@ -132,9 +236,16 @@
       "blocked_result": "Preserve panel and volume state while reporting command failure or cancellation.",
       "target_state": "AppState.command=idle with message and optional refresh transition queued.",
       "owner": "ViewContext.command_region",
-      "declared_write_set": ["ctx.command_state", "ctx.message_state", "ctx.pending_transition", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
       "generation_effect": "No generation change unless a declared follow-up refresh/rebuild or panel focus change occurs.",
-      "side_effects": ["External command execution is outside the AppState commit boundary."],
+      "side_effects": [
+        "External command execution is outside the AppState commit boundary."
+      ],
       "render_invalidation": "footer,stats_optional",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Later runtime boundary should declare whether each command completion queues refresh_rebuild."
@@ -149,9 +260,18 @@
       "blocked_result": "Fail closed to root visible node only after exact/ancestor/sibling fallbacks are exhausted; never dereference stale pointers.",
       "target_state": "AppState.panel snapshot matches current panel_generation and volume_generation.",
       "owner": "YtreeNovaPanel(affected) and Volume(current)",
-      "declared_write_set": ["panel.tree_selection_key", "panel.file_selection_key", "panel.tree_cursor_pos", "panel.tree_viewport_origin", "panel.file_viewport_origin", "panel.panel_generation"],
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
       "generation_effect": "Refresh snapshot generation markers after successful rebind/fallback; volume_generation is read, not advanced, by the callback.",
-      "side_effects": ["May request payload reload for a visible but unloaded file-view anchor."],
+      "side_effects": [
+        "May request payload reload for a visible but unloaded file-view anchor."
+      ],
       "render_invalidation": "tree_view,file_view",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Use panel_anchor helpers as the canonical restore boundary during runtime migration."
@@ -166,9 +286,14 @@
       "blocked_result": "Skip or degrade rendering; do not synthesize a new authoritative selection, viewport, or focus shape.",
       "target_state": "Rendered screen reflects AppState; AppState selection and ownership fields are unchanged by projection.",
       "owner": "ViewContext.render_region",
-      "declared_write_set": ["ctx.render_dirty_flags", "ctx.window_handles"],
+      "declared_write_set": [
+        "ctx.render_dirty_flags",
+        "ctx.window_handles"
+      ],
       "generation_effect": "No panel_generation or volume_generation change from render projection alone.",
-      "side_effects": ["Ncurses drawing and doupdate."],
+      "side_effects": [
+        "Ncurses drawing and doupdate."
+      ],
       "render_invalidation": "cleared_after_successful_projection",
       "boundary_status": "documented_foundation_only",
       "notes_follow_up": "Audit render paths so temporary projections cannot become restore authority."

@@ -233,6 +233,8 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
 
   if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
     return ERR;
+  if (!AppStateValidatedDispatchSurface("surface.modal-completion-event"))
+    return ERR;
   if (!AppStateValidatedEvent("event.modal-completion"))
     return ERR;
 
@@ -268,6 +270,8 @@ int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
   int c;
 
   if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
+    return ERR;
+  if (!AppStateValidatedDispatchSurface("surface.modal-completion-event"))
     return ERR;
   if (!AppStateValidatedEvent("event.modal-completion"))
     return ERR;

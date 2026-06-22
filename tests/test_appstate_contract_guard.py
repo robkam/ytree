@@ -8155,12 +8155,21 @@ def test_guard_fails_when_registry_status_is_unknown(tmp_path: Path) -> None:
         and "boundary.__ytnova_unknown__" in failure
         for failure in failures
     )
-    assert any(
-        "diff_harness_check[0]" in failure
-        and "unknown enforcement_status" in failure
-        and "boundary.__ytnova_unknown__" in failure
-        for failure in failures
+
+
+def test_guard_fails_when_event_coverage_maps_to_broad_transition_status(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[_event_index("event.terminal_resize_signal")]["boundary_status"] = (
+        "mapped_to_existing_broad_transition"
     )
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any("must use covered_by_transition_record" in failure for failure in failures)
 
 
 def test_guard_fails_when_required_shim_field_is_missing(tmp_path: Path) -> None:
