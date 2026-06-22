@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState generation-domain registry",
-  "notes": "Non-runtime registry for identity and generation domains used by stale snapshot, restore, and rebind invariants.",
+  "notes": "Runtime-backed registry for identity and generation domains used by stale snapshot, restore, and rebind invariants.",
   "generation_domains": [
     {
       "domain_id": "generation.panel.local-authority",
@@ -43,9 +43,9 @@
       "stale_snapshot_policy": "Reject snapshots whose saved panel_generation does not match the panel-local generation marker before restore authority is applied.",
       "fail_closed_fallback": "Re-resolve by stable identity, then nearest visible ancestor, next visible sibling, previous visible sibling, and finally root visible node.",
       "restore_boundary": "Canonical panel-anchor restore helpers commit panel-local selection, viewport, focus shape, and snapshot generation together.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Runtime panel_generation is still documented foundation; later runtime migration must wire this field to the canonical panel UI state record."
+        "Runtime panel_generation domain metadata is registered and validated against the canonical panel UI state record."
       ]
     },
     {
@@ -75,9 +75,9 @@
       "stale_snapshot_policy": "Treat any saved volume_generation mismatch as stale and require topology/payload identity re-resolution before panel snapshots are reused.",
       "fail_closed_fallback": "Keep the previous settled topology on blocked transitions; after invalidation, rebind panels through stable identities or fall back to root visible node.",
       "restore_boundary": "Refresh/rebuild and mutation-result commits advance volume generation before panel restore consumers can observe the changed volume.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Runtime volume_generation is still documented foundation; later runtime migration must attach it to Volume topology and payload commits."
+        "Runtime volume_generation domain metadata is registered and validated against Volume topology and payload commits."
       ]
     },
     {
@@ -109,9 +109,9 @@
       "stale_snapshot_policy": "Directory snapshots must compare stable path identity against the current volume generation before row or cursor state is trusted.",
       "fail_closed_fallback": "Exact directory identity, nearest visible ancestor, next visible sibling, previous visible sibling, then root visible node.",
       "restore_boundary": "Directory rebind runs through panel-anchor helpers after the shared topology generation has settled.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Directory identity has no dedicated runtime generation counter yet; volume.volume_generation is the closest authoritative invalidation owner for topology changes."
+        "Directory identity runtime metadata is registered with volume.volume_generation as the authoritative invalidation owner for topology changes."
       ]
     },
     {
@@ -140,9 +140,9 @@
       "stale_snapshot_policy": "File snapshots must revalidate path/name identity and payload membership when volume generation changes.",
       "fail_closed_fallback": "Preserve the directory anchor when possible and choose a valid visible file only after exact file identity is unavailable.",
       "restore_boundary": "File identity restore is committed with the panel snapshot after topology or payload mutation has settled.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "File identity has no dedicated runtime generation counter yet; volume.volume_generation is the closest authoritative owner for payload and namespace invalidation."
+        "File identity runtime metadata is registered with volume.volume_generation as the authoritative owner for payload and namespace invalidation."
       ]
     },
     {
@@ -171,9 +171,9 @@
       "stale_snapshot_policy": "Saved focus shape is stale when panel_generation differs and must not be restored by transient render shape.",
       "fail_closed_fallback": "Restore the recorded panel shape directly or keep the current settled shape without rendering an intermediate guess.",
       "restore_boundary": "Modal dismissal, panel reactivation, and rebind callbacks commit focus shape only through panel-local state.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Focus-shape invalidation is represented by panel.panel_generation until a narrower runtime focus-shape generation exists."
+        "Focus-shape runtime metadata is registered with panel.panel_generation as the current invalidation owner until a narrower focus-shape generation exists."
       ]
     },
     {
@@ -200,9 +200,9 @@
       "stale_snapshot_policy": "Modal and command targets may write panel or volume state only through a declared follow-up transition boundary.",
       "fail_closed_fallback": "On blocked or failed command completion, preserve authoritative panel and volume state and write only declared message/modal fields.",
       "restore_boundary": "Modal dismissal and command completion settle session state before any panel restore or refresh follow-up observes the result.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "No dedicated ctx command/modal generation exists yet; panel.panel_generation is the closest guard for command paths that restore focus or queue panel-local follow-up work."
+        "Modal command target runtime metadata is registered with panel.panel_generation guarding command paths that restore focus or queue panel-local follow-up work."
       ]
     },
     {
@@ -232,9 +232,9 @@
       "stale_snapshot_policy": "Visibility/filter changes that alter rendered rows invalidate saved panel anchors before any snapshot can be reused.",
       "fail_closed_fallback": "Rebind visible identity through the deterministic fallback order rather than deriving from hidden or filtered row indexes.",
       "restore_boundary": "Visibility-filter commits update panel generation before rebind and render projection.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Dedicated filter and dotfile visibility owner fields are not registered yet; panel.panel_generation is the closest panel-local invalidation owner."
+        "Visibility-filter runtime metadata is registered with panel.panel_generation as the panel-local invalidation owner for filter and dotfile visibility state."
       ]
     },
     {
@@ -262,9 +262,9 @@
       "stale_snapshot_policy": "Topology snapshots are invalid after any volume_generation advance and must be rebuilt or rebound by identity.",
       "fail_closed_fallback": "Blocked topology changes retain the previous settled tree; completed invalidation falls back panel anchors only after exact identity fails.",
       "restore_boundary": "Topology rebuild commits settle volume.dir_tree and volume.logged_state before panel rebind callbacks run.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Topology generation is represented by volume.volume_generation until runtime Volume commit hooks are migrated."
+        "Topology runtime metadata is registered with volume.volume_generation representing Volume topology commit invalidation."
       ]
     },
     {
@@ -292,9 +292,9 @@
       "stale_snapshot_policy": "Payload cache identity must be revalidated on generation mismatch before saved file selection is restored.",
       "fail_closed_fallback": "If payload cannot be loaded safely, preserve directory selection and leave file authority unchanged or empty according to current AppState.",
       "restore_boundary": "Payload changes settle in Volume before panel file anchors are rebound.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "File payload invalidation uses volume.volume_generation until a narrower payload generation field is registered."
+        "File payload runtime metadata is registered with volume.volume_generation until a narrower payload generation field is registered."
       ]
     },
     {
@@ -323,9 +323,9 @@
       "stale_snapshot_policy": "Panel volume bindings must resolve to an existing volume identity before per-volume snapshots can be restored.",
       "fail_closed_fallback": "Do not orphan panel bindings; use deterministic volume fallback and then panel identity fallback after release or cycle invalidation.",
       "restore_boundary": "Volume lifecycle transitions update registry/binding state before panel-local restore snapshots are applied.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Volume lifecycle has no separate registry generation yet; volume.volume_generation is the closest shared invalidation owner while ctx.volumes_head remains the registry identity field."
+        "Volume lifecycle runtime metadata is registered with volume.volume_generation as the shared invalidation owner while ctx.volumes_head remains the registry identity field."
       ]
     },
     {
@@ -350,10 +350,10 @@
       "stale_snapshot_policy": "Layout reflow must project from settled AppState and may advance panel generation only for viewport bounds correction.",
       "fail_closed_fallback": "If safe projection cannot be computed, degrade or skip render without choosing new authoritative identities.",
       "restore_boundary": "Resize handling runs in the main loop and commits any viewport correction before render projection.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
         "Render projection itself is read-only/projection-only and does not advance generations; terminal resize uses panel.panel_generation only when saved viewport origins are corrected.",
-        "Render projection-only coverage is explicit here even when no generation counter advances."
+        "Render projection-only coverage is registered explicitly even when no generation counter advances."
       ]
     }
   ]

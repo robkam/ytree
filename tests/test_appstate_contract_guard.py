@@ -548,7 +548,7 @@ def _generation_domain(
         "stale_snapshot_policy": "fixture stale snapshot policy",
         "fail_closed_fallback": "fixture fail-closed fallback",
         "restore_boundary": "fixture restore boundary",
-        "enforcement_status": "documented_foundation_only",
+        "enforcement_status": "covered_by_runtime_registry",
         "migration_notes": migration_notes,
     }
 
@@ -6292,6 +6292,31 @@ def test_guard_fails_when_runtime_generation_domain_is_missing(
     assert any(
         "runtime generation domain registry missing domain id(s)" in failure
         and missing_domain_id in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_remains_foundation_only(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains[0]["enforcement_status"] = "documented_foundation_only"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and (
+            "enforcement_status must use covered_by_runtime_registry once "
+            "runtime generation domain is registered"
+        )
+        in failure
         for failure in failures
     )
 
