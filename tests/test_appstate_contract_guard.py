@@ -487,7 +487,7 @@ def _dispatch_surface(
         "source_path": "src/ui/key_engine.c",
         "entry_symbol_or_path": "GetEventOrKey",
         "transition_id": resolved_transition_id,
-        "boundary_status": "documented_foundation_only",
+        "boundary_status": "covered_by_transition_record",
         "allowed_direct_writes": allowed_direct_writes,
         "transition_sequence_refs": [sequence_by_surface_category[category]],
         "migration_notes": ["fixture coverage"],
@@ -7452,6 +7452,31 @@ def test_guard_fails_when_runtime_dispatch_surface_metadata_drifts(
     assert any(
         "runtime_dispatch_surface[0]" in failure
         and "runtime category does not match dispatch surface" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_status_stays_foundation_only(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    runtime_dispatch_surfaces = copy.deepcopy(dispatch_surfaces)
+    dispatch_surfaces[0]["boundary_status"] = "documented_foundation_only"
+    runtime_dispatch_surfaces[0]["boundary_status"] = "documented_foundation_only"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        dispatch_surfaces=dispatch_surfaces,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "covered_by_transition_record" in failure
+        and "documented_foundation_only" in failure
         for failure in failures
     )
 
