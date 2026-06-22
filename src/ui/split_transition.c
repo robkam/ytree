@@ -7,6 +7,7 @@
 
 #define NO_YTNOVA_MACROS
 
+#include "ytnova_appstate_actions.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_split_transition.h"
@@ -14,6 +15,32 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+static BOOL SplitTransitionActionBoundaryIsValid(YtreeNovaAction action) {
+  const AppStateActionTransitionMetadata *action_metadata;
+  const AppStateTransitionMetadata *transition_metadata;
+
+  if (action != ACTION_SPLIT_SCREEN && action != ACTION_SWITCH_PANEL)
+    return FALSE;
+
+  action_metadata = AppStateActionTransitionLookup(action);
+  if (!action_metadata || action_metadata->action != action ||
+      !action_metadata->transition_id ||
+      action_metadata->transition_id[0] == '\0' || !action_metadata->category ||
+      action_metadata->category[0] == '\0')
+    return FALSE;
+
+  transition_metadata =
+      AppStateTransitionLookup(action_metadata->transition_id);
+  if (!transition_metadata || !transition_metadata->category ||
+      strcmp(action_metadata->category, transition_metadata->category) != 0)
+    return FALSE;
+
+  if (!AppStateValidatedTransition(action_metadata->transition_id))
+    return FALSE;
+
+  return TRUE;
+}
 
 #ifndef NDEBUG
 typedef struct {
@@ -220,6 +247,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       !loop_action_ptr || !return_esc_ptr) {
     return FALSE;
   }
+  if ((action == ACTION_SPLIT_SCREEN || action == ACTION_SWITCH_PANEL) &&
+      !SplitTransitionActionBoundaryIsValid(action))
+    return FALSE;
 
   *return_esc_ptr = FALSE;
 
@@ -424,6 +454,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       !ch_ptr || !unput_char_ptr) {
     return FALSE;
   }
+  if ((action == ACTION_SPLIT_SCREEN || action == ACTION_SWITCH_PANEL) &&
+      !SplitTransitionActionBoundaryIsValid(action))
+    return FALSE;
 
   switch (action) {
   case ACTION_SPLIT_SCREEN:
