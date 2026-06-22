@@ -242,6 +242,7 @@ typedef struct {
   const char *category;
   const char *flow;
   const char *description;
+  const char *coverage_status;
   const AppStateTransitionSequenceStepMetadata *steps;
   size_t step_count;
 } AppStateTransitionSequenceMetadata;

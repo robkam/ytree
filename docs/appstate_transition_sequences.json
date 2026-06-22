@@ -6,6 +6,7 @@
       "category": "layout_split",
       "flow": "split_toggle_f8",
       "description": "Toggle split layout with F8 and prove inactive-panel and layout ownership after each transition.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -83,6 +84,7 @@
       "category": "panel_navigation",
       "flow": "tab_panel_switch",
       "description": "Switch active panel with Tab while preserving inactive-panel cursor, viewport, and focus snapshots.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -154,6 +156,7 @@
       "category": "directory_file_transition",
       "flow": "enter_directory_file_transition",
       "description": "Enter from tree/file targets and validate durable directory/file identity after each step.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -234,6 +237,7 @@
       "category": "modal_command",
       "flow": "esc_modal_dismissal",
       "description": "Dismiss command/modal ownership through the registered modal transition and preserve panel-local state.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -273,6 +277,7 @@
       "category": "modal_command",
       "flow": "modal_completion",
       "description": "Settle prompt, menu, and dialog completion through the explicit modal completion transition while preserving panel-local state.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -312,6 +317,7 @@
       "category": "visibility_filter",
       "flow": "dotfile_reveal_conceal",
       "description": "Reveal and conceal dotfiles without letting hidden entries become visible-navigation selections.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -392,6 +398,7 @@
       "category": "refresh_rebuild",
       "flow": "refresh_rebuild",
       "description": "Refresh and rebuild with generation validation and deterministic stale-snapshot fail-closed behavior.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -485,6 +492,7 @@
       "category": "refresh_rebuild",
       "flow": "watcher_live_refresh",
       "description": "Settle watcher-triggered refresh notifications through their explicit transition boundary while preserving rebuild and rebind ordering.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -533,6 +541,7 @@
       "category": "filesystem_mutation",
       "flow": "filesystem_mutation_result",
       "description": "Apply filesystem mutation results through the registered result transition and validate generation mismatch fallback.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -628,6 +637,7 @@
       "category": "search_jump",
       "flow": "search_jump",
       "description": "Search/list jump updates selection only through visible-navigation and focus ownership rules.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -703,6 +713,7 @@
       "category": "display_mode",
       "flow": "showall_global_tagged_only",
       "description": "Toggle showall/global/tagged-only style filters without moving panel-local ownership into shared volume state.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -780,6 +791,7 @@
       "category": "directory_file_transition",
       "flow": "file_small_big_transitions",
       "description": "Move between small-file, big-file, and preview-shaped views without render-side ownership repair.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -860,6 +872,7 @@
       "category": "volume_lifecycle",
       "flow": "volume_cycling_release",
       "description": "Cycle and release volumes through shared lifecycle generation while each panel rebinds by identity.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -938,6 +951,7 @@
       "category": "layout_split",
       "flow": "split_close_reopen",
       "description": "Close and reopen split layout and prove panel snapshots survive layout projection changes.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -1018,6 +1032,7 @@
       "category": "terminal_resize",
       "flow": "terminal_resize_reflow",
       "description": "Handle terminal resize events with layout, window-handle, viewport, and generation coverage.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -1064,6 +1079,7 @@
       "category": "render_reflow",
       "flow": "render_reflow_projection",
       "description": "Project settled AppState to render output without mutating authoritative owner fields.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
@@ -1106,6 +1122,7 @@
       "category": "menu_action",
       "flow": "volume_menu_select",
       "description": "Select a loaded volume from the volume menu while preserving panel-local restore authority.",
+      "coverage_status": "runtime_backed",
       "steps": [
         {
           "ordinal": 1,
