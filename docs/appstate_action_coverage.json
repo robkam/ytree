@@ -22,9 +22,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -74,9 +74,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -126,9 +126,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -178,9 +178,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -230,9 +230,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -282,9 +282,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -334,9 +334,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -386,9 +386,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -438,9 +438,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -490,9 +490,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -542,9 +542,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -594,9 +594,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -646,9 +646,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -698,9 +698,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -750,9 +750,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -800,9 +800,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Esc dismissal for an active modal maps to the modal_action dismiss record; non-modal Esc no-op behavior remains a blocked keybinding outcome for later context-specific runtime coverage."
+        "Esc dismissal is validated through the modal_action dismiss transition record; non-modal Esc no-op behavior remains a blocked keybinding outcome."
       ],
       "transition_sequence_refs": [
         "sequence.esc-modal-dismissal"
@@ -843,9 +843,9 @@
         "panel.restore_snapshot",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared refresh/rebuild transition record and refresh dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
@@ -888,9 +888,9 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared command-completion transition record and command dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
@@ -926,9 +926,9 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared command-completion transition record and command dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
@@ -966,9 +966,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1018,9 +1018,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1070,9 +1070,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1122,9 +1122,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1174,9 +1174,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1226,9 +1226,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1278,9 +1278,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1330,9 +1330,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -1382,9 +1382,9 @@
         "panel.restore_snapshot",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared refresh/rebuild transition record and refresh dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
@@ -1429,9 +1429,9 @@
         "panel.file_viewport_origin",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the terminal resize foundation record; signal handlers must only set flags before this transition commits."
+        "Runtime action coverage is validated through the terminal resize transition record; signal handlers must only set flags before this transition commits."
       ],
       "transition_sequence_refs": [
         "sequence.terminal-resize-reflow"
@@ -1467,9 +1467,9 @@
         "panel.restore_snapshot",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the volume menu foundation record until menu selection has a runtime transition boundary."
+        "Runtime action coverage is validated through the volume menu selection transition record and menu dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.volume-menu-select"
@@ -1508,9 +1508,9 @@
         "panel.panel_generation",
         "volume.volume_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared volume-operation transition record and volume dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.volume-cycling-release"
@@ -1552,9 +1552,9 @@
         "panel.panel_generation",
         "volume.volume_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared volume-operation transition record and volume dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.volume-cycling-release"
@@ -1598,9 +1598,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1646,9 +1646,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1694,9 +1694,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1742,9 +1742,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1790,9 +1790,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1838,9 +1838,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1886,9 +1886,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1934,9 +1934,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -1982,9 +1982,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2030,9 +2030,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2078,9 +2078,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2126,9 +2126,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2174,9 +2174,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2222,9 +2222,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2270,9 +2270,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2318,9 +2318,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2362,9 +2362,9 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared command-completion transition record and command dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
@@ -2402,9 +2402,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -2454,9 +2454,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -2508,9 +2508,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2556,9 +2556,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2604,9 +2604,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2652,9 +2652,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2700,9 +2700,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2748,9 +2748,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2796,9 +2796,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2844,9 +2844,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2892,9 +2892,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2940,9 +2940,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -2988,9 +2988,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -3036,9 +3036,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -3084,9 +3084,9 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+        "Runtime action coverage is validated through the shared filesystem-mutation-result transition record; per-operation command metadata remains a future refinement."
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
@@ -3128,9 +3128,9 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared command-completion transition record and command dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
@@ -3168,9 +3168,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3220,9 +3220,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3272,9 +3272,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3324,9 +3324,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3376,9 +3376,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3428,9 +3428,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3480,9 +3480,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3532,9 +3532,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3584,9 +3584,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3636,9 +3636,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3688,9 +3688,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3740,9 +3740,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3792,9 +3792,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3844,9 +3844,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3896,9 +3896,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -3948,9 +3948,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -4000,9 +4000,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -4052,9 +4052,9 @@
         "panel.focus_shape",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.dotfile-reveal-conceal",
@@ -4102,9 +4102,9 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared command-completion transition record and command dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
@@ -4140,9 +4140,9 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "migration_notes": [
-        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+        "Runtime action coverage is validated through the shared command-completion transition record and command dispatch metadata."
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"

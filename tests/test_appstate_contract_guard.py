@@ -176,7 +176,7 @@ def _action(
         ),
         "diff_harness_refs": _diff_harness_refs_for_transition(transition_id),
         "invariant_refs": _invariant_refs_for_transition(transition_id),
-        "boundary_status": "documented_foundation_only",
+        "boundary_status": "covered_by_transition_record",
         "migration_notes": ["fixture action coverage"],
     }
 
@@ -4793,6 +4793,152 @@ int main(void) {
             "-I.",
             "-Iinclude",
             str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_runtime_registry_boundary_validation_accepts_foundation_status(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "appstate_boundary_status_acceptance_probe.c"
+    binary = tmp_path / "appstate_boundary_status_acceptance_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateActionCoverageMetadata action_coverage;
+  AppStateDispatchSurfaceMetadata dispatch_surface;
+  AppStateEventCoverageMetadata event_coverage;
+  AppStateTransitionMetadata transition;
+
+  transition = *AppStateTransitionLookup("transition.keybinding.navigate-tree");
+  transition.boundary_status = "documented_foundation_only";
+  if (!AppStateValidateTransition("transition.keybinding.navigate-tree",
+                                  &transition))
+    return 1;
+
+  action_coverage = *AppStateActionCoverageLookup(ACTION_ENTER);
+  action_coverage.boundary_status = "documented_foundation_only";
+  if (AppStateValidateKeyActionCoverage(ACTION_ENTER, &action_coverage) !=
+      ACTION_ENTER)
+    return 2;
+
+  event_coverage =
+      *AppStateEventCoverageLookup("event.terminal-resize-signal");
+  event_coverage.boundary_status = "documented_foundation_only";
+  if (!AppStateValidateEventCoverage("event.terminal-resize-signal",
+                                     &event_coverage))
+    return 3;
+
+  dispatch_surface =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  dispatch_surface.boundary_status = "documented_foundation_only";
+  if (!AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                       &dispatch_surface))
+    return 4;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_runtime_startup_readiness_accepts_foundation_status(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "appstate_startup_readiness_probe.c"
+    binary = tmp_path / "appstate_startup_readiness_probe"
+    probe.write_text(
+        """
+#define main ytnova_real_main_unused
+#include "src/core/main.c"
+#undef main
+
+int main(void) {
+  if (!AppStateActionTransitionsReady())
+    return 1;
+  if (!AppStateEventCoverageReady())
+    return 2;
+  if (!AppStateActionCoverageReady())
+    return 3;
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-unused-const-variable",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-Wl,--gc-sections",
+            "-D_GNU_SOURCE",
+            "-DHAVE_LIBARCHIVE",
+            "-DWITH_UTF8",
+            '-DVERSION="1.0.0-alpha"',
+            '-DVERSIONDATE="June 2026"',
+            "-DCOLOR_SUPPORT",
+            "-DCLOCK_SUPPORT",
+            "-DREADLINE_SUPPORT",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "src/core/appstate_actions.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-lreadline",
+            "-larchive",
+            "-lm",
             "-o",
             str(binary),
         ],
@@ -10741,6 +10887,31 @@ def test_guard_fails_when_runtime_action_coverage_owner_does_not_match_transitio
         "runtime_action_coverage[0]" in failure
         and "owner does not match transition" in failure
         and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_status_stays_foundation_only(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    runtime_action_coverages = _complete_actions()
+    actions[0]["boundary_status"] = "documented_foundation_only"
+    runtime_action_coverages[0]["boundary_status"] = "documented_foundation_only"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "boundary_status must use covered_by_transition_record once runtime action coverage is registered"
+        in failure
         for failure in failures
     )
 
