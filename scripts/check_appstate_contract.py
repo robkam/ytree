@@ -345,6 +345,7 @@ VALID_BOUNDARY_STATUSES = {
 }
 VALID_ENFORCEMENT_STATUSES = {
     "documented_foundation_only",
+    "covered_by_runtime_registry",
 }
 VALID_MIGRATION_STATUSES = {
     "documented_foundation_only",
@@ -506,6 +507,19 @@ def _validate_runtime_transition_boundary_status(
         return [
             f"{label}: boundary_status must use covered_by_transition_record "
             "once runtime transition is registered"
+        ]
+    return []
+
+
+def _validate_runtime_diff_harness_enforcement_status(
+    *,
+    record: dict[str, Any],
+    label: str,
+) -> list[str]:
+    if record.get("enforcement_status") == "documented_foundation_only":
+        return [
+            f"{label}: enforcement_status must use covered_by_runtime_registry "
+            "once runtime diff harness is registered"
         ]
     return []
 
@@ -3274,6 +3288,12 @@ def _validate_runtime_diff_harness_registry(
                 label=label,
                 field="enforcement_status",
                 valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
+        failures.extend(
+            _validate_runtime_diff_harness_enforcement_status(
+                record=record,
+                label=label,
             )
         )
         for field in (
