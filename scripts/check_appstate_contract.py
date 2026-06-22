@@ -537,6 +537,19 @@ def _validate_runtime_generation_domain_enforcement_status(
     return []
 
 
+def _validate_runtime_invariant_enforcement_status(
+    *,
+    record: dict[str, Any],
+    label: str,
+) -> list[str]:
+    if record.get("enforcement_status") == "documented_foundation_only":
+        return [
+            f"{label}: enforcement_status must use covered_by_runtime_registry "
+            "once runtime invariant is registered"
+        ]
+    return []
+
+
 def _parse_ytnova_actions(header_path: Path) -> tuple[list[str], list[str]]:
     try:
         source = header_path.read_text(encoding="utf-8")
@@ -2996,6 +3009,12 @@ def _validate_runtime_invariant_registry(
                 label=label,
                 field="enforcement_status",
                 valid_statuses=VALID_ENFORCEMENT_STATUSES,
+            )
+        )
+        failures.extend(
+            _validate_runtime_invariant_enforcement_status(
+                record=record,
+                label=label,
             )
         )
         for field in (

@@ -510,7 +510,7 @@ def _invariant(
             dispatch_surface_ids or ["surface.key_decode_input_dispatch"]
         ),
         "failure_mode": "fixture failure mode",
-        "enforcement_status": "documented_foundation_only",
+        "enforcement_status": "covered_by_runtime_registry",
         "test_strategy": "fixture state-sequence coverage",
         "migration_notes": ["fixture coverage"],
     }
@@ -4839,7 +4839,7 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
-def test_runtime_registry_boundary_validation_accepts_foundation_status(
+def test_runtime_registry_boundary_validation_scopes_foundation_status(
     tmp_path: Path,
 ) -> None:
     repo_root = Path(__file__).resolve().parents[1]
@@ -4853,6 +4853,7 @@ int main(void) {
   AppStateActionCoverageMetadata action_coverage;
   AppStateDispatchSurfaceMetadata dispatch_surface;
   AppStateEventCoverageMetadata event_coverage;
+  AppStateInvariantMetadata invariant;
   AppStateTransitionMetadata transition;
 
   transition = *AppStateTransitionLookup("transition.keybinding.navigate-tree");
@@ -4880,6 +4881,11 @@ int main(void) {
   if (!AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                        &dispatch_surface))
     return 4;
+
+  invariant = *AppStateInvariantLookup("invariant.inactive-panel-frozen");
+  invariant.enforcement_status = "documented_foundation_only";
+  if (AppStateValidateInvariant("invariant.inactive-panel-frozen", &invariant))
+    return 5;
 
   return 0;
 }
@@ -6315,6 +6321,31 @@ def test_guard_fails_when_runtime_generation_domain_remains_foundation_only(
         and (
             "enforcement_status must use covered_by_runtime_registry once "
             "runtime generation domain is registered"
+        )
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_remains_foundation_only(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_invariants = _complete_invariants()
+    runtime_invariants[0]["enforcement_status"] = "documented_foundation_only"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[0]" in failure
+        and (
+            "enforcement_status must use covered_by_runtime_registry once "
+            "runtime invariant is registered"
         )
         in failure
         for failure in failures

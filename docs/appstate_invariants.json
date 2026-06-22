@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState transition invariant registry",
-  "notes": "Non-runtime registry for invariants that future state-sequence tests must enforce at AppState transition boundaries. Runtime behavior is unchanged.",
+  "notes": "Runtime-backed invariant registry for AppState transition boundaries. Registered rows must remain aligned with the C runtime metadata and future state-sequence enforcement.",
   "invariants": [
     {
       "invariant_id": "invariant.inactive-panel-frozen",
@@ -40,7 +40,7 @@
         "surface.resize-signal-handling"
       ],
       "failure_mode": "Fail if an active-only transition mutates inactive panel-local identity, viewport, focus, restore, or generation fields outside an explicitly targeted transition.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "State-sequence harness snapshots both panels before each active-panel transition and compares inactive panel fields after allowed and blocked outcomes.",
       "migration_notes": [
         "Future dynamic tests should distinguish shared topology mirroring from inactive panel-local mutation."
@@ -71,7 +71,7 @@
         "surface.resize-signal-handling"
       ],
       "failure_mode": "Fail if render or reflow chooses new authoritative selection, focus, viewport, panel generation, or volume generation from projected rows or window geometry.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Transition-diff harness runs render/reflow passes after settled transitions and verifies only declared render projection fields change.",
       "migration_notes": [
         "Runtime migration must keep ncurses drawing and temporary row calculations from becoming restore authority."
@@ -104,7 +104,7 @@
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if visible navigation lands on a hidden entry or resurrects a concealed identity after visibility/topology changes.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Generated navigation sequences toggle visibility, rebuild, and move through visible rows while asserting the selected identity remains visible or falls back deterministically.",
       "migration_notes": [
         "Hidden-entry checks must use stable identity and visibility metadata rather than stale row positions."
@@ -139,7 +139,7 @@
         "surface.volume-operation"
       ],
       "failure_mode": "Fail if focus restoration imports another panel's shape, briefly renders a different shape, or restores focus from session mirrors instead of panel-local records.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Sequence tests alternate modal dismissal, Tab/F8-style routing, and file/tree transitions while asserting each panel restores its own recorded focus shape.",
       "migration_notes": [
         "Compatibility session mirrors may shadow focus only after the panel-local owner has committed the transition."
@@ -174,7 +174,7 @@
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if rebuild, mutation, or resize restores viewport from raw rows when the stable identity is still visible or before deterministic fallback order is exhausted.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Snapshot/diff tests rebuild or resize around stable directory and file identities, then assert exact rebind when visible and deterministic fallback otherwise.",
       "migration_notes": [
         "Canonical restore helpers must remain the only authority for rebind after topology or layout invalidation."
@@ -213,7 +213,7 @@
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if shared volume topology or registry changes overwrite panel-local selection, focus, tags, viewport, or restore snapshots by shared index or pointer aliasing.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Split-panel sequences share a volume, mutate shared topology, and verify each panel rebinds through its own identity without cross-panel field drift.",
       "migration_notes": [
         "Shared topology mirroring must be followed by panel-local rebind rather than copying active panel state into inactive panels."
@@ -248,7 +248,7 @@
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if a generation mismatch reuses stale DirEntry/FileEntry pointers, stale flat-list rows, or stale snapshot payloads instead of exact rebind or deterministic fallback.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Harness corrupts or invalidates saved generations around rebuild/mutation transitions and asserts stale snapshots fail closed without unrelated mutation.",
       "migration_notes": [
         "Generation validation must happen before any restore snapshot is applied to a panel record."
@@ -299,7 +299,7 @@
         "surface.render-reflow-projection"
       ],
       "failure_mode": "Fail if a blocked or invalid transition partially mutates authoritative panel/volume state, advances generations, performs hidden side effects, or chooses a non-deterministic fallback.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "test_strategy": "Negative state-sequence tests force guard failures and unavailable targets, then assert no unrelated owner fields differ and any message/modal output is declared.",
       "migration_notes": [
         "Blocked outcomes are cross-cutting across all registered transition and dispatch surfaces but are listed explicitly here for guard traceability."
