@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState transition-diff harness registry",
-  "notes": "Non-runtime registry for future before/after AppState snapshot and diff checks. Runtime behavior is unchanged.",
+  "notes": "Runtime-backed registry for before/after AppState snapshot and diff checks. Registered rows must remain aligned with the C runtime metadata.",
   "diff_harness_checks": [
     {
       "harness_id": "harness.transition-before-after-snapshot",

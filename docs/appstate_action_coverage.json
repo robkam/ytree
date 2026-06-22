@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "YtreeNovaAction AppState transition coverage",
-  "notes": "Non-runtime registry ensuring every YtreeNovaAction enum member has AppState transition metadata coverage. Runtime behavior is unchanged.",
+  "notes": "Runtime-backed registry ensuring every YtreeNovaAction enum member has AppState transition metadata coverage. Registered rows must remain aligned with the C runtime metadata.",
   "actions": [
     {
       "action": "ACTION_NONE",

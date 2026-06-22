@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState owner/write-set field registry",
-  "notes": "Non-runtime registry for every declared_write_set field in the AppState transition, action, and event coverage registries.",
+  "notes": "Runtime-backed registry for every declared_write_set field in the AppState transition, action, and event coverage registries. Registered rows must remain aligned with the C runtime metadata.",
   "owner_fields": [
     {
       "field": "ctx.active",
