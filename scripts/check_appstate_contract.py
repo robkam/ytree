@@ -497,6 +497,19 @@ def _validate_runtime_action_coverage_boundary_status(
     return []
 
 
+def _validate_runtime_transition_boundary_status(
+    *,
+    record: dict[str, Any],
+    label: str,
+) -> list[str]:
+    if record.get("boundary_status") == "documented_foundation_only":
+        return [
+            f"{label}: boundary_status must use covered_by_transition_record "
+            "once runtime transition is registered"
+        ]
+    return []
+
+
 def _parse_ytnova_actions(header_path: Path) -> tuple[list[str], list[str]]:
     try:
         source = header_path.read_text(encoding="utf-8")
@@ -2495,6 +2508,9 @@ def _validate_runtime_transition_registry(
                     )
 
         failures.extend(_validate_event_boundary_status(record=record, label=label))
+        failures.extend(
+            _validate_runtime_transition_boundary_status(record=record, label=label)
+        )
         failures.extend(
             _validate_registered_write_set(
                 record=record,

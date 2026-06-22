@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState transition matrix",
-  "notes": "Non-runtime registry for the AppState transition contract. Runtime controllers are not migrated through this registry in this round.",
+  "notes": "Transition contract for the AppState matrix. Registered runtime transition metadata must stay aligned with these records while controller behavior continues to migrate incrementally.",
   "transitions": [
     {
       "id": "transition.keybinding.navigate-tree",
@@ -25,7 +25,7 @@
         "May request directory payload load when Enter reveals an unlogged directory."
       ],
       "render_invalidation": "tree_view,file_view,footer",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Route HandleDirWindow key dispatch through the canonical transition boundary in a later runtime migration."
     },
     {
@@ -49,7 +49,7 @@
         "May read the volume registry."
       ],
       "render_invalidation": "layout,tree_view,file_view,stats,footer",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Keep the loaded-volume preservation rule from the specification during runtime migration."
     },
     {
@@ -73,7 +73,7 @@
         "No filesystem side effects."
       ],
       "render_invalidation": "modal_overlay,footer,underlying_view_projection",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Modal migration must preserve severity versus neutral dialog routing."
     },
     {
@@ -97,7 +97,7 @@
         "No filesystem side effects."
       ],
       "render_invalidation": "modal_overlay,footer,underlying_view_projection",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Runtime migration must preserve prompt/menu/dialog completion routing while destructive confirmations stay on their dedicated command transitions."
     },
     {
@@ -122,7 +122,7 @@
         "Filesystem scan/read operations."
       ],
       "render_invalidation": "tree_view,file_view,stats,footer",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Runtime migration must keep restore ordering: rebuild, generation advance, rebind/fallback, render."
     },
     {
@@ -147,7 +147,7 @@
         "Filesystem scan/read operations after watcher debounce/settle."
       ],
       "render_invalidation": "tree_view,file_view,stats,footer",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Runtime migration must keep watcher debounce/settle routing distinct from explicit manual refresh commands while preserving rebuild ordering."
     },
     {
@@ -172,7 +172,7 @@
         "May close archive/filesystem resources."
       ],
       "render_invalidation": "layout,tree_view,file_view,stats,footer",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Ensure inactive panels sharing a released volume use deterministic fallback instead of stale pointers."
     },
     {
@@ -197,7 +197,7 @@
         "Ncurses window recreation in main loop only."
       ],
       "render_invalidation": "full_screen_projection",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Render reflow must remain projection-only and must not choose a new selection by row math."
     },
     {
@@ -223,7 +223,7 @@
         "Filesystem create/copy/move/delete/chmod-like operations already performed by command layer."
       ],
       "render_invalidation": "tree_view,file_view,stats,footer",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Runtime migration must separate command side effects from AppState commit/rollback metadata."
     },
     {
@@ -247,7 +247,7 @@
         "External command execution is outside the AppState commit boundary."
       ],
       "render_invalidation": "footer,stats_optional",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Later runtime boundary should declare whether each command completion queues refresh_rebuild."
     },
     {
@@ -273,7 +273,7 @@
         "May request payload reload for a visible but unloaded file-view anchor."
       ],
       "render_invalidation": "tree_view,file_view",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Use panel_anchor helpers as the canonical restore boundary during runtime migration."
     },
     {
@@ -295,7 +295,7 @@
         "Ncurses drawing and doupdate."
       ],
       "render_invalidation": "cleared_after_successful_projection",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "notes_follow_up": "Audit render paths so temporary projections cannot become restore authority."
     }
   ]
