@@ -517,6 +517,29 @@ def test_dir_window_post_dispatch_refresh_uses_visible_selection_authority():
     )
 
 
+def test_file_window_preview_return_uses_visible_selection_authority():
+    source = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    preview_source = _extract_function_block(
+        source, "BOOL handle_file_window_preview_action("
+    )
+    return_source = preview_source.split("ctx->preview_mode = !ctx->preview_mode;", 1)[
+        1
+    ].split("RefreshView(ctx, dir_entry);", 1)[0]
+
+    assert "ResolveActiveDirEntry(ctx, stats_local)" in return_source, (
+        "File-window preview return must restore the active directory through "
+        f"the canonical visible active-dir resolver.\n{return_source}"
+    )
+    assert "disp_begin_pos + ctx->active->cursor_pos" not in return_source, (
+        "File-window preview return must not synthesize selection from raw row "
+        f"math.\n{return_source}"
+    )
+    assert "->dir_entry_list[" not in return_source, (
+        "File-window preview return must not index the raw directory row list "
+        f"directly.\n{return_source}"
+    )
+
+
 def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_split_tab"
     root.mkdir()
