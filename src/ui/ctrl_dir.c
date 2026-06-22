@@ -977,7 +977,6 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_CMD_M:
       HandleDirMakeDirectory(ctx, dir_entry, s);
-      dir_entry = ResolveActiveDirEntry(ctx, s);
       need_dsp_help = TRUE;
       break;
     case ACTION_CMD_D:
@@ -986,7 +985,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
 
     case ACTION_CMD_R:
-      dir_entry = HandleDirRenameDirectory(ctx, dir_entry);
+      HandleDirRenameDirectory(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
     case ACTION_REFRESH: /* Rescan */
@@ -1140,20 +1139,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
     } /* switch */
 
-    /* Refresh dir_entry pointer in case tree was rescanned/reallocated during
-     * action */
-    if (ctx->active && ctx->active->vol && ctx->active->vol->dir_entry_list) {
-      int safe_idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
-      if (safe_idx < 0)
-        safe_idx = 0;
-      if (safe_idx >= ctx->active->vol->total_dirs)
-        safe_idx = ctx->active->vol->total_dirs - 1;
-      if (safe_idx >= 0) {
-        dir_entry = ctx->active->vol->dir_entry_list[safe_idx].dir_entry;
-      } else {
-        dir_entry = ctx->active->vol->vol_stats.tree;
-      }
-    }
+    dir_entry = ResolveActiveDirEntry(ctx, s);
+    if (dir_entry == NULL)
+      return ESC;
     DebugLogDirLoopState("after_dispatch", ctx, dir_entry, ch, action,
                          unput_char);
 
