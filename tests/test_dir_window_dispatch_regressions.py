@@ -540,6 +540,42 @@ def test_file_window_preview_return_uses_visible_selection_authority():
     )
 
 
+def test_dir_mutation_results_use_visible_selection_authority():
+    source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    delete_source = _extract_function_block(
+        source, "DirEntry *HandleDirDeleteDirectory("
+    )
+    delete_rebuild = delete_source.split(
+        "BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);",
+        1,
+    )[1]
+    rename_source = _extract_function_block(
+        source, "DirEntry *HandleDirRenameDirectory("
+    )
+    rename_rebuild = rename_source.split(
+        "BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);",
+        1,
+    )[1]
+
+    for label, post_rebuild in (
+        ("directory delete", delete_rebuild),
+        ("directory rename", rename_rebuild),
+    ):
+        assert "ResolveActiveDirEntry(ctx," in post_rebuild, (
+            f"{label} rebuild result must restore through the canonical visible "
+            f"active-dir resolver.\n{post_rebuild}"
+        )
+        assert "disp_begin_pos +\n" not in post_rebuild, (
+            f"{label} rebuild result must not synthesize selection from raw "
+            f"row math.\n{post_rebuild}"
+        )
+        assert "->dir_entry_list[" not in post_rebuild, (
+            f"{label} rebuild result must not index the raw directory row list "
+            f"directly.\n{post_rebuild}"
+        )
+
+
 def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_split_tab"
     root.mkdir()
