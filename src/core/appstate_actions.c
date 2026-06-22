@@ -1053,7 +1053,7 @@ static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
    sizeof(kAppStateDiffHarnessGenerationDomainIds0) / sizeof(kAppStateDiffHarnessGenerationDomainIds0[0]),
    "A later dynamic harness snapshots every referenced AppState region before guard evaluation and after the transition result, then compares only authoritative state owned by the registered transition boundary.",
    "Any unclassified region change, stale snapshot reuse, or missing before/after phase is reported as a transition contract violation.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    kAppStateDiffHarnessMigrationNotes0,
    sizeof(kAppStateDiffHarnessMigrationNotes0) / sizeof(kAppStateDiffHarnessMigrationNotes0[0])},
   {"harness.declared-write-set-diff",
@@ -1072,7 +1072,7 @@ static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
    sizeof(kAppStateDiffHarnessGenerationDomainIds1) / sizeof(kAppStateDiffHarnessGenerationDomainIds1[0]),
    "The after snapshot may differ from the before snapshot only in owner fields named by the transition's declared_write_set or by an explicitly registered follow-up transition.",
    "A changed owner field outside the registered write set is rejected as an undeclared AppState mutation.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    kAppStateDiffHarnessMigrationNotes1,
    sizeof(kAppStateDiffHarnessMigrationNotes1) / sizeof(kAppStateDiffHarnessMigrationNotes1[0])},
   {"harness.render-projection-read-only-diff",
@@ -1091,7 +1091,7 @@ static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
    sizeof(kAppStateDiffHarnessGenerationDomainIds2) / sizeof(kAppStateDiffHarnessGenerationDomainIds2[0]),
    "Render/reflow projection may consume settled AppState and stage terminal output, but it must not mutate authoritative selection, identity, focus, or generation fields.",
    "Any authoritative owner or generation delta produced by render projection is rejected as render-state leakage into AppState authority.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    kAppStateDiffHarnessMigrationNotes2,
    sizeof(kAppStateDiffHarnessMigrationNotes2) / sizeof(kAppStateDiffHarnessMigrationNotes2[0])},
   {"harness.generation-mismatch-check",
@@ -1110,7 +1110,7 @@ static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
    sizeof(kAppStateDiffHarnessGenerationDomainIds3) / sizeof(kAppStateDiffHarnessGenerationDomainIds3[0]),
    "Saved panel or volume snapshots whose generation markers mismatch current authority must be rejected or rebound through stable identity fallback before any restore commit.",
    "Reusing stale row, pointer, or payload identity after a generation mismatch is rejected as a fail-closed violation.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    kAppStateDiffHarnessMigrationNotes3,
    sizeof(kAppStateDiffHarnessMigrationNotes3) / sizeof(kAppStateDiffHarnessMigrationNotes3[0])},
   {"harness.blocked-transition-no-unrelated-mutation",
@@ -1129,7 +1129,7 @@ static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
    sizeof(kAppStateDiffHarnessGenerationDomainIds4) / sizeof(kAppStateDiffHarnessGenerationDomainIds4[0]),
    "A blocked transition may report only the registered user-visible failure state and must leave unrelated owner fields and all unaffected generations byte-for-byte unchanged.",
    "Any unrelated owner-field or generation delta after a blocked result is rejected as nondeterministic blocked-transition mutation.",
-   "documented_foundation_only",
+   "covered_by_runtime_registry",
    kAppStateDiffHarnessMigrationNotes4,
    sizeof(kAppStateDiffHarnessMigrationNotes4) / sizeof(kAppStateDiffHarnessMigrationNotes4[0])},
 };
@@ -6771,7 +6771,8 @@ static int AppStateKnownBoundaryStatus(const char *status) {
 static int AppStateKnownFoundationStatus(const char *status) {
   if (!AppStateNonEmptyString(status))
     return 0;
-  return strcmp(status, "documented_foundation_only") == 0;
+  return strcmp(status, "documented_foundation_only") == 0 ||
+         strcmp(status, "covered_by_runtime_registry") == 0;
 }
 
 static const AppStateActionCoverageMetadata *

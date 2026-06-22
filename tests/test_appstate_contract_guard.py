@@ -572,7 +572,7 @@ def _diff_harness(
         "generation_domain_ids": generation_domain_ids or ["domain.panel_generation"],
         "expected_behavior": "fixture expected behavior",
         "failure_mode": "fixture failure mode",
-        "enforcement_status": "documented_foundation_only",
+        "enforcement_status": "covered_by_runtime_registry",
         "migration_notes": ["fixture coverage"],
     }
 
@@ -4025,6 +4025,33 @@ def test_guard_fails_when_runtime_diff_harness_drifts_from_docs(
     assert any(
         "runtime_diff_harness[0]" in failure
         and "runtime expected_behavior does not match diff harness" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_keeps_foundation_status(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    runtime_diff_harness_checks = [dict(record) for record in diff_harness_checks]
+    diff_harness_checks[0]["enforcement_status"] = "documented_foundation_only"
+    runtime_diff_harness_checks[0]["enforcement_status"] = (
+        "documented_foundation_only"
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        diff_harness_checks=diff_harness_checks,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_diff_harness[0]" in failure
+        and "enforcement_status must use covered_by_runtime_registry once runtime diff harness is registered"
+        in failure
         for failure in failures
     )
 

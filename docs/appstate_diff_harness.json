@@ -55,7 +55,7 @@
       ],
       "expected_behavior": "A later dynamic harness snapshots every referenced AppState region before guard evaluation and after the transition result, then compares only authoritative state owned by the registered transition boundary.",
       "failure_mode": "Any unclassified region change, stale snapshot reuse, or missing before/after phase is reported as a transition contract violation.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
         "This registry entry defines the machine-readable coverage target; no runtime C runner exists in this unit."
       ]
@@ -107,7 +107,7 @@
       ],
       "expected_behavior": "The after snapshot may differ from the before snapshot only in owner fields named by the transition's declared_write_set or by an explicitly registered follow-up transition.",
       "failure_mode": "A changed owner field outside the registered write set is rejected as an undeclared AppState mutation.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
         "Runtime migration should derive concrete field comparisons from docs/appstate_transition_matrix.json declared_write_set records."
       ]
@@ -149,7 +149,7 @@
       ],
       "expected_behavior": "Render/reflow projection may consume settled AppState and stage terminal output, but it must not mutate authoritative selection, identity, focus, or generation fields.",
       "failure_mode": "Any authoritative owner or generation delta produced by render projection is rejected as render-state leakage into AppState authority.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
         "Dirty-flag clearing and window-handle staging remain named so the future harness can distinguish projection bookkeeping from selection authority."
       ]
@@ -205,7 +205,7 @@
       ],
       "expected_behavior": "Saved panel or volume snapshots whose generation markers mismatch current authority must be rejected or rebound through stable identity fallback before any restore commit.",
       "failure_mode": "Reusing stale row, pointer, or payload identity after a generation mismatch is rejected as a fail-closed violation.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
         "The future runner should seed mismatched saved/current generations to verify deterministic restore fallback."
       ]
@@ -253,7 +253,7 @@
       ],
       "expected_behavior": "A blocked transition may report only the registered user-visible failure state and must leave unrelated owner fields and all unaffected generations byte-for-byte unchanged.",
       "failure_mode": "Any unrelated owner-field or generation delta after a blocked result is rejected as nondeterministic blocked-transition mutation.",
-      "enforcement_status": "documented_foundation_only",
+      "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
         "Concrete blocked-result allowances should be derived from the target transition's blocked_result and declared_write_set records."
       ]
