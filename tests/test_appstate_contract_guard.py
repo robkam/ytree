@@ -5293,6 +5293,228 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_split_transition_helpers_fail_closed_on_invalid_appstate_boundary(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "split_transition_boundary_probe.c"
+    binary = tmp_path / "split_transition_boundary_probe"
+    probe.write_text(
+        r"""
+#include <string.h>
+#include "ytnova_defs.h"
+#include "ytnova_appstate_actions.h"
+
+static int fake_mode;
+static AppStateActionTransitionMetadata fake_action_metadata = {
+    ACTION_SPLIT_SCREEN, "transition.keybinding.navigate-tree", "keybinding"};
+static AppStateTransitionMetadata fake_transition_metadata = {
+    "transition.keybinding.navigate-tree", "other-category", "source", "event",
+    "guard", "allowed", "blocked", "target", "owner", "generation", NULL, 0,
+    "render", "runtime_enforced", "notes", NULL, 0};
+
+const AppStateActionTransitionMetadata *
+AppStateActionTransitionLookup(YtreeNovaAction action) {
+  if (fake_mode == 1)
+    return NULL;
+  fake_action_metadata.action = action;
+  return &fake_action_metadata;
+}
+
+const AppStateTransitionMetadata *AppStateTransitionLookup(const char *id) {
+  (void)id;
+  return &fake_transition_metadata;
+}
+
+int AppStateValidatedTransition(const char *transition_id) {
+  (void)transition_id;
+  return fake_mode != 3;
+}
+
+#include "src/ui/split_transition.c"
+
+void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
+                                 const DirEntry *dir_entry) {
+  (void)ctx;
+  (void)panel;
+  (void)dir_entry;
+}
+void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
+  (void)dst;
+  (void)src;
+}
+void ReCreateWindows(ViewContext *ctx) { (void)ctx; }
+void SyncActivePanelWindows(ViewContext *ctx) { (void)ctx; }
+void PanelTags_Copy(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
+  (void)dst;
+  (void)src;
+}
+void FreeFileEntryList(YtreeNovaPanel *panel) { (void)panel; }
+void BuildFileEntryList(ViewContext *ctx, YtreeNovaPanel *panel) {
+  (void)ctx;
+  panel->file_count = 0;
+}
+void SwitchToSmallFileWindow(ViewContext *ctx) { (void)ctx; }
+DirEntry *GetPanelDirEntry(YtreeNovaPanel *panel) {
+  return panel && panel->vol ? panel->vol->vol_stats.tree : NULL;
+}
+DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s) {
+  (void)ctx;
+  return s ? s->tree : NULL;
+}
+void RestorePanelAnchorPath(const struct Volume *volume, YtreeNovaPanel *panel,
+                            const char *anchor_path) {
+  (void)volume;
+  (void)panel;
+  (void)anchor_path;
+}
+DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
+                                    YtreeNovaPanel *panel) {
+  (void)ctx;
+  (void)panel;
+  return dir_entry;
+}
+void PanelTags_ApplyToTree(ViewContext *ctx, YtreeNovaPanel *panel) {
+  (void)ctx;
+  (void)panel;
+}
+void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
+  (void)ctx;
+  (void)dir_entry;
+}
+char *GetPath(DirEntry *dir_entry, char *dir_path) {
+  (void)dir_entry;
+  dir_path[0] = '\0';
+  return dir_path;
+}
+int flushinp(void) { return 0; }
+
+static void seed_context(ViewContext *ctx, YtreeNovaPanel *left,
+                         YtreeNovaPanel *right, struct Volume *volume,
+                         Statistic *stats, DirEntry *dir_entry) {
+  memset(ctx, 0, sizeof(*ctx));
+  memset(left, 0, sizeof(*left));
+  memset(right, 0, sizeof(*right));
+  memset(volume, 0, sizeof(*volume));
+  memset(stats, 0, sizeof(*stats));
+  memset(dir_entry, 0, sizeof(*dir_entry));
+  dir_entry->name[0] = 'r';
+  dir_entry->name[1] = 'o';
+  dir_entry->name[2] = 'o';
+  dir_entry->name[3] = 't';
+  dir_entry->name[4] = '\0';
+  stats->tree = dir_entry;
+  volume->vol_stats = *stats;
+  volume->total_dirs = 1;
+  left->vol = volume;
+  right->vol = volume;
+  left->saved_focus = FOCUS_TREE;
+  right->saved_focus = FOCUS_TREE;
+  ctx->left = left;
+  ctx->right = right;
+  ctx->active = left;
+  ctx->focused_window = FOCUS_TREE;
+}
+
+static int expect_file_split_rejected(void) {
+  ViewContext ctx;
+  YtreeNovaPanel left;
+  YtreeNovaPanel right;
+  struct Volume volume;
+  Statistic stats;
+  struct {
+    DirEntry entry;
+    char name_space[8];
+  } dir_entry;
+  BOOL switched = FALSE;
+  BOOL return_esc = TRUE;
+  YtreeNovaAction loop_action = ACTION_ESCAPE;
+
+  seed_context(&ctx, &left, &right, &volume, &stats, &dir_entry.entry);
+  fake_mode = 1;
+  if (SplitTransition_HandleFileWindowAction(
+          &ctx, ACTION_SPLIT_SCREEN, &dir_entry.entry, &left, &switched,
+          &loop_action, &return_esc))
+    return 1;
+  if (ctx.is_split_screen || ctx.active != &left || switched ||
+      loop_action != ACTION_ESCAPE || return_esc != TRUE)
+    return 2;
+  return 0;
+}
+
+static int expect_dir_switch_rejected(void) {
+  ViewContext ctx;
+  YtreeNovaPanel left;
+  YtreeNovaPanel right;
+  struct Volume volume;
+  Statistic stats;
+  struct {
+    DirEntry entry;
+    char name_space[8];
+  } dir_entry;
+  DirEntry *dir_entry_ptr;
+  Statistic *stats_ptr;
+  const struct Volume *start_volume;
+  BOOL need_help = FALSE;
+  int ch = '\t';
+  int unput_char = 0;
+
+  seed_context(&ctx, &left, &right, &volume, &stats, &dir_entry.entry);
+  ctx.is_split_screen = TRUE;
+  dir_entry_ptr = &dir_entry.entry;
+  stats_ptr = &ctx.active->vol->vol_stats;
+  start_volume = ctx.active->vol;
+  fake_mode = 2;
+  if (SplitTransition_HandleDirWindowAction(
+          &ctx, ACTION_SWITCH_PANEL, &dir_entry_ptr, &stats_ptr, &start_volume,
+          &need_help, &ch, &unput_char))
+    return 3;
+  if (ctx.active != &left || stats_ptr != &left.vol->vol_stats ||
+      start_volume != left.vol || need_help || unput_char)
+    return 4;
+  return 0;
+}
+
+int main(void) {
+  int rc;
+  rc = expect_file_split_rejected();
+  if (rc)
+    return rc;
+  return expect_dir_switch_rejected();
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
 def test_input_choice_modal_completion_fails_closed_on_invalid_surface() -> None:
     source = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
 
