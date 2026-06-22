@@ -9,7 +9,7 @@
       "source_path": "src/ui/key_engine.c",
       "entry_symbol_or_path": "GetEventOrKey",
       "transition_id": "transition.keybinding.navigate-tree",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced."
@@ -24,7 +24,7 @@
       "source_path": "src/ui/ctrl_dir.c",
       "entry_symbol_or_path": "HandleDirWindow",
       "transition_id": "transition.keybinding.navigate-tree",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -45,7 +45,7 @@
       "source_path": "src/ui/ctrl_file.c",
       "entry_symbol_or_path": "HandleFileWindow",
       "transition_id": "transition.keybinding.navigate-tree",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "panel.focus_shape",
         "panel.panel_generation"
@@ -63,7 +63,7 @@
       "source_path": "src/ui/key_engine.c",
       "entry_symbol_or_path": "InputChoice",
       "transition_id": "transition.modal-action.dismiss",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current menu and modal choice completion returns a selected key to callers; AppState modal writes remain with the caller until modal transition boundaries are introduced."
@@ -78,7 +78,7 @@
       "source_path": "src/ui/key_engine.c",
       "entry_symbol_or_path": "InputChoice",
       "transition_id": "transition.modal-action.completion",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current menu and modal choice completion returns a selected key to callers; the registry now tracks that completion through its own explicit transition boundary while runtime modal writes remain with the caller."
@@ -93,7 +93,7 @@
       "source_path": "src/ui/key_engine.c",
       "entry_symbol_or_path": "GetEventOrKey",
       "transition_id": "transition.terminal-signal-resize",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "ctx.layout",
         "ctx.window_handles",
@@ -114,7 +114,7 @@
       "source_path": "src/ui/dir_ops.c",
       "entry_symbol_or_path": "RefreshTreeSafe",
       "transition_id": "transition.refresh-rebuild.manual-refresh",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "volume.dir_tree",
         "volume.logged_state",
@@ -135,7 +135,7 @@
       "source_path": "src/ui/dir_ops.c",
       "entry_symbol_or_path": "HandleDirMakeDirectory",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -157,7 +157,7 @@
       "source_path": "src/ui/volume_menu.c",
       "entry_symbol_or_path": "SelectLoadedVolume",
       "transition_id": "transition.volume-operation.release-cycle",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "ctx.volumes_head",
         "panel.volume_key",
@@ -178,7 +178,7 @@
       "source_path": "src/ui/key_engine.c",
       "entry_symbol_or_path": "GetEventOrKey",
       "transition_id": "transition.refresh-rebuild.watcher-live-refresh",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current watcher processing reports settled filesystem activity to input dispatch; the registry now tracks that watcher completion through its own explicit refresh transition boundary."
@@ -193,7 +193,7 @@
       "source_path": "src/ui/display.c",
       "entry_symbol_or_path": "RefreshView",
       "transition_id": "transition.render-reflow.project-state",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current render refresh projects settled state to ncurses windows; projection must not become selection, viewport, or topology authority."
@@ -208,7 +208,7 @@
       "source_path": "src/ui/ctrl_file_ops.c",
       "entry_symbol_or_path": "handle_file_window_command_action",
       "transition_id": "transition.command-completion.user-command",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current command handlers settle completion state after external or user-command execution returns; runtime migration should lift that completion boundary without broadening write authority here."
@@ -223,7 +223,7 @@
       "source_path": "src/ui/volume_menu.c",
       "entry_symbol_or_path": "SelectLoadedVolume",
       "transition_id": "transition.menu-action.volume-select",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "ctx.active",
         "panel.volume_key",
@@ -243,7 +243,7 @@
       "source_path": "src/ui/panel_anchor.c",
       "entry_symbol_or_path": "RestorePanelViewportSnapshot",
       "transition_id": "transition.rebuild-rebind-callback.panel-anchor",
-      "boundary_status": "documented_foundation_only",
+      "boundary_status": "covered_by_transition_record",
       "allowed_direct_writes": [
         "panel.tree_selection_key",
         "panel.file_selection_key",

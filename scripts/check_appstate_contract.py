@@ -5017,6 +5017,7 @@ def _validate_dispatch_surfaces(
     dispatch_surfaces_doc: Any,
     dispatch_surfaces_path: Path,
     transition_ids: dict[str, dict[str, Any]],
+    runtime_dispatch_surface_ids: set[str],
     registered_owner_fields: set[str],
     invariant_protected_fields_by_surface: dict[str, set[str]],
     transition_sequence_records: list[Any],
@@ -5068,6 +5069,15 @@ def _validate_dispatch_surfaces(
             if surface_id in surface_ids:
                 failures.append(f"{label}: duplicate surface_id: {surface_id}")
             surface_ids.add(surface_id)
+            if (
+                surface_id in runtime_dispatch_surface_ids
+                and record.get("boundary_status") != "covered_by_transition_record"
+            ):
+                failures.append(
+                    f"{label}: runtime-backed dispatch surface {surface_id} must use "
+                    "covered_by_transition_record, not "
+                    f"{record.get('boundary_status')}"
+                )
 
         category = record.get("category")
         if isinstance(category, str) and category.strip():
@@ -7870,6 +7880,9 @@ def validate_contract(
             dispatch_surfaces_doc=dispatch_surfaces_doc,
             dispatch_surfaces_path=dispatch_surfaces_path,
             transition_ids=transition_ids,
+            runtime_dispatch_surface_ids={
+                record["surface_id"] for record in runtime_dispatch_surface_records
+            },
             registered_owner_fields=registered_owner_fields,
             invariant_protected_fields_by_surface=invariant_protected_fields_by_surface,
             transition_sequence_records=(
