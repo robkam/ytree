@@ -2714,6 +2714,24 @@ static const char *const kAppStateCompatibilityShimDiffHarnessRefs3[] = {
   "harness.blocked-transition-no-unrelated-mutation",
 };
 
+static const char *const kAppStateCompatibilityShimSourceBoundaryRefs0[] = {
+  "src/ui/dir_ops.c",
+};
+
+static const char *const kAppStateCompatibilityShimSourceBoundaryRefs1[] = {
+  "src/ui/panel_anchor.c",
+  "src/ui/dir_ops.c",
+};
+
+static const char *const kAppStateCompatibilityShimSourceBoundaryRefs2[] = {
+  "src/ui/ctrl_file.c",
+  "src/ui/ctrl_dir.c",
+};
+
+static const char *const kAppStateCompatibilityShimSourceBoundaryRefs3[] = {
+  "src/ui/display.c",
+};
+
 static const char *const kAppStateInvariantProtectedFields0[] = {
   "ctx.active",
   "panel.volume_key",
@@ -6109,14 +6127,17 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    sizeof(kAppStateCompatibilityShimOwnerFieldRefs0) /
        sizeof(kAppStateCompatibilityShimOwnerFieldRefs0[0]),
    kAppStateCompatibilityShimGenerationDomainRefs0,
-   sizeof(kAppStateCompatibilityShimGenerationDomainRefs0) /
-       sizeof(kAppStateCompatibilityShimGenerationDomainRefs0[0]),
-   kAppStateCompatibilityShimDiffHarnessRefs0,
-   sizeof(kAppStateCompatibilityShimDiffHarnessRefs0) /
-       sizeof(kAppStateCompatibilityShimDiffHarnessRefs0[0]),
-   "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
-   "transition.keybinding.navigate-tree",
-   "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
+    sizeof(kAppStateCompatibilityShimGenerationDomainRefs0) /
+        sizeof(kAppStateCompatibilityShimGenerationDomainRefs0[0]),
+    kAppStateCompatibilityShimDiffHarnessRefs0,
+    sizeof(kAppStateCompatibilityShimDiffHarnessRefs0) /
+        sizeof(kAppStateCompatibilityShimDiffHarnessRefs0[0]),
+    kAppStateCompatibilityShimSourceBoundaryRefs0,
+    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs0) /
+        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs0[0]),
+    "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
+    "transition.keybinding.navigate-tree",
+    "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
    "check_appstate_contract.py requires this shim to declare permissions, invariants, target transition, and removal trigger."},
   {"shim.volume-saved-tree-index",
    "Volume restore breadcrumb",
@@ -6131,14 +6152,17 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    sizeof(kAppStateCompatibilityShimOwnerFieldRefs1) /
        sizeof(kAppStateCompatibilityShimOwnerFieldRefs1[0]),
    kAppStateCompatibilityShimGenerationDomainRefs1,
-   sizeof(kAppStateCompatibilityShimGenerationDomainRefs1) /
-       sizeof(kAppStateCompatibilityShimGenerationDomainRefs1[0]),
-   kAppStateCompatibilityShimDiffHarnessRefs1,
-   sizeof(kAppStateCompatibilityShimDiffHarnessRefs1) /
-       sizeof(kAppStateCompatibilityShimDiffHarnessRefs1[0]),
-   "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
-   "transition.rebuild-rebind-callback.panel-anchor",
-   "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
+    sizeof(kAppStateCompatibilityShimGenerationDomainRefs1) /
+        sizeof(kAppStateCompatibilityShimGenerationDomainRefs1[0]),
+    kAppStateCompatibilityShimDiffHarnessRefs1,
+    sizeof(kAppStateCompatibilityShimDiffHarnessRefs1) /
+        sizeof(kAppStateCompatibilityShimDiffHarnessRefs1[0]),
+    kAppStateCompatibilityShimSourceBoundaryRefs1,
+    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs1) /
+        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs1[0]),
+    "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
+    "transition.rebuild-rebind-callback.panel-anchor",
+    "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
    "check_appstate_contract.py keeps this debt visible until runtime migration removes the shim."},
   {"shim.focused-window-session-flag",
    "ViewContext session routing",
@@ -6153,14 +6177,17 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    sizeof(kAppStateCompatibilityShimOwnerFieldRefs2) /
        sizeof(kAppStateCompatibilityShimOwnerFieldRefs2[0]),
    kAppStateCompatibilityShimGenerationDomainRefs2,
-   sizeof(kAppStateCompatibilityShimGenerationDomainRefs2) /
-       sizeof(kAppStateCompatibilityShimGenerationDomainRefs2[0]),
-   kAppStateCompatibilityShimDiffHarnessRefs2,
-   sizeof(kAppStateCompatibilityShimDiffHarnessRefs2) /
-       sizeof(kAppStateCompatibilityShimDiffHarnessRefs2[0]),
-   "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
-   "transition.keybinding.navigate-tree",
-   "Move focus-shape authority from session mirrors into panel-local transition records.",
+    sizeof(kAppStateCompatibilityShimGenerationDomainRefs2) /
+        sizeof(kAppStateCompatibilityShimGenerationDomainRefs2[0]),
+    kAppStateCompatibilityShimDiffHarnessRefs2,
+    sizeof(kAppStateCompatibilityShimDiffHarnessRefs2) /
+        sizeof(kAppStateCompatibilityShimDiffHarnessRefs2[0]),
+    kAppStateCompatibilityShimSourceBoundaryRefs2,
+    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs2) /
+        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs2[0]),
+    "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
+    "transition.keybinding.navigate-tree",
+    "Move focus-shape authority from session mirrors into panel-local transition records.",
    "check_appstate_contract.py validates shim coverage and links it to an existing transition id."},
   {"shim-render-derived-row-position",
    "Render projection temporary",
@@ -6175,14 +6202,17 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    sizeof(kAppStateCompatibilityShimOwnerFieldRefs3) /
        sizeof(kAppStateCompatibilityShimOwnerFieldRefs3[0]),
    kAppStateCompatibilityShimGenerationDomainRefs3,
-   sizeof(kAppStateCompatibilityShimGenerationDomainRefs3) /
-       sizeof(kAppStateCompatibilityShimGenerationDomainRefs3[0]),
-   kAppStateCompatibilityShimDiffHarnessRefs3,
-   sizeof(kAppStateCompatibilityShimDiffHarnessRefs3) /
-       sizeof(kAppStateCompatibilityShimDiffHarnessRefs3[0]),
-   "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
-   "transition.render-reflow.project-state",
-   "Audit render/reflow call sites for projection-only behavior during runtime migration.",
+    sizeof(kAppStateCompatibilityShimGenerationDomainRefs3) /
+        sizeof(kAppStateCompatibilityShimGenerationDomainRefs3[0]),
+    kAppStateCompatibilityShimDiffHarnessRefs3,
+    sizeof(kAppStateCompatibilityShimDiffHarnessRefs3) /
+        sizeof(kAppStateCompatibilityShimDiffHarnessRefs3[0]),
+    kAppStateCompatibilityShimSourceBoundaryRefs3,
+    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs3) /
+        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs3[0]),
+    "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
+    "transition.render-reflow.project-state",
+    "Audit render/reflow call sites for projection-only behavior during runtime migration.",
    "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage."},
 };
 

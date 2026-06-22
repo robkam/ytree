@@ -30,6 +30,9 @@
       "diff_harness_refs": [
         "harness.transition-before-after-snapshot",
         "harness.generation-mismatch-check"
+      ],
+      "source_boundary_refs": [
+        "src/ui/dir_ops.c"
       ]
     },
     {
@@ -63,6 +66,10 @@
       "diff_harness_refs": [
         "harness.transition-before-after-snapshot",
         "harness.generation-mismatch-check"
+      ],
+      "source_boundary_refs": [
+        "src/ui/panel_anchor.c",
+        "src/ui/dir_ops.c"
       ]
     },
     {
@@ -90,6 +97,10 @@
       ],
       "diff_harness_refs": [
         "harness.declared-write-set-diff"
+      ],
+      "source_boundary_refs": [
+        "src/ui/ctrl_file.c",
+        "src/ui/ctrl_dir.c"
       ]
     },
     {
@@ -122,6 +133,9 @@
         "harness.render-projection-read-only-diff",
         "harness.generation-mismatch-check",
         "harness.blocked-transition-no-unrelated-mutation"
+      ],
+      "source_boundary_refs": [
+        "src/ui/display.c"
       ]
     }
   ]

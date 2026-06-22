@@ -65,6 +65,7 @@ REQUIRED_SHIM_FIELDS = {
     "owner_field_refs",
     "generation_domain_refs",
     "diff_harness_refs",
+    "source_boundary_refs",
     "removal_trigger",
     "target_transition",
     "follow_up_task",
@@ -328,6 +329,7 @@ SHIM_LIST_FIELDS = LIST_FIELDS | {
     "owner_field_refs",
     "generation_domain_refs",
     "diff_harness_refs",
+    "source_boundary_refs",
 }
 VALID_SHIM_WRITE_CAPABILITIES = {
     "write_capable",
@@ -1916,6 +1918,7 @@ def _parse_runtime_shim_registry(
     owner_ref_tables: dict[str, list[str]] = {}
     generation_domain_ref_tables: dict[str, list[str]] = {}
     diff_harness_ref_tables: dict[str, list[str]] = {}
+    source_boundary_ref_tables: dict[str, list[str]] = {}
     failures: list[str] = []
     invariant_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
@@ -1977,6 +1980,21 @@ def _parse_runtime_shim_registry(
         diff_harness_ref_tables[table_name] = values
         failures.extend(array_failures)
 
+    source_boundary_ref_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateCompatibilityShimSourceBoundaryRefs[0-9]+)\[\]\s*=\s*\{"
+        r"(?P<body>.*?)\};",
+        re.S,
+    )
+    for source_boundary_ref_match in source_boundary_ref_re.finditer(source):
+        table_name = source_boundary_ref_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            source_boundary_ref_match.group("body"),
+            table_name,
+        )
+        source_boundary_ref_tables[table_name] = values
+        failures.extend(array_failures)
+
     match = re.search(
         r"kAppStateCompatibilityShims\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
         source,
@@ -2004,6 +2022,9 @@ def _parse_runtime_shim_registry(
         r"\s*(?P<diff_refs>kAppStateCompatibilityShimDiffHarnessRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=diff_refs)\)\s*/"
         r"\s*sizeof\((?P=diff_refs)\[0\]\)\s*,"
+        r"\s*(?P<source_boundary_refs>kAppStateCompatibilityShimSourceBoundaryRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=source_boundary_refs)\)\s*/"
+        r"\s*sizeof\((?P=source_boundary_refs)\[0\]\)\s*,"
         r"\s*\"(?P<removal_trigger>[^\"]*)\"\s*,"
         r"\s*\"(?P<target_transition>[^\"]*)\"\s*,"
         r"\s*\"(?P<follow_up_task>[^\"]*)\"\s*,"
@@ -2041,6 +2062,16 @@ def _parse_runtime_shim_registry(
                 f"runtime_shim[{index}]: unknown diff-harness-ref table: {diff_ref_table_name}"
             )
             diff_harness_refs = []
+        source_boundary_ref_table_name = row_match.group("source_boundary_refs")
+        source_boundary_refs = source_boundary_ref_tables.get(
+            source_boundary_ref_table_name
+        )
+        if source_boundary_refs is None:
+            failures.append(
+                f"runtime_shim[{index}]: unknown source-boundary-ref table: "
+                f"{source_boundary_ref_table_name}"
+            )
+            source_boundary_refs = []
         records.append(
             {
                 "id": row_match.group("id"),
@@ -2053,6 +2084,7 @@ def _parse_runtime_shim_registry(
                 "owner_field_refs": owner_field_refs,
                 "generation_domain_refs": generation_domain_refs,
                 "diff_harness_refs": diff_harness_refs,
+                "source_boundary_refs": source_boundary_refs,
                 "removal_trigger": row_match.group("removal_trigger"),
                 "target_transition": row_match.group("target_transition"),
                 "follow_up_task": row_match.group("follow_up_task"),
@@ -3361,6 +3393,7 @@ def _validate_runtime_shim_registry(
                 "owner_field_refs",
                 "generation_domain_refs",
                 "diff_harness_refs",
+                "source_boundary_refs",
                 "removal_trigger",
                 "target_transition",
                 "follow_up_task",
@@ -4612,6 +4645,41 @@ def _validate_source_path(
     return []
 
 
+def _validate_source_boundary_refs(
+    value: Any, *, label: str, repository_root: Path = REPO_ROOT
+) -> list[str]:
+    failures = _validate_list_field(
+        value=value,
+        label=label,
+        field="source_boundary_refs",
+    )
+    if failures:
+        return failures
+
+    assert isinstance(value, list)
+    seen: set[str] = set()
+    for index, source_path in enumerate(value):
+        if not isinstance(source_path, str) or not source_path.strip():
+            failures.append(
+                f"{label}: source_boundary_refs[{index}] must be a non-empty string"
+            )
+            continue
+        normalized = source_path.strip()
+        if normalized in seen:
+            failures.append(
+                f"{label}: duplicate source_boundary_refs[{index}]: {normalized}"
+            )
+        seen.add(normalized)
+        failures.extend(
+            _validate_source_path(
+                normalized,
+                label=f"{label}: source_boundary_refs[{index}]",
+                repository_root=repository_root,
+            )
+        )
+    return failures
+
+
 def _validate_entry_symbol_or_path(value: Any, *, label: str) -> list[str]:
     if not isinstance(value, str) or not value.strip():
         return [f"{label}: entry_symbol_or_path must be a non-empty string"]
@@ -4817,21 +4885,46 @@ def _validate_runtime_shim_callsites(
         or action_runtime_path.parent.parent.name != "src"
     ):
         return []
-    source_root = repository_root / "src"
-    callsites_by_id, failures = _runtime_shim_callsites_by_id(source_root)
-    runtime_shim_ids = sorted(
-        {
-            shim_id.strip()
-            for record in runtime_records
-            if isinstance(record, dict)
-            and isinstance(record.get("id"), str)
-            and (shim_id := record["id"]).strip()
-        }
-    )
-    for shim_id in runtime_shim_ids:
-        if shim_id not in callsites_by_id:
+    failures: list[str] = []
+    for record in runtime_records:
+        if not isinstance(record, dict):
+            continue
+        shim_id = record.get("id")
+        source_boundary_refs = record.get("source_boundary_refs")
+        if not isinstance(shim_id, str) or not shim_id.strip():
+            continue
+        if not isinstance(source_boundary_refs, list):
+            continue
+
+        source_paths: list[str] = []
+        seen_paths: set[str] = set()
+        for source_path in source_boundary_refs:
+            if (
+                not isinstance(source_path, str)
+                or not source_path.strip()
+                or source_path in seen_paths
+            ):
+                continue
+            source_paths.append(source_path)
+            seen_paths.add(source_path)
+        if not source_paths:
+            continue
+
+        shim_found = False
+        for source_path in source_paths:
+            source_file = repository_root / source_path
+            callsite_ids, read_failures = _runtime_validation_callsite_ids_in_file(
+                source_file, SHIM_CALLSITE_RE
+            )
+            failures.extend(read_failures)
+            if read_failures:
+                continue
+            if shim_id in callsite_ids:
+                shim_found = True
+                break
+        if not shim_found:
             failures.append(
-                f"{source_root}: {shim_id}: missing runtime validation callsite"
+                f"{', '.join(source_paths)}: {shim_id}: missing runtime validation callsite"
             )
     return failures
 
@@ -7390,6 +7483,13 @@ def validate_contract(
                     diff_harness_generation_domain_ids_by_harness
                 ),
                 label=label,
+            )
+        )
+        failures.extend(
+            _validate_source_boundary_refs(
+                record.get("source_boundary_refs"),
+                label=label,
+                repository_root=repository_root,
             )
         )
     failures.extend(
