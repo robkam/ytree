@@ -23,6 +23,14 @@ DEFAULT_TRANSITION_SEQUENCES = REPO_ROOT / "docs" / "appstate_transition_sequenc
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytnova_defs.h"
 DEFAULT_ACTION_RUNTIME = REPO_ROOT / "src" / "core" / "appstate_actions.c"
 
+STALE_RUNTIME_REGISTRY_NOTE_PATTERNS = (
+    re.compile(r"\bnon[- ]runtime\b", re.IGNORECASE),
+    re.compile(r"\bfuture[- ]only\b", re.IGNORECASE),
+    re.compile(r"\bfor future\b", re.IGNORECASE),
+    re.compile(r"before AppState runtime migration", re.IGNORECASE),
+    re.compile(r"runtime behavior is unchanged", re.IGNORECASE),
+)
+
 REQUIRED_TRANSITION_CATEGORIES = {
     "keybinding",
     "menu_action",
@@ -467,6 +475,26 @@ def _validate_status_field(
         return []
     if value not in valid_statuses:
         return [f"{label}: unknown {field}: {value}"]
+    return []
+
+
+def _validate_runtime_backed_registry_notes(
+    *,
+    doc: Any,
+    path: Path,
+    runtime_records: list[dict[str, Any]],
+) -> list[str]:
+    if not runtime_records or not isinstance(doc, dict):
+        return []
+    notes = doc.get("notes")
+    if not isinstance(notes, str) or not notes.strip():
+        return []
+    for pattern in STALE_RUNTIME_REGISTRY_NOTE_PATTERNS:
+        if pattern.search(notes):
+            return [
+                f"{path}: runtime-backed registry notes must not describe the "
+                "registry as non-runtime, future-only, or runtime-unchanged"
+            ]
     return []
 
 
@@ -7323,6 +7351,28 @@ def validate_contract(
     failures.extend(runtime_generation_domain_failures)
     failures.extend(runtime_diff_harness_failures)
     failures.extend(runtime_transition_sequence_failures)
+    if failures:
+        return failures
+
+    for doc, path, runtime_records in (
+        (transitions_doc, transitions_path, runtime_transition_records),
+        (shims_doc, shims_path, runtime_shim_records),
+        (action_coverage_doc, action_coverage_path, runtime_action_coverage_records),
+        (event_coverage_doc, event_coverage_path, runtime_event_coverage_records),
+        (owner_fields_doc, owner_fields_path, runtime_owner_field_records),
+        (dispatch_surfaces_doc, dispatch_surfaces_path, runtime_dispatch_surface_records),
+        (invariants_doc, invariants_path, runtime_invariant_records),
+        (generation_domains_doc, generation_domains_path, runtime_generation_domain_records),
+        (diff_harness_doc, diff_harness_path, runtime_diff_harness_records),
+        (transition_sequences_doc, transition_sequences_path, runtime_transition_sequence_records),
+    ):
+        failures.extend(
+            _validate_runtime_backed_registry_notes(
+                doc=doc,
+                path=path,
+                runtime_records=runtime_records,
+            )
+        )
     if failures:
         return failures
 

@@ -2120,6 +2120,36 @@ def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
     assert failures == []
 
 
+@pytest.mark.parametrize(
+    ("path_index", "registry_name"),
+    [
+        (2, "action coverage"),
+        (4, "event coverage"),
+        (5, "owner field"),
+        (6, "dispatch surface"),
+        (9, "diff harness"),
+    ],
+)
+def test_runtime_backed_registry_notes_reject_stale_non_runtime_wording(
+    tmp_path: Path, path_index: int, registry_name: str
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    target = paths[path_index]
+    doc = json.loads(target.read_text(encoding="utf-8"))
+    doc["notes"] = (
+        f"Non-runtime registry for future-only {registry_name} coverage before "
+        "AppState runtime migration. Runtime behavior is unchanged."
+    )
+    target.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+    failures = _validate(paths)
+
+    assert any(
+        f"{target}: runtime-backed registry notes must not describe" in failure
+        for failure in failures
+    )
+
+
 def test_current_generation_domain_docs_keep_projection_transitions_out_of_advances() -> None:
     generation_domains = json.loads(
         Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")

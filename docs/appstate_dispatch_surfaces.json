@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState UI-affecting dispatch-surface registry",
-  "notes": "Non-runtime registry for current UI-affecting dispatch surfaces before AppState runtime migration. Runtime behavior is unchanged.",
+  "notes": "Runtime-backed registry for current UI-affecting dispatch surfaces. Registered rows must remain aligned with the C runtime metadata.",
   "dispatch_surfaces": [
     {
       "surface_id": "surface.key-decode-input-dispatch",
