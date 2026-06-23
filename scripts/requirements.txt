@@ -97,7 +97,7 @@ pytest==9.1.0
     # via -r requirements.in
 requests==2.34.2
     # via google-api-core
-temporalio==1.28.0
+temporalio==1.29.0
     # via -r requirements.in
 tqdm==4.68.1
     # via google-generativeai
