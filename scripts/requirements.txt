@@ -93,7 +93,7 @@ pyparsing==3.3.2
     # via httplib2
 pyte==0.8.2
     # via -r requirements.in
-pytest==9.1.0
+pytest==9.1.1
     # via -r requirements.in
 requests==2.34.2
     # via google-api-core
