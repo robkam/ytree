@@ -44,7 +44,7 @@ jobs:
             readline-devel
 
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Show toolchain versions
         run: |
