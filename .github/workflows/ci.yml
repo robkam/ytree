@@ -64,7 +64,7 @@ jobs:
     if: github.event_name == 'push' || needs.changes.outputs.qa_relevant == 'true'
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -104,7 +104,7 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install System Dependencies
       run: |
@@ -156,7 +156,7 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install System Dependencies
       run: |
@@ -210,7 +210,7 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install System Dependencies
       run: |
@@ -277,7 +277,7 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install System Dependencies
       run: |
