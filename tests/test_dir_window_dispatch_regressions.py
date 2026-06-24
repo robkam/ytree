@@ -249,7 +249,7 @@ def test_restore_snapshots_validate_generation_before_reuse():
     )
     assert "generation_valid =" in log_source
     assert "saved_tree_volume_generation == panel->vol->volume_generation" in log_source
-    assert "saved_tree_generation == panel->panel_generation" in log_source
+    assert "saved_tree_panel_generation == panel->panel_generation" in log_source
 
     assert "panel->panel_generation++;" in panel_anchor_source, panel_anchor_source
     assert "dst->panel_generation = src->panel_generation;" in panel_anchor_source
@@ -257,6 +257,56 @@ def test_restore_snapshots_validate_generation_before_reuse():
     assert "p->panel_generation++;" in dir_ops_source, dir_ops_source
     assert "p->vol->volume_generation++;" in dir_ops_source, dir_ops_source
     assert "ctx->active->vol->volume_generation++;" in dir_ops_source, dir_ops_source
+
+
+def test_volume_tree_restore_uses_panel_path_snapshot_before_index_breadcrumb():
+    defs_source = _defs_source()
+    log_source = _log_source()
+    restore_source = _restore_panel_tree_selection_source()
+    save_start = log_source.index("static void SavePanelTreeSelection(")
+    save_end = log_source.index("\nstatic void RestorePanelTreeSelection(", save_start)
+    save_source = log_source[save_start:save_end]
+    file_restore_source = _restore_panel_file_selection_source()
+
+    for needle in (
+        "unsigned int saved_tree_panel_generation;",
+        "unsigned int saved_tree_volume_generation;",
+        "char saved_tree_selected_dir_path[PATH_LENGTH + 1];",
+        "char saved_tree_top_dir_path[PATH_LENGTH + 1];",
+    ):
+        assert needle in defs_source, (
+            "Panel volume restore state must own path-scoped tree snapshot "
+            f"metadata: {needle}\n{defs_source}"
+        )
+
+    assert "CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);" in save_source
+    assert "state->saved_tree_panel_generation = panel->panel_generation;" in save_source
+    assert (
+        "state->saved_tree_volume_generation = panel->vol->volume_generation;"
+        in save_source
+    )
+    assert (
+        "snprintf(state->saved_tree_selected_dir_path,"
+        in save_source
+    ), save_source
+
+    path_restore = restore_source.find("RestorePanelViewportSnapshot(")
+    legacy_index = restore_source.find("panel->vol->saved_tree_index")
+    assert path_restore >= 0, restore_source
+    assert legacy_index < 0 or path_restore < legacy_index, (
+        "RestorePanelTreeSelection must try the panel-local path snapshot "
+        "before any legacy index breadcrumb.\n"
+        f"{restore_source}"
+    )
+    assert "state->saved_tree_panel_generation == panel->panel_generation" in (
+        restore_source
+    )
+    assert (
+        "state->saved_tree_volume_generation == panel->vol->volume_generation"
+        in restore_source
+    )
+    assert "selected_index = panel->vol->saved_tree_index;" not in restore_source
+    assert "vol->saved_tree_index = resolved_index;" not in file_restore_source
 
 
 def test_panel_anchor_restore_follows_exact_fallback_order():
