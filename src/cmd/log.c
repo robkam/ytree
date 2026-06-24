@@ -136,22 +136,8 @@ static void PositionSavedFileSelection(ViewContext *ctx, YtreeNovaPanel *panel,
   dir_entry->cursor_pos = panel->file_cursor_pos;
 }
 
-static int FindDirIndexInVolume(const struct Volume *vol,
-                                const DirEntry *dir_entry) {
-  int i;
-
-  if (!vol || !dir_entry || !vol->dir_entry_list || vol->total_dirs <= 0)
-    return -1;
-
-  for (i = 0; i < vol->total_dirs; i++) {
-    if (vol->dir_entry_list[i].dir_entry == dir_entry)
-      return i;
-  }
-  return -1;
-}
-
 static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
-  struct Volume *vol;
+  const struct Volume *vol;
   const PanelVolumeFileState *state;
   DirEntry *resolved_file_dir = NULL;
   const char *file_dir_path = NULL;
@@ -197,12 +183,7 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
     resolved_file_dir = ResolvePanelAnchorTarget(panel, vol, file_dir_path);
     panel->file_dir_entry = resolved_file_dir;
     if (resolved_file_dir) {
-      int resolved_index;
-
       resolved_file_dir->big_window = state->saved_big_file_view;
-      resolved_index = FindDirIndexInVolume(vol, resolved_file_dir);
-      if (state->saved_focus == FOCUS_FILE && resolved_index >= 0)
-        vol->saved_tree_index = resolved_index;
       PositionSavedFileSelection(ctx, panel, resolved_file_dir,
                                  state->saved_file_selection_name);
     }
@@ -212,10 +193,33 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
 }
 
 static void SavePanelTreeSelection(YtreeNovaPanel *panel) {
+  PanelVolumeFileState *state;
+  PanelViewportSnapshot snapshot;
   int selected_index;
 
   if (!panel || !panel->vol)
     return;
+
+  state = GetPanelVolumeFileState(panel, panel->vol->id);
+  CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);
+  state->saved_tree_panel_generation = panel->panel_generation;
+  state->saved_tree_volume_generation = panel->vol->volume_generation;
+  state->has_saved_tree_selection = snapshot.has_selected_dir_path;
+  state->has_saved_tree_top = snapshot.has_top_dir_path;
+  state->saved_tree_selected_dir_path[0] = '\0';
+  state->saved_tree_top_dir_path[0] = '\0';
+  if (snapshot.has_selected_dir_path) {
+    (void)snprintf(state->saved_tree_selected_dir_path,
+                   sizeof(state->saved_tree_selected_dir_path), "%s",
+                   snapshot.selected_dir_path);
+    state->saved_tree_selected_dir_path[PATH_LENGTH] = '\0';
+  }
+  if (snapshot.has_top_dir_path) {
+    (void)snprintf(state->saved_tree_top_dir_path,
+                   sizeof(state->saved_tree_top_dir_path), "%s",
+                   snapshot.top_dir_path);
+    state->saved_tree_top_dir_path[PATH_LENGTH] = '\0';
+  }
 
   /* Keep the per-volume breadcrumb aligned with the panel-local tree cursor. */
   selected_index = panel->disp_begin_pos + panel->cursor_pos;
@@ -227,6 +231,8 @@ static void SavePanelTreeSelection(YtreeNovaPanel *panel) {
 }
 
 static void RestorePanelTreeSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
+  const PanelVolumeFileState *state;
+  PanelViewportSnapshot snapshot;
   int selected_index;
   int total_dirs;
   int win_height;
@@ -242,18 +248,27 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
     return;
   }
 
+  state = FindPanelVolumeFileState(panel, panel->vol->id);
   generation_valid =
-      panel->vol->saved_tree_generation == panel->panel_generation &&
-      panel->vol->saved_tree_volume_generation == panel->vol->volume_generation;
-  if (generation_valid) {
-    selected_index = panel->vol->saved_tree_index;
-    if (selected_index < 0)
-      selected_index = 0;
-    if (selected_index >= total_dirs)
-      selected_index = total_dirs - 1;
-  } else {
-    selected_index = 0;
+      state != NULL &&
+      state->saved_tree_panel_generation == panel->panel_generation &&
+      state->saved_tree_volume_generation == panel->vol->volume_generation;
+  if (generation_valid && state->has_saved_tree_selection &&
+      state->saved_tree_selected_dir_path[0]) {
+    snapshot.has_selected_dir_path = state->has_saved_tree_selection;
+    snapshot.has_top_dir_path = state->has_saved_tree_top;
+    (void)snprintf(snapshot.selected_dir_path,
+                   sizeof(snapshot.selected_dir_path), "%s",
+                   state->saved_tree_selected_dir_path);
+    (void)snprintf(snapshot.top_dir_path, sizeof(snapshot.top_dir_path), "%s",
+                   state->saved_tree_top_dir_path);
+    snapshot.selected_dir_path[PATH_LENGTH] = '\0';
+    snapshot.top_dir_path[PATH_LENGTH] = '\0';
+    if (RestorePanelViewportSnapshot(panel->vol, panel, &snapshot,
+                                     state->saved_tree_top_dir_path))
+      return;
   }
+  selected_index = 0;
 
   win_height = ctx->layout.dir_win_height;
   if (win_height <= 0 && ctx->ctx_dir_window)
@@ -263,7 +278,6 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
 
   if (panel->disp_begin_pos < 0)
     panel->disp_begin_pos = 0;
-  /* Rehydrate the panel-local tree viewport from the per-volume breadcrumb. */
   if (selected_index >= panel->disp_begin_pos &&
       selected_index < panel->disp_begin_pos + win_height) {
     panel->cursor_pos = selected_index - panel->disp_begin_pos;
@@ -392,11 +406,17 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
           strcmp(found_vol->vol_stats.log_path, resolved_path) == 0) {
         reload_requested = TRUE;
       } else {
+        const PanelVolumeFileState *state;
+
         ResetPanelFileContext(panel);
         panel->vol = found_vol;
         s = &panel->vol->vol_stats;
         panel->saved_focus = panel->vol->saved_focus;
-        panel->panel_generation = panel->vol->saved_tree_generation;
+        state = FindPanelVolumeFileState(panel, panel->vol->id);
+        if (state)
+          panel->panel_generation = state->saved_tree_panel_generation;
+        else
+          panel->panel_generation = panel->vol->saved_tree_generation;
         ctx->global_search_term[0] = '\0';
         ctx->view_mode = panel->vol->vol_stats.log_mode;
 

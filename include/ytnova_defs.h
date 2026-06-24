@@ -735,8 +735,14 @@ typedef struct _panel_volume_file_state {
   int saved_file_cursor;       /* Per-panel file cursor snapshot for this volume. */
   unsigned int saved_panel_generation;
   unsigned int saved_volume_generation;
+  unsigned int saved_tree_panel_generation;
+  unsigned int saved_tree_volume_generation;
   ViewFocus saved_focus;       /* Restored panel focus shape for this volume. */
   BOOL saved_big_file_view;    /* Restored panel file-window shape for this volume. */
+  BOOL has_saved_tree_selection;
+  BOOL has_saved_tree_top;
+  char saved_tree_selected_dir_path[PATH_LENGTH + 1];
+  char saved_tree_top_dir_path[PATH_LENGTH + 1];
   char saved_file_dir_path[PATH_LENGTH + 1];
   char saved_file_selection_name[PATH_LENGTH + 1];
   char saved_file_selection_dir_path[PATH_LENGTH + 1];
