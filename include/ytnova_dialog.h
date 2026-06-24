@@ -9,7 +9,6 @@
 #define YTNOVA_DIALOG_H
 
 #include "ytnova_defs.h"
-#include <ncurses.h>
 
 /* Dialog stack limits */
 #define MAX_DIALOG_STACK 16

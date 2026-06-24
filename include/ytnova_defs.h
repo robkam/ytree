@@ -12,6 +12,9 @@ typedef struct _ViewContext ViewContext;
 /* Large File Support must be defined before system headers */
 #define _LARGEFILE64_SOURCE 1
 #define _FILE_OFFSET_BITS 64
+#if defined(__sun) && !defined(_XOPEN_SOURCE_EXTENDED)
+#define _XOPEN_SOURCE_EXTENDED 1
+#endif
 
 #include <ctype.h>
 #include <locale.h>
@@ -27,6 +30,10 @@ typedef struct _ViewContext ViewContext;
 #if !defined(HAVE_CURSES)
 #include <curses.h>
 #include <term.h>
+#endif
+
+#if defined(__sun) && !defined(HAVE_WRESIZE)
+extern int wresize(WINDOW *win, int nlines, int ncols);
 #endif
 
 #include <dirent.h>
@@ -55,6 +62,10 @@ typedef struct _ViewContext ViewContext;
 
 #ifdef WITH_UTF8
 #include <wchar.h>
+#endif
+
+#ifndef KEY_RESIZE
+#define KEY_RESIZE 0xFFFF
 #endif
 
 #include "uthash.h"

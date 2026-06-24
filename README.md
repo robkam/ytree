@@ -1,6 +1,6 @@
 # **YtreeNova: A File Manager for Unix-like Systems**
 
-**YtreeNova** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
+**YtreeNova** is a keyboard-first file manager for Unix-like systems, including Linux, BSD, illumos, and GNU Hurd, with fast multi-volume logging and navigation.
 
 > [!IMPORTANT]
 > **STATUS: ALPHA (v1.0.0-alpha)**
@@ -54,6 +54,10 @@ v1.0.0-alpha is being published early so people can use the program, inspect the
 ## Installation
 
 ### Prerequisites
+
+These are the minimum source-build prerequisites. For the full developer
+setup (Python venv, tests, and helper scripts), see
+[CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
 *   **C Compiler** (GCC or Clang; Clang is required for fuzz targets)
 *   **ncurses** (libncurses-dev / ncurses-devel)

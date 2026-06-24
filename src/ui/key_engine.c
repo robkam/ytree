@@ -25,10 +25,6 @@
 
 /* External declarations for Signal Safety enforcement */
 
-/* Wrapper function to satisfy tputs(..., int (*putc_func)(int)) signature */
-/* It writes the character 'c' to standard output. */
-static int term_putc(int c) { return fputc(c, stdout); }
-
 char *StrLeft(const char *str, size_t visible_count) {
   char *result;
   size_t len;
@@ -308,9 +304,6 @@ void HitReturnToContinue(void) {
 #if !defined(XCURSES)
   char *te;
 
-  char *tgetstr(const char *, char **);
-  int tputs(const char *, int, int (*)(int));
-
   curs_set(1);
 
   vidattr(A_REVERSE);
@@ -322,7 +315,7 @@ void HitReturnToContinue(void) {
 
   te = tgetstr("me", NULL);
   if (te != NULL) {
-    tputs(te, 1, term_putc);
+    putp(te);
   } else {
     putp("\033[0m");
   }

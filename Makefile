@@ -27,6 +27,7 @@ CC          ?= cc
 FUZZ_CC     ?= clang
 PANDOC      ?= pandoc
 MAKE_CMD    ?= $(MAKE)
+UNAME_S     := $(shell uname -s)
 
 # -------------------------------------------------------------------------
 # Install Destinations
@@ -76,6 +77,16 @@ PROJECT_LDFLAGS  =
 PROJECT_LDLIBS   = -lncursesw -ltinfo -lreadline -larchive -lm
 PROJECT_OPTFLAGS ?= -O2
 
+ifeq ($(UNAME_S),SunOS)
+    # OmniOS / illumos GCC defaults to a newer C dialect that clashes with
+    # the system curses headers; keep this on GNU17 and build 64-bit for
+    # compatibility with the packaged OmniOS libraries.
+    PROJECT_CFLAGS += -std=gnu17 -m64
+    PROJECT_CPPFLAGS += -I/opt/ooce/libarchive/include
+    PROJECT_LDFLAGS  += -L/opt/ooce/lib/amd64 -L/usr/lib/amd64 -R/opt/ooce/lib/amd64
+    PROJECT_LDLIBS    = -lncurses -ltermlib -lreadline -larchive -lm
+endif
+
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
 ifeq ($(COVERAGE),1)
@@ -92,13 +103,16 @@ endif
 
 # -------------------------------------------------------------------------
 # Build Mode Selection
-# Run 'make DEBUG=1' for development (AddressSanitizer enabled)
+# Run 'make DEBUG=1' for development (AddressSanitizer enabled on non-SunOS)
 # Run 'make' for release (Optimized, no runtime dependency on ASan)
 # -------------------------------------------------------------------------
 ifeq ($(DEBUG),1)
-    # Debug Build: Enable ASan, Debug Symbols, disable optimization
-    PROJECT_CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
-    PROJECT_LDFLAGS += -fsanitize=address
+    # Debug Build: Enable ASan where supported; SunOS/OmniOS uses plain debug flags.
+    PROJECT_CFLAGS  += -g -O0 -fno-omit-frame-pointer
+    ifneq ($(UNAME_S),SunOS)
+        PROJECT_CFLAGS  += -fsanitize=address
+        PROJECT_LDFLAGS += -fsanitize=address
+    endif
 else
     # Release Build: Standard Optimization when no external CFLAGS were supplied.
     # Keep sanitizer builds at -O1 for better diagnostics and deterministic PTY timing.

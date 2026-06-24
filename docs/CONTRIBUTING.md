@@ -50,6 +50,11 @@ For pull-request governance and conflict triage policy, see **[PR_GATE.md](PR_GA
 
 This project uses a combination of C for the application and Python for the test suite and AI assistance tools.
 
+- Linux (including WSL) users can start with `scripts/setup_dev.sh`.
+- OmniOS users can use `scripts/setup_omnios.sh`.
+- BSD users can use `scripts/setup_bsd.sh` when it is added.
+- GNU Hurd users can use `scripts/setup_hurd.sh` when it is added.
+
 ### 1. Prerequisites
 
 - A C compiler (`gcc` or `clang`) and `make`.
@@ -182,7 +187,7 @@ make
 ```
 
 ### Debug Build (AddressSanitizer)
-When developing new features or debugging crashes (especially segmentation faults), you should compile with debug mode enabled. This links against **AddressSanitizer (ASan)** and disables optimizations (`-O1`), providing detailed stack traces on memory errors.
+When developing new features or debugging crashes (especially segmentation faults), you should compile with debug mode enabled. On Linux, this links against **AddressSanitizer (ASan)** and disables optimizations, providing detailed stack traces on memory errors. On OmniOS, `gmake DEBUG=1` builds symbols only; ASan is unavailable.
 
 ```bash
 make clean
