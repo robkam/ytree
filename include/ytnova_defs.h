@@ -653,9 +653,6 @@ typedef struct {
 
 struct Volume {
   int id;
-  int saved_tree_index; /* Per-volume restore breadcrumb, not topology authority. */
-  unsigned int saved_tree_generation;
-  unsigned int saved_tree_volume_generation;
   unsigned int volume_generation;
   int saved_focus;       /* Derived restore mirror of the last focused panel mode. */
   Statistic vol_stats;

@@ -5872,17 +5872,42 @@ def test_appstate_shim_lookup_fails_closed_through_runtime_metadata() -> None:
     assert "strcmp(metadata->id, shim_id)" in body
 
 
+def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
+    volume_defs = Path("include/ytnova_defs.h").read_text(encoding="utf-8")
+    volume_start = volume_defs.index("struct Volume {")
+    volume_end = volume_defs.index("\n};", volume_start)
+    volume_body = volume_defs[volume_start:volume_end]
+
+    assert "saved_tree_index" not in volume_body
+    assert "saved_tree_generation" not in volume_body
+    assert "saved_tree_volume_generation" not in volume_body
+
+    runtime_sources = [
+        Path("src/core/volume.c"),
+        Path("src/ui/dir_ops.c"),
+        Path("src/ui/panel_anchor.c"),
+        Path("src/core/appstate_actions.c"),
+    ]
+    for source_path in runtime_sources:
+        source = source_path.read_text(encoding="utf-8")
+        assert "shim.volume-saved-tree-index" not in source
+        assert "saved_tree_index" not in source
+        assert "vol->saved_tree_generation" not in source
+        assert "vol->saved_tree_volume_generation" not in source
+
+    shims = Path("docs/appstate_compat_shims.json").read_text(encoding="utf-8")
+    assert "shim.volume-saved-tree-index" not in shims
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
-    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     display = Path("src/ui/display.c").read_text(encoding="utf-8")
 
     assert 'include "ytnova_appstate_actions.h"' in dir_ops
     assert 'include "ytnova_appstate_actions.h"' in ctrl_dir
     assert 'include "ytnova_appstate_actions.h"' in ctrl_file
-    assert 'include "ytnova_appstate_actions.h"' in panel_anchor
     assert 'include "ytnova_appstate_actions.h"' in display
 
     toggle_start = dir_ops.index("void ToggleDotFiles(")
@@ -5895,35 +5920,6 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert toggle_body.index(hidden_validation) < toggle_body.index("p->hide_dot_files =")
     assert toggle_body.index(hidden_validation) < toggle_body.index("ctx->hide_dot_files =")
 
-    volume_start = dir_ops.index("HandleDirWindowVolumeAction(")
-    volume_end = dir_ops.index("\nint RefreshDirWindow(", volume_start)
-    volume_body = dir_ops[volume_start:volume_end]
-    volume_validation = (
-        'if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))'
-    )
-    assert volume_validation in volume_body
-    assert volume_body.index(volume_validation) < volume_body.index(
-        "SavePanelTreeViewportSnapshot(ctx->active);"
-    )
-
-    save_start = panel_anchor.index("void SavePanelTreeViewportSnapshot(")
-    save_end = panel_anchor.index("\nint FindDirIndexByPath(", save_start)
-    save_body = panel_anchor[save_start:save_end]
-    assert volume_validation in save_body
-    assert save_body.index(volume_validation) < save_body.index(
-        "panel->vol->saved_tree_index ="
-    )
-
-    restore_start = panel_anchor.index("BOOL RestorePanelViewportSnapshot(")
-    restore_end = panel_anchor.index("\nvoid RestorePanelAnchorPath(", restore_start)
-    restore_body = panel_anchor[restore_start:restore_end]
-    assert volume_validation in restore_body
-    assert restore_body.index(volume_validation) < restore_body.index(
-        "ResolvePanelAnchorTarget("
-    )
-    assert restore_body.index(volume_validation) < restore_body.index(
-        "panel->disp_begin_pos ="
-    )
 
     focus_validation = (
         'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'

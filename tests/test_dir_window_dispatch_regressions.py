@@ -257,7 +257,6 @@ def test_restore_snapshots_validate_generation_before_reuse():
     for needle in (
         "unsigned int saved_panel_generation;",
         "unsigned int saved_volume_generation;",
-        "unsigned int saved_tree_generation;",
         "unsigned int saved_tree_volume_generation;",
         "unsigned int volume_generation;",
         "unsigned int panel_generation;",
@@ -270,13 +269,6 @@ def test_restore_snapshots_validate_generation_before_reuse():
     assert "state->saved_volume_generation = panel->vol->volume_generation;" in log_source
     assert "state->saved_panel_generation != panel->panel_generation" in log_source
     assert "state->saved_volume_generation != vol->volume_generation" in log_source
-    assert "panel->vol->saved_tree_generation = panel->panel_generation;" in (
-        panel_anchor_source
-    )
-    assert (
-        "panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;"
-        in panel_anchor_source
-    )
     assert "generation_valid =" in panel_anchor_source
     assert (
         "saved_tree_volume_generation == panel->vol->volume_generation"

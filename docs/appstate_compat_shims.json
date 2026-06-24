@@ -36,43 +36,6 @@
       ]
     },
     {
-      "id": "shim.volume-saved-tree-index",
-      "owner": "Volume restore breadcrumb",
-      "old_authority_path": "Volume.saved_tree_index",
-      "read_permission": "Allowed only as a fallback breadcrumb when a stable path key has already failed to resolve.",
-      "write_permission": "Do not write as primary restore authority; future writes must update stable identity keys and generation metadata first.",
-      "write_capability": "write_capable",
-      "invariant_checks": [
-        "invariant.viewport-identity-rebind",
-        "invariant.stale-snapshot-fail-closed"
-      ],
-      "removal_trigger": "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
-      "target_transition": "transition.rebuild-rebind-callback.panel-anchor",
-      "follow_up_task": "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
-      "qa_enforcement": "check_appstate_contract.py keeps this debt visible until runtime migration removes the shim.",
-      "owner_field_refs": [
-        "panel.tree_selection_key",
-        "panel.tree_cursor_pos",
-        "panel.tree_viewport_origin",
-        "panel.panel_generation"
-      ],
-      "generation_domain_refs": [
-        "generation.panel.local-authority",
-        "generation.volume.shared-authority",
-        "identity.directory.stable-key",
-        "state.topology.volume",
-        "lifecycle.volume.registry"
-      ],
-      "diff_harness_refs": [
-        "harness.transition-before-after-snapshot",
-        "harness.generation-mismatch-check"
-      ],
-      "source_boundary_refs": [
-        "src/ui/panel_anchor.c",
-        "src/ui/dir_ops.c"
-      ]
-    },
-    {
       "id": "shim.focused-window-session-flag",
       "owner": "ViewContext session routing",
       "old_authority_path": "ViewContext.focused_window",
