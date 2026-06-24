@@ -19,6 +19,7 @@ PanelVolumeFileState *FindPanelVolumeFileState(YtreeNovaPanel *panel,
 PanelVolumeFileState *GetPanelVolumeFileState(YtreeNovaPanel *panel,
                                               int volume_id);
 void SavePanelTreeViewportSnapshot(YtreeNovaPanel *panel);
+void ResetPanelTreeViewportSnapshot(YtreeNovaPanel *panel);
 int FindDirIndexByPath(const struct Volume *vol, const char *path);
 int FindDirIndexByPathOrAncestor(const struct Volume *vol, const char *path);
 DirEntry *ResolvePanelAnchorTarget(const YtreeNovaPanel *panel,

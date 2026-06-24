@@ -194,6 +194,21 @@ void SavePanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
   panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;
 }
 
+void ResetPanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
+  PanelVolumeFileState *state;
+
+  if (!panel || !panel->vol)
+    return;
+
+  state = GetPanelVolumeFileState(panel, panel->vol->id);
+  state->saved_tree_panel_generation = panel->panel_generation;
+  state->saved_tree_volume_generation = panel->vol->volume_generation;
+  state->has_saved_tree_selection = FALSE;
+  state->has_saved_tree_top = FALSE;
+  state->saved_tree_selected_dir_path[0] = '\0';
+  state->saved_tree_top_dir_path[0] = '\0';
+}
+
 int FindDirIndexByPath(const struct Volume *vol, const char *path) {
   int i;
   char candidate_path[PATH_LENGTH + 1];
