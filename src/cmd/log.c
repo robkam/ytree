@@ -293,8 +293,6 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
         state = FindPanelVolumeFileState(panel, panel->vol->id);
         if (state)
           panel->panel_generation = state->saved_tree_panel_generation;
-        else
-          panel->panel_generation = panel->vol->saved_tree_generation;
         ctx->global_search_term[0] = '\0';
         ctx->view_mode = panel->vol->vol_stats.log_mode;
 
@@ -465,7 +463,7 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   if (reload_requested) {
     panel->disp_begin_pos = 0;
     panel->cursor_pos = 0;
-    panel->vol->saved_tree_index = 0;
+    ResetPanelTreeViewportSnapshot(panel);
   } else {
     RestorePanelTreeSelection(ctx, panel);
   }

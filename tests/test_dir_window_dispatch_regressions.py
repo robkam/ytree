@@ -141,8 +141,33 @@ def _log_source():
     return Path("src/cmd/log.c").read_text(encoding="utf-8")
 
 
+def _log_disk_source():
+    source = _log_source()
+    func_start = source.find("int LogDisk(")
+    assert func_start >= 0, "Missing LogDisk in src/cmd/log.c"
+
+    next_func = source.find("\nint GetNewLogPath(", func_start + 1)
+    assert next_func > func_start, "Could not isolate LogDisk in src/cmd/log.c"
+    return source[func_start:next_func]
+
+
 def _panel_anchor_file_source():
     return Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+
+def _reset_panel_tree_viewport_snapshot_source():
+    source = _panel_anchor_file_source()
+    func_start = source.find("void ResetPanelTreeViewportSnapshot(")
+    assert func_start >= 0, (
+        "Missing ResetPanelTreeViewportSnapshot in src/ui/panel_anchor.c"
+    )
+
+    next_func = source.find("\nint FindDirIndexByPath(", func_start + 1)
+    assert next_func > func_start, (
+        "Could not isolate ResetPanelTreeViewportSnapshot in "
+        "src/ui/panel_anchor.c"
+    )
+    return source[func_start:next_func]
 
 
 def _dir_ops_source():
@@ -321,6 +346,25 @@ def test_volume_tree_restore_uses_panel_path_snapshot_before_index_breadcrumb():
     )
     assert "selected_index = panel->vol->saved_tree_index;" not in restore_source
     assert "vol->saved_tree_index = resolved_index;" not in file_restore_source
+
+
+def test_log_disk_restore_does_not_use_volume_tree_breadcrumbs():
+    log_disk_source = _log_disk_source()
+    reset_snapshot_source = _reset_panel_tree_viewport_snapshot_source()
+
+    assert "panel->panel_generation = state->saved_tree_panel_generation;" in (
+        log_disk_source
+    )
+    assert "panel->vol->saved_tree_generation" not in log_disk_source
+    assert "panel->vol->saved_tree_index" not in log_disk_source
+    assert "if (reload_requested)" in log_disk_source
+    assert "panel->disp_begin_pos = 0;" in log_disk_source
+    assert "panel->cursor_pos = 0;" in log_disk_source
+    assert "ResetPanelTreeViewportSnapshot(panel);" in log_disk_source
+    assert "state->has_saved_tree_selection = FALSE;" in reset_snapshot_source
+    assert "state->has_saved_tree_top = FALSE;" in reset_snapshot_source
+    assert "saved_tree_index" not in reset_snapshot_source
+    assert "saved_tree_generation" not in reset_snapshot_source
 
 
 def test_volume_action_restore_uses_panel_tree_snapshot_not_index_breadcrumb():
