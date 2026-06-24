@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
 
 int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
@@ -26,6 +27,7 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   char new_log_path[PATH_LENGTH + 1];
 
   original_vol = ctx->active->vol;
+  SavePanelTreeViewportSnapshot(ctx->active);
   DEBUG_LOG("ENTER HandleDirWindow: Panel=%s Vol=%s Cursor=%d",
             (panel == ctx->left ? "LEFT" : "RIGHT"),
             (panel->vol ? panel->vol->vol_stats.log_path : "NULL"),
@@ -365,11 +367,8 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
 
     /* 2. Restore ctx->active state from the restored volume */
-    if (ctx->active) {
-      /* Panel isolation: No vol_stats sync */
-      ctx->active->disp_begin_pos =
-          ctx->active->vol->saved_tree_index /* legacy removed */;
-    }
+    if (ctx->active)
+      (void)RestorePanelTreeViewportSnapshot(ctx, ctx->active);
 
     /* 3. Restore UI Layout */
     DisplayMenu(ctx); /* Restores Frame and Header */

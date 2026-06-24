@@ -5903,7 +5903,15 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     )
     assert volume_validation in volume_body
     assert volume_body.index(volume_validation) < volume_body.index(
-        "ctx->active->vol->saved_tree_index ="
+        "SavePanelTreeViewportSnapshot(ctx->active);"
+    )
+
+    save_start = panel_anchor.index("void SavePanelTreeViewportSnapshot(")
+    save_end = panel_anchor.index("\nint FindDirIndexByPath(", save_start)
+    save_body = panel_anchor[save_start:save_end]
+    assert volume_validation in save_body
+    assert save_body.index(volume_validation) < save_body.index(
+        "panel->vol->saved_tree_index ="
     )
 
     restore_start = panel_anchor.index("BOOL RestorePanelViewportSnapshot(")
