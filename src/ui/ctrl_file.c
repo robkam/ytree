@@ -260,9 +260,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   Statistic *s = &ctx->active->vol->vol_stats;
   char watcher_path[PATH_LENGTH + 1];
 
-  /* ADDED INSTRUCTION: Focus Unification */
-  ctx->focused_window = FOCUS_FILE;
   ctx->active->saved_focus = FOCUS_FILE;
+  ctx->focused_window = FOCUS_FILE;
   ctx->active->saved_big_file_view =
       (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
   if (tracked_file_dir == dir_entry) {
@@ -681,7 +680,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     }
 
     if (switched_panel && ctx->active != owner_panel) {
-      if (ctx->focused_window != FOCUS_FILE) {
+      if (ctx->active->saved_focus != FOCUS_FILE) {
         switched_to_tree_panel = TRUE;
         action = ACTION_ESCAPE;
         goto file_window_done;

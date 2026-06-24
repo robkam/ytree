@@ -378,14 +378,14 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
     if (file_cursor >= visible_rows)
       file_cursor = visible_rows - 1;
     (*dir_entry_ptr)->cursor_pos = file_cursor;
-    ctx->focused_window = FOCUS_FILE;
     ctx->active->saved_focus = FOCUS_FILE;
+    ctx->focused_window = FOCUS_FILE;
     ctx->active->saved_big_file_view = FALSE;
     CapturePanelSelectionAnchor(ctx, ctx->active, *dir_entry_ptr);
   } else {
     (*dir_entry_ptr)->cursor_pos = -1;
-    ctx->focused_window = FOCUS_TREE;
     ctx->active->saved_focus = FOCUS_TREE;
+    ctx->focused_window = FOCUS_TREE;
     ctx->active->saved_big_file_view = FALSE;
   }
 

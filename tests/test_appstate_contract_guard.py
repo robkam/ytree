@@ -5929,10 +5929,29 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert focus_validation in dir_body
     assert dir_body.index(focus_validation) < dir_body.index("ctx->focused_window =")
 
+    archive_start = ctrl_dir.index("static BOOL ExitArchiveRootToParent(")
+    archive_end = ctrl_dir.index("\nstatic void HandleDirectoryCompare(", archive_start)
+    archive_body = ctrl_dir[archive_start:archive_end]
+    assert archive_body.index(
+        "ctx->active->saved_focus = FOCUS_FILE;"
+    ) < archive_body.index(
+        "ctx->focused_window = FOCUS_FILE;"
+    )
+    assert archive_body.index(
+        "ctx->active->saved_focus = FOCUS_TREE;"
+    ) < archive_body.index(
+        "ctx->focused_window = FOCUS_TREE;"
+    )
+
     file_start = ctrl_file.index("int HandleFileWindow(")
     file_body = ctrl_file[file_start:]
     assert focus_validation in file_body
     assert file_body.index(focus_validation) < file_body.index("ctx->focused_window =")
+    assert file_body.index("ctx->active->saved_focus = FOCUS_FILE;") < file_body.index(
+        "ctx->focused_window = FOCUS_FILE;"
+    )
+    assert "if (ctx->active->saved_focus != FOCUS_FILE) {" in file_body
+    assert "if (ctx->focused_window != FOCUS_FILE) {" not in file_body
 
     refresh_start = display.index("void RefreshView(")
     refresh_body = display[refresh_start:]
