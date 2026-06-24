@@ -126,6 +126,74 @@ void CapturePanelViewportSnapshot(YtreeNovaPanel *panel, const struct Volume *vo
   }
 }
 
+PanelVolumeFileState *FindPanelVolumeFileState(YtreeNovaPanel *panel,
+                                               int volume_id) {
+  PanelVolumeFileState *state;
+
+  if (!panel)
+    return NULL;
+
+  for (state = panel->volume_file_state; state; state = state->next) {
+    if (state->volume_id == volume_id)
+      return state;
+  }
+  return NULL;
+}
+
+PanelVolumeFileState *GetPanelVolumeFileState(YtreeNovaPanel *panel,
+                                              int volume_id) {
+  PanelVolumeFileState *state;
+
+  state = FindPanelVolumeFileState(panel, volume_id);
+  if (state)
+    return state;
+
+  state = (PanelVolumeFileState *)xcalloc(1, sizeof(PanelVolumeFileState));
+  state->volume_id = volume_id;
+  state->next = panel->volume_file_state;
+  panel->volume_file_state = state;
+  return state;
+}
+
+void SavePanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
+  PanelVolumeFileState *state;
+  PanelViewportSnapshot snapshot;
+  int selected_index;
+
+  if (!panel || !panel->vol)
+    return;
+  if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
+    return;
+
+  state = GetPanelVolumeFileState(panel, panel->vol->id);
+  CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);
+  state->saved_tree_panel_generation = panel->panel_generation;
+  state->saved_tree_volume_generation = panel->vol->volume_generation;
+  state->has_saved_tree_selection = snapshot.has_selected_dir_path;
+  state->has_saved_tree_top = snapshot.has_top_dir_path;
+  state->saved_tree_selected_dir_path[0] = '\0';
+  state->saved_tree_top_dir_path[0] = '\0';
+  if (snapshot.has_selected_dir_path) {
+    (void)snprintf(state->saved_tree_selected_dir_path,
+                   sizeof(state->saved_tree_selected_dir_path), "%s",
+                   snapshot.selected_dir_path);
+    state->saved_tree_selected_dir_path[PATH_LENGTH] = '\0';
+  }
+  if (snapshot.has_top_dir_path) {
+    (void)snprintf(state->saved_tree_top_dir_path,
+                   sizeof(state->saved_tree_top_dir_path), "%s",
+                   snapshot.top_dir_path);
+    state->saved_tree_top_dir_path[PATH_LENGTH] = '\0';
+  }
+
+  selected_index = panel->disp_begin_pos + panel->cursor_pos;
+  if (selected_index < 0)
+    selected_index = 0;
+  panel->vol->saved_tree_index = selected_index;
+  panel->vol->saved_tree_generation = panel->panel_generation;
+  panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;
+}
+
 int FindDirIndexByPath(const struct Volume *vol, const char *path) {
   int i;
   char candidate_path[PATH_LENGTH + 1];
@@ -408,6 +476,70 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
   RememberPanelViewportTop(panel);
   panel->panel_generation++;
   return TRUE;
+}
+
+BOOL RestorePanelTreeViewportSnapshot(ViewContext *ctx, YtreeNovaPanel *panel) {
+  const PanelVolumeFileState *state;
+  PanelViewportSnapshot snapshot;
+  int selected_index;
+  int total_dirs;
+  int win_height;
+  BOOL generation_valid;
+
+  if (!ctx || !panel || !panel->vol)
+    return FALSE;
+
+  total_dirs = panel->vol->total_dirs;
+  if (total_dirs <= 0) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    return FALSE;
+  }
+
+  state = FindPanelVolumeFileState(panel, panel->vol->id);
+  generation_valid =
+      state != NULL &&
+      state->saved_tree_panel_generation == panel->panel_generation &&
+      state->saved_tree_volume_generation == panel->vol->volume_generation;
+  if (generation_valid && state->has_saved_tree_selection &&
+      state->saved_tree_selected_dir_path[0]) {
+    snapshot.has_selected_dir_path = state->has_saved_tree_selection;
+    snapshot.has_top_dir_path = state->has_saved_tree_top;
+    (void)snprintf(snapshot.selected_dir_path,
+                   sizeof(snapshot.selected_dir_path), "%s",
+                   state->saved_tree_selected_dir_path);
+    (void)snprintf(snapshot.top_dir_path, sizeof(snapshot.top_dir_path), "%s",
+                   state->saved_tree_top_dir_path);
+    snapshot.selected_dir_path[PATH_LENGTH] = '\0';
+    snapshot.top_dir_path[PATH_LENGTH] = '\0';
+    if (RestorePanelViewportSnapshot(panel->vol, panel, &snapshot,
+                                     state->saved_tree_top_dir_path))
+      return TRUE;
+  }
+  selected_index = 0;
+
+  win_height = ctx->layout.dir_win_height;
+  if (win_height <= 0 && ctx->ctx_dir_window)
+    win_height = getmaxy(ctx->ctx_dir_window);
+  if (win_height <= 0)
+    win_height = 1;
+
+  if (panel->disp_begin_pos < 0)
+    panel->disp_begin_pos = 0;
+  if (selected_index >= panel->disp_begin_pos &&
+      selected_index < panel->disp_begin_pos + win_height) {
+    panel->cursor_pos = selected_index - panel->disp_begin_pos;
+    return FALSE;
+  }
+
+  if (selected_index >= win_height) {
+    panel->disp_begin_pos = selected_index - (win_height - 1);
+    panel->cursor_pos = win_height - 1;
+  } else {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = selected_index;
+  }
+  return FALSE;
 }
 
 void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,

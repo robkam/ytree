@@ -150,12 +150,15 @@ def _dir_ops_source():
 
 
 def test_tree_viewport_stable_restore_preserves_visible_selection():
-    restore_source = _restore_panel_tree_selection_source()
+    panel_anchor_source = _panel_anchor_file_source()
+    restore_start = panel_anchor_source.index("BOOL RestorePanelTreeViewportSnapshot(")
+    restore_end = panel_anchor_source.index("\nvoid RestorePanelAnchorPath(", restore_start)
+    restore_source = panel_anchor_source[restore_start:restore_end]
     visible_guard = (
         r"selected_index\s*>=\s*panel->disp_begin_pos"
         r"[\s\S]*selected_index\s*<\s*panel->disp_begin_pos\s*\+\s*win_height"
         r"[\s\S]*panel->cursor_pos\s*=\s*selected_index\s*-\s*panel->disp_begin_pos"
-        r"[\s\S]*return\s*;"
+        r"[\s\S]*return\s+(?:TRUE|FALSE);"
     )
 
     assert re.search(visible_guard, restore_source), (
@@ -242,14 +245,22 @@ def test_restore_snapshots_validate_generation_before_reuse():
     assert "state->saved_volume_generation = panel->vol->volume_generation;" in log_source
     assert "state->saved_panel_generation != panel->panel_generation" in log_source
     assert "state->saved_volume_generation != vol->volume_generation" in log_source
-    assert "panel->vol->saved_tree_generation = panel->panel_generation;" in log_source
+    assert "panel->vol->saved_tree_generation = panel->panel_generation;" in (
+        panel_anchor_source
+    )
     assert (
         "panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;"
-        in log_source
+        in panel_anchor_source
     )
-    assert "generation_valid =" in log_source
-    assert "saved_tree_volume_generation == panel->vol->volume_generation" in log_source
-    assert "saved_tree_panel_generation == panel->panel_generation" in log_source
+    assert "generation_valid =" in panel_anchor_source
+    assert (
+        "saved_tree_volume_generation == panel->vol->volume_generation"
+        in panel_anchor_source
+    )
+    assert (
+        "saved_tree_panel_generation == panel->panel_generation"
+        in panel_anchor_source
+    )
 
     assert "panel->panel_generation++;" in panel_anchor_source, panel_anchor_source
     assert "dst->panel_generation = src->panel_generation;" in panel_anchor_source
@@ -262,10 +273,13 @@ def test_restore_snapshots_validate_generation_before_reuse():
 def test_volume_tree_restore_uses_panel_path_snapshot_before_index_breadcrumb():
     defs_source = _defs_source()
     log_source = _log_source()
-    restore_source = _restore_panel_tree_selection_source()
-    save_start = log_source.index("static void SavePanelTreeSelection(")
-    save_end = log_source.index("\nstatic void RestorePanelTreeSelection(", save_start)
-    save_source = log_source[save_start:save_end]
+    panel_anchor_source = _panel_anchor_file_source()
+    save_start = panel_anchor_source.index("void SavePanelTreeViewportSnapshot(")
+    save_end = panel_anchor_source.index("\nint FindDirIndexByPath(", save_start)
+    save_source = panel_anchor_source[save_start:save_end]
+    restore_start = panel_anchor_source.index("BOOL RestorePanelTreeViewportSnapshot(")
+    restore_end = panel_anchor_source.index("\nvoid RestorePanelAnchorPath(", restore_start)
+    restore_source = panel_anchor_source[restore_start:restore_end]
     file_restore_source = _restore_panel_file_selection_source()
 
     for needle in (
@@ -307,6 +321,47 @@ def test_volume_tree_restore_uses_panel_path_snapshot_before_index_breadcrumb():
     )
     assert "selected_index = panel->vol->saved_tree_index;" not in restore_source
     assert "vol->saved_tree_index = resolved_index;" not in file_restore_source
+
+
+def test_volume_action_restore_uses_panel_tree_snapshot_not_index_breadcrumb():
+    dir_ops_source = _dir_ops_source()
+    volume_start = dir_ops_source.index("HandleDirWindowVolumeAction(")
+    volume_end = dir_ops_source.index("\nint RefreshDirWindow(", volume_start)
+    volume_source = dir_ops_source[volume_start:volume_end]
+
+    save_snapshot = volume_source.find("SavePanelTreeViewportSnapshot(ctx->active);")
+    select_loaded = volume_source.find("SelectLoadedVolume(ctx, NULL)")
+    cycle_loaded = volume_source.find("CycleLoadedVolume(ctx, ctx->active,")
+    restore_snapshot = volume_source.find(
+        "RestorePanelTreeViewportSnapshot(ctx, ctx->active)"
+    )
+
+    assert save_snapshot >= 0, volume_source
+    assert select_loaded > save_snapshot, volume_source
+    assert cycle_loaded > save_snapshot, volume_source
+    assert restore_snapshot > save_snapshot, volume_source
+    assert "ctx->active->vol->saved_tree_index =" not in volume_source
+    assert (
+        "ctx->active->disp_begin_pos = ctx->active->vol->saved_tree_index"
+        not in volume_source
+    )
+
+
+def test_f2_picker_return_uses_panel_tree_snapshot_not_index_breadcrumb():
+    f2_source = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
+    original_vol = f2_source.index("original_vol = ctx->active->vol;")
+    restore_block = f2_source.index("if (ctx->active->vol != original_vol)")
+
+    save_snapshot = f2_source.find("SavePanelTreeViewportSnapshot(ctx->active);")
+    restore_snapshot = f2_source.find(
+        "RestorePanelTreeViewportSnapshot(ctx, ctx->active)", restore_block
+    )
+
+    assert 'include "ytnova_panel_anchor.h"' in f2_source
+    assert save_snapshot > original_vol, f2_source
+    assert save_snapshot < restore_block, f2_source
+    assert restore_snapshot > restore_block, f2_source
+    assert "ctx->active->vol->saved_tree_index" not in f2_source
 
 
 def test_panel_anchor_restore_follows_exact_fallback_order():

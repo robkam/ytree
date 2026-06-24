@@ -1752,8 +1752,7 @@ HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
   if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
     return DIR_WINDOW_DISPATCH_HANDLED;
 
-  ctx->active->vol->saved_tree_index =
-      ctx->active->disp_begin_pos + ctx->active->cursor_pos;
+  SavePanelTreeViewportSnapshot(ctx->active);
 
   if (action == ACTION_VOL_MENU) {
     res = SelectLoadedVolume(ctx, NULL);
@@ -1778,7 +1777,7 @@ HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
     return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
   *s_ptr = &ctx->active->vol->vol_stats;
-  ctx->active->disp_begin_pos = ctx->active->vol->saved_tree_index;
+  (void)RestorePanelTreeViewportSnapshot(ctx, ctx->active);
 
   if (ctx->active->vol->total_dirs > 0) {
     if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
