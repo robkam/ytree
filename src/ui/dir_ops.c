@@ -1749,9 +1749,6 @@ HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
       !*dir_entry_ptr || !s_ptr || !*s_ptr || !need_dsp_help_ptr) {
     return DIR_WINDOW_DISPATCH_HANDLED;
   }
-  if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
-    return DIR_WINDOW_DISPATCH_HANDLED;
-
   SavePanelTreeViewportSnapshot(ctx->active);
 
   if (action == ACTION_VOL_MENU) {

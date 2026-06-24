@@ -158,13 +158,8 @@ PanelVolumeFileState *GetPanelVolumeFileState(YtreeNovaPanel *panel,
 void SavePanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
   PanelVolumeFileState *state;
   PanelViewportSnapshot snapshot;
-  int selected_index;
-
   if (!panel || !panel->vol)
     return;
-  if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
-    return;
-
   state = GetPanelVolumeFileState(panel, panel->vol->id);
   CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);
   state->saved_tree_panel_generation = panel->panel_generation;
@@ -186,12 +181,6 @@ void SavePanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
     state->saved_tree_top_dir_path[PATH_LENGTH] = '\0';
   }
 
-  selected_index = panel->disp_begin_pos + panel->cursor_pos;
-  if (selected_index < 0)
-    selected_index = 0;
-  panel->vol->saved_tree_index = selected_index;
-  panel->vol->saved_tree_generation = panel->panel_generation;
-  panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;
 }
 
 void ResetPanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
@@ -446,8 +435,6 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
     return FALSE;
   assert(!panel->vol || panel->vol == vol);
   if (panel->vol && panel->vol != vol)
-    return FALSE;
-  if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
     return FALSE;
   if (!snapshot->has_selected_dir_path || !snapshot->selected_dir_path[0])
     return FALSE;
