@@ -5331,6 +5331,12 @@ int AppStateValidatedTransition(const char *transition_id) {
   return fake_mode != 3;
 }
 
+int AppStateValidatedCompatibilityShim(const char *shim_id) {
+  (void)shim_id;
+  return fake_mode != 4;
+}
+
+#include "src/ui/appstate_focus.c"
 #include "src/ui/split_transition.c"
 
 void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
@@ -6002,6 +6008,19 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert render_validation in refresh_body
     assert refresh_body.index(render_validation) < refresh_body.index("Layout_Recalculate(")
     assert refresh_body.index(render_validation) < refresh_body.index("DisplayTree(")
+
+
+def test_split_file_focus_commits_use_appstate_helper() -> None:
+    source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+    start = source.index("BOOL SplitTransition_HandleFileWindowAction(")
+    end = source.index("\nBOOL SplitTransition_HandleDirWindowAction(", start)
+    body = source[start:end]
+
+    assert 'include "ytnova_appstate_focus.h"' in source
+    assert not re.search(r"\bctx->focused_window\s*=[^=]", body)
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in body
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus)" in body
+    assert "AppStateMirrorActivePanelFocus(ctx)" in body
 
 
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
