@@ -8,6 +8,7 @@
 
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -1128,7 +1129,9 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
      */
     flushinp();
     result = HandleFileWindow(ctx, dir_entry);
-    ctx->focused_window = (result == '\\') ? FOCUS_FILE : FOCUS_TREE;
+    if (!AppStateCommitPanelFocus(
+            ctx, ctx->active, (result == '\\') ? FOCUS_FILE : FOCUS_TREE))
+      return;
 
     if (result != LOG_ESC) {
       /* Restore normal mode and refresh the entire view */
@@ -1538,7 +1541,8 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeNovaAction action,
                        ctx->active);
 
     ctx->preview_mode = FALSE;
-    ctx->focused_window = FOCUS_TREE;
+    if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE))
+      return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
     if (ctx->active != saved_panel) {
       if (ctx->active->vol == NULL)
@@ -1686,7 +1690,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
       RefreshView(ctx, *dir_entry_ptr);
     }
 
-    ctx->focused_window = FOCUS_TREE;
+    if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE))
+      return DIR_WINDOW_DISPATCH_RETURN_ESC;
     *action_ptr = ACTION_NONE;
     return DIR_WINDOW_DISPATCH_HANDLED;
   }
@@ -1700,7 +1705,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
   saved_panel = ctx->active;
   HandleSwitchWindow(ctx, *dir_entry_ptr, need_dsp_help_ptr, ch_ptr, ctx->active);
   *ch_ptr = 0;
-  ctx->focused_window = ctx->active->saved_focus;
+  if (!AppStateMirrorActivePanelFocus(ctx))
+    return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
   if (ctx->active != saved_panel) {
     if (ctx->active->vol == NULL)
