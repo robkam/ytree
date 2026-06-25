@@ -5899,6 +5899,22 @@ def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
     assert "shim.volume-saved-tree-index" not in shims
 
 
+def test_visibility_projection_reads_panel_state_not_session_mirror() -> None:
+    stats = Path("src/ui/stats.c").read_text(encoding="utf-8")
+    pipe = Path("src/cmd/pipe.c").read_text(encoding="utf-8")
+
+    recalc_start = stats.index("void RecalculateSysStats(")
+    recalc_body = stats[recalc_start:]
+    assert "ctx->hide_dot_files" not in recalc_body
+    assert "ctx->active->hide_dot_files" in recalc_body
+
+    pipe_start = pipe.index("int PipeDirectory(")
+    pipe_end = pipe.index("\nint PipeTaggedFiles(", pipe_start)
+    pipe_body = pipe[pipe_start:pipe_end]
+    assert "ctx->hide_dot_files" not in pipe_body
+    assert "active_panel->hide_dot_files" in pipe_body
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")

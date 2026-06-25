@@ -37,7 +37,7 @@ static void PrintStatRow(ViewContext *ctx, int y, const char *label,
                          long long count, long long bytes);
 static void DrawAttributes(ViewContext *ctx, const char *name,
                            const struct stat *s, const FileEntry *fe);
-static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s);
+static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s);
 
 /* ************************************************************************* */
 /*                           LOGIC FUNCTIONS                                 */
@@ -71,7 +71,7 @@ static void RecalcLayout(ViewContext *ctx) {
   }
 }
 
-static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s) {
+static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s) {
   FileEntry *f;
   DirEntry *sub;
 
@@ -84,7 +84,7 @@ static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s) {
    * globally below */
 
   for (f = d->file; f; f = f->next) {
-    if (ctx->hide_dot_files && f->name[0] == '.')
+    if (hide_dot_files && f->name[0] == '.')
       continue;
 
     d->total_files++;
@@ -98,7 +98,7 @@ static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s) {
 
   sub = d->sub_tree;
   while (sub) {
-    RecalcDir(ctx, sub, s);
+    RecalcDir(hide_dot_files, sub, s);
     s->disk_total_directories++;
     sub = sub->next;
   }
@@ -112,6 +112,8 @@ static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s) {
 }
 
 void RecalculateSysStats(ViewContext *ctx, Statistic *s) {
+  BOOL hide_dot_files = (ctx && ctx->active && ctx->active->hide_dot_files);
+
   s->disk_total_files = 0;
   s->disk_total_bytes = 0;
   s->disk_matching_files = 0;
@@ -122,7 +124,7 @@ void RecalculateSysStats(ViewContext *ctx, Statistic *s) {
 
   if (s->tree) {
     s->disk_total_directories++;
-    RecalcDir(ctx, s->tree, s);
+    RecalcDir(hide_dot_files, s->tree, s);
   }
 }
 
