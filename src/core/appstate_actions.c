@@ -2748,11 +2748,6 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
    kAppStateDispatchSurfaceMigrationNotes12,
    sizeof(kAppStateDispatchSurfaceMigrationNotes12) / sizeof(kAppStateDispatchSurfaceMigrationNotes12[0])},
 };
-static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
-  "invariant.hidden-entry-visible-navigation",
-  "invariant.inactive-panel-frozen",
-};
-
 static const char *const kAppStateCompatibilityShimInvariantChecks1[] = {
   "invariant.panel-local-focus-restore",
   "invariant.inactive-panel-frozen",
@@ -2761,11 +2756,6 @@ static const char *const kAppStateCompatibilityShimInvariantChecks1[] = {
 static const char *const kAppStateCompatibilityShimInvariantChecks2[] = {
   "invariant.render-projection-read-only",
   "invariant.blocked-transition-determinism",
-};
-
-static const char *const kAppStateCompatibilityShimOwnerFieldRefs0[] = {
-  "panel.tree_viewport_origin",
-  "panel.panel_generation",
 };
 
 static const char *const kAppStateCompatibilityShimOwnerFieldRefs1[] = {
@@ -2777,12 +2767,6 @@ static const char *const kAppStateCompatibilityShimOwnerFieldRefs2[] = {
   "panel.tree_cursor_pos",
   "panel.tree_viewport_origin",
   "panel.file_viewport_origin",
-};
-
-static const char *const kAppStateCompatibilityShimGenerationDomainRefs0[] = {
-  "generation.panel.local-authority",
-  "identity.directory.stable-key",
-  "state.visibility-filter.panel-volume",
 };
 
 static const char *const kAppStateCompatibilityShimGenerationDomainRefs1[] = {
@@ -2797,11 +2781,6 @@ static const char *const kAppStateCompatibilityShimGenerationDomainRefs2[] = {
   "reflow.layout.projection",
 };
 
-static const char *const kAppStateCompatibilityShimDiffHarnessRefs0[] = {
-  "harness.transition-before-after-snapshot",
-  "harness.generation-mismatch-check",
-};
-
 static const char *const kAppStateCompatibilityShimDiffHarnessRefs1[] = {
   "harness.declared-write-set-diff",
 };
@@ -2810,10 +2789,6 @@ static const char *const kAppStateCompatibilityShimDiffHarnessRefs2[] = {
   "harness.render-projection-read-only-diff",
   "harness.generation-mismatch-check",
   "harness.blocked-transition-no-unrelated-mutation",
-};
-
-static const char *const kAppStateCompatibilityShimSourceBoundaryRefs0[] = {
-  "src/ui/dir_ops.c",
 };
 
 static const char *const kAppStateCompatibilityShimSourceBoundaryRefs1[] = {
@@ -6265,31 +6240,6 @@ static const AppStateActionCoverageMetadata
 };
 
 static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
-  {"shim.viewcontext-hide-dot-files",
-   "ViewContext derived mirror",
-   "ViewContext.hide_dot_files",
-   "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreeNovaPanel dotfile visibility.",
-   "Write only when synchronizing from the active panel's authoritative dotfile_visibility during transition commit.",
-   "write_capable",
-   kAppStateCompatibilityShimInvariantChecks0,
-   sizeof(kAppStateCompatibilityShimInvariantChecks0) /
-       sizeof(kAppStateCompatibilityShimInvariantChecks0[0]),
-   kAppStateCompatibilityShimOwnerFieldRefs0,
-   sizeof(kAppStateCompatibilityShimOwnerFieldRefs0) /
-       sizeof(kAppStateCompatibilityShimOwnerFieldRefs0[0]),
-   kAppStateCompatibilityShimGenerationDomainRefs0,
-    sizeof(kAppStateCompatibilityShimGenerationDomainRefs0) /
-        sizeof(kAppStateCompatibilityShimGenerationDomainRefs0[0]),
-    kAppStateCompatibilityShimDiffHarnessRefs0,
-    sizeof(kAppStateCompatibilityShimDiffHarnessRefs0) /
-        sizeof(kAppStateCompatibilityShimDiffHarnessRefs0[0]),
-    kAppStateCompatibilityShimSourceBoundaryRefs0,
-    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs0) /
-        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs0[0]),
-    "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
-    "transition.keybinding.navigate-tree",
-    "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
-   "check_appstate_contract.py requires this shim to declare permissions, invariants, target transition, and removal trigger."},
   {"shim.focused-window-session-flag",
    "ViewContext session routing",
    "ViewContext.focused_window",

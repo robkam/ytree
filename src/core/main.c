@@ -232,7 +232,6 @@ static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
 };
 
 static const char *const kAppStateRequiredShimIds[] = {
-  "shim.viewcontext-hide-dot-files",
   "shim.focused-window-session-flag",
   "shim-render-derived-row-position",
 };
