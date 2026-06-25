@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_cmd.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include <assert.h>
@@ -159,7 +160,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
                                  state->saved_file_selection_name);
     }
   }
-  panel->saved_focus = state->saved_focus;
+  if (!AppStateCommitPanelFocus(ctx, panel, state->saved_focus))
+    return;
   panel->saved_big_file_view = state->saved_big_file_view;
 }
 
@@ -289,7 +291,9 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
         ResetPanelFileContext(panel);
         panel->vol = found_vol;
         s = &panel->vol->vol_stats;
-        panel->saved_focus = panel->vol->saved_focus;
+        if (!AppStateCommitPanelFocus(ctx, panel,
+                                      (ViewFocus)panel->vol->saved_focus))
+          return -1;
         state = FindPanelVolumeFileState(panel, panel->vol->id);
         if (state)
           panel->panel_generation = state->saved_tree_panel_generation;
@@ -439,7 +443,9 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   ResetPanelFileContext(panel);
   panel->vol = loaded_vol;
   s = &panel->vol->vol_stats;
-  panel->saved_focus = panel->vol->saved_focus;
+  if (!AppStateCommitPanelFocus(ctx, panel,
+                                (ViewFocus)panel->vol->saved_focus))
+    return -1;
   ctx->global_search_term[0] = '\0';
   ctx->view_mode = s->log_mode;
 

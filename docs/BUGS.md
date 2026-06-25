@@ -344,7 +344,29 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Keep footer help text unchanged during `/` incremental jump and apply immediate selection movement as characters are typed (for example `/y` jumps to the first matching entry) without footer prompt takeover.
 *   **Status**: Confirmed.
 
-### **BUG-25: Recursive Scan Interrupt Responsiveness**
+### **BUG-25: Color Configuration Roles Are Misrouted Across Unrelated UI Surfaces**
+*   **Description**: Current color-pair names and rendering usage do not map cleanly to visible UI roles. Changing one color key can affect unrelated surfaces, while some documented keys appear unused or hard to observe.
+*   **Manual findings (2026-06-25)**:
+    *   Stats panel dynamic values are rendered with the same color as nearby static labels in several places, so values such as paths, filesystem names, counts, sizes, attributes, owners, and timestamps cannot be made white independently of labels.
+    *   Stats section titles (`FILTER`, `VOLUME`, `VOLUME STATS`, `CURRENT DIR`/`CURRENT FILE`, `ATTRIBUTES`) are inconsistently treated as border text versus ordinary text.
+    *   `WINDIR_COLOR` appears to affect the current filter value, static+dynamic text in volume stats, and current-dir totals/matches/tags text.
+    *   `WINFILE_COLOR` appears to affect autoview text.
+    *   `WINSTATS_COLOR` has no obvious observed effect in the checked flows.
+    *   `BORDERS_COLOR` affects line art, but also appears to affect the dynamic path part of the header, stats box titles, static+dynamic text in volume sections, current-dir/attributes path text, and all text in the attributes box.
+    *   `MENU_COLOR` affects footer menu text and also the clock color.
+    *   Neutral interaction surfaces are inconsistent: footer prompts can turn grey wholesale, history can remain cyan-on-blue when it should be neutral dialog styling, and F2 option/help text mixes prompt, menu, and content roles.
+*   **Expected**: Color keys should map to coherent semantic roles. Borders/box lines, static labels, dynamic values, keybinding text, neutral dialog/history surfaces, prompt input fields, preview text, and footer/help text must be independently predictable enough that changing one role does not unexpectedly recolor unrelated UI surfaces.
+*   **Impact**: Makes theme tuning unreliable and confusing; users cannot produce a restrained, readable theme because color controls behave like cross-wired chimeras rather than intentional UI roles.
+*   **Remediation**:
+    *   Audit all uses of `CPAIR_*`, `WbkgdSet`, `wattr*`, and `COLOR_PAIR` in the header, stats panel, footer/prompt, F2/history, autoview/preview, and dialog paths.
+    *   Split static stats labels from dynamic stats values at render call sites.
+    *   Separate border/box-line roles from title text and content text.
+    *   Ensure color configuration comments describe actual behavior until the role-based theme system replaces the legacy keys.
+    *   Align with `ROADMAP` Task 60 by introducing semantic roles instead of preserving misleading legacy pair names as the long-term model.
+*   **Related**: `ROADMAP` Task 60 (role-based theme system and restrained default palette).
+*   **Status**: Confirmed.
+
+### **BUG-26: Recursive Scan Interrupt Responsiveness**
 *   **Description**: Interrupting a recursive expansion (`*`) via `ESC` is supported but requires multiple keypresses (Prompt Y/N).
 *   **Impact**: Users cannot instantly halt accidental large-branch scans.
 *   **Remediation**: Evaluate if `ESC` during `ReadTree` should immediately halt the scan once instead of prompting, given that partial results are preserved.
@@ -352,7 +374,7 @@ Ordering policy (for all editors, including AI editors):
 
 ## **Correctness, Consistency, and Naming Defects (Priority Ordered)**
 
-### **BUG-26: Configuration Template Drift (`VI_KEYS`)**
+### **BUG-27: Configuration Template Drift (`VI_KEYS`)**
 *   **Description**: Discrepancy in default visibility and documentation for `VI_KEYS`.
 *   **Findings**:
     *   `default_profile_template.h` uses `VI_KEYS=0`.
@@ -362,7 +384,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Ensure the `ytnova --init` generation path strictly matches the `etc/ytnova.conf` provided in the distribution.
 *   **Status**: Confirmed.
 
-### **BUG-27: VI Mode Key Ambiguity and Collisions**
+### **BUG-28: VI Mode Key Ambiguity and Collisions**
 *   **Description**: When `VI_KEYS=1` is enabled, lowercase navigation keys (`h/j/k/l`) collide with primary command keys without clear UI signaling.
 *   **Findings**:
     *   `j` maps to both `ACTION_MOVE_DOWN` (via `VI_KEY_DOWN`) and historically to `ACTION_LOG_VOLUME` (though currently `l/L` is the log volume key, older documentation/muscle memory remains confused).
@@ -371,14 +393,14 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Audit all `VI_KEY` remappings in `key_engine.c` and ensure the footer help lines (`display.c`) dynamically update to show the uppercase variants when `VI_KEYS=1`.
 *   **Status**: Confirmed.
 
-### **BUG-28: Incremental Search Legacy Mapping (`F12`)**
+### **BUG-29: Incremental Search Legacy Mapping (`F12`)**
 *   **Description**: `F12` is used as an alias for `/` (Incremental Search/Jump), but its presence is inconsistent in help strings and documentation.
 *   **Impact**: Confuses users about "hidden" keys.
 *   **Remediation**: Explicitly document `F12` as a legacy alias or deprecate it in favor of standard `/`.
 *   **Parity Principle:** Treat this as a documentation-parity defect class: no active keybinding may exist in runtime without consistent footer, `F1`, and manpage/USAGE coverage.
 *   **Status**: Confirmed.
 
-### **BUG-29: Misleading Tree Expansion Action Names**
+### **BUG-30: Misleading Tree Expansion Action Names**
 *   **Description**: The internal `YtreeNovaAction` names for tree expansion are swapped relative to their behavior and documentation.
 *   **Findings**:
     *   `+` key maps to `ACTION_TREE_EXPAND_ALL`, but only expands **one level**.
@@ -389,7 +411,7 @@ Ordering policy (for all editors, including AI editors):
     *   Rename `ACTION_ASTERISK` -> `ACTION_TREE_EXPAND_RECURSIVE`.
 *   **Status**: Confirmed.
 
-### **BUG-30: Intermittent Split-Brain Redraw Between Stats Box and Main Panes**
+### **BUG-31: Intermittent Split-Brain Redraw Between Stats Box and Main Panes**
 *   **Description**: Intermittently, the stats box redraw state can diverge from the main UI surfaces (`path`, `dir`, and `file` windows), leaving one surface fresh while the other appears stale/corrupted.
 *   **Impact**: Creates a visibly broken UI state and undermines trust in navigation context during active workflows.
 *   **Remediation**: Unify frame redraw ownership so stats and main panes are rendered from one layout snapshot in one update cycle, and force full-surface invalidation/redraw on resize/recovery/error paths.

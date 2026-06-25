@@ -955,9 +955,135 @@ Ordering policy (for all editors, including AI editors):
 ---
 
 ## **Phase 7: Internationalization and Configurability**
-*   **Goal:** Refactor the application to support localization and user-defined keybindings, moving away from hardcoded English-centric values.
+*   **Goal:** Refactor the application to support role-based themes, localization, and user-defined keybindings, moving away from hardcoded English-centric values and colors.
 
-### **Task 60: Externalize UI Strings with GNU gettext (i18n Foundation)**
+### **Task 60: Establish Role-Based Theme System and Restrained Default Palette**
+*   **Goal:** Define and implement a role-based color/theme system with a restrained classic-blue default theme, a bash-black alternate theme, plain-text user-editable theme storage, and safe foreground/background handling that prevents color bleed between themes.
+*   **Priority:** High. The default visual identity will strongly affect first impressions, screenshots, user trust, and whether users perceive ytnova as focused or noisy.
+*   **Design Direction:**
+    *   There is one canonical default look: blue background, bright readable content, restrained structure, grey selection/dialog surfaces, and road-sign alert colors.
+    *   Use color for structure, state, and exceptional meaning, not decoration.
+    *   Default public theme should be a restrained classic blue TUI:
+        *   blue main background;
+        *   bright white for filenames, paths, dynamic values, keybindings, changing text, and tree guide lines;
+        *   white for static labels, fixed captions, and stats titles;
+        *   cyan on blue for panel borders, separators, dialog boxes, and window frames;
+        *   black on light grey for selections, bars, and neutral dialogs;
+        *   bright white on blue for informational text;
+        *   black on yellow for warnings;
+        *   bright white on red for errors;
+        *   black on yellow for search hits or rare standout emphasis.
+    *   Avoid frequent yellow, green, or bright/cyan-heavy text in the default theme. Loud colors must be rare.
+    *   Keep UI chrome quieter than file/content text.
+    *   Global/branch/showall mode should be indicated through panel titles, status labels, frame accents, or subtle markers rather than making ordinary filenames loud.
+    *   The default theme should preserve the xtree/ztree-derived feel while avoiding rainbow-style orthodox file-manager visual noise.
+*   **Role Granularity Direction:**
+    *   Provide enough semantic roles to control important visual categories without requiring users to configure every widget separately.
+    *   Prefer broad reusable roles over per-window/per-line duplication.
+    *   Minimum roles:
+        *   `background`: default application background.
+        *   `box_lines`: panel borders, separators, dialog boxes, and window frames.
+        *   `tree_lines`: tree guide glyphs; default follows dynamic/content text rather than border chrome.
+        *   `static_text`: fixed labels/captions and text that rarely changes.
+        *   `dynamic_text`: filenames, paths, counts, sizes, timestamps, current mode values, tree names, and file names.
+        *   `keybind`: footer/menu keybinding characters.
+        *   `selection`: active highlighted row/bar.
+        *   `dialog`: neutral prompt/dialog surface.
+        *   `info`: informational road-sign color.
+        *   `warning`: warning road-sign color.
+        *   `error`: error road-sign color.
+        *   `search_hit`: standout search/current-hit highlight.
+        *   `disabled`: inactive or unavailable commands/options.
+    *   Do not add a separate `critical` role; fatal failures are generally outside useful interactive rendering scope.
+    *   Allow advanced themes to override narrower roles later, but default theme files should stay short and readable.
+*   **Theme vs File-Type Coloring:**
+    *   Themes and file-type coloring are separate concerns.
+    *   A theme defines semantic UI roles.
+    *   File-type coloring is an optional content-decoration layer defined by the active theme.
+    *   Any theme may define its own file-type coloring palette.
+    *   If the active theme defines no file-type palette rules, all filenames use the theme `dynamic_text`/filename role.
+    *   File-type colors must never assume a specific theme background or reduce readability on the active theme.
+*   **File-Type Palette Format Direction:**
+    *   File-type palettes belong to themes, so different themes can define different extension colors.
+    *   If the active theme defines no file-type palette rules, all filenames use the theme `dynamic_text`/filename role.
+    *   If an extension is not listed in the active theme palette, it uses the default filename color.
+    *   Prefer compact grouped rules over one line per extension, for example:
+        *   `red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img`
+        *   `+cyan: sh,bash,zsh,py,pl,rb`
+    *   The left side should accept the same color syntax as theme roles, including optional background:
+        *   `red`
+        *   `+red`
+        *   `red on blue`
+        *   `+cyan on black`
+    *   When a file-type rule omits a background, inherit the active theme filename background but still resolve to a complete foreground/background pair internally.
+    *   Legacy numeric color pairs may remain supported for compatibility, but new examples should use named colors.
+*   **Configuration Direction:**
+    *   Preserve compatibility with existing color settings where practical.
+    *   Add `grey` / `gray` support for dark grey.
+    *   Add `+grey` / `+gray` support for light grey.
+    *   Add a bright-prefix syntax such as `+red`, `+yellow`, `+white`, and `+grey`.
+    *   Prefer canonical plain-text style syntax such as:
+        *   `+white on blue`
+        *   `white on blue`
+        *   `cyan on blue`
+        *   `black on +grey`
+        *   `black on yellow`
+        *   `+white on red`
+    *   Move larger theme definitions out of the main `~/.ytnova` config into a plain-text theme file `~/.ythemes`, while keeping `~/.ytnova` for selecting the active theme.
+    *   `~/.ythemes` may contain an unlimited number of named themes.
+    *   Used theme definitions are uncommented.
+    *   Unused bundled or user themes can be prefixed with `#` to comment them out.
+    *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
+*   **Default Palette Direction:**
+    *   `background = blue`
+    *   `box_lines = cyan on blue`
+    *   `tree_lines = +white on blue`
+    *   `static_text = white on blue`
+    *   `dynamic_text = +white on blue`
+    *   `keybind = +white on blue`
+    *   `selection = black on +grey`
+    *   `dialog = black on +grey`
+    *   `info = +white on blue`
+    *   `warning = black on yellow`
+    *   `error = +white on red`
+    *   `search_hit = black on yellow`
+    *   `disabled = grey on blue`
+*   **Implementation Direction:**
+    *   Audit existing color options, including whether `WINERR_COLOR` and `ERR_COLOR` are duplicates or whether one is unused.
+    *   Audit `src/ui/color.c` and all window background/border drawing paths for reversed color-pair use, unintended `A_REVERSE`, foreground-only styling, and stale background attributes.
+    *   Replace ad-hoc foreground-only coloring with complete role resolution where each rendered style resolves to a foreground and background.
+    *   Ensure `cyan,blue` renders cyan glyphs on blue background, never blue glyphs on cyan background.
+    *   Ensure panel borders and stats borders draw cyan line glyphs on blue background; they must not set the whole panel fill to cyan.
+    *   Ensure stats titles render as white on blue and stats dynamic values render as bright white on blue.
+    *   Ensure tree and file names render as bright white on blue in the classic-blue theme.
+    *   Ensure switching from black-theme coloring to blue-theme coloring cannot leave black-background or incompatible file-color attributes behind.
+    *   Set window background once per refresh path and clear/redraw safely; avoid background changes inside per-row rendering loops.
+    *   Keep file-type color application as a distinct optional layer after base theme role resolution.
+*   **Theme Set:**
+    *   Provide at least two built-in themes:
+        *   `classic-blue`: restrained public/default theme.
+        *   `bash-black`: power-user black-background theme with optional richer file coloring.
+    *   Future in-app theme editing should operate on semantic roles and the separate file-type coloring layer rather than exposing unrelated one-off color knobs.
+*   **Out of Scope / Follow-On:**
+    *   Modal-dialog placement may deserve separate UX work. XTree/ZTree-style footer prompts can be preferable because they appear where the user is already looking, but that should be handled as a separate interaction-design task rather than bundled into the theme system.
+*   **Acceptance Criteria:**
+    *   The default theme is readable, restrained, and suitable for screenshots.
+    *   Normal filenames, tree names, tree lines, paths, keybindings, and dynamic values are bright white or otherwise high-contrast in the classic-blue theme.
+    *   Static labels and stats titles are white or otherwise clearly readable in the classic-blue theme.
+    *   Error text uses bright white on red.
+    *   Warning and search-hit styling uses black on yellow.
+    *   Yellow is reserved for warnings/search/rare emphasis and is not used for frequent ordinary states.
+    *   File-type coloring can be omitted from a theme, leaving filenames on the default filename/`dynamic_text` role.
+    *   Any theme can define its own file-type coloring palette.
+    *   File-type colors do not bleed assumptions from one theme into another theme.
+    *   `grey`/`gray`, `+grey`/`+gray`, and `+color` bright-prefix parsing are documented and tested.
+    *   Theme implementation proves foreground/background pair correctness.
+    *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
+    *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
+    *   Existing user color configuration remains compatible where practical, with documented migration behavior for any renamed/deprecated options.
+*   - [ ] **Status:** Not Started.
+
+### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
 *   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytnova.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
@@ -965,7 +1091,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
 *   - [ ] **Status:** Not Started.
 
-### **Task 61: Implement Configurable Keymap**
+### **Task 62: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
 *   **Sequencing dependency:** Implement after Task 45 (Ctrl-held footer signaling + footer wording cleanup). Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
 *   **Config contract:** Select profile via `ytnova.conf` (opt-in), keeping a stable default keymap for existing users.

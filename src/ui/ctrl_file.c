@@ -727,7 +727,8 @@ file_window_done:
      * handoff to a tree-focused peer is different: the previous file panel is
      * now inactive and must keep its file-window shape frozen.
      */
-    owner_panel->saved_focus = FOCUS_TREE;
+    if (!AppStateCommitPanelFocus(ctx, owner_panel, FOCUS_TREE))
+      return ESC;
     owner_panel->saved_big_file_view = FALSE;
   }
   if (!volume_changed) {

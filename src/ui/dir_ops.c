@@ -1497,7 +1497,8 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
   panel->file_dir_entry = dir_entry;
   panel->start_file = dir_entry->start_file;
   panel->file_cursor_pos = dir_entry->cursor_pos;
-  panel->saved_focus = FOCUS_FILE;
+  if (!AppStateCommitPanelFocus(ctx, panel, FOCUS_FILE))
+    return dir_entry;
   if (!dir_entry->global_flag && !dir_entry->tagged_flag) {
     dir_entry->big_window = panel->saved_big_file_view;
   }

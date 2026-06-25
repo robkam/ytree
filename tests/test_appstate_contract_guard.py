@@ -6034,6 +6034,45 @@ def test_split_directory_focus_commits_use_appstate_helper() -> None:
     assert body.count("AppStateMirrorActivePanelFocus(ctx)") >= 2
 
 
+def test_focus_restore_commits_use_appstate_helper() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+
+    dir_start = dir_ops.index("DirEntry *RestorePanelFileSelection(")
+    dir_end = dir_ops.index("\nDirWindowDispatchResult", dir_start)
+    dir_body = dir_ops[dir_start:dir_end]
+    assert "AppStateCommitPanelFocus(ctx, panel, FOCUS_FILE)" in dir_body
+    assert "panel->saved_focus = FOCUS_FILE" not in dir_body
+
+    file_start = ctrl_file.index("int HandleFileWindow(")
+    file_body = ctrl_file[file_start:]
+    assert "AppStateCommitPanelFocus(ctx, owner_panel, FOCUS_TREE)" in file_body
+    assert "owner_panel->saved_focus = FOCUS_TREE" not in file_body
+
+    restore_start = log_source.index("static void RestorePanelFileSelection(")
+    restore_end = log_source.index("\nstatic void SavePanelTreeSelection(", restore_start)
+    restore_body = log_source[restore_start:restore_end]
+    assert 'include "ytnova_appstate_focus.h"' in log_source
+    assert "AppStateCommitPanelFocus(ctx, panel, state->saved_focus)" in restore_body
+    assert "panel->saved_focus = state->saved_focus" not in restore_body
+
+    log_start = log_source.index("int LogDisk(")
+    log_end = log_source.index("\nint GetNewLogPath(", log_start)
+    log_body = log_source[log_start:log_end]
+    assert "panel->saved_focus = panel->vol->saved_focus" not in log_body
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelFocus\(\s*ctx,\s*panel,\s*"
+                r"\(ViewFocus\)panel->vol->saved_focus\s*\)",
+                log_body,
+            )
+        )
+        >= 2
+    )
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (
