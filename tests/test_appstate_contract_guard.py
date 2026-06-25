@@ -5899,6 +5899,26 @@ def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
     assert "shim.volume-saved-tree-index" not in shims
 
 
+def test_visibility_session_mirror_is_retired() -> None:
+    runtime_paths = [
+        Path("include/ytnova_defs.h"),
+        Path("src/core/init.c"),
+        Path("src/ui/dir_ops.c"),
+        Path("src/ui/split_transition.c"),
+    ]
+    for runtime_path in runtime_paths:
+        assert "ctx->hide_dot_files" not in runtime_path.read_text(encoding="utf-8")
+
+    shims = Path("docs/appstate_compat_shims.json").read_text(encoding="utf-8")
+    runtime_registry = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    architecture = Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8")
+
+    assert "shim.viewcontext-hide-dot-files" not in shims
+    assert "shim.viewcontext-hide-dot-files" not in runtime_registry
+    assert "ViewContext.hide_dot_files" not in shims
+    assert "ctx->hide_dot_files" not in architecture
+
+
 def test_visibility_projection_reads_panel_state_not_session_mirror() -> None:
     stats = Path("src/ui/stats.c").read_text(encoding="utf-8")
     pipe = Path("src/cmd/pipe.c").read_text(encoding="utf-8")
@@ -5926,16 +5946,7 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert 'include "ytnova_appstate_actions.h"' in ctrl_file
     assert 'include "ytnova_appstate_actions.h"' in display
 
-    toggle_start = dir_ops.index("void ToggleDotFiles(")
-    toggle_end = dir_ops.index("\nDirEntry *RefreshTreeSafe(", toggle_start)
-    toggle_body = dir_ops[toggle_start:toggle_end]
-    hidden_validation = (
-        'if (!AppStateValidatedCompatibilityShim("shim.viewcontext-hide-dot-files"))'
-    )
-    assert hidden_validation in toggle_body
-    assert toggle_body.index(hidden_validation) < toggle_body.index("p->hide_dot_files =")
-    assert toggle_body.index(hidden_validation) < toggle_body.index("ctx->hide_dot_files =")
-
+    assert "shim.viewcontext-hide-dot-files" not in dir_ops
 
     focus_validation = (
         'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'

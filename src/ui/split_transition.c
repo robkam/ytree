@@ -344,8 +344,6 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
         ctx->active = ctx->left;
         ctx->active->saved_focus = preserved_focus;
         ctx->focused_window = preserved_focus;
-        /* Restore the session mirror from the newly active panel. */
-        ctx->hide_dot_files = ctx->active->hide_dot_files;
         BuildFileEntryList(ctx, ctx->active);
         if (donate_active_state)
           *switched_panel_ptr = TRUE;
@@ -367,7 +365,6 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
        */
       *loop_action_ptr = ACTION_NONE;
       *return_esc_ptr = FALSE;
-      ctx->hide_dot_files = ctx->active->hide_dot_files;
       SplitTransitionDebugLogFileState("FileAction:split:after", ctx);
 #ifndef NDEBUG
       if (stable_panel)
@@ -406,7 +403,6 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
         ctx->active = ctx->left;
       }
       /* Restore the session mirror from the newly active panel. */
-      ctx->hide_dot_files = ctx->active->hide_dot_files;
       ctx->focused_window = ctx->active->saved_focus;
       *loop_action_ptr = ACTION_NONE;
       AssertSplitFilePanelSnapshotUnchanged(target_panel,
@@ -429,8 +425,6 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
     } else {
       ctx->active = ctx->left;
     }
-    /* Restore the session mirror from the newly active panel. */
-    ctx->hide_dot_files = ctx->active->hide_dot_files;
     ctx->focused_window = ctx->active->saved_focus;
     *loop_action_ptr = ACTION_NONE;
 #endif
@@ -557,7 +551,6 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       }
 
       ctx->focused_window = preserved_focus;
-      ctx->hide_dot_files = ctx->active->hide_dot_files;
       *start_vol_ptr = ctx->active->vol;
       *s_ptr = &ctx->active->vol->vol_stats;
       RefreshView(ctx, *dir_entry_ptr);

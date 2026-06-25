@@ -796,7 +796,7 @@ typedef struct {
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;
   BOOL reverse_sort;
-  BOOL hide_dot_files; /* Panel-local visibility; ViewContext keeps the active mirror. */
+  BOOL hide_dot_files; /* Panel-local visibility. */
 } YtreeNovaPanel;
 
 typedef struct _history {
@@ -998,7 +998,6 @@ typedef struct _ViewContext {
   int cached_cols;  /* Last known COLS for resize detection */
   BOOL bypass_small_window;
   BOOL highlight_full_line;
-  BOOL hide_dot_files; /* Active-panel mirror of panel-local dotfile visibility. */
   BOOL status_line_error_pending;
   char status_line_error_text[PATH_LENGTH + 1];
   char *initial_directory;

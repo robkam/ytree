@@ -4,38 +4,6 @@
   "notes": "Compatibility shims document legacy authority paths that may remain during migration. They must be read/write classified and removed when the target transition boundary is live.",
   "shims": [
     {
-      "id": "shim.viewcontext-hide-dot-files",
-      "owner": "ViewContext derived mirror",
-      "old_authority_path": "ViewContext.hide_dot_files",
-      "read_permission": "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreeNovaPanel dotfile visibility.",
-      "write_permission": "Write only when synchronizing from the active panel's authoritative dotfile_visibility during transition commit.",
-      "write_capability": "write_capable",
-      "invariant_checks": [
-        "invariant.hidden-entry-visible-navigation",
-        "invariant.inactive-panel-frozen"
-      ],
-      "removal_trigger": "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
-      "target_transition": "transition.keybinding.navigate-tree",
-      "follow_up_task": "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
-      "qa_enforcement": "check_appstate_contract.py requires this shim to declare permissions, invariants, target transition, and removal trigger.",
-      "owner_field_refs": [
-        "panel.tree_viewport_origin",
-        "panel.panel_generation"
-      ],
-      "generation_domain_refs": [
-        "generation.panel.local-authority",
-        "identity.directory.stable-key",
-        "state.visibility-filter.panel-volume"
-      ],
-      "diff_harness_refs": [
-        "harness.transition-before-after-snapshot",
-        "harness.generation-mismatch-check"
-      ],
-      "source_boundary_refs": [
-        "src/ui/dir_ops.c"
-      ]
-    },
-    {
       "id": "shim.focused-window-session-flag",
       "owner": "ViewContext session routing",
       "old_authority_path": "ViewContext.focused_window",

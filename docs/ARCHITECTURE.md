@@ -143,7 +143,7 @@ Split-transfer/switch code must classify each field before copying or restoring:
 | State Class | Owned By | Examples | Forbidden Cross-Panel Behavior |
 |---|---|---|---|
 | **Panel-Local** | `YtreeNovaPanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths`, `hide_dot_files` | Active-only commands must not mutate the inactive panel's values. |
-| **Derived / Restore-Mirror** | `ViewContext` mirrors and `Volume` restore breadcrumbs | `ctx->hide_dot_files`, `saved_tree_index`, `saved_focus` | May shadow panel-local state for compatibility or restore, but must never become the authoritative source of truth when a panel-local copy exists. |
+| **Derived / Restore-Mirror** | `ViewContext` mirrors and `Volume` restore breadcrumbs | `saved_tree_index`, `saved_focus` | May shadow panel-local state for compatibility or restore, but must never become the authoritative source of truth when a panel-local copy exists. |
 | **Shared-Topology** | `Volume` (possibly referenced by both panels) | `vol_stats.tree`, `dir_entry_list`, directory expansion/logging topology | Panel code may mirror topology visibility updates, but must re-anchor each panel by identity/path and must not infer panel-local selection by shared index. |
 | **Session-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options other than panel-local visibility state | Session toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
 

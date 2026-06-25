@@ -1286,8 +1286,6 @@ void SyncActivePanelWindows(ViewContext *ctx) {
   ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
   ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
   ctx->ctx_file_window = ctx->active->pan_file_window;
-  /* Keep the session mirror aligned with the active panel's local visibility. */
-  ctx->hide_dot_files = ctx->active->hide_dot_files;
 }
 
 DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s) {
@@ -1883,9 +1881,6 @@ void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p) {
 
   if (!ctx || !p || !p->vol)
     return;
-  if (!AppStateValidatedCompatibilityShim("shim.viewcontext-hide-dot-files"))
-    return;
-
   s = &p->vol->vol_stats;
   inactive_anchor_path[0] = '\0';
   CapturePanelViewportSnapshot(p, p->vol, &active_viewport);
@@ -1926,9 +1921,7 @@ void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p) {
    * rebuild */
   SuspendClock(ctx);
 
-  /* Toggle active-panel state and synchronize context view filter. */
   p->hide_dot_files = !p->hide_dot_files;
-  ctx->hide_dot_files = p->hide_dot_files;
   p->panel_generation++;
   p->vol->volume_generation++;
   RecalculateSysStats(ctx, s);

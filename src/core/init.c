@@ -883,12 +883,14 @@ int Init(ViewContext *ctx, const char *configuration_file,
       (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
           ? TRUE
           : FALSE;
-  ctx->hide_dot_files =
-      (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0)) ? TRUE
-                                                                       : FALSE;
-  /* Seed both panel-local copies; ctx->hide_dot_files remains the active mirror. */
-  ctx->left->hide_dot_files = ctx->hide_dot_files;
-  ctx->right->hide_dot_files = ctx->hide_dot_files;
+  {
+    BOOL hide_dot_files =
+        (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0))
+            ? TRUE
+            : FALSE;
+    ctx->left->hide_dot_files = hide_dot_files;
+    ctx->right->hide_dot_files = hide_dot_files;
+  }
   ctx->animation_method =
       strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);
   ctx->initial_directory = (char *)CoreInitGetProfileValue(ctx, "INITIALDIR");
