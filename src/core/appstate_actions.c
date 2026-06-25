@@ -2793,8 +2793,10 @@ static const char *const kAppStateCompatibilityShimDiffHarnessRefs2[] = {
 
 static const char *const kAppStateCompatibilityShimSourceBoundaryRefs1[] = {
   "src/ui/appstate_focus.c",
+  "src/ui/ctrl_file_ops.c",
   "src/ui/ctrl_file.c",
   "src/ui/ctrl_dir.c",
+  "src/ui/dir_ops.c",
 };
 
 static const char *const kAppStateCompatibilityShimSourceBoundaryRefs2[] = {

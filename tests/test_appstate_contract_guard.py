@@ -5938,6 +5938,7 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
     display = Path("src/ui/display.c").read_text(encoding="utf-8")
     focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
 
@@ -5945,8 +5946,10 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert 'include "ytnova_appstate_actions.h"' in ctrl_dir
     assert 'include "ytnova_appstate_actions.h"' in ctrl_file
     assert 'include "ytnova_appstate_actions.h"' in display
+    assert 'include "ytnova_appstate_focus.h"' in dir_ops
     assert 'include "ytnova_appstate_focus.h"' in ctrl_dir
     assert 'include "ytnova_appstate_focus.h"' in ctrl_file
+    assert 'include "ytnova_appstate_focus.h"' in ctrl_file_ops
 
     assert "shim.viewcontext-hide-dot-files" not in dir_ops
 
@@ -5972,6 +5975,16 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in file_body
     assert "if (ctx->active->saved_focus != FOCUS_FILE) {" in file_body
     assert "if (ctx->focused_window != FOCUS_FILE) {" not in file_body
+
+    assert not re.search(r"\bctx->focused_window\s*=[^=]", dir_ops)
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE)" in dir_ops
+    assert "AppStateMirrorActivePanelFocus(ctx)" in dir_ops
+
+    assert not re.search(r"\bctx->focused_window\s*=[^=]", ctrl_file_ops)
+    assert (
+        "AppStateCommitPanelFocus(ctx, ctx->active, ctx->preview_return_focus)"
+        in ctrl_file_ops
+    )
 
     helper_validation = (
         'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'

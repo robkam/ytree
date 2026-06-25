@@ -7,6 +7,7 @@
 
 #define NO_YTNOVA_MACROS
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -276,7 +277,8 @@ BOOL handle_file_window_preview_action(
       Statistic *stats_local;
 
       ctx->active = ctx->preview_return_panel;
-      ctx->focused_window = ctx->preview_return_focus;
+      if (!AppStateCommitPanelFocus(ctx, ctx->active, ctx->preview_return_focus))
+        return FALSE;
       stats_local = &ctx->active->vol->vol_stats;
       if (stats_ptr)
         *stats_ptr = stats_local;
