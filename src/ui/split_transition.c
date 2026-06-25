@@ -8,6 +8,7 @@
 #define NO_YTNOVA_MACROS
 
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_split_transition.h"
@@ -338,12 +339,13 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
           FreeFileEntryList(ctx->right);
         }
         ctx->active = owner_panel;
-        ctx->focused_window = FOCUS_FILE;
+        if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
+          return FALSE;
       } else {
         FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
-        ctx->active->saved_focus = preserved_focus;
-        ctx->focused_window = preserved_focus;
+        if (!AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus))
+          return FALSE;
         BuildFileEntryList(ctx, ctx->active);
         if (donate_active_state)
           *switched_panel_ptr = TRUE;
@@ -390,7 +392,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       owner_panel->start_file = dir_entry->start_file;
       owner_panel->file_cursor_pos = dir_entry->cursor_pos;
       CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
-      ctx->active->saved_focus = FOCUS_FILE;
+      if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
+        return FALSE;
       ctx->active->saved_big_file_view =
           (dir_entry->big_window || dir_entry->global_flag ||
            dir_entry->tagged_flag);
@@ -402,8 +405,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       } else {
         ctx->active = ctx->left;
       }
-      /* Restore the session mirror from the newly active panel. */
-      ctx->focused_window = ctx->active->saved_focus;
+      if (!AppStateMirrorActivePanelFocus(ctx))
+        return FALSE;
       *loop_action_ptr = ACTION_NONE;
       AssertSplitFilePanelSnapshotUnchanged(target_panel,
                                             &target_panel_snapshot);
@@ -413,7 +416,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
     owner_panel->start_file = dir_entry->start_file;
     owner_panel->file_cursor_pos = dir_entry->cursor_pos;
     CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
-    ctx->active->saved_focus = FOCUS_FILE;
+    if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
+      return FALSE;
     ctx->active->saved_big_file_view =
         (dir_entry->big_window || dir_entry->global_flag ||
          dir_entry->tagged_flag);
@@ -425,7 +429,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
     } else {
       ctx->active = ctx->left;
     }
-    ctx->focused_window = ctx->active->saved_focus;
+    if (!AppStateMirrorActivePanelFocus(ctx))
+      return FALSE;
     *loop_action_ptr = ACTION_NONE;
 #endif
     SplitTransitionDebugLogFileState("FileAction:switch:after", ctx);
