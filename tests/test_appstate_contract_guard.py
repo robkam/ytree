@@ -5345,9 +5345,12 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
   (void)panel;
   (void)dir_entry;
 }
-void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
+BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
+                      const YtreeNovaPanel *src) {
+  (void)ctx;
   (void)dst;
   (void)src;
+  return TRUE;
 }
 void ReCreateWindows(ViewContext *ctx) { (void)ctx; }
 void SyncActivePanelWindows(ViewContext *ctx) { (void)ctx; }
@@ -6071,6 +6074,35 @@ def test_focus_restore_commits_use_appstate_helper() -> None:
         )
         >= 2
     )
+
+
+def test_split_seeded_focus_commits_use_appstate_helper() -> None:
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+    panel_header = Path("include/ytnova_panel_anchor.h").read_text(encoding="utf-8")
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    assert 'include "ytnova_appstate_focus.h"' in panel_anchor
+    assert "BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst" in panel_header
+    assert "AppStateCommitPanelFocus(ctx, dst, src->saved_focus)" in donate_body
+    assert "AppStateCommitPanelFocus(ctx, dst, FOCUS_FILE)" in donate_body
+    assert "AppStateCommitPanelFocus(ctx, dst, FOCUS_TREE)" in donate_body
+    assert not re.search(r"\bdst->saved_focus\s*=", donate_body)
+
+    file_start = split_transition.index("BOOL SplitTransition_HandleFileWindowAction(")
+    dir_start = split_transition.index("\nBOOL SplitTransition_HandleDirWindowAction(", file_start)
+    file_body = split_transition[file_start:dir_start]
+    dir_body = split_transition[dir_start:]
+
+    assert "DonatePanelState(ctx, ctx->left, ctx->right)" in split_transition
+    assert not re.search(r"\bctx->right->saved_focus\s*=", file_body)
+    assert "AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_FILE)" in file_body
+    assert not re.search(r"\bctx->left->saved_focus\s*=", dir_body)
+    assert not re.search(r"\bclosing_active->saved_focus\s*=", dir_body)
+    assert not re.search(r"\bctx->right->saved_focus\s*=", dir_body)
+    assert not re.search(r"\bctx->active->saved_focus\s*=(?!=)", dir_body)
 
 
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:

@@ -33,7 +33,8 @@ BOOL RestorePanelTreeViewportSnapshot(ViewContext *ctx, YtreeNovaPanel *panel);
 void RememberPanelViewportTop(YtreeNovaPanel *panel);
 void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
                             const char *anchor_path);
-void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src);
+BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
+                      const YtreeNovaPanel *src);
 DirEntry *FindDirByPathInTree(DirEntry *entry, const char *path);
 void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
                               YtreeNovaPanel *panel, const char *label);

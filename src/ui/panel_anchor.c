@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
@@ -618,7 +619,8 @@ CopyPanelVolumeFileState(const PanelVolumeFileState *src) {
   return head;
 }
 
-void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
+BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
+                      const YtreeNovaPanel *src) {
   char file_dir_path[PATH_LENGTH + 1];
   BOOL dst_saved_big_file_view;
   int dst_cursor_pos;
@@ -635,8 +637,8 @@ void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
   PanelVolumeFileState *volume_file_state;
   BOOL source_is_file;
 
-  if (!dst || !src || dst == src)
-    return;
+  if (!ctx || !dst || !src || dst == src)
+    return FALSE;
   assert(!dst->vol || !src->vol || dst->vol == src->vol);
   assert(src->saved_focus != FOCUS_FILE ||
          src->file_selection_dir_path[0] != '\0');
@@ -690,7 +692,8 @@ void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
   dst->max_column = src->max_column;
   dst->current_dir_entry = src->current_dir_entry;
   dst->panel_generation = src->panel_generation;
-  dst->saved_focus = src->saved_focus;
+  if (!AppStateCommitPanelFocus(ctx, dst, src->saved_focus))
+    return FALSE;
   dst->saved_big_file_view = src->saved_big_file_view;
   dst->max_visual_filename_len = src->max_visual_filename_len;
   dst->max_visual_linkname_len = src->max_visual_linkname_len;
@@ -721,7 +724,8 @@ void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
                      sizeof(dst->file_selection_dir_path), "%s",
                      dst_current_volume_state->saved_file_selection_dir_path);
     } else {
-      dst->saved_focus = FOCUS_FILE;
+      if (!AppStateCommitPanelFocus(ctx, dst, FOCUS_FILE))
+        return FALSE;
       dst->saved_big_file_view = dst_saved_big_file_view;
       dst->start_file = dst_start_file;
       dst->file_cursor_pos = dst_file_cursor_pos;
@@ -733,12 +737,14 @@ void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
                      sizeof(dst->file_selection_dir_path), "%s",
                      dst_file_selection_dir_path);
     }
-    dst->saved_focus = FOCUS_TREE;
+    if (!AppStateCommitPanelFocus(ctx, dst, FOCUS_TREE))
+      return FALSE;
   } else {
     FreePanelVolumeFileState(dst->volume_file_state);
     dst->volume_file_state = volume_file_state;
   }
   RestorePanelAnchorPath(dst->vol, dst, file_dir_path);
+  return TRUE;
 }
 
 DirEntry *FindDirByPathInTree(DirEntry *entry, const char *path) {

@@ -299,8 +299,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       }
       CaptureSplitFilePanelSnapshot(stable_panel, &stable_panel_snapshot);
 #endif
-      if (donate_active_state && ctx->left && ctx->right)
-        DonatePanelState(ctx->left, ctx->right);
+      if (donate_active_state && ctx->left && ctx->right &&
+          !DonatePanelState(ctx, ctx->left, ctx->right))
+        return FALSE;
 
       ctx->is_split_screen = !ctx->is_split_screen;
       if (closing_split)
@@ -325,7 +326,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
            * focus or it will redraw as a tree panel and break per-panel file
            * state on the first Tab.
            */
-          ctx->right->saved_focus = FOCUS_FILE;
+          if (!AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_FILE))
+            return FALSE;
           ctx->right->start_file = ctx->left->start_file;
           ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
           (void)snprintf(ctx->right->file_selection_name,
@@ -493,12 +495,14 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         donate_active_state = TRUE;
 
       if (donate_active_state && ctx->left && ctx->right) {
-        DonatePanelState(ctx->left, ctx->right);
+        if (!DonatePanelState(ctx, ctx->left, ctx->right))
+          return FALSE;
         ctx->left->cursor_pos = source_cursor_pos;
         ctx->left->disp_begin_pos = source_disp_begin_pos;
         ctx->left->current_dir_entry = source_current_dir_entry;
         ctx->left->panel_generation = source_panel_generation;
-        ctx->left->saved_focus = FOCUS_TREE;
+        if (!AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE))
+          return FALSE;
       }
       if (preserve_left_file_state && !donate_active_state && ctx->left &&
           ctx->left->vol) {
@@ -506,8 +510,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         if (left_dir_entry)
           CapturePanelSelectionAnchor(ctx, ctx->left, left_dir_entry);
       }
-      if (closing_active)
-        closing_active->saved_focus = FOCUS_TREE;
+      if (closing_active &&
+          !AppStateCommitPanelFocus(ctx, closing_active, FOCUS_TREE))
+        return FALSE;
       ctx->is_split_screen = !ctx->is_split_screen;
       if (closing_split)
         ctx->active = ctx->left;
@@ -527,15 +532,17 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
           ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
           ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
           ctx->right->hide_dot_files = ctx->left->hide_dot_files;
-          ctx->right->saved_focus = FOCUS_TREE;
+          if (!AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE))
+            return FALSE;
           FreeFileEntryList(ctx->right);
         }
       } else {
         FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
         *dir_entry_ptr = GetPanelDirEntry(ctx->active);
-        if (preserve_left_file_state && !donate_active_state)
-          ctx->active->saved_focus = FOCUS_FILE;
+        if (preserve_left_file_state && !donate_active_state &&
+            !AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
+          return FALSE;
         if (ctx->active->saved_focus == FOCUS_FILE) {
           if (ctx->active->file_selection_dir_path[0] != '\0') {
             /*
