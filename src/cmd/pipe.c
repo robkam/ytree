@@ -291,9 +291,18 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   char path[PATH_LENGTH + 1];
   FILE *pipe_fp = NULL;
   FileEntry *fe;
+  const YtreeNovaPanel *active_panel = NULL;
+  BOOL hide_dot_files = FALSE;
   int result = -1;
   int start_dir_fd;
   pid_t child_pid = -1;
+
+  if (!ctx || !dir_entry || !pipe_command)
+    return -1;
+
+  active_panel = ctx->active;
+  hide_dot_files =
+      (active_panel != NULL && active_panel->hide_dot_files) ? TRUE : FALSE;
 
   (void)GetPath(dir_entry, path);
 
@@ -327,7 +336,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
   for (fe = dir_entry->file; fe; fe = fe->next) {
     if (fe->matching) {
-      if (!ctx->hide_dot_files || fe->name[0] != '.') {
+      if (!hide_dot_files || fe->name[0] != '.') {
         fprintf(pipe_fp, "%s\n", fe->name);
       }
     }
