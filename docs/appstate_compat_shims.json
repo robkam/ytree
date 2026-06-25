@@ -30,6 +30,7 @@
         "harness.declared-write-set-diff"
       ],
       "source_boundary_refs": [
+        "src/ui/appstate_focus.c",
         "src/ui/ctrl_file.c",
         "src/ui/ctrl_dir.c"
       ]

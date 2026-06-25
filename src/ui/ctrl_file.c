@@ -14,6 +14,7 @@
 #include "../../include/sort.h"
 #include "../../include/watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
 #include "../../include/ytnova_split_transition.h"
@@ -260,8 +261,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   Statistic *s = &ctx->active->vol->vol_stats;
   char watcher_path[PATH_LENGTH + 1];
 
-  ctx->active->saved_focus = FOCUS_FILE;
-  ctx->focused_window = FOCUS_FILE;
+  if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
+    return ESC;
   ctx->active->saved_big_file_view =
       (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
   if (tracked_file_dir == dir_entry) {

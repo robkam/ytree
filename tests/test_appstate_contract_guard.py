@@ -5671,8 +5671,7 @@ def test_handle_file_window_dispatch_fails_closed_before_file_work() -> None:
     early_return = "return ESC;"
     boundary_calls = [
         'DEBUG_LOG("HandleFileWindow ENTERED',
-        "ctx->focused_window = FOCUS_FILE;",
-        "ctx->active->saved_focus = FOCUS_FILE;",
+        "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)",
         "ctx->active->saved_big_file_view =",
         "BuildFileEntryList(",
         "RefreshView(",
@@ -5724,7 +5723,7 @@ def test_handle_dir_window_dispatch_fails_closed_before_directory_work() -> None
         'DEBUG_LOG("HandleDirWindow:',
         "Layout_Recalculate(",
         "DisplayMenu(",
-        "ctx->focused_window =",
+        "AppStateMirrorActivePanelFocus(ctx)",
         "SyncActivePanelWindows(",
         "ctx->preview_mode = FALSE;",
         "BuildDirEntryList(",
@@ -5940,11 +5939,14 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     display = Path("src/ui/display.c").read_text(encoding="utf-8")
+    focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
 
     assert 'include "ytnova_appstate_actions.h"' in dir_ops
     assert 'include "ytnova_appstate_actions.h"' in ctrl_dir
     assert 'include "ytnova_appstate_actions.h"' in ctrl_file
     assert 'include "ytnova_appstate_actions.h"' in display
+    assert 'include "ytnova_appstate_focus.h"' in ctrl_dir
+    assert 'include "ytnova_appstate_focus.h"' in ctrl_file
 
     assert "shim.viewcontext-hide-dot-files" not in dir_ops
 
@@ -5954,31 +5956,30 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     dir_start = ctrl_dir.index("HandleDirWindow(")
     dir_body = ctrl_dir[dir_start:]
     assert focus_validation in dir_body
-    assert dir_body.index(focus_validation) < dir_body.index("ctx->focused_window =")
+    assert not re.search(r"\bctx->focused_window\s*=[^=]", ctrl_dir)
+    assert "AppStateMirrorActivePanelFocus(ctx)" in dir_body
 
     archive_start = ctrl_dir.index("static BOOL ExitArchiveRootToParent(")
     archive_end = ctrl_dir.index("\nstatic void HandleDirectoryCompare(", archive_start)
     archive_body = ctrl_dir[archive_start:archive_end]
-    assert archive_body.index(
-        "ctx->active->saved_focus = FOCUS_FILE;"
-    ) < archive_body.index(
-        "ctx->focused_window = FOCUS_FILE;"
-    )
-    assert archive_body.index(
-        "ctx->active->saved_focus = FOCUS_TREE;"
-    ) < archive_body.index(
-        "ctx->focused_window = FOCUS_TREE;"
-    )
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in archive_body
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE)" in archive_body
 
     file_start = ctrl_file.index("int HandleFileWindow(")
     file_body = ctrl_file[file_start:]
     assert focus_validation in file_body
-    assert file_body.index(focus_validation) < file_body.index("ctx->focused_window =")
-    assert file_body.index("ctx->active->saved_focus = FOCUS_FILE;") < file_body.index(
-        "ctx->focused_window = FOCUS_FILE;"
-    )
+    assert not re.search(r"\bctx->focused_window\s*=[^=]", ctrl_file)
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in file_body
     assert "if (ctx->active->saved_focus != FOCUS_FILE) {" in file_body
     assert "if (ctx->focused_window != FOCUS_FILE) {" not in file_body
+
+    helper_validation = (
+        'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'
+    )
+    assert helper_validation in focus_helper
+    assert focus_helper.index(helper_validation) < focus_helper.index(
+        "ctx->focused_window ="
+    )
 
     refresh_start = display.index("void RefreshView(")
     refresh_body = display[refresh_start:]
