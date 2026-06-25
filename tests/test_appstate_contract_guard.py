@@ -6023,6 +6023,17 @@ def test_split_file_focus_commits_use_appstate_helper() -> None:
     assert "AppStateMirrorActivePanelFocus(ctx)" in body
 
 
+def test_split_directory_focus_commits_use_appstate_helper() -> None:
+    source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+    start = source.index("BOOL SplitTransition_HandleDirWindowAction(")
+    body = source[start:]
+
+    assert 'include "ytnova_appstate_focus.h"' in source
+    assert not re.search(r"\bctx->focused_window\s*=[^=]", body)
+    assert "AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus)" in body
+    assert body.count("AppStateMirrorActivePanelFocus(ctx)") >= 2
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (
