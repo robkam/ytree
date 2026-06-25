@@ -1,0 +1,32 @@
+/***************************************************************************
+ *
+ * src/ui/appstate_focus.c
+ * Focus transition commits for AppState compatibility boundaries.
+ *
+ ***************************************************************************/
+
+#define NO_YTNOVA_MACROS
+
+#include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
+
+BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
+                              ViewFocus focus) {
+  if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
+    return FALSE;
+  if (!ctx || !panel)
+    return FALSE;
+  if (focus != FOCUS_TREE && focus != FOCUS_FILE)
+    return FALSE;
+
+  panel->saved_focus = focus;
+  if (ctx->active == panel)
+    ctx->focused_window = focus;
+  return TRUE;
+}
+
+BOOL AppStateMirrorActivePanelFocus(ViewContext *ctx) {
+  if (!ctx || !ctx->active)
+    return FALSE;
+  return AppStateCommitPanelFocus(ctx, ctx->active, ctx->active->saved_focus);
+}
