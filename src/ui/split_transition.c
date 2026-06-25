@@ -555,7 +555,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         flushinp();
       }
 
-      ctx->focused_window = preserved_focus;
+      if (!AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus))
+        return FALSE;
       *start_vol_ptr = ctx->active->vol;
       *s_ptr = &ctx->active->vol->vol_stats;
       RefreshView(ctx, *dir_entry_ptr);
@@ -587,7 +588,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         ctx->active = ctx->left;
       }
 
-      ctx->focused_window = ctx->active->saved_focus;
+      if (!AppStateMirrorActivePanelFocus(ctx))
+        return FALSE;
       *start_vol_ptr = ctx->active->vol;
       *s_ptr = &ctx->active->vol->vol_stats;
       PanelTags_ApplyToTree(ctx, ctx->active);
@@ -633,7 +635,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         *dir_entry_ptr = (*s_ptr)->tree;
         DEBUG_LOG("DirPanelAction:switch:restore returned null; fallback tree");
       }
-      ctx->focused_window = ctx->active->saved_focus;
+      if (!AppStateMirrorActivePanelFocus(ctx))
+        return FALSE;
       if (*dir_entry_ptr) {
         DEBUG_LOG("DirPanelAction:switch:before_refresh dir='%s'",
                   (*dir_entry_ptr)->name ? (*dir_entry_ptr)->name : "<nullname>");
@@ -659,7 +662,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       ctx->active = ctx->left;
     }
 
-    ctx->focused_window = ctx->active->saved_focus;
+    if (!AppStateMirrorActivePanelFocus(ctx))
+      return FALSE;
     *start_vol_ptr = ctx->active->vol;
     *s_ptr = &ctx->active->vol->vol_stats;
     PanelTags_ApplyToTree(ctx, ctx->active);
@@ -704,7 +708,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       *dir_entry_ptr = (*s_ptr)->tree;
       DEBUG_LOG("DirPanelAction:switch:restore returned null; fallback tree");
     }
-    ctx->focused_window = ctx->active->saved_focus;
+    if (!AppStateMirrorActivePanelFocus(ctx))
+      return FALSE;
     if (*dir_entry_ptr) {
       DEBUG_LOG("DirPanelAction:switch:before_refresh dir='%s'",
                 (*dir_entry_ptr)->name ? (*dir_entry_ptr)->name : "<nullname>");
