@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include <assert.h>
@@ -297,8 +298,9 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
                                       (ViewFocus)panel->vol->saved_focus))
           return -1;
         state = FindPanelVolumeFileState(panel, panel->vol->id);
-        if (state)
-          panel->panel_generation = state->saved_tree_panel_generation;
+        if (state && !AppStateRestorePanelGeneration(
+                         panel, state->saved_tree_panel_generation))
+          return -1;
         ctx->global_search_term[0] = '\0';
         ctx->view_mode = panel->vol->vol_stats.log_mode;
 

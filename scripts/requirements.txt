@@ -6,13 +6,13 @@
 #
 annotated-types==0.7.0
     # via pydantic
-certifi==2026.5.20
+certifi==2026.6.17
     # via requests
 cffi==2.0.0
     # via cryptography
 charset-normalizer==3.4.7
     # via requests
-cryptography==48.0.1
+cryptography==49.0.0
     # via google-auth
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
@@ -21,9 +21,9 @@ google-api-core[grpc]==2.31.0
     #   google-ai-generativelanguage
     #   google-api-python-client
     #   google-generativeai
-google-api-python-client==2.197.0
+google-api-python-client==2.198.0
     # via google-generativeai
-google-auth==2.53.0
+google-auth==2.55.1
     # via
     #   google-ai-generativelanguage
     #   google-api-core
@@ -33,18 +33,18 @@ google-auth==2.53.0
 google-auth-httplib2==0.4.0
     # via google-api-python-client
 google-generativeai==0.8.6
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 googleapis-common-protos==1.75.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.81.0
+grpcio==1.81.1
     # via
     #   google-api-core
     #   grpcio-status
 grpcio-status==1.71.2
     # via google-api-core
-httplib2==0.31.2
+httplib2==0.32.0
     # via
     #   google-api-python-client
     #   google-auth-httplib2
@@ -57,11 +57,11 @@ nexus-rpc==1.4.0
 packaging==26.2
     # via pytest
 pexpect==4.9.0
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 pluggy==1.6.0
     # via pytest
 prompt-toolkit==3.0.52
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 proto-plus==1.28.0
     # via
     #   google-ai-generativelanguage
@@ -92,14 +92,14 @@ pygments==2.20.0
 pyparsing==3.3.2
     # via httplib2
 pyte==0.8.2
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 pytest==9.1.1
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 requests==2.34.2
     # via google-api-core
 temporalio==1.29.0
-    # via -r requirements.in
-tqdm==4.68.1
+    # via -r scripts/requirements.in
+tqdm==4.68.3
     # via google-generativeai
 types-protobuf==6.32.1.20260221
     # via temporalio
@@ -118,7 +118,7 @@ uritemplate==4.2.0
     # via google-api-python-client
 urllib3==2.7.0
     # via requests
-wcwidth==0.8.0
+wcwidth==0.8.1
     # via
     #   prompt-toolkit
     #   pyte

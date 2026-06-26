@@ -5349,6 +5349,7 @@ int AppStateValidatedGenerationDomain(const char *domain_id) {
 }
 
 #include "src/ui/appstate_focus.c"
+#include "src/ui/appstate_panel.c"
 #include "src/ui/appstate_session.c"
 #include "src/ui/appstate_visibility.c"
 #include "src/ui/split_transition.c"
@@ -6181,6 +6182,54 @@ def test_panel_anchor_viewport_generation_commits_through_appstate_helper() -> N
     assert "panel->panel_generation++;" not in restore_body
     assert position_body.count("AppStateCommitPanelGeneration(panel)") == 1
     assert restore_body.count("AppStateCommitPanelGeneration(panel)") == 1
+
+
+def test_panel_generation_restores_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+
+    assert "BOOL AppStateRestorePanelGeneration(" in header
+    assert 'include "ytnova_appstate_panel.h"' in log_source
+    assert 'include "ytnova_appstate_panel.h"' in split_transition
+
+    helper_start = helper.index("BOOL AppStateRestorePanelGeneration(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
+    generation_restore = "panel->panel_generation = panel_generation;"
+    assert validation in helper_body
+    assert generation_restore in helper_body
+    assert helper_body.index(validation) < helper_body.index(generation_restore)
+
+    log_start = log_source.index("int LogDisk(")
+    log_end = log_source.index("\nint GetNewLogPath(", log_start)
+    log_body = log_source[log_start:log_end]
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index(
+        "\nDirEntry *FindDirByPathInTree(", donate_start
+    )
+    donate_body = panel_anchor[donate_start:donate_end]
+    split_start = split_transition.index(
+        "BOOL SplitTransition_HandleDirWindowAction("
+    )
+    split_body = split_transition[split_start:]
+
+    assert (
+        "panel->panel_generation = state->saved_tree_panel_generation;"
+        not in log_body
+    )
+    assert "dst->panel_generation = src->panel_generation;" not in donate_body
+    assert "dst->panel_generation = dst_panel_generation;" not in donate_body
+    assert "ctx->left->panel_generation = source_panel_generation;" not in split_body
+    assert log_body.count("AppStateRestorePanelGeneration(") == 1
+    assert "state->saved_tree_panel_generation" in log_body
+    assert donate_body.count("AppStateRestorePanelGeneration(dst,") == 2
+    assert split_body.count("AppStateRestorePanelGeneration(") == 1
+    assert "source_panel_generation" in split_body
 
 
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:

@@ -19,3 +19,14 @@ BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel) {
   panel->panel_generation++;
   return TRUE;
 }
+
+BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
+                                    unsigned int panel_generation) {
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->panel_generation = panel_generation;
+  return TRUE;
+}

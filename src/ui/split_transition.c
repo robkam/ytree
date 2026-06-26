@@ -9,6 +9,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
@@ -510,7 +511,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         ctx->left->cursor_pos = source_cursor_pos;
         ctx->left->disp_begin_pos = source_disp_begin_pos;
         ctx->left->current_dir_entry = source_current_dir_entry;
-        ctx->left->panel_generation = source_panel_generation;
+        if (!AppStateRestorePanelGeneration(ctx->left,
+                                            source_panel_generation))
+          return FALSE;
         if (!AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE))
           return FALSE;
       }
