@@ -8,6 +8,7 @@
 #define NO_YTNOVA_MACROS
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -68,7 +69,8 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
 
   if (!panel->file_entry_list || panel->file_count == 0) {
     panel->file_selection_name[0] = '\0';
-    panel->panel_generation++;
+    if (!AppStateCommitPanelGeneration(panel))
+      return;
     return;
   }
 
@@ -87,7 +89,8 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
                    sizeof(panel->file_selection_name), "%s",
                    selected_file->name);
   }
-  panel->panel_generation++;
+  if (!AppStateCommitPanelGeneration(panel))
+    return;
 }
 
 static void DebugLogFilePanelState(const char *label, const YtreeNovaPanel *panel);
