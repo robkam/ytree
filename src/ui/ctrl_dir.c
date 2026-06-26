@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_session.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -476,8 +477,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   de_ptr = NULL;
 
   /* Safety fallback if Init() has not set up panels */
-  if (ctx->active == NULL)
-    ctx->active = ctx->left;
+  if (ctx->active == NULL &&
+      !AppStateCommitActivePanel(ctx, ctx->left))
+    return ESC;
   if (ctx->active == NULL || ctx->active->vol == NULL)
     return ESC;
 

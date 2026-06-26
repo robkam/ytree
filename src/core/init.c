@@ -10,6 +10,7 @@
 
 #include "ytnova_defs.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_session.h"
 #include "ytnova_debug.h"
 #include "default_profile_template.h"
 #include <fcntl.h>
@@ -378,8 +379,8 @@ void InitView(ViewContext *ctx) {
   ctx->right->file_dir_entry = NULL;
   ctx->right->hide_dot_files = FALSE;
 
-  ctx->active = ctx->left;
-  if (!AppStateCommitPanelFileShape(ctx->left, FALSE) ||
+  if (!AppStateCommitActivePanel(ctx, ctx->left) ||
+      !AppStateCommitPanelFileShape(ctx->left, FALSE) ||
       !AppStateCommitPanelFileShape(ctx->right, FALSE) ||
       !AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE) ||
       !AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE)) {
@@ -443,8 +444,9 @@ void ReCreateWindows(ViewContext *ctx) {
   DEBUG_LOG("ENTER ReCreateWindows");
   if (ctx == NULL || ctx->left == NULL || ctx->right == NULL)
     return;
-  if (ctx->active == NULL)
-    ctx->active = ctx->left;
+  if (ctx->active == NULL &&
+      !AppStateCommitActivePanel(ctx, ctx->left))
+    return;
   /* 1. Recalculate Layout based on current SplitScreen state */
   Layout_Recalculate(ctx);
 
@@ -583,8 +585,9 @@ void ReCreateWindows(ViewContext *ctx) {
   }
 
   /* 6. Sync ctx->active Pointers */
-  if (ctx->active == NULL)
-    ctx->active = ctx->left;
+  if (ctx->active == NULL &&
+      !AppStateCommitActivePanel(ctx, ctx->left))
+    return;
 
   if (ctx->active == ctx->left) {
     ctx->active->pan_dir_window = ctx->left->pan_dir_window;
@@ -604,7 +607,8 @@ void ReCreateWindows(ViewContext *ctx) {
   } else {
     /* Fallback if something went wrong (e.g. RightPanel active but
      * SplitScreen/Preview disabled) */
-    ctx->active = ctx->left;
+    if (!AppStateCommitActivePanel(ctx, ctx->left))
+      return;
     ctx->active->pan_dir_window = ctx->left->pan_dir_window;
     ctx->active->pan_small_file_window = ctx->left->pan_small_file_window;
     ctx->active->pan_big_file_window = ctx->left->pan_big_file_window;
@@ -726,7 +730,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
 
   /* Initial Panel Defaults */
   ctx->is_split_screen = FALSE;
-  ctx->active = ctx->left;
+  if (!AppStateCommitActivePanel(ctx, ctx->left))
+    return -1;
   /* Explicitly initialize panel file lists to zero */
   ctx->left->file_entry_list = NULL;
   ctx->left->file_entry_list_capacity = 0;
@@ -746,7 +751,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
   /* Allocate and initialize the first volume using the dedicated module */
   struct Volume *initial_vol = Volume_Create(ctx);
   /* Assign initial volume to ActivePanel */
-  ctx->active = ctx->left; /* Default active panel */
+  if (!AppStateCommitActivePanel(ctx, ctx->left))
+    return -1;
   ctx->active->vol = initial_vol;
 
   ctx->show_stats = TRUE;
