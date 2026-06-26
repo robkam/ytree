@@ -5343,8 +5343,14 @@ int AppStateValidatedOwnerField(const char *field) {
   return fake_mode != 5;
 }
 
+int AppStateValidatedGenerationDomain(const char *domain_id) {
+  (void)domain_id;
+  return fake_mode != 6;
+}
+
 #include "src/ui/appstate_focus.c"
 #include "src/ui/appstate_session.c"
+#include "src/ui/appstate_visibility.c"
 #include "src/ui/split_transition.c"
 
 void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
@@ -5957,8 +5963,10 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     )
     helper = Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
 
     assert 'include "ytnova_appstate_visibility.h"' in dir_ops
+    assert 'include "ytnova_appstate_visibility.h"' in split_transition
     assert "AppStateCommitPanelVisibilityFilter" in header
 
     helper_start = helper.index("BOOL AppStateCommitPanelVisibilityFilter(")
@@ -6004,6 +6012,13 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     )
     assert toggle_body.index(commit_call) < toggle_body.index(
         "BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);"
+    )
+
+    assert "ctx->right->hide_dot_files = ctx->left->hide_dot_files;" not in split_transition
+    assert re.search(
+        r"AppStateCommitPanelVisibilityFilter\(\s*ctx->right,\s*"
+        r"ctx->left->hide_dot_files\s*\)",
+        split_transition,
     )
 
 
