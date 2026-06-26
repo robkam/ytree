@@ -6029,10 +6029,14 @@ def test_active_panel_session_commits_through_appstate_helper() -> None:
         encoding="utf-8"
     )
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
 
     assert "AppStateCommitActivePanel" in header
     assert 'include "ytnova_appstate_session.h"' in split_transition
     assert 'include "ytnova_appstate_session.h"' in ctrl_file_ops
+    assert 'include "ytnova_appstate_session.h"' in init_source
+    assert 'include "ytnova_appstate_session.h"' in ctrl_dir
 
     helper_start = helper.index("BOOL AppStateCommitActivePanel(")
     helper_body = helper[helper_start:]
@@ -6046,7 +6050,7 @@ def test_active_panel_session_commits_through_appstate_helper() -> None:
     assert helper_body.index(validation) < helper_body.index(active_write)
     assert helper_body.index(membership_check) < helper_body.index(active_write)
 
-    for source in [split_transition, ctrl_file_ops]:
+    for source in [split_transition, ctrl_file_ops, init_source, ctrl_dir]:
         assert not re.search(r"\bctx->active\s*=[^=]", source)
 
     file_split_start = split_transition.index(
@@ -6076,6 +6080,22 @@ def test_active_panel_session_commits_through_appstate_helper() -> None:
     assert preview_body.index(preview_commit) < preview_body.index(
         "AppStateCommitPanelFocus(ctx, ctx->active, ctx->preview_return_focus)"
     )
+
+    init_view_start = init_source.index("void InitView(")
+    init_view_end = init_source.index("\nvoid CoreMainOps_Register(", init_view_start)
+    init_view_body = init_source[init_view_start:init_view_end]
+    init_start = init_source.index("int Init(")
+    init_body = init_source[init_start:]
+    recreate_start = init_source.index("void ReCreateWindows(")
+    recreate_end = init_source.index("\nvoid ShutdownCurses(", recreate_start)
+    recreate_body = init_source[recreate_start:recreate_end]
+    dir_start = ctrl_dir.index("HandleDirWindow(")
+    dir_body = ctrl_dir[dir_start:]
+
+    assert "AppStateCommitActivePanel(ctx, ctx->left)" in init_view_body
+    assert init_body.count("AppStateCommitActivePanel(ctx, ctx->left)") >= 2
+    assert "AppStateCommitActivePanel(ctx, ctx->left)" in recreate_body
+    assert "AppStateCommitActivePanel(ctx, ctx->left)" in dir_body
 
 
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
@@ -6250,12 +6270,16 @@ def test_initial_focus_commits_use_appstate_helper() -> None:
     assert not re.search(r"\bctx->focused_window\s*=", init_body)
     assert not re.search(r"\bctx->left->saved_focus\s*=", init_body)
     assert not re.search(r"\bctx->right->saved_focus\s*=", init_body)
-    assert "ctx->active = ctx->left;" in init_body
+    assert "AppStateCommitActivePanel(ctx, ctx->left)" in init_body
     assert "AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE)" in init_body
     assert "AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE)" in init_body
-    assert init_body.index("ctx->active = ctx->left;") < init_body.index(
+    active_commit_index = init_body.index(
+        "AppStateCommitActivePanel(ctx, ctx->left)"
+    )
+    focus_commit_index = init_body.index(
         "AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE)"
     )
+    assert active_commit_index < focus_commit_index
 
 
 def test_volume_focus_mirrors_use_appstate_helper() -> None:
