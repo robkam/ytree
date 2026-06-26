@@ -12,5 +12,7 @@
 
 BOOL AppStateCommitPanelVisibilityFilter(YtreeNovaPanel *panel,
                                          BOOL hide_dot_files);
+BOOL AppStateSeedPanelVisibilityFilter(YtreeNovaPanel *panel,
+                                       BOOL hide_dot_files);
 
 #endif /* YTNOVA_APPSTATE_VISIBILITY_H */
