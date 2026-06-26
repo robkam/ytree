@@ -5963,16 +5963,22 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     )
     helper = Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
+    assert 'include "ytnova_appstate_visibility.h"' in init_source
     assert 'include "ytnova_appstate_visibility.h"' in dir_ops
     assert 'include "ytnova_appstate_visibility.h"' in split_transition
     assert 'include "ytnova_appstate_visibility.h"' in panel_anchor
     assert "AppStateCommitPanelVisibilityFilter" in header
+    assert "AppStateSeedPanelVisibilityFilter" in header
 
     helper_start = helper.index("BOOL AppStateCommitPanelVisibilityFilter(")
-    helper_body = helper[helper_start:]
+    helper_end = helper.index("\nBOOL AppStateSeedPanelVisibilityFilter(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    seed_start = helper.index("BOOL AppStateSeedPanelVisibilityFilter(")
+    seed_body = helper[seed_start:]
     domain_validation = (
         'AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume")'
     )
@@ -5997,6 +6003,25 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     assert helper_body.index(volume_owner_validation) < helper_body.index(panel_write)
     assert helper_body.index(panel_write) < helper_body.index(panel_generation)
     assert helper_body.index(panel_generation) < helper_body.index(volume_generation)
+
+    assert (
+        'AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume")'
+        in seed_body
+    )
+    assert 'AppStateValidatedOwnerField("panel.panel_generation")' in seed_body
+    assert 'AppStateValidatedOwnerField("volume.volume_generation")' not in seed_body
+    assert "panel->hide_dot_files = hide_dot_files ? TRUE : FALSE;" in seed_body
+    assert "panel->panel_generation++;" not in seed_body
+    assert "panel->vol->volume_generation++;" not in seed_body
+
+    assert "ctx->left->hide_dot_files = FALSE;" not in init_source
+    assert "ctx->right->hide_dot_files = FALSE;" not in init_source
+    assert "ctx->left->hide_dot_files = hide_dot_files;" not in init_source
+    assert "ctx->right->hide_dot_files = hide_dot_files;" not in init_source
+    assert "AppStateSeedPanelVisibilityFilter(ctx->left, FALSE)" in init_source
+    assert "AppStateSeedPanelVisibilityFilter(ctx->right, FALSE)" in init_source
+    assert "AppStateSeedPanelVisibilityFilter(ctx->left, hide_dot_files)" in init_source
+    assert "AppStateSeedPanelVisibilityFilter(ctx->right, hide_dot_files)" in init_source
 
     toggle_start = dir_ops.index("void ToggleDotFiles(")
     toggle_end = dir_ops.index("\nDirEntry *RefreshTreeSafe(", toggle_start)

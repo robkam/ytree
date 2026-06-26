@@ -11,6 +11,7 @@
 #include "ytnova_defs.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_session.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_debug.h"
 #include "default_profile_template.h"
 #include <fcntl.h>
@@ -364,7 +365,12 @@ void InitView(ViewContext *ctx) {
   ctx->left->file_mode = MODE_1;
   ctx->left->file_cursor_pos = 0;
   ctx->left->file_dir_entry = NULL;
-  ctx->left->hide_dot_files = FALSE;
+  if (!AppStateSeedPanelVisibilityFilter(ctx->left, FALSE)) {
+    fprintf(stderr, "InitView: failed to initialize left panel visibility\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
 
   ctx->right = (YtreeNovaPanel *)calloc(1, sizeof(YtreeNovaPanel));
   if (ctx->right == NULL) {
@@ -377,7 +383,14 @@ void InitView(ViewContext *ctx) {
   ctx->right->file_mode = MODE_1;
   ctx->right->file_cursor_pos = 0;
   ctx->right->file_dir_entry = NULL;
-  ctx->right->hide_dot_files = FALSE;
+  if (!AppStateSeedPanelVisibilityFilter(ctx->right, FALSE)) {
+    fprintf(stderr, "InitView: failed to initialize right panel visibility\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
 
   if (!AppStateCommitActivePanel(ctx, ctx->left) ||
       !AppStateCommitPanelFileShape(ctx->left, FALSE) ||
@@ -901,8 +914,9 @@ int Init(ViewContext *ctx, const char *configuration_file,
         (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0))
             ? TRUE
             : FALSE;
-    ctx->left->hide_dot_files = hide_dot_files;
-    ctx->right->hide_dot_files = hide_dot_files;
+    if (!AppStateSeedPanelVisibilityFilter(ctx->left, hide_dot_files) ||
+        !AppStateSeedPanelVisibilityFilter(ctx->right, hide_dot_files))
+      return -1;
   }
   ctx->animation_method =
       strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);

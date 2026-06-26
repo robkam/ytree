@@ -26,3 +26,16 @@ BOOL AppStateCommitPanelVisibilityFilter(YtreeNovaPanel *panel,
   panel->vol->volume_generation++;
   return TRUE;
 }
+
+BOOL AppStateSeedPanelVisibilityFilter(YtreeNovaPanel *panel,
+                                       BOOL hide_dot_files) {
+  if (!AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume"))
+    return FALSE;
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->hide_dot_files = hide_dot_files ? TRUE : FALSE;
+  return TRUE;
+}
