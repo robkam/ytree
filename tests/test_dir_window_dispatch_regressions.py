@@ -284,7 +284,8 @@ def test_restore_snapshots_validate_generation_before_reuse():
         in panel_anchor_source
     )
 
-    assert "panel->panel_generation++;" in panel_anchor_source, panel_anchor_source
+    assert 'include "ytnova_appstate_panel.h"' in panel_anchor_source
+    assert "AppStateCommitPanelGeneration(panel)" in panel_anchor_source
     assert "dst->panel_generation = src->panel_generation;" in panel_anchor_source
 
     assert "AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)" in dir_ops_source

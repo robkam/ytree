@@ -6161,6 +6161,28 @@ def test_file_selection_anchor_generation_commits_through_appstate_helper() -> N
     assert capture_body.count("AppStateCommitPanelGeneration(panel)") == 2
 
 
+def test_panel_anchor_viewport_generation_commits_through_appstate_helper() -> None:
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_panel.h"' in panel_anchor
+
+    position_start = panel_anchor.index("void PositionPanelAtIndex(")
+    position_end = panel_anchor.index(
+        "\nstatic BOOL VisibleIndexWithinTopPath(", position_start
+    )
+    position_body = panel_anchor[position_start:position_end]
+    restore_start = panel_anchor.index("BOOL RestorePanelViewportSnapshot(")
+    restore_end = panel_anchor.index(
+        "\nBOOL RestorePanelTreeViewportSnapshot(", restore_start
+    )
+    restore_body = panel_anchor[restore_start:restore_end]
+
+    assert "panel->panel_generation++;" not in position_body
+    assert "panel->panel_generation++;" not in restore_body
+    assert position_body.count("AppStateCommitPanelGeneration(panel)") == 1
+    assert restore_body.count("AppStateCommitPanelGeneration(panel)") == 1
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")

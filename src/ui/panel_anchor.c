@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -378,7 +379,8 @@ void PositionPanelAtIndex(YtreeNovaPanel *panel, int idx) {
   panel->disp_begin_pos = begin;
   panel->cursor_pos = cursor;
   RememberPanelViewportTop(panel);
-  panel->panel_generation++;
+  if (!AppStateCommitPanelGeneration(panel))
+    return;
 }
 
 static BOOL VisibleIndexWithinTopPath(const struct Volume *vol,
@@ -478,7 +480,8 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
   }
 
   RememberPanelViewportTop(panel);
-  panel->panel_generation++;
+  if (!AppStateCommitPanelGeneration(panel))
+    return FALSE;
   return TRUE;
 }
 
