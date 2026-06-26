@@ -6105,6 +6105,24 @@ def test_split_seeded_focus_commits_use_appstate_helper() -> None:
     assert not re.search(r"\bctx->active->saved_focus\s*=(?!=)", dir_body)
 
 
+def test_initial_focus_commits_use_appstate_helper() -> None:
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    init_start = init_source.index("void InitView(")
+    init_end = init_source.index("\nvoid CoreMainOps_Register(", init_start)
+    init_body = init_source[init_start:init_end]
+
+    assert 'include "ytnova_appstate_focus.h"' in init_source
+    assert not re.search(r"\bctx->focused_window\s*=", init_body)
+    assert not re.search(r"\bctx->left->saved_focus\s*=", init_body)
+    assert not re.search(r"\bctx->right->saved_focus\s*=", init_body)
+    assert "ctx->active = ctx->left;" in init_body
+    assert "AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE)" in init_body
+    assert "AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE)" in init_body
+    assert init_body.index("ctx->active = ctx->left;") < init_body.index(
+        "AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE)"
+    )
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (

@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 #include "ytnova_defs.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_debug.h"
 #include "default_profile_template.h"
 #include <fcntl.h>
@@ -351,7 +352,6 @@ void InitView(ViewContext *ctx) {
   ctx->view_mode = DISK_MODE;
   ctx->dir_mode = MODE_3;
   ctx->is_split_screen = FALSE;
-  ctx->focused_window = FOCUS_TREE;
 
   /* Initialize Panels */
   ctx->left = (YtreeNovaPanel *)calloc(1, sizeof(YtreeNovaPanel));
@@ -361,7 +361,6 @@ void InitView(ViewContext *ctx) {
   }
   DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
   ctx->left->file_mode = MODE_1;
-  ctx->left->saved_focus = FOCUS_TREE;
   ctx->left->file_cursor_pos = 0;
   ctx->left->file_dir_entry = NULL;
   ctx->left->saved_big_file_view = FALSE;
@@ -376,13 +375,21 @@ void InitView(ViewContext *ctx) {
   }
   DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
   ctx->right->file_mode = MODE_1;
-  ctx->right->saved_focus = FOCUS_TREE;
   ctx->right->file_cursor_pos = 0;
   ctx->right->file_dir_entry = NULL;
   ctx->right->saved_big_file_view = FALSE;
   ctx->right->hide_dot_files = FALSE;
 
   ctx->active = ctx->left;
+  if (!AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE) ||
+      !AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE)) {
+    fprintf(stderr, "InitView: failed to initialize panel focus\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
 
   DEBUG_LOG("EXIT InitView");
 }
