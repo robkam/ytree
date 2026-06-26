@@ -5964,9 +5964,11 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     assert 'include "ytnova_appstate_visibility.h"' in dir_ops
     assert 'include "ytnova_appstate_visibility.h"' in split_transition
+    assert 'include "ytnova_appstate_visibility.h"' in panel_anchor
     assert "AppStateCommitPanelVisibilityFilter" in header
 
     helper_start = helper.index("BOOL AppStateCommitPanelVisibilityFilter(")
@@ -6019,6 +6021,16 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
         r"AppStateCommitPanelVisibilityFilter\(\s*ctx->right,\s*"
         r"ctx->left->hide_dot_files\s*\)",
         split_transition,
+    )
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    assert "dst->hide_dot_files = src->hide_dot_files;" not in donate_body
+    assert re.search(
+        r"AppStateCommitPanelVisibilityFilter\(\s*dst,\s*"
+        r"src->hide_dot_files\s*\)",
+        donate_body,
     )
 
 

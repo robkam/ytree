@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
@@ -700,7 +701,6 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   dst->max_visual_linkname_len = src->max_visual_linkname_len;
   dst->max_visual_userview_len = src->max_visual_userview_len;
   dst->reverse_sort = src->reverse_sort;
-  dst->hide_dot_files = src->hide_dot_files;
   (void)snprintf(dst->file_selection_name, sizeof(dst->file_selection_name),
                  "%s", src->file_selection_name);
   (void)snprintf(dst->file_selection_dir_path,
@@ -747,6 +747,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     FreePanelVolumeFileState(dst->volume_file_state);
     dst->volume_file_state = volume_file_state;
   }
+  if (!AppStateCommitPanelVisibilityFilter(dst, src->hide_dot_files))
+    return FALSE;
   RestorePanelAnchorPath(dst->vol, dst, file_dir_path);
   return TRUE;
 }
