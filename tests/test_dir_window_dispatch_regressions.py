@@ -286,7 +286,9 @@ def test_restore_snapshots_validate_generation_before_reuse():
 
     assert 'include "ytnova_appstate_panel.h"' in panel_anchor_source
     assert "AppStateCommitPanelGeneration(panel)" in panel_anchor_source
-    assert "dst->panel_generation = src->panel_generation;" in panel_anchor_source
+    assert "AppStateRestorePanelGeneration(dst, src->panel_generation)" in (
+        panel_anchor_source
+    )
 
     assert "AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)" in dir_ops_source
     assert "panel->panel_generation++;" in visibility_source, visibility_source
@@ -351,7 +353,9 @@ def test_log_disk_restore_does_not_use_volume_tree_breadcrumbs():
     log_disk_source = _log_disk_source()
     reset_snapshot_source = _reset_panel_tree_viewport_snapshot_source()
 
-    assert "panel->panel_generation = state->saved_tree_panel_generation;" in (
+    assert "AppStateRestorePanelGeneration(" in log_disk_source
+    assert "state->saved_tree_panel_generation" in log_disk_source
+    assert "panel->panel_generation = state->saved_tree_panel_generation;" not in (
         log_disk_source
     )
     assert "panel->vol->saved_tree_generation" not in log_disk_source

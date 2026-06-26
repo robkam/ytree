@@ -11,5 +11,7 @@
 #include "ytnova_defs.h"
 
 BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel);
+BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
+                                    unsigned int panel_generation);
 
 #endif /* YTNOVA_APPSTATE_PANEL_H */
