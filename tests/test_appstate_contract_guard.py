@@ -6123,6 +6123,29 @@ def test_initial_focus_commits_use_appstate_helper() -> None:
     )
 
 
+def test_volume_focus_mirrors_use_appstate_helper() -> None:
+    focus_header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
+    focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+    volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitVolumeFocusMirror(" in focus_header
+    assert "AppStateCommitVolumeFocusMirror" in focus_helper
+
+    volume_start = volume_source.index("struct Volume *Volume_Create(")
+    volume_end = volume_source.index("\nvoid Volume_Delete(", volume_start)
+    volume_body = volume_source[volume_start:volume_end]
+    assert 'include "ytnova_appstate_focus.h"' in volume_source
+    assert "AppStateCommitVolumeFocusMirror(new_vol, FOCUS_TREE)" in volume_body
+    assert "new_vol->saved_focus = FOCUS_TREE" not in volume_body
+
+    log_start = log_source.index("int LogDisk(")
+    log_end = log_source.index("\nint GetNewLogPath(", log_start)
+    log_body = log_source[log_start:log_end]
+    assert "AppStateCommitVolumeFocusMirror(panel->vol, panel->saved_focus)" in log_body
+    assert "panel->vol->saved_focus = panel->saved_focus" not in log_body
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (
