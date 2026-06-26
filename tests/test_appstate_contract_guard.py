@@ -5351,6 +5351,7 @@ int AppStateValidatedGenerationDomain(const char *domain_id) {
 #include "src/ui/appstate_focus.c"
 #include "src/ui/appstate_panel.c"
 #include "src/ui/appstate_session.c"
+#include "src/ui/appstate_volume.c"
 #include "src/ui/appstate_visibility.c"
 #include "src/ui/split_transition.c"
 
@@ -5987,7 +5988,7 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     volume_owner_validation = 'AppStateValidatedOwnerField("volume.volume_generation")'
     panel_write = "panel->hide_dot_files = hide_dot_files ? TRUE : FALSE;"
     panel_generation = "panel->panel_generation++;"
-    volume_generation = "panel->vol->volume_generation++;"
+    volume_generation = "AppStateCommitVolumeGeneration(panel->vol)"
 
     for required in [
         domain_validation,
@@ -6230,6 +6231,31 @@ def test_panel_generation_restores_route_through_appstate_helper() -> None:
     assert donate_body.count("AppStateRestorePanelGeneration(dst,") == 2
     assert split_body.count("AppStateRestorePanelGeneration(") == 1
     assert "source_panel_generation" in split_body
+
+
+def test_volume_generation_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    visibility = Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitVolumeGeneration(" in header
+    assert 'include "ytnova_appstate_volume.h"' in visibility
+    assert 'include "ytnova_appstate_volume.h"' in dir_ops
+
+    helper_start = helper.index("BOOL AppStateCommitVolumeGeneration(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("volume.volume_generation")'
+    generation_write = "volume->volume_generation++;"
+    assert validation in helper_body
+    assert generation_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(generation_write)
+
+    assert "panel->vol->volume_generation++;" not in visibility
+    assert "AppStateCommitVolumeGeneration(panel->vol)" in visibility
+    assert "p->vol->volume_generation++;" not in dir_ops
+    assert "ctx->active->vol->volume_generation++;" not in dir_ops
+    assert dir_ops.count("AppStateCommitVolumeGeneration(") == 4
 
 
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
@@ -6527,7 +6553,7 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
         "ClearHelp(ctx);",
         "CaptureInactiveFallback(",
         "MakeDirectory(ctx,",
-        "volume_generation++",
+        "AppStateCommitVolumeGeneration(",
         "BuildDirEntryList(",
         "ReanchorPanelToDir(",
         "RefreshView(",
@@ -6548,7 +6574,7 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
         "CaptureInactiveFallbackSnapshot(",
         "CapturePanelViewportSnapshot(",
         "DeleteDirectory(ctx,",
-        "volume_generation++",
+        "AppStateCommitVolumeGeneration(",
         "BuildDirEntryList(",
         "RestorePanelViewportSnapshot(",
         "ReanchorPanelToDir(",
@@ -6568,7 +6594,7 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
     for call in [
         "GetRenameParameter(",
         "RenameDirectory(ctx,",
-        "volume_generation++",
+        "AppStateCommitVolumeGeneration(",
         "BuildDirEntryList(",
         "RefreshView(",
     ]:

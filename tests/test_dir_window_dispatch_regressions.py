@@ -292,8 +292,8 @@ def test_restore_snapshots_validate_generation_before_reuse():
 
     assert "AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)" in dir_ops_source
     assert "panel->panel_generation++;" in visibility_source, visibility_source
-    assert "panel->vol->volume_generation++;" in visibility_source, visibility_source
-    assert "ctx->active->vol->volume_generation++;" in dir_ops_source, dir_ops_source
+    assert "AppStateCommitVolumeGeneration(panel->vol)" in visibility_source
+    assert "AppStateCommitVolumeGeneration(ctx->active->vol)" in dir_ops_source
 
 
 def test_volume_tree_restore_uses_panel_path_snapshot_before_index_breadcrumb():
