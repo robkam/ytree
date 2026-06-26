@@ -25,6 +25,16 @@ BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelFileShape(YtreeNovaPanel *panel, BOOL big_file_view) {
+  if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->saved_big_file_view = big_file_view ? TRUE : FALSE;
+  return TRUE;
+}
+
 BOOL AppStateCommitVolumeFocusMirror(struct Volume *volume, ViewFocus focus) {
   if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
     return FALSE;

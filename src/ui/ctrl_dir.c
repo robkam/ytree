@@ -381,13 +381,15 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
     (*dir_entry_ptr)->cursor_pos = file_cursor;
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
       return FALSE;
-    ctx->active->saved_big_file_view = FALSE;
+    if (!AppStateCommitPanelFileShape(ctx->active, FALSE))
+      return FALSE;
     CapturePanelSelectionAnchor(ctx, ctx->active, *dir_entry_ptr);
   } else {
     (*dir_entry_ptr)->cursor_pos = -1;
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE))
       return FALSE;
-    ctx->active->saved_big_file_view = FALSE;
+    if (!AppStateCommitPanelFileShape(ctx->active, FALSE))
+      return FALSE;
   }
 
   ctx->active->file_dir_entry = *dir_entry_ptr;

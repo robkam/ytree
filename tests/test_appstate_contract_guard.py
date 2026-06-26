@@ -5681,7 +5681,7 @@ def test_handle_file_window_dispatch_fails_closed_before_file_work() -> None:
     boundary_calls = [
         'DEBUG_LOG("HandleFileWindow ENTERED',
         "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)",
-        "ctx->active->saved_big_file_view =",
+        "AppStateCommitPanelFileShape(ctx->active, big_file_shape)",
         "BuildFileEntryList(",
         "RefreshView(",
         "GetEventOrKey(",
@@ -6144,6 +6144,55 @@ def test_volume_focus_mirrors_use_appstate_helper() -> None:
     log_body = log_source[log_start:log_end]
     assert "AppStateCommitVolumeFocusMirror(panel->vol, panel->saved_focus)" in log_body
     assert "panel->vol->saved_focus = panel->saved_focus" not in log_body
+
+
+def test_panel_file_shape_commits_use_appstate_helper() -> None:
+    focus_header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
+    focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+    sources = {
+        path: Path(path).read_text(encoding="utf-8")
+        for path in [
+            "src/core/init.c",
+            "src/cmd/log.c",
+            "src/ui/ctrl_dir.c",
+            "src/ui/ctrl_file.c",
+            "src/ui/ctrl_file_ops.c",
+            "src/ui/panel_anchor.c",
+            "src/ui/split_transition.c",
+        ]
+    }
+    direct_panel_shape_write = re.compile(
+        r"\b(?:ctx->left|ctx->right|ctx->active|owner_panel|panel|dst)"
+        r"->saved_big_file_view\s*="
+    )
+
+    assert "BOOL AppStateCommitPanelFileShape(" in focus_header
+    assert "AppStateCommitPanelFileShape" in focus_helper
+    for source in sources.values():
+        assert 'include "ytnova_appstate_focus.h"' in source
+        assert not direct_panel_shape_write.search(source)
+
+    assert "AppStateCommitPanelFileShape(ctx->left, FALSE)" in sources["src/core/init.c"]
+    assert "AppStateCommitPanelFileShape(panel, state->saved_big_file_view)" in sources[
+        "src/cmd/log.c"
+    ]
+    assert "AppStateCommitPanelFileShape(ctx->active, FALSE)" in sources[
+        "src/ui/ctrl_dir.c"
+    ]
+    assert "AppStateCommitPanelFileShape(owner_panel, FALSE)" in sources[
+        "src/ui/ctrl_file.c"
+    ]
+    assert "AppStateCommitPanelFileShape(ctx->active, TRUE)" in sources[
+        "src/ui/ctrl_file_ops.c"
+    ]
+    assert "AppStateCommitPanelFileShape(dst, src->saved_big_file_view)" in sources[
+        "src/ui/panel_anchor.c"
+    ]
+    assert re.search(
+        r"AppStateCommitPanelFileShape\(\s*ctx->right,\s*"
+        r"ctx->left->saved_big_file_view\s*\)",
+        sources["src/ui/split_transition.c"],
+    )
 
 
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:

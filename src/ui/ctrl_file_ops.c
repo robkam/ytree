@@ -1061,8 +1061,9 @@ BOOL handle_file_window_misc_dispatch_action(
     }
     if (dir_entry->big_window)
       break;
+    if (!AppStateCommitPanelFileShape(ctx->active, TRUE))
+      return FALSE;
     dir_entry->big_window = TRUE;
-    ctx->active->saved_big_file_view = TRUE;
     RefreshView(ctx, dir_entry);
     FileNav_RereadWindowSize(ctx, dir_entry);
     loop_action = ACTION_NONE;
