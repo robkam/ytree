@@ -1543,7 +1543,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Idea FE-41: Port to other platforms**
 *   **Validation:** Currently practical via WSL and QEMU
-*   **Possible:** OmniOS (illumos), GNU Hurd
-*   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris
+*   **Possible:** OmniOS (illumos), GNU Hurd, FreeBSD
+*   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris, Redox OS
 *   **Out of scope:** Windows (ZTreeWin exists), legacy UNIXes including HP-UX
 *   - [ ] **Status:** Not Started.

@@ -6135,6 +6135,32 @@ def test_active_panel_session_commits_through_appstate_helper() -> None:
     assert "AppStateCommitActivePanel(ctx, ctx->left)" in dir_body
 
 
+def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelGeneration(" in header
+    assert 'include "ytnova_appstate_panel.h"' in ctrl_file_ops
+
+    helper_start = helper.index("BOOL AppStateCommitPanelGeneration(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
+    generation_write = "panel->panel_generation++;"
+    assert validation in helper_body
+    assert generation_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(generation_write)
+
+    capture_start = ctrl_file_ops.index("void CapturePanelSelectionAnchor(")
+    capture_end = ctrl_file_ops.index(
+        "\nstatic void DebugLogFilePanelState(", capture_start
+    )
+    capture_body = ctrl_file_ops[capture_start:capture_end]
+
+    assert "panel->panel_generation++;" not in capture_body
+    assert capture_body.count("AppStateCommitPanelGeneration(panel)") == 2
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
