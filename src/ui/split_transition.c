@@ -9,6 +9,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_session.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_split_transition.h"
@@ -306,8 +307,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
         return FALSE;
 
       ctx->is_split_screen = !ctx->is_split_screen;
-      if (closing_split)
-        ctx->active = ctx->left;
+      if (closing_split && !AppStateCommitActivePanel(ctx, ctx->left))
+        return FALSE;
       ReCreateWindows(ctx);
       if (!ctx->is_split_screen)
         SyncActivePanelWindows(ctx);
@@ -344,12 +345,14 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
           PanelTags_Copy(ctx->right, ctx->left);
           FreeFileEntryList(ctx->right);
         }
-        ctx->active = owner_panel;
+        if (!AppStateCommitActivePanel(ctx, owner_panel))
+          return FALSE;
         if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
           return FALSE;
       } else {
         FreeFileEntryList(ctx->right);
-        ctx->active = ctx->left;
+        if (!AppStateCommitActivePanel(ctx, ctx->left))
+          return FALSE;
         if (!AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus))
           return FALSE;
         BuildFileEntryList(ctx, ctx->active);
@@ -408,11 +411,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       *switched_panel_ptr = TRUE;
       SwitchToSmallFileWindow(ctx);
 
-      if (ctx->active == ctx->left) {
-        ctx->active = ctx->right;
-      } else {
-        ctx->active = ctx->left;
-      }
+      if (!AppStateCommitActivePanel(
+              ctx, (ctx->active == ctx->left) ? ctx->right : ctx->left))
+        return FALSE;
       if (!AppStateMirrorActivePanelFocus(ctx))
         return FALSE;
       *loop_action_ptr = ACTION_NONE;
@@ -434,11 +435,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
     *switched_panel_ptr = TRUE;
     SwitchToSmallFileWindow(ctx);
 
-    if (ctx->active == ctx->left) {
-      ctx->active = ctx->right;
-    } else {
-      ctx->active = ctx->left;
-    }
+    if (!AppStateCommitActivePanel(
+            ctx, (ctx->active == ctx->left) ? ctx->right : ctx->left))
+      return FALSE;
     if (!AppStateMirrorActivePanelFocus(ctx))
       return FALSE;
     *loop_action_ptr = ACTION_NONE;
@@ -522,8 +521,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
           !AppStateCommitPanelFocus(ctx, closing_active, FOCUS_TREE))
         return FALSE;
       ctx->is_split_screen = !ctx->is_split_screen;
-      if (closing_split)
-        ctx->active = ctx->left;
+      if (closing_split && !AppStateCommitActivePanel(ctx, ctx->left))
+        return FALSE;
       ReCreateWindows(ctx);
       if (!ctx->is_split_screen)
         SyncActivePanelWindows(ctx);
@@ -548,7 +547,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         }
       } else {
         FreeFileEntryList(ctx->right);
-        ctx->active = ctx->left;
+        if (!AppStateCommitActivePanel(ctx, ctx->left))
+          return FALSE;
         *dir_entry_ptr = GetPanelDirEntry(ctx->active);
         if (preserve_left_file_state && !donate_active_state &&
             !AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
@@ -599,11 +599,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
        */
       CaptureSplitDirPanelSnapshot(previous_active, &previous_active_snapshot);
 
-      if (ctx->active == ctx->left) {
-        ctx->active = ctx->right;
-      } else {
-        ctx->active = ctx->left;
-      }
+      if (!AppStateCommitActivePanel(
+              ctx, (ctx->active == ctx->left) ? ctx->right : ctx->left))
+        return FALSE;
 
       if (!AppStateMirrorActivePanelFocus(ctx))
         return FALSE;
@@ -673,11 +671,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
                                             &previous_active_snapshot);
     }
 #else
-    if (ctx->active == ctx->left) {
-      ctx->active = ctx->right;
-    } else {
-      ctx->active = ctx->left;
-    }
+    if (!AppStateCommitActivePanel(
+            ctx, (ctx->active == ctx->left) ? ctx->right : ctx->left))
+      return FALSE;
 
     if (!AppStateMirrorActivePanelFocus(ctx))
       return FALSE;
