@@ -5338,7 +5338,13 @@ int AppStateValidatedCompatibilityShim(const char *shim_id) {
   return fake_mode != 4;
 }
 
+int AppStateValidatedOwnerField(const char *field) {
+  (void)field;
+  return fake_mode != 5;
+}
+
 #include "src/ui/appstate_focus.c"
+#include "src/ui/appstate_session.c"
 #include "src/ui/split_transition.c"
 
 void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
@@ -5998,6 +6004,62 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     )
     assert toggle_body.index(commit_call) < toggle_body.index(
         "BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);"
+    )
+
+
+def test_active_panel_session_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+    assert "AppStateCommitActivePanel" in header
+    assert 'include "ytnova_appstate_session.h"' in split_transition
+    assert 'include "ytnova_appstate_session.h"' in ctrl_file_ops
+
+    helper_start = helper.index("BOOL AppStateCommitActivePanel(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.active")'
+    active_write = "ctx->active = panel;"
+    membership_check = "panel != ctx->left && panel != ctx->right"
+
+    assert validation in helper_body
+    assert membership_check in helper_body
+    assert active_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(active_write)
+    assert helper_body.index(membership_check) < helper_body.index(active_write)
+
+    for source in [split_transition, ctrl_file_ops]:
+        assert not re.search(r"\bctx->active\s*=[^=]", source)
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleDirWindowAction("
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    dir_split_body = split_transition[dir_split_start:]
+
+    assert "AppStateCommitActivePanel(ctx, owner_panel)" in file_split_body
+    assert "AppStateCommitActivePanel(ctx, ctx->left)" in file_split_body
+    assert "AppStateCommitActivePanel(ctx, ctx->left)" in dir_split_body
+    assert "AppStateCommitActivePanel(" in dir_split_body
+    assert file_split_body.index("AppStateCommitActivePanel(ctx, owner_panel)") < (
+        file_split_body.index("AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)")
+    )
+    assert dir_split_body.index("AppStateCommitActivePanel(") < dir_split_body.index(
+        "AppStateMirrorActivePanelFocus(ctx)"
+    )
+
+    preview_start = ctrl_file_ops.index("BOOL handle_file_window_preview_action(")
+    preview_body = ctrl_file_ops[preview_start:]
+    preview_commit = "AppStateCommitActivePanel(ctx, ctx->preview_return_panel)"
+    assert preview_commit in preview_body
+    assert preview_body.index(preview_commit) < preview_body.index(
+        "AppStateCommitPanelFocus(ctx, ctx->active, ctx->preview_return_focus)"
     )
 
 
