@@ -4473,19 +4473,21 @@ int main(void) {
     return 2;
   if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
     return 3;
-  if (AppStateValidatedGenerationDomain(NULL))
+  if (!AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume"))
     return 4;
-  if (AppStateValidatedGenerationDomain(""))
+  if (AppStateValidatedGenerationDomain(NULL))
     return 5;
-  if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
+  if (AppStateValidatedGenerationDomain(""))
     return 6;
+  if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
+    return 7;
 
   mismatched_domain =
       *AppStateGenerationDomainLookup("generation.panel.local-authority");
   mismatched_domain.domain_id = "generation.__ytnova_mismatch__";
   if (AppStateValidateGenerationDomain("generation.panel.local-authority",
                                        &mismatched_domain))
-    return 7;
+    return 8;
 
   missing_transition =
       *AppStateGenerationDomainLookup("generation.panel.local-authority");
@@ -4493,7 +4495,7 @@ int main(void) {
   missing_transition.coverage_transition_id_count = 1;
   if (AppStateValidateGenerationDomain("generation.panel.local-authority",
                                        &missing_transition))
-    return 8;
+    return 9;
 
   uncovered_advance =
       *AppStateGenerationDomainLookup("generation.panel.local-authority");
@@ -4501,15 +4503,15 @@ int main(void) {
   uncovered_advance.advances_on_transition_id_count = 1;
   if (AppStateValidateGenerationDomain("generation.panel.local-authority",
                                        &uncovered_advance))
-    return 9;
+    return 10;
 
   missing_notes =
       *AppStateGenerationDomainLookup("generation.panel.local-authority");
-  missing_notes.migration_notes = 0;
+  missing_notes.migration_notes = NULL;
   missing_notes.migration_note_count = 0;
   if (AppStateValidateGenerationDomain("generation.panel.local-authority",
                                        &missing_notes))
-    return 10;
+    return 11;
 
   return 0;
 }
@@ -5941,6 +5943,62 @@ def test_visibility_projection_reads_panel_state_not_session_mirror() -> None:
     pipe_body = pipe[pipe_start:pipe_end]
     assert "ctx->hide_dot_files" not in pipe_body
     assert "active_panel->hide_dot_files" in pipe_body
+
+
+def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_visibility.h").read_text(
+        encoding="utf-8"
+    )
+    helper = Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_visibility.h"' in dir_ops
+    assert "AppStateCommitPanelVisibilityFilter" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelVisibilityFilter(")
+    helper_body = helper[helper_start:]
+    domain_validation = (
+        'AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume")'
+    )
+    panel_owner_validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
+    volume_owner_validation = 'AppStateValidatedOwnerField("volume.volume_generation")'
+    panel_write = "panel->hide_dot_files = hide_dot_files ? TRUE : FALSE;"
+    panel_generation = "panel->panel_generation++;"
+    volume_generation = "panel->vol->volume_generation++;"
+
+    for required in [
+        domain_validation,
+        panel_owner_validation,
+        volume_owner_validation,
+        panel_write,
+        panel_generation,
+        volume_generation,
+    ]:
+        assert required in helper_body
+
+    assert helper_body.index(domain_validation) < helper_body.index(panel_write)
+    assert helper_body.index(panel_owner_validation) < helper_body.index(panel_write)
+    assert helper_body.index(volume_owner_validation) < helper_body.index(panel_write)
+    assert helper_body.index(panel_write) < helper_body.index(panel_generation)
+    assert helper_body.index(panel_generation) < helper_body.index(volume_generation)
+
+    toggle_start = dir_ops.index("void ToggleDotFiles(")
+    toggle_end = dir_ops.index("\nDirEntry *RefreshTreeSafe(", toggle_start)
+    toggle_body = dir_ops[toggle_start:toggle_end]
+    commit_call = "AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)"
+
+    assert "p->hide_dot_files = !p->hide_dot_files;" not in toggle_body
+    assert "p->panel_generation++;" not in toggle_body
+    assert "p->vol->volume_generation++;" not in toggle_body
+    assert commit_call in toggle_body
+    assert "InitClock(ctx);\n    return;" in toggle_body
+    assert toggle_body.index("SuspendClock(ctx);") < toggle_body.index(commit_call)
+    assert toggle_body.index(commit_call) < toggle_body.index(
+        "RecalculateSysStats(ctx, s);"
+    )
+    assert toggle_body.index(commit_call) < toggle_body.index(
+        "BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);"
+    )
 
 
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
