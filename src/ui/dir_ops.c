@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -1928,9 +1929,10 @@ void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p) {
    * rebuild */
   SuspendClock(ctx);
 
-  p->hide_dot_files = !p->hide_dot_files;
-  p->panel_generation++;
-  p->vol->volume_generation++;
+  if (!AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)) {
+    InitClock(ctx);
+    return;
+  }
   RecalculateSysStats(ctx, s);
 
   /* Rebuild the linear list of visible directories. */

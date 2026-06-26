@@ -174,6 +174,10 @@ def _dir_ops_source():
     return Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
 
 
+def _appstate_visibility_source():
+    return Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
+
+
 def test_tree_viewport_stable_restore_preserves_visible_selection():
     panel_anchor_source = _panel_anchor_file_source()
     restore_start = panel_anchor_source.index("BOOL RestorePanelTreeViewportSnapshot(")
@@ -253,6 +257,7 @@ def test_restore_snapshots_validate_generation_before_reuse():
     log_source = _log_source()
     panel_anchor_source = _panel_anchor_file_source()
     dir_ops_source = _dir_ops_source()
+    visibility_source = _appstate_visibility_source()
 
     for needle in (
         "unsigned int saved_panel_generation;",
@@ -282,8 +287,9 @@ def test_restore_snapshots_validate_generation_before_reuse():
     assert "panel->panel_generation++;" in panel_anchor_source, panel_anchor_source
     assert "dst->panel_generation = src->panel_generation;" in panel_anchor_source
 
-    assert "p->panel_generation++;" in dir_ops_source, dir_ops_source
-    assert "p->vol->volume_generation++;" in dir_ops_source, dir_ops_source
+    assert "AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)" in dir_ops_source
+    assert "panel->panel_generation++;" in visibility_source, visibility_source
+    assert "panel->vol->volume_generation++;" in visibility_source, visibility_source
     assert "ctx->active->vol->volume_generation++;" in dir_ops_source, dir_ops_source
 
 
