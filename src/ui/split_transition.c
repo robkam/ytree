@@ -10,6 +10,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_session.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_split_transition.h"
@@ -321,7 +322,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
           memcpy(ctx->right->tree_viewport_top_dir_path,
                  ctx->left->tree_viewport_top_dir_path,
                  sizeof(ctx->right->tree_viewport_top_dir_path));
-          ctx->right->hide_dot_files = ctx->left->hide_dot_files;
+          if (!AppStateCommitPanelVisibilityFilter(ctx->right,
+                                                   ctx->left->hide_dot_files))
+            return FALSE;
           /*
            * Split ownership boundary: a file-view split must keep the original
            * file panel active and seed the new peer from the same panel-local
@@ -540,7 +543,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
           if (!AppStateCommitPanelFileShape(
                   ctx->right, ctx->left->saved_big_file_view))
             return FALSE;
-          ctx->right->hide_dot_files = ctx->left->hide_dot_files;
+          if (!AppStateCommitPanelVisibilityFilter(ctx->right,
+                                                   ctx->left->hide_dot_files))
+            return FALSE;
           if (!AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE))
             return FALSE;
           FreeFileEntryList(ctx->right);
