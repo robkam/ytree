@@ -12,6 +12,7 @@
 
 BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
                               ViewFocus focus);
+BOOL AppStateCommitPanelFileShape(YtreeNovaPanel *panel, BOOL big_file_view);
 BOOL AppStateCommitVolumeFocusMirror(struct Volume *volume, ViewFocus focus);
 BOOL AppStateMirrorActivePanelFocus(ViewContext *ctx);
 

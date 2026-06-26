@@ -694,7 +694,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   dst->panel_generation = src->panel_generation;
   if (!AppStateCommitPanelFocus(ctx, dst, src->saved_focus))
     return FALSE;
-  dst->saved_big_file_view = src->saved_big_file_view;
+  if (!AppStateCommitPanelFileShape(dst, src->saved_big_file_view))
+    return FALSE;
   dst->max_visual_filename_len = src->max_visual_filename_len;
   dst->max_visual_linkname_len = src->max_visual_linkname_len;
   dst->max_visual_userview_len = src->max_visual_userview_len;
@@ -714,7 +715,9 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     dst->panel_generation = dst_panel_generation;
     if (dst_current_volume_state &&
         dst_current_volume_state->saved_file_selection_dir_path[0] != '\0') {
-      dst->saved_big_file_view = dst_current_volume_state->saved_big_file_view;
+      if (!AppStateCommitPanelFileShape(
+              dst, dst_current_volume_state->saved_big_file_view))
+        return FALSE;
       dst->start_file = dst_current_volume_state->saved_file_start;
       dst->file_cursor_pos = dst_current_volume_state->saved_file_cursor;
       (void)snprintf(dst->file_selection_name,
@@ -726,7 +729,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     } else {
       if (!AppStateCommitPanelFocus(ctx, dst, FOCUS_FILE))
         return FALSE;
-      dst->saved_big_file_view = dst_saved_big_file_view;
+      if (!AppStateCommitPanelFileShape(dst, dst_saved_big_file_view))
+        return FALSE;
       dst->start_file = dst_start_file;
       dst->file_cursor_pos = dst_file_cursor_pos;
       dst->file_dir_entry = (DirEntry *)dst_file_dir_entry;

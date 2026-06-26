@@ -254,6 +254,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   BOOL switched_panel = FALSE;
   BOOL switched_to_tree_panel = FALSE;
   BOOL return_esc = FALSE;
+  BOOL big_file_shape =
+      (dir_entry->big_window || dir_entry->global_flag ||
+       dir_entry->tagged_flag);
   YtreeNovaPanel *owner_panel = ctx->active;
   DirEntry *tracked_file_dir = ctx->active->file_dir_entry;
   const DirEntry *last_stats_dir = NULL; /* Track context changes */
@@ -263,8 +266,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
   if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
     return ESC;
-  ctx->active->saved_big_file_view =
-      (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
+  if (!AppStateCommitPanelFileShape(ctx->active, big_file_shape))
+    return ESC;
   if (tracked_file_dir == dir_entry) {
     dir_entry->start_file = ctx->active->start_file;
     dir_entry->cursor_pos = ctx->active->file_cursor_pos;
@@ -729,7 +732,8 @@ file_window_done:
      */
     if (!AppStateCommitPanelFocus(ctx, owner_panel, FOCUS_TREE))
       return ESC;
-    owner_panel->saved_big_file_view = FALSE;
+    if (!AppStateCommitPanelFileShape(owner_panel, FALSE))
+      return ESC;
   }
   if (!volume_changed) {
     owner_panel->file_dir_entry = dir_entry;
@@ -749,7 +753,8 @@ file_window_done:
     owner_panel->file_dir_entry = NULL;
     owner_panel->start_file = 0;
     owner_panel->file_cursor_pos = 0;
-    owner_panel->saved_big_file_view = FALSE;
+    if (!AppStateCommitPanelFileShape(owner_panel, FALSE))
+      return ESC;
   }
 
   DEBUG_LOG("DEBUG: HandleFileWindow EXITING with %s",

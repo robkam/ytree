@@ -24,7 +24,7 @@ static void ResetPanelFileContext(YtreeNovaPanel *panel) {
   panel->file_dir_entry = NULL;
   panel->start_file = 0;
   panel->file_cursor_pos = 0;
-  panel->saved_big_file_view = FALSE;
+  (void)AppStateCommitPanelFileShape(panel, FALSE);
 }
 
 static void SavePanelFileSelection(YtreeNovaPanel *panel) {
@@ -55,7 +55,7 @@ static void SavePanelFileSelection(YtreeNovaPanel *panel) {
   }
   if (panel->file_dir_entry != NULL)
     state->saved_big_file_view = panel->file_dir_entry->big_window;
-  panel->saved_big_file_view = state->saved_big_file_view;
+  (void)AppStateCommitPanelFileShape(panel, state->saved_big_file_view);
 
   (void)snprintf(state->saved_file_selection_name,
                  sizeof(state->saved_file_selection_name), "%s",
@@ -125,7 +125,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   panel->file_selection_name[0] = '\0';
   panel->file_selection_dir_path[0] = '\0';
   panel->file_dir_entry = NULL;
-  panel->saved_big_file_view = FALSE;
+  if (!AppStateCommitPanelFileShape(panel, FALSE))
+    return;
   if (!state)
     return;
 
@@ -162,7 +163,7 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   }
   if (!AppStateCommitPanelFocus(ctx, panel, state->saved_focus))
     return;
-  panel->saved_big_file_view = state->saved_big_file_view;
+  (void)AppStateCommitPanelFileShape(panel, state->saved_big_file_view);
 }
 
 static void SavePanelTreeSelection(YtreeNovaPanel *panel) {

@@ -257,9 +257,11 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
   switch (action) {
   case ACTION_SPLIT_SCREEN:
     SplitTransitionDebugLogFileState("FileAction:split:before", ctx);
-    owner_panel->saved_big_file_view =
-        (dir_entry->big_window || dir_entry->global_flag ||
-         dir_entry->tagged_flag);
+    if (!AppStateCommitPanelFileShape(owner_panel,
+                                      dir_entry->big_window ||
+                                          dir_entry->global_flag ||
+                                          dir_entry->tagged_flag))
+      return FALSE;
 
     if (!ctx->is_split_screen) {
       owner_panel->file_dir_entry = dir_entry;
@@ -336,7 +338,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
           (void)snprintf(ctx->right->file_selection_dir_path,
                          sizeof(ctx->right->file_selection_dir_path), "%s",
                          ctx->left->file_selection_dir_path);
-          ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
+          if (!AppStateCommitPanelFileShape(
+                  ctx->right, ctx->left->saved_big_file_view))
+            return FALSE;
           PanelTags_Copy(ctx->right, ctx->left);
           FreeFileEntryList(ctx->right);
         }
@@ -396,9 +400,11 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
       if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
         return FALSE;
-      ctx->active->saved_big_file_view =
-          (dir_entry->big_window || dir_entry->global_flag ||
-           dir_entry->tagged_flag);
+      if (!AppStateCommitPanelFileShape(ctx->active,
+                                        dir_entry->big_window ||
+                                            dir_entry->global_flag ||
+                                            dir_entry->tagged_flag))
+        return FALSE;
       *switched_panel_ptr = TRUE;
       SwitchToSmallFileWindow(ctx);
 
@@ -420,9 +426,11 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
     CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
       return FALSE;
-    ctx->active->saved_big_file_view =
-        (dir_entry->big_window || dir_entry->global_flag ||
-         dir_entry->tagged_flag);
+    if (!AppStateCommitPanelFileShape(ctx->active,
+                                      dir_entry->big_window ||
+                                          dir_entry->global_flag ||
+                                          dir_entry->tagged_flag))
+      return FALSE;
     *switched_panel_ptr = TRUE;
     SwitchToSmallFileWindow(ctx);
 
@@ -530,7 +538,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
                  sizeof(ctx->right->tree_viewport_top_dir_path));
           ctx->right->start_file = ctx->left->start_file;
           ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
-          ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
+          if (!AppStateCommitPanelFileShape(
+                  ctx->right, ctx->left->saved_big_file_view))
+            return FALSE;
           ctx->right->hide_dot_files = ctx->left->hide_dot_files;
           if (!AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE))
             return FALSE;

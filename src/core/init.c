@@ -363,7 +363,6 @@ void InitView(ViewContext *ctx) {
   ctx->left->file_mode = MODE_1;
   ctx->left->file_cursor_pos = 0;
   ctx->left->file_dir_entry = NULL;
-  ctx->left->saved_big_file_view = FALSE;
   ctx->left->hide_dot_files = FALSE;
 
   ctx->right = (YtreeNovaPanel *)calloc(1, sizeof(YtreeNovaPanel));
@@ -377,11 +376,12 @@ void InitView(ViewContext *ctx) {
   ctx->right->file_mode = MODE_1;
   ctx->right->file_cursor_pos = 0;
   ctx->right->file_dir_entry = NULL;
-  ctx->right->saved_big_file_view = FALSE;
   ctx->right->hide_dot_files = FALSE;
 
   ctx->active = ctx->left;
-  if (!AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE) ||
+  if (!AppStateCommitPanelFileShape(ctx->left, FALSE) ||
+      !AppStateCommitPanelFileShape(ctx->right, FALSE) ||
+      !AppStateCommitPanelFocus(ctx, ctx->left, FOCUS_TREE) ||
       !AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_TREE)) {
     fprintf(stderr, "InitView: failed to initialize panel focus\n");
     free(ctx->right);
