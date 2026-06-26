@@ -25,6 +25,18 @@ BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitVolumeFocusMirror(struct Volume *volume, ViewFocus focus) {
+  if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
+    return FALSE;
+  if (!volume)
+    return FALSE;
+  if (focus != FOCUS_TREE && focus != FOCUS_FILE)
+    return FALSE;
+
+  volume->saved_focus = focus;
+  return TRUE;
+}
+
 BOOL AppStateMirrorActivePanelFocus(ViewContext *ctx) {
   if (!ctx || !ctx->active)
     return FALSE;

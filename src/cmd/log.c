@@ -223,7 +223,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     ctx->hook_suspend_clock(ctx); /* Suspend clock during critical operations */
 
   if (panel->vol != NULL) {
-    panel->vol->saved_focus = panel->saved_focus;
+    if (!AppStateCommitVolumeFocusMirror(panel->vol, panel->saved_focus))
+      return -1;
   }
 
   /* Keep per-volume tree selection before switching away. */

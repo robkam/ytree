@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_defs.h"
+#include "ytnova_appstate_focus.h"
 
 extern void FreePathList(PathList *list);
 
@@ -110,7 +111,10 @@ struct Volume *Volume_Create(ViewContext *ctx) {
   /* Assign a unique ID and increment the serial counter */
   new_vol->id = ctx->volume_serial++;
   new_vol->volume_generation = 0;
-  new_vol->saved_focus = FOCUS_TREE;
+  if (!AppStateCommitVolumeFocusMirror(new_vol, FOCUS_TREE)) {
+    free(new_vol);
+    return NULL;
+  }
 
   /* Add the new volume to the global hash table (ctx->volumes_head)
    * The 'id' field of the Volume struct is used as the key. */
