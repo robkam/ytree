@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_cmd.h"
+#include "ytnova_appstate_mode.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
@@ -364,7 +365,8 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   if (ctx->active->vol != original_vol) {
     /* 1. Restore Global Volume Context */
     ctx->active->vol = original_vol;
-    ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
+    if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
+      return -1;
 
     /* 2. Restore ctx->active state from the restored volume */
     if (ctx->active)

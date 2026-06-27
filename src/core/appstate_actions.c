@@ -196,6 +196,14 @@ static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
    "runtime_backed",
    kAppStateOwnerFieldInvariantChecks1,
    sizeof(kAppStateOwnerFieldInvariantChecks1) / sizeof(kAppStateOwnerFieldInvariantChecks1[0])},
+  {"ctx.view_mode",
+   "ctx/session state",
+   "ViewContext.view_mode",
+   "ViewContext.view_mode",
+   "May change only through allowed volume restore, log, or mode transition commits.",
+   "runtime_backed",
+   kAppStateOwnerFieldInvariantChecks1,
+   sizeof(kAppStateOwnerFieldInvariantChecks1) / sizeof(kAppStateOwnerFieldInvariantChecks1[0])},
   {"ctx.message_state",
    "ctx/session state",
    "ViewContext.message_region",
@@ -860,6 +868,7 @@ static const char *const kAppStateDiffHarnessTransitionIds1[] = {
 static const char *const kAppStateDiffHarnessOwnerFieldRefs1[] = {
   "ctx.active",
   "ctx.command_state",
+  "ctx.view_mode",
   "ctx.message_state",
   "ctx.modal_state",
   "ctx.pending_transition",
@@ -3029,6 +3038,7 @@ static const char *const kAppStateInvariantMigrationNotes6[] = {
 
 static const char *const kAppStateInvariantProtectedFields7[] = {
   "ctx.command_state",
+  "ctx.view_mode",
   "ctx.message_state",
   "ctx.modal_state",
   "ctx.pending_transition",

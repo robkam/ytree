@@ -28,6 +28,18 @@
       ]
     },
     {
+      "field": "ctx.view_mode",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.view_mode",
+      "runtime_carrier": "ViewContext.view_mode",
+      "mutation_rule": "May change only through allowed volume restore, log, or mode transition commits.",
+      "migration_status": "runtime_backed",
+      "invariant_checks": [
+        "invariant.blocked-transition-determinism",
+        "invariant.shared-state-panel-local-isolation"
+      ]
+    },
+    {
       "field": "ctx.message_state",
       "owner_region": "ctx/session state",
       "canonical_owner": "ViewContext.message_region",

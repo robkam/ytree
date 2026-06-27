@@ -6186,6 +6186,48 @@ def test_split_layout_commits_through_appstate_helper() -> None:
     assert "AppStateCommitSplitScreenLayout(ctx, FALSE)" in init_body
 
 
+def test_view_mode_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitViewMode(" in header
+    for source in [init_source, log_source, f2_picker, ctrl_dir]:
+        assert 'include "ytnova_appstate_mode.h"' in source
+
+    helper_start = helper.index("BOOL AppStateCommitViewMode(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.view_mode")'
+    bounds_check = "view_mode < DISK_MODE || view_mode >= MAX_MODES"
+    view_mode_write = "ctx->view_mode = view_mode;"
+
+    assert validation in helper_body
+    assert bounds_check in helper_body
+    assert view_mode_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(view_mode_write)
+    assert helper_body.index(bounds_check) < helper_body.index(view_mode_write)
+
+    for source in [init_source, log_source, f2_picker, ctrl_dir]:
+        assert not re.search(r"\bctx->view_mode\s*=[^=]", source)
+
+    assert init_source.count("AppStateCommitViewMode(ctx, DISK_MODE)") >= 2
+    assert "AppStateCommitViewMode(ctx, panel->vol->vol_stats.log_mode)" in (
+        log_source
+    )
+    assert "AppStateCommitViewMode(ctx, s->log_mode)" in log_source
+    assert (
+        "AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode)"
+        in f2_picker
+    )
+    assert (
+        "AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode)"
+        in ctrl_dir
+    )
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

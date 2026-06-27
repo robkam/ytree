@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -302,7 +303,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
                          panel, state->saved_tree_panel_generation))
           return -1;
         ctx->global_search_term[0] = '\0';
-        ctx->view_mode = panel->vol->vol_stats.log_mode;
+        if (!AppStateCommitViewMode(ctx, panel->vol->vol_stats.log_mode))
+          return -1;
 
         /* Re-apply the volume's own filter */
         (void)SetFilter(s->file_spec, s);
@@ -415,7 +417,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
       /* We tried to create a NEW volume and failed. */
       /* panel->vol is still old_vol (valid). Restore its display. */
       panel->vol = old_vol;
-      ctx->view_mode = panel->vol->vol_stats.log_mode;
+      if (!AppStateCommitViewMode(ctx, panel->vol->vol_stats.log_mode))
+        return -1;
       s = &panel->vol->vol_stats;
 
       if (ctx->hook_display_menu)
@@ -451,7 +454,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
                                 (ViewFocus)panel->vol->saved_focus))
     return -1;
   ctx->global_search_term[0] = '\0';
-  ctx->view_mode = s->log_mode;
+  if (!AppStateCommitViewMode(ctx, s->log_mode))
+    return -1;
 
   /* If this is a new volume (not the startup one), apply saved filter from
    * previous context */

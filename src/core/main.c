@@ -178,6 +178,7 @@ static const char *const kAppStateRequiredTransitionIds[] = {
 static const char *const kAppStateRequiredOwnerFieldIds[] = {
   "ctx.active",
   "ctx.command_state",
+  "ctx.view_mode",
   "ctx.message_state",
   "ctx.modal_state",
   "ctx.pending_transition",

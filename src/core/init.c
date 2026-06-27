@@ -11,6 +11,7 @@
 #include "ytnova_defs.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_layout.h"
+#include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_debug.h"
@@ -352,7 +353,10 @@ void InitView(ViewContext *ctx) {
   memset(ctx, 0, sizeof(ViewContext));
   CoreMainOps_Register(ctx);
   ctx->viewer.inhex = TRUE;
-  ctx->view_mode = DISK_MODE;
+  if (!AppStateCommitViewMode(ctx, DISK_MODE)) {
+    fprintf(stderr, "InitView: failed to initialize view mode\n");
+    exit(1);
+  }
   ctx->dir_mode = MODE_3;
   if (!AppStateCommitSplitScreenLayout(ctx, FALSE)) {
     fprintf(stderr, "InitView: failed to initialize split layout\n");
@@ -781,7 +785,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->ctx_preview_window = NULL;
 
   /* Initialize global mode default */
-  ctx->view_mode = DISK_MODE;
+  if (!AppStateCommitViewMode(ctx, DISK_MODE))
+    return -1;
 
   /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
   setlocale(LC_ALL, "");
