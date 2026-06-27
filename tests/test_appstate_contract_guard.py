@@ -6423,6 +6423,39 @@ def test_preview_window_handle_lifecycle_routes_through_appstate_helper() -> Non
     assert not re.search(r"\bctx->ctx_preview_window\s*=[^=]", init_source)
 
 
+def test_auxiliary_window_handle_lifecycle_routes_through_appstate_helpers() -> None:
+    header = Path("include/ytnova_appstate_window.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_window.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+
+    helper_fields = {
+        "AppStateSetBorderWindowHandle": "ctx->ctx_border_window = window;",
+        "AppStateSetPathWindowHandle": "ctx->ctx_path_window = window;",
+        "AppStateSetErrorWindowHandle": "ctx->ctx_error_window = window;",
+        "AppStateSetTimeWindowHandle": "ctx->ctx_time_window = window;",
+        "AppStateSetHistoryWindowHandle": "ctx->ctx_history_window = window;",
+        "AppStateSetMatchesWindowHandle": "ctx->ctx_matches_window = window;",
+        "AppStateSetMenuWindowHandle": "ctx->ctx_menu_window = window;",
+        "AppStateSetF2WindowHandle": "ctx->ctx_f2_window = window;",
+    }
+    validation = 'AppStateValidatedOwnerField("ctx.window_handles")'
+
+    for helper_name, assignment in helper_fields.items():
+        assert f"BOOL {helper_name}(" in header
+        helper_start = helper.index(f"BOOL {helper_name}(")
+        helper_body = helper[helper_start:]
+        assert validation in helper_body
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+        assert f"{helper_name}(ctx," in init_source
+
+    assert not re.search(
+        r"\bctx->ctx_(?:border_window|path_window|error_window|time_window|"
+        r"history_window|matches_window|menu_window|f2_window)\s*=[^=]",
+        init_source,
+    )
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

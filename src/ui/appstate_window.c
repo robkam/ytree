@@ -44,3 +44,83 @@ BOOL AppStateSetPreviewWindowHandle(ViewContext *ctx, WINDOW *preview_window) {
   ctx->ctx_preview_window = preview_window;
   return TRUE;
 }
+
+BOOL AppStateSetBorderWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_border_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetPathWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_path_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetErrorWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_error_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetTimeWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_time_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetHistoryWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_history_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetMatchesWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_matches_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetMenuWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_menu_window = window;
+  return TRUE;
+}
+
+BOOL AppStateSetF2WindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_f2_window = window;
+  return TRUE;
+}
