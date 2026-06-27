@@ -5,10 +5,10 @@ checkLevelNormal
 checkersReport
 
 # UTHash macro-expansion false-positive at HASH_ADD_INT callsite.
-unreachableCode:src/core/volume.c
+unreachableCode:src/core/appstate_volume_registry.c
 
 # UTHash internals trigger this in macro-expanded temporary variables.
-constVariablePointer:src/core/volume.c
+constVariablePointer:src/core/appstate_volume_registry.c
 
 # Tag-walk callback signature is shared and non-const by design.
 constParameterPointer:src/cmd/pipe.c
