@@ -5,8 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytnova_defs.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_volume_registry.h"
+#include "ytnova_defs.h"
 
 extern void FreePathList(PathList *list);
 
@@ -116,9 +117,10 @@ struct Volume *Volume_Create(ViewContext *ctx) {
     return NULL;
   }
 
-  /* Add the new volume to the global hash table (ctx->volumes_head)
-   * The 'id' field of the Volume struct is used as the key. */
-  HASH_ADD_INT(ctx->volumes_head, id, new_vol);
+  if (!AppStateRegisterVolume(ctx, new_vol)) {
+    free(new_vol);
+    return NULL;
+  }
 
   return new_vol;
 }
@@ -137,6 +139,8 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
   if (vol == NULL) {
     return;
   }
+  if (!AppStateUnregisterVolume(ctx, vol))
+    return;
 
   if (vol->dir_entry_list) {
     free(vol->dir_entry_list);
@@ -155,9 +159,6 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
     Volume_ClearPanelTags(ctx->right);
     ctx->right->vol = NULL;
   }
-
-  /* Remove the volume from the global hash table */
-  HASH_DEL(ctx->volumes_head, vol);
 
   /* Free the associated directory tree if it exists */
   if (vol->vol_stats.tree != NULL) {
@@ -187,7 +188,7 @@ void Volume_FreeAll(ViewContext *ctx) {
     ctx->left->vol = NULL;
   if (ctx->right)
     ctx->right->vol = NULL;
-  ctx->volumes_head = NULL;
+  (void)AppStateClearVolumeRegistry(ctx);
 }
 
 /*

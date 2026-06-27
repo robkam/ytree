@@ -6269,6 +6269,48 @@ def test_status_line_message_commits_through_appstate_helper() -> None:
     assert not re.search(r"\bctx->status_line_error_pending\s*=[^=]", clear_body)
 
 
+def test_volume_registry_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume_registry.h").read_text(
+        encoding="utf-8"
+    )
+    helper = Path("src/core/appstate_volume_registry.c").read_text(
+        encoding="utf-8"
+    )
+    volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateRegisterVolume(" in header
+    assert "BOOL AppStateUnregisterVolume(" in header
+    assert "BOOL AppStateClearVolumeRegistry(" in header
+    assert 'include "ytnova_appstate_volume_registry.h"' in volume_source
+
+    register_start = helper.index("BOOL AppStateRegisterVolume(")
+    unregister_start = helper.index("BOOL AppStateUnregisterVolume(")
+    clear_start = helper.index("BOOL AppStateClearVolumeRegistry(")
+    register_body = helper[register_start:unregister_start]
+    unregister_body = helper[unregister_start:clear_start]
+    clear_body = helper[clear_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.volumes_head")'
+
+    assert validation in register_body
+    assert validation in unregister_body
+    assert validation in clear_body
+    assert "HASH_ADD_INT(ctx->volumes_head, id, volume);" in register_body
+    assert "HASH_DEL(ctx->volumes_head, volume);" in unregister_body
+    assert "ctx->volumes_head = NULL;" in clear_body
+    assert register_body.index(validation) < register_body.index("HASH_ADD_INT(")
+    assert unregister_body.index(validation) < unregister_body.index("HASH_DEL(")
+    assert clear_body.index(validation) < clear_body.index(
+        "ctx->volumes_head = NULL;"
+    )
+
+    assert "AppStateRegisterVolume(ctx, new_vol)" in volume_source
+    assert "AppStateUnregisterVolume(ctx, vol)" in volume_source
+    assert "AppStateClearVolumeRegistry(ctx)" in volume_source
+    assert "HASH_ADD_INT(ctx->volumes_head" not in volume_source
+    assert "HASH_DEL(ctx->volumes_head" not in volume_source
+    assert "ctx->volumes_head = NULL;" not in volume_source
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
