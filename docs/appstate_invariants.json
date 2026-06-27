@@ -260,6 +260,7 @@
       "owner_region": "ctx/session state",
       "protected_fields": [
         "ctx.command_state",
+        "ctx.view_mode",
         "ctx.message_state",
         "ctx.modal_state",
         "ctx.pending_transition",

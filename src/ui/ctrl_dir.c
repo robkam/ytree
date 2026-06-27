@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -397,7 +398,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   ctx->active->start_file = (*dir_entry_ptr)->start_file;
   ctx->active->file_cursor_pos = (*dir_entry_ptr)->cursor_pos;
 
-  ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
+  if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
+    return FALSE;
   RefreshView(ctx, *dir_entry_ptr);
   return TRUE;
 }
