@@ -11,6 +11,7 @@
 #include "../../include/ytnova_panel_anchor.h"
 #include "../../include/ytnova_ui.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_window.h"
 #include <assert.h>
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
@@ -361,10 +362,7 @@ void SwitchToSmallFileWindow(ViewContext *ctx) {
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
   wattrset(ctx->ctx_border_window, A_NORMAL);
 
-  ctx->ctx_file_window = ctx->ctx_small_file_window;
-  if (ctx->active) {
-    ctx->active->pan_file_window = ctx->active->pan_small_file_window;
-  }
+  AppStateSetPanelFileWindowHandle(ctx, ctx->active, FALSE);
 }
 
 void SwitchToBigFileWindow(ViewContext *ctx) {
@@ -387,10 +385,7 @@ void SwitchToBigFileWindow(ViewContext *ctx) {
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
   wattrset(ctx->ctx_border_window, A_NORMAL);
 
-  ctx->ctx_file_window = ctx->ctx_big_file_window;
-  if (ctx->active) {
-    ctx->active->pan_file_window = ctx->active->pan_big_file_window;
-  }
+  AppStateSetPanelFileWindowHandle(ctx, ctx->active, TRUE);
 }
 
 void MapF2Window(ViewContext *ctx) {
@@ -762,10 +757,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
      * surgery assumes standard tree/file geometry and corrupts preview
      * borders.
      */
-    if (ctx->active && ctx->active->pan_big_file_window) {
-      ctx->active->pan_file_window = ctx->active->pan_big_file_window;
-      ctx->ctx_file_window = ctx->active->pan_big_file_window;
-    }
+    AppStateSetPanelFileWindowHandle(ctx, ctx->active, TRUE);
     DisplayFileWindow(ctx, ctx->active, dir_entry);
     if (ctx->ctx_preview_window)
       wnoutrefresh(ctx->ctx_preview_window);
@@ -784,16 +776,9 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
                            ? active_big_mode
                            : IsPanelSavedBigFileMode(ctx->right);
 
-      ctx->left->pan_file_window =
-          left_big_mode ? ctx->left->pan_big_file_window
-                        : ctx->left->pan_small_file_window;
-      ctx->right->pan_file_window =
-          right_big_mode ? ctx->right->pan_big_file_window
-                         : ctx->right->pan_small_file_window;
-      ctx->active->pan_file_window =
-          active_big_mode ? ctx->active->pan_big_file_window
-                          : ctx->active->pan_small_file_window;
-      ctx->ctx_file_window = ctx->active->pan_file_window;
+      AppStateSetPanelFileWindowHandle(ctx, ctx->left, left_big_mode);
+      AppStateSetPanelFileWindowHandle(ctx, ctx->right, right_big_mode);
+      AppStateSetPanelFileWindowHandle(ctx, ctx->active, active_big_mode);
 
       DrawSplitSeparatorRow(ctx, left_big_mode, right_big_mode);
 

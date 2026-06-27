@@ -6352,6 +6352,38 @@ def test_active_window_handles_sync_through_appstate_helper() -> None:
         )
 
 
+def test_file_window_handle_selection_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_window.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_window.c").read_text(encoding="utf-8")
+    display = Path("src/ui/display.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateSetPanelFileWindowHandle(" in header
+    assert 'include "ytnova_appstate_window.h"' in display
+
+    helper_start = helper.index("BOOL AppStateSetPanelFileWindowHandle(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.window_handles")'
+    assignments = [
+        "panel->pan_file_window = big_file_window ? panel->pan_big_file_window",
+        "ctx->ctx_file_window = panel->pan_file_window;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    assert "AppStateSetPanelFileWindowHandle(ctx, ctx->active, FALSE)" in display
+    assert "AppStateSetPanelFileWindowHandle(ctx, ctx->active, TRUE)" in display
+    assert "AppStateSetPanelFileWindowHandle(ctx, ctx->left, left_big_mode)" in display
+    assert (
+        "AppStateSetPanelFileWindowHandle(ctx, ctx->right, right_big_mode)"
+        in display
+    )
+    assert not re.search(r"\bctx->ctx_file_window\s*=[^=]", display)
+    assert not re.search(r"\b(?:ctx->active|ctx->left|ctx->right)->pan_file_window\s*=", display)
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
