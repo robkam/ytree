@@ -11,6 +11,7 @@
 #include "../../include/ytnova_panel_anchor.h"
 #include "../../include/ytnova_ui.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_window.h"
 #include <assert.h>
 
@@ -695,8 +696,8 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   /* 1. Re-evaluate Layout; only recreate windows on actual resize */
   Layout_Recalculate(ctx);
   if (ctx->cached_lines != LINES || ctx->cached_cols != COLS) {
-    ctx->cached_lines = LINES;
-    ctx->cached_cols = COLS;
+    if (!AppStateCommitTerminalGeometryCache(ctx, LINES, COLS))
+      return;
     needs_window_recreate = TRUE;
   }
 
