@@ -5349,6 +5349,7 @@ int AppStateValidatedGenerationDomain(const char *domain_id) {
 }
 
 #include "src/ui/appstate_focus.c"
+#include "src/ui/appstate_layout.c"
 #include "src/ui/appstate_panel.c"
 #include "src/ui/appstate_session.c"
 #include "src/ui/appstate_volume.c"
@@ -6135,6 +6136,54 @@ def test_active_panel_session_commits_through_appstate_helper() -> None:
     assert init_body.count("AppStateCommitActivePanel(ctx, ctx->left)") >= 2
     assert "AppStateCommitActivePanel(ctx, ctx->left)" in recreate_body
     assert "AppStateCommitActivePanel(ctx, ctx->left)" in dir_body
+
+
+def test_split_layout_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitSplitScreenLayout(" in header
+    assert 'include "ytnova_appstate_layout.h"' in split_transition
+    assert 'include "ytnova_appstate_layout.h"' in init_source
+
+    helper_start = helper.index("BOOL AppStateCommitSplitScreenLayout(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.layout")'
+    layout_write = "ctx->is_split_screen = is_split_screen ? TRUE : FALSE;"
+
+    assert validation in helper_body
+    assert layout_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(layout_write)
+
+    for source in [split_transition, init_source]:
+        assert not re.search(r"\bctx->is_split_screen\s*=[^=]", source)
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleDirWindowAction("
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    dir_split_body = split_transition[dir_split_start:]
+    init_view_start = init_source.index("void InitView(")
+    init_view_end = init_source.index("\nvoid CoreMainOps_Register(", init_view_start)
+    init_view_body = init_source[init_view_start:init_view_end]
+    init_start = init_source.index("int Init(")
+    init_body = init_source[init_start:]
+
+    assert "AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen)" in (
+        file_split_body
+    )
+    assert "AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen)" in (
+        dir_split_body
+    )
+    assert "AppStateCommitSplitScreenLayout(ctx, FALSE)" in init_view_body
+    assert "AppStateCommitSplitScreenLayout(ctx, FALSE)" in init_body
 
 
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:

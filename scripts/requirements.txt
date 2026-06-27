@@ -4,6 +4,7 @@
 #
 #    pip-compile --output-file=scripts/requirements.txt scripts/requirements.in
 #
+#
 annotated-types==0.7.0
     # via pydantic
 certifi==2026.6.17
