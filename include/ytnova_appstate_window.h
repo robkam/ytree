@@ -13,5 +13,6 @@
 BOOL AppStateSyncActiveWindowHandles(ViewContext *ctx);
 BOOL AppStateSetPanelFileWindowHandle(ViewContext *ctx, YtreeNovaPanel *panel,
                                       BOOL big_file_window);
+BOOL AppStateSetPreviewWindowHandle(ViewContext *ctx, WINDOW *preview_window);
 
 #endif /* YTNOVA_APPSTATE_WINDOW_H */

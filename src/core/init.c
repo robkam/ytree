@@ -523,8 +523,10 @@ void ReCreateWindows(ViewContext *ctx) {
 
   /* Cleanup Preview Window */
   if (ctx->ctx_preview_window) {
-    delwin(ctx->ctx_preview_window);
-    ctx->ctx_preview_window = NULL;
+    WINDOW *preview_window = ctx->ctx_preview_window;
+    if (!AppStateSetPreviewWindowHandle(ctx, NULL))
+      return;
+    delwin(preview_window);
   }
 
   /* 3. Create Primary Panel Windows (Always Created) */
@@ -592,9 +594,14 @@ void ReCreateWindows(ViewContext *ctx) {
 
   /* 5. Create Preview Window (If Preview Mode) */
   if (ctx->preview_mode) {
-    ctx->ctx_preview_window =
+    WINDOW *preview_window =
         Newwin(ctx->layout.preview_win_height, ctx->layout.preview_win_width,
                ctx->layout.preview_win_y, ctx->layout.preview_win_x);
+    if (!AppStateSetPreviewWindowHandle(ctx, preview_window)) {
+      if (preview_window)
+        delwin(preview_window);
+      return;
+    }
     if (ctx->ctx_preview_window) {
       keypad(ctx->ctx_preview_window, TRUE);
 
@@ -780,7 +787,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->refresh_mode =
       0; /* Will be set after ReadProfile initializes profile_data */
   ctx->preview_mode = FALSE; /* Initialize Preview Mode */
-  ctx->ctx_preview_window = NULL;
+  if (!AppStateSetPreviewWindowHandle(ctx, NULL))
+    return -1;
 
   /* Initialize global mode default */
   if (!AppStateCommitViewMode(ctx, DISK_MODE))

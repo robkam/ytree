@@ -6402,6 +6402,27 @@ def test_recreate_windows_file_handle_selection_routes_through_appstate_helper()
     assert not re.search(r"\bctx->ctx_file_window\s*=[^=]", init_source)
 
 
+def test_preview_window_handle_lifecycle_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_window.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_window.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateSetPreviewWindowHandle(" in header
+
+    helper_start = helper.index("BOOL AppStateSetPreviewWindowHandle(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.window_handles")'
+    assignment = "ctx->ctx_preview_window = preview_window;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    assert init_source.count("AppStateSetPreviewWindowHandle(ctx, NULL)") >= 2
+    assert "AppStateSetPreviewWindowHandle(ctx, preview_window)" in init_source
+    assert not re.search(r"\bctx->ctx_preview_window\s*=[^=]", init_source)
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
