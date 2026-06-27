@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_render.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
@@ -209,7 +210,7 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
     ch = NormalizeViKey(ctx, ch);
 
     if (ctx->resize_request) {
-      ctx->resize_request = FALSE;
+      (void)AppStateClearResizeRequest(ctx);
       SetupTaggedViewWindow(ctx);
       continue;
     }
@@ -219,7 +220,7 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
     switch (ch) {
 #ifdef KEY_RESIZE
     case KEY_RESIZE:
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
       break;
 #endif
     case ESC:

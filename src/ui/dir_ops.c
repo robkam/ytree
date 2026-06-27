@@ -8,6 +8,7 @@
 
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
@@ -1263,7 +1264,7 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
         if (!ctx->is_split_screen) {
           /* Split state changed (unsplit), and this panel no longer exists. */
           DisplayMenu(ctx);
-          ctx->resize_request = TRUE;
+          (void)AppStateMarkResizeRequest(ctx);
         }
         return;
       }

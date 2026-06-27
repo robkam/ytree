@@ -14,6 +14,7 @@
 #include "../../include/sort.h"
 #include "../../include/watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
@@ -451,7 +452,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       if (ctx->preview_mode)
         UpdatePreview(ctx, dir_entry);
       need_dsp_help = TRUE;
-      ctx->resize_request = FALSE;
+      (void)AppStateClearResizeRequest(ctx);
     }
 
     action = GetKeyAction(ctx, ch);

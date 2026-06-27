@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_render.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 #include <errno.h>
@@ -529,7 +530,7 @@ static void hex_edit(ViewContext *ctx, char *file_path,
     ch = NormalizeViKey(ctx, ch);
     if (ctx->resize_request) {
       DoResize(ctx, file_path, geom);
-      ctx->resize_request = FALSE;
+      (void)AppStateClearResizeRequest(ctx);
       continue;
     }
 
@@ -538,7 +539,7 @@ static void hex_edit(ViewContext *ctx, char *file_path,
 #ifdef KEY_RESIZE
 
     case KEY_RESIZE:
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
       break;
 #endif
     case ESC:
@@ -747,7 +748,7 @@ int InternalView(ViewContext *ctx, char *file_path,
 
     if (ctx->resize_request) {
       DoResize(ctx, file_path, geometry);
-      ctx->resize_request = FALSE;
+      (void)AppStateClearResizeRequest(ctx);
       continue;
     }
 
@@ -755,7 +756,7 @@ int InternalView(ViewContext *ctx, char *file_path,
 
 #ifdef KEY_RESIZE
     case KEY_RESIZE:
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
       break;
 #endif
 
@@ -846,7 +847,7 @@ int InternalView(ViewContext *ctx, char *file_path,
   touchwin(stdscr);
   wnoutrefresh(stdscr);
   close(fd);
-  ctx->resize_request = ctx->viewer.resize_done;
+  (void)AppStateCommitResizeRequest(ctx, ctx->viewer.resize_done);
   ctx->viewer.resize_done = FALSE;
   return result;
 }

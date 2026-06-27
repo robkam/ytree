@@ -8,6 +8,7 @@
 #define NO_YTNOVA_MACROS
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_session.h"
@@ -699,7 +700,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       /* SIMPLIFIED RESIZE: Just call Global Refresh */
       RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
-      ctx->resize_request = FALSE;
+      (void)AppStateClearResizeRequest(ctx);
     }
 
     action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeNovaAction */
@@ -709,7 +710,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     switch (action) {
     case ACTION_RESIZE:
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
       break;
 
     case ACTION_EDIT_CONFIG:
@@ -720,7 +721,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_TOGGLE_STATS:
       ctx->show_stats = !ctx->show_stats;
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
       break;
 
     case ACTION_VIEW_PREVIEW: {
@@ -1093,7 +1094,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_TOGGLE_COMPACT:
       ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
       break;
 
     case ACTION_CMD_P: /* Pipe Directory */

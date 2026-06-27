@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
@@ -272,7 +273,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       ch = WGetch(ctx, win);
 
       if (ctx && ctx->resize_request) {
-        ctx->resize_request = FALSE;
+        (void)AppStateClearResizeRequest(ctx);
         ReCreateWindows(ctx);
         DisplayMenu(ctx);
         DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);

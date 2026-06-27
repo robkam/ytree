@@ -7,6 +7,7 @@
 
 #define NO_YTNOVA_MACROS
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
@@ -1100,17 +1101,17 @@ BOOL handle_file_window_misc_dispatch_action(
     break;
 
   case ACTION_RESIZE:
-    ctx->resize_request = TRUE;
+    (void)AppStateMarkResizeRequest(ctx);
     break;
 
   case ACTION_TOGGLE_STATS:
     ctx->show_stats = !ctx->show_stats;
-    ctx->resize_request = TRUE;
+    (void)AppStateMarkResizeRequest(ctx);
     break;
 
   case ACTION_TOGGLE_COMPACT:
     ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
-    ctx->resize_request = TRUE;
+    (void)AppStateMarkResizeRequest(ctx);
     break;
 
   case ACTION_ESCAPE:
