@@ -8,6 +8,7 @@
 #define NO_YTNOVA_MACROS
 
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
 
 BOOL AppStateCommitPanelVisibilityFilter(YtreeNovaPanel *panel,
@@ -23,7 +24,8 @@ BOOL AppStateCommitPanelVisibilityFilter(YtreeNovaPanel *panel,
 
   panel->hide_dot_files = hide_dot_files ? TRUE : FALSE;
   panel->panel_generation++;
-  panel->vol->volume_generation++;
+  if (!AppStateCommitVolumeGeneration(panel->vol))
+    return FALSE;
   return TRUE;
 }
 

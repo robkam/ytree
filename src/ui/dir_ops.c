@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -163,8 +164,9 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
 
   if (!dir_entry->unlogged_flag &&
       (dir_entry->sub_tree != NULL || dir_entry->file != NULL)) {
+    if (!AppStateCommitVolumeGeneration(p->vol))
+      return;
     dir_entry->not_scanned = FALSE;
-    p->vol->volume_generation++;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     if (inactive && inactive->vol == p->vol) {
@@ -959,7 +961,10 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
   if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
       DebugLogSplitState("HandleDirMakeDirectory:after_make_before_rebuild",
                          ctx);
-      ctx->active->vol->volume_generation++;
+      if (!AppStateCommitVolumeGeneration(ctx->active->vol)) {
+        FreePathList(inactive_tagged_snapshot);
+        return;
+      }
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
       if (active_anchor_path[0] != '\0') {
         ReanchorPanelToDir(
@@ -1028,7 +1033,8 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   CapturePanelViewportSnapshot(ctx->active, ctx->active->vol, &active_viewport);
 
   if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
-    ctx->active->vol->volume_generation++;
+    if (!AppStateCommitVolumeGeneration(ctx->active->vol))
+      return dir_entry;
   }
 
   BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
@@ -1081,7 +1087,8 @@ DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
     int rename_result = RenameDirectory(ctx, dir_entry, new_name);
     if (!rename_result) {
-      ctx->active->vol->volume_generation++;
+      if (!AppStateCommitVolumeGeneration(ctx->active->vol))
+        return dir_entry;
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
       dir_entry = ResolveActiveDirEntry(ctx, s);
     }
