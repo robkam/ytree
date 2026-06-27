@@ -10,6 +10,7 @@
 
 #include "ytnova_defs.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_debug.h"
@@ -353,7 +354,10 @@ void InitView(ViewContext *ctx) {
   ctx->viewer.inhex = TRUE;
   ctx->view_mode = DISK_MODE;
   ctx->dir_mode = MODE_3;
-  ctx->is_split_screen = FALSE;
+  if (!AppStateCommitSplitScreenLayout(ctx, FALSE)) {
+    fprintf(stderr, "InitView: failed to initialize split layout\n");
+    exit(1);
+  }
 
   /* Initialize Panels */
   ctx->left = (YtreeNovaPanel *)calloc(1, sizeof(YtreeNovaPanel));
@@ -742,7 +746,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
   /* ctx already assigned in main.c */
 
   /* Initial Panel Defaults */
-  ctx->is_split_screen = FALSE;
+  if (!AppStateCommitSplitScreenLayout(ctx, FALSE))
+    return -1;
   if (!AppStateCommitActivePanel(ctx, ctx->left))
     return -1;
   /* Explicitly initialize panel file lists to zero */

@@ -129,9 +129,11 @@ def test_HandleFileWindow_delegates_split_transition_hotspot():
         "Split transition owner API must validate the inactive panel after "
         f"Tab handoff.\n{split_block}"
     )
-    assert "ctx->is_split_screen = !ctx->is_split_screen;" in split_block, (
-        "Split transition owner API must commit the split toggle inside the "
-        f"transaction.\n{split_block}"
+    assert (
+        "AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen)" in split_block
+    ), (
+        "Split transition owner API must commit the split toggle through "
+        f"AppState inside the transaction.\n{split_block}"
     )
 
 

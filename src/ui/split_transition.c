@@ -9,6 +9,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
@@ -308,7 +309,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
           !DonatePanelState(ctx, ctx->left, ctx->right))
         return FALSE;
 
-      ctx->is_split_screen = !ctx->is_split_screen;
+      if (!AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen))
+        return FALSE;
       if (closing_split && !AppStateCommitActivePanel(ctx, ctx->left))
         return FALSE;
       ReCreateWindows(ctx);
@@ -526,7 +528,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       if (closing_active &&
           !AppStateCommitPanelFocus(ctx, closing_active, FOCUS_TREE))
         return FALSE;
-      ctx->is_split_screen = !ctx->is_split_screen;
+      if (!AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen))
+        return FALSE;
       if (closing_split && !AppStateCommitActivePanel(ctx, ctx->left))
         return FALSE;
       ReCreateWindows(ctx);
