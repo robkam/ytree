@@ -6311,6 +6311,47 @@ def test_volume_registry_commits_through_appstate_helper() -> None:
     assert "ctx->volumes_head = NULL;" not in volume_source
 
 
+def test_active_window_handles_sync_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_window.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_window.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateSyncActiveWindowHandles(" in header
+    for source in [init_source, ctrl_file_ops, dir_ops]:
+        assert 'include "ytnova_appstate_window.h"' in source
+
+    helper_start = helper.index("BOOL AppStateSyncActiveWindowHandles(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.window_handles")'
+    assignments = [
+        "ctx->ctx_dir_window = ctx->active->pan_dir_window;",
+        "ctx->ctx_small_file_window = ctx->active->pan_small_file_window;",
+        "ctx->ctx_big_file_window = ctx->active->pan_big_file_window;",
+        "ctx->ctx_file_window = ctx->active->pan_file_window;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    assert "AppStateSyncActiveWindowHandles(ctx)" in init_source
+    assert "AppStateSyncActiveWindowHandles(ctx)" in ctrl_file_ops
+    assert "AppStateSyncActiveWindowHandles(ctx)" in dir_ops
+    for source in [init_source, ctrl_file_ops, dir_ops]:
+        assert "ctx->ctx_dir_window = ctx->active->pan_dir_window;" not in source
+        assert (
+            "ctx->ctx_small_file_window = ctx->active->pan_small_file_window;"
+            not in source
+        )
+        assert (
+            "ctx->ctx_big_file_window = ctx->active->pan_big_file_window;"
+            not in source
+        )
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

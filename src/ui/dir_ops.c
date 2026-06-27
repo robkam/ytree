@@ -11,6 +11,7 @@
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
+#include "ytnova_appstate_window.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -1290,13 +1291,7 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 void SyncActivePanelWindows(ViewContext *ctx) {
-  if (!ctx || !ctx->active)
-    return;
-
-  ctx->ctx_dir_window = ctx->active->pan_dir_window;
-  ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-  ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-  ctx->ctx_file_window = ctx->active->pan_file_window;
+  (void)AppStateSyncActiveWindowHandles(ctx);
 }
 
 DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s) {
