@@ -6228,6 +6228,47 @@ def test_view_mode_commits_through_appstate_helper() -> None:
     )
 
 
+def test_status_line_message_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_message.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_message.c").read_text(encoding="utf-8")
+    error_source = Path("src/ui/error.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitStatusLineError(" in header
+    assert "BOOL AppStateClearStatusLineError(" in header
+    assert 'include "ytnova_appstate_message.h"' in error_source
+
+    commit_start = helper.index("BOOL AppStateCommitStatusLineError(")
+    clear_start = helper.index("BOOL AppStateClearStatusLineError(")
+    commit_body = helper[commit_start:clear_start]
+    clear_body = helper[clear_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.message_state")'
+
+    assert validation in commit_body
+    assert validation in clear_body
+    assert "ctx->status_line_error_pending = TRUE;" in commit_body
+    assert "ctx->status_line_error_pending = FALSE;" in clear_body
+    assert "ctx->status_line_error_text[0] = '\\0';" in clear_body
+    assert commit_body.index(validation) < commit_body.index(
+        "ctx->status_line_error_pending = TRUE;"
+    )
+    assert clear_body.index(validation) < clear_body.index(
+        "ctx->status_line_error_pending = FALSE;"
+    )
+
+    assert "AppStateCommitStatusLineError(ctx, message)" in error_source
+    assert "AppStateClearStatusLineError(ctx)" in error_source
+
+    show_start = error_source.index("void UI_ShowStatusLineError(")
+    clear_start = error_source.index("void UI_ClearStatusLineError(")
+    show_body = error_source[show_start:clear_start]
+    clear_body = error_source[clear_start:]
+
+    assert "ctx->status_line_error_text" not in show_body
+    assert not re.search(r"\bctx->status_line_error_pending\s*=[^=]", show_body)
+    assert "ctx->status_line_error_text[0] = '\\0';" not in clear_body
+    assert not re.search(r"\bctx->status_line_error_pending\s*=[^=]", clear_body)
+
+
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_message.h"
 #include "ytnova_ui.h"
 
 #include <stdarg.h>
@@ -49,16 +50,17 @@ void UI_RenderStatusLineError(ViewContext *ctx) {
 
 void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...) {
   va_list ap;
+  char message[PATH_LENGTH + 1];
 
   if (!ctx || !fmt)
     return;
 
   va_start(ap, fmt);
-  (void)vsnprintf(ctx->status_line_error_text, sizeof(ctx->status_line_error_text),
-                  fmt, ap);
+  (void)vsnprintf(message, sizeof(message), fmt, ap);
   va_end(ap);
 
-  ctx->status_line_error_pending = TRUE;
+  if (!AppStateCommitStatusLineError(ctx, message))
+    return;
   UI_RenderStatusLineError(ctx);
   doupdate();
 }
@@ -69,8 +71,8 @@ void UI_ClearStatusLineError(ViewContext *ctx) {
   if (!ctx || !ctx->status_line_error_pending)
     return;
 
-  ctx->status_line_error_pending = FALSE;
-  ctx->status_line_error_text[0] = '\0';
+  if (!AppStateClearStatusLineError(ctx))
+    return;
   ClearStatusLineErrorLine(ctx);
   if (!ctx->ctx_menu_window)
     return;
