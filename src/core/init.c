@@ -529,6 +529,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   /* 3. Create Primary Panel Windows (Always Created) */
   YtreeNovaPanel *primary = (ctx->preview_mode) ? ctx->active : ctx->left;
+  BOOL primary_big_mode = (primary == ctx->left) ? left_is_big : right_is_big;
 
   primary->pan_dir_window = Subwin(stdscr, primary->dir_h, primary->dir_w,
                                    primary->dir_y, primary->dir_x);
@@ -554,10 +555,8 @@ void ReCreateWindows(ViewContext *ctx) {
   leaveok(primary->pan_big_file_window, TRUE);
   CoreInitWbkgdSet(ctx, primary->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-  /* Determine current file window for primary based on its OWN state */
-  primary->pan_file_window = (primary == ctx->left ? left_is_big : right_is_big)
-                                 ? primary->pan_big_file_window
-                                 : primary->pan_small_file_window;
+  if (!AppStateSetPanelFileWindowHandle(ctx, primary, primary_big_mode))
+    return;
 
   /* 4. Create Right Panel Windows (Only if Split Screen and NOT Preview Mode)
    */
@@ -587,10 +586,8 @@ void ReCreateWindows(ViewContext *ctx) {
     leaveok(ctx->right->pan_big_file_window, TRUE);
     CoreInitWbkgdSet(ctx, ctx->right->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-    /* Determine current file window for RightPanel based on its OWN state */
-    ctx->right->pan_file_window = (right_is_big)
-                                      ? ctx->right->pan_big_file_window
-                                      : ctx->right->pan_small_file_window;
+    if (!AppStateSetPanelFileWindowHandle(ctx, ctx->right, right_is_big))
+      return;
   }
 
   /* 5. Create Preview Window (If Preview Mode) */
@@ -615,7 +612,8 @@ void ReCreateWindows(ViewContext *ctx) {
     ctx->active->pan_dir_window = ctx->left->pan_dir_window;
     ctx->active->pan_small_file_window = ctx->left->pan_small_file_window;
     ctx->active->pan_big_file_window = ctx->left->pan_big_file_window;
-    ctx->active->pan_file_window = ctx->left->pan_file_window;
+    if (!AppStateSetPanelFileWindowHandle(ctx, ctx->active, left_is_big))
+      return;
   } else if (ctx->active == ctx->right &&
              (ctx->is_split_screen || ctx->preview_mode)) {
     /* In Preview Mode, RightPanel might not have windows, but ActivePanel
@@ -625,7 +623,8 @@ void ReCreateWindows(ViewContext *ctx) {
     ctx->active->pan_dir_window = ctx->right->pan_dir_window;
     ctx->active->pan_small_file_window = ctx->right->pan_small_file_window;
     ctx->active->pan_big_file_window = ctx->right->pan_big_file_window;
-    ctx->active->pan_file_window = ctx->right->pan_file_window;
+    if (!AppStateSetPanelFileWindowHandle(ctx, ctx->active, right_is_big))
+      return;
   } else {
     /* Fallback if something went wrong (e.g. RightPanel active but
      * SplitScreen/Preview disabled) */
@@ -634,7 +633,8 @@ void ReCreateWindows(ViewContext *ctx) {
     ctx->active->pan_dir_window = ctx->left->pan_dir_window;
     ctx->active->pan_small_file_window = ctx->left->pan_small_file_window;
     ctx->active->pan_big_file_window = ctx->left->pan_big_file_window;
-    ctx->active->pan_file_window = ctx->left->pan_file_window;
+    if (!AppStateSetPanelFileWindowHandle(ctx, ctx->active, left_is_big))
+      return;
   }
 
   if (!AppStateSyncActiveWindowHandles(ctx))
@@ -825,7 +825,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
     typeahead(-1);
   DEBUG_LOG("Init: typeahead done");
 
-  ctx->ctx_file_window = ctx->ctx_small_file_window;
+  if (!AppStateSetPanelFileWindowHandle(ctx, ctx->active, FALSE))
+    return -1;
 
   DEBUG_LOG("Init: Calling ReadGroupEntries");
   if (ctx->core_init_ops.read_group_entries != NULL &&
