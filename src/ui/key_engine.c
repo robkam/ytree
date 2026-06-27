@@ -8,6 +8,7 @@
 
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 #include <ctype.h>
@@ -709,7 +710,7 @@ int WGetch(ViewContext *ctx, WINDOW *win) {
     if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
       return ERR;
     if (ctx)
-      ctx->resize_request = TRUE;
+      (void)AppStateMarkResizeRequest(ctx);
     c = -1;
   }
 #endif

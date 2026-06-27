@@ -8,6 +8,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_render.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 #include <ctype.h>  /* For isalnum */
@@ -307,7 +308,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
     }
 
     if (ctx && ctx->resize_request) {
-      ctx->resize_request = FALSE;
+      (void)AppStateClearResizeRequest(ctx);
 
       /* Recreate window geometry */
       prompt_row = (ctx->layout.prompt_y > 0) ? 1 : 0;

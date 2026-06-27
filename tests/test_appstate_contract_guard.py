@@ -5589,8 +5589,9 @@ def test_wgetch_resize_signal_handling_fails_closed_before_mutation() -> None:
 
     assert validation in body
     assert "return ERR;" in body
-    assert body.index(validation) < body.index("ctx->resize_request = TRUE;")
-    assert body.index("return ERR;") < body.index("ctx->resize_request = TRUE;")
+    assert "AppStateMarkResizeRequest(ctx);" in body
+    assert body.index(validation) < body.index("AppStateMarkResizeRequest(ctx);")
+    assert body.index("return ERR;") < body.index("AppStateMarkResizeRequest(ctx);")
 
 
 def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> None:
@@ -6454,6 +6455,57 @@ def test_auxiliary_window_handle_lifecycle_routes_through_appstate_helpers() -> 
         r"history_window|matches_window|menu_window|f2_window)\s*=[^=]",
         init_source,
     )
+
+
+def test_resize_dirty_flag_writes_route_through_appstate_helpers() -> None:
+    header = Path("include/ytnova_appstate_render.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_render.c").read_text(encoding="utf-8")
+    sources = {
+        path: Path(path).read_text(encoding="utf-8")
+        for path in [
+            "src/ui/ctrl_file_ops.c",
+            "src/ui/key_engine.c",
+            "src/ui/ctrl_file.c",
+            "src/ui/input_line.c",
+            "src/ui/ctrl_dir.c",
+            "src/ui/dir_ops.c",
+            "src/ui/view_internal.c",
+            "src/ui/volume_menu.c",
+            "src/ui/tagged_view.c",
+        ]
+    }
+
+    assert "BOOL AppStateCommitResizeRequest(" in header
+    assert "BOOL AppStateMarkResizeRequest(" in header
+    assert "BOOL AppStateClearResizeRequest(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitResizeRequest(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.render_dirty_flags")'
+    assignment = "ctx->resize_request = resize_request ? TRUE : FALSE;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+    assert "return AppStateCommitResizeRequest(ctx, TRUE);" in helper
+    assert "return AppStateCommitResizeRequest(ctx, FALSE);" in helper
+
+    expected_calls = {
+        "src/ui/ctrl_file_ops.c": "AppStateMarkResizeRequest(ctx)",
+        "src/ui/key_engine.c": "AppStateMarkResizeRequest(ctx)",
+        "src/ui/ctrl_file.c": "AppStateClearResizeRequest(ctx)",
+        "src/ui/input_line.c": "AppStateClearResizeRequest(ctx)",
+        "src/ui/ctrl_dir.c": "AppStateMarkResizeRequest(ctx)",
+        "src/ui/dir_ops.c": "AppStateMarkResizeRequest(ctx)",
+        "src/ui/view_internal.c": "AppStateCommitResizeRequest(ctx, ctx->viewer.resize_done)",
+        "src/ui/volume_menu.c": "AppStateClearResizeRequest(ctx)",
+        "src/ui/tagged_view.c": "AppStateClearResizeRequest(ctx)",
+    }
+
+    for path, source in sources.items():
+        assert 'include "ytnova_appstate_render.h"' in source
+        assert expected_calls[path] in source
+        assert not re.search(r"\bctx->resize_request\s*=[^=]", source)
 
 
 def test_file_selection_anchor_generation_commits_through_appstate_helper() -> None:
