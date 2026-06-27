@@ -886,8 +886,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
     return (1);
   }
   set_term(ctx->curses_screen);
-  ctx->cached_lines = LINES;
-  ctx->cached_cols = COLS;
+  if (!AppStateCommitTerminalGeometryCache(ctx, LINES, COLS))
+    return -1;
   Layout_Recalculate(ctx);
   if (ctx->core_init_ops.start_colors != NULL)
     ctx->core_init_ops.start_colors(ctx); /* even on b/w terminals... */

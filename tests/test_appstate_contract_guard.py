@@ -6187,6 +6187,36 @@ def test_split_layout_commits_through_appstate_helper() -> None:
     assert "AppStateCommitSplitScreenLayout(ctx, FALSE)" in init_body
 
 
+def test_terminal_geometry_cache_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    display = Path("src/ui/display.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitTerminalGeometryCache(" in header
+    assert 'include "ytnova_appstate_layout.h"' in init_source
+    assert 'include "ytnova_appstate_layout.h"' in display
+
+    helper_start = helper.index("BOOL AppStateCommitTerminalGeometryCache(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.layout")'
+    assignments = [
+        "ctx->cached_lines = terminal_lines;",
+        "ctx->cached_cols = terminal_cols;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    assert "AppStateCommitTerminalGeometryCache(ctx, LINES, COLS)" in init_source
+    assert "AppStateCommitTerminalGeometryCache(ctx, LINES, COLS)" in display
+    for source in [init_source, display]:
+        assert not re.search(r"\bctx->cached_lines\s*=[^=]", source)
+        assert not re.search(r"\bctx->cached_cols\s*=[^=]", source)
+
+
 def test_view_mode_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
