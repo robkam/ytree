@@ -34,3 +34,13 @@ BOOL AppStateSetPanelFileWindowHandle(ViewContext *ctx, YtreeNovaPanel *panel,
     ctx->ctx_file_window = panel->pan_file_window;
   return TRUE;
 }
+
+BOOL AppStateSetPreviewWindowHandle(ViewContext *ctx, WINDOW *preview_window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->ctx_preview_window = preview_window;
+  return TRUE;
+}
