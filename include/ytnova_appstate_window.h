@@ -11,5 +11,7 @@
 #include "ytnova_defs.h"
 
 BOOL AppStateSyncActiveWindowHandles(ViewContext *ctx);
+BOOL AppStateSetPanelFileWindowHandle(ViewContext *ctx, YtreeNovaPanel *panel,
+                                      BOOL big_file_window);
 
 #endif /* YTNOVA_APPSTATE_WINDOW_H */

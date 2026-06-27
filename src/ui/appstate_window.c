@@ -20,3 +20,17 @@ BOOL AppStateSyncActiveWindowHandles(ViewContext *ctx) {
   ctx->ctx_file_window = ctx->active->pan_file_window;
   return TRUE;
 }
+
+BOOL AppStateSetPanelFileWindowHandle(ViewContext *ctx, YtreeNovaPanel *panel,
+                                      BOOL big_file_window) {
+  if (!AppStateValidatedOwnerField("ctx.window_handles"))
+    return FALSE;
+  if (!ctx || !panel)
+    return FALSE;
+
+  panel->pan_file_window = big_file_window ? panel->pan_big_file_window
+                                           : panel->pan_small_file_window;
+  if (panel == ctx->active)
+    ctx->ctx_file_window = panel->pan_file_window;
+  return TRUE;
+}
