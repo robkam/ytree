@@ -648,39 +648,83 @@ void ReCreateWindows(ViewContext *ctx) {
     return;
 
   /* 8. Utility Windows */
-  if (ctx->ctx_border_window)
-    delwin(ctx->ctx_border_window);
+  if (ctx->ctx_border_window) {
+    WINDOW *border_window = ctx->ctx_border_window;
+    if (!AppStateSetBorderWindowHandle(ctx, NULL))
+      return;
+    delwin(border_window);
+  }
 
-  ctx->ctx_border_window = Newwin(LINES, COLS, 0, 0);
+  {
+    WINDOW *border_window = Newwin(LINES, COLS, 0, 0);
+    if (!AppStateSetBorderWindowHandle(ctx, border_window)) {
+      if (border_window)
+        delwin(border_window);
+      return;
+    }
+  }
   if (ctx->ctx_border_window) {
     CoreInitWbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
 
     leaveok(ctx->ctx_border_window, TRUE);
 
     /* Header Path Window: subwindow of border */
-    if (ctx->ctx_path_window)
-      delwin(ctx->ctx_path_window);
-    ctx->ctx_path_window = Subwin(ctx->ctx_border_window, 1, COLS - 26, 0, 6);
+    if (ctx->ctx_path_window) {
+      WINDOW *path_window = ctx->ctx_path_window;
+      if (!AppStateSetPathWindowHandle(ctx, NULL))
+        return;
+      delwin(path_window);
+    }
+    {
+      WINDOW *path_window = Subwin(ctx->ctx_border_window, 1, COLS - 26, 0, 6);
+      if (!AppStateSetPathWindowHandle(ctx, path_window)) {
+        if (path_window)
+          delwin(path_window);
+        return;
+      }
+    }
     leaveok(ctx->ctx_path_window, TRUE);
   }
 
-  if (ctx->ctx_error_window)
-    delwin(ctx->ctx_error_window);
+  if (ctx->ctx_error_window) {
+    WINDOW *error_window = ctx->ctx_error_window;
+    if (!AppStateSetErrorWindowHandle(ctx, NULL))
+      return;
+    delwin(error_window);
+  }
 
-  ctx->ctx_error_window = Newwin(ERROR_WINDOW_HEIGHT, ERROR_WINDOW_WIDTH,
-                                 ERROR_WINDOW_Y, ERROR_WINDOW_X);
+  {
+    WINDOW *error_window = Newwin(ERROR_WINDOW_HEIGHT, ERROR_WINDOW_WIDTH,
+                                  ERROR_WINDOW_Y, ERROR_WINDOW_X);
+    if (!AppStateSetErrorWindowHandle(ctx, error_window)) {
+      if (error_window)
+        delwin(error_window);
+      return;
+    }
+  }
   CoreInitWbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR));
 
   leaveok(ctx->ctx_error_window, TRUE);
 
 #ifdef CLOCK_SUPPORT
 
-  if (ctx->ctx_time_window)
-    delwin(ctx->ctx_time_window);
+  if (ctx->ctx_time_window) {
+    WINDOW *time_window = ctx->ctx_time_window;
+    if (!AppStateSetTimeWindowHandle(ctx, NULL))
+      return;
+    delwin(time_window);
+  }
 
-  ctx->ctx_time_window =
-      Subwin(ctx->ctx_border_window, TIME_WINDOW_HEIGHT, TIME_WINDOW_WIDTH,
-             TIME_WINDOW_Y, TIME_WINDOW_X);
+  {
+    WINDOW *time_window =
+        Subwin(ctx->ctx_border_window, TIME_WINDOW_HEIGHT, TIME_WINDOW_WIDTH,
+               TIME_WINDOW_Y, TIME_WINDOW_X);
+    if (!AppStateSetTimeWindowHandle(ctx, time_window)) {
+      if (time_window)
+        delwin(time_window);
+      return;
+    }
+  }
 
   scrollok(ctx->ctx_time_window, FALSE);
   leaveok(ctx->ctx_time_window, TRUE);
@@ -691,35 +735,72 @@ void ReCreateWindows(ViewContext *ctx) {
   immedok(ctx->ctx_time_window, FALSE);
 #endif
 
-  if (ctx->ctx_history_window)
-    delwin(ctx->ctx_history_window);
+  if (ctx->ctx_history_window) {
+    WINDOW *history_window = ctx->ctx_history_window;
+    if (!AppStateSetHistoryWindowHandle(ctx, NULL))
+      return;
+    if (!AppStateSetMatchesWindowHandle(ctx, NULL))
+      return;
+    delwin(history_window);
+  }
 
-  ctx->ctx_history_window =
-      Newwin(HISTORY_WINDOW_HEIGHT, HISTORY_WINDOW_WIDTH(ctx), HISTORY_WINDOW_Y,
-             HISTORY_WINDOW_X);
+  {
+    WINDOW *history_window =
+        Newwin(HISTORY_WINDOW_HEIGHT, HISTORY_WINDOW_WIDTH(ctx),
+               HISTORY_WINDOW_Y, HISTORY_WINDOW_X);
+    if (!AppStateSetHistoryWindowHandle(ctx, history_window)) {
+      if (history_window)
+        delwin(history_window);
+      return;
+    }
+  }
   scrollok(ctx->ctx_history_window, TRUE);
 
   leaveok(ctx->ctx_history_window, TRUE);
   CoreInitWbkgdSet(ctx, ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
 
-  ctx->ctx_matches_window = ctx->ctx_history_window;
+  if (!AppStateSetMatchesWindowHandle(ctx, ctx->ctx_history_window))
+    return;
 
-  if (ctx->ctx_menu_window)
-    delwin(ctx->ctx_menu_window);
+  if (ctx->ctx_menu_window) {
+    WINDOW *menu_window = ctx->ctx_menu_window;
+    if (!AppStateSetMenuWindowHandle(ctx, NULL))
+      return;
+    delwin(menu_window);
+  }
 
   /* Menu area: Y_MESSAGE down to bottom (typically 3 lines) */
-  ctx->ctx_menu_window = Newwin(3, COLS, ctx->layout.message_y, 0);
+  {
+    WINDOW *menu_window = Newwin(3, COLS, ctx->layout.message_y, 0);
+    if (!AppStateSetMenuWindowHandle(ctx, menu_window)) {
+      if (menu_window)
+        delwin(menu_window);
+      return;
+    }
+  }
   if (ctx->ctx_menu_window) {
     CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_MENU));
 
     leaveok(ctx->ctx_menu_window, TRUE);
   }
 
-  if (ctx->ctx_f2_window)
-    delwin(ctx->ctx_f2_window);
+  if (ctx->ctx_f2_window) {
+    WINDOW *f2_window = ctx->ctx_f2_window;
+    if (!AppStateSetF2WindowHandle(ctx, NULL))
+      return;
+    delwin(f2_window);
+  }
 
-  ctx->ctx_f2_window = Newwin(F2_WINDOW_HEIGHT(ctx), F2_WINDOW_WIDTH(ctx),
-                              F2_WINDOW_Y(ctx), F2_WINDOW_X(ctx));
+  {
+    WINDOW *f2_window =
+        Newwin(F2_WINDOW_HEIGHT(ctx), F2_WINDOW_WIDTH(ctx), F2_WINDOW_Y(ctx),
+               F2_WINDOW_X(ctx));
+    if (!AppStateSetF2WindowHandle(ctx, f2_window)) {
+      if (f2_window)
+        delwin(f2_window);
+      return;
+    }
+  }
 
   keypad(ctx->ctx_f2_window, TRUE);
   scrollok(ctx->ctx_f2_window, FALSE);
