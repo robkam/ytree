@@ -14,6 +14,7 @@
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
+#include "ytnova_appstate_window.h"
 #include "ytnova_debug.h"
 #include "default_profile_template.h"
 #include <fcntl.h>
@@ -636,11 +637,8 @@ void ReCreateWindows(ViewContext *ctx) {
     ctx->active->pan_file_window = ctx->left->pan_file_window;
   }
 
-  /* 7. Sync Global View Context */
-  ctx->ctx_dir_window = ctx->active->pan_dir_window;
-  ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-  ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-  ctx->ctx_file_window = ctx->active->pan_file_window;
+  if (!AppStateSyncActiveWindowHandles(ctx))
+    return;
 
   /* 8. Utility Windows */
   if (ctx->ctx_border_window)

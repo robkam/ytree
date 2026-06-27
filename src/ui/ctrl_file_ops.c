@@ -10,6 +10,7 @@
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
+#include "ytnova_appstate_window.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -292,10 +293,8 @@ BOOL handle_file_window_preview_action(
 
       dir_entry = ResolveActiveDirEntry(ctx, stats_local);
 
-      ctx->ctx_dir_window = ctx->active->pan_dir_window;
-      ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-      ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-      ctx->ctx_file_window = ctx->active->pan_file_window;
+      if (!AppStateSyncActiveWindowHandles(ctx))
+        return FALSE;
 
       ctx->fixed_col_width = *saved_fixed_width_ptr;
       ReCreateWindows(ctx);
