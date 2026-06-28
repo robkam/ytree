@@ -6691,6 +6691,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
     file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
@@ -6698,6 +6699,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in file_list
     assert 'include "ytnova_appstate_panel.h"' in file_nav
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file_ops
+    assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
 
@@ -6789,6 +6791,20 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
             "AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,"
             in body
         )
+
+    archive_exit_start = ctrl_dir.index("static BOOL ExitArchiveRootToParent(")
+    archive_exit_end = ctrl_dir.index(
+        "\nstatic void HandleDirectoryCompare(", archive_exit_start
+    )
+    archive_exit_body = ctrl_dir[archive_exit_start:archive_exit_end]
+    dir_window_start = ctrl_dir.index("extern int HandleDirWindow(")
+    dir_window_end = ctrl_dir.index(
+        "\nstatic void DirListJump(", dir_window_start
+    )
+    dir_window_body = ctrl_dir[dir_window_start:dir_window_end]
+    for body in [archive_exit_body, dir_window_body]:
+        assert not active_viewport_write.search(body)
+        assert "AppStateCommitPanelFileViewport(ctx->active," in body
 
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:

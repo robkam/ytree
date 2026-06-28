@@ -11,6 +11,7 @@
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_mode.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -396,8 +397,9 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   }
 
   ctx->active->file_dir_entry = *dir_entry_ptr;
-  ctx->active->start_file = (*dir_entry_ptr)->start_file;
-  ctx->active->file_cursor_pos = (*dir_entry_ptr)->cursor_pos;
+  (void)AppStateCommitPanelFileViewport(ctx->active,
+                                        (*dir_entry_ptr)->start_file,
+                                        (*dir_entry_ptr)->cursor_pos);
 
   if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
     return FALSE;
@@ -631,8 +633,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         dir_entry->cursor_pos = 0;
 
       ctx->active->file_dir_entry = dir_entry;
-      ctx->active->start_file = dir_entry->start_file;
-      ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+      (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                            dir_entry->cursor_pos);
       BuildFileEntryList(ctx, ctx->active);
     } else {
       dir_entry->start_file = 0;
