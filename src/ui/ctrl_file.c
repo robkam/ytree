@@ -738,8 +738,8 @@ file_window_done:
   }
   if (!volume_changed) {
     owner_panel->file_dir_entry = dir_entry;
-    owner_panel->start_file = dir_entry->start_file;
-    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+    (void)AppStateCommitPanelFileViewport(
+        owner_panel, dir_entry->start_file, dir_entry->cursor_pos);
 
     if (!switched_to_tree_panel) {
       /* Ensure all mode flags are cleared when exiting back to the tree.
@@ -752,8 +752,7 @@ file_window_done:
     }
   } else {
     owner_panel->file_dir_entry = NULL;
-    owner_panel->start_file = 0;
-    owner_panel->file_cursor_pos = 0;
+    (void)AppStateCommitPanelFileViewport(owner_panel, 0, 0);
     if (!AppStateCommitPanelFileShape(owner_panel, FALSE))
       return ESC;
   }
