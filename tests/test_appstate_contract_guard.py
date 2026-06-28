@@ -6741,9 +6741,11 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
+    volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
+    assert 'include "ytnova_appstate_panel.h"' in volume_menu
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -6766,6 +6768,20 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     assert not re.search(r"\bp->(?:disp_begin_pos|cursor_pos)\s*=(?!=)", position_body)
     assert "AppStateCommitPanelTreeViewport(p, 0, 0)" in position_body
     assert "AppStateCommitPanelTreeViewport(p, begin, cursor)" in position_body
+
+    normalize_start = volume_menu.index("static void NormalizePanelCursorForVolume(")
+    normalize_end = volume_menu.index(
+        "\nstatic void EnsurePanelsReferenceActiveVolume(", normalize_start
+    )
+    normalize_body = volume_menu[normalize_start:normalize_end]
+    assert not re.search(
+        r"\bpanel->(?:disp_begin_pos|cursor_pos)\s*=(?!=)", normalize_body
+    )
+    assert "AppStateCommitPanelTreeViewport(panel, 0, 0)" in normalize_body
+    assert (
+        "AppStateCommitPanelTreeViewport(panel, disp_begin_pos, cursor_pos)"
+        in normalize_body
+    )
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
