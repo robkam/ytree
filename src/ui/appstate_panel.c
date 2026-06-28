@@ -42,3 +42,17 @@ BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
   panel->file_cursor_pos = file_cursor_pos;
   return TRUE;
 }
+
+BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
+                                     int cursor_pos) {
+  if (!AppStateValidatedOwnerField("panel.tree_viewport_origin"))
+    return FALSE;
+  if (!AppStateValidatedOwnerField("panel.tree_cursor_pos"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->disp_begin_pos = disp_begin_pos;
+  panel->cursor_pos = cursor_pos;
+  return TRUE;
+}

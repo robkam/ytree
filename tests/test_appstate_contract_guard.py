@@ -6737,6 +6737,37 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileViewport(panel, 0, 0)" in clear_body
 
 
+def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelTreeViewport(" in header
+    assert 'include "ytnova_appstate_panel.h"' in dir_nav
+
+    helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
+    helper_body = helper[helper_start:]
+    viewport_validation = 'AppStateValidatedOwnerField("panel.tree_viewport_origin")'
+    cursor_validation = 'AppStateValidatedOwnerField("panel.tree_cursor_pos")'
+    viewport_write = "panel->disp_begin_pos = disp_begin_pos;"
+    cursor_write = "panel->cursor_pos = cursor_pos;"
+    assert viewport_validation in helper_body
+    assert cursor_validation in helper_body
+    assert viewport_write in helper_body
+    assert cursor_write in helper_body
+    assert helper_body.index(viewport_validation) < helper_body.index(viewport_write)
+    assert helper_body.index(cursor_validation) < helper_body.index(cursor_write)
+
+    position_start = dir_nav.index("static void PositionPanelAtIndex(")
+    position_end = dir_nav.index(
+        "\nstatic BOOL SyncPanelToVisibleSelection(", position_start
+    )
+    position_body = dir_nav[position_start:position_end]
+    assert not re.search(r"\bp->(?:disp_begin_pos|cursor_pos)\s*=(?!=)", position_body)
+    assert "AppStateCommitPanelTreeViewport(p, 0, 0)" in position_body
+    assert "AppStateCommitPanelTreeViewport(p, begin, cursor)" in position_body
+
+
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
