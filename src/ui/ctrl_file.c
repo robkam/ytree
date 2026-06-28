@@ -16,6 +16,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
 #include "../../include/ytnova_split_transition.h"
@@ -229,7 +230,8 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
                dir_entry->start_file + dir_entry->cursor_pos, start_x,
                ctx->ctx_file_window);
 
-  ctx->active->start_file = dir_entry->start_file;
+  (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                        dir_entry->cursor_pos);
 
   return dir_entry;
 }
@@ -308,8 +310,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     dir_entry->cursor_pos = 0;
     dir_entry->start_file = 0;
   }
-  ctx->active->start_file = dir_entry->start_file;
-  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+  (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                        dir_entry->cursor_pos);
   if (ctx->active->file_entry_list && ctx->active->file_count > 0) {
     int selection_idx = ctx->active->start_file + ctx->active->file_cursor_pos;
 
@@ -703,10 +705,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     if (ctx->active == owner_panel) {
       owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
-      ctx->active->start_file = dir_entry->start_file;
-      ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+      (void)AppStateCommitPanelFileViewport(
+          owner_panel, dir_entry->start_file, dir_entry->cursor_pos);
     }
 
     /* Centralized check: If directory became empty, we MUST pop out of file
