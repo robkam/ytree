@@ -7,32 +7,39 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
 static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
+  int disp_begin_pos;
+  int cursor_pos;
+
   if (!panel || !panel->vol) {
     return;
   }
 
   if (panel->vol->total_dirs <= 0) {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = 0;
+    if (!AppStateCommitPanelTreeViewport(panel, 0, 0))
+      return;
     panel->file_dir_entry = NULL;
     return;
   }
 
-  if (panel->disp_begin_pos < 0)
-    panel->disp_begin_pos = 0;
-  if (panel->cursor_pos < 0)
-    panel->cursor_pos = 0;
-  if (panel->disp_begin_pos >= panel->vol->total_dirs)
-    panel->disp_begin_pos = panel->vol->total_dirs - 1;
-  if (panel->disp_begin_pos + panel->cursor_pos >= panel->vol->total_dirs)
-    panel->cursor_pos = panel->vol->total_dirs - 1 - panel->disp_begin_pos;
-  if (panel->cursor_pos < 0)
-    panel->cursor_pos = 0;
+  disp_begin_pos = panel->disp_begin_pos;
+  cursor_pos = panel->cursor_pos;
+  if (disp_begin_pos < 0)
+    disp_begin_pos = 0;
+  if (cursor_pos < 0)
+    cursor_pos = 0;
+  if (disp_begin_pos >= panel->vol->total_dirs)
+    disp_begin_pos = panel->vol->total_dirs - 1;
+  if (disp_begin_pos + cursor_pos >= panel->vol->total_dirs)
+    cursor_pos = panel->vol->total_dirs - 1 - disp_begin_pos;
+  if (cursor_pos < 0)
+    cursor_pos = 0;
+  (void)AppStateCommitPanelTreeViewport(panel, disp_begin_pos, cursor_pos);
 }
 
 static void EnsurePanelsReferenceActiveVolume(ViewContext *ctx) {
