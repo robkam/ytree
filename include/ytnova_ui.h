@@ -426,7 +426,8 @@ extern void QuitTo(ViewContext *ctx, DirEntry *dir_entry);
 extern int UI_PromptAttributeAction(ViewContext *ctx, BOOL tagged,
                                     BOOL allow_date);
 extern int UI_ParseModeInput(const char *input, char *out_mode,
-                             char *preview_mode);
+                             size_t out_mode_size, char *preview_mode,
+                             size_t preview_mode_size);
 extern int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time,
                                 int *scope_mask);
 extern int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr);

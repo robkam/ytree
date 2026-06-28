@@ -1556,7 +1556,7 @@ static BOOL HandleTaggedAttributeDispatchAction(
         char parsed_mode[12] = {0};
         char preview_mode[10] = {0};
 
-        if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
+        if (UI_ParseModeInput(mode, parsed_mode, sizeof(parsed_mode), preview_mode, sizeof(preview_mode)) != 0) {
           UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
           wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
           wclrtoeol(ctx->ctx_border_window);

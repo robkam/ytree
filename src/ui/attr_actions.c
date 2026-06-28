@@ -56,12 +56,15 @@ static BOOL is_valid_mode_char(int idx, int ch) {
   }
 }
 
-int UI_ParseModeInput(const char *input, char *out_mode, char *preview_mode) {
+int UI_ParseModeInput(const char *input, char *out_mode, size_t out_mode_size,
+                      char *preview_mode, size_t preview_mode_size) {
   size_t len;
   int i;
   char attributes[11];
 
   if (!input || !out_mode || !preview_mode)
+    return -1;
+  if (out_mode_size < 11 || preview_mode_size < 10)
     return -1;
 
   len = strlen(input);
@@ -89,7 +92,7 @@ int UI_ParseModeInput(const char *input, char *out_mode, char *preview_mode) {
     out_mode[0] = '?';
     memcpy(&out_mode[1], &attributes[1], 9);
     out_mode[10] = '\0';
-    strncpy(preview_mode, &attributes[1], 9);
+    memcpy(preview_mode, &attributes[1], 9);
     preview_mode[9] = '\0';
     return 0;
   }
@@ -102,7 +105,7 @@ int UI_ParseModeInput(const char *input, char *out_mode, char *preview_mode) {
       out_mode[i + 1] = (char)input[i];
     }
     out_mode[10] = '\0';
-    strncpy(preview_mode, input, 9);
+    memcpy(preview_mode, input, 9);
     preview_mode[9] = '\0';
     return 0;
   }
@@ -114,7 +117,7 @@ int UI_ParseModeInput(const char *input, char *out_mode, char *preview_mode) {
       out_mode[i] = (char)input[i];
     }
     out_mode[10] = '\0';
-    strncpy(preview_mode, &out_mode[1], 9);
+    memcpy(preview_mode, &out_mode[1], 9);
     preview_mode[9] = '\0';
     return 0;
   }
@@ -318,7 +321,7 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
                    tm_ptr);
   }
 
-  strncpy(date_input, display_time, sizeof(date_input) - 1);
+  memcpy(date_input, display_time, sizeof(date_input) - 1);
   date_input[sizeof(date_input) - 1] = '\0';
 
   ClearHelp(ctx);
@@ -368,7 +371,7 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
     char parsed_mode[12];
     char preview_mode[10];
 
-    if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
+    if (UI_ParseModeInput(mode_input, parsed_mode, sizeof(parsed_mode), preview_mode, sizeof(preview_mode)) != 0) {
       UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
       wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
       wclrtoeol(ctx->ctx_border_window);
@@ -407,7 +410,7 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
     char parsed_mode[12];
     char preview_mode[10];
 
-    if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
+    if (UI_ParseModeInput(mode_input, parsed_mode, sizeof(parsed_mode), preview_mode, sizeof(preview_mode)) != 0) {
       UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
       wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
       wclrtoeol(ctx->ctx_border_window);
