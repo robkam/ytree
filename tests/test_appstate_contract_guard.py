@@ -6694,6 +6694,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
@@ -6704,6 +6705,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file
     assert 'include "ytnova_appstate_panel.h"' in panel_anchor
+    assert 'include "ytnova_appstate_panel.h"' in split_transition
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
 
@@ -6849,6 +6851,38 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert (
         len(re.findall(r"AppStateCommitPanelFileViewport\(\s*dst,", donate_body))
         == 3
+    )
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", file_split_start
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    dir_split_body = split_transition[dir_split_start:]
+    split_panel_viewport_write = re.compile(
+        r"\b(?:owner_panel|ctx->right)->(?:start_file|file_cursor_pos)\s*=(?!=)"
+    )
+    for body in [file_split_body, dir_split_body]:
+        assert not split_panel_viewport_write.search(body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelFileViewport\(\s*owner_panel,",
+                file_split_body,
+            )
+        )
+        == 3
+    )
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelFileViewport\(\s*ctx->right,",
+                split_transition,
+            )
+        )
+        == 2
     )
 
 

@@ -269,8 +269,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
 
     if (!ctx->is_split_screen) {
       owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+      if (!AppStateCommitPanelFileViewport(owner_panel, dir_entry->start_file,
+                                           dir_entry->cursor_pos))
+        return FALSE;
     }
     CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
 
@@ -337,8 +338,10 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
            */
           if (!AppStateCommitPanelFocus(ctx, ctx->right, FOCUS_FILE))
             return FALSE;
-          ctx->right->start_file = ctx->left->start_file;
-          ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
+          if (!AppStateCommitPanelFileViewport(ctx->right,
+                                               ctx->left->start_file,
+                                               ctx->left->file_cursor_pos))
+            return FALSE;
           (void)snprintf(ctx->right->file_selection_name,
                          sizeof(ctx->right->file_selection_name), "%s",
                          ctx->left->file_selection_name);
@@ -404,8 +407,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       CaptureSplitFilePanelSnapshot(target_panel, &target_panel_snapshot);
 
       owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+      if (!AppStateCommitPanelFileViewport(owner_panel, dir_entry->start_file,
+                                           dir_entry->cursor_pos))
+        return FALSE;
       CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
       if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
         return FALSE;
@@ -428,8 +432,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
     }
 #else
     owner_panel->file_dir_entry = dir_entry;
-    owner_panel->start_file = dir_entry->start_file;
-    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+    if (!AppStateCommitPanelFileViewport(owner_panel, dir_entry->start_file,
+                                         dir_entry->cursor_pos))
+      return FALSE;
     CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
       return FALSE;
@@ -544,8 +549,10 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
           memcpy(ctx->right->tree_viewport_top_dir_path,
                  ctx->left->tree_viewport_top_dir_path,
                  sizeof(ctx->right->tree_viewport_top_dir_path));
-          ctx->right->start_file = ctx->left->start_file;
-          ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
+          if (!AppStateCommitPanelFileViewport(ctx->right,
+                                               ctx->left->start_file,
+                                               ctx->left->file_cursor_pos))
+            return FALSE;
           if (!AppStateCommitPanelFileShape(
                   ctx->right, ctx->left->saved_big_file_view))
             return FALSE;
