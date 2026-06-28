@@ -23,9 +23,9 @@ static void ResetPanelFileContext(YtreeNovaPanel *panel) {
     return;
 
   FreeFileEntryList(panel);
+  if (!AppStateCommitPanelFileViewport(panel, 0, 0))
+    return;
   panel->file_dir_entry = NULL;
-  panel->start_file = 0;
-  panel->file_cursor_pos = 0;
   (void)AppStateCommitPanelFileShape(panel, FALSE);
 }
 
@@ -104,10 +104,10 @@ static void PositionSavedFileSelection(ViewContext *ctx, YtreeNovaPanel *panel,
   if (start < 0)
     start = 0;
 
-  panel->start_file = start;
-  panel->file_cursor_pos = selected_idx - start;
-  dir_entry->start_file = panel->start_file;
-  dir_entry->cursor_pos = panel->file_cursor_pos;
+  if (!AppStateCommitPanelFileViewport(panel, start, selected_idx - start))
+    return;
+  dir_entry->start_file = start;
+  dir_entry->cursor_pos = selected_idx - start;
 }
 
 static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
@@ -122,8 +122,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   ResetPanelFileContext(panel);
   vol = panel->vol;
   state = FindPanelVolumeFileState(panel, vol->id);
-  panel->start_file = 0;
-  panel->file_cursor_pos = 0;
+  if (!AppStateCommitPanelFileViewport(panel, 0, 0))
+    return;
   panel->file_selection_name[0] = '\0';
   panel->file_selection_dir_path[0] = '\0';
   panel->file_dir_entry = NULL;
@@ -132,16 +132,20 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   if (!state)
     return;
 
-  panel->start_file = state->saved_file_start;
-  panel->file_cursor_pos = state->saved_file_cursor;
-  if (panel->start_file < 0)
-    panel->start_file = 0;
-  if (panel->file_cursor_pos < 0)
-    panel->file_cursor_pos = 0;
-  if (state->saved_panel_generation != panel->panel_generation ||
-      state->saved_volume_generation != vol->volume_generation) {
-    panel->start_file = 0;
-    panel->file_cursor_pos = 0;
+  {
+    int start_file = state->saved_file_start;
+    int file_cursor_pos = state->saved_file_cursor;
+    if (start_file < 0)
+      start_file = 0;
+    if (file_cursor_pos < 0)
+      file_cursor_pos = 0;
+    if (state->saved_panel_generation != panel->panel_generation ||
+        state->saved_volume_generation != vol->volume_generation) {
+      start_file = 0;
+      file_cursor_pos = 0;
+    }
+    if (!AppStateCommitPanelFileViewport(panel, start_file, file_cursor_pos))
+      return;
   }
   (void)snprintf(panel->file_selection_name, sizeof(panel->file_selection_name),
                  "%s", state->saved_file_selection_name);

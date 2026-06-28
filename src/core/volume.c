@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_volume_registry.h"
 #include "ytnova_defs.h"
 
@@ -23,9 +24,9 @@ static void Volume_ClearPanelFileEntries(YtreeNovaPanel *panel) {
 static void Volume_ClearPanelFileAnchor(YtreeNovaPanel *panel) {
   if (!panel)
     return;
+  if (!AppStateCommitPanelFileViewport(panel, 0, 0))
+    return;
   panel->file_dir_entry = NULL;
-  panel->start_file = 0;
-  panel->file_cursor_pos = 0;
 }
 
 static void Volume_ClearPanelTags(YtreeNovaPanel *panel) {

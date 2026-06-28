@@ -30,3 +30,15 @@ BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
   panel->panel_generation = panel_generation;
   return TRUE;
 }
+
+BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
+                                     int file_cursor_pos) {
+  if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->start_file = start_file;
+  panel->file_cursor_pos = file_cursor_pos;
+  return TRUE;
+}

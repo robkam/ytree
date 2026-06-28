@@ -6685,6 +6685,58 @@ def test_panel_generation_restores_route_through_appstate_helper() -> None:
     assert "source_panel_generation" in split_body
 
 
+def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelFileViewport(" in header
+    assert 'include "ytnova_appstate_panel.h"' in log_source
+    assert 'include "ytnova_appstate_panel.h"' in volume_source
+
+    helper_start = helper.index("BOOL AppStateCommitPanelFileViewport(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("panel.file_viewport_origin")'
+    start_write = "panel->start_file = start_file;"
+    cursor_write = "panel->file_cursor_pos = file_cursor_pos;"
+    assert validation in helper_body
+    assert start_write in helper_body
+    assert cursor_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(start_write)
+    assert helper_body.index(validation) < helper_body.index(cursor_write)
+
+    reset_start = log_source.index("static void ResetPanelFileContext(")
+    save_start = log_source.index("\nstatic void SavePanelFileSelection(", reset_start)
+    reset_body = log_source[reset_start:save_start]
+    position_start = log_source.index("static void PositionSavedFileSelection(")
+    restore_start = log_source.index("\nstatic void RestorePanelFileSelection(", position_start)
+    position_body = log_source[position_start:restore_start]
+    tree_save_start = log_source.index("\nstatic void SavePanelTreeSelection(", restore_start)
+    restore_body = log_source[restore_start:tree_save_start]
+    clear_start = volume_source.index("static void Volume_ClearPanelFileAnchor(")
+    clear_end = volume_source.index("\nstatic void Volume_ClearPanelTags(", clear_start)
+    clear_body = volume_source[clear_start:clear_end]
+    direct_viewport_write = re.compile(
+        r"\bpanel->(?:start_file|file_cursor_pos)\s*=(?!=)"
+    )
+
+    for body in [reset_body, position_body, restore_body, clear_body]:
+        assert not direct_viewport_write.search(body)
+
+    assert "AppStateCommitPanelFileViewport(panel, 0, 0)" in reset_body
+    assert (
+        "AppStateCommitPanelFileViewport(panel, start, selected_idx - start)"
+        in position_body
+    )
+    assert restore_body.count("AppStateCommitPanelFileViewport(panel, 0, 0)") == 1
+    assert (
+        "AppStateCommitPanelFileViewport(panel, start_file, file_cursor_pos)"
+        in restore_body
+    )
+    assert "AppStateCommitPanelFileViewport(panel, 0, 0)" in clear_body
+
+
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
