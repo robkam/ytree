@@ -6688,11 +6688,13 @@ def test_panel_generation_restores_route_through_appstate_helper() -> None:
 def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
     file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelFileViewport(" in header
+    assert 'include "ytnova_appstate_panel.h"' in file_list
     assert 'include "ytnova_appstate_panel.h"' in file_nav
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
@@ -6755,6 +6757,15 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
             "AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,"
             in body
         )
+
+    display_start = file_list.index("void DisplayFileWindow(")
+    build_start = file_list.index("\nvoid BuildFileEntryList(", display_start)
+    display_body = file_list[display_start:build_start]
+    assert not direct_viewport_write.search(display_body)
+    assert (
+        "AppStateCommitPanelFileViewport(panel, render_start, render_cursor)"
+        in display_body
+    )
 
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
