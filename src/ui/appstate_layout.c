@@ -29,3 +29,14 @@ BOOL AppStateCommitTerminalGeometryCache(ViewContext *ctx, int terminal_lines,
   ctx->cached_cols = terminal_cols;
   return TRUE;
 }
+
+BOOL AppStateCommitLayoutGeometry(ViewContext *ctx,
+                                  const YtreeNovaLayout *layout) {
+  if (!AppStateValidatedOwnerField("ctx.layout"))
+    return FALSE;
+  if (!ctx || !layout)
+    return FALSE;
+
+  ctx->layout = *layout;
+  return TRUE;
+}

@@ -160,15 +160,19 @@ BOOL ParseSmallWindowSkipValue(const char *value) {
 }
 
 void Layout_Recalculate(ViewContext *ctx) {
+  YtreeNovaLayout layout;
+
   if (!ctx)
     return;
 
+  layout = ctx->layout;
+
   /* Centralize UI vertical geometry */
-  ctx->layout.header_y = 0;
-  ctx->layout.message_y = LINES - 3;
-  ctx->layout.prompt_y = LINES - 2;
-  ctx->layout.status_y = LINES - 1;
-  ctx->layout.bottom_border_y = LINES - 4;
+  layout.header_y = 0;
+  layout.message_y = LINES - 3;
+  layout.prompt_y = LINES - 2;
+  layout.status_y = LINES - 1;
+  layout.bottom_border_y = LINES - 4;
 
   /*
    * Calculate available vertical space for windows.
@@ -188,8 +192,8 @@ void Layout_Recalculate(ViewContext *ctx) {
    * Stats and Directory Tree are hidden.
    */
   if (ctx->preview_mode) {
-    ctx->layout.stats_width = 0;
-    ctx->layout.dir_win_height = 0; /* Hidden */
+    layout.stats_width = 0;
+    layout.dir_win_height = 0; /* Hidden */
 
     /* Calculate File List Width (20% of COLS, min 16 chars) */
     int file_list_width = COLS * 0.20;
@@ -199,49 +203,52 @@ void Layout_Recalculate(ViewContext *ctx) {
     if (file_list_width > COLS - 4)
       file_list_width = COLS - 4;
 
-    ctx->layout.main_win_width = COLS - 2; /* Full width for history etc */
+    layout.main_win_width = COLS - 2; /* Full width for history etc */
 
     /* Left Panel (File List) Geometry - Uses Big File Window slots */
-    ctx->layout.big_file_win_x = 1;
-    ctx->layout.big_file_win_y = 2;
-    ctx->layout.big_file_win_width = file_list_width;
-    ctx->layout.big_file_win_height = available_height;
+    layout.big_file_win_x = 1;
+    layout.big_file_win_y = 2;
+    layout.big_file_win_width = file_list_width;
+    layout.big_file_win_height = available_height;
 
     /* Unused windows in this mode, set to minimal valid values */
-    ctx->layout.dir_win_x = 1;
-    ctx->layout.dir_win_y = 2;
-    ctx->layout.dir_win_width = file_list_width;
-    ctx->layout.dir_win_height = 0; /* Will be clamped to 1 by Subwin */
+    layout.dir_win_x = 1;
+    layout.dir_win_y = 2;
+    layout.dir_win_width = file_list_width;
+    layout.dir_win_height = 0; /* Will be clamped to 1 by Subwin */
 
-    ctx->layout.small_file_win_x = 1;
-    ctx->layout.small_file_win_y = 2;
-    ctx->layout.small_file_win_width = file_list_width;
-    ctx->layout.small_file_win_height = 0;
+    layout.small_file_win_x = 1;
+    layout.small_file_win_y = 2;
+    layout.small_file_win_width = file_list_width;
+    layout.small_file_win_height = 0;
 
     /* Preview Window Geometry */
-    ctx->layout.preview_win_x = file_list_width + 2;
-    ctx->layout.preview_win_y = 2;
-    ctx->layout.preview_win_width = COLS - file_list_width - 3;
-    ctx->layout.preview_win_height = available_height;
+    layout.preview_win_x = file_list_width + 2;
+    layout.preview_win_y = 2;
+    layout.preview_win_width = COLS - file_list_width - 3;
+    layout.preview_win_height = available_height;
 
-    if (ctx->layout.preview_win_width < 1)
-      ctx->layout.preview_win_width = 1;
+    if (layout.preview_win_width < 1)
+      layout.preview_win_width = 1;
+
+    if (!AppStateCommitLayoutGeometry(ctx, &layout))
+      return;
 
     /* Update ActivePanel Geometry */
     if (ctx->active) {
-      ctx->active->dir_x = ctx->layout.dir_win_x;
-      ctx->active->dir_y = ctx->layout.dir_win_y;
-      ctx->active->dir_w = ctx->layout.dir_win_width;
-      ctx->active->dir_h = ctx->layout.dir_win_height;
+      ctx->active->dir_x = layout.dir_win_x;
+      ctx->active->dir_y = layout.dir_win_y;
+      ctx->active->dir_w = layout.dir_win_width;
+      ctx->active->dir_h = layout.dir_win_height;
 
-      ctx->active->small_file_x = ctx->layout.small_file_win_x;
-      ctx->active->small_file_y = ctx->layout.small_file_win_y;
-      ctx->active->small_file_w = ctx->layout.small_file_win_width;
-      ctx->active->small_file_h = ctx->layout.small_file_win_height;
+      ctx->active->small_file_x = layout.small_file_win_x;
+      ctx->active->small_file_y = layout.small_file_win_y;
+      ctx->active->small_file_w = layout.small_file_win_width;
+      ctx->active->small_file_h = layout.small_file_win_height;
 
-      ctx->active->big_file_x = ctx->layout.big_file_win_x;
-      ctx->active->big_file_y = ctx->layout.big_file_win_y; /* FIXED */
-      ctx->active->big_file_w = ctx->layout.big_file_win_width;
+      ctx->active->big_file_x = layout.big_file_win_x;
+      ctx->active->big_file_y = layout.big_file_win_y;
+      ctx->active->big_file_w = layout.big_file_win_width;
       ctx->active->big_file_h = available_height;
     }
 
@@ -255,27 +262,27 @@ void Layout_Recalculate(ViewContext *ctx) {
    * Otherwise respect user preference.
    */
   if (ctx->is_split_screen) {
-    ctx->layout.stats_width = 0;
+    layout.stats_width = 0;
   } else {
     if (ctx->show_stats) {
-      ctx->layout.stats_width = 24;
+      layout.stats_width = 24;
     } else {
-      ctx->layout.stats_width = 0;
+      layout.stats_width = 0;
     }
   }
 
   /* Removed unused stats_margin calculation */
-  ctx->layout.main_win_width = (ctx->layout.stats_width > 0)
-                                   ? (COLS - ctx->layout.stats_width - 2)
-                                   : (COLS - 2);
+  layout.main_win_width = (layout.stats_width > 0)
+                              ? (COLS - layout.stats_width - 2)
+                              : (COLS - 2);
 
   /* Left Panel Geometry (Always active) */
   int panel_width;
   if (ctx->is_split_screen) {
     /* Reserve space for separator (the -1) */
-    panel_width = (ctx->layout.main_win_width - 1) / 2;
+    panel_width = (layout.main_win_width - 1) / 2;
   } else {
-    panel_width = ctx->layout.main_win_width;
+    panel_width = layout.main_win_width;
   }
 
   /* Common Heights */
@@ -287,50 +294,53 @@ void Layout_Recalculate(ViewContext *ctx) {
     small_file_h = 1;
 
   /* Combined height of both stacked panels must fit in available_height */
-  ctx->layout.dir_win_height = dir_h;
-  ctx->layout.small_file_win_height = small_file_h;
+  layout.dir_win_height = dir_h;
+  layout.small_file_win_height = small_file_h;
 
   /* Left Panel Geometry: STRICT NESTING
      Left border at x=0, Mid/Right border at main_win_width+1.
      Inner window x=1, width=panel_width.
   */
-  ctx->layout.dir_win_x = 1;
-  ctx->layout.dir_win_y = 2; /* Row 0=Header, Row 1=Top Border */
-  ctx->layout.dir_win_width = panel_width;
+  layout.dir_win_x = 1;
+  layout.dir_win_y = 2; /* Row 0=Header, Row 1=Top Border */
+  layout.dir_win_width = panel_width;
 
-  ctx->layout.small_file_win_x = 1;
-  ctx->layout.small_file_win_y =
-      ctx->layout.dir_win_y + dir_h + 1; /* +1 for horizontal separator */
-  ctx->layout.small_file_win_width = panel_width;
+  layout.small_file_win_x = 1;
+  layout.small_file_win_y =
+      layout.dir_win_y + dir_h + 1; /* +1 for horizontal separator */
+  layout.small_file_win_width = panel_width;
 
-  ctx->layout.big_file_win_x = 1;
-  ctx->layout.big_file_win_y = 2;
-  ctx->layout.big_file_win_width = panel_width;
-  ctx->layout.big_file_win_height = available_height;
+  layout.big_file_win_x = 1;
+  layout.big_file_win_y = 2;
+  layout.big_file_win_width = panel_width;
+  layout.big_file_win_height = available_height;
+
+  if (!AppStateCommitLayoutGeometry(ctx, &layout))
+    return;
 
   /* Update LeftPanel Geometry */
   if (ctx->left) {
-    ctx->left->dir_x = ctx->layout.dir_win_x;
-    ctx->left->dir_y = ctx->layout.dir_win_y;
-    ctx->left->dir_w = ctx->layout.dir_win_width;
-    ctx->left->dir_h = ctx->layout.dir_win_height;
+    ctx->left->dir_x = layout.dir_win_x;
+    ctx->left->dir_y = layout.dir_win_y;
+    ctx->left->dir_w = layout.dir_win_width;
+    ctx->left->dir_h = layout.dir_win_height;
 
-    ctx->left->small_file_x = ctx->layout.small_file_win_x;
-    ctx->left->small_file_y = ctx->layout.small_file_win_y;
-    ctx->left->small_file_w = ctx->layout.small_file_win_width;
-    ctx->left->small_file_h = ctx->layout.small_file_win_height;
+    ctx->left->small_file_x = layout.small_file_win_x;
+    ctx->left->small_file_y = layout.small_file_win_y;
+    ctx->left->small_file_w = layout.small_file_win_width;
+    ctx->left->small_file_h = layout.small_file_win_height;
 
-    ctx->left->big_file_x = ctx->layout.big_file_win_x;
-    ctx->left->big_file_y = ctx->layout.big_file_win_y;
-    ctx->left->big_file_w = ctx->layout.big_file_win_width;
+    ctx->left->big_file_x = layout.big_file_win_x;
+    ctx->left->big_file_y = layout.big_file_win_y;
+    ctx->left->big_file_w = layout.big_file_win_width;
     ctx->left->big_file_h = available_height;
   }
 
   /* Update RightPanel Geometry */
   if (ctx->right && ctx->is_split_screen) {
     /* Right panel starts after left panel + vertical separator */
-    int right_x = ctx->layout.dir_win_x + panel_width + 1;
-    int right_w = ctx->layout.main_win_width - panel_width - 1;
+    int right_x = layout.dir_win_x + panel_width + 1;
+    int right_w = layout.main_win_width - panel_width - 1;
 
     ctx->right->dir_x = right_x;
     ctx->right->dir_y = 2;
@@ -471,17 +481,19 @@ void ReCreateWindows(ViewContext *ctx) {
     return;
   /* 1. Recalculate Layout based on current SplitScreen state */
   Layout_Recalculate(ctx);
+  if (ctx->left == NULL || ctx->right == NULL)
+    return;
 
   BOOL left_is_big = FALSE;
   BOOL right_is_big = FALSE;
 
   /* Capture INDEPENDENT Panel Mode State */
   /* If panels exist, check if they are currently zoomed */
-  if (ctx->left && ctx->left->pan_file_window) {
+  if (ctx->left->pan_file_window) {
     if (ctx->left->pan_file_window == ctx->left->pan_big_file_window)
       left_is_big = TRUE;
   }
-  if (ctx->right && ctx->right->pan_file_window) {
+  if (ctx->right->pan_file_window) {
     if (ctx->right->pan_file_window == ctx->right->pan_big_file_window)
       right_is_big = TRUE;
   }

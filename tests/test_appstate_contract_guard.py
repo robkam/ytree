@@ -6217,6 +6217,31 @@ def test_terminal_geometry_cache_commits_through_appstate_helper() -> None:
         assert not re.search(r"\bctx->cached_cols\s*=[^=]", source)
 
 
+def test_layout_geometry_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitLayoutGeometry(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitLayoutGeometry(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.layout")'
+    assignment = "ctx->layout = *layout;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    layout_start = init_source.index("void Layout_Recalculate(")
+    layout_end = init_source.index("\n\nvoid InitView(", layout_start)
+    layout_body = init_source[layout_start:layout_end]
+
+    assert "YtreeNovaLayout layout;" in layout_body
+    assert "AppStateCommitLayoutGeometry(ctx, &layout)" in layout_body
+    assert not re.search(r"\bctx->layout\.[A-Za-z0-9_]+\s*=[^=]", layout_body)
+
+
 def test_view_mode_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
