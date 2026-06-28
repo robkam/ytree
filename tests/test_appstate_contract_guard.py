@@ -6139,6 +6139,32 @@ def test_active_panel_session_commits_through_appstate_helper() -> None:
     assert "AppStateCommitActivePanel(ctx, ctx->left)" in dir_body
 
 
+def test_view_mode_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitViewMode(" in header
+    assert 'include "ytnova_appstate_mode.h"' in init_source
+    assert 'include "ytnova_appstate_mode.h"' in log_source
+
+    helper_start = helper.index("BOOL AppStateCommitViewMode(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.view_mode")'
+    assignment = "ctx->view_mode = view_mode;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+    assert "AppStateCommitViewMode(ctx, DISK_MODE)" in init_source
+    assert "AppStateCommitViewMode(ctx, panel->vol->vol_stats.log_mode)" in log_source
+    assert "AppStateCommitViewMode(ctx, s->log_mode)" in log_source
+
+    for source in [init_source, log_source]:
+        assert not re.search(r"\bctx->view_mode\s*=(?!=)", source)
+
+
 def test_split_layout_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
