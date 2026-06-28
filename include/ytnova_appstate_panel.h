@@ -15,5 +15,7 @@ BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
                                     unsigned int panel_generation);
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos);
+BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
+                                     int cursor_pos);
 
 #endif /* YTNOVA_APPSTATE_PANEL_H */

@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_fs.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_ui.h"
 
 static void PositionPanelAtIndex(YtreeNovaPanel *p, int target_idx, int height) {
@@ -21,12 +22,10 @@ static void PositionPanelAtIndex(YtreeNovaPanel *p, int target_idx, int height) 
   begin = p->disp_begin_pos;
   cursor = p->cursor_pos;
   if (!PanelComputeViewportPosition(p, target_idx, height, &begin, &cursor)) {
-    p->disp_begin_pos = 0;
-    p->cursor_pos = 0;
+    (void)AppStateCommitPanelTreeViewport(p, 0, 0);
     return;
   }
-  p->disp_begin_pos = begin;
-  p->cursor_pos = cursor;
+  (void)AppStateCommitPanelTreeViewport(p, begin, cursor);
 }
 
 static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreeNovaPanel *p,
