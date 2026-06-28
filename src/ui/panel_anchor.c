@@ -689,8 +689,9 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   dst->disp_begin_pos = src->disp_begin_pos;
   memcpy(dst->tree_viewport_top_dir_path, src->tree_viewport_top_dir_path,
          sizeof(dst->tree_viewport_top_dir_path));
-  dst->start_file = src->start_file;
-  dst->file_cursor_pos = src->file_cursor_pos;
+  if (!AppStateCommitPanelFileViewport(dst, src->start_file,
+                                       src->file_cursor_pos))
+    return FALSE;
   dst->file_dir_entry = src->file_dir_entry;
   dst->file_mode = src->file_mode;
   dst->max_column = src->max_column;
@@ -723,8 +724,10 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
       if (!AppStateCommitPanelFileShape(
               dst, dst_current_volume_state->saved_big_file_view))
         return FALSE;
-      dst->start_file = dst_current_volume_state->saved_file_start;
-      dst->file_cursor_pos = dst_current_volume_state->saved_file_cursor;
+      if (!AppStateCommitPanelFileViewport(
+              dst, dst_current_volume_state->saved_file_start,
+              dst_current_volume_state->saved_file_cursor))
+        return FALSE;
       (void)snprintf(dst->file_selection_name,
                      sizeof(dst->file_selection_name), "%s",
                      dst_current_volume_state->saved_file_selection_name);
@@ -736,8 +739,9 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
         return FALSE;
       if (!AppStateCommitPanelFileShape(dst, dst_saved_big_file_view))
         return FALSE;
-      dst->start_file = dst_start_file;
-      dst->file_cursor_pos = dst_file_cursor_pos;
+      if (!AppStateCommitPanelFileViewport(dst, dst_start_file,
+                                           dst_file_cursor_pos))
+        return FALSE;
       dst->file_dir_entry = (DirEntry *)dst_file_dir_entry;
       (void)snprintf(dst->file_selection_name,
                      sizeof(dst->file_selection_name), "%s",
