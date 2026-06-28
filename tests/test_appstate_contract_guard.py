@@ -6690,12 +6690,14 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
     file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelFileViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in file_list
     assert 'include "ytnova_appstate_panel.h"' in file_nav
+    assert 'include "ytnova_appstate_panel.h"' in ctrl_file_ops
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
 
@@ -6766,6 +6768,27 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
         "AppStateCommitPanelFileViewport(panel, render_start, render_cursor)"
         in display_body
     )
+
+    rebuild_start = ctrl_file_ops.index(
+        "static void RebuildActiveFileListAfterMutation("
+    )
+    rebuild_end = ctrl_file_ops.index(
+        "\nstatic void NormalizeQuotedExecPlaceholders(", rebuild_start
+    )
+    rebuild_body = ctrl_file_ops[rebuild_start:rebuild_end]
+    navigation_start = ctrl_file_ops.index(
+        "BOOL handle_file_window_navigation_action("
+    )
+    navigation_end = ctrl_file_ops.index(
+        "\nBOOL handle_file_window_volume_action(", navigation_start
+    )
+    navigation_body = ctrl_file_ops[navigation_start:navigation_end]
+    for body in [rebuild_body, navigation_body]:
+        assert not active_viewport_write.search(body)
+        assert (
+            "AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,"
+            in body
+        )
 
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
