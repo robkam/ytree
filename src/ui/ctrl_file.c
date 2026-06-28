@@ -840,7 +840,8 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   if (file_count <= 0) {
     owner_dir->start_file = 0;
     owner_dir->cursor_pos = 0;
-    ctx->active->start_file = owner_dir->start_file;
+    (void)AppStateCommitPanelFileViewport(ctx->active, owner_dir->start_file,
+                                          owner_dir->cursor_pos);
     return;
   }
 
@@ -854,7 +855,8 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   if (file_idx < 0) {
     owner_dir->start_file = 0;
     owner_dir->cursor_pos = 0;
-    ctx->active->start_file = owner_dir->start_file;
+    (void)AppStateCommitPanelFileViewport(ctx->active, owner_dir->start_file,
+                                          owner_dir->cursor_pos);
     return;
   }
 
@@ -882,7 +884,8 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   if (owner_dir->cursor_pos >= page_size)
     owner_dir->cursor_pos = page_size - 1;
 
-  ctx->active->start_file = owner_dir->start_file;
+  (void)AppStateCommitPanelFileViewport(ctx->active, owner_dir->start_file,
+                                        owner_dir->cursor_pos);
 }
 
 static BOOL JumpToOwnerDirectory(ViewContext *ctx,

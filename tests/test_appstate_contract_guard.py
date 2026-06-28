@@ -6822,6 +6822,16 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
         assert not active_viewport_write.search(body)
         assert "AppStateCommitPanelFileViewport(ctx->active," in body
 
+    position_owner_start = ctrl_file.index(
+        "static void PositionOwnerFileCursor(", handle_file_end
+    )
+    position_owner_end = ctrl_file.index(
+        "\nstatic BOOL JumpToOwnerDirectory(", position_owner_start
+    )
+    position_owner_body = ctrl_file[position_owner_start:position_owner_end]
+    assert not active_viewport_write.search(position_owner_body)
+    assert "AppStateCommitPanelFileViewport(ctx->active," in position_owner_body
+
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
