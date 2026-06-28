@@ -6692,6 +6692,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
@@ -6700,6 +6701,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in file_nav
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file_ops
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
+    assert 'include "ytnova_appstate_panel.h"' in ctrl_file
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
 
@@ -6803,6 +6805,20 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     )
     dir_window_body = ctrl_dir[dir_window_start:dir_window_end]
     for body in [archive_exit_body, dir_window_body]:
+        assert not active_viewport_write.search(body)
+        assert "AppStateCommitPanelFileViewport(ctx->active," in body
+
+    refresh_file_start = ctrl_file.index("DirEntry *RefreshFileView(")
+    refresh_file_end = ctrl_file.index(
+        "\nint HandleFileWindow(", refresh_file_start
+    )
+    refresh_file_body = ctrl_file[refresh_file_start:refresh_file_end]
+    handle_file_start = ctrl_file.index("int HandleFileWindow(")
+    handle_file_end = ctrl_file.index(
+        "\nstatic int FindDirIndexInVolume(", handle_file_start
+    )
+    handle_file_body = ctrl_file[handle_file_start:handle_file_end]
+    for body in [refresh_file_body, handle_file_body]:
         assert not active_viewport_write.search(body)
         assert "AppStateCommitPanelFileViewport(ctx->active," in body
 
