@@ -8,8 +8,9 @@
 
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
-#include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_appstate_window.h"
@@ -988,8 +989,11 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                                        inactive_file_dir_path);
           if (resolved_file_dir)
             inactive->file_dir_entry = resolved_file_dir;
-          inactive->start_file = inactive_start_file;
-          inactive->file_cursor_pos = inactive_file_cursor;
+          if (!AppStateCommitPanelFileViewport(inactive, inactive_start_file,
+                                               inactive_file_cursor)) {
+            FreePathList(inactive_tagged_snapshot);
+            return;
+          }
           (void)snprintf(inactive->file_selection_dir_path,
                          sizeof(inactive->file_selection_dir_path), "%s",
                          inactive_file_dir_path);
@@ -1251,8 +1255,9 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
         return;
 
       p->file_dir_entry = dir_entry;
-      p->start_file = dir_entry->start_file;
-      p->file_cursor_pos = dir_entry->cursor_pos;
+      if (!AppStateCommitPanelFileViewport(p, dir_entry->start_file,
+                                           dir_entry->cursor_pos))
+        return;
       CapturePanelSelectionAnchor(ctx, p, dir_entry);
 
       /* Check if the panel we were handling is still valid/active.
@@ -1499,8 +1504,9 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   panel->file_dir_entry = dir_entry;
-  panel->start_file = dir_entry->start_file;
-  panel->file_cursor_pos = dir_entry->cursor_pos;
+  if (!AppStateCommitPanelFileViewport(panel, dir_entry->start_file,
+                                       dir_entry->cursor_pos))
+    return dir_entry;
   if (!AppStateCommitPanelFocus(ctx, panel, FOCUS_FILE))
     return dir_entry;
   if (!dir_entry->global_flag && !dir_entry->tagged_flag) {
