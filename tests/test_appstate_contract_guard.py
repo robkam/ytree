@@ -6821,6 +6821,11 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     for body in [refresh_file_body, handle_file_body]:
         assert not active_viewport_write.search(body)
         assert "AppStateCommitPanelFileViewport(ctx->active," in body
+    owner_panel_viewport_write = re.compile(
+        r"\bowner_panel->(?:start_file|file_cursor_pos)\s*=(?!=)"
+    )
+    assert not owner_panel_viewport_write.search(handle_file_body)
+    assert "AppStateCommitPanelFileViewport(owner_panel," in handle_file_body
 
     position_owner_start = ctrl_file.index(
         "static void PositionOwnerFileCursor(", handle_file_end
