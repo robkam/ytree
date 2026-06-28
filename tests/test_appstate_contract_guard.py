@@ -6693,6 +6693,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
@@ -6702,6 +6703,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file_ops
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file
+    assert 'include "ytnova_appstate_panel.h"' in panel_anchor
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
 
@@ -6836,6 +6838,18 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     position_owner_body = ctrl_file[position_owner_start:position_owner_end]
     assert not active_viewport_write.search(position_owner_body)
     assert "AppStateCommitPanelFileViewport(ctx->active," in position_owner_body
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    dst_viewport_write = re.compile(
+        r"\bdst->(?:start_file|file_cursor_pos)\s*=(?!=)"
+    )
+    assert not dst_viewport_write.search(donate_body)
+    assert (
+        len(re.findall(r"AppStateCommitPanelFileViewport\(\s*dst,", donate_body))
+        == 3
+    )
 
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
