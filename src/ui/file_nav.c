@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_ui.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_fs.h"
 
 static int GetSafeMaxDispFiles(const ViewContext *ctx) {
@@ -54,8 +55,8 @@ static void RefreshFileSelection(ViewContext *ctx, DirEntry *dir_entry,
                dir_entry->start_file + dir_entry->cursor_pos, start_x,
                ctx->ctx_file_window);
   FileNav_UpdateHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = dir_entry->start_file;
-  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+  (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                        dir_entry->cursor_pos);
   CapturePanelSelectionAnchor(ctx, ctx->active, dir_entry);
 }
 
@@ -108,8 +109,8 @@ void FileNav_MoveRight(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
   }
 
   FileNav_UpdateHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = dir_entry->start_file;
-  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+  (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                        dir_entry->cursor_pos);
   CapturePanelSelectionAnchor(ctx, ctx->active, dir_entry);
 }
 
@@ -144,8 +145,8 @@ void FileNav_MoveLeft(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
   }
 
   FileNav_UpdateHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = dir_entry->start_file;
-  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+  (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                        dir_entry->cursor_pos);
   CapturePanelSelectionAnchor(ctx, ctx->active, dir_entry);
 }
 
