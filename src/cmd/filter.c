@@ -15,8 +15,7 @@ int SetFilter(const char *filter_spec, Statistic *s) {
   if (!filter_spec || !*filter_spec || !s)
     return -1;
   if (s->file_spec != filter_spec) {
-    strncpy(s->file_spec, filter_spec, sizeof(s->file_spec) - 1);
-    s->file_spec[sizeof(s->file_spec) - 1] = '\0';
+    snprintf(s->file_spec, sizeof(s->file_spec), "%s", filter_spec);
   }
   return 0;
 }
