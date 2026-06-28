@@ -206,8 +206,8 @@ static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
     }
   }
 
-  ctx->active->start_file = dir_entry->start_file;
-  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+  (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                        dir_entry->cursor_pos);
 }
 
 /* Placeholder values are shell-quoted by Path_BuildCommandLine().
@@ -436,7 +436,8 @@ BOOL handle_file_window_navigation_action(
     FileNav_UpdateHeaderPath(ctx, dir_entry);
     ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
                                 update_preview);
-    ctx->active->start_file = dir_entry->start_file;
+    (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                          dir_entry->cursor_pos);
     return TRUE;
 
   case ACTION_HOME:
@@ -445,7 +446,8 @@ BOOL handle_file_window_navigation_action(
     FileNav_UpdateHeaderPath(ctx, dir_entry);
     ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
                                 update_preview);
-    ctx->active->start_file = dir_entry->start_file;
+    (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
+                                          dir_entry->cursor_pos);
     return TRUE;
 
   case ACTION_LIST_JUMP:
