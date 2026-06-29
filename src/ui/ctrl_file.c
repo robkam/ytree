@@ -896,6 +896,8 @@ static BOOL JumpToOwnerDirectory(ViewContext *ctx,
   int owner_dir_idx;
   struct Volume *owner_vol;
   int win_height;
+  int next_begin;
+  int next_cursor;
 
   if (!ctx || !ctx->active || !global_dir_entry)
     return FALSE;
@@ -929,30 +931,32 @@ static BOOL JumpToOwnerDirectory(ViewContext *ctx,
   if (win_height < 1)
     win_height = 1;
 
+  next_begin = panel->disp_begin_pos;
   if (owner_dir_idx >= panel->disp_begin_pos &&
       owner_dir_idx < panel->disp_begin_pos + win_height) {
-    panel->cursor_pos = owner_dir_idx - panel->disp_begin_pos;
+    next_cursor = owner_dir_idx - panel->disp_begin_pos;
   } else if (owner_dir_idx < win_height) {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = owner_dir_idx;
+    next_begin = 0;
+    next_cursor = owner_dir_idx;
   } else {
-    panel->disp_begin_pos = owner_dir_idx - (win_height / 2);
-    if (panel->disp_begin_pos > panel->vol->total_dirs - win_height) {
-      panel->disp_begin_pos = panel->vol->total_dirs - win_height;
+    next_begin = owner_dir_idx - (win_height / 2);
+    if (next_begin > panel->vol->total_dirs - win_height) {
+      next_begin = panel->vol->total_dirs - win_height;
     }
-    if (panel->disp_begin_pos < 0)
-      panel->disp_begin_pos = 0;
-    panel->cursor_pos = owner_dir_idx - panel->disp_begin_pos;
+    if (next_begin < 0)
+      next_begin = 0;
+    next_cursor = owner_dir_idx - next_begin;
   }
 
-  if (panel->cursor_pos < 0)
-    panel->cursor_pos = 0;
-  if (panel->disp_begin_pos + panel->cursor_pos >= panel->vol->total_dirs) {
-    panel->cursor_pos =
-        (panel->vol->total_dirs > 0)
-            ? (panel->vol->total_dirs - 1 - panel->disp_begin_pos)
-            : 0;
+  if (next_cursor < 0)
+    next_cursor = 0;
+  if (next_begin + next_cursor >= panel->vol->total_dirs) {
+    next_cursor = (panel->vol->total_dirs > 0)
+                      ? (panel->vol->total_dirs - 1 - next_begin)
+                      : 0;
   }
+  if (!AppStateCommitPanelTreeViewport(panel, next_begin, next_cursor))
+    return FALSE;
 
   owner_dir->global_flag = FALSE;
   owner_dir->global_all_volumes = FALSE;

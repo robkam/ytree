@@ -6948,12 +6948,14 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
     assert 'include "ytnova_appstate_panel.h"' in volume_menu
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
+    assert 'include "ytnova_appstate_panel.h"' in ctrl_file
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -7025,6 +7027,18 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         r"AppStateCommitPanelTreeViewport\(\s*ctx->active,\s*next_begin,\s*"
         r"next_cursor\)",
         jump_body,
+    )
+
+    owner_start = ctrl_file.index("static BOOL JumpToOwnerDirectory(")
+    owner_end = ctrl_file.index("\nstatic void DrawFileListJumpPrompt(", owner_start)
+    owner_body = ctrl_file[owner_start:owner_end]
+    assert not re.search(
+        r"\bpanel->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        owner_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*panel,\s*next_begin,\s*next_cursor\)",
+        owner_body,
     )
 
 
