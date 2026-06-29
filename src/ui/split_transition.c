@@ -321,8 +321,10 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       if (ctx->is_split_screen) {
         if (ctx->right && ctx->left) {
           ctx->right->vol = ctx->left->vol;
-          ctx->right->cursor_pos = ctx->left->cursor_pos;
-          ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          if (!AppStateCommitPanelTreeViewport(ctx->right,
+                                               ctx->left->disp_begin_pos,
+                                               ctx->left->cursor_pos))
+            return FALSE;
           memcpy(ctx->right->tree_viewport_top_dir_path,
                  ctx->left->tree_viewport_top_dir_path,
                  sizeof(ctx->right->tree_viewport_top_dir_path));
@@ -515,8 +517,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       if (donate_active_state && ctx->left && ctx->right) {
         if (!DonatePanelState(ctx, ctx->left, ctx->right))
           return FALSE;
-        ctx->left->cursor_pos = source_cursor_pos;
-        ctx->left->disp_begin_pos = source_disp_begin_pos;
+        if (!AppStateCommitPanelTreeViewport(ctx->left, source_disp_begin_pos,
+                                             source_cursor_pos))
+          return FALSE;
         ctx->left->current_dir_entry = source_current_dir_entry;
         if (!AppStateRestorePanelGeneration(ctx->left,
                                             source_panel_generation))
@@ -544,8 +547,10 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       if (ctx->is_split_screen) {
         if (ctx->right && ctx->left) {
           ctx->right->vol = ctx->left->vol;
-          ctx->right->cursor_pos = ctx->left->cursor_pos;
-          ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          if (!AppStateCommitPanelTreeViewport(ctx->right,
+                                               ctx->left->disp_begin_pos,
+                                               ctx->left->cursor_pos))
+            return FALSE;
           memcpy(ctx->right->tree_viewport_top_dir_path,
                  ctx->left->tree_viewport_top_dir_path,
                  sizeof(ctx->right->tree_viewport_top_dir_path));
@@ -632,8 +637,11 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       if (ctx->active->vol->total_dirs > 0) {
         if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
             ctx->active->vol->total_dirs) {
-          ctx->active->cursor_pos =
+          int next_cursor_pos =
               ctx->active->vol->total_dirs - 1 - ctx->active->disp_begin_pos;
+          if (!AppStateCommitPanelTreeViewport(
+                  ctx->active, ctx->active->disp_begin_pos, next_cursor_pos))
+            return FALSE;
         }
         *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
       } else {
@@ -704,8 +712,11 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
     if (ctx->active->vol->total_dirs > 0) {
       if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
           ctx->active->vol->total_dirs) {
-        ctx->active->cursor_pos =
+        int next_cursor_pos =
             ctx->active->vol->total_dirs - 1 - ctx->active->disp_begin_pos;
+        if (!AppStateCommitPanelTreeViewport(
+                ctx->active, ctx->active->disp_begin_pos, next_cursor_pos))
+          return FALSE;
       }
       *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
     } else {
