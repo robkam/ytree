@@ -1647,6 +1647,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
         int selected_idx = -1;
         int top_idx = -1;
         int max_begin = MAXIMUM(0, ctx->active->vol->total_dirs - win_height);
+        int next_cursor_pos;
+        int next_disp_begin;
 
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
           char path[PATH_LENGTH + 1];
@@ -1666,7 +1668,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
           if (saved_selected_idx < 0)
             saved_selected_idx = saved_disp_begin + saved_cursor_pos;
           int idx_delta = selected_idx - saved_selected_idx;
-          int next_disp_begin =
+          next_disp_begin =
               (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
 
           if (next_disp_begin < 0)
@@ -1674,29 +1676,30 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
           if (next_disp_begin > max_begin)
             next_disp_begin = max_begin;
 
-          ctx->active->disp_begin_pos = next_disp_begin;
-          ctx->active->cursor_pos = saved_cursor_pos + idx_delta;
+          next_cursor_pos = saved_cursor_pos + idx_delta;
         } else {
-          int next_disp_begin =
+          next_disp_begin =
               (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
           if (next_disp_begin < 0)
             next_disp_begin = 0;
           if (next_disp_begin > max_begin)
             next_disp_begin = max_begin;
-          ctx->active->disp_begin_pos = next_disp_begin;
-          ctx->active->cursor_pos = saved_cursor_pos;
+          next_cursor_pos = saved_cursor_pos;
         }
-      }
 
-      if (ctx->active->cursor_pos < 0)
-        ctx->active->cursor_pos = 0;
-      if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
-          ctx->active->vol->total_dirs) {
-        ctx->active->cursor_pos =
-            ctx->active->vol->total_dirs - 1 - ctx->active->disp_begin_pos;
+        if (next_cursor_pos < 0)
+          next_cursor_pos = 0;
+        if (next_disp_begin + next_cursor_pos >=
+            ctx->active->vol->total_dirs) {
+          next_cursor_pos =
+              ctx->active->vol->total_dirs - 1 - next_disp_begin;
+        }
+        if (next_cursor_pos < 0)
+          next_cursor_pos = 0;
+        if (!AppStateCommitPanelTreeViewport(ctx->active, next_disp_begin,
+                                             next_cursor_pos))
+          return DIR_WINDOW_DISPATCH_RETURN_ESC;
       }
-      if (ctx->active->cursor_pos < 0)
-        ctx->active->cursor_pos = 0;
       *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
       RefreshView(ctx, *dir_entry_ptr);
     }
