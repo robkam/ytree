@@ -6945,10 +6945,12 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
     assert 'include "ytnova_appstate_panel.h"' in volume_menu
+    assert 'include "ytnova_appstate_panel.h"' in log_source
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -6985,6 +6987,14 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         "AppStateCommitPanelTreeViewport(panel, disp_begin_pos, cursor_pos)"
         in normalize_body
     )
+
+    log_disk_start = log_source.index("int LogDisk(")
+    log_disk_end = log_source.index("\nint GetNewLogPath(", log_disk_start)
+    log_disk_body = log_source[log_disk_start:log_disk_end]
+    assert not re.search(
+        r"\bpanel->(?:disp_begin_pos|cursor_pos)\s*=(?!=)", log_disk_body
+    )
+    assert "AppStateCommitPanelTreeViewport(panel, 0, 0)" in log_disk_body
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:

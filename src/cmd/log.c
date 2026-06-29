@@ -479,8 +479,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
   RestorePanelFileSelection(ctx, panel);
   if (reload_requested) {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = 0;
+    if (!AppStateCommitPanelTreeViewport(panel, 0, 0))
+      return -1;
     ResetPanelTreeViewportSnapshot(panel);
   } else {
     RestorePanelTreeSelection(ctx, panel);

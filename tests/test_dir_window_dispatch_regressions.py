@@ -361,8 +361,9 @@ def test_log_disk_restore_does_not_use_volume_tree_breadcrumbs():
     assert "panel->vol->saved_tree_generation" not in log_disk_source
     assert "panel->vol->saved_tree_index" not in log_disk_source
     assert "if (reload_requested)" in log_disk_source
-    assert "panel->disp_begin_pos = 0;" in log_disk_source
-    assert "panel->cursor_pos = 0;" in log_disk_source
+    assert "AppStateCommitPanelTreeViewport(panel, 0, 0)" in log_disk_source
+    assert "panel->disp_begin_pos = 0;" not in log_disk_source
+    assert "panel->cursor_pos = 0;" not in log_disk_source
     assert "ResetPanelTreeViewportSnapshot(panel);" in log_disk_source
     assert "state->has_saved_tree_selection = FALSE;" in reset_snapshot_source
     assert "state->has_saved_tree_top = FALSE;" in reset_snapshot_source
