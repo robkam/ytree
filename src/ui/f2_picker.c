@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_mode.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
@@ -361,18 +362,14 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
            action != ACTION_ESCAPE &&
            action != ACTION_LOG);
 
-  /* Added restoration block */
   if (ctx->active->vol != original_vol) {
-    /* 1. Restore Global Volume Context */
     ctx->active->vol = original_vol;
     if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
       return -1;
 
-    /* 2. Restore ctx->active state from the restored volume */
     if (ctx->active)
       (void)RestorePanelTreeViewportSnapshot(ctx, ctx->active);
 
-    /* 3. Restore UI Layout */
     DisplayMenu(ctx); /* Restores Frame and Header */
 
     /* Check which view mode we were in before F2 */
@@ -399,7 +396,6 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
                        &ctx->active->vol->vol_stats);
     }
 
-    /* 4. Refresh File Content & Footer Background */
     DisplayFileWindow(ctx, ctx->active,
                       GetSelectedDirEntry(ctx, ctx->active->vol));
     RefreshWindow(ctx->ctx_file_window);
@@ -407,8 +403,9 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
   }
 
-  panel->cursor_pos = local_cursor_pos;
-  panel->disp_begin_pos = local_disp_begin_pos;
+  if (!AppStateCommitPanelTreeViewport(panel, local_disp_begin_pos,
+                                       local_cursor_pos))
+    return -1;
 
   UnmapF2Window(ctx);
   DEBUG_LOG("EXIT HandleDirWindow: Panel=%s Cursor=%d DispBegin=%d",
