@@ -30,7 +30,7 @@ if command -v apt-get &> /dev/null; then
     if ! dpkg -l | grep -q libarchive-dev; then MISSING_PACKAGES="$MISSING_PACKAGES libarchive-dev"; fi
     if ! dpkg -l | grep -q python3-pip; then MISSING_PACKAGES="$MISSING_PACKAGES python3-pip"; fi
     if ! dpkg -l | grep -q python3-venv; then MISSING_PACKAGES="$MISSING_PACKAGES python3-venv"; fi
-    if ! dpkg -l | grep -q pandoc; then MISSING_PACKAGES="$MISSING_PACKAGES pandoc"; fi
+    if ! dpkg -l | grep -q cmark; then MISSING_PACKAGES="$MISSING_PACKAGES cmark"; fi
 
     if [ -n "$MISSING_PACKAGES" ]; then
         echo "Installing missing packages: $MISSING_PACKAGES"

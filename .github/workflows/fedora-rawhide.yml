@@ -39,7 +39,7 @@ jobs:
             libarchive-devel \
             make \
             ncurses-devel \
-            pandoc \
+            cmark \
             python3 \
             readline-devel
 

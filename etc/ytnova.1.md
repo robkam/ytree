@@ -1,11 +1,3 @@
----
-title: YTNOVA
-section: 1
-header: "User Commands"
-footer: "ytnova 1.0.0-alpha"
-date: "June 2026"
----
-
 # NAME
 
 ytnova - a file manager for Unix-like systems

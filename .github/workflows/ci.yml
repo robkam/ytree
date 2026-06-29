@@ -161,7 +161,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc
+        sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools cmark
 
     - name: Restore ccache
       uses: actions/cache@v6
@@ -215,7 +215,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ccache clang llvm libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc lcov
+        sudo apt-get install -y ccache clang llvm libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools cmark lcov
 
     - name: Restore ccache
       uses: actions/cache@v6

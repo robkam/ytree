@@ -25,7 +25,7 @@ BIN_DIR     = .
 # -------------------------------------------------------------------------
 CC          ?= cc
 FUZZ_CC     ?= clang
-PANDOC      ?= pandoc
+CMARK       ?= cmark
 MAKE_CMD    ?= $(MAKE)
 
 # -------------------------------------------------------------------------
@@ -116,6 +116,7 @@ MAIN        = ytnova
 MAIN_BIN    = $(BUILD_DIR)/$(MAIN)
 MANSRC      = etc/ytnova.1.md
 MANPAGE     = $(BUILD_DIR)/ytnova.1
+MAN_TH      = .TH "YTNOVA" "1" "$(VERSIONDATE)" "ytnova $(VERSION)" "User Commands"
 
 # Automatically find all .c files in src/ and subdirectories
 SRCS        = $(wildcard $(SRC_DIR)/*.c $(SRC_DIR)/*/*.c)
@@ -182,13 +183,24 @@ $(BUILD_DIR):
 
 # Generate USAGE.md from the man page source
 docs:
-	$(PANDOC) -f markdown-tex_math_dollars -t gfm \
-		--metadata title="YtreeNova Usage" \
-		$(MANSRC) -o $(DOC_DIR)/USAGE.md
+	$(CMARK) --to commonmark $(MANSRC) > $(DOC_DIR)/USAGE.md
 
 # Generate the roff man page
 $(MANPAGE): $(MANSRC) | $(BUILD_DIR)
-	$(PANDOC) -s -t man $(MANSRC) -o $@
+	@tmp=$@.tmp; \
+	$(CMARK) --to man $(MANSRC) > "$$tmp"; \
+	first_line=$$(sed -n '1p' "$$tmp"); \
+	if [ "$$first_line" = '$(MAN_TH)' ]; then \
+		mv "$$tmp" "$@"; \
+	else \
+		{ printf '%s\n' '$(MAN_TH)'; \
+		  case $$first_line in \
+		    '.TH '*) sed '1d' "$$tmp" ;; \
+		    *) cat "$$tmp" ;; \
+		  esac; \
+		} > "$@"; \
+		rm -f "$$tmp"; \
+	fi
 
 # Install binary, man page, and documentation
 install: $(MAIN_BIN) $(MANPAGE) docs
