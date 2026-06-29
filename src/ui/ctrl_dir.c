@@ -554,8 +554,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   if (ctx->initial_directory != NULL) {
     if (!strcmp(ctx->initial_directory, ".")) /* Entry just a single "." */
     {
-      ctx->active->disp_begin_pos = 0;
-      ctx->active->cursor_pos = 0;
+      if (!AppStateCommitPanelTreeViewport(ctx->active, 0, 0))
+        return ESC;
       unput_char = CR;
     } else {
       int log_path_len = -1;
@@ -590,8 +590,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
                            ctx->active->vol->dir_entry_list[i].dir_entry->name);
           }
           if (!strcmp(new_log_path, new_name)) {
-            ctx->active->disp_begin_pos = i;
-            ctx->active->cursor_pos = 0;
+            if (!AppStateCommitPanelTreeViewport(ctx->active, i, 0))
+              return ESC;
             unput_char = CR;
             break;
           }
@@ -604,12 +604,12 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   {
     int safe_idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
     if (ctx->active->vol->total_dirs <= 0) {
-      ctx->active->disp_begin_pos = 0;
-      ctx->active->cursor_pos = 0;
+      if (!AppStateCommitPanelTreeViewport(ctx->active, 0, 0))
+        return ESC;
       safe_idx = 0;
     } else if (safe_idx < 0 || safe_idx >= ctx->active->vol->total_dirs) {
-      ctx->active->disp_begin_pos = 0;
-      ctx->active->cursor_pos = 0;
+      if (!AppStateCommitPanelTreeViewport(ctx->active, 0, 0))
+        return ESC;
       safe_idx = 0;
     }
 
