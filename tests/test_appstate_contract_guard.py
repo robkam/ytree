@@ -7080,6 +7080,46 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         enter_body,
     )
 
+    count_start = dir_ops.index("static int CountPathSnapshot(")
+    reanchor_start = dir_ops.index("\nstatic void ReanchorPanelToDir(", count_start)
+    reanchor_end = dir_ops.index(
+        "\nBOOL DirOps_SelectVisibleDirAndRefresh(", reanchor_start
+    )
+    reanchor_body = dir_ops[reanchor_start:reanchor_end]
+    assert not re.search(
+        r"\bpanel->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        reanchor_body,
+    )
+    assert "AppStateCommitPanelTreeViewport(panel, 0, 0)" in reanchor_body
+
+    volume_start = dir_ops.index("HandleDirWindowVolumeAction(")
+    log_start = dir_ops.index("\nDirWindowDispatchResult\nHandleDirWindowLogAction(")
+    volume_body = dir_ops[volume_start:log_start]
+    log_end = dir_ops.index("\nvoid ToggleDotFiles(", log_start)
+    log_body = dir_ops[log_start:log_end]
+    for body in [volume_body, log_body]:
+        assert not re.search(
+            r"\bctx->active->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+            body,
+        )
+        assert re.search(
+            r"AppStateCommitPanelTreeViewport\(\s*ctx->active,\s*"
+            r"next_disp_begin_pos,\s*next_cursor_pos\s*\)",
+            body,
+        )
+
+    refresh_dir_start = dir_ops.index("int RefreshDirWindow(")
+    refresh_dir_body = dir_ops[refresh_dir_start:]
+    assert not re.search(
+        r"\bp->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        refresh_dir_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*p,\s*next_disp_begin_pos,\s*"
+        r"next_cursor_pos\s*\)",
+        refresh_dir_body,
+    )
+
     f2_exit_start = f2_picker.index(
         "\n  if (ctx->active->vol != original_vol) {"
     )

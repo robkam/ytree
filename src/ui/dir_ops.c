@@ -541,8 +541,8 @@ static void ReanchorPanelToDir(YtreeNovaPanel *panel, const DirEntry *target) {
   if (!panel)
     return;
   if (!panel->vol || panel->vol->total_dirs <= 0) {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = 0;
+    if (!AppStateCommitPanelTreeViewport(panel, 0, 0))
+      return;
     RememberPanelViewportTop(panel);
     return;
   }
@@ -1798,13 +1798,18 @@ HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
     if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
         ctx->active->vol->total_dirs) {
       int last_idx = ctx->active->vol->total_dirs - 1;
+      int next_disp_begin_pos;
+      int next_cursor_pos;
       if (last_idx >= ctx->layout.dir_win_height) {
-        ctx->active->disp_begin_pos = last_idx - (ctx->layout.dir_win_height - 1);
-        ctx->active->cursor_pos = ctx->layout.dir_win_height - 1;
+        next_disp_begin_pos = last_idx - (ctx->layout.dir_win_height - 1);
+        next_cursor_pos = ctx->layout.dir_win_height - 1;
       } else {
-        ctx->active->disp_begin_pos = 0;
-        ctx->active->cursor_pos = last_idx;
+        next_disp_begin_pos = 0;
+        next_cursor_pos = last_idx;
       }
+      if (!AppStateCommitPanelTreeViewport(ctx->active, next_disp_begin_pos,
+                                           next_cursor_pos))
+        return DIR_WINDOW_DISPATCH_RETURN_ESC;
     }
     *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
   } else {
@@ -1858,13 +1863,18 @@ HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
         ctx->active->vol->total_dirs) {
       int last_idx = ctx->active->vol->total_dirs - 1;
+      int next_disp_begin_pos;
+      int next_cursor_pos;
       if (last_idx >= ctx->layout.dir_win_height) {
-        ctx->active->disp_begin_pos = last_idx - (ctx->layout.dir_win_height - 1);
-        ctx->active->cursor_pos = ctx->layout.dir_win_height - 1;
+        next_disp_begin_pos = last_idx - (ctx->layout.dir_win_height - 1);
+        next_cursor_pos = ctx->layout.dir_win_height - 1;
       } else {
-        ctx->active->disp_begin_pos = 0;
-        ctx->active->cursor_pos = last_idx;
+        next_disp_begin_pos = 0;
+        next_cursor_pos = last_idx;
       }
+      if (!AppStateCommitPanelTreeViewport(ctx->active, next_disp_begin_pos,
+                                           next_cursor_pos))
+        return DIR_WINDOW_DISPATCH_RETURN_ESC;
     }
     *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
   } else {
@@ -2243,22 +2253,27 @@ int RefreshDirWindow(ViewContext *ctx, YtreeNovaPanel *p) {
     result = -1;
   } else {
     int window_height;
+    int next_disp_begin_pos = p->disp_begin_pos;
+    int next_cursor_pos = p->cursor_pos;
 
-    if (n != (p->disp_begin_pos + p->cursor_pos)) {
+    if (n != (next_disp_begin_pos + next_cursor_pos)) {
       /* Position changed */
-      if ((n - p->disp_begin_pos) >= 0) {
-        p->cursor_pos = n - p->disp_begin_pos;
+      if ((n - next_disp_begin_pos) >= 0) {
+        next_cursor_pos = n - next_disp_begin_pos;
       } else {
-        p->disp_begin_pos = n;
-        p->cursor_pos = 0;
+        next_disp_begin_pos = n;
+        next_cursor_pos = 0;
       }
     }
 
     window_height = getmaxy(win);
-    while (p->cursor_pos >= window_height) {
-      (p->cursor_pos)--;
-      (p->disp_begin_pos)++;
+    while (next_cursor_pos >= window_height) {
+      next_cursor_pos--;
+      next_disp_begin_pos++;
     }
+    if (!AppStateCommitPanelTreeViewport(p, next_disp_begin_pos,
+                                         next_cursor_pos))
+      return -1;
     DisplayTree(ctx, p->vol, win, p->disp_begin_pos,
                 p->disp_begin_pos + p->cursor_pos, TRUE);
 
