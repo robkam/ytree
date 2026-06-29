@@ -6950,6 +6950,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
@@ -6958,6 +6959,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file
     assert 'include "ytnova_appstate_panel.h"' in dir_ops
+    assert 'include "ytnova_appstate_panel.h"' in f2_picker
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -7056,6 +7058,21 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         refresh_body,
     )
     assert "AppStateCommitPanelTreeViewport(p, 0, 0)" in refresh_body
+
+    f2_exit_start = f2_picker.index(
+        "\n  if (ctx->active->vol != original_vol) {"
+    )
+    f2_exit_end = f2_picker.index("\n  UnmapF2Window(ctx);", f2_exit_start)
+    f2_exit_body = f2_picker[f2_exit_start:f2_exit_end]
+    assert not re.search(
+        r"\bpanel->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        f2_exit_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*panel,\s*"
+        r"local_disp_begin_pos,\s*local_cursor_pos\)",
+        f2_exit_body,
+    )
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
