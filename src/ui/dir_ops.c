@@ -2096,6 +2096,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
 
       if (found_idx != -1) {
         int next_disp_begin = saved_disp_begin;
+        int next_cursor_pos;
 
         if (next_disp_begin < 0)
           next_disp_begin = 0;
@@ -2113,20 +2114,20 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
         if (next_disp_begin > max_begin)
           next_disp_begin = max_begin;
 
-        p->disp_begin_pos = next_disp_begin;
-        p->cursor_pos = found_idx - p->disp_begin_pos;
-        if (p->cursor_pos < 0)
-          p->cursor_pos = 0;
-        if (p->cursor_pos >= win_height)
-          p->cursor_pos = win_height - 1;
-        entry =
-            p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        next_cursor_pos = found_idx - next_disp_begin;
+        if (next_cursor_pos < 0)
+          next_cursor_pos = 0;
+        if (next_cursor_pos >= win_height)
+          next_cursor_pos = win_height - 1;
+        (void)AppStateCommitPanelTreeViewport(p, next_disp_begin,
+                                              next_cursor_pos);
+        entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos]
+                    .dir_entry;
       } else {
         /* Fallback to start if dir moved/deleted */
         if (p->vol->total_dirs > 0 &&
             (p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs)) {
-          p->disp_begin_pos = 0;
-          p->cursor_pos = 0;
+          (void)AppStateCommitPanelTreeViewport(p, 0, 0);
           entry = p->vol->dir_entry_list[0].dir_entry;
         }
       }
@@ -2146,8 +2147,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     /* Basic bounds check */
     if (p->vol->total_dirs > 0 &&
         (p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs)) {
-      p->disp_begin_pos = 0;
-      p->cursor_pos = 0;
+      (void)AppStateCommitPanelTreeViewport(p, 0, 0);
       entry = p->vol->dir_entry_list[0].dir_entry;
     }
   }

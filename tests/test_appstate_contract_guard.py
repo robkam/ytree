@@ -6949,6 +6949,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
@@ -6956,6 +6957,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file
+    assert 'include "ytnova_appstate_panel.h"' in dir_ops
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -7040,6 +7042,20 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         r"AppStateCommitPanelTreeViewport\(\s*panel,\s*next_begin,\s*next_cursor\)",
         owner_body,
     )
+
+    refresh_start = dir_ops.index("DirEntry *RefreshTreeSafe(")
+    scan_start = dir_ops.index("\nint ScanSubTree(", refresh_start)
+    refresh_body = dir_ops[refresh_start:scan_start]
+    assert not re.search(
+        r"\bp->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        refresh_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*p,\s*next_disp_begin,\s*"
+        r"next_cursor_pos\)",
+        refresh_body,
+    )
+    assert "AppStateCommitPanelTreeViewport(p, 0, 0)" in refresh_body
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
