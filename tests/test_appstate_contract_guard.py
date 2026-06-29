@@ -6144,6 +6144,7 @@ def test_view_mode_commits_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
     init_source = Path("src/core/init.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitViewMode(" in header
     assert 'include "ytnova_appstate_mode.h"' in init_source
@@ -6946,11 +6947,13 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
     assert 'include "ytnova_appstate_panel.h"' in volume_menu
     assert 'include "ytnova_appstate_panel.h"' in log_source
+    assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -6995,6 +6998,16 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         r"\bpanel->(?:disp_begin_pos|cursor_pos)\s*=(?!=)", log_disk_body
     )
     assert "AppStateCommitPanelTreeViewport(panel, 0, 0)" in log_disk_body
+
+    handle_dir_start = ctrl_dir.index("extern int HandleDirWindow(")
+    handle_dir_end = ctrl_dir.index("\nstatic void DirListJump(", handle_dir_start)
+    handle_dir_body = ctrl_dir[handle_dir_start:handle_dir_end]
+    assert not re.search(
+        r"\bctx->active->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        handle_dir_body,
+    )
+    assert "AppStateCommitPanelTreeViewport(ctx->active, 0, 0)" in handle_dir_body
+    assert "AppStateCommitPanelTreeViewport(ctx->active, i, 0)" in handle_dir_body
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
