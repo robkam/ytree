@@ -6691,6 +6691,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
     file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
@@ -6702,6 +6703,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in file_list
     assert 'include "ytnova_appstate_panel.h"' in file_nav
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file_ops
+    assert 'include "ytnova_appstate_panel.h"' in dir_ops
     assert 'include "ytnova_appstate_panel.h"' in ctrl_dir
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file
     assert 'include "ytnova_appstate_panel.h"' in panel_anchor
@@ -6883,6 +6885,39 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
             )
         )
         == 2
+    )
+
+    make_dir_start = dir_ops.index("void HandleDirMakeDirectory(")
+    delete_dir_start = dir_ops.index(
+        "\nDirEntry *HandleDirDeleteDirectory(", make_dir_start
+    )
+    make_dir_body = dir_ops[make_dir_start:delete_dir_start]
+    switch_start = dir_ops.index("void HandleSwitchWindow(")
+    sync_windows_start = dir_ops.index("\nvoid SyncActivePanelWindows(", switch_start)
+    switch_body = dir_ops[switch_start:sync_windows_start]
+    restore_panel_start = dir_ops.index("DirEntry *RestorePanelFileSelection(")
+    restore_panel_end = dir_ops.index(
+        "\nDirWindowDispatchResult", restore_panel_start
+    )
+    restore_panel_body = dir_ops[restore_panel_start:restore_panel_end]
+    dir_ops_panel_viewport_write = re.compile(
+        r"\b(?:inactive|p|panel)->(?:start_file|file_cursor_pos)\s*=(?!=)"
+    )
+    for body in [make_dir_body, switch_body, restore_panel_body]:
+        assert not dir_ops_panel_viewport_write.search(body)
+    assert (
+        len(re.findall(r"AppStateCommitPanelFileViewport\(\s*inactive,", make_dir_body))
+        == 1
+    )
+    assert len(re.findall(r"AppStateCommitPanelFileViewport\(\s*p,", switch_body)) == 1
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelFileViewport\(\s*panel,",
+                restore_panel_body,
+            )
+        )
+        == 1
     )
 
 
