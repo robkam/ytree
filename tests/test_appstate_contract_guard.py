@@ -6698,6 +6698,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelFileViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in file_list
@@ -6710,6 +6711,7 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in split_transition
     assert 'include "ytnova_appstate_panel.h"' in log_source
     assert 'include "ytnova_appstate_panel.h"' in volume_source
+    assert 'include "ytnova_appstate_panel.h"' in init_source
 
     helper_start = helper.index("BOOL AppStateCommitPanelFileViewport(")
     helper_body = helper[helper_start:]
@@ -6751,6 +6753,23 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
         in restore_body
     )
     assert "AppStateCommitPanelFileViewport(panel, 0, 0)" in clear_body
+
+    init_start = init_source.index("void InitView(")
+    init_end = init_source.index("\nvoid CoreMainOps_Register(", init_start)
+    init_body = init_source[init_start:init_end]
+    initial_panel_viewport_write = re.compile(
+        r"\bctx->(?:left|right)->(?:start_file|file_cursor_pos)\s*=(?!=)"
+    )
+    assert not initial_panel_viewport_write.search(init_body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelFileViewport\(\s*ctx->(?:left|right),\s*0,\s*0\)",
+                init_body,
+            )
+        )
+        == 2
+    )
 
     refresh_start = file_nav.index("static void RefreshFileSelection(")
     move_down_start = file_nav.index("\nvoid FileNav_MoveDown(", refresh_start)

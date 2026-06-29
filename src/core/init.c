@@ -12,6 +12,7 @@
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_mode.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_appstate_window.h"
@@ -382,8 +383,13 @@ void InitView(ViewContext *ctx) {
   }
   DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
   ctx->left->file_mode = MODE_1;
-  ctx->left->file_cursor_pos = 0;
   ctx->left->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileViewport(ctx->left, 0, 0)) {
+    fprintf(stderr, "InitView: failed to initialize left panel file viewport\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
   if (!AppStateSeedPanelVisibilityFilter(ctx->left, FALSE)) {
     fprintf(stderr, "InitView: failed to initialize left panel visibility\n");
     free(ctx->left);
@@ -400,8 +406,15 @@ void InitView(ViewContext *ctx) {
   }
   DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
   ctx->right->file_mode = MODE_1;
-  ctx->right->file_cursor_pos = 0;
   ctx->right->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileViewport(ctx->right, 0, 0)) {
+    fprintf(stderr, "InitView: failed to initialize right panel file viewport\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
   if (!AppStateSeedPanelVisibilityFilter(ctx->right, FALSE)) {
     fprintf(stderr, "InitView: failed to initialize right panel visibility\n");
     free(ctx->right);
