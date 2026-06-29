@@ -6954,6 +6954,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     split_transition = Path("src/ui/split_transition.c").read_text(
         encoding="utf-8"
     )
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
@@ -6964,6 +6965,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in dir_ops
     assert 'include "ytnova_appstate_panel.h"' in f2_picker
     assert 'include "ytnova_appstate_panel.h"' in split_transition
+    assert 'include "ytnova_appstate_panel.h"' in panel_anchor
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -7117,6 +7119,34 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         )
         == 2
     )
+
+    anchor_tree_viewport_write = re.compile(
+        r"\b(?:panel|dst)->(?:disp_begin_pos|cursor_pos)\s*=(?!=)"
+    )
+    anchor_function_ranges = [
+        (
+            "void PositionPanelAtIndex(",
+            "\nstatic BOOL VisibleIndexWithinTopPath(",
+        ),
+        (
+            "BOOL RestorePanelViewportSnapshot(",
+            "\nBOOL RestorePanelTreeViewportSnapshot(",
+        ),
+        (
+            "BOOL RestorePanelTreeViewportSnapshot(",
+            "\nvoid RestorePanelAnchorPath(",
+        ),
+        (
+            "BOOL DonatePanelState(",
+            "\nDirEntry *FindDirByPathInTree(",
+        ),
+    ]
+    for start_marker, end_marker in anchor_function_ranges:
+        start = panel_anchor.index(start_marker)
+        end = panel_anchor.index(end_marker, start)
+        body = panel_anchor[start:end]
+        assert not anchor_tree_viewport_write.search(body)
+        assert "AppStateCommitPanelTreeViewport(" in body
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:

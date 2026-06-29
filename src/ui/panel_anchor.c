@@ -376,8 +376,8 @@ void PositionPanelAtIndex(YtreeNovaPanel *panel, int idx) {
     cursor = 0;
   }
 
-  panel->disp_begin_pos = begin;
-  panel->cursor_pos = cursor;
+  if (!AppStateCommitPanelTreeViewport(panel, begin, cursor))
+    return;
   RememberPanelViewportTop(panel);
   if (!AppStateCommitPanelGeneration(panel))
     return;
@@ -465,8 +465,8 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
   if (top_path &&
       VisibleIndexWithinTopPath(vol, panel, top_path, target_idx, height,
                                 &top_idx)) {
-    panel->disp_begin_pos = top_idx;
-    panel->cursor_pos = target_idx - top_idx;
+    begin = top_idx;
+    cursor = target_idx - top_idx;
   } else {
     begin = panel->disp_begin_pos;
     cursor = panel->cursor_pos;
@@ -475,10 +475,10 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
       begin = target_idx;
       cursor = 0;
     }
-    panel->disp_begin_pos = begin;
-    panel->cursor_pos = cursor;
   }
 
+  if (!AppStateCommitPanelTreeViewport(panel, begin, cursor))
+    return FALSE;
   RememberPanelViewportTop(panel);
   if (!AppStateCommitPanelGeneration(panel))
     return FALSE;
@@ -498,8 +498,7 @@ BOOL RestorePanelTreeViewportSnapshot(ViewContext *ctx, YtreeNovaPanel *panel) {
 
   total_dirs = panel->vol->total_dirs;
   if (total_dirs <= 0) {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = 0;
+    (void)AppStateCommitPanelTreeViewport(panel, 0, 0);
     return FALSE;
   }
 
@@ -531,22 +530,28 @@ BOOL RestorePanelTreeViewportSnapshot(ViewContext *ctx, YtreeNovaPanel *panel) {
   if (win_height <= 0)
     win_height = 1;
 
-  if (panel->disp_begin_pos < 0)
-    panel->disp_begin_pos = 0;
-  if (selected_index >= panel->disp_begin_pos &&
-      selected_index < panel->disp_begin_pos + win_height) {
-    panel->cursor_pos = selected_index - panel->disp_begin_pos;
+  {
+    int begin = panel->disp_begin_pos;
+    int cursor;
+
+    if (begin < 0)
+      begin = 0;
+    if (selected_index >= begin && selected_index < begin + win_height) {
+      cursor = selected_index - begin;
+      (void)AppStateCommitPanelTreeViewport(panel, begin, cursor);
+      return FALSE;
+    }
+
+    if (selected_index >= win_height) {
+      begin = selected_index - (win_height - 1);
+      cursor = win_height - 1;
+    } else {
+      begin = 0;
+      cursor = selected_index;
+    }
+    (void)AppStateCommitPanelTreeViewport(panel, begin, cursor);
     return FALSE;
   }
-
-  if (selected_index >= win_height) {
-    panel->disp_begin_pos = selected_index - (win_height - 1);
-    panel->cursor_pos = win_height - 1;
-  } else {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = selected_index;
-  }
-  return FALSE;
 }
 
 void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
@@ -685,8 +690,9 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
 
   FreeFileEntryList(dst);
   dst->vol = src->vol;
-  dst->cursor_pos = src->cursor_pos;
-  dst->disp_begin_pos = src->disp_begin_pos;
+  if (!AppStateCommitPanelTreeViewport(dst, src->disp_begin_pos,
+                                       src->cursor_pos))
+    return FALSE;
   memcpy(dst->tree_viewport_top_dir_path, src->tree_viewport_top_dir_path,
          sizeof(dst->tree_viewport_top_dir_path));
   if (!AppStateCommitPanelFileViewport(dst, src->start_file,
@@ -714,8 +720,9 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   dst->file_dir_entry = NULL;
   PanelTags_Copy(dst, src);
   if (!source_is_file) {
-    dst->cursor_pos = dst_cursor_pos;
-    dst->disp_begin_pos = dst_disp_begin_pos;
+    if (!AppStateCommitPanelTreeViewport(dst, dst_disp_begin_pos,
+                                         dst_cursor_pos))
+      return FALSE;
     dst->current_dir_entry = dst_current_dir_entry;
     if (!AppStateRestorePanelGeneration(dst, dst_panel_generation))
       return FALSE;

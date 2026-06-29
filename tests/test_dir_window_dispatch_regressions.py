@@ -184,9 +184,10 @@ def test_tree_viewport_stable_restore_preserves_visible_selection():
     restore_end = panel_anchor_source.index("\nvoid RestorePanelAnchorPath(", restore_start)
     restore_source = panel_anchor_source[restore_start:restore_end]
     visible_guard = (
-        r"selected_index\s*>=\s*panel->disp_begin_pos"
-        r"[\s\S]*selected_index\s*<\s*panel->disp_begin_pos\s*\+\s*win_height"
-        r"[\s\S]*panel->cursor_pos\s*=\s*selected_index\s*-\s*panel->disp_begin_pos"
+        r"selected_index\s*>=\s*begin"
+        r"[\s\S]*selected_index\s*<\s*begin\s*\+\s*win_height"
+        r"[\s\S]*cursor\s*=\s*selected_index\s*-\s*begin"
+        r"[\s\S]*AppStateCommitPanelTreeViewport\(\s*panel,\s*begin,\s*cursor\s*\)"
         r"[\s\S]*return\s+(?:TRUE|FALSE);"
     )
 
