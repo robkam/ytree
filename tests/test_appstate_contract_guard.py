@@ -6951,6 +6951,9 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
 
     assert "BOOL AppStateCommitPanelTreeViewport(" in header
     assert 'include "ytnova_appstate_panel.h"' in dir_nav
@@ -6960,6 +6963,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     assert 'include "ytnova_appstate_panel.h"' in ctrl_file
     assert 'include "ytnova_appstate_panel.h"' in dir_ops
     assert 'include "ytnova_appstate_panel.h"' in f2_picker
+    assert 'include "ytnova_appstate_panel.h"' in split_transition
 
     helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
     helper_body = helper[helper_start:]
@@ -7072,6 +7076,46 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         r"AppStateCommitPanelTreeViewport\(\s*panel,\s*"
         r"local_disp_begin_pos,\s*local_cursor_pos\)",
         f2_exit_body,
+    )
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", file_split_start
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    dir_split_body = split_transition[dir_split_start:]
+    split_tree_viewport_write = re.compile(
+        r"\b(?:ctx->right|ctx->left|ctx->active)->"
+        r"(?:disp_begin_pos|cursor_pos)\s*=(?!=)"
+    )
+    for body in [file_split_body, dir_split_body]:
+        assert not split_tree_viewport_write.search(body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelTreeViewport\(\s*ctx->right,\s*"
+                r"ctx->left->disp_begin_pos,\s*ctx->left->cursor_pos\s*\)",
+                split_transition,
+            )
+        )
+        == 2
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*ctx->left,\s*"
+        r"source_disp_begin_pos,\s*source_cursor_pos\s*\)",
+        dir_split_body,
+    )
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelTreeViewport\(\s*ctx->active,\s*"
+                r"ctx->active->disp_begin_pos,\s*next_cursor_pos\s*\)",
+                split_transition,
+            )
+        )
+        == 2
     )
 
 
