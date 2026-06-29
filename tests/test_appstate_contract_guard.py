@@ -7065,6 +7065,21 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     )
     assert "AppStateCommitPanelTreeViewport(p, 0, 0)" in refresh_body
 
+    enter_start = dir_ops.index("HandleDirWindowEnterAction(")
+    enter_end = dir_ops.index(
+        "\nDirWindowDispatchResult\nHandleDirWindowVolumeAction(", enter_start
+    )
+    enter_body = dir_ops[enter_start:enter_end]
+    assert not re.search(
+        r"\bctx->active->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        enter_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*ctx->active,\s*"
+        r"next_disp_begin,\s*next_cursor_pos\s*\)",
+        enter_body,
+    )
+
     f2_exit_start = f2_picker.index(
         "\n  if (ctx->active->vol != original_vol) {"
     )
