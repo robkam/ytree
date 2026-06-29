@@ -7009,6 +7009,24 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
     assert "AppStateCommitPanelTreeViewport(ctx->active, 0, 0)" in handle_dir_body
     assert "AppStateCommitPanelTreeViewport(ctx->active, i, 0)" in handle_dir_body
 
+    jump_start = ctrl_dir.index("static void DirListJump(", handle_dir_end)
+    jump_end = ctrl_dir.index("\nstatic void DrawDirListJumpPrompt(", jump_start)
+    jump_body = ctrl_dir[jump_start:jump_end]
+    assert not re.search(
+        r"\bctx->active->(?:disp_begin_pos|cursor_pos)\s*=(?!=)",
+        jump_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*ctx->active,\s*"
+        r"original_disp_begin_pos,\s*original_cursor_pos\)",
+        jump_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeViewport\(\s*ctx->active,\s*next_begin,\s*"
+        r"next_cursor\)",
+        jump_body,
+    )
+
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")

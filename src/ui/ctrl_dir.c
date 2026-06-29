@@ -1206,8 +1206,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
       break;
 
     if (ch == ESC) {
-      ctx->active->disp_begin_pos = original_disp_begin_pos;
-      ctx->active->cursor_pos = original_cursor_pos;
+      (void)AppStateCommitPanelTreeViewport(
+          ctx->active, original_disp_begin_pos, original_cursor_pos);
     } else if (ch == CR || ch == LF) {
       break;
     } else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b' || ch == KEY_DC) {
@@ -1216,8 +1216,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
         search_buf[buf_len] = '\0';
 
         if (buf_len == 0) {
-          ctx->active->disp_begin_pos = original_disp_begin_pos;
-          ctx->active->cursor_pos = original_cursor_pos;
+          (void)AppStateCommitPanelTreeViewport(
+              ctx->active, original_disp_begin_pos, original_cursor_pos);
         } else {
           found_idx = -1;
           for (i = 0; i < ctx->active->vol->total_dirs; i++) {
@@ -1261,20 +1261,25 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
     }
 
     if (ctx->active->cursor_pos < 0)
-      ctx->active->cursor_pos = 0;
+      (void)AppStateCommitPanelTreeViewport(ctx->active,
+                                            ctx->active->disp_begin_pos, 0);
 
     if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
         ctx->active->vol->total_dirs) {
       int last_idx = ctx->active->vol->total_dirs - 1;
+      int next_begin;
+      int next_cursor;
       if (last_idx < 0)
         last_idx = 0;
       if (last_idx >= height) {
-        ctx->active->disp_begin_pos = last_idx - (height - 1);
-        ctx->active->cursor_pos = height - 1;
+        next_begin = last_idx - (height - 1);
+        next_cursor = height - 1;
       } else {
-        ctx->active->disp_begin_pos = 0;
-        ctx->active->cursor_pos = last_idx;
+        next_begin = 0;
+        next_cursor = last_idx;
       }
+      (void)AppStateCommitPanelTreeViewport(ctx->active, next_begin,
+                                            next_cursor);
     }
 
     *dir_entry_ptr = ctx->active->vol
