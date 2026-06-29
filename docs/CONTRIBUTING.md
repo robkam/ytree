@@ -55,14 +55,14 @@ This project uses a combination of C for the application and Python for the test
 - A C compiler (`gcc` or `clang`) and `make`.
 - `libncurses-dev`, `libtinfo-dev`, `libreadline-dev`, `libarchive-dev`.
 - `python3` and `python3-venv`.
-- `pandoc` (for generating the man page).
+- `cmark` (for generating the usage doc and man page).
 - `lcov` (for baseline CI coverage reports).
 - `llvm` tools (`llvm-symbolizer`) for sanitizer/fuzz diagnostics.
 
 On a Debian/Ubuntu-based system, you can install these with:
 ```bash
 sudo apt-get update
-sudo apt-get install build-essential clang llvm libncurses-dev libtinfo-dev libreadline-dev libarchive-dev python3-venv pandoc lcov
+sudo apt-get install build-essential clang llvm libncurses-dev libtinfo-dev libreadline-dev libarchive-dev python3-venv cmark lcov
 ```
 
 ### 2. Initial Python Environment Setup

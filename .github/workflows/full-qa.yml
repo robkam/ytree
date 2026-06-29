@@ -61,7 +61,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ccache gitleaks libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
+        sudo apt-get install -y ccache gitleaks libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools cmark clang-tidy cppcheck clang-tools bear valgrind
 
     - name: Restore ccache
       uses: actions/cache@v6
@@ -152,7 +152,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang
+        sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools cmark clang
 
     - name: Restore ccache
       uses: actions/cache@v6
