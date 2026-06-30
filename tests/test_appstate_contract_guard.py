@@ -7292,8 +7292,10 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+    volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelVolume(" in header
@@ -7387,6 +7389,45 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
         assert re.search(
             rf"AppStateCommitPanelVolume\(\s*panel,\s*{volume_expr}\s*\)",
             log_body,
+        )
+
+    init_start = init_source.index("int Init(")
+    init_body = init_source[init_start:]
+    assert not re.search(r"\bctx->active->vol\s*=(?!=)", init_body)
+    assert re.search(
+        r"AppStateCommitPanelVolume\(\s*ctx->active,\s*initial_vol\s*\)",
+        init_body,
+    )
+
+    volume_delete_start = volume_source.index("void Volume_Delete(")
+    volume_free_all_start = volume_source.index(
+        "\nvoid Volume_FreeAll(", volume_delete_start
+    )
+    volume_get_by_path_start = volume_source.index(
+        "\nstruct Volume *Volume_GetByPath(", volume_free_all_start
+    )
+    volume_delete_body = volume_source[
+        volume_delete_start:volume_free_all_start
+    ]
+    volume_free_all_body = volume_source[
+        volume_free_all_start:volume_get_by_path_start
+    ]
+    assert not re.search(
+        r"\bctx->(?:left|right)->vol\s*=(?!=)", volume_delete_body
+    )
+    for panel_expr in ("ctx->left", "ctx->right"):
+        assert re.search(
+            rf"AppStateCommitPanelVolume\(\s*{panel_expr},\s*NULL\s*\)",
+            volume_delete_body,
+        )
+    assert not re.search(
+        r"\bctx->(?:active|left|right)->vol\s*=(?!=)",
+        volume_free_all_body,
+    )
+    for panel_expr in ("ctx->active", "ctx->left", "ctx->right"):
+        assert re.search(
+            rf"AppStateCommitPanelVolume\(\s*{panel_expr},\s*NULL\s*\)",
+            volume_free_all_body,
         )
 
 
