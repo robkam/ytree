@@ -994,12 +994,12 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
             FreePathList(inactive_tagged_snapshot);
             return;
           }
-          (void)snprintf(inactive->file_selection_dir_path,
-                         sizeof(inactive->file_selection_dir_path), "%s",
-                         inactive_file_dir_path);
-          (void)snprintf(inactive->file_selection_name,
-                         sizeof(inactive->file_selection_name), "%s",
-                         inactive_file_name);
+          if (!AppStateCommitPanelFileSelection(inactive,
+                                                inactive_file_dir_path,
+                                                inactive_file_name)) {
+            FreePathList(inactive_tagged_snapshot);
+            return;
+          }
           if (resolved_file_dir) {
             DirOps_ReloadPanelFileAnchorIfMissing(ctx, inactive,
                                                   resolved_file_dir);

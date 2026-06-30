@@ -7000,6 +7000,22 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
         file_window_body,
     )
 
+    make_dir_start = dir_ops.index("void HandleDirMakeDirectory(")
+    make_dir_end = dir_ops.index("\nvoid HandleSwitchWindow(", make_dir_start)
+    make_dir_body = dir_ops[make_dir_start:make_dir_end]
+    assert not re.search(
+        r"\binactive->(?:file_selection_name|file_selection_dir_path)"
+        r"(?:\[[^\n]*\])?\s*=(?!=)",
+        make_dir_body,
+    )
+    assert "snprintf(inactive->file_selection_name" not in make_dir_body
+    assert "snprintf(inactive->file_selection_dir_path" not in make_dir_body
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*inactive,\s*"
+        r"inactive_file_dir_path,\s*inactive_file_name\s*\)",
+        make_dir_body,
+    )
+
     switch_start = dir_ops.index("void HandleSwitchWindow(")
     switch_end = dir_ops.index("\nvoid SyncActivePanelWindows(", switch_start)
     switch_body = dir_ops[switch_start:switch_end]
