@@ -7051,6 +7051,30 @@ def test_panel_anchor_file_anchors_route_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileAnchor(panel, target)" in ensure_body
 
 
+def test_split_transition_file_anchors_route_through_appstate_helper() -> None:
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+
+    panel_has_start = split_transition.index("\nstatic BOOL PanelHasVisibleFiles(")
+    file_action_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleFileWindowAction(", panel_has_start
+    )
+    panel_has_body = split_transition[panel_has_start:file_action_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=", panel_has_body)
+    assert "AppStateCommitPanelFileAnchor(panel, dir_entry)" in panel_has_body
+
+    dir_action_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", file_action_start
+    )
+    file_action_body = split_transition[file_action_start:dir_action_start]
+    assert not re.search(r"\bowner_panel->file_dir_entry\s*=", file_action_body)
+    assert (
+        file_action_body.count(
+            "AppStateCommitPanelFileAnchor(owner_panel, dir_entry)"
+        )
+        >= 3
+    )
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

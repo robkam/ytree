@@ -237,7 +237,8 @@ static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreeNovaPanel *panel,
                                  DirEntry *dir_entry) {
   if (!ctx || !panel || !dir_entry)
     return FALSE;
-  panel->file_dir_entry = dir_entry;
+  if (!AppStateCommitPanelFileAnchor(panel, dir_entry))
+    return FALSE;
   BuildFileEntryList(ctx, panel);
   return panel->file_count > 0;
 }
@@ -268,7 +269,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
       return FALSE;
 
     if (!ctx->is_split_screen) {
-      owner_panel->file_dir_entry = dir_entry;
+      if (!AppStateCommitPanelFileAnchor(owner_panel, dir_entry))
+        return FALSE;
       if (!AppStateCommitPanelFileViewport(owner_panel, dir_entry->start_file,
                                            dir_entry->cursor_pos))
         return FALSE;
@@ -407,7 +409,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
 
       CaptureSplitFilePanelSnapshot(target_panel, &target_panel_snapshot);
 
-      owner_panel->file_dir_entry = dir_entry;
+      if (!AppStateCommitPanelFileAnchor(owner_panel, dir_entry))
+        return FALSE;
       if (!AppStateCommitPanelFileViewport(owner_panel, dir_entry->start_file,
                                            dir_entry->cursor_pos))
         return FALSE;
@@ -432,7 +435,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
                                             &target_panel_snapshot);
     }
 #else
-    owner_panel->file_dir_entry = dir_entry;
+    if (!AppStateCommitPanelFileAnchor(owner_panel, dir_entry))
+      return FALSE;
     if (!AppStateCommitPanelFileViewport(owner_panel, dir_entry->start_file,
                                          dir_entry->cursor_pos))
       return FALSE;
