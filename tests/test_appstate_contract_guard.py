@@ -7291,6 +7291,7 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
@@ -7377,6 +7378,16 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
         r"AppStateCommitPanelVolume\(\s*panel,\s*owner_vol\s*\)",
         owner_jump_body,
     )
+
+    log_start = log_source.index("int LogDisk(")
+    log_end = log_source.index("\nint GetNewLogPath(", log_start)
+    log_body = log_source[log_start:log_end]
+    assert not re.search(r"\bpanel->vol\s*=(?!=)", log_body)
+    for volume_expr in ("found_vol", "NULL", "old_vol", "loaded_vol"):
+        assert re.search(
+            rf"AppStateCommitPanelVolume\(\s*panel,\s*{volume_expr}\s*\)",
+            log_body,
+        )
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
