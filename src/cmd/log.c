@@ -302,7 +302,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
         const PanelVolumeFileState *state;
 
         ResetPanelFileContext(panel);
-        panel->vol = found_vol;
+        if (!AppStateCommitPanelVolume(panel, found_vol))
+          return -1;
         s = &panel->vol->vol_stats;
         if (!AppStateCommitPanelFocus(ctx, panel,
                                       (ViewFocus)panel->vol->saved_focus))
@@ -349,7 +350,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
       if (found_vol == panel->vol) {
         /* If the current volume is bad, we must delete it. */
         Volume_Delete(ctx, found_vol);
-        panel->vol = NULL; /* Temporarily NULL */
+        if (!AppStateCommitPanelVolume(panel, NULL))
+          return -1;
       } else {
         Volume_Delete(ctx, found_vol);
       }
@@ -425,7 +427,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     } else if (old_vol != NULL) {
       /* We tried to create a NEW volume and failed. */
       /* panel->vol is still old_vol (valid). Restore its display. */
-      panel->vol = old_vol;
+      if (panel->vol != old_vol && !AppStateCommitPanelVolume(panel, old_vol))
+        return -1;
       if (!AppStateCommitViewMode(ctx, panel->vol->vol_stats.log_mode))
         return -1;
       s = &panel->vol->vol_stats;
@@ -457,7 +460,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
 
   /* Success */
   ResetPanelFileContext(panel);
-  panel->vol = loaded_vol;
+  if (panel->vol != loaded_vol && !AppStateCommitPanelVolume(panel, loaded_vol))
+    return -1;
   s = &panel->vol->vol_stats;
   if (!AppStateCommitPanelFocus(ctx, panel,
                                 (ViewFocus)panel->vol->saved_focus))
