@@ -324,13 +324,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->active->file_entry_list[selection_idx].file;
 
       if (selected_file) {
-        ctx->active->file_selection_name[0] = '\0';
-        ctx->active->file_selection_dir_path[0] = '\0';
-        (void)snprintf(ctx->active->file_selection_name,
-                       sizeof(ctx->active->file_selection_name), "%s",
-                       selected_file->name);
-        GetPath(dir_entry, ctx->active->file_selection_dir_path);
-        ctx->active->file_selection_dir_path[PATH_LENGTH] = '\0';
+        char file_selection_dir_path[PATH_LENGTH + 1];
+
+        file_selection_dir_path[0] = '\0';
+        GetPath(dir_entry, file_selection_dir_path);
+        file_selection_dir_path[PATH_LENGTH] = '\0';
+        (void)AppStateCommitPanelFileSelection(
+            ctx->active, file_selection_dir_path, selected_file->name);
       }
     }
   }

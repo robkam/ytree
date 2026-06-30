@@ -6945,6 +6945,7 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelFileSelection(" in header
 
@@ -6977,6 +6978,21 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
         capture_body,
     )
     assert "AppStateCommitPanelFileSelection(" in capture_body
+
+    file_window_start = ctrl_file.index("int HandleFileWindow(")
+    file_window_end = ctrl_file.index(
+        "\nstatic int FindDirIndexInVolume(", file_window_start
+    )
+    file_window_body = ctrl_file[file_window_start:file_window_end]
+    assert not re.search(
+        r"\bctx->active->(?:file_selection_name|file_selection_dir_path)"
+        r"(?:\[[^\n]*\])?\s*=(?!=)",
+        file_window_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*ctx->active,",
+        file_window_body,
+    )
 
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
