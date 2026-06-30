@@ -6941,6 +6941,39 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     )
 
 
+def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelFileAnchor(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelFileAnchor(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelTreeViewport(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    assert 'AppStateValidatedOwnerField("panel.file_viewport_origin")' in helper_body
+    assert "panel->file_dir_entry = file_dir_entry;" in helper_body
+
+    volume_clear_start = volume_source.index("static void Volume_ClearPanelFileAnchor(")
+    volume_clear_end = volume_source.index("\nstatic void Volume_ClearPanelTags(", volume_clear_start)
+    volume_clear_body = volume_source[volume_clear_start:volume_clear_end]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=\s*NULL", volume_clear_body)
+    assert "AppStateCommitPanelFileAnchor(panel, NULL)" in volume_clear_body
+
+    log_clear_start = log_source.index("static void ResetPanelFileContext(")
+    log_clear_end = log_source.index("\nstatic void SavePanelFileSelection(", log_clear_start)
+    log_clear_body = log_source[log_clear_start:log_clear_end]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=\s*NULL", log_clear_body)
+    assert "AppStateCommitPanelFileAnchor(panel, NULL)" in log_clear_body
+
+    restore_start = log_source.index("\nstatic void RestorePanelFileSelection(")
+    restore_end = log_source.index("\nstatic void SavePanelTreeSelection(", restore_start)
+    restore_body = log_source[restore_start:restore_end]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=\s*NULL", restore_body)
+    assert "AppStateCommitPanelFileAnchor(panel, NULL)" in restore_body
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

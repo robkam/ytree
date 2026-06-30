@@ -26,7 +26,8 @@ static void Volume_ClearPanelFileAnchor(YtreeNovaPanel *panel) {
     return;
   if (!AppStateCommitPanelFileViewport(panel, 0, 0))
     return;
-  panel->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileAnchor(panel, NULL))
+    return;
 }
 
 static void Volume_ClearPanelTags(YtreeNovaPanel *panel) {

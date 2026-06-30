@@ -95,6 +95,17 @@ BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,
+                                   DirEntry *file_dir_entry) {
+  if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->file_dir_entry = file_dir_entry;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
                                      int cursor_pos) {
   if (!AppStateValidatedOwnerField("panel.tree_viewport_origin"))
