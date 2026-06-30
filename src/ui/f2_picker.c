@@ -14,6 +14,7 @@
 
 int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */
+  unsigned int original_panel_generation;
   int result = -1;
   int win_width, win_height;
   struct Volume *target_vol;
@@ -29,6 +30,7 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   char new_log_path[PATH_LENGTH + 1];
 
   original_vol = ctx->active->vol;
+  original_panel_generation = ctx->active->panel_generation;
   SavePanelTreeViewportSnapshot(ctx->active);
   DEBUG_LOG("ENTER HandleDirWindow: Panel=%s Vol=%s Cursor=%d",
             (panel == ctx->left ? "LEFT" : "RIGHT"),
@@ -363,7 +365,10 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
            action != ACTION_LOG);
 
   if (ctx->active->vol != original_vol) {
-    ctx->active->vol = original_vol;
+    if (!AppStateCommitPanelVolume(ctx->active, original_vol))
+      return -1;
+    if (!AppStateRestorePanelGeneration(ctx->active, original_panel_generation))
+      return -1;
     if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
       return -1;
 

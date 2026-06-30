@@ -7289,6 +7289,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
 def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
@@ -7350,6 +7351,19 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
             )
         )
         == 2
+    )
+
+    f2_start = f2_picker.index("int KeyF2Get(")
+    f2_body = f2_picker[f2_start:]
+    assert not re.search(r"\bctx->active->vol\s*=(?!=)", f2_body)
+    assert re.search(
+        r"AppStateCommitPanelVolume\(\s*ctx->active,\s*original_vol\s*\)",
+        f2_body,
+    )
+    assert re.search(
+        r"AppStateRestorePanelGeneration\(\s*ctx->active,\s*"
+        r"original_panel_generation\s*\)",
+        f2_body,
     )
 
 
