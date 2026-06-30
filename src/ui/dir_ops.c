@@ -1188,10 +1188,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
      * empty. Rehydrate it from the authoritative tree selection before any
      * restore logic consumes the snapshot.
      */
-    (void)snprintf(p->file_selection_dir_path,
-                   sizeof(p->file_selection_dir_path), "%s",
-                   current_dir_path);
-    p->file_selection_dir_path[PATH_LENGTH] = '\0';
+    (void)AppStateCommitPanelFileSelection(p, current_dir_path,
+                                           p->file_selection_name);
   }
   assert(p->saved_focus != FOCUS_FILE || p->file_selection_dir_path[0] != '\0');
   /*
