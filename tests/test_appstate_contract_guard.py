@@ -7286,6 +7286,53 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         assert "AppStateCommitPanelTreeViewport(" in body
 
 
+def test_panel_tree_selection_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelTreeSelection(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelTreeSelection(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileViewport(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.tree_selection_key")'
+    selection_write = "panel->current_dir_entry = current_dir_entry;"
+    assert validation in helper_body
+    assert selection_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(selection_write)
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    assert not re.search(r"\bdst->current_dir_entry\s*=(?!=)", donate_body)
+    assert re.search(
+        r"AppStateCommitPanelTreeSelection\(\s*dst,\s*"
+        r"src->current_dir_entry\s*\)",
+        donate_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeSelection\(\s*dst,\s*"
+        r"dst_current_dir_entry\s*\)",
+        donate_body,
+    )
+
+    dir_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleDirWindowAction("
+    )
+    dir_split_body = split_transition[dir_split_start:]
+    assert not re.search(
+        r"\bctx->left->current_dir_entry\s*=(?!=)",
+        dir_split_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelTreeSelection\(\s*ctx->left,\s*"
+        r"source_current_dir_entry\s*\)",
+        dir_split_body,
+    )
+
+
 def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
