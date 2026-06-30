@@ -6974,6 +6974,35 @@ def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileAnchor(panel, NULL)" in restore_body
 
 
+def test_volume_menu_file_anchors_route_through_appstate_helper() -> None:
+    volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
+
+    normalize_start = volume_menu.index("static void NormalizePanelCursorForVolume(")
+    ensure_start = volume_menu.index(
+        "\nstatic void EnsurePanelsReferenceActiveVolume(", normalize_start
+    )
+    normalize_body = volume_menu[normalize_start:ensure_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=", normalize_body)
+    assert "AppStateCommitPanelFileAnchor(panel, NULL)" in normalize_body
+
+    select_start = volume_menu.index("\nint SelectLoadedVolume(", ensure_start)
+    ensure_body = volume_menu[ensure_start:select_start]
+    assert not re.search(
+        r"\bctx->(?:left|right)->file_dir_entry\s*=",
+        ensure_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileAnchor\(\s*ctx->left,\s*"
+        r"ctx->left->vol->dir_entry_list\[idx\]\.dir_entry\s*\)",
+        ensure_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileAnchor\(\s*ctx->right,\s*"
+        r"ctx->right->vol->dir_entry_list\[idx\]\.dir_entry\s*\)",
+        ensure_body,
+    )
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
