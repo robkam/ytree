@@ -6946,6 +6946,7 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelFileSelection(" in header
 
@@ -6992,6 +6993,19 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     assert re.search(
         r"AppStateCommitPanelFileSelection\(\s*ctx->active,",
         file_window_body,
+    )
+
+    switch_start = dir_ops.index("void HandleSwitchWindow(")
+    switch_end = dir_ops.index("\nvoid SyncActivePanelWindows(", switch_start)
+    switch_body = dir_ops[switch_start:switch_end]
+    assert not re.search(
+        r"\bp->(?:file_selection_name|file_selection_dir_path)"
+        r"(?:\[[^\n]*\])?\s*=(?!=)",
+        switch_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*p,",
+        switch_body,
     )
 
 
