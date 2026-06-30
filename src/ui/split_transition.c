@@ -521,7 +521,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         if (!AppStateCommitPanelTreeViewport(ctx->left, source_disp_begin_pos,
                                              source_cursor_pos))
           return FALSE;
-        ctx->left->current_dir_entry = source_current_dir_entry;
+        if (!AppStateCommitPanelTreeSelection(ctx->left,
+                                              source_current_dir_entry))
+          return FALSE;
         if (!AppStateRestorePanelGeneration(ctx->left,
                                             source_panel_generation))
           return FALSE;

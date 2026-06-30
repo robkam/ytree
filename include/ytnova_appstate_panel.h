@@ -17,6 +17,8 @@ BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);
+BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
+                                      int current_dir_entry);
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos);
 BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
