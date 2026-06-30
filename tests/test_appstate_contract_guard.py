@@ -7286,6 +7286,36 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
         assert "AppStateCommitPanelTreeViewport(" in body
 
 
+def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelVolume(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelVolume(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileSelection(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    volume_validation = 'AppStateValidatedOwnerField("panel.volume_key")'
+    generation_validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
+    volume_write = "panel->vol = vol;"
+    generation_write = "panel->panel_generation++;"
+    assert volume_validation in helper_body
+    assert generation_validation in helper_body
+    assert volume_write in helper_body
+    assert generation_write in helper_body
+    assert helper_body.index(volume_validation) < helper_body.index(volume_write)
+    assert helper_body.index(generation_validation) < helper_body.index(
+        generation_write
+    )
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    assert not re.search(r"\bdst->vol\s*=(?!=)", donate_body)
+    assert re.search(r"AppStateCommitPanelVolume\(\s*dst,\s*src->vol\s*\)", donate_body)
+
+
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
