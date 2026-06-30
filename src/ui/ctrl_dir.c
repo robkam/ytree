@@ -396,7 +396,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
       return FALSE;
   }
 
-  ctx->active->file_dir_entry = *dir_entry_ptr;
+  if (!AppStateCommitPanelFileAnchor(ctx->active, *dir_entry_ptr))
+    return FALSE;
   (void)AppStateCommitPanelFileViewport(ctx->active,
                                         (*dir_entry_ptr)->start_file,
                                         (*dir_entry_ptr)->cursor_pos);
@@ -632,7 +633,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
         dir_entry->cursor_pos = 0;
 
-      ctx->active->file_dir_entry = dir_entry;
+      if (!AppStateCommitPanelFileAnchor(ctx->active, dir_entry))
+        return ESC;
       (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
                                             dir_entry->cursor_pos);
       BuildFileEntryList(ctx, ctx->active);

@@ -7101,6 +7101,30 @@ def test_file_window_file_anchors_route_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileAnchor(owner_panel, NULL)" in handle_body
 
 
+def test_dir_window_file_anchors_route_through_appstate_helper() -> None:
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+
+    archive_exit_start = ctrl_dir.index("\nstatic BOOL ExitArchiveRootToParent(")
+    compare_start = ctrl_dir.index(
+        "\nstatic void HandleDirectoryCompare(", archive_exit_start
+    )
+    archive_exit_body = ctrl_dir[archive_exit_start:compare_start]
+    assert not re.search(
+        r"\bctx->active->file_dir_entry\s*=(?!=)",
+        archive_exit_body,
+    )
+    assert (
+        "AppStateCommitPanelFileAnchor(ctx->active, *dir_entry_ptr)"
+        in archive_exit_body
+    )
+
+    handle_start = ctrl_dir.index("\nextern int HandleDirWindow(")
+    dir_list_jump_start = ctrl_dir.index("\nstatic void DirListJump(", handle_start)
+    handle_body = ctrl_dir[handle_start:dir_list_jump_start]
+    assert not re.search(r"\bctx->active->file_dir_entry\s*=(?!=)", handle_body)
+    assert "AppStateCommitPanelFileAnchor(ctx->active, dir_entry)" in handle_body
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
