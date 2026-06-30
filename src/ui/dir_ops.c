@@ -946,7 +946,8 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
         inactive_dir = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
       }
       if (inactive_dir) {
-        inactive->file_dir_entry = inactive_dir;
+        if (!AppStateCommitPanelFileAnchor(inactive, inactive_dir))
+          return;
         CapturePanelSelectionAnchor(ctx, inactive, inactive_dir);
         (void)snprintf(inactive_file_dir_path, sizeof(inactive_file_dir_path),
                        "%s", inactive->file_selection_dir_path);
@@ -987,8 +988,11 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
           DirEntry *resolved_file_dir =
               ResolvePanelAnchorTarget(inactive, inactive->vol,
                                        inactive_file_dir_path);
-          if (resolved_file_dir)
-            inactive->file_dir_entry = resolved_file_dir;
+          if (resolved_file_dir &&
+              !AppStateCommitPanelFileAnchor(inactive, resolved_file_dir)) {
+            FreePathList(inactive_tagged_snapshot);
+            return;
+          }
           if (!AppStateCommitPanelFileViewport(inactive, inactive_start_file,
                                                inactive_file_cursor)) {
             FreePathList(inactive_tagged_snapshot);
@@ -1252,7 +1256,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       if (!dir_entry)
         return;
 
-      p->file_dir_entry = dir_entry;
+      if (!AppStateCommitPanelFileAnchor(p, dir_entry))
+        return;
       if (!AppStateCommitPanelFileViewport(p, dir_entry->start_file,
                                            dir_entry->cursor_pos))
         return;
@@ -1501,7 +1506,8 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
     }
   }
 
-  panel->file_dir_entry = dir_entry;
+  if (!AppStateCommitPanelFileAnchor(panel, dir_entry))
+    return dir_entry;
   if (!AppStateCommitPanelFileViewport(panel, dir_entry->start_file,
                                        dir_entry->cursor_pos))
     return dir_entry;
