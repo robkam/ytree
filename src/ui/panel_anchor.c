@@ -689,7 +689,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   }
 
   FreeFileEntryList(dst);
-  dst->vol = src->vol;
+  if (!AppStateCommitPanelVolume(dst, src->vol))
+    return FALSE;
   if (!AppStateCommitPanelTreeViewport(dst, src->disp_begin_pos,
                                        src->cursor_pos))
     return FALSE;

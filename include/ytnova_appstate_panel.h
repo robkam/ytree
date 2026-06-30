@@ -13,6 +13,7 @@
 BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel);
 BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
                                     unsigned int panel_generation);
+BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);

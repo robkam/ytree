@@ -31,6 +31,19 @@ BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol) {
+  if (!AppStateValidatedOwnerField("panel.volume_key"))
+    return FALSE;
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->vol = vol;
+  panel->panel_generation++;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {
