@@ -79,7 +79,8 @@ static void PositionSavedFileSelection(ViewContext *ctx, YtreeNovaPanel *panel,
   if (!ctx || !panel || !dir_entry || !file_name || file_name[0] == '\0')
     return;
 
-  panel->file_dir_entry = dir_entry;
+  if (!AppStateCommitPanelFileAnchor(panel, dir_entry))
+    return;
   BuildFileEntryList(ctx, panel);
   for (i = 0; i < (int)panel->file_count; i++) {
     const FileEntry *file = panel->file_entry_list[i].file;
@@ -167,7 +168,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
 
   if (file_dir_path) {
     resolved_file_dir = ResolvePanelAnchorTarget(panel, vol, file_dir_path);
-    panel->file_dir_entry = resolved_file_dir;
+    if (!AppStateCommitPanelFileAnchor(panel, resolved_file_dir))
+      return;
     if (resolved_file_dir) {
       resolved_file_dir->big_window = state->saved_big_file_view;
       PositionSavedFileSelection(ctx, panel, resolved_file_dir,

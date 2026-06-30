@@ -7003,6 +7003,23 @@ def test_volume_menu_file_anchors_route_through_appstate_helper() -> None:
     )
 
 
+def test_log_file_anchors_route_through_appstate_helper() -> None:
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+
+    position_start = log_source.index("static void PositionSavedFileSelection(")
+    restore_start = log_source.index(
+        "\nstatic void RestorePanelFileSelection(", position_start
+    )
+    position_body = log_source[position_start:restore_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=", position_body)
+    assert "AppStateCommitPanelFileAnchor(panel, dir_entry)" in position_body
+
+    restore_end = log_source.index("\nstatic void SavePanelTreeSelection(", restore_start)
+    restore_body = log_source[restore_start:restore_end]
+    assert "panel->file_dir_entry = resolved_file_dir;" not in restore_body
+    assert "AppStateCommitPanelFileAnchor(panel, resolved_file_dir)" in restore_body
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
