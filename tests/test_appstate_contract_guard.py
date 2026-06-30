@@ -6948,6 +6948,9 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
 
     assert "BOOL AppStateCommitPanelFileSelection(" in header
 
@@ -7020,6 +7023,27 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     assert re.search(
         r"AppStateCommitPanelFileSelection\(\s*panel,",
         restore_body,
+    )
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", file_split_start
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    assert not re.search(
+        r"\bctx->right->(?:file_selection_name|file_selection_dir_path)"
+        r"(?:\[[^\n]*\])?\s*=(?!=)",
+        file_split_body,
+    )
+    assert "snprintf(ctx->right->file_selection_name" not in file_split_body
+    assert "snprintf(ctx->right->file_selection_dir_path" not in file_split_body
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*ctx->right,\s*"
+        r"ctx->left->file_selection_dir_path,\s*"
+        r"ctx->left->file_selection_name\s*\)",
+        file_split_body,
     )
 
 
