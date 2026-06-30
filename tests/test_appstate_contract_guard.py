@@ -7125,6 +7125,37 @@ def test_dir_window_file_anchors_route_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileAnchor(ctx->active, dir_entry)" in handle_body
 
 
+def test_dir_ops_file_anchors_route_through_appstate_helper() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    mkdir_start = dir_ops.index("\nvoid HandleDirMakeDirectory(")
+    delete_start = dir_ops.index(
+        "\nDirEntry *HandleDirDeleteDirectory(", mkdir_start
+    )
+    mkdir_body = dir_ops[mkdir_start:delete_start]
+    assert not re.search(r"\binactive->file_dir_entry\s*=(?!=)", mkdir_body)
+    assert "AppStateCommitPanelFileAnchor(inactive, inactive_dir)" in mkdir_body
+    assert (
+        "AppStateCommitPanelFileAnchor(inactive, resolved_file_dir)"
+        in mkdir_body
+    )
+
+    switch_start = dir_ops.index("\nvoid HandleSwitchWindow(")
+    sync_start = dir_ops.index("\nvoid SyncActivePanelWindows(", switch_start)
+    switch_body = dir_ops[switch_start:sync_start]
+    assert not re.search(r"\bp->file_dir_entry\s*=(?!=)", switch_body)
+    assert "AppStateCommitPanelFileAnchor(p, dir_entry)" in switch_body
+
+    restore_start = dir_ops.index("\nDirEntry *RestorePanelFileSelection(")
+    panel_action_start = dir_ops.index(
+        "\nDirWindowDispatchResult\nHandleDirWindowPanelAction(",
+        restore_start,
+    )
+    restore_body = dir_ops[restore_start:panel_action_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=(?!=)", restore_body)
+    assert "AppStateCommitPanelFileAnchor(panel, dir_entry)" in restore_body
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
