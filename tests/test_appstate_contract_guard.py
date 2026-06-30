@@ -5806,7 +5806,7 @@ def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
         "ResolvePanelAnchorTarget(",
         "RestorePanelViewportSnapshot(",
         "PositionPanelAtIndex(",
-        "panel->file_dir_entry =",
+        "AppStateCommitPanelFileAnchor(",
     ]
 
     assert validation in restore_body
@@ -5828,7 +5828,7 @@ def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
         "BuildDirEntryList(",
         "ResolvePanelAnchorTarget(",
         "PositionPanelAtIndex(",
-        "panel->file_dir_entry =",
+        "AppStateCommitPanelFileAnchor(",
     ]
 
     assert validation in ensure_body
@@ -7018,6 +7018,37 @@ def test_log_file_anchors_route_through_appstate_helper() -> None:
     restore_body = log_source[restore_start:restore_end]
     assert "panel->file_dir_entry = resolved_file_dir;" not in restore_body
     assert "AppStateCommitPanelFileAnchor(panel, resolved_file_dir)" in restore_body
+
+
+def test_panel_anchor_file_anchors_route_through_appstate_helper() -> None:
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    restore_start = panel_anchor.index("\nvoid RestorePanelAnchorPath(")
+    free_state_start = panel_anchor.index(
+        "\nstatic void FreePanelVolumeFileState(", restore_start
+    )
+    restore_body = panel_anchor[restore_start:free_state_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=", restore_body)
+    assert "AppStateCommitPanelFileAnchor(panel, target)" in restore_body
+
+    donate_start = panel_anchor.index("\nBOOL DonatePanelState(")
+    find_dir_start = panel_anchor.index(
+        "\nDirEntry *FindDirByPathInTree(", donate_start
+    )
+    donate_body = panel_anchor[donate_start:find_dir_start]
+    assert not re.search(r"\bdst->file_dir_entry\s*=", donate_body)
+    assert "AppStateCommitPanelFileAnchor(dst, src->file_dir_entry)" in donate_body
+    assert "AppStateCommitPanelFileAnchor(dst, NULL)" in donate_body
+    assert (
+        "AppStateCommitPanelFileAnchor(dst, (DirEntry *)dst_file_dir_entry)"
+        in donate_body
+    )
+
+    ensure_start = panel_anchor.index("\nvoid EnsurePanelAnchorVisible(")
+    debug_start = panel_anchor.index("\nvoid DebugLogDirLoopState(", ensure_start)
+    ensure_body = panel_anchor[ensure_start:debug_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=", ensure_body)
+    assert "AppStateCommitPanelFileAnchor(panel, target)" in ensure_body
 
 
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:

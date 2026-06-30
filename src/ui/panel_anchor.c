@@ -580,7 +580,7 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
     if (panel->saved_focus == FOCUS_FILE) {
       target = ResolvePanelAnchorTarget(panel, vol, anchor_path);
       if (target)
-        panel->file_dir_entry = target;
+        (void)AppStateCommitPanelFileAnchor(panel, target);
     }
     return;
   }
@@ -597,7 +597,7 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
 
   PositionPanelAtIndex(panel, idx);
   if (panel->saved_focus == FOCUS_FILE)
-    panel->file_dir_entry = target;
+    (void)AppStateCommitPanelFileAnchor(panel, target);
 }
 
 static void FreePanelVolumeFileState(PanelVolumeFileState *state) {
@@ -699,7 +699,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   if (!AppStateCommitPanelFileViewport(dst, src->start_file,
                                        src->file_cursor_pos))
     return FALSE;
-  dst->file_dir_entry = src->file_dir_entry;
+  if (!AppStateCommitPanelFileAnchor(dst, src->file_dir_entry))
+    return FALSE;
   dst->file_mode = src->file_mode;
   dst->max_column = src->max_column;
   if (!AppStateCommitPanelTreeSelection(dst, src->current_dir_entry))
@@ -719,7 +720,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   dst->max_visual_linkname_len = src->max_visual_linkname_len;
   dst->max_visual_userview_len = src->max_visual_userview_len;
   dst->reverse_sort = src->reverse_sort;
-  dst->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileAnchor(dst, NULL))
+    return FALSE;
   PanelTags_Copy(dst, src);
   if (!source_is_file) {
     if (!AppStateCommitPanelTreeViewport(dst, dst_disp_begin_pos,
@@ -752,7 +754,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
       if (!AppStateCommitPanelFileViewport(dst, dst_start_file,
                                            dst_file_cursor_pos))
         return FALSE;
-      dst->file_dir_entry = (DirEntry *)dst_file_dir_entry;
+      if (!AppStateCommitPanelFileAnchor(dst, (DirEntry *)dst_file_dir_entry))
+        return FALSE;
       if (!AppStateCommitPanelFileSelection(dst, dst_file_selection_dir_path,
                                             dst_file_selection_name))
         return FALSE;
@@ -837,7 +840,7 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
     idx = FindDirIndexByPath(vol, target_path);
     if (idx >= 0) {
       PositionPanelAtIndex(panel, idx);
-      panel->file_dir_entry = target;
+      (void)AppStateCommitPanelFileAnchor(panel, target);
     }
   }
 }
