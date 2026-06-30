@@ -25,7 +25,8 @@ static void ResetPanelFileContext(YtreeNovaPanel *panel) {
   FreeFileEntryList(panel);
   if (!AppStateCommitPanelFileViewport(panel, 0, 0))
     return;
-  panel->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileAnchor(panel, NULL))
+    return;
   (void)AppStateCommitPanelFileShape(panel, FALSE);
 }
 
@@ -130,7 +131,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
     return;
   if (!AppStateRestorePanelGeneration(panel, restore_generation))
     return;
-  panel->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileAnchor(panel, NULL))
+    return;
   if (!AppStateCommitPanelFileShape(panel, FALSE))
     return;
   if (!state)

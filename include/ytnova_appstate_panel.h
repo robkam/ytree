@@ -21,6 +21,8 @@ BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
                                       int current_dir_entry);
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos);
+BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,
+                                   DirEntry *file_dir_entry);
 BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
                                      int cursor_pos);
 
