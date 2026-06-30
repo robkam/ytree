@@ -7290,6 +7290,7 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelVolume(" in header
 
@@ -7314,6 +7315,21 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     donate_body = panel_anchor[donate_start:donate_end]
     assert not re.search(r"\bdst->vol\s*=(?!=)", donate_body)
     assert re.search(r"AppStateCommitPanelVolume\(\s*dst,\s*src->vol\s*\)", donate_body)
+
+    volume_menu_start = volume_menu.index(
+        "static void EnsurePanelsReferenceActiveVolume("
+    )
+    volume_menu_end = volume_menu.index("\n/*\n * SelectLoadedVolume", volume_menu_start)
+    volume_menu_body = volume_menu[volume_menu_start:volume_menu_end]
+    assert not re.search(r"\bctx->(?:left|right)->vol\s*=(?!=)", volume_menu_body)
+    assert re.search(
+        r"AppStateCommitPanelVolume\(\s*ctx->left,\s*ctx->active->vol\s*\)",
+        volume_menu_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelVolume\(\s*ctx->right,\s*ctx->active->vol\s*\)",
+        volume_menu_body,
+    )
 
 
 def test_volume_generation_commits_route_through_appstate_helper() -> None:
