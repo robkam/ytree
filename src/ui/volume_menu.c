@@ -23,7 +23,8 @@ static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
   if (panel->vol->total_dirs <= 0) {
     if (!AppStateCommitPanelTreeViewport(panel, 0, 0))
       return;
-    panel->file_dir_entry = NULL;
+    if (!AppStateCommitPanelFileAnchor(panel, NULL))
+      return;
     return;
   }
 
@@ -63,7 +64,9 @@ static void EnsurePanelsReferenceActiveVolume(ViewContext *ctx) {
     NormalizePanelCursorForVolume(ctx->left);
     idx = ctx->left->disp_begin_pos + ctx->left->cursor_pos;
     if (ctx->left->vol->total_dirs > 0) {
-      ctx->left->file_dir_entry = ctx->left->vol->dir_entry_list[idx].dir_entry;
+      if (!AppStateCommitPanelFileAnchor(
+              ctx->left, ctx->left->vol->dir_entry_list[idx].dir_entry))
+        return;
       BuildFileEntryList(ctx, ctx->left);
     }
   }
@@ -73,7 +76,9 @@ static void EnsurePanelsReferenceActiveVolume(ViewContext *ctx) {
     NormalizePanelCursorForVolume(ctx->right);
     idx = ctx->right->disp_begin_pos + ctx->right->cursor_pos;
     if (ctx->right->vol->total_dirs > 0) {
-      ctx->right->file_dir_entry = ctx->right->vol->dir_entry_list[idx].dir_entry;
+      if (!AppStateCommitPanelFileAnchor(
+              ctx->right, ctx->right->vol->dir_entry_list[idx].dir_entry))
+        return;
       BuildFileEntryList(ctx, ctx->right);
     }
   }
