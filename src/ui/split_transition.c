@@ -345,12 +345,10 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
                                                ctx->left->start_file,
                                                ctx->left->file_cursor_pos))
             return FALSE;
-          (void)snprintf(ctx->right->file_selection_name,
-                         sizeof(ctx->right->file_selection_name), "%s",
-                         ctx->left->file_selection_name);
-          (void)snprintf(ctx->right->file_selection_dir_path,
-                         sizeof(ctx->right->file_selection_dir_path), "%s",
-                         ctx->left->file_selection_dir_path);
+          if (!AppStateCommitPanelFileSelection(
+                  ctx->right, ctx->left->file_selection_dir_path,
+                  ctx->left->file_selection_name))
+            return FALSE;
           if (!AppStateCommitPanelFileShape(
                   ctx->right, ctx->left->saved_big_file_view))
             return FALSE;
