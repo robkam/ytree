@@ -320,7 +320,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
 
       if (ctx->is_split_screen) {
         if (ctx->right && ctx->left) {
-          ctx->right->vol = ctx->left->vol;
+          if (!AppStateCommitPanelVolume(ctx->right, ctx->left->vol))
+            return FALSE;
           if (!AppStateCommitPanelTreeViewport(ctx->right,
                                                ctx->left->disp_begin_pos,
                                                ctx->left->cursor_pos))
@@ -546,7 +547,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
 
       if (ctx->is_split_screen) {
         if (ctx->right && ctx->left) {
-          ctx->right->vol = ctx->left->vol;
+          if (!AppStateCommitPanelVolume(ctx->right, ctx->left->vol))
+            return FALSE;
           if (!AppStateCommitPanelTreeViewport(ctx->right,
                                                ctx->left->disp_begin_pos,
                                                ctx->left->cursor_pos))

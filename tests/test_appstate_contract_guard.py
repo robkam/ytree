@@ -7290,6 +7290,7 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     volume_menu = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitPanelVolume(" in header
@@ -7329,6 +7330,26 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     assert re.search(
         r"AppStateCommitPanelVolume\(\s*ctx->right,\s*ctx->active->vol\s*\)",
         volume_menu_body,
+    )
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", file_split_start
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    dir_split_body = split_transition[dir_split_start:]
+    assert not re.search(r"\bctx->right->vol\s*=(?!=)", file_split_body)
+    assert not re.search(r"\bctx->right->vol\s*=(?!=)", dir_split_body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelVolume\(\s*ctx->right,\s*ctx->left->vol\s*\)",
+                split_transition,
+            )
+        )
+        == 2
     )
 
 
