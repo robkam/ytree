@@ -115,6 +115,7 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   const PanelVolumeFileState *state;
   DirEntry *resolved_file_dir = NULL;
   const char *file_dir_path = NULL;
+  unsigned int restore_generation = 0;
 
   if (!panel || !panel->vol)
     return;
@@ -122,10 +123,13 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   ResetPanelFileContext(panel);
   vol = panel->vol;
   state = FindPanelVolumeFileState(panel, vol->id);
+  restore_generation = panel->panel_generation;
   if (!AppStateCommitPanelFileViewport(panel, 0, 0))
     return;
-  panel->file_selection_name[0] = '\0';
-  panel->file_selection_dir_path[0] = '\0';
+  if (!AppStateCommitPanelFileSelection(panel, NULL, NULL))
+    return;
+  if (!AppStateRestorePanelGeneration(panel, restore_generation))
+    return;
   panel->file_dir_entry = NULL;
   if (!AppStateCommitPanelFileShape(panel, FALSE))
     return;
@@ -147,11 +151,12 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
     if (!AppStateCommitPanelFileViewport(panel, start_file, file_cursor_pos))
       return;
   }
-  (void)snprintf(panel->file_selection_name, sizeof(panel->file_selection_name),
-                 "%s", state->saved_file_selection_name);
-  (void)snprintf(panel->file_selection_dir_path,
-                  sizeof(panel->file_selection_dir_path), "%s",
-                  state->saved_file_selection_dir_path);
+  if (!AppStateCommitPanelFileSelection(
+          panel, state->saved_file_selection_dir_path,
+          state->saved_file_selection_name))
+    return;
+  if (!AppStateRestorePanelGeneration(panel, restore_generation))
+    return;
 
   assert(state->saved_focus != FOCUS_FILE ||
          state->saved_file_selection_dir_path[0] != '\0');
