@@ -55,6 +55,8 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const DirEntry *dir_entry) {
   int idx;
   const FileEntry *selected_file;
+  char file_selection_dir_path[PATH_LENGTH + 1];
+  char file_selection_name[PATH_LENGTH + 1];
 
   if (!panel)
     return;
@@ -65,13 +67,13 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
   if (!panel->file_entry_list || panel->file_count == 0)
     BuildFileEntryList(ctx, panel);
 
-  panel->file_selection_dir_path[0] = '\0';
-  GetPath((DirEntry *)dir_entry, panel->file_selection_dir_path);
-  panel->file_selection_dir_path[PATH_LENGTH] = '\0';
+  file_selection_dir_path[0] = '\0';
+  GetPath((DirEntry *)dir_entry, file_selection_dir_path);
+  file_selection_dir_path[PATH_LENGTH] = '\0';
+  file_selection_name[0] = '\0';
 
   if (!panel->file_entry_list || panel->file_count == 0) {
-    panel->file_selection_name[0] = '\0';
-    if (!AppStateCommitPanelGeneration(panel))
+    if (!AppStateCommitPanelFileSelection(panel, file_selection_dir_path, NULL))
       return;
     return;
   }
@@ -85,13 +87,13 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
     idx = 0;
 
   selected_file = panel->file_entry_list[idx].file;
-  panel->file_selection_name[0] = '\0';
   if (selected_file) {
-    (void)snprintf(panel->file_selection_name,
-                   sizeof(panel->file_selection_name), "%s",
+    (void)snprintf(file_selection_name, sizeof(file_selection_name), "%s",
                    selected_file->name);
+    file_selection_name[PATH_LENGTH] = '\0';
   }
-  if (!AppStateCommitPanelGeneration(panel))
+  if (!AppStateCommitPanelFileSelection(panel, file_selection_dir_path,
+                                        file_selection_name))
     return;
 }
 

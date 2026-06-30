@@ -6613,7 +6613,7 @@ def test_file_selection_anchor_generation_commits_through_appstate_helper() -> N
     capture_body = ctrl_file_ops[capture_start:capture_end]
 
     assert "panel->panel_generation++;" not in capture_body
-    assert capture_body.count("AppStateCommitPanelGeneration(panel)") == 2
+    assert capture_body.count("AppStateCommitPanelFileSelection(") == 2
 
 
 def test_panel_anchor_viewport_generation_commits_through_appstate_helper() -> None:
@@ -6939,6 +6939,44 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
         )
         == 1
     )
+
+
+def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelFileSelection(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelFileSelection(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileViewport(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    selection_validation = 'AppStateValidatedOwnerField("panel.file_selection_key")'
+    generation_validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
+    selection_name_write = "panel->file_selection_name[0] = '\\0';"
+    selection_dir_write = "panel->file_selection_dir_path[0] = '\\0';"
+    assert selection_validation in helper_body
+    assert generation_validation in helper_body
+    assert selection_name_write in helper_body
+    assert selection_dir_write in helper_body
+    assert helper_body.index(selection_validation) < helper_body.index(
+        selection_name_write
+    )
+    assert helper_body.index(generation_validation) < helper_body.index(
+        "panel->panel_generation++;"
+    )
+
+    capture_start = ctrl_file_ops.index("void CapturePanelSelectionAnchor(")
+    capture_end = ctrl_file_ops.index(
+        "\nBOOL RebindActiveFilePanelSelection(", capture_start
+    )
+    capture_body = ctrl_file_ops[capture_start:capture_end]
+    assert not re.search(
+        r"\bpanel->(?:file_selection_name|file_selection_dir_path)"
+        r"(?:\[[^\n]*\])?\s*=(?!=)",
+        capture_body,
+    )
+    assert "AppStateCommitPanelFileSelection(" in capture_body
 
 
 def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
