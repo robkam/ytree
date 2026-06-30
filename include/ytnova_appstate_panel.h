@@ -13,6 +13,9 @@
 BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel);
 BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
                                     unsigned int panel_generation);
+BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
+                                      const char *dir_path,
+                                      const char *file_name);
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos);
 BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
