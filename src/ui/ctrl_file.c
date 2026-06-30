@@ -919,7 +919,8 @@ static BOOL JumpToOwnerDirectory(ViewContext *ctx,
   owner_vol = FindVolumeForDir(ctx, owner_dir, &owner_dir_idx);
   if (!owner_vol || owner_dir_idx < 0)
     return FALSE;
-  panel->vol = owner_vol;
+  if (!AppStateCommitPanelVolume(panel, owner_vol))
+    return FALSE;
 
   if (!panel->vol->dir_entry_list || panel->vol->total_dirs <= 0) {
     BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);

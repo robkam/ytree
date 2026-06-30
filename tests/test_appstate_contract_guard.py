@@ -7289,6 +7289,7 @@ def test_panel_tree_viewport_commits_route_through_appstate_helper() -> None:
 def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     f2_picker = Path("src/ui/f2_picker.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
@@ -7364,6 +7365,17 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
         r"AppStateRestorePanelGeneration\(\s*ctx->active,\s*"
         r"original_panel_generation\s*\)",
         f2_body,
+    )
+
+    owner_jump_start = ctrl_file.index("static BOOL JumpToOwnerDirectory(")
+    owner_jump_end = ctrl_file.index(
+        "\nstatic void DrawFileListJumpPrompt(", owner_jump_start
+    )
+    owner_jump_body = ctrl_file[owner_jump_start:owner_jump_end]
+    assert not re.search(r"\bpanel->vol\s*=(?!=)", owner_jump_body)
+    assert re.search(
+        r"AppStateCommitPanelVolume\(\s*panel,\s*owner_vol\s*\)",
+        owner_jump_body,
     )
 
 
