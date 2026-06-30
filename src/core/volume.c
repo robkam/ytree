@@ -152,13 +152,15 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
     Volume_ClearPanelFileEntries(ctx->left);
     Volume_ClearPanelFileAnchor(ctx->left);
     Volume_ClearPanelTags(ctx->left);
-    ctx->left->vol = NULL;
+    if (!AppStateCommitPanelVolume(ctx->left, NULL))
+      return;
   }
   if (ctx->right && ctx->right->vol == vol) {
     Volume_ClearPanelFileEntries(ctx->right);
     Volume_ClearPanelFileAnchor(ctx->right);
     Volume_ClearPanelTags(ctx->right);
-    ctx->right->vol = NULL;
+    if (!AppStateCommitPanelVolume(ctx->right, NULL))
+      return;
   }
 
   /* Free the associated directory tree if it exists */
@@ -183,12 +185,15 @@ void Volume_FreeAll(ViewContext *ctx) {
 
   /* Safely iterate and delete everything */
   HASH_ITER(hh, ctx->volumes_head, s, tmp) { Volume_Delete(ctx, s); }
-  if (ctx->active)
-    ctx->active->vol = NULL;
-  if (ctx->left)
-    ctx->left->vol = NULL;
-  if (ctx->right)
-    ctx->right->vol = NULL;
+  if (ctx->active && ctx->active->vol &&
+      !AppStateCommitPanelVolume(ctx->active, NULL))
+    return;
+  if (ctx->left && ctx->left->vol &&
+      !AppStateCommitPanelVolume(ctx->left, NULL))
+    return;
+  if (ctx->right && ctx->right->vol &&
+      !AppStateCommitPanelVolume(ctx->right, NULL))
+    return;
   (void)AppStateClearVolumeRegistry(ctx);
 }
 

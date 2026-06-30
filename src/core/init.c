@@ -883,10 +883,13 @@ int Init(ViewContext *ctx, const char *configuration_file,
 
   /* Allocate and initialize the first volume using the dedicated module */
   struct Volume *initial_vol = Volume_Create(ctx);
+  if (initial_vol == NULL)
+    return -1;
   /* Assign initial volume to ActivePanel */
   if (!AppStateCommitActivePanel(ctx, ctx->left))
     return -1;
-  ctx->active->vol = initial_vol;
+  if (!AppStateCommitPanelVolume(ctx->active, initial_vol))
+    return -1;
 
   ctx->show_stats = TRUE;
   ctx->fixed_col_width = 0; /* ADDED */
