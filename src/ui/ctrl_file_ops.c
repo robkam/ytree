@@ -125,7 +125,8 @@ BOOL RebindActiveFilePanelSelection(YtreeNovaPanel *panel, DirEntry **dir_entry_
   panel_dir->cursor_pos = panel->file_cursor_pos;
   if (!panel_dir->global_flag && !panel_dir->tagged_flag)
     panel_dir->big_window = panel->saved_big_file_view;
-  panel->file_dir_entry = panel_dir;
+  if (!AppStateCommitPanelFileAnchor(panel, panel_dir))
+    return FALSE;
   *dir_entry_io = panel_dir;
   DebugLogFilePanelState("RebindActiveFilePanelSelection", panel);
   return TRUE;

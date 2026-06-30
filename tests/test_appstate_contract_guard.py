@@ -7075,6 +7075,32 @@ def test_split_transition_file_anchors_route_through_appstate_helper() -> None:
     )
 
 
+def test_file_window_file_anchors_route_through_appstate_helper() -> None:
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+
+    rebind_start = ctrl_file_ops.index("\nBOOL RebindActiveFilePanelSelection(")
+    selected_start = ctrl_file_ops.index(
+        "\nstatic FileEntry *GetActivePanelSelectedFile(", rebind_start
+    )
+    rebind_body = ctrl_file_ops[rebind_start:selected_start]
+    assert not re.search(r"\bpanel->file_dir_entry\s*=", rebind_body)
+    assert "AppStateCommitPanelFileAnchor(panel, panel_dir)" in rebind_body
+
+    handle_start = ctrl_file.index("\nint HandleFileWindow(")
+    handle_body = ctrl_file[handle_start:]
+    assert not re.search(
+        r"\b(?:ctx->active|owner_panel)->file_dir_entry\s*=",
+        handle_body,
+    )
+    assert "AppStateCommitPanelFileAnchor(ctx->active, dir_entry)" in handle_body
+    assert (
+        handle_body.count("AppStateCommitPanelFileAnchor(owner_panel, dir_entry)")
+        >= 2
+    )
+    assert "AppStateCommitPanelFileAnchor(owner_panel, NULL)" in handle_body
+
+
 def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

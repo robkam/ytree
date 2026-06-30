@@ -275,7 +275,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     dir_entry->start_file = ctx->active->start_file;
     dir_entry->cursor_pos = ctx->active->file_cursor_pos;
   }
-  ctx->active->file_dir_entry = dir_entry;
+  if (!AppStateCommitPanelFileAnchor(ctx->active, dir_entry))
+    return ESC;
 
   unput_char = '\0';
   fe_ptr = NULL;
@@ -704,7 +705,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     }
 
     if (ctx->active == owner_panel) {
-      owner_panel->file_dir_entry = dir_entry;
+      if (!AppStateCommitPanelFileAnchor(owner_panel, dir_entry))
+        return ESC;
       (void)AppStateCommitPanelFileViewport(
           owner_panel, dir_entry->start_file, dir_entry->cursor_pos);
     }
@@ -737,7 +739,8 @@ file_window_done:
       return ESC;
   }
   if (!volume_changed) {
-    owner_panel->file_dir_entry = dir_entry;
+    if (!AppStateCommitPanelFileAnchor(owner_panel, dir_entry))
+      return ESC;
     (void)AppStateCommitPanelFileViewport(
         owner_panel, dir_entry->start_file, dir_entry->cursor_pos);
 
@@ -751,7 +754,8 @@ file_window_done:
       dir_entry->big_window = FALSE;
     }
   } else {
-    owner_panel->file_dir_entry = NULL;
+    if (!AppStateCommitPanelFileAnchor(owner_panel, NULL))
+      return ESC;
     (void)AppStateCommitPanelFileViewport(owner_panel, 0, 0);
     if (!AppStateCommitPanelFileShape(owner_panel, FALSE))
       return ESC;
