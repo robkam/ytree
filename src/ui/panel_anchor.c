@@ -710,15 +710,15 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     return FALSE;
   if (!AppStateCommitPanelFileShape(dst, src->saved_big_file_view))
     return FALSE;
+  if (!AppStateCommitPanelFileSelection(dst, src->file_selection_dir_path,
+                                        src->file_selection_name))
+    return FALSE;
+  if (!AppStateRestorePanelGeneration(dst, src->panel_generation))
+    return FALSE;
   dst->max_visual_filename_len = src->max_visual_filename_len;
   dst->max_visual_linkname_len = src->max_visual_linkname_len;
   dst->max_visual_userview_len = src->max_visual_userview_len;
   dst->reverse_sort = src->reverse_sort;
-  (void)snprintf(dst->file_selection_name, sizeof(dst->file_selection_name),
-                 "%s", src->file_selection_name);
-  (void)snprintf(dst->file_selection_dir_path,
-                 sizeof(dst->file_selection_dir_path), "%s",
-                 src->file_selection_dir_path);
   dst->file_dir_entry = NULL;
   PanelTags_Copy(dst, src);
   if (!source_is_file) {
@@ -738,12 +738,12 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
               dst, dst_current_volume_state->saved_file_start,
               dst_current_volume_state->saved_file_cursor))
         return FALSE;
-      (void)snprintf(dst->file_selection_name,
-                     sizeof(dst->file_selection_name), "%s",
-                     dst_current_volume_state->saved_file_selection_name);
-      (void)snprintf(dst->file_selection_dir_path,
-                     sizeof(dst->file_selection_dir_path), "%s",
-                     dst_current_volume_state->saved_file_selection_dir_path);
+      if (!AppStateCommitPanelFileSelection(
+              dst, dst_current_volume_state->saved_file_selection_dir_path,
+              dst_current_volume_state->saved_file_selection_name))
+        return FALSE;
+      if (!AppStateRestorePanelGeneration(dst, dst_panel_generation))
+        return FALSE;
     } else {
       if (!AppStateCommitPanelFocus(ctx, dst, FOCUS_FILE))
         return FALSE;
@@ -753,12 +753,11 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
                                            dst_file_cursor_pos))
         return FALSE;
       dst->file_dir_entry = (DirEntry *)dst_file_dir_entry;
-      (void)snprintf(dst->file_selection_name,
-                     sizeof(dst->file_selection_name), "%s",
-                     dst_file_selection_name);
-      (void)snprintf(dst->file_selection_dir_path,
-                     sizeof(dst->file_selection_dir_path), "%s",
-                     dst_file_selection_dir_path);
+      if (!AppStateCommitPanelFileSelection(dst, dst_file_selection_dir_path,
+                                            dst_file_selection_name))
+        return FALSE;
+      if (!AppStateRestorePanelGeneration(dst, dst_panel_generation))
+        return FALSE;
     }
     if (!AppStateCommitPanelFocus(ctx, dst, FOCUS_TREE))
       return FALSE;

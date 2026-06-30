@@ -6681,7 +6681,7 @@ def test_panel_generation_restores_route_through_appstate_helper() -> None:
     assert "ctx->left->panel_generation = source_panel_generation;" not in split_body
     assert log_body.count("AppStateRestorePanelGeneration(") == 1
     assert "state->saved_tree_panel_generation" in log_body
-    assert donate_body.count("AppStateRestorePanelGeneration(dst,") == 2
+    assert donate_body.count("AppStateRestorePanelGeneration(dst,") == 5
     assert split_body.count("AppStateRestorePanelGeneration(") == 1
     assert "source_panel_generation" in split_body
 
@@ -6948,6 +6948,7 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
     split_transition = Path("src/ui/split_transition.c").read_text(
         encoding="utf-8"
     )
@@ -7044,6 +7045,28 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
         r"ctx->left->file_selection_dir_path,\s*"
         r"ctx->left->file_selection_name\s*\)",
         file_split_body,
+    )
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    assert "snprintf(dst->file_selection_name" not in donate_body
+    assert "snprintf(dst->file_selection_dir_path" not in donate_body
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*dst,\s*"
+        r"src->file_selection_dir_path,\s*src->file_selection_name\s*\)",
+        donate_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*dst,\s*"
+        r"dst_current_volume_state->saved_file_selection_dir_path,\s*"
+        r"dst_current_volume_state->saved_file_selection_name\s*\)",
+        donate_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileSelection\(\s*dst,\s*"
+        r"dst_file_selection_dir_path,\s*dst_file_selection_name\s*\)",
+        donate_body,
     )
 
 
