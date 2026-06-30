@@ -48,10 +48,12 @@ static void EnsurePanelsReferenceActiveVolume(ViewContext *ctx) {
   if (!ctx || !ctx->active || !ctx->active->vol)
     return;
 
-  if (ctx->left && ctx->left->vol == NULL)
-    ctx->left->vol = ctx->active->vol;
-  if (ctx->right && ctx->right->vol == NULL)
-    ctx->right->vol = ctx->active->vol;
+  if (ctx->left && ctx->left->vol == NULL &&
+      !AppStateCommitPanelVolume(ctx->left, ctx->active->vol))
+    return;
+  if (ctx->right && ctx->right->vol == NULL &&
+      !AppStateCommitPanelVolume(ctx->right, ctx->active->vol))
+    return;
 
   if (!ctx->is_split_screen)
     return;
