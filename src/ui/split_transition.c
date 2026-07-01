@@ -328,9 +328,8 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
                                                ctx->left->disp_begin_pos,
                                                ctx->left->cursor_pos))
             return FALSE;
-          memcpy(ctx->right->tree_viewport_top_dir_path,
-                 ctx->left->tree_viewport_top_dir_path,
-                 sizeof(ctx->right->tree_viewport_top_dir_path));
+          if (!AppStateCommitPanelTreeViewportTopPaths(ctx->right, ctx->left))
+            return FALSE;
           if (!AppStateCommitPanelVisibilityFilter(ctx->right,
                                                    ctx->left->hide_dot_files))
             return FALSE;
@@ -557,9 +556,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
                                                ctx->left->disp_begin_pos,
                                                ctx->left->cursor_pos))
             return FALSE;
-          memcpy(ctx->right->tree_viewport_top_dir_path,
-                 ctx->left->tree_viewport_top_dir_path,
-                 sizeof(ctx->right->tree_viewport_top_dir_path));
+          if (!AppStateCommitPanelTreeViewportTopPaths(ctx->right, ctx->left))
+            return FALSE;
           if (!AppStateCommitPanelFileViewport(ctx->right,
                                                ctx->left->start_file,
                                                ctx->left->file_cursor_pos))

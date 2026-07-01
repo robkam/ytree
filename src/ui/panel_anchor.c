@@ -694,8 +694,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   if (!AppStateCommitPanelTreeViewport(dst, src->disp_begin_pos,
                                        src->cursor_pos))
     return FALSE;
-  memcpy(dst->tree_viewport_top_dir_path, src->tree_viewport_top_dir_path,
-         sizeof(dst->tree_viewport_top_dir_path));
+  if (!AppStateCommitPanelTreeViewportTopPaths(dst, src))
+    return FALSE;
   if (!AppStateCommitPanelFileViewport(dst, src->start_file,
                                        src->file_cursor_pos))
     return FALSE;
