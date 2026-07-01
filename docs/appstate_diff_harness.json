@@ -31,6 +31,7 @@
         "panel.tree_cursor_pos",
         "panel.tree_viewport_origin",
         "panel.file_selection_key",
+        "panel.file_display_state",
         "panel.file_viewport_origin",
         "panel.restore_snapshot",
         "panel.panel_generation",
@@ -92,6 +93,7 @@
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
         "panel.tree_viewport_origin",
+        "panel.file_display_state",
         "panel.focus_shape",
         "panel.restore_snapshot",
         "panel.panel_generation"

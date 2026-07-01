@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_panel.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 
@@ -62,11 +63,13 @@ int GetPanelMaxColumn(const YtreeNovaPanel *p) {
 
 void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p, int new_file_mode) {
   int width;
+  unsigned max_column;
 
   if (!p)
     return;
 
-  p->file_mode = new_file_mode;
+  if (!AppStateCommitPanelFileDisplayMode(p, new_file_mode))
+    return;
 
   /* Use the existing window if available, otherwise calculate from layout or
    * defer */
@@ -83,10 +86,12 @@ void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p, int new_file_mode) {
       width = 80; /* Safe default */
   }
 
-  p->max_column = width / (GetVisualFileEntryLength(ctx, p) + 1);
+  max_column = (unsigned)(width / (GetVisualFileEntryLength(ctx, p) + 1));
 
-  if (p->max_column == 0)
-    p->max_column = 1;
+  if (max_column == 0)
+    max_column = 1;
+
+  (void)AppStateCommitPanelFileMaxColumn(p, max_column);
 }
 
 void RotatePanelFileMode(ViewContext *ctx, YtreeNovaPanel *p) {

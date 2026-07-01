@@ -6940,6 +6940,51 @@ def test_panel_volume_file_state_list_routes_through_appstate_helper() -> None:
     assert "AppStateSetPanelVolumeFileStateList(dst, volume_file_state)" in donate_body
 
 
+def test_panel_file_display_state_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    render_file = Path("src/ui/render_file.c").read_text(encoding="utf-8")
+
+    owner_fields = json.loads(
+        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+    )["owner_fields"]
+    assert any(
+        record["field"] == "panel.file_display_state" for record in owner_fields
+    )
+    assert "BOOL AppStateCommitPanelFileDisplayMode(" in header
+    assert "BOOL AppStateCommitPanelFileMaxColumn(" in header
+    assert 'include "ytnova_appstate_panel.h"' in init_source
+    assert 'include "ytnova_appstate_panel.h"' in render_file
+
+    helper_start = helper.index("BOOL AppStateCommitPanelFileDisplayMode(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("panel.file_display_state")'
+    mode_bounds = "file_mode < MODE_1 || file_mode > MODE_5"
+    mode_write = "panel->file_mode = file_mode;"
+    assert validation in helper_body
+    assert mode_bounds in helper_body
+    assert mode_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(mode_write)
+    assert helper_body.index(mode_bounds) < helper_body.index(mode_write)
+
+    helper_start = helper.index("BOOL AppStateCommitPanelFileMaxColumn(")
+    helper_body = helper[helper_start:]
+    column_write = "panel->max_column = max_column;"
+    assert validation in helper_body
+    assert column_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(column_write)
+
+    for source in [init_source, render_file]:
+        assert not re.search(r"\b(?:ctx->(?:left|right)|p)->file_mode\s*=[^=]", source)
+        assert not re.search(r"\b(?:ctx->(?:left|right)|p)->max_column\s*=[^=]", source)
+
+    assert "AppStateCommitPanelFileDisplayMode(ctx->left, MODE_1)" in init_source
+    assert "AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1)" in init_source
+    assert "AppStateCommitPanelFileDisplayMode(p, new_file_mode)" in render_file
+    assert "AppStateCommitPanelFileMaxColumn(p, max_column)" in render_file
+
+
 def test_global_search_term_writes_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")
