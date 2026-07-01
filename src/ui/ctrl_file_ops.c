@@ -178,17 +178,21 @@ static FileEntry *GetActivePanelSelectedFile(ViewContext *ctx,
 
 static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
                                                DirEntry *dir_entry) {
+  int cursor_pos;
   int file_count;
+  int start_file;
 
   if (!ctx || !ctx->active || !dir_entry)
     return;
 
   BuildFileEntryList(ctx, ctx->active);
 
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
   file_count = (int)ctx->active->file_count;
   if (file_count <= 0) {
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = 0;
+    start_file = 0;
+    cursor_pos = 0;
   } else {
     int max_disp_files;
 
@@ -196,21 +200,23 @@ static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
     if (max_disp_files < 1)
       max_disp_files = 1;
 
-    if (dir_entry->start_file < 0)
-      dir_entry->start_file = 0;
-    if (dir_entry->start_file >= file_count)
-      dir_entry->start_file = file_count - 1;
-    if (dir_entry->cursor_pos < 0)
-      dir_entry->cursor_pos = 0;
-    if (dir_entry->cursor_pos >= max_disp_files)
-      dir_entry->cursor_pos = max_disp_files - 1;
+    if (start_file < 0)
+      start_file = 0;
+    if (start_file >= file_count)
+      start_file = file_count - 1;
+    if (cursor_pos < 0)
+      cursor_pos = 0;
+    if (cursor_pos >= max_disp_files)
+      cursor_pos = max_disp_files - 1;
 
-    if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
-      dir_entry->start_file = MAXIMUM(0, file_count - max_disp_files);
-      dir_entry->cursor_pos = file_count - 1 - dir_entry->start_file;
+    if (start_file + cursor_pos >= file_count) {
+      start_file = MAXIMUM(0, file_count - max_disp_files);
+      cursor_pos = file_count - 1 - start_file;
     }
   }
 
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return;
   (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
                                         dir_entry->cursor_pos);
 }
@@ -390,6 +396,9 @@ BOOL handle_file_window_navigation_action(
     BOOL *need_dsp_help_ptr, long *preview_line_offset_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *),
     void (*list_jump)(ViewContext *, DirEntry *, char *)) {
+  int cursor_pos;
+  int start_file;
+
   if (!ctx || !dir_entry || !start_x_ptr)
     return FALSE;
 
@@ -441,8 +450,12 @@ BOOL handle_file_window_navigation_action(
     return TRUE;
 
   case ACTION_END:
-    Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file,
+    cursor_pos = dir_entry->cursor_pos;
+    start_file = dir_entry->start_file;
+    Nav_End(&cursor_pos, &start_file,
             (int)ctx->active->file_count, FileNav_GetMaxDispFiles(ctx));
+    if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+      return FALSE;
     UI_RenderFilePanel(ctx, dir_entry, *start_x_ptr);
     FileNav_UpdateHeaderPath(ctx, dir_entry);
     ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
@@ -452,7 +465,11 @@ BOOL handle_file_window_navigation_action(
     return TRUE;
 
   case ACTION_HOME:
-    Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
+    cursor_pos = dir_entry->cursor_pos;
+    start_file = dir_entry->start_file;
+    Nav_Home(&cursor_pos, &start_file);
+    if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+      return FALSE;
     UI_RenderFilePanel(ctx, dir_entry, *start_x_ptr);
     FileNav_UpdateHeaderPath(ctx, dir_entry);
     ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
@@ -935,18 +952,22 @@ BOOL handle_file_window_misc_dispatch_action(
     break;
 
   case ACTION_TOGGLE_MODE: {
+    int cursor_pos;
     int list_pos;
+    int start_file;
     if (ctx->preview_mode) {
       UI_Beep(ctx, FALSE);
       break;
     }
     list_pos = dir_entry->start_file + dir_entry->cursor_pos;
+    cursor_pos = dir_entry->cursor_pos;
     RotatePanelFileMode(ctx, ctx->active);
     FileNav_SyncGridMetrics(ctx);
-    if (dir_entry->cursor_pos >= FileNav_GetMaxDispFiles(ctx)) {
-      dir_entry->cursor_pos = FileNav_GetMaxDispFiles(ctx) - 1;
-    }
-    dir_entry->start_file = list_pos - dir_entry->cursor_pos;
+    if (cursor_pos >= FileNav_GetMaxDispFiles(ctx))
+      cursor_pos = FileNav_GetMaxDispFiles(ctx) - 1;
+    start_file = list_pos - cursor_pos;
+    if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+      return FALSE;
     DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                  dir_entry->start_file + dir_entry->cursor_pos, start_x,
                  ctx->ctx_file_window);
@@ -1030,8 +1051,8 @@ BOOL handle_file_window_misc_dispatch_action(
 
   case ACTION_FILTER:
     if (UI_ReadFilter(ctx) == 0) {
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = 0;
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0))
+        return FALSE;
       BuildFileEntryList(ctx, ctx->active);
       DisplayFilter(ctx, s);
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
@@ -1320,8 +1341,8 @@ static BOOL HandleTaggedFileOpDispatchAction(
 
       BuildFileEntryList(ctx, ctx->active);
 
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = 0;
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0))
+        return FALSE;
 
       RefreshView(ctx, dir_entry);
       maybe_change_x_step = TRUE;
@@ -1774,8 +1795,8 @@ static BOOL HandleTaggedSelectionDispatchAction(
       dir_entry->tagged_flag = FALSE;
 
     BuildFileEntryList(ctx, ctx->active);
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = 0;
+    if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0))
+      return FALSE;
     UI_RenderFilePanel(ctx, dir_entry, start_x);
 
     if (maybe_change_x_step_ptr)
