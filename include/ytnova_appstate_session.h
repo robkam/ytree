@@ -11,5 +11,6 @@
 #include "ytnova_defs.h"
 
 BOOL AppStateCommitActivePanel(ViewContext *ctx, YtreeNovaPanel *panel);
+BOOL AppStateCommitGlobalSearchTerm(ViewContext *ctx, const char *term);
 
 #endif /* YTNOVA_APPSTATE_SESSION_H */

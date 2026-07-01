@@ -6834,6 +6834,42 @@ def test_panel_volume_file_state_list_routes_through_appstate_helper() -> None:
     assert "AppStateSetPanelVolumeFileStateList(dst, volume_file_state)" in donate_body
 
 
+def test_global_search_term_writes_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    interactions = Path("src/ui/interactions.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitGlobalSearchTerm(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitGlobalSearchTerm(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.command_state")'
+    write = "ctx->global_search_term[0] = '\\0';"
+    assert validation in helper_body
+    assert write in helper_body
+    assert helper_body.index(validation) < helper_body.index(write)
+
+    for source in [log_source, ctrl_dir]:
+        assert "ctx->global_search_term[0] = '\\0';" not in source
+        assert "AppStateCommitGlobalSearchTerm(ctx, NULL)" in source
+
+    filter_start = ctrl_file_ops.index("      /* Filter Mode */")
+    filter_end = ctrl_file_ops.index("      free(silent_cmd);", filter_start)
+    filter_body = ctrl_file_ops[filter_start:filter_end]
+    assert "GetSearchCommandLine(ctx, command_line, ctx->global_search_term)" not in (
+        filter_body
+    )
+    assert "AppStateCommitGlobalSearchTerm(ctx, search_pattern)" in filter_body
+
+    search_start = interactions.index("int GetSearchCommandLine(")
+    search_end = interactions.index("\nint GetPipeCommand(", search_start)
+    search_body = interactions[search_start:search_end]
+    assert "strncpy(raw_pattern, input_buf, 255)" not in search_body
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

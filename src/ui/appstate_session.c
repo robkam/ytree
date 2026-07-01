@@ -21,3 +21,18 @@ BOOL AppStateCommitActivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
   ctx->active = panel;
   return TRUE;
 }
+
+BOOL AppStateCommitGlobalSearchTerm(ViewContext *ctx, const char *term) {
+  if (!AppStateValidatedOwnerField("ctx.command_state"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->global_search_term[0] = '\0';
+  if (term) {
+    (void)snprintf(ctx->global_search_term, sizeof(ctx->global_search_term),
+                   "%s", term);
+    ctx->global_search_term[sizeof(ctx->global_search_term) - 1] = '\0';
+  }
+  return TRUE;
+}
