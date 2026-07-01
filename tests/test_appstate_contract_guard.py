@@ -7598,6 +7598,32 @@ def test_ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper() 
     assert len(helper_call.findall(handoff_body)) == 2
 
 
+def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
+    dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\(\*dir_entry\)->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    helper_call = re.compile(
+        r"AppStateCommitDirEntryFileViewport\(\s*\*dir_entry,\s*0,\s*-1\s*\)"
+    )
+
+    for function_name in [
+        "DirNav_Movedown",
+        "DirNav_Moveup",
+        "DirNav_Movenpage",
+        "DirNav_Moveppage",
+        "DirNav_MoveEnd",
+        "DirNav_MoveHome",
+    ]:
+        function_start = dir_nav.index(f"void {function_name}(")
+        next_function = dir_nav.find("\nvoid DirNav_", function_start + 1)
+        function_body = dir_nav[
+            function_start : (next_function if next_function >= 0 else len(dir_nav))
+        ]
+        assert not mutation.search(function_body)
+        assert len(helper_call.findall(function_body)) == 1
+
+
 def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

@@ -145,8 +145,7 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) 
         GetPanelDirEntry(p);
   }
 
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(*dir_entry, 0, -1);
   DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
               p->disp_begin_pos + p->cursor_pos, TRUE);
   DisplayFileWindow(ctx, p, *dir_entry);
@@ -180,8 +179,7 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
         GetPanelDirEntry(p);
   }
 
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(*dir_entry, 0, -1);
   DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
               p->disp_begin_pos + p->cursor_pos, TRUE);
   DisplayFileWindow(ctx, p, *dir_entry);
@@ -215,8 +213,7 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p)
         GetPanelDirEntry(p);
   }
 
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(*dir_entry, 0, -1);
   DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
               p->disp_begin_pos + p->cursor_pos, TRUE);
   DisplayFileWindow(ctx, p, *dir_entry);
@@ -250,8 +247,7 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p)
         GetPanelDirEntry(p);
   }
 
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(*dir_entry, 0, -1);
   DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
               p->disp_begin_pos + p->cursor_pos, TRUE);
   DisplayFileWindow(ctx, p, *dir_entry);
@@ -295,8 +291,7 @@ void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
         GetPanelDirEntry(p);
   }
 
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(*dir_entry, 0, -1);
   DisplayFileWindow(ctx, p, *dir_entry);
   RefreshWindow(p->pan_file_window);
   RefreshWindow(p->pan_file_window);
@@ -336,8 +331,7 @@ void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) 
         GetPanelDirEntry(p);
   }
 
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(*dir_entry, 0, -1);
   DisplayFileWindow(ctx, p, *dir_entry);
   RefreshWindow(p->pan_file_window);
   RefreshWindow(p->pan_file_window);

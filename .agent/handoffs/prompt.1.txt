@@ -4,65 +4,26 @@ Date: 2026-07-01
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-handoff-push-checkpoint
-Active PR: https://github.com/robkam/ytreenova/pull/311
-Stop condition: maintainer requested one final prompt-process fix; do not resume AppState subunits after this fix without explicit instruction.
+Current branch: appstate-dir-nav-dir-entry-viewport-helper
+Active PR: https://github.com/robkam/ytreenova/pull/312
+Supersession state: maintainer resumed autonomous AppState work after the earlier prompt-process stop condition.
 
-Merged in this continuation:
-- refactor(appstate): route display options through helpers
-  - PR: https://github.com/robkam/ytreenova/pull/301
-  - Merge commit: 100dd5e3648ad3b8b98b2de835795af8cd409d80
-  - Included: TASK 1 PROMPT.md as requested by maintainer.
-- refactor(appstate): route refresh policy through helper
-  - PR: https://github.com/robkam/ytreenova/pull/302
-  - Merge commit: 638e97b84e256b5380f46af06b307ee3a169a121
-- refactor(appstate): route directory display mode through helper
-  - PR: https://github.com/robkam/ytreenova/pull/303
-  - Merge commit: 33f1a95ea6139478de69129f61e44821b7c8d8af
-- refactor(appstate): route file display state through helpers
-  - PR: https://github.com/robkam/ytreenova/pull/304
-  - Merge commit: 3ecfc804c4ccfcf08c1b8d2a0371d92434339b9d
-- refactor(appstate): route file render metrics through helper
-  - PR: https://github.com/robkam/ytreenova/pull/305
-  - Merge commit: 09615cc198c020025d20123d9095398f5bfb5062
-  - Included tracked .agent/handoffs/*.txt files and the .gitignore update.
-- refactor(appstate): route file sort order through helper
-  - PR: https://github.com/robkam/ytreenova/pull/306
-  - Merge commit: 4a04943b884c8781e5f4665ea183c85dfaae7bab
-- refactor(appstate): route panel donation display state through helpers
-  - PR: https://github.com/robkam/ytreenova/pull/307
-  - Merge commit: 1a8566f7ef92171073e6b903ac79739f67aac91a
-- refactor(appstate): route file navigation viewports through helper
-  - PR: https://github.com/robkam/ytreenova/pull/308
-  - Merge commit: 522fae4cf843de2f9d249f6d2d2ff5c9d883fdc8
-- refactor(appstate): route file operation viewports through helper
-  - PR: https://github.com/robkam/ytreenova/pull/309
-  - Merge commit: ba7c619642cefe9f814a8bfcb7ffefb0d2daff67
-- refactor(appstate): route file refresh viewports through helper
-  - PR: https://github.com/robkam/ytreenova/pull/310
-  - Merge commit: a85e9433d3519854eea92e4934c53cfa08c53a8c
+Recently confirmed remote state:
+- PR https://github.com/robkam/ytreenova/pull/311 merged at 2026-07-01T21:11:22Z.
+- No open PRs were present before this branch started.
+- Local main was up to date with origin/main at merge commit 137f77c3ebae8d4b1798760d0b31b4a27fb19a08.
 
-Last AppState batch:
-- Route ctrl_file refresh and file-window handoff DirEntry viewport commits through the validated AppState helper.
-- Keep existing panel file viewport commits after the DirEntry viewport helper commits.
-- Add guard coverage preventing direct ctrl_file refresh/handoff mutation of DirEntry start_file/cursor_pos outside the helper boundary.
+Current AppState batch:
+- Route directory navigation DirEntry file viewport resets through `AppStateCommitDirEntryFileViewport`.
+- Add guard coverage preventing direct `(*dir_entry)->start_file` / `(*dir_entry)->cursor_pos` writes in the directory navigation movement handlers.
+- Scope is limited to `src/ui/dir_nav.c` and `tests/test_appstate_contract_guard.py`.
 
-Current process fix:
-- Update `TASK 1 PROMPT.md` so future AppState subunit checkpoints are committed with the subunit branch before each push.
-- Require red-PR remediation pushes to amend the latest `.agent/handoffs/prompt.1.txt` state into the same commit.
-- Prevent post-merge handoff-only checkpoint edits from remaining orphaned locally.
-
-Validation recorded before PR creation:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper` failed before ctrl_file refresh/handoff paths used the DirEntry viewport helper.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper`
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper or ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper or file_nav_dir_entry_viewports_commit_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
+Validation recorded before first push:
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_nav_dir_entry_viewports_commit_through_appstate_helper` failed before directory navigation used the DirEntry viewport helper.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_nav_dir_entry_viewports_commit_through_appstate_helper`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'dir_nav_dir_entry_viewports_commit_through_appstate_helper or file_nav_dir_entry_viewports_commit_through_appstate_helper or ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper or ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 - Passed: `make clean && make` with existing warnings.
-- Passed after CI remediation: `make qa-cppcheck`
-- Red CI proof: PR full local-equivalent QA gate failed at `gitleaks detect --source . --redact --exit-code 1`; redacted report identified historical false-positive generic-api-key fingerprints in tracked `.agent/handoffs/prompt.1.5.txt` and `.agent/handoffs/report.1.5.txt` lines describing the old AppState refresh event label.
-- Passed after CI remediation: `make qa-gitleaks`
-- Passed for process prompt update: `make qa-gitleaks`
 
 Next action:
-- Open a small prompt-process PR, merge when green, return to main, then wait for explicit maintainer instruction before starting another PR.
+- Follow the CI wait rule for the draft PR, then mark ready and merge only after checks and review requirements allow.
