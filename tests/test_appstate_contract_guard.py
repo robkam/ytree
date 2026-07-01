@@ -6943,6 +6943,32 @@ def test_global_search_term_writes_route_through_appstate_helper() -> None:
     assert "strncpy(raw_pattern, input_buf, 255)" not in search_body
 
 
+def test_refresh_mode_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+
+    owner_fields = json.loads(
+        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+    )["owner_fields"]
+    assert any(record["field"] == "ctx.refresh_mode" for record in owner_fields)
+    assert "BOOL AppStateCommitRefreshMode(" in header
+    assert 'include "ytnova_appstate_session.h"' in init_source
+
+    helper_start = helper.index("BOOL AppStateCommitRefreshMode(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.refresh_mode")'
+    write = "ctx->refresh_mode = refresh_mode;"
+    assert validation in helper_body
+    assert write in helper_body
+    assert helper_body.index(validation) < helper_body.index(write)
+
+    assert not re.search(r"\bctx->refresh_mode\s*=[^=]", init_source)
+    assert "AppStateCommitRefreshMode(ctx, 0)" in init_source
+    assert "AppStateCommitRefreshMode(" in init_source
+    assert 'CoreInitGetProfileValue(ctx, "AUTO_REFRESH")' in init_source
+
+
 def test_preview_modal_state_routes_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_modal.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_modal.c").read_text(encoding="utf-8")
