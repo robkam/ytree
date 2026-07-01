@@ -335,7 +335,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   *s_ptr = &ctx->active->vol->vol_stats;
   *start_vol_ptr = ctx->active->vol;
-  ctx->global_search_term[0] = '\0';
+  if (!AppStateCommitGlobalSearchTerm(ctx, NULL))
+    return FALSE;
 
   if (ctx->active->vol->total_dirs > 0) {
     *dir_entry_ptr = ctx->active->vol

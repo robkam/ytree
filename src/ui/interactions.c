@@ -582,7 +582,7 @@ int GetCommandLine(ViewContext *ctx, char *command_line) {
 }
 
 int GetSearchCommandLine(ViewContext *ctx, char *command_line,
-                         char *raw_pattern) {
+                         char *search_pattern) {
   int result = -1;
   char input_buf[256];
 
@@ -594,9 +594,9 @@ int GetSearchCommandLine(ViewContext *ctx, char *command_line,
                     HST_SEARCH) == CR) {
     size_t command_len;
 
-    if (raw_pattern) {
-      strncpy(raw_pattern, input_buf, 255);
-      raw_pattern[255] = '\0';
+    if (search_pattern) {
+      (void)snprintf(search_pattern, 256, "%s", input_buf);
+      search_pattern[255] = '\0';
     }
 
     if (!Path_CommandInit(command_line, COMMAND_LINE_LENGTH + 1, &command_len,

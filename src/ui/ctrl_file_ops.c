@@ -1424,6 +1424,7 @@ static BOOL HandleTaggedFileOpDispatchAction(
       MESSAGE(ctx, "^S is not available in archive mode");
     } else {
       char *command_line;
+      char search_pattern[256];
 
       if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
         UI_Error(ctx, "", 0, "Malloc failed");
@@ -1442,9 +1443,15 @@ static BOOL HandleTaggedFileOpDispatchAction(
 
       need_dsp_help = TRUE;
       *command_line = '\0';
+      search_pattern[0] = '\0';
 
       /* Filter Mode */
-      if (!GetSearchCommandLine(ctx, command_line, ctx->global_search_term)) {
+      if (!GetSearchCommandLine(ctx, command_line, search_pattern)) {
+        if (!AppStateCommitGlobalSearchTerm(ctx, search_pattern)) {
+          free(command_line);
+          free(silent_cmd);
+          return FALSE;
+        }
         NormalizeQuotedExecPlaceholders(
             command_line, (size_t)COMMAND_LINE_LENGTH + 1U);
         /* Construct Silent Command */

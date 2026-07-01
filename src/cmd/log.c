@@ -9,6 +9,7 @@
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_session.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include <assert.h>
@@ -310,7 +311,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
         if (state && !AppStateRestorePanelGeneration(
                          panel, state->saved_tree_panel_generation))
           return -1;
-        ctx->global_search_term[0] = '\0';
+        if (!AppStateCommitGlobalSearchTerm(ctx, NULL))
+          return -1;
         if (!AppStateCommitViewMode(ctx, panel->vol->vol_stats.log_mode))
           return -1;
 
@@ -464,7 +466,8 @@ int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   if (!AppStateCommitPanelFocus(ctx, panel,
                                 (ViewFocus)panel->vol->saved_focus))
     return -1;
-  ctx->global_search_term[0] = '\0';
+  if (!AppStateCommitGlobalSearchTerm(ctx, NULL))
+    return -1;
   if (!AppStateCommitViewMode(ctx, s->log_mode))
     return -1;
 

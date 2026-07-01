@@ -220,6 +220,6 @@ extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
 extern void RefreshView(ViewContext *ctx, DirEntry *dir_entry);
 extern int GetCommandLine(ViewContext *ctx, char *command_line);
 extern int GetSearchCommandLine(ViewContext *ctx, char *command_line,
-                                char *raw_pattern);
+                                char *search_pattern);
 
 #endif /* YTNOVA_CMD_H */
