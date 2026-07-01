@@ -6658,6 +6658,47 @@ def test_panel_anchor_viewport_generation_commits_through_appstate_helper() -> N
     assert restore_body.count("AppStateCommitPanelGeneration(panel)") == 1
 
 
+def test_panel_tree_viewport_top_paths_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+
+    assert "BOOL AppStateCommitPanelTreeViewportTopPaths(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelTreeViewportTopPaths(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileViewport(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.restore_snapshot")'
+    copy_call = (
+        "memcpy(panel->tree_viewport_top_dir_path, "
+        "source->tree_viewport_top_dir_path,"
+    )
+    assert validation in helper_body
+    assert copy_call in helper_body
+    assert helper_body.index(validation) < helper_body.index(copy_call)
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+    assert "memcpy(dst->tree_viewport_top_dir_path" not in donate_body
+    assert "AppStateCommitPanelTreeViewportTopPaths(dst, src)" in donate_body
+
+    file_split_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    dir_split_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", file_split_start
+    )
+    file_split_body = split_transition[file_split_start:dir_split_start]
+    dir_split_body = split_transition[dir_split_start:]
+    for body in [file_split_body, dir_split_body]:
+        assert "memcpy(ctx->right->tree_viewport_top_dir_path" not in body
+        assert "AppStateCommitPanelTreeViewportTopPaths(ctx->right, ctx->left)" in body
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

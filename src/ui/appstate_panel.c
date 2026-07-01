@@ -9,6 +9,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_panel.h"
+#include <string.h>
 
 BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel) {
   if (!AppStateValidatedOwnerField("panel.panel_generation"))
@@ -80,6 +81,18 @@ BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
     return FALSE;
 
   panel->current_dir_entry = current_dir_entry;
+  return TRUE;
+}
+
+BOOL AppStateCommitPanelTreeViewportTopPaths(YtreeNovaPanel *panel,
+                                             const YtreeNovaPanel *source) {
+  if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
+    return FALSE;
+  if (!panel || !source)
+    return FALSE;
+
+  memcpy(panel->tree_viewport_top_dir_path, source->tree_viewport_top_dir_path,
+         sizeof(panel->tree_viewport_top_dir_path));
   return TRUE;
 }
 
