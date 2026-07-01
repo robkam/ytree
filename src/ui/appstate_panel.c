@@ -245,6 +245,18 @@ BOOL AppStateCommitPanelVolumeFileSnapshot(
   return TRUE;
 }
 
+BOOL AppStateCommitDirEntryFileViewport(DirEntry *dir_entry, int start_file,
+                                        int cursor_pos) {
+  if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->start_file = start_file;
+  dir_entry->cursor_pos = cursor_pos;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos) {
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))

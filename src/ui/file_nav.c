@@ -61,28 +61,46 @@ static void RefreshFileSelection(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 void FileNav_MoveDown(ViewContext *ctx, DirEntry *dir_entry, int start_x) {
+  int cursor_pos;
+  int start_file;
+
   if (!ctx || !ctx->active || !dir_entry)
     return;
 
-  Nav_MoveDown(&dir_entry->cursor_pos, &dir_entry->start_file,
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
+  Nav_MoveDown(&cursor_pos, &start_file,
                (int)ctx->active->file_count, GetSafeMaxDispFiles(ctx), 1);
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return;
   RefreshFileSelection(ctx, dir_entry, start_x);
 }
 
 void FileNav_MoveUp(ViewContext *ctx, DirEntry *dir_entry, int start_x) {
+  int cursor_pos;
+  int start_file;
+
   if (!ctx || !ctx->active || !dir_entry)
     return;
 
-  Nav_MoveUp(&dir_entry->cursor_pos, &dir_entry->start_file);
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
+  Nav_MoveUp(&cursor_pos, &start_file);
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return;
   RefreshFileSelection(ctx, dir_entry, start_x);
 }
 
 void FileNav_MoveRight(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
+  int cursor_pos;
+  int start_file;
   int x_step;
 
   if (!ctx || !ctx->active || !dir_entry || !start_x)
     return;
 
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
   x_step = GetSafeXStep(ctx);
   if (x_step == 1) {
     (*start_x)++;
@@ -92,16 +110,19 @@ void FileNav_MoveRight(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
     if (ctx->ctrl_file_hide_right <= 0)
       (*start_x)--;
   } else {
-    int current_index = dir_entry->start_file + dir_entry->cursor_pos;
+    int current_index = start_file + cursor_pos;
     int file_count = (int)ctx->active->file_count;
 
     if (current_index + x_step < file_count) {
-      if (dir_entry->cursor_pos + x_step < GetSafeMaxDispFiles(ctx)) {
-        dir_entry->cursor_pos += x_step;
+      if (cursor_pos + x_step < GetSafeMaxDispFiles(ctx)) {
+        cursor_pos += x_step;
       } else {
-        dir_entry->start_file += x_step;
+        start_file += x_step;
       }
 
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file,
+                                              cursor_pos))
+        return;
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, *start_x,
                    ctx->ctx_file_window);
@@ -115,11 +136,15 @@ void FileNav_MoveRight(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
 }
 
 void FileNav_MoveLeft(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
+  int cursor_pos;
+  int start_file;
   int x_step;
 
   if (!ctx || !ctx->active || !dir_entry || !start_x)
     return;
 
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
   x_step = GetSafeXStep(ctx);
   if (x_step == 1) {
     if (*start_x > 0)
@@ -128,16 +153,20 @@ void FileNav_MoveLeft(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
                  dir_entry->start_file + dir_entry->cursor_pos, *start_x,
                  ctx->ctx_file_window);
   } else {
-    int current_index = dir_entry->start_file + dir_entry->cursor_pos;
+    int current_index = start_file + cursor_pos;
 
     if (current_index - x_step >= 0) {
-      if (dir_entry->cursor_pos - x_step >= 0) {
-        dir_entry->cursor_pos -= x_step;
+      if (cursor_pos - x_step >= 0) {
+        cursor_pos -= x_step;
       } else {
-        if ((dir_entry->start_file -= x_step) < 0)
-          dir_entry->start_file = 0;
+        start_file -= x_step;
+        if (start_file < 0)
+          start_file = 0;
       }
 
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file,
+                                              cursor_pos))
+        return;
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, *start_x,
                    ctx->ctx_file_window);
@@ -151,20 +180,33 @@ void FileNav_MoveLeft(ViewContext *ctx, DirEntry *dir_entry, int *start_x) {
 }
 
 void FileNav_PageDown(ViewContext *ctx, DirEntry *dir_entry, int start_x) {
+  int cursor_pos;
+  int start_file;
+
   if (!ctx || !ctx->active || !dir_entry)
     return;
 
-  Nav_PageDown(&dir_entry->cursor_pos, &dir_entry->start_file,
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
+  Nav_PageDown(&cursor_pos, &start_file,
                (int)ctx->active->file_count, GetSafeMaxDispFiles(ctx));
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return;
   RefreshFileSelection(ctx, dir_entry, start_x);
 }
 
 void FileNav_PageUp(ViewContext *ctx, DirEntry *dir_entry, int start_x) {
+  int cursor_pos;
+  int start_file;
+
   if (!ctx || !ctx->active || !dir_entry)
     return;
 
-  Nav_PageUp(&dir_entry->cursor_pos, &dir_entry->start_file,
-             GetSafeMaxDispFiles(ctx));
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
+  Nav_PageUp(&cursor_pos, &start_file, GetSafeMaxDispFiles(ctx));
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return;
   RefreshFileSelection(ctx, dir_entry, start_x);
 }
 
