@@ -180,6 +180,7 @@ static const char *const kAppStateRequiredOwnerFieldIds[] = {
   "ctx.command_state",
   "ctx.refresh_mode",
   "ctx.view_mode",
+  "ctx.dir_mode",
   "ctx.message_state",
   "ctx.modal_state",
   "ctx.pending_transition",

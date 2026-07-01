@@ -52,6 +52,18 @@
       ]
     },
     {
+      "field": "ctx.dir_mode",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.directory_display_mode",
+      "runtime_carrier": "ViewContext.dir_mode",
+      "mutation_rule": "May change only through directory display mode commits that validate supported presentation modes.",
+      "migration_status": "runtime_backed",
+      "invariant_checks": [
+        "invariant.blocked-transition-determinism",
+        "invariant.shared-state-panel-local-isolation"
+      ]
+    },
+    {
       "field": "ctx.message_state",
       "owner_region": "ctx/session state",
       "canonical_owner": "ViewContext.message_region",

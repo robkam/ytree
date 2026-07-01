@@ -370,7 +370,10 @@ void InitView(ViewContext *ctx) {
     fprintf(stderr, "InitView: failed to initialize view mode\n");
     exit(1);
   }
-  ctx->dir_mode = MODE_3;
+  if (!AppStateCommitDirectoryDisplayMode(ctx, MODE_3)) {
+    fprintf(stderr, "InitView: failed to initialize directory display mode\n");
+    exit(1);
+  }
   if (!AppStateCommitSplitScreenLayout(ctx, FALSE)) {
     fprintf(stderr, "InitView: failed to initialize split layout\n");
     exit(1);

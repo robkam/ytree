@@ -6404,6 +6404,39 @@ def test_view_mode_commits_through_appstate_helper() -> None:
     )
 
 
+def test_directory_display_mode_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    render_dir = Path("src/ui/render_dir.c").read_text(encoding="utf-8")
+
+    owner_fields = json.loads(
+        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+    )["owner_fields"]
+    assert any(record["field"] == "ctx.dir_mode" for record in owner_fields)
+    assert "BOOL AppStateCommitDirectoryDisplayMode(" in header
+    assert 'include "ytnova_appstate_mode.h"' in init_source
+    assert 'include "ytnova_appstate_mode.h"' in render_dir
+
+    helper_start = helper.index("BOOL AppStateCommitDirectoryDisplayMode(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.dir_mode")'
+    bounds_check = "dir_mode < MODE_1 || dir_mode > MODE_4"
+    write = "ctx->dir_mode = dir_mode;"
+    assert validation in helper_body
+    assert bounds_check in helper_body
+    assert write in helper_body
+    assert helper_body.index(validation) < helper_body.index(write)
+    assert helper_body.index(bounds_check) < helper_body.index(write)
+
+    for source in [init_source, render_dir]:
+        assert not re.search(r"\bctx->dir_mode\s*=[^=]", source)
+
+    assert "AppStateCommitDirectoryDisplayMode(ctx, MODE_3)" in init_source
+    assert "AppStateCommitDirectoryDisplayMode(ctx, new_mode)" in render_dir
+    assert "AppStateCommitDirectoryDisplayMode(ctx, next_mode)" in render_dir
+
+
 def test_status_line_message_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_message.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_message.c").read_text(encoding="utf-8")

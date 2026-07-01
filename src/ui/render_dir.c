@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_mode.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 
@@ -29,25 +30,32 @@ static const YtreeNovaPanel *ResolveDirRenderPanel(const ViewContext *ctx,
  * Sets the display mode for directory entries.
  * Avoid using 'mode' as parameter name due to global macro collision.
  */
-void SetDirMode(ViewContext *ctx, int new_mode) { ctx->dir_mode = new_mode; }
+void SetDirMode(ViewContext *ctx, int new_mode) {
+  (void)AppStateCommitDirectoryDisplayMode(ctx, new_mode);
+}
 
 void RotateDirMode(ViewContext *ctx) {
-  /* For now, just rotate modes without the view_mode check.
-   * The check will need to be done at call site with proper context. */
+  int next_mode;
+
+  if (!ctx)
+    return;
+
+  next_mode = ctx->dir_mode;
   switch (ctx->dir_mode) {
   case MODE_1:
-    ctx->dir_mode = MODE_2;
+    next_mode = MODE_2;
     break;
   case MODE_2:
-    ctx->dir_mode = MODE_4;
+    next_mode = MODE_4;
     break;
   case MODE_3:
-    ctx->dir_mode = MODE_1;
+    next_mode = MODE_1;
     break;
   case MODE_4:
-    ctx->dir_mode = MODE_3;
+    next_mode = MODE_3;
     break;
   }
+  (void)AppStateCommitDirectoryDisplayMode(ctx, next_mode);
 }
 
 void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
