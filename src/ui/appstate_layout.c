@@ -50,3 +50,25 @@ BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width) {
   ctx->fixed_col_width = fixed_col_width;
   return TRUE;
 }
+
+BOOL AppStateCommitSmallWindowBypass(ViewContext *ctx,
+                                     BOOL bypass_small_window) {
+  if (!AppStateValidatedOwnerField("ctx.layout"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->bypass_small_window = bypass_small_window ? TRUE : FALSE;
+  return TRUE;
+}
+
+BOOL AppStateCommitFullLineHighlight(ViewContext *ctx,
+                                     BOOL highlight_full_line) {
+  if (!AppStateValidatedOwnerField("ctx.layout"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->highlight_full_line = highlight_full_line ? TRUE : FALSE;
+  return TRUE;
+}

@@ -16,5 +16,7 @@ BOOL AppStateCommitTerminalGeometryCache(ViewContext *ctx, int terminal_lines,
 BOOL AppStateCommitLayoutGeometry(ViewContext *ctx,
                                   const YtreeNovaLayout *layout);
 BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width);
+BOOL AppStateCommitSmallWindowBypass(ViewContext *ctx, BOOL bypass_small_window);
+BOOL AppStateCommitFullLineHighlight(ViewContext *ctx, BOOL highlight_full_line);
 
 #endif /* YTNOVA_APPSTATE_LAYOUT_H */

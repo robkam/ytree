@@ -6324,6 +6324,44 @@ def test_fixed_column_width_commits_through_appstate_helper() -> None:
         )
 
 
+def test_display_options_commit_through_appstate_helpers() -> None:
+    header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    edit_config = Path("src/ui/ui_edit_config.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitSmallWindowBypass(" in header
+    assert "BOOL AppStateCommitFullLineHighlight(" in header
+    assert 'include "ytnova_appstate_layout.h"' in init_source
+    assert 'include "ytnova_appstate_layout.h"' in ctrl_dir
+    assert 'include "ytnova_appstate_layout.h"' in edit_config
+
+    validation = 'AppStateValidatedOwnerField("ctx.layout")'
+    helper_start = helper.index("BOOL AppStateCommitSmallWindowBypass(")
+    helper_body = helper[helper_start:]
+    bypass_write = "ctx->bypass_small_window = bypass_small_window ? TRUE : FALSE;"
+    assert validation in helper_body
+    assert bypass_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(bypass_write)
+
+    helper_start = helper.index("BOOL AppStateCommitFullLineHighlight(")
+    helper_body = helper[helper_start:]
+    highlight_write = "ctx->highlight_full_line = highlight_full_line ? TRUE : FALSE;"
+    assert validation in helper_body
+    assert highlight_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(highlight_write)
+
+    for source in [init_source, ctrl_dir, edit_config]:
+        assert not re.search(r"\bctx->bypass_small_window\s*=[^=]", source)
+    assert not re.search(r"\bctx->highlight_full_line\s*=[^=]", init_source)
+
+    assert "AppStateCommitSmallWindowBypass(" in init_source
+    assert "AppStateCommitSmallWindowBypass(" in ctrl_dir
+    assert "AppStateCommitSmallWindowBypass(" in edit_config
+    assert "AppStateCommitFullLineHighlight(" in init_source
+
+
 def test_view_mode_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")

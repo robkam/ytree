@@ -11,6 +11,7 @@
 
 #define NO_YTNOVA_MACROS
 #include "../core/default_profile_template.h"
+#include "ytnova_appstate_layout.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 #include <errno.h>
@@ -171,8 +172,10 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   if (ctx->core_init_ops.read_profile != NULL &&
       access(profile_path, F_OK) == 0) {
     if (ctx->core_init_ops.read_profile(ctx, profile_path) == 0) {
-      ctx->bypass_small_window =
-          ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"));
+      if (!AppStateCommitSmallWindowBypass(
+              ctx,
+              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
+        return;
       if (ctx->core_init_ops.reinit_color_pairs != NULL) {
         ctx->core_init_ops.reinit_color_pairs(ctx);
       }
