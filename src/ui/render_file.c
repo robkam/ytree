@@ -42,7 +42,7 @@ void SetFileRenderingMetrics(YtreeNovaPanel *p, unsigned max_filename,
 void SetRenderSortOrder(YtreeNovaPanel *p, BOOL reverse) {
   if (!p)
     return;
-  p->reverse_sort = reverse;
+  (void)AppStateCommitPanelFileSortOrder(p, reverse);
 }
 
 int GetPanelFileMode(const YtreeNovaPanel *p) {

@@ -7029,6 +7029,39 @@ def test_panel_file_rendering_metrics_commit_through_appstate_helper() -> None:
         )
 
 
+def test_panel_file_sort_order_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    render_file = Path("src/ui/render_file.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    owner_fields = json.loads(
+        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+    )["owner_fields"]
+    display_state = next(
+        record
+        for record in owner_fields
+        if record["field"] == "panel.file_display_state"
+    )
+    assert "reverse_sort" in display_state["runtime_carrier"]
+    assert "sort-order" in display_state["mutation_rule"]
+
+    assert "BOOL AppStateCommitPanelFileSortOrder(" in header
+    helper_start = helper.index("BOOL AppStateCommitPanelFileSortOrder(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileSelection(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.file_display_state")'
+    sort_write = "panel->reverse_sort = reverse_sort;"
+    assert validation in helper_body
+    assert sort_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(sort_write)
+
+    assert "AppStateCommitPanelFileSortOrder(p, reverse)" in render_file
+    assert "AppStateCommitPanelFileSortOrder(dst, src->reverse_sort)" in panel_anchor
+    for source in [render_file, panel_anchor]:
+        assert not re.search(r"\b(?:p|dst)->reverse_sort\s*=[^=]", source)
+
+
 def test_global_search_term_writes_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")

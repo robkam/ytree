@@ -4,22 +4,9 @@ Date: 2026-07-01
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-render-metrics-helper
-Active PR: https://github.com/robkam/ytreenova/pull/305
-Stop condition: none; maintainer resumed and requested tracked handoff text artifacts.
-
-Current AppState batch:
-- Routes panel file rendering metric cache writes through the panel AppState helper boundary.
-- Expands panel.file_display_state metadata to cover max_visual_filename_len, max_visual_linkname_len, and max_visual_userview_len.
-- Blocks direct panel metric assignments in render_file.c and panel_anchor.c outside AppState helper commits.
-- Includes the .gitignore update that allows nested text artifacts and tracks .agent/handoffs/*.txt as requested.
-
-Validation recorded before PR creation:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_file_rendering_metrics_commit_through_appstate_helper` failed before metadata/helper routing existed.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'panel_file_rendering_metrics_commit_through_appstate_helper or panel_file_display_state_commits_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
-- Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
-- Passed: `make clean && make` with existing warnings.
+Current branch: appstate-file-sort-order-helper
+Active PR: https://github.com/robkam/ytreenova/pull/306
+Stop condition: none; autonomous continuation remains active.
 
 Merged in this continuation:
 - refactor(appstate): route display options through helpers
@@ -35,6 +22,22 @@ Merged in this continuation:
 - refactor(appstate): route file display state through helpers
   - PR: https://github.com/robkam/ytreenova/pull/304
   - Merge commit: 3ecfc804c4ccfcf08c1b8d2a0371d92434339b9d
+- refactor(appstate): route file render metrics through helper
+  - PR: https://github.com/robkam/ytreenova/pull/305
+  - Merge commit: 09615cc198c020025d20123d9095398f5bfb5062
+  - Included tracked .agent/handoffs/*.txt files and the .gitignore update.
+
+Current AppState batch:
+- Route panel file sort-order cache writes through the panel AppState helper boundary.
+- Expand panel.file_display_state metadata to cover reverse_sort.
+- Block direct reverse_sort assignments in render_file.c and panel_anchor.c outside AppState helper commits.
+
+Validation recorded before PR creation:
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_file_sort_order_commits_through_appstate_helper` failed before metadata/helper routing existed.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'panel_file_sort_order_commits_through_appstate_helper or panel_file_rendering_metrics_commit_through_appstate_helper or panel_file_display_state_commits_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
+- Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
+- Passed: `make clean && make` with existing warnings.
 
 Next action:
 - Follow the CI wait rule for the active draft PR.

@@ -291,8 +291,8 @@ static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
   {"panel.file_display_state",
    "panel-local state",
    "YtreeNovaPanel.file display projection state",
-   "YtreeNovaPanel.file_mode, max_column, max_visual_filename_len, max_visual_linkname_len, and max_visual_userview_len",
-   "May change only through file display mode or render metric commits that validate supported presentation modes, derived column bounds, and cached file rendering widths.",
+   "YtreeNovaPanel.file_mode, max_column, max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len, and reverse_sort",
+   "May change only through file display mode, render metric, or sort-order commits that validate supported presentation modes, derived column bounds, cached file rendering widths, and file ordering projection.",
    "runtime_backed",
    kAppStateOwnerFieldInvariantChecks22,
    sizeof(kAppStateOwnerFieldInvariantChecks22) /
