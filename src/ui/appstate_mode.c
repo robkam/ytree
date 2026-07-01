@@ -19,3 +19,15 @@ BOOL AppStateCommitViewMode(ViewContext *ctx, int view_mode) {
   ctx->view_mode = view_mode;
   return TRUE;
 }
+
+BOOL AppStateCommitDirectoryDisplayMode(ViewContext *ctx, int dir_mode) {
+  if (!AppStateValidatedOwnerField("ctx.dir_mode"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+  if (dir_mode < MODE_1 || dir_mode > MODE_4)
+    return FALSE;
+
+  ctx->dir_mode = dir_mode;
+  return TRUE;
+}
