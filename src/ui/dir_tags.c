@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_panel.h"
 #include "ytnova_ui.h"
 
 void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
@@ -33,8 +34,7 @@ void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
       PanelTags_RecordFileState(p, fe_ptr, value);
     }
   }
-  dir_entry->start_file = 0;
-  dir_entry->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(dir_entry, 0, -1);
   DisplayFileWindow(ctx, p, dir_entry);
   RefreshWindow(p->pan_file_window);
   DisplayDiskStatistic(ctx, s);
@@ -72,8 +72,7 @@ void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
       }
     }
   }
-  dir_entry->start_file = 0;
-  dir_entry->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(dir_entry, 0, -1);
   DisplayFileWindow(ctx, p, dir_entry);
   RefreshWindow(p->pan_file_window);
   DisplayDiskStatistic(ctx, s);
@@ -108,8 +107,7 @@ static void HandleInvertDirTags(ViewContext *ctx, DirEntry *dir_entry,
     PanelTags_RecordFileState(p, fe_ptr, fe_ptr->tagged);
   }
 
-  dir_entry->start_file = 0;
-  dir_entry->cursor_pos = -1;
+  (void)AppStateCommitDirEntryFileViewport(dir_entry, 0, -1);
   DisplayFileWindow(ctx, p, dir_entry);
   RefreshWindow(p->pan_file_window);
   DisplayDiskStatistic(ctx, s);
@@ -124,8 +122,7 @@ static void HandleDirTaggedOnlyToggle(ViewContext *ctx, DirEntry *dir_entry,
     dir_entry->tagged_flag = FALSE;
 
   BuildFileEntryList(ctx, p);
-  dir_entry->start_file = 0;
-  dir_entry->cursor_pos = 0;
+  (void)AppStateCommitDirEntryFileViewport(dir_entry, 0, 0);
   DisplayFileWindow(ctx, p, dir_entry);
   RefreshWindow(p->pan_file_window);
 }

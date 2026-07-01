@@ -7624,6 +7624,35 @@ def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
         assert len(helper_call.findall(function_body)) == 1
 
 
+def test_dir_tag_dir_entry_viewports_commit_through_appstate_helper() -> None:
+    dir_tags = Path("src/ui/dir_tags.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    helper_call = re.compile(
+        r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,\s*0,\s*(-?1|0)\s*\)"
+    )
+
+    expectations = {
+        "HandleTagDir": "-1",
+        "HandleTagAllDirs": "-1",
+        "HandleInvertDirTags": "-1",
+        "HandleDirTaggedOnlyToggle": "0",
+    }
+    for function_name, cursor_pos in expectations.items():
+        function_start = dir_tags.index(f"{function_name}(")
+        candidates = [
+            candidate
+            for marker in ["\nvoid ", "\nstatic void ", "\nBOOL "]
+            if (candidate := dir_tags.find(marker, function_start + 1)) >= 0
+        ]
+        next_function = min(candidates) if candidates else len(dir_tags)
+        function_body = dir_tags[function_start:next_function]
+        assert not mutation.search(function_body)
+        matches = helper_call.findall(function_body)
+        assert matches == [cursor_pos]
+
+
 def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
