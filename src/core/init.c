@@ -895,8 +895,9 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->show_stats = TRUE;
   if (!AppStateCommitFixedColumnWidth(ctx, 0))
     return -1;
-  ctx->refresh_mode =
-      0; /* Will be set after ReadProfile initializes profile_data */
+  /* Will be set after ReadProfile initializes profile_data. */
+  if (!AppStateCommitRefreshMode(ctx, 0))
+    return -1;
   if (!AppStateCommitPreviewMode(ctx, FALSE))
     return -1;
   if (!AppStateSetPreviewWindowHandle(ctx, NULL))
@@ -1056,8 +1057,9 @@ int Init(ViewContext *ctx, const char *configuration_file,
       strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);
   ctx->initial_directory = (char *)CoreInitGetProfileValue(ctx, "INITIALDIR");
 
-  ctx->refresh_mode =
-      strtol(CoreInitGetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0);
+  if (!AppStateCommitRefreshMode(
+          ctx, strtol(CoreInitGetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0)))
+    return -1;
   DEBUG_LOG("Init: Profile variables done");
 
   if (ctx->hook_init_clock != NULL)

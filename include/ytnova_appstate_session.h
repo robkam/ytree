@@ -12,5 +12,6 @@
 
 BOOL AppStateCommitActivePanel(ViewContext *ctx, YtreeNovaPanel *panel);
 BOOL AppStateCommitGlobalSearchTerm(ViewContext *ctx, const char *term);
+BOOL AppStateCommitRefreshMode(ViewContext *ctx, int refresh_mode);
 
 #endif /* YTNOVA_APPSTATE_SESSION_H */

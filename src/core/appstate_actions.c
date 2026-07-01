@@ -196,6 +196,14 @@ static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
    "runtime_backed",
    kAppStateOwnerFieldInvariantChecks1,
    sizeof(kAppStateOwnerFieldInvariantChecks1) / sizeof(kAppStateOwnerFieldInvariantChecks1[0])},
+  {"ctx.refresh_mode",
+   "ctx/session state",
+   "ViewContext.refresh_policy",
+   "ViewContext.refresh_mode",
+   "May change only through initialization or profile refresh policy commits before refresh dispatch observes it.",
+   "runtime_backed",
+   kAppStateOwnerFieldInvariantChecks1,
+   sizeof(kAppStateOwnerFieldInvariantChecks1) / sizeof(kAppStateOwnerFieldInvariantChecks1[0])},
   {"ctx.view_mode",
    "ctx/session state",
    "ViewContext.view_mode",
@@ -868,6 +876,7 @@ static const char *const kAppStateDiffHarnessTransitionIds1[] = {
 static const char *const kAppStateDiffHarnessOwnerFieldRefs1[] = {
   "ctx.active",
   "ctx.command_state",
+  "ctx.refresh_mode",
   "ctx.view_mode",
   "ctx.message_state",
   "ctx.modal_state",
@@ -3038,6 +3047,7 @@ static const char *const kAppStateInvariantMigrationNotes6[] = {
 
 static const char *const kAppStateInvariantProtectedFields7[] = {
   "ctx.command_state",
+  "ctx.refresh_mode",
   "ctx.view_mode",
   "ctx.message_state",
   "ctx.modal_state",

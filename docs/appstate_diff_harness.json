@@ -82,6 +82,7 @@
       "owner_field_refs": [
         "ctx.active",
         "ctx.command_state",
+        "ctx.refresh_mode",
         "ctx.view_mode",
         "ctx.message_state",
         "ctx.modal_state",

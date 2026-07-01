@@ -36,3 +36,13 @@ BOOL AppStateCommitGlobalSearchTerm(ViewContext *ctx, const char *term) {
   }
   return TRUE;
 }
+
+BOOL AppStateCommitRefreshMode(ViewContext *ctx, int refresh_mode) {
+  if (!AppStateValidatedOwnerField("ctx.refresh_mode"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->refresh_mode = refresh_mode;
+  return TRUE;
+}
