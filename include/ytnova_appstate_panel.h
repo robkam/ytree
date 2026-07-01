@@ -28,6 +28,11 @@ BOOL AppStateCommitPanelVolumeTreeViewportSnapshot(
     unsigned int volume_generation, BOOL has_selected_dir_path,
     const char *selected_dir_path, BOOL has_top_dir_path,
     const char *top_dir_path);
+BOOL AppStateCommitPanelVolumeFileSnapshot(
+    PanelVolumeFileState *state, int start_file, int file_cursor_pos,
+    unsigned int panel_generation, unsigned int volume_generation,
+    ViewFocus focus, BOOL big_file_view, const char *file_dir_path,
+    const char *file_selection_dir_path, const char *file_selection_name);
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos);
 BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,

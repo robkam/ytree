@@ -6770,6 +6770,39 @@ def test_panel_volume_tree_viewport_snapshot_routes_through_appstate_helper() ->
         assert "AppStateCommitPanelVolumeTreeViewportSnapshot(" in body
 
 
+def test_panel_volume_file_snapshot_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelVolumeFileSnapshot(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelVolumeFileSnapshot(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitPanelFileViewport(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.restore_snapshot")'
+    viewport_write = "state->saved_file_start = start_file;"
+    selection_write = "state->saved_file_selection_dir_path[0] = '\\0';"
+    assert validation in helper_body
+    assert viewport_write in helper_body
+    assert selection_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(viewport_write)
+    assert helper_body.index(validation) < helper_body.index(selection_write)
+
+    save_start = log_source.index("static void SavePanelFileSelection(")
+    save_end = log_source.index("\nstatic void RestorePanelFileSelection(", save_start)
+    save_body = log_source[save_start:save_end]
+    assert "state->saved_file_" not in save_body
+    assert "state->saved_panel_generation =" not in save_body
+    assert "state->saved_volume_generation =" not in save_body
+    assert "state->saved_focus =" not in save_body
+    assert "state->saved_big_file_view =" not in save_body
+    assert "AppStateCommitPanelVolumeFileSnapshot(" in save_body
+    assert "AppStateCommitPanelFileShape(panel, saved_big_file_view)" in save_body
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
@@ -8147,7 +8180,7 @@ def test_panel_file_shape_commits_use_appstate_helper() -> None:
         assert not direct_panel_shape_write.search(source)
 
     assert "AppStateCommitPanelFileShape(ctx->left, FALSE)" in sources["src/core/init.c"]
-    assert "AppStateCommitPanelFileShape(panel, state->saved_big_file_view)" in sources[
+    assert "AppStateCommitPanelFileShape(panel, saved_big_file_view)" in sources[
         "src/cmd/log.c"
     ]
     assert "AppStateCommitPanelFileShape(ctx->active, FALSE)" in sources[
