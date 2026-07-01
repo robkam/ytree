@@ -9,6 +9,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_modal.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_window.h"
@@ -270,11 +271,12 @@ BOOL handle_file_window_preview_action(
   switch (action) {
   case ACTION_VIEW_PREVIEW:
     if (!ctx->preview_mode) {
-      ctx->preview_return_panel = ctx->active;
-      ctx->preview_return_focus = ctx->focused_window;
+      if (!AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window))
+        return FALSE;
     }
 
-    ctx->preview_mode = !ctx->preview_mode;
+    if (!AppStateCommitPreviewMode(ctx, !ctx->preview_mode))
+      return FALSE;
     if (ctx->preview_mode) {
       *saved_fixed_width_ptr = ctx->fixed_col_width;
       ReCreateWindows(ctx);

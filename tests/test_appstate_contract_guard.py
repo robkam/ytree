@@ -5772,7 +5772,7 @@ def test_handle_dir_window_dispatch_fails_closed_before_directory_work() -> None
         "DisplayMenu(",
         "AppStateMirrorActivePanelFocus(ctx)",
         "SyncActivePanelWindows(",
-        "ctx->preview_mode = FALSE;",
+        "AppStateCommitPreviewMode(ctx, FALSE)",
         "BuildDirEntryList(",
         "RefreshView(",
         "GetEventOrKey(",
@@ -6868,6 +6868,43 @@ def test_global_search_term_writes_route_through_appstate_helper() -> None:
     search_end = interactions.index("\nint GetPipeCommand(", search_start)
     search_body = interactions[search_start:search_end]
     assert "strncpy(raw_pattern, input_buf, 255)" not in search_body
+
+
+def test_preview_modal_state_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_modal.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_modal.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPreviewMode(" in header
+    assert "BOOL AppStateCommitPreviewReturn(" in header
+    assert "BOOL AppStateCommitPreviewEntryFocus(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPreviewMode(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.modal_state")'
+    assert validation in helper_body
+    assert "ctx->preview_mode = preview_mode ? TRUE : FALSE;" in helper_body
+
+    for source in [init_source, ctrl_dir, ctrl_file_ops, dir_ops]:
+        assert not re.search(r"\bctx->preview_mode\s*=[^=]", source)
+    for source in [ctrl_file_ops, dir_ops]:
+        assert not re.search(r"\bctx->preview_return_panel\s*=[^=]", source)
+        assert not re.search(r"\bctx->preview_return_focus\s*=[^=]", source)
+        assert not re.search(r"\bctx->preview_entry_focus\s*=[^=]", source)
+
+    assert "AppStateCommitPreviewMode(ctx, FALSE)" in init_source
+    assert "AppStateCommitPreviewMode(ctx, FALSE)" in ctrl_dir
+    assert "AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window)" in (
+        ctrl_file_ops
+    )
+    assert "AppStateCommitPreviewMode(ctx, !ctx->preview_mode)" in ctrl_file_ops
+    assert "AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window)" in (
+        dir_ops
+    )
+    assert "AppStateCommitPreviewEntryFocus(ctx, FOCUS_TREE)" in dir_ops
 
 
 def test_event_coverage_transition_sequence_arrays_are_referenced() -> None:

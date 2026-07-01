@@ -11,6 +11,7 @@
 #include "ytnova_defs.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_layout.h"
+#include "ytnova_appstate_modal.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
@@ -895,7 +896,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->fixed_col_width = 0; /* ADDED */
   ctx->refresh_mode =
       0; /* Will be set after ReadProfile initializes profile_data */
-  ctx->preview_mode = FALSE; /* Initialize Preview Mode */
+  if (!AppStateCommitPreviewMode(ctx, FALSE))
+    return -1;
   if (!AppStateSetPreviewWindowHandle(ctx, NULL))
     return -1;
 

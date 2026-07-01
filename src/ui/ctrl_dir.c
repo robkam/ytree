@@ -10,6 +10,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_modal.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
@@ -510,7 +511,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   /* Safety Reset for Preview Mode */
   if (ctx->preview_mode) {
     DEBUG_LOG("HandleDirWindow: Resetting preview mode");
-    ctx->preview_mode = FALSE;
+    if (!AppStateCommitPreviewMode(ctx, FALSE))
+      return ESC;
     ReCreateWindows(ctx);
     DisplayMenu(ctx);
     /* Update context again after ReCreateWindows */

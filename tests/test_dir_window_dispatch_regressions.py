@@ -678,9 +678,9 @@ def test_file_window_preview_return_uses_visible_selection_authority():
     preview_source = _extract_function_block(
         source, "BOOL handle_file_window_preview_action("
     )
-    return_source = preview_source.split("ctx->preview_mode = !ctx->preview_mode;", 1)[
-        1
-    ].split("RefreshView(ctx, dir_entry);", 1)[0]
+    return_source = preview_source.split(
+        "AppStateCommitPreviewMode(ctx, !ctx->preview_mode)", 1
+    )[1].split("RefreshView(ctx, dir_entry);", 1)[0]
 
     assert "ResolveActiveDirEntry(ctx, stats_local)" in return_source, (
         "File-window preview return must restore the active directory through "

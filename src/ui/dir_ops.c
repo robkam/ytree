@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_modal.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_volume.h"
@@ -1547,15 +1548,18 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeNovaAction action,
   case ACTION_VIEW_PREVIEW: {
     const YtreeNovaPanel *saved_panel = ctx->active;
 
-    ctx->preview_return_panel = ctx->active;
-    ctx->preview_return_focus = ctx->focused_window;
-    ctx->preview_mode = TRUE;
-    ctx->preview_entry_focus = FOCUS_TREE;
+    if (!AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window))
+      return DIR_WINDOW_DISPATCH_RETURN_ESC;
+    if (!AppStateCommitPreviewMode(ctx, TRUE))
+      return DIR_WINDOW_DISPATCH_RETURN_ESC;
+    if (!AppStateCommitPreviewEntryFocus(ctx, FOCUS_TREE))
+      return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
     HandleSwitchWindow(ctx, *dir_entry_ptr, need_dsp_help_ptr, ch_ptr,
                        ctx->active);
 
-    ctx->preview_mode = FALSE;
+    if (!AppStateCommitPreviewMode(ctx, FALSE))
+      return DIR_WINDOW_DISPATCH_RETURN_ESC;
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE))
       return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
