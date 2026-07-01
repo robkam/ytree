@@ -893,7 +893,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
     return -1;
 
   ctx->show_stats = TRUE;
-  ctx->fixed_col_width = 0; /* ADDED */
+  if (!AppStateCommitFixedColumnWidth(ctx, 0))
+    return -1;
   ctx->refresh_mode =
       0; /* Will be set after ReadProfile initializes profile_data */
   if (!AppStateCommitPreviewMode(ctx, FALSE))

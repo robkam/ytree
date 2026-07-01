@@ -10,6 +10,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_modal.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
@@ -1104,7 +1105,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     } break;
 
     case ACTION_TOGGLE_COMPACT:
-      ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
+      if (!AppStateCommitFixedColumnWidth(
+              ctx, (ctx->fixed_col_width == 0) ? 32 : 0))
+        return ESC;
       (void)AppStateMarkResizeRequest(ctx);
       break;
 
