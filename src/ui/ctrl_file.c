@@ -159,8 +159,10 @@ int ChangeFileGroup(ViewContext *ctx, FileEntry *fe_ptr) {
 DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
   char *saved_name = NULL;
   const Statistic *s = &ctx->active->vol->vol_stats;
+  int cursor_pos;
   int found_idx = -1;
   int start_x = 0;
+  int start_file;
 
   /* 1. Save current filename */
   if (ctx->active->file_count > 0) {
@@ -198,28 +200,30 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
 
   if (found_idx != -1) {
     /* Calculate new start_file and cursor_pos */
-    if (found_idx >= dir_entry->start_file &&
-        found_idx < dir_entry->start_file + FileNav_GetMaxDispFiles(ctx)) {
+    start_file = dir_entry->start_file;
+    if (found_idx >= start_file &&
+        found_idx < start_file + FileNav_GetMaxDispFiles(ctx)) {
       /* Still on screen, just move cursor */
-      dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+      cursor_pos = found_idx - start_file;
     } else {
       /* Off screen, recenter or scroll */
-      dir_entry->start_file = found_idx;
-      dir_entry->cursor_pos = 0;
+      start_file = found_idx;
+      cursor_pos = 0;
       /* Bounds check */
-      if (dir_entry->start_file + FileNav_GetMaxDispFiles(ctx) >
+      if (start_file + FileNav_GetMaxDispFiles(ctx) >
           (int)ctx->active->file_count) {
-        dir_entry->start_file = MAXIMUM(0, (int)ctx->active->file_count -
-                                               FileNav_GetMaxDispFiles(ctx));
-        dir_entry->cursor_pos =
-            (int)ctx->active->file_count - 1 - dir_entry->start_file;
+        start_file = MAXIMUM(0, (int)ctx->active->file_count -
+                                    FileNav_GetMaxDispFiles(ctx));
+        cursor_pos = (int)ctx->active->file_count - 1 - start_file;
       }
     }
   } else {
     /* File gone, reset to top */
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = 0;
+    start_file = 0;
+    cursor_pos = 0;
   }
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return dir_entry;
 
   /* 5. Update Display */
   if (dir_entry->global_flag)
@@ -248,6 +252,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   DEBUG_LOG("HandleFileWindow ENTERED for %s", dir_entry->name);
   FileEntry *fe_ptr;
   int ch;
+  int cursor_pos;
+  int start_file;
   int unput_char;
   int start_x = 0;
   BOOL need_dsp_help;
@@ -273,8 +279,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   if (!AppStateCommitPanelFileShape(ctx->active, big_file_shape))
     return ESC;
   if (tracked_file_dir == dir_entry) {
-    dir_entry->start_file = ctx->active->start_file;
-    dir_entry->cursor_pos = ctx->active->file_cursor_pos;
+    if (!AppStateCommitDirEntryFileViewport(
+            dir_entry, ctx->active->start_file, ctx->active->file_cursor_pos))
+      return ESC;
   }
   if (!AppStateCommitPanelFileAnchor(ctx->active, dir_entry))
     return ESC;
@@ -294,24 +301,27 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   ctx->ctrl_file_hide_right = 0;
 
   /* Sanitize cursor position immediately after BuildFileEntryList */
+  cursor_pos = dir_entry->cursor_pos;
+  start_file = dir_entry->start_file;
   if (ctx->active->file_count > 0) {
-    if (dir_entry->cursor_pos < 0)
-      dir_entry->cursor_pos = 0;
-    if (dir_entry->start_file < 0)
-      dir_entry->start_file = 0;
+    if (cursor_pos < 0)
+      cursor_pos = 0;
+    if (start_file < 0)
+      start_file = 0;
 
     /* Bounds Check: ensure we aren't past the end */
-    if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >=
+    if ((unsigned int)(start_file + cursor_pos) >=
         ctx->active->file_count) {
-      dir_entry->start_file = MAXIMUM(0, (int)ctx->active->file_count -
-                                             FileNav_GetMaxDispFiles(ctx));
-      dir_entry->cursor_pos =
-          (int)ctx->active->file_count - 1 - dir_entry->start_file;
+      start_file = MAXIMUM(0, (int)ctx->active->file_count -
+                                  FileNav_GetMaxDispFiles(ctx));
+      cursor_pos = (int)ctx->active->file_count - 1 - start_file;
     }
   } else {
-    dir_entry->cursor_pos = 0;
-    dir_entry->start_file = 0;
+    cursor_pos = 0;
+    start_file = 0;
   }
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos))
+    return ESC;
   (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
                                         dir_entry->cursor_pos);
   if (ctx->active->file_entry_list && ctx->active->file_count > 0) {

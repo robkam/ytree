@@ -1,0 +1,3 @@
+# False-positive handoff references to a historical AppState refresh event label.
+09615cc198c020025d20123d9095398f5bfb5062:.agent/handoffs/prompt.1.5.txt:generic-api-key:12
+09615cc198c020025d20123d9095398f5bfb5062:.agent/handoffs/report.1.5.txt:generic-api-key:6

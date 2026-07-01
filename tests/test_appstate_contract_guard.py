@@ -7577,6 +7577,27 @@ def test_ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper() -> N
         )
 
 
+def test_ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper() -> None:
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    refresh_start = ctrl_file.index("DirEntry *RefreshFileView(")
+    handle_start = ctrl_file.index("\nint HandleFileWindow(", refresh_start)
+    refresh_body = ctrl_file[refresh_start:handle_start]
+    assert not mutation.search(refresh_body)
+    helper_call = re.compile(r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,")
+    assert len(helper_call.findall(refresh_body)) == 1
+
+    initial_display_start = ctrl_file.index(
+        "\n  /* Initial Display using Centralized Function", handle_start
+    )
+    handoff_body = ctrl_file[handle_start:initial_display_start]
+    assert not mutation.search(handoff_body)
+    assert len(helper_call.findall(handoff_body)) == 2
+
+
 def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
