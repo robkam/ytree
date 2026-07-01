@@ -1,0 +1,30 @@
+Code auditor report: AppState diff harness startup guard unit
+
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low findings in the scoped diff.
+
+Acceptance verification
+- Required ID table parity: `src/core/main.c:194-200` contains the five harness IDs from `docs/appstate_diff_harness.json` `diff_harness_checks[*].harness_id`, in the same order. Independent parity check returned `True 5 5`.
+- Count mismatch fails closed: `AppStateDiffHarnessRegistryReady()` compares `AppStateDiffHarnessCount()` with `required_diff_harness_id_count` and returns 0 on mismatch at `src/core/main.c:978-983`.
+- Duplicate runtime IDs fail closed: the guard compares each prior row's `harness_id` with the current row and returns 0 on match at `src/core/main.c:1014-1020`.
+- Every required documented ID is lookup-checked: the required table is iterated and each ID is resolved through `AppStateDiffHarnessLookup()` at `src/core/main.c:1048-1051`.
+- Existing runtime metadata/linkage checks remain in place: field validation and transition/owner-field/invariant/generation-domain lookups are still enforced at `src/core/main.c:991-1045`.
+- Startup still invokes the guard: `main()` includes `!AppStateDiffHarnessRegistryReady()` in the startup invariant chain at `src/core/main.c:1137-1148`.
+
+Test quality
+- New tests are focused on startup guard source invariants and documented ID parity at `tests/test_appstate_contract_guard.py:4692-4741`.
+- Tests are deterministic and do not depend on CI logs or broad transcript text.
+- The parity test loads `guard.DEFAULT_DIFF_HARNESS`, collects `diff_harness_checks[*].harness_id`, parses `kAppStateRequiredDiffHarnessIds`, and verifies lookup usage at `tests/test_appstate_contract_guard.py:4713-4741`.
+- Existing contract tests already cover runtime diff harness missing/extra/duplicate/doc-drift cases at `tests/test_appstate_contract_guard.py:1848-1921`; the new startup tests complement those without broadening scope.
+
+Developer evidence
+- Developer report `/home/rob/ytreenova/.agent/handoffs/report.1.63.txt` reports passing focused diff-harness startup tests, the full `tests/test_appstate_contract_guard.py` suite, `scripts/check_appstate_contract.py`, `make clean && make`, and `git diff --check`.
+
+Auditor validation run
+- `source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 pytest -q -p no:cacheprovider tests/test_appstate_contract_guard.py -k 'runtime_diff_harness_startup'` — PASS, 2 passed / 279 deselected.
+- `source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_appstate_contract.py` — PASS.
+
+Residual risk
+- None identified within the strict audit scope.

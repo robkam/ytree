@@ -1,0 +1,66 @@
+Code Auditor Report: AppState event-coverage registry subunit
+
+Decision: PASS
+
+Findings (severity ordered)
+- No blocker, high, medium, or low findings in the audited scope.
+
+Scope and changed-file verification
+- Changed files observed with `git status --short`/diff review:
+  - docs/appstate_event_coverage.json
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Runtime/controller/header changes: none. No files under src/ or include/ are modified.
+- jcodemunch was not callable in this session: tool discovery returned no jcodemunch tools. Serena was available and used for initialization/project activation and scoped repository pattern exploration. Serena symbol overview could not inspect the Python files because the project is configured for C/C++; direct reads of known scoped files were used without grep/find fallback.
+
+Acceptance criteria verification
+- [x] docs/appstate_event_coverage.json exists and covers all required non-key event classes.
+  - Evidence: required_event_classes lists terminal_resize_signal, refresh_rebuild, rebuild_rebind_callback, filesystem_mutation_result, watcher_live_refresh, command_completion, modal_completion, volume_lifecycle, and render_reflow at docs/appstate_event_coverage.json:5-15.
+  - Evidence: events cover the same nine classes exactly once at docs/appstate_event_coverage.json:16-125; independent JSON audit reported `required_classes_complete True count 9`, no duplicate classes, and no missing fields.
+- [x] Event records include required metadata and reference valid transition IDs.
+  - Evidence: each record includes event_id, event_class, transition_id, category, source, owner, declared_write_set, boundary_status, trigger_paths, and migration_notes at docs/appstate_event_coverage.json:17-124.
+  - Evidence: independent JSON audit found no invalid transition refs and no category mismatches against docs/appstate_transition_matrix.json.
+- [x] scripts/check_appstate_contract.py rejects event registry drift and malformed event metadata.
+  - Evidence: required event constants and fields are defined at scripts/check_appstate_contract.py:73-105.
+  - Evidence: required_event_classes validation rejects missing, unknown, and duplicate class declarations at scripts/check_appstate_contract.py:190-219.
+  - Evidence: event records are validated for required fields, duplicate event_id, duplicate/unknown event_class, invalid transition_id, category mismatch, and missing required classes at scripts/check_appstate_contract.py:222-304.
+  - Evidence: default CLI validation includes --event-coverage at scripts/check_appstate_contract.py:471-486.
+- [x] Tests cover event registry complete pass, repository pass, missing event, unknown event, duplicate event, missing field, invalid transition, category mismatch, duplicate event id, and malformed list fields.
+  - Evidence: repository pass at tests/test_appstate_contract_guard.py:206-215 and complete temporary fixture pass at tests/test_appstate_contract_guard.py:218-224.
+  - Evidence: missing/unknown/duplicate event-class coverage at tests/test_appstate_contract_guard.py:279-310.
+  - Evidence: missing event field at tests/test_appstate_contract_guard.py:313-324.
+  - Evidence: duplicate event_id at tests/test_appstate_contract_guard.py:354-362.
+  - Evidence: empty/non-list/non-string/blank malformed list-field coverage includes event fields at tests/test_appstate_contract_guard.py:365-478.
+  - Evidence: invalid event transition and category mismatch coverage at tests/test_appstate_contract_guard.py:540-583.
+- [x] Existing action/transition/shim coverage checks still pass.
+  - Evidence: the script's existing transition, shim, action, YtreeAction enum, transition-ref, and category-match checks remain present at scripts/check_appstate_contract.py:307-459, with event validation appended afterward at scripts/check_appstate_contract.py:460-466.
+  - Evidence: `python3 scripts/check_appstate_contract.py` and `make qa-code-quality` both passed.
+- [x] No runtime behavior changes.
+  - Evidence: changed files are limited to docs JSON, the Python guard script, and guard tests; no src/ or include/ files changed.
+
+Developer evidence verification
+- Developer reported changed files match observed changed files.
+- Developer reported `python3 scripts/check_appstate_contract.py`: independently confirmed PASS.
+- Developer reported focused pytest count `59 passed`: independently confirmed 59 passed.
+- Developer reported `make qa-code-quality`: independently confirmed PASS.
+- Developer reported `make clean && make`: independently confirmed PASS with existing unrelated compiler warnings.
+- Developer reported no runtime/controller files changed: independently confirmed.
+- Developer reported make qa-all not run by instruction: respected; local make qa-all was not run.
+
+Independent validation commands
+- `python3 scripts/check_appstate_contract.py` — PASS (`PASS: AppState contract guard passed`).
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS (`59 passed in 0.60s`).
+- `make qa-code-quality` — PASS (unsafe API, module-boundary, AppState contract, and AI config guards passed).
+- `make clean && make` — PASS (build completed; existing unrelated compiler warnings remain).
+- Supplemental: `git diff --check` — PASS (no whitespace errors).
+- Supplemental independent JSON audit — PASS (all nine required event classes present exactly once; no missing required fields; no invalid transition refs; no category mismatches).
+
+Security and architecture review
+- No runtime C, controller, filesystem, process, or UI code changed, so no new buffer/integer overflow, format-string, use-after-free/double-free, path traversal, symlink TOCTOU, or command-injection surface was introduced in this subunit.
+- The registry is documentation/QA metadata only and does not claim completion of the broader docs/ROADMAP.md Task 1 transition-machine runtime work.
+- The added guard fails closed on unreadable/invalid event coverage input by extending load failures before validation proceeds.
+
+Residual risks
+- This subunit proves documentation/guard/test coverage for non-key AppState event registry drift only. It does not implement runtime transition-boundary enforcement, dynamic state-sequence harnesses, or render/write-set mutation detection required by the broader roadmap task.
+- watcher_live_refresh and modal_completion intentionally map to existing broad transition records rather than dedicated runtime boundaries; this is acceptable for the scoped registry unit but remains migration debt for the broader AppState transition-machine work.
+- The build still emits pre-existing unrelated compiler warnings outside this scope.

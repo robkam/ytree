@@ -1,0 +1,33 @@
+You are the developer worker for ~/ytree.
+
+TASK 1 resolved title: Unified AppState Transition Machine + Projection Contract.
+Correction round 1.5: fix PR full-QA CI failure root cause.
+
+Evidence:
+- PR #73 full local-equivalent QA gate failed only at `gitleaks detect --source . --redact --exit-code 1` after all 357 pytest tests and AppState guard passed.
+- Local `gitleaks detect --source . --redact --exit-code 1 --verbose` reports a single false positive:
+  - File: docs/appstate_transition_matrix.json
+  - Line: 61
+  - RuleID: generic-api-key
+  - Finding: JSON field `"event": "keybinding:F5_or_explicit_relog"`
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md and /home/rob/ytree/.ai/shared.md.
+2. Use MCP semantic tools only for codebase exploration where exploration is needed.
+
+Strict scope:
+- Fix the gitleaks false positive by changing the transition matrix wording/value, not by suppressing gitleaks or weakening QA.
+- Preserve schema and intent.
+- Do not edit runtime src/include files.
+- Do not run make qa-all.
+
+Acceptance criteria:
+- [ ] `gitleaks detect --source . --redact --exit-code 1` passes locally.
+- [ ] `python3 scripts/check_appstate_contract.py` passes.
+- [ ] `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` passes.
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.5.txt
+
+Completion reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.5.txt

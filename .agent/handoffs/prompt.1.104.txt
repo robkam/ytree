@@ -1,0 +1,40 @@
+You are the code auditor for one atomic AppState guard/scaffold unit in /home/rob/ytreenova.
+
+Required completion reply (exactly one line):
+APPSTATE HARNESS INVARIANT ALIGNMENT UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.104.txt
+
+Audit goal
+- Risk-first audit of the AppState diff harness invariant-alignment unit currently in the working tree.
+- Verify it correctly requires every diff harness transition_id to be covered by at least one invariant_id listed on that same harness.
+
+Scope
+- Audit only the current uncommitted diff on branch chore/appstate-shim-invariant-alignment after commit 3ff9b1a.
+- Expected changed files:
+  - docs/appstate_diff_harness.json
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.103.txt
+
+Acceptance criteria to verify
+- [ ] Docs validation rejects a diff harness with a transition_id that no same-harness invariant_id covers.
+- [ ] Runtime registry validation rejects equivalent mismatch in parsed src/core/appstate_actions.c diff harness metadata.
+- [ ] Startup readiness checks runtime invariant metadata and fails closed unless every diff harness transition is covered by at least one listed invariant.
+- [ ] Current docs/runtime diff harness metadata satisfies the new invariant, with only narrow coherent metadata correction.
+- [ ] Focused tests cover docs drift, runtime drift, and startup readiness shape.
+- [ ] No runtime UI behavior change is introduced.
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer validation evidence.
+- Check for overbroad scope, noisy docs/process text, weak test assertions, metadata/runtime mismatch, or fail-open guard behavior.
+- Clear pass/fail decision.
+
+Suggested verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.104.txt

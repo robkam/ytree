@@ -1,0 +1,37 @@
+Audit report: AppState invariant runtime lookup scaffold
+
+Decision: FAIL
+
+Findings
+
+1. Severity: high
+   File: scripts/check_appstate_contract.py:518-539, scripts/check_appstate_contract.py:559-561, scripts/check_appstate_contract.py:859-864
+   Evidence: The runtime invariant parser only records rows that match the strict string-literal row regex. It does not verify that every initializer inside `kAppStateInvariants[]` was consumed. A targeted mutation that appended an extra compiled-style runtime row with `NULL` as `invariant_id` produced `PASS: AppState contract guard passed` from `python3 scripts/check_appstate_contract.py --action-runtime <mutated runtime file>`. Because the malformed extra row is ignored, `covered_ids` still equals the documented ids and the missing-id check does not fire.
+   Impact: The acceptance criterion requiring the Python contract guard to detect extra runtime invariant rows is not met for malformed/null extra rows. A bad runtime registry row can pass `make qa-code-quality` even though startup validation would fail closed and abort normal app startup once that row is compiled in.
+   Concrete fix: Make `_parse_runtime_invariant_registry` fail closed on unparsed registry entries. For example, split or scan the `kAppStateInvariants[]` body into top-level initializer rows, require each row to match the expected schema, and report any unparsed row by index before validation. Add a regression test that appends an extra runtime invariant row with a non-string/null id (or otherwise malformed schema) and asserts the guard fails.
+
+Acceptance criteria verification
+
+- Runtime invariant metadata type and lookup/count/index APIs are read-only and fail closed for null/empty/unknown ids: PASS by inspection (`include/ytree_appstate_actions.h:42-57`, `src/core/appstate_actions.c:779-848`).
+- No second AppState root was introduced: PASS; changes add static metadata tables and lookup/startup validation only.
+- Runtime invariant rows mirror `docs/appstate_invariants.json` for the intended fields: PASS; targeted parser check found 8 runtime rows, 8 doc rows, exact equality.
+- Startup checks validate invariant registry shape, invariant lookup fail-closed behavior, and transition linkage through `AppStateTransitionLookup` without changing normal startup flow: PASS by inspection (`src/core/main.c:101-145`, `src/core/main.c:292-299`).
+- Python contract guard detects missing/extra/duplicate runtime invariant rows, field drift, invalid transition ids, and invalid dispatch-surface references: FAIL; it detects normal matching extra rows, duplicates, drift, transition linkage, and dispatch-surface references, but misses malformed extra runtime rows because unparsed rows are ignored.
+- Focused tests keep existing AppState guard coverage green: PASS for execution, but INCOMPLETE for the malformed extra-row gap above.
+- No direct state writes or restore/render behavior changes outside metadata/startup validation: PASS by inspection.
+- C style/portability/security: PASS for reviewed changes; no unsafe string API, command injection, path traversal, ownership, or memory-lifetime regression found in the scoped changes.
+
+Developer evidence verification
+
+- Read developer report `.agent/handoffs/report.1.33.txt`; reported scope and validation evidence matched the inspected diff.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`: PASS, 207 passed in 2.76s.
+- `make qa-code-quality`: PASS, including `scripts/check_appstate_contract.py`.
+- Targeted mirror check against `docs/appstate_invariants.json`: PASS, exact row/field match.
+- `git diff --check -- include/ytree_appstate_actions.h src/core/appstate_actions.c src/core/main.c scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`: PASS.
+- Targeted malformed-extra-row guard check: FAIL as expected for this audit finding; the contract guard incorrectly returned PASS.
+
+Scope and edits
+
+- Reviewed only the requested files plus the developer evidence and the invariant JSON needed to verify mirroring.
+- No repository files were modified except this audit report.
+- Serena MCP was used where available; Serena symbol extraction failed for these files in this session, and no jcodemunch tool was exposed by tool discovery, so scoped direct reads and Serena pattern searches were used as fallback evidence gathering.

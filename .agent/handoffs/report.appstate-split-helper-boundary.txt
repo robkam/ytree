@@ -1,0 +1,20 @@
+Task appstate-split-helper-boundary report
+
+PR
+- https://github.com/robkam/ytreenova/pull/191
+- Draft, branch appstate-split-helper-boundary, head 844f918107ecfad150f7fa1f5f96a1fbb1dec29e.
+
+Changes
+- src/ui/split_transition.c: added AppState action/transition metadata validation before F8/Tab split helper work begins.
+- tests/test_appstate_contract_guard.py: added a compiled runtime probe proving file split rejects unregistered action metadata and directory Tab switch rejects mismatched action/transition category metadata without state mutation.
+
+Validation
+- RED: `pytest tests/test_appstate_contract_guard.py::test_split_transition_helpers_fail_closed_on_invalid_appstate_boundary` failed before implementation with probe return code 1.
+- GREEN: `pytest tests/test_appstate_contract_guard.py::test_split_transition_helpers_fail_closed_on_invalid_appstate_boundary` passed after implementation.
+- `make clean && make` passed with existing warnings.
+
+GitHub check snapshot
+- `gh pr checks 191 --repo robkam/ytreenova` showed pending: Analyze (actions), Analyze (c-cpp), Analyze (python), Detect QA-relevant changes, Fedora Rawhide GCC build/install smoke.
+
+Resume instruction
+- After GitHub checks for PR 191 are green, mark ready if still draft, merge when allowed, clean up branch state, update .agent/handoffs/prompt.1.txt, and stop before selecting another AppState batch.

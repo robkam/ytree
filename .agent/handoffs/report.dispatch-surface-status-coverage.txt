@@ -1,0 +1,26 @@
+Completed state
+- Created branch `chore/dispatch-surface-status-coverage` from `main` and opened draft PR https://github.com/robkam/ytreenova/pull/181.
+- Promoted all runtime-backed dispatch surfaces from `documented_foundation_only` to `covered_by_transition_record` in both docs/appstate_dispatch_surfaces.json and the runtime dispatch surface registry in src/core/appstate_actions.c.
+- Tightened scripts/check_appstate_contract.py so a dispatch surface with a runtime registry record cannot remain foundation-only.
+- Added a focused regression test for that guard in tests/test_appstate_contract_guard.py.
+
+Current next action
+- Wait for GitHub CI on https://github.com/robkam/ytreenova/pull/181.
+- When GitHub checks are green, inspect that active PR once, convert from draft only if needed and allowed, merge, clean up branch state, update .agent/handoffs/prompt.1.txt, and stop.
+- Do not start another AppState batch while this PR remains open.
+
+New/changed handles
+- Branch: `chore/dispatch-surface-status-coverage`
+- Commit: `ffd2b75` (`chore(appstate): require covered dispatch surface statuses`)
+- Draft PR: https://github.com/robkam/ytreenova/pull/181
+- Updated checkpoint: `/home/rob/ytreenova/.agent/handoffs/prompt.1.txt`
+
+Validation
+- Red: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_dispatch_surface_status_stays_foundation_only'`
+- Green: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_dispatch_surface_status_stays_foundation_only or current_repository_appstate_contract_passes or runtime_dispatch_surface_validation_requires_registry_and_transition or guard_fails_when_runtime_dispatch_surface_validation_callsite_is_missing or guard_fails_when_runtime_dispatch_surface_validation_moves_outside_source_boundary'`
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- `make clean && make`
+- `git diff --check`
+
+GitHub check snapshot
+- Snapshot taken once after PR creation: PR Freshness Gate in progress; PR Size Gate in progress; C/C++ Baseline CI detect job in progress; C/C++ Full QA detect job in progress; CodeQL queued; Fedora Rawhide GCC smoke queued.

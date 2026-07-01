@@ -1,0 +1,17 @@
+Developer report: AppState invariant diff-harness coverage correction
+
+Files changed
+- tests/test_appstate_contract_guard.py
+  - Corrected test_guard_fails_when_runtime_invariant_field_lacks_diff_harness_owner_ref to keep runtime invariant protected_fields on registered owner fields.
+  - The regression now removes registered panel.tree_selection_key from every runtime_diff_harness_checks owner_field_refs list and asserts the runtime coverage diagnostic for panel.tree_selection_key.
+
+Commands run
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_invariant_field_lacks_diff_harness_owner_ref or invariant and diff' — PASS: 11 passed, 334 deselected in 0.74s.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS: 345 passed in 10.53s.
+- python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- git diff --check — PASS: no whitespace errors.
+
+Auditor finding addressed
+- The runtime regression no longer adds the unregistered runtime.missing_diff_coverage field to runtime invariant protected_fields.
+- It now proves the intended failure mode: a registered protected owner field, panel.tree_selection_key, is present in runtime invariants but absent from runtime diff-harness owner_field_refs, producing the runtime coverage diagnostic.
+- No implementation change was needed; the corrected regression passes with the existing guard behavior.

@@ -1,0 +1,32 @@
+Code auditor report: AppState invariant diff-harness coverage re-audit
+
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low findings remain in the corrected working tree changes.
+
+Acceptance criteria verification
+- Python docs guard fails when a registered invariant protected field is absent from all docs diff harness owner_field_refs: PASS. The guard builds the docs owner-field ref union at scripts/check_appstate_contract.py:5278-5286 and checks invariant protected fields at scripts/check_appstate_contract.py:3413-3422 via scripts/check_appstate_contract.py:3955-3994. The regression at tests/test_appstate_contract_guard.py:2462-2481 removes panel.tree_selection_key from every docs diff harness and asserts the expected diagnostic.
+- Python runtime guard fails when a registered runtime invariant protected field is absent from all runtime diff harness owner_field_refs: PASS. The runtime owner-field ref union is derived at scripts/check_appstate_contract.py:5287-5289 and checked at scripts/check_appstate_contract.py:2372-2380 / 5306-5316. The corrected regression at tests/test_appstate_contract_guard.py:2788-2818 now removes registered panel.tree_selection_key from every runtime diff harness instead of introducing an unregistered protected field.
+- Runtime startup guard fails closed for the same mismatch after invariant protected_fields shape and owner-field lookup checks: PASS by source audit and build. src/core/main.c:1048-1054 validates protected_fields shape before per-field iteration, src/core/main.c:1073-1076 checks AppStateOwnerFieldLookup(field) before AppStateDiffHarnessOwnerFieldCovered(field), and src/core/main.c:606-632 returns false for missing/invalid/absent diff harness owner-field coverage. The source assertion at tests/test_appstate_contract_guard.py:6286-6295 pins the ordering.
+- Current repository metadata still passes: PASS. python3 scripts/check_appstate_contract.py reports AppState contract guard passed.
+- Tests remain focused and do not mask existing diff-harness write coverage behavior: PASS. Existing docs/runtime write-coverage tests remain present at tests/test_appstate_contract_guard.py:2556-2580 and 2759-2785 and pass in the focused/full test runs. The fixture default at tests/test_appstate_contract_guard.py:224-239 only adds the second registered protected field needed for invariant coverage.
+- No unrelated UI/runtime migration or docs noise: PASS. git diff --name-status shows only scripts/check_appstate_contract.py, src/core/main.c, and tests/test_appstate_contract_guard.py changed.
+
+Developer and correction evidence verified
+- Developer report .agent/handoffs/report.1.117.txt claimed initial implementation and full validation; re-audit confirms those commands still pass after correction.
+- Initial audit .agent/handoffs/report.1.118.txt found one medium issue in the runtime regression: it used an unregistered protected field and did not prove the registered-field mismatch.
+- Correction report .agent/handoffs/report.1.119.txt claimed the runtime regression now removes registered panel.tree_selection_key from runtime diff harness owner_field_refs. Re-audit confirms tests/test_appstate_contract_guard.py:2788-2818 implements that correction.
+
+Security checklist
+- No new untrusted file/process operations or command execution paths in the changed logic.
+- C startup helper only reads static metadata arrays through existing accessors and bounded counts.
+- Invalid NULL/empty owner-field metadata fails closed in src/core/main.c:606-632.
+- No new buffer overflow, integer overflow, format-string misuse, use-after-free/double-free, path traversal, symlink TOCTOU, or command-injection class observed.
+
+Commands run
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'invariant and diff' — PASS: 11 passed, 334 deselected in 0.37s.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS: 345 passed in 10.14s.
+- python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- make clean && make — PASS: build completed; existing warnings emitted.
+- git diff --check — PASS: no whitespace errors.

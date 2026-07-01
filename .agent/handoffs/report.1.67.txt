@@ -1,0 +1,19 @@
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Summary of implementation:
+- Added kAppStateRequiredOwnerFieldIds in src/core/main.c with the documented owner field IDs from docs/appstate_owner_fields.json owner_fields[*].field.
+- Updated AppStateOwnerFieldsReady() to fail when the runtime owner-field count differs from the required documented ID count, reject duplicate runtime field IDs, preserve existing metadata/sentinel/null-empty-unknown lookup checks, and verify every documented required owner field resolves through AppStateOwnerFieldLookup().
+- Added focused startup guard tests for owner-field fail-closed source checks and required documented field ID table parity using guard.DEFAULT_OWNER_FIELDS, collection_key="owner_fields", id_field="field".
+
+Exact commands run and pass/fail results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'owner_field and startup' — PASS (2 passed, 283 deselected)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (285 passed)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS (AppState contract guard passed)
+- make clean && make — PASS (completed; existing compiler warnings emitted outside the touched owner-field startup code)
+- git diff --check — PASS
+
+Risks or follow-up notes:
+- No runtime owner-state mutation enforcement, transition execution, or state snapshots were added.
+- make clean && make still emits pre-existing warnings in unrelated files; none were introduced by this scoped change.

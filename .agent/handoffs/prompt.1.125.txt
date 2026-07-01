@@ -1,0 +1,64 @@
+You are the developer for one atomic AppState subunit in /home/rob/ytreenova.
+
+Goal
+- Add machine-readable owner-field coverage for AppState compatibility shims so shim reads/writes remain aligned with the canonical owner/write-set model while runtime migration debt still exists.
+
+Strict scope
+- Work only on compatibility-shim owner-field coverage and guard/runtime metadata alignment.
+- Expected files are likely limited to:
+  - docs/appstate_compat_shims.json
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+  - src/core/main.c only if startup validation must be extended there
+- Keep edits minimal and consistent with existing AppState registry/guard patterns.
+
+Explicit non-goals
+- Do not migrate runtime UI behavior.
+- Do not introduce a live AppState executor.
+- Do not rewrite existing registry schemas beyond what is needed for shim owner-field refs.
+- Do not run local make qa-all.
+- Do not touch unrelated files or reformat broad JSON/C/Python content.
+
+Required behavior
+- Add an `owner_field_refs` list to each compatibility shim registry entry.
+- Add owner-field refs to the runtime shim metadata struct/tables.
+- The contract guard must fail when a shim owner_field_ref is missing, malformed, duplicated if existing list semantics reject duplicates, or unknown to the owner-field registry.
+- The guard must fail when a write-capable shim targets a transition that does not declare every shim owner_field_ref in its declared_write_set.
+- The guard must preserve read-only/no-write projection semantics: a shim with `write_permission` that clearly says never/no write must not be forced to match a write set, but it must still name the owner fields it can read/project if applicable.
+- Runtime startup validation must detect drift between docs and C metadata and fail closed for missing/unknown/misaligned runtime shim owner fields.
+- Tests must cover both document-level guard failures and runtime table/startup failures.
+
+State/restore invariant requirements
+- Treat shim owner_field_refs as a guard at the temporary compatibility boundary: no compatibility shim may become an untracked canonical owner path.
+- Prove by tests that write-capable shim metadata cannot name owner fields outside the target transition write set.
+- Preserve generation/stale-snapshot protections already encoded in invariants; do not weaken existing checks.
+
+Acceptance criteria checklist
+- [ ] `docs/appstate_compat_shims.json` has `owner_field_refs` on every shim.
+- [ ] C runtime shim metadata exposes the same owner refs.
+- [ ] `scripts/check_appstate_contract.py` validates shim owner refs against owner fields and target transition write sets.
+- [ ] JSON guard tests fail for missing/unknown/misaligned shim owner refs.
+- [ ] Runtime/startup tests fail for doc/runtime drift and invalid runtime owner refs.
+- [ ] Existing tests for shim invariants/target transitions still pass.
+- [ ] No unrelated files changed.
+
+Exact verification commands, targeted first
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+- `python3 scripts/check_appstate_contract.py`
+- `make clean && make`
+- `git diff --check`
+
+Report path
+- Write your report to: `/home/rob/ytreenova/.agent/handoffs/report.1.125.txt`
+
+Report contents
+- Summary of changed files.
+- Exact commands run and results.
+- Any residual risks or follow-up recommendations.
+
+Completion reply
+- Reply exactly one line:
+  `APPSTATE SHIM OWNER FIELD COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.125.txt`

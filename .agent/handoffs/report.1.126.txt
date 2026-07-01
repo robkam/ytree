@@ -1,0 +1,39 @@
+AppState compatibility shim owner-field coverage audit
+
+Decision: FAIL
+
+Risk-first findings
+
+1. Severity: medium
+   File: scripts/check_appstate_contract.py:2888-2896; src/core/main.c:1116-1124; tests/test_appstate_contract_guard.py:5096-5111,6655-6656
+   Evidence: The document guard and startup guard classify no-write/read-only shims by free-text substring search. Any write_permission containing "never write", "no write", "do not write", "read-only", or "read only" is treated as not write-capable, and _validate_shim_owner_field_refs then skips target declared_write_set coverage at scripts/check_appstate_contract.py:2946-2947. Runtime has the same bypass pattern in AppStateCompatibilityShimWriteCapable. A probe against the staged code returned no failures for a write-capable permission phrase with an outside owner ref: `Do not write stale mirror directly; write only from transition commit after canonical state changes.` with owner_field_refs `["field.outside"]` and target declared_write_set `["field.inside"]` produced `[]`. The added tests only cover the positive no-write allowance (`Never write authoritative selection...`) and static presence of the C markers; they do not prove that mixed/negated write-capable text still gets write-set enforcement.
+   Impact: This violates the acceptance criterion that no-write/read-only classification be narrow enough not to become a bypass for write-capable text. Future shim metadata can accidentally or intentionally include a marker phrase while still describing transition writes, and both the document guard and startup validation will fail open for owner refs outside the target transition write set.
+   Concrete fix: Replace free-text classification with a structured metadata field such as `write_capability: "write-capable" | "read-only-projection" | "no-write"`, or require an exact bounded allow-list of complete write_permission strings/ids for no-write shims. Mirror the same classifier in runtime from generated/declared metadata, not ad hoc C substring checks. Add negative tests for mixed write-capable text containing each marker phrase and runtime/startup assertions for the same fail-closed behavior.
+
+Acceptance criteria verification
+
+- Every docs compatibility shim has non-empty owner_field_refs: PASS. All four docs shims declare non-empty arrays.
+- Owner refs resolve to docs/appstate_owner_fields.json: PASS. Verified all staged refs resolve.
+- Write-capable shim owner refs are a subset of the target transition declared_write_set: PASS for current docs data. The two current write-capable shims are subsets. However, the classifier bypass finding means the rule is not robust for future text.
+- No-write/read-only shim classification is narrow enough not to become a bypass for write-capable text: FAIL. See finding 1.
+- Runtime C metadata schema and tables match docs metadata: PASS for current staged metadata. Struct fields, runtime arrays, and parsed docs align.
+- Startup validation fails closed for missing/unknown/duplicated/misaligned runtime shim owner refs: PARTIAL/FAIL. Missing, unknown, duplicate, and write-set checks are present, but the write-set check is skipped by the same overly broad text classifier, so misaligned refs can fail open when write_permission contains a marker phrase.
+- Tests cover document-level failures and runtime/startup drift failures: PARTIAL. Added tests cover missing/unknown/duplicate document refs, write-set failures, no-write allowance, runtime doc drift, runtime unknown refs, runtime write-set failure, and static startup source checks. They do not cover marker-containing write-capable text, which is the critical bypass case.
+- No runtime UI behavior migration or unrelated edits are included: PASS. Diff is limited to AppState metadata/docs/guard/startup/tests in the requested files.
+
+Developer evidence verification
+
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'`: VERIFIED PASS, 13 passed / 349 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`: VERIFIED PASS, 362 passed.
+- `python3 scripts/check_appstate_contract.py`: VERIFIED PASS.
+- `make clean && make`: VERIFIED PASS; warnings observed are in pre-existing unrelated files, consistent with developer report.
+- `git diff --check`: VERIFIED PASS.
+
+Architect/developer validation sufficiency
+
+The command evidence is real but not sufficient for acceptance because it does not exercise the no-write classifier as an adversarial boundary. The current tests prove that an explicit no-write shim is allowed; they do not prove that write-capable prose containing "do not write"/"no write"/"read-only" still enforces target write-set coverage.
+
+Security and scope notes
+
+- No new memory allocation, file/process execution, shelling out, path handling, or UI behavior was introduced in the staged diff.
+- The main security-relevant property here is fail-closed metadata validation; that property is weakened by finding 1.

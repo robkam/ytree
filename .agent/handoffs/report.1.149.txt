@@ -1,0 +1,36 @@
+Owner-field coverage approach
+- Added explicit `owner_field_refs` to AppState action and event coverage docs immediately after `declared_write_set`.
+- Set each action/event `owner_field_refs` list to the same canonical owner-field IDs as its declared write set, so coverage proves ownership-map alignment without replacing declared write-set semantics.
+- Extended `scripts/check_appstate_contract.py` so action/event coverage rejects missing, malformed, duplicate, unknown, undeclared/mixed owner-field refs, and requires an explicit migration-note rationale if an empty write set ever has empty owner-field coverage.
+- Extended runtime action/event metadata structs, tables, parsing, docs drift checks, and startup readiness validation to expose and fail-closed on owner-field refs that are unknown, duplicated, or not an exact cover of the runtime declared write set.
+- No new `docs/appstate_owner_fields.json` entries were needed; all current declared writes already resolve to canonical owner-field registry records.
+
+Files changed
+- docs/appstate_action_coverage.json
+- docs/appstate_event_coverage.json
+- include/ytnova_appstate_actions.h
+- scripts/check_appstate_contract.py
+- src/core/appstate_actions.c
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Commands run and results
+- `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py && python3 scripts/check_appstate_contract.py`:
+  - `py_compile` passed.
+  - Initial contract run failed with malformed runtime action coverage rows after the first C insertion pass; fixed by inserting owner-field ref columns into every runtime action row.
+- `python3 scripts/check_appstate_contract.py`: PASS after fixing runtime row coverage.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'owner_field_refs or owner_ref or action_coverage or event_coverage or readiness'`:
+  - First run failed 1 test (`test_runtime_event_coverage_detects_write_set_drift`) because its mutation fixture needed the new owner-field-ref columns.
+  - Rerun passed: 150 passed, 409 deselected.
+  - Final rerun after adding the event mixed valid+wrong owner-ref case passed: 151 passed, 409 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`:
+  - First full run passed: 559 passed.
+  - Final full run passed: 560 passed.
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`: PASS.
+- `make clean && make`: PASS; emitted existing warning noise in unrelated files.
+- `git diff --check`: PASS, no output.
+- Final combined check `source .venv/bin/activate && python3 scripts/check_appstate_contract.py && git diff --check`: PASS.
+
+Residual risks / follow-up suggestions
+- This remains guard/scaffold-only: no runtime UI dispatch behavior was migrated or refactored.
+- Build still reports pre-existing warnings outside this scope; no new warning from the AppState owner-field coverage changes was observed.

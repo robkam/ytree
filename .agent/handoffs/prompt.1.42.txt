@@ -1,0 +1,44 @@
+You are the code auditor for one atomic subunit of the durable roadmap aim: Unified AppState Transition Machine + Projection Contract.
+
+Unit under audit: AppState owner-field runtime lookup scaffold.
+
+Repository: /home/rob/ytreenova
+Branch: chore/appstate-owner-field-lookup
+
+Strict audit scope:
+- Audit only the current branch diff for these intended files:
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Do not implement code or rewrite the patch. If you find issues, report them precisely.
+
+Acceptance criteria to verify:
+- Runtime owner-field lookup/count/index APIs exist and fail closed for null, empty, unknown ids, and out-of-range indexes.
+- Runtime owner-field rows mirror docs/appstate_owner_fields.json fields: field, owner_region, canonical_owner, runtime_carrier, mutation_rule, migration_status, invariant_checks.
+- Startup validation checks owner-field registry shape, unknown lookup failure, non-empty required scalar fields, and invariant_checks list shape.
+- Python contract guard parses runtime owner-field rows and validates missing, extra, duplicate, malformed, drifted, and malformed-list owner-field metadata.
+- Focused tests cover owner-field guard behavior including malformed top-level rows and malformed invariant-check list entries.
+- Existing AppState registry guard behavior remains green.
+- No runtime UI behavior changes are introduced; this is read-only metadata and startup validation only.
+
+Developer evidence to verify:
+- python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py: PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS, 222 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASS.
+- make clean && make: PASS, with pre-existing warnings in unchanged files.
+- make qa-code-quality: PASS.
+- make qa-cppcheck: PASS.
+
+Architect validation to verify was rerun:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py && make clean && make && make qa-cppcheck && make qa-code-quality && git diff --check: PASS.
+
+Audit report requirements:
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer/architect evidence.
+- Clear PASS or FAIL decision.
+- Required report path: /home/rob/ytreenova/.agent/handoffs/report.1.42.txt
+
+Completion reply must be exactly one line:
+APPSTATE OWNER FIELD UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.42.txt

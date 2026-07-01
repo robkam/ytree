@@ -1,0 +1,23 @@
+Summary:
+- Added a local required AppState compatibility shim ID table in src/core/main.c matching docs/appstate_compat_shims.json.
+- Updated AppStateCompatibilityShimsReady() to fail closed when the runtime shim count differs from the required ID table, when runtime shim IDs are duplicated, or when any required shim ID cannot be resolved through AppStateCompatibilityShimLookup().
+- Added focused startup guard tests that parse the required shim ID table from src/core/main.c, compare it with docs/appstate_compat_shims.json, and assert the startup validation uses the table and duplicate/fail-closed checks.
+
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Commands run and results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup' (before implementation): FAILED as expected, 2 failed, 277 deselected; missing required shim startup table/count checks.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup': PASSED, 2 passed, 277 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASSED, 279 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASSED, AppState contract guard passed.
+- make clean && make: PASSED; build completed and produced build/ytnova and build/ytnova.1. Existing compiler warnings were emitted in unrelated files.
+- make qa-code-quality: PASSED; unsafe API, module-boundary, AppState contract, and AI config guards passed.
+- git diff --check: PASSED; no whitespace errors.
+- After a test formatting cleanup, reran the full verification chain with: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup' && source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py && source .venv/bin/activate && python3 scripts/check_appstate_contract.py && make clean && make && make qa-code-quality && git diff --check: PASSED.
+
+Risks/follow-ups:
+- No user-visible runtime behavior changes intended.
+- The shim ID table is now a startup contract and must be updated alongside docs/appstate_compat_shims.json if documented shim IDs intentionally change.
+- make still emits unrelated pre-existing warnings outside this scoped change.

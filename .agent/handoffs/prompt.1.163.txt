@@ -1,0 +1,42 @@
+TASK 1 AppState dispatch-surface validation boundary developer prompt
+
+Goal
+- Implement the next atomic AppState subunit for the roadmap aim "Unified AppState Transition Machine + Projection Contract": add a runtime validation boundary for dispatch-surface IDs using the existing dispatch-surface registry and transition metadata.
+
+Strict scope
+- Work only in the current Ubuntu checkout at /home/rob/ytreenova.
+- Preserve unrelated files and do not reset, clean, or reformat unrelated changes.
+- Expected likely files: include/ytnova_appstate_actions.h, src/core/appstate_actions.c, one narrow runtime boundary file if justified, tests/test_appstate_contract_guard.py.
+- Choose a narrow existing runtime boundary where a dispatch-surface ID is semantically already the active surface. Do not migrate controllers or restructure runtime dispatch.
+
+Explicit non-goals
+- Do not migrate AppState ownership, restore behavior, rendering, controller dispatch, or state-machine execution.
+- Do not add a new JSON registry unless necessary; use docs/appstate_dispatch_surfaces.json generated/runtime metadata already present.
+- Do not broaden this into file-window/directory-window runtime migration.
+- Do not include CI/check transcripts or handoff paths in code comments/docs.
+
+Acceptance criteria checklist
+- [ ] Add a public helper, likely `int AppStateValidatedDispatchSurface(const char *surface_id)`, declared in include/ytnova_appstate_actions.h and implemented in src/core/appstate_actions.c.
+- [ ] Helper must fail closed for NULL, empty, missing dispatch-surface coverage, mismatched `surface_id`, and missing transition metadata.
+- [ ] Helper must pass for valid existing dispatch surface IDs whose transition metadata exists.
+- [ ] At least one appropriate runtime dispatch boundary uses the helper before dispatch proceeds; on validation failure it must fail closed without silently proceeding.
+- [ ] Tests cover valid and fail-closed behavior, including mutation-based source checks consistent with existing AppState contract guard style.
+- [ ] No unrelated refactor or formatting churn.
+
+Verification commands, targeted first
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or runtime_surface or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+- make clean && make
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.163.txt
+
+Report requirements
+- Summarize files changed and why.
+- List exact commands run and results.
+- Note any warnings as pre-existing if applicable.
+- Identify risks or follow-up work.
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH SURFACE BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.163.txt

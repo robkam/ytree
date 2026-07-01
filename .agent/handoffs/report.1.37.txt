@@ -1,0 +1,37 @@
+Files changed
+- scripts/check_appstate_contract.py
+  - Added fail-closed parsing for C string initializer array entries.
+  - Updated runtime invariant metadata list-array parsing to report malformed entries instead of silently ignoring non-string tokens.
+- tests/test_appstate_contract_guard.py
+  - Added regression coverage for a malformed runtime invariant metadata list entry (`NULL`) in `kAppStateInvariantProtectedFields0[]`.
+
+Acceptance criteria status
+- Runtime invariant parser/guard fails closed for malformed top-level entries in invariant metadata list arrays: met.
+- Error messages identify malformed array and entry index: met (`kAppStateInvariantProtectedFields0[0]: malformed string literal entry: NULL`).
+- Missing/extra/duplicate/string-field drift validations for valid rows still work: met by the AppState contract guard test file.
+- Existing top-level malformed-row regression remains green: met by `tests/test_appstate_contract_guard.py`.
+- Focused regression test for a non-string list entry such as `NULL`: added and verified.
+- Existing AppState contract guard tests remain green: met.
+- Existing local guard bundle remains green: met.
+
+Commands run and results
+- `make mcp-doctor`
+  - Result: passed; reported both serena and jcodemunch present with two personal-path warnings.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py::test_guard_fails_when_runtime_invariant_list_entry_is_malformed`
+  - Result before implementation: failed as expected; guard ignored `NULL` and produced no malformed-entry failure.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py::test_guard_fails_when_runtime_invariant_list_entry_is_malformed`
+  - Result after implementation: passed (`1 passed`).
+- `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`
+  - Result: passed.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+  - Result: passed (`209 passed`).
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+  - Result: passed (`PASS: AppState contract guard passed`).
+- `make qa-code-quality`
+  - Result: passed; unsafe C API, module-boundary, AppState contract, and project AI config guards passed.
+- `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py && source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py && python3 scripts/check_appstate_contract.py && make qa-code-quality`
+  - Result: passed (`209 passed`; AppState contract and qa-code-quality guards passed).
+
+Deviations
+- No scope deviations.
+- Pre-existing uncommitted edits in `include/ytree_appstate_actions.h`, `src/core/appstate_actions.c`, and `src/core/main.c` were left untouched.

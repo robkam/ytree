@@ -1,0 +1,25 @@
+Findings
+- No findings.
+
+Decision
+- PASS: the AppState sequence diff-harness alignment unit satisfies the audited goal.
+
+Acceptance verification
+- Guard rejects a sequence step whose diff_harness_ids do not include a harness covering the step transition_id: PASS. The docs path builds harness -> transition coverage at scripts/check_appstate_contract.py:3672-3714 and applies it per sequence step at scripts/check_appstate_contract.py:3923-3939. Regression coverage is at tests/test_appstate_contract_guard.py:1398-1422.
+- Runtime registry validation rejects equivalent drift: PASS. Runtime diff-harness coverage is passed from parsed runtime metadata at scripts/check_appstate_contract.py:4809-4811 and enforced for runtime sequence steps at scripts/check_appstate_contract.py:4178-4185. Regression coverage is at tests/test_appstate_contract_guard.py:1691-1715.
+- Startup readiness validates sequence-step diff-harness/transition alignment through runtime metadata: PASS. Runtime startup now looks up each named harness and requires the step transition_id to be present in that harness transition_ids at src/core/main.c:326-342, then calls that check from sequence-step readiness at src/core/main.c:396-404. Startup still gates readiness in main before entering the app at src/core/main.c:1438-1449.
+- Current sequence/diff-harness docs/runtime metadata satisfy the new invariant: PASS. `python3 scripts/check_appstate_contract.py` passed, and runtime/docs parity remains covered by the existing full-field comparisons for diff harnesses at scripts/check_appstate_contract.py:2497-2502 and transition sequences at scripts/check_appstate_contract.py:4063-4068.
+- Focused regression tests prove the new guard/startup behavior: PASS. The new docs/runtime negative tests assert same-transition failures, and startup shape assertions verify the runtime readiness path includes the alignment helper at tests/test_appstate_contract_guard.py:1776-1813.
+- Existing AppState contract tests remain green: PASS. Focused and full AppState guard test runs passed.
+
+Validation run
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence and diff'` -> PASS (8 passed, 303 deselected)
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` -> PASS
+- `git diff --check` -> PASS
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` -> PASS (311 passed)
+
+Risk checks
+- Same-transition coverage, not mere harness-id existence: confirmed in scripts/check_appstate_contract.py:3705-3714 and src/core/main.c:334-342.
+- Existing transition-sequence validations are preserved around the added calls; action/event/invariant/generation/fallback/no-unrelated-mutation checks remain in place.
+- Security checklist: no new file/process/string-buffer operations or unsafe APIs; new C logic only performs bounded metadata iteration and string comparison via existing helpers.
+- Source comments/docs/UX: no new source comments or user-facing interaction changes.

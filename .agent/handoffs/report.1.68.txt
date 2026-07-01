@@ -1,0 +1,30 @@
+Code auditor report: AppState owner field startup guard unit
+
+Findings
+- None.
+
+Gate decision
+- PASS. The scoped owner field startup guard satisfies the requested fail-closed checks, preserves existing owner metadata validation, and has focused deterministic coverage.
+
+Acceptance verification
+- Required owner ID table matches docs/appstate_owner_fields.json owner_fields[*].field: verified by parsing src/core/main.c and docs/appstate_owner_fields.json; both contain 22 IDs, no duplicates, no missing/extra IDs, and order matches.
+- Count mismatch fails closed: src/core/main.c:479-484 computes kAppStateRequiredOwnerFieldIds length and returns 0 when AppStateOwnerFieldCount() differs.
+- Duplicate field IDs fail closed: src/core/main.c:501-507 compares each field to earlier AppStateOwnerFieldAt() entries and returns 0 on duplicate or unexpected NULL prior entry. The existing lookup identity check at src/core/main.c:499-500 also remains a fail-closed duplicate guard for later duplicate entries.
+- Every required ID is lookup-checked: src/core/main.c:510-513 iterates kAppStateRequiredOwnerFieldIds and requires AppStateOwnerFieldLookup(...) to resolve non-NULL.
+- Startup still invokes !AppStateOwnerFieldsReady(): src/core/main.c:1202-1205 keeps the guard in the startup invariant chain.
+- Existing owner metadata checks were preserved: src/core/main.c:489-500 still rejects NULL metadata, empty field/owner/canonical/runtime/mutation/status strings, empty invariant checks, and lookup identity mismatch; src/core/main.c:516-523 still rejects sentinel, NULL, empty, and unknown lookups.
+
+Test quality
+- tests/test_appstate_contract_guard.py:4632-4644 checks the fail-closed source hooks for sentinel/lookup/null-empty-unknown handling, count mismatch, duplicate detection, required-table lookup, and startup invocation.
+- tests/test_appstate_contract_guard.py:4647-4675 parses docs through guard.DEFAULT_OWNER_FIELDS with collection_key="owner_fields" and id_field="field", parses kAppStateRequiredOwnerFieldIds, and checks set equality plus cardinality, so drift, omissions, extras, and table duplicates fail deterministically.
+- Tests are focused source/contract checks and do not depend on noisy CI transcripts or timing.
+
+Developer evidence reviewed
+- Reviewed /home/rob/ytreenova/.agent/handoffs/report.1.67.txt.
+- Independently ran: source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 pytest -q -p no:cacheprovider tests/test_appstate_contract_guard.py -k 'owner_field and startup' — PASS (2 passed, 283 deselected).
+- Independently ran: PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_appstate_contract.py — PASS.
+- Independently ran: git diff --check — PASS.
+- Did not rerun make clean && make because this audit prompt forbids modifying files and that build command changes workspace artifacts; no compile-risk issue was found in the scoped C diff.
+
+Residual risks
+- This unit is a startup contract guard only; it does not implement runtime owner-state mutation enforcement or transition execution, matching the stated non-goals.

@@ -707,9 +707,10 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     return FALSE;
   if (!AppStateRestorePanelGeneration(dst, src->panel_generation))
     return FALSE;
-  dst->max_visual_filename_len = src->max_visual_filename_len;
-  dst->max_visual_linkname_len = src->max_visual_linkname_len;
-  dst->max_visual_userview_len = src->max_visual_userview_len;
+  if (!AppStateCommitPanelFileRenderingMetrics(
+          dst, src->max_visual_filename_len, src->max_visual_linkname_len,
+          src->max_visual_userview_len, TRUE))
+    return FALSE;
   dst->reverse_sort = src->reverse_sort;
   if (!AppStateCommitPanelFileAnchor(dst, NULL))
     return FALSE;

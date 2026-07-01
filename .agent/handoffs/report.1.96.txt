@@ -1,0 +1,28 @@
+AppState fallback no-unrelated mutation audit report
+
+Decision: PASS
+
+Findings
+- No findings.
+
+Acceptance verification
+- Guard rejects fallback/stale-snapshot/generation-mismatch steps without no_unrelated_mutation expectations: PASS. scripts/check_appstate_contract.py:3765-3771 includes fallback plus stale_snapshot/generation_mismatch in the requirement predicate; tests/test_appstate_contract_guard.py:1509-1532 covers stale_snapshot and generation_mismatch fallback docs drift.
+- Guard rejects no_unrelated_mutation.diff_harness_id not listed in the same step's diff_harness_ids: PASS. scripts/check_appstate_contract.py:3821-3829 enforces same-step listing; tests/test_appstate_contract_guard.py:1535-1561 and 1844-1875 cover docs and runtime drift.
+- Guard rejects no_unrelated_mutation.diff_harness_id that does not cover the step transition_id: PASS. scripts/check_appstate_contract.py:3830-3837 enforces no_unrelated harness transition coverage; tests/test_appstate_contract_guard.py:1564-1602 and 1878-1919 cover docs and runtime drift.
+- Runtime registry validation rejects equivalent drift: PASS. scripts/check_appstate_contract.py:4258-4269 applies the same validator to parsed runtime metadata.
+- Startup readiness validates fallback no-unrelated metadata through runtime metadata: PASS. src/core/main.c:348-383 requires the metadata, validates non-empty fields, checks same-step diff_harness_ids, and verifies the referenced runtime harness covers step->transition_id; src/core/main.c:460-461 calls that readiness check from per-step startup validation. tests/test_appstate_contract_guard.py:2020-2038 covers the startup validation shape.
+- Current docs/runtime metadata satisfy the invariant: PASS. docs/appstate_transition_sequences.json:383-390 and 467-472 add no_unrelated_mutation to the stale-snapshot and generation-mismatch fallback steps; src/core/appstate_actions.c:1408-1442 and 1478-1512 mirror those entries. The referenced harness covers both transitions in docs/appstate_diff_harness.json:127-135 and src/core/appstate_actions.c:897-901.
+- Focused regression tests prove the new guard/startup behavior: PASS. Added tests cover missing fallback no_unrelated metadata, unlisted no_unrelated harnesses, unrelated no_unrelated harness coverage, runtime drift, and startup readiness shape.
+- Existing AppState contract tests remain green: PASS. Full focused test file passed.
+
+Validation run
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'fallback and no_unrelated' -> PASS: 8 passed, 311 deselected.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed.
+- git diff --check -> PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS: 319 passed.
+
+Risk checks
+- Docs/runtime parity is preserved by the contract guard and current metadata comparison.
+- Existing sequence validations for deterministic fallback, diff-harness transition alignment, generation expectations, and runtime registry parity remain in place around the new checks.
+- Security checklist: no new memory ownership, buffer, format-string, filesystem, process, path traversal, symlink, or command-execution behavior was introduced; the runtime additions are bounded metadata pointer/string lookups that fail closed on missing or mismatched metadata.
+- Comment/doc signal: no stale or redundant source comments were introduced in the changed code.

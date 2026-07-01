@@ -1,0 +1,43 @@
+Code auditor report: AppState dispatch write owner unit
+
+Decision: PASS after auditor remediation.
+
+Risk-first findings:
+- Open findings: none remaining.
+- Remediated during audit:
+  - Severity: blocker
+  - File: src/core/main.c:699
+  - Evidence: the developer's first implementation replaced NonEmptyStringList(...) with per-field iteration but dereferenced metadata->allowed_direct_writes[write_index] when allowed_direct_write_count > 0 without first proving allowed_direct_writes was non-NULL. The previous helper failed closed for a NULL list with a positive count.
+  - Impact: a malformed dispatch-surface contract with a positive allowed_direct_write_count and NULL allowed_direct_writes could crash startup instead of returning readiness failure, violating fail-closed startup invariant handling.
+  - Concrete fix: added an explicit positive-count NULL-list guard at src/core/main.c:699 and strengthened the focused regression at tests/test_appstate_contract_guard.py:4843 to require that guard before owner-field lookup iteration.
+
+Acceptance checklist:
+- [x] Unknown dispatch allowed-direct-write fields fail startup readiness: AppStateDispatchSurfaceWritesReady now rejects any allowed_direct_writes entry whose AppStateOwnerFieldLookup(field) is NULL at src/core/main.c:706-709; AppStateDispatchSurfacesReady calls this helper during startup readiness at src/core/main.c:726-735.
+- [x] Empty direct-write field validation remains present: each allowed_direct_writes entry still passes through NonEmptyString(field) before lookup at src/core/main.c:704-707.
+- [x] Zero direct-write surfaces still require allowed_direct_writes == NULL: zero-count branch returns metadata->allowed_direct_writes == NULL at src/core/main.c:696-697.
+- [x] Positive-count NULL direct-write lists fail closed: explicit NULL-list guard returns 0 at src/core/main.c:699-700.
+- [x] Focused Python regression captures the new startup guard requirement: tests/test_appstate_contract_guard.py:4839-4851 asserts NULL-list fail-closed handling, per-entry non-empty validation, and AppStateOwnerFieldLookup(field) rejection.
+- [x] Repository appstate contract guard still passes: rerun evidence below.
+- [x] Scope remains atomic and independently verifiable: product/test changes are limited to src/core/main.c and tests/test_appstate_contract_guard.py; no dispatch records, docs, UI code, or unrelated runtime paths were changed.
+
+Developer evidence verification:
+- Read .agent/handoffs/report.1.75.txt and inspected the current diff.
+- Developer's claimed acceptance was mostly correct for unknown owner-field validation, empty-field rejection, zero-count/null-list handling, and focused regression coverage.
+- Audit identified the positive-count NULL-list fail-closed regression described above and fixed it because it was blocking.
+
+Validation run by auditor:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k validates_allowed_write_owner_fields — FAIL before C fix after strengthening the regression: 1 failed, 290 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k validates_allowed_write_owner_fields — PASS after C fix: 1 passed, 290 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch and startup' — PASS: 3 passed, 288 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS: 291 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- git diff --check — PASS.
+- make clean && make — PASS; build completed with existing unrelated warnings.
+
+Security/fail-closed review:
+- No new file/process, path traversal, command execution, format-string, or memory ownership surface was introduced.
+- The only memory-safety risk introduced by the first implementation was the positive-count NULL-list dereference; it is now guarded before iteration.
+- Unknown, empty, NULL, and zero-count direct-write states now fail closed through readiness return values rather than unchecked access.
+
+Residual risk:
+- The focused regression is intentionally source-structural because these startup helpers are static and this unit is a contract-guard change. It is meaningful for this atomic guard requirement and not noisy beyond the existing source-contract style in the file.

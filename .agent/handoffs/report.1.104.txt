@@ -1,0 +1,34 @@
+Code auditor report: APPSTATE HARNESS INVARIANT ALIGNMENT UNIT
+
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low findings in the audited uncommitted diff.
+
+Scope audited
+- Branch: chore/appstate-shim-invariant-alignment
+- Base HEAD: 3ff9b1a357adecaedadb2502603578480a8f0563
+- Uncommitted files audited: docs/appstate_diff_harness.json, src/core/appstate_actions.c, scripts/check_appstate_contract.py, src/core/main.c, tests/test_appstate_contract_guard.py
+- No unexpected files are modified.
+
+Acceptance criteria verification
+- Docs validation rejects a diff harness transition without same-harness invariant coverage: satisfied. scripts/check_appstate_contract.py:3017-3028 calls the shared alignment helper for each documented harness transition; scripts/check_appstate_contract.py:3823-3847 emits the fail-closed diagnostic when no listed invariant covers that transition. Regression coverage is in tests/test_appstate_contract_guard.py:1432-1465.
+- Runtime registry validation rejects the equivalent mismatch parsed from src/core/appstate_actions.c metadata: satisfied. scripts/check_appstate_contract.py:2575-2586 applies the same alignment rule to parsed runtime diff harness records, using parsed runtime invariant transition metadata wired at scripts/check_appstate_contract.py:4991-4993. Regression coverage is in tests/test_appstate_contract_guard.py:1884-1915.
+- Startup readiness checks runtime invariant metadata and fails closed unless every diff harness transition is covered by at least one listed invariant: satisfied. src/core/main.c:1355-1375 resolves only same-harness invariant_ids and checks their transition_ids; src/core/main.c:1424-1431 applies it to every runtime diff harness transition during AppStateDiffHarnessRegistryReady, which is part of startup readiness at src/core/main.c:1557-1569. Shape coverage is in tests/test_appstate_contract_guard.py:5895-5920.
+- Current docs/runtime diff harness metadata satisfies the invariant with narrow correction: satisfied. docs/appstate_diff_harness.json:55-79 adds invariant.blocked-transition-determinism to harness.declared-write-set-diff, covering transition.command-completion.user-command; src/core/appstate_actions.c:807-833 mirrors the same runtime metadata correction. A manual guard-based coverage check found no uncovered docs or runtime diff harness transitions.
+- Focused tests cover docs drift, runtime drift, and startup readiness shape: satisfied by the new docs/runtime drift tests and startup source-shape assertion above; the focused selector reported 8 passing tests.
+- No runtime UI behavior change introduced: satisfied. The only C behavior change is startup metadata readiness gating in src/core/main.c; no UI dispatch, rendering, input, filesystem, or panel state path is changed.
+
+Risk checks
+- Fail-open behavior: none found. Invalid or uncovered metadata returns failure from the guard script and from startup readiness.
+- Metadata/runtime mismatch: none found. The docs correction is mirrored in src/core/appstate_actions.c and check_appstate_contract.py passes.
+- Overbroad scope/noisy docs/process text: none found. The docs/runtime metadata change is one invariant reference in the affected harness.
+- Weak test assertions: acceptable for this scaffold unit. The docs/runtime drift tests assert concrete guard failures, and the startup requirement is intentionally covered as source-shape scaffolding per the acceptance criterion.
+- Security checklist: no new file/process operations, command execution, path handling, string formatting, heap ownership, or untrusted runtime input handling were introduced in the audited diff.
+
+Validation run by auditor
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant' -> PASS (8 passed, 321 deselected)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS
+- git diff --check -> PASS
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS (329 passed)
+- make clean && make -> PASS (existing unrelated warnings remain)

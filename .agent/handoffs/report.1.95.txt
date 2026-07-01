@@ -1,0 +1,20 @@
+AppState fallback no-unrelated mutation unit report
+
+Files changed
+- docs/appstate_transition_sequences.json: added no_unrelated_mutation expectations to the stale-snapshot and generation-mismatch fallback sequence steps, using harness.generation-mismatch-check already listed on those steps and covering their transitions.
+- src/core/appstate_actions.c: mirrored the new no-unrelated metadata for the same fallback runtime sequence steps.
+- src/core/main.c: added startup readiness validation requiring no_unrelated_mutation metadata for blocked/invalid/fallback/preconditioned steps and checking the referenced diff harness is listed on the step and covers the step transition.
+- scripts/check_appstate_contract.py: extended docs/runtime transition-sequence validation so fallback/stale_snapshot/generation_mismatch steps require no_unrelated_mutation and all present no_unrelated expectations must use a listed diff harness covering the step transition.
+- tests/test_appstate_contract_guard.py: added focused docs/runtime/startup regression coverage for missing fallback no_unrelated metadata, unlisted no_unrelated diff harnesses, unrelated diff-harness coverage, and startup validation shape.
+
+Commands run and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'fallback and no_unrelated' -> FAIL before implementation as RED proof: 8 failed, 311 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'fallback and no_unrelated' -> PASS after implementation: 8 passed, 311 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS: 319 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed.
+- make clean && make -> PASS; existing compiler warnings were emitted in unrelated files.
+- git diff --check -> PASS: no whitespace errors.
+
+Risks / follow-ups
+- No runtime UI migration was attempted.
+- No transition matrix, diff-harness, generation-domain, or owner-field expansion was needed; existing harness.generation-mismatch-check covers both updated fallback transitions.

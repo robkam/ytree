@@ -1,0 +1,84 @@
+You are the developer for one atomic AppState subunit in /home/rob/ytree.
+
+Unit name: AppState invariant runtime lookup scaffold
+Durable roadmap aim: Unified AppState Transition Machine + Projection Contract
+Resolved source: docs/ROADMAP.md Task 1, "Unified AppState Transition Machine + Projection Contract".
+
+Required autonomy tokens:
+- policy_block_retry_once
+- watchdog_stall_retry_terminal
+- maintainer_pause_gate=true_blocker_decision|commit_message_approval
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md.
+2. Read /home/rob/ytree/.ai/shared.md.
+3. Use MCP semantic tools for codebase exploration where available; avoid grep/find for exploration.
+4. Read /home/rob/ytree/docs/SPECIFICATION.md.
+5. Read /home/rob/ytree/docs/ARCHITECTURE.md.
+
+Strict scope:
+- Add a behavior-neutral runtime invariant registry scaffold for existing docs/appstate_invariants.json records.
+- Expected files are limited to:
+  - include/ytree_appstate_actions.h
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- If another file appears necessary, stop and explain in the report rather than broadening the patch.
+
+Non-goals:
+- Do not implement state-machine execution, transition dispatch, dynamic sequence execution, snapshot diffing, or runtime invariant enforcement beyond startup metadata shape/linkage validation.
+- Do not migrate command/action behavior.
+- Do not edit docs/appstate_invariants.json except if you find a blocking typo that must be fixed; report before broadening.
+- Do not add new roadmap docs or PR/process guidance.
+- Do not touch untracked .agent/handoffs except for the required report.
+
+Implementation requirements:
+1. Add a read-only runtime invariant metadata type and lookup/count/index APIs, following the style of AppStateTransitionMetadata and AppStateCompatibilityShimMetadata.
+   - Include scalar fields: invariant_id, category, owner_region, failure_mode, enforcement_status, test_strategy.
+   - Include protected_fields, transition_ids, dispatch_surface_ids, and migration_notes as const string arrays plus counts, or an equally explicit read-only representation.
+2. Add runtime invariant rows in src/core/appstate_actions.c that mirror docs/appstate_invariants.json exactly enough for guard validation.
+3. Add fail-closed lookup behavior for NULL, empty, out-of-range, and unknown invariant ids.
+4. Extend startup invariants in src/core/main.c to consume the invariant registry:
+   - registry non-empty;
+   - required scalar fields non-empty;
+   - protected_fields and transition_ids present/non-empty;
+   - dispatch_surface_ids present (may be non-empty for current docs; validate non-empty unless docs require a cross-cutting exception);
+   - transition_ids resolve through AppStateTransitionLookup;
+   - unknown lookup returns NULL.
+5. Extend scripts/check_appstate_contract.py:
+   - parse runtime invariant metadata;
+   - compare runtime invariant ids and fields to docs/appstate_invariants.json;
+   - verify runtime invariant transition_ids exist in the runtime transition registry, not only the docs matrix;
+   - verify documented dispatch_surface_ids remain validated against docs/appstate_dispatch_surfaces.json;
+   - fail on missing/extra/duplicate runtime invariant rows.
+6. Extend tests/test_appstate_contract_guard.py with focused tests proving the guard fails for invariant registry drift, missing/extra invariant ids, mismatched protected_fields or migration_notes, missing transition ids, and runtime transition id linkage not present in the runtime transition registry.
+7. Preserve existing style and architecture. Prefer small helper functions over duplicating parsing logic where appropriate, but do not broad-refactor the guard.
+
+Acceptance criteria checklist:
+- Runtime invariant lookup/count/index APIs are declared and implemented.
+- Runtime invariant rows align with docs/appstate_invariants.json for invariant_id, category, owner_region, protected_fields, transition_ids, dispatch_surface_ids, failure_mode, enforcement_status, test_strategy, and migration_notes.
+- Runtime invariant transition_ids validate against runtime transition ids by both startup invariants and the Python guard.
+- Runtime invariant dispatch_surface_ids continue to validate against the documented dispatch surface registry.
+- Unknown invariant id lookup fails closed with NULL.
+- Startup invariant consumes the invariant registry without changing normal behavior.
+- Focused tests cover invariant drift and runtime transition linkage.
+
+Exact verification commands, targeted first:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+- make qa-cppcheck
+- make qa-code-quality
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.33.txt
+
+Report requirements:
+- Summarize files changed.
+- List acceptance criteria status.
+- List exact commands run and pass/fail results.
+- Note any warnings and whether they are in changed files.
+- Note any deviations from strict scope.
+
+Your completion reply must be exactly one line:
+APPSTATE INVARIANT REGISTRY UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.33.txt

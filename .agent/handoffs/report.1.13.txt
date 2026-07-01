@@ -1,0 +1,28 @@
+AppState action lookup unit report
+
+Files changed
+- include/ytree_appstate_actions.h: added read-only AppState action transition metadata API.
+- src/core/appstate_actions.c: added static YtreeAction-to-transition/category lookup table and fail-closed lookup function.
+- scripts/check_appstate_contract.py: added runtime lookup parsing and validation against the YtreeAction enum, docs/appstate_action_coverage.json, and docs/appstate_transition_matrix.json; added --action-runtime override.
+- tests/test_appstate_contract_guard.py: added fixture runtime table support and negative tests for missing runtime rows, unknown runtime actions, unknown runtime transition ids, and runtime/action-coverage mismatches.
+- scripts/check_module_boundaries.py: registered ytree_appstate_actions.h as a core header so the new src/core module passes the existing boundary guard.
+
+Acceptance criteria
+- Runtime lookup exists and builds: met by AppStateActionTransitionLookup/AppStateActionTransitionCount in src/core/appstate_actions.c and include/ytree_appstate_actions.h; clean build passed.
+- Every YtreeAction enum member has a lookup row: met by the static table covering ACTION_NONE through ACTION_USER_CMD; guard now fails if enum rows are missing, duplicated, unknown, or out of enum order.
+- Lookup rows align with docs/appstate_action_coverage.json transition/category records: met by check_appstate_contract.py comparing each runtime row to action coverage and transition matrix category records.
+- Unknown/out-of-range action lookup fails closed or returns documented null/unknown result: met by AppStateActionTransitionLookup returning NULL for negative actions, values outside the table, or enum/table order mismatches.
+- No behavior changes outside adding the lookup scaffold: met; no controller, keybinding, restore, render, panel ownership, or JSON registry semantics were changed.
+- Focused validation passes: met; commands below passed.
+
+Commands run and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - Result: PASS, 190 passed in 2.23s on final run.
+- make clean && make
+  - Result: PASS on final run; build/ytree and build/ytree.1 produced.
+  - Warnings: existing warnings appeared only in unchanged files such as src/cmd/delete.c, src/cmd/move.c, src/cmd/rename.c, src/core/sort.c, src/core/volume.c, src/fs/freesp.c, src/ui/ctrl_dir.c, src/ui/dir_ops.c, src/ui/display_utils.c, src/ui/error.c, src/ui/progress.c, src/ui/render_dir.c, and src/ui/tagged_view.c. The new src/core/appstate_actions.c emitted no warnings.
+- make qa-code-quality
+  - Result: PASS on final run: unsafe API guard, module-boundary guard, AppState contract guard, and project AI config guard all passed.
+
+Notes
+- An initial make qa-code-quality run failed because the new runtime source was placed directly under src/, which the module-boundary guard rejects as an unknown layer. I moved the source to src/core/ and registered the new core header, then re-ran all requested validations successfully.

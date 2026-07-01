@@ -1,0 +1,20 @@
+Summary of changes:
+- Added startup validation in AppStateCompatibilityShimsReady() so every compatibility-shim invariant_checks entry must resolve through AppStateInvariantLookup().
+- Added a focused Python regression that asserts shim startup readiness preserves non-empty invariant_checks validation and also checks those ids against the invariant registry.
+
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Exact commands run and pass/fail results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup' -> FAIL (expected red after adding regression; missing AppStateInvariantLookup validation).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup' -> FAIL (test regex too strict for existing line wrapping; implementation was present).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup' -> PASS (3 passed, 289 deselected).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS (292 passed).
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS (PASS: AppState contract guard passed).
+- make clean && make -> PASS (build completed; existing compiler warnings were emitted in unrelated files).
+- git diff --check -> PASS.
+
+Risks or follow-ups:
+- No known follow-ups for this unit.
+- Build still emits pre-existing warnings outside the assigned files; not addressed because they are out of scope.

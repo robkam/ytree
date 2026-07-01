@@ -1,0 +1,51 @@
+Role: code_auditor
+
+Goal
+Audit the AppState directory filesystem mutation boundary unit on branch chore/appstate-filesystem-mutation-boundary.
+
+Resolved roadmap title
+- Unified AppState Transition Machine + Projection Contract
+
+Audit scope
+- Review only the current working tree changes for:
+  - src/ui/dir_ops.c
+  - tests/test_appstate_contract_guard.py
+- Review developer evidence in /home/rob/ytreenova/.agent/handoffs/report.1.185.txt.
+- Do not implement fixes unless explicitly needed to complete audit; if you find issues, report them clearly instead of broadening scope.
+
+Risk-first review requirements
+- Findings must be severity ordered: blocker, high, medium, low.
+- Include file/line references for every finding.
+- Verify acceptance criteria and developer evidence.
+- Verify that filesystem mutation dispatch-surface guards are fail-closed and appear before directory mutation/result commit work.
+- Verify that valid directory mutation behavior is unchanged except for the guards.
+- Verify no unrelated refactor/formatting churn.
+- Check for security regressions or unsafe patterns.
+
+Acceptance criteria to verify
+- AppStateValidatedDispatchSurface("surface.filesystem-mutation-result") guards HandleDirMakeFile.
+- AppStateValidatedDispatchSurface("surface.filesystem-mutation-result") guards HandleDirMakeDirectory.
+- AppStateValidatedDispatchSurface("surface.filesystem-mutation-result") guards HandleDirDeleteDirectory.
+- AppStateValidatedDispatchSurface("surface.filesystem-mutation-result") guards HandleDirRenameDirectory.
+- Guards appear before the mutation/result commit work listed in the developer handoff.
+- Guard failure returns FALSE for HandleDirMakeFile, returns immediately for HandleDirMakeDirectory, and returns the input dir_entry unchanged for delete/rename.
+- Existing behavior for valid metadata is unchanged except for the guards.
+- tests/test_appstate_contract_guard.py includes focused source guards for all four handlers.
+- Existing AppState contract script remains green.
+
+Exact verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or filesystem_mutation or mutation_result or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.186.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Acceptance criteria verification.
+- Developer evidence verification.
+- Clear PASS/FAIL decision.
+
+Completion reply must be exactly one line:
+APPSTATE FILESYSTEM MUTATION BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.186.txt

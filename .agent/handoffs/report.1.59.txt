@@ -1,0 +1,22 @@
+Summary:
+- Added a startup-required AppState invariant ID table in src/core/main.c matching docs/appstate_invariants.json.
+- Updated AppStateInvariantRegistryReady() to fail closed when the runtime invariant registry count differs from the required table, when runtime invariant IDs are duplicated, or when any required invariant ID cannot be resolved through AppStateInvariantLookup().
+- Added focused tests that parse the invariant required-ID table, compare it to docs/appstate_invariants.json, and assert startup validation uses it.
+
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- .agent/handoffs/report.1.59.txt
+
+Commands run and results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'invariant and startup' -> failed before implementation as expected: 2 failed, 275 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'invariant and startup' -> passed after implementation: 2 passed, 275 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> passed: 277 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> passed: PASS: AppState contract guard passed.
+- make clean && make -> passed; existing compiler warnings were emitted outside this unit.
+- make qa-code-quality -> passed: unsafe API, module-boundary, AppState contract, and project AI config guards passed.
+- git diff --check -> passed with no output.
+
+Risks/follow-ups:
+- No known follow-ups for this unit.
+- The build still emits pre-existing warnings in unrelated files; this change did not address them.

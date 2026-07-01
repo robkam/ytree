@@ -1,0 +1,23 @@
+Code auditor report: PR #110 correction
+
+Decision: PASS
+
+Findings (severity-ordered):
+- None.
+
+Audit evidence:
+- PR #110 startup validation remains strengthened, not weakened. src/core/main.c:843-908 still rejects missing shim metadata, duplicate/unknown shim ids, unknown target transitions, and now rejects each shim invariant_check that does not resolve through AppStateInvariantLookup() at src/core/main.c:882-888. Startup ordering runs AppStateInvariantRegistryReady() before AppStateCompatibilityShimsReady() at src/core/main.c:1293-1298, so the lookup does not introduce an ordering/startup break.
+- docs/appstate_compat_shims.json and src/core/appstate_actions.c match. Independent parse compared all 4 documented shim records with all 4 runtime records and found exact equality, including invariant_checks. Relevant runtime arrays are at src/core/appstate_actions.c:2094-2112 and shim records at src/core/appstate_actions.c:3791-3840; documented arrays are at docs/appstate_compat_shims.json:12-60.
+- scripts/check_appstate_contract.py validates documented and runtime shim invariant_checks against runtime invariant ids. Runtime shim arrays are now parsed with _parse_string_initializer_array() and preserve array parse failures at scripts/check_appstate_contract.py:1614-1629. Runtime shim invariant_check ids are validated through _validate_invariant_check_refs() from _validate_runtime_shim_registry() at scripts/check_appstate_contract.py:2502-2512. Documented shim invariant_check ids are validated through the same helper at scripts/check_appstate_contract.py:4227-4256. The helper rejects non-empty strings that are absent from the runtime invariant registry at scripts/check_appstate_contract.py:2664-2684.
+- Parse failures from shim invariant arrays are preserved. Malformed runtime shim invariant array entries now contribute failures during _parse_runtime_shim_registry() at scripts/check_appstate_contract.py:1622-1629 instead of being silently skipped by re.findall().
+- Tests cover the requested regression surfaces: unknown shim invariant ids are covered by tests/test_appstate_contract_guard.py:3799-3815; malformed runtime shim invariant arrays are covered by tests/test_appstate_contract_guard.py:3919-3944; startup lookup validation is covered by tests/test_appstate_contract_guard.py:4941-4957.
+
+Validation run:
+- source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and invariant' -> 8 passed, 286 deselected.
+- source /home/rob/ytreenova/.venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed.
+- source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> 294 passed.
+
+Changes made by auditor: none.
+
+Residual risk:
+- Local full make qa-all was not run; per audit cadence, PR full-QA CI remains the pre-merge gate unless maintainer requests local full QA.

@@ -1,0 +1,44 @@
+AppState shim owner-field coverage correction audit
+
+Decision: PASS
+
+Risk-first findings
+
+No blocker, high, medium, or low findings remain in the audited scope.
+
+Prior blocker verification
+
+The prior FAIL in .agent/handoffs/report.1.126.txt is fixed. Shim write capability is no longer inferred from free-text write_permission prose:
+- Document guard uses structured write_capability only: scripts/check_appstate_contract.py:287-291 defines the closed allow-list, scripts/check_appstate_contract.py:2895-2905 validates and classifies by exact structured value, and scripts/check_appstate_contract.py:2955-2982 applies target transition declared_write_set enforcement only for write_capable shims.
+- Runtime startup uses structured write_capability only: src/core/main.c:1111-1124 exact-matches known capability values, and src/core/main.c:1213-1217 enforces owner refs against the target transition write set only when AppStateCompatibilityShimWriteCapable(metadata) is true.
+- The runtime no longer uses write_permission or substring markers for shim write classification; tests assert the helper body contains write_capability/strcmp and excludes strstr/write_permission at tests/test_appstate_contract_guard.py:6803-6829.
+- Mixed write-capable prose containing previous bypass markers is covered at document and runtime fixture level: tests/test_appstate_contract_guard.py:5098-5124 and tests/test_appstate_contract_guard.py:5301-5331.
+
+Acceptance criteria verification
+
+- No substring/free-text classifier remains for shim write capability: PASS. scripts/check_appstate_contract.py:2904-2905 and src/core/main.c:1111-1114 classify only by write_capability == "write_capable". The remaining scoped strstr occurrence is unrelated migration-note classification in src/core/main.c:579-582, not shim write capability.
+- Docs shim entries have explicit structured write_capability values: PASS. docs/appstate_compat_shims.json:12,32,54 declare write_capable; docs/appstate_compat_shims.json:74 declares read_only_projection.
+- Runtime metadata exposes matching write_capability values: PASS. include/ytnova_appstate_actions.h:71-85 adds write_capability and owner refs to AppStateCompatibilityShimMetadata. Runtime rows expose matching values at src/core/appstate_actions.c:3840-3903, including the marker-containing shim.volume-saved-tree-index write_permission at src/core/appstate_actions.c:3859-3861 classified as write_capable. An ad-hoc parser check confirmed docs/runtime write_capability and owner_field_refs match for all four shims.
+- Missing/unknown doc and runtime write_capability values fail closed: PASS. write_capability is required in docs at scripts/check_appstate_contract.py:57-65; unknown values fail at scripts/check_appstate_contract.py:2895-2901. Runtime rows are parsed with write_capability at scripts/check_appstate_contract.py:1664-1704 and revalidated/aligned at scripts/check_appstate_contract.py:2790-2809. Startup rejects missing/unknown runtime capability values at src/core/main.c:1117-1124 and src/core/main.c:1168-1182. Regression coverage exists at tests/test_appstate_contract_guard.py:5127-5156 and tests/test_appstate_contract_guard.py:5258-5298.
+- Write-capable mixed prose containing no-write/read-only marker text cannot bypass write-set enforcement: PASS. The adversarial document cases at tests/test_appstate_contract_guard.py:5098-5124 and runtime cases at tests/test_appstate_contract_guard.py:5301-5331 assert target write-set failure despite "Do not write", "No write", "Never write", and "Read-only" prose when write_capability is write_capable.
+- Legitimate no-write/read-only projection shims remain allowed without target transition write-set subset enforcement: PASS. The guard tests allow no_write and read_only_projection shims with owner refs outside the transition write set at tests/test_appstate_contract_guard.py:5159-5194. Runtime startup recognizes no_write/read_only_projection as known non-write-capable values at src/core/main.c:1117-1124 and only performs the subset check under AppStateCompatibilityShimWriteCapable at src/core/main.c:1213-1217.
+- Owner refs remain required, known, non-empty, and aligned with runtime metadata: PASS. Docs declare non-empty owner_field_refs at docs/appstate_compat_shims.json:21-24,41-46,63-66,83-87. Runtime arrays match at src/core/appstate_actions.c:2139-2160 and are wired through metadata at src/core/appstate_actions.c:3849-3851,3865-3867,3881-3883,3897-3899. Checker validation requires known, unique refs at scripts/check_appstate_contract.py:2908-2935, applies transition write-set alignment at scripts/check_appstate_contract.py:2938-2982, and compares runtime/doc fields at scripts/check_appstate_contract.py:2790-2809. Startup fail-closes on missing/unknown/duplicate refs at src/core/main.c:1176-1177 and src/core/main.c:1205-1212.
+- No runtime UI behavior migration or unrelated edits are included: PASS. git status/diff show only the requested six files changed: docs/appstate_compat_shims.json, include/ytnova_appstate_actions.h, scripts/check_appstate_contract.py, src/core/appstate_actions.c, src/core/main.c, and tests/test_appstate_contract_guard.py. The C changes are metadata/startup validation only; no UI controller or behavior path was migrated.
+
+Developer evidence verification
+
+Verified locally from /home/rob/ytreenova:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'write_capability or explicit_write_capability' — PASS, 12 passed / 363 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner' — PASS, 14 passed / 361 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 375 passed.
+- python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- make clean && make — PASS; warnings observed are pre-existing unrelated warnings outside the scoped AppState metadata/startup changes.
+- git diff --check — PASS.
+- Additional docs/runtime metadata parser check — PASS for all four shim write_capability and owner_field_refs records.
+- Additional write-capable docs subset check — PASS for all three write_capable shims; the read_only_projection shim remains projection-allowed.
+
+Security, maintainability, and scope notes
+
+- The correction strengthens fail-closed metadata validation and does not add memory allocation, file/process execution, command execution, path handling, or UI interaction behavior.
+- The structured capability field avoids the previous brittle prose classifier and keeps the runtime/document contract explicit.
+- Local make qa-all was not run, consistent with the developer report and current audit cadence.

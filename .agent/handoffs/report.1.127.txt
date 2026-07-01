@@ -1,0 +1,39 @@
+AppState shim owner-field coverage correction
+
+Summary of fix
+- Added explicit `write_capability` shim metadata with the enum values `write_capable`, `read_only_projection`, and `no_write`.
+- Updated docs and runtime shim metadata so each compatibility shim declares a structured write capability.
+- Changed `scripts/check_appstate_contract.py` to require and validate `write_capability`, reject missing/unknown values, parse/compare the runtime field, and enforce `owner_field_refs` subset coverage only when `write_capability == "write_capable"`.
+- Changed `src/core/main.c` startup validation to fail closed on missing/unknown structured capability values and to use only `write_capability` for write-set enforcement decisions.
+- Added adversarial document/runtime tests proving write-capable prose containing `do not write`, `no write`, `never write`, and `read-only` still fails when owner refs exceed the target transition write set.
+- Added document/runtime missing and unknown `write_capability` tests, while preserving explicit `no_write` and `read_only_projection` allowances.
+
+Commands run and results
+1. RED regression before implementation:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'write_capability or explicit_write_capability'`
+   - Result: failed as expected, 6 failed / 362 deselected. Failures showed the broad prose classifier bypassed write-set enforcement and missing/unknown `write_capability` was not rejected.
+2. Focused regression after implementation:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'write_capability or explicit_write_capability'`
+   - Result: passed, 12 passed / 363 deselected.
+3. Required focused owner/shim check:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'`
+   - Result: passed, 14 passed / 361 deselected.
+4. Required AppState contract guard unit file:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+   - Result: passed, 375 passed.
+5. Required document/runtime guard:
+   - `python3 scripts/check_appstate_contract.py`
+   - Result: `PASS: AppState contract guard passed`.
+6. Required build:
+   - `make clean && make`
+   - Result: passed. Existing unrelated compiler warnings remain in other modules.
+7. Required whitespace check:
+   - `git diff --check`
+   - Result: passed with no output.
+8. Additional classifier sanity check:
+   - Python snippet checked the Python and C shim write-capability classifier bodies for `write_permission`, no-write/read-only prose markers, or `strstr`.
+   - Result: `PASS: shim write capability classifiers use structured write_capability only`.
+
+Residual risks
+- `make clean && make` still emits pre-existing unrelated warnings in other modules; this change did not address them.
+- Local `make qa-all` was not run, per instruction.

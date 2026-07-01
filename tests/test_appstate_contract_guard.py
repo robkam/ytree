@@ -6985,6 +6985,50 @@ def test_panel_file_display_state_commits_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileMaxColumn(p, max_column)" in render_file
 
 
+def test_panel_file_rendering_metrics_commit_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    render_file = Path("src/ui/render_file.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    owner_fields = json.loads(
+        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+    )["owner_fields"]
+    display_state = next(
+        record
+        for record in owner_fields
+        if record["field"] == "panel.file_display_state"
+    )
+    assert "max_visual_filename_len" in display_state["runtime_carrier"]
+    assert "max_visual_linkname_len" in display_state["runtime_carrier"]
+    assert "max_visual_userview_len" in display_state["runtime_carrier"]
+    assert "render metric" in display_state["mutation_rule"]
+
+    assert "BOOL AppStateCommitPanelFileRenderingMetrics(" in header
+    helper_start = helper.index("BOOL AppStateCommitPanelFileRenderingMetrics(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileSelection(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.file_display_state")'
+    writes = [
+        "panel->max_visual_filename_len = max_filename;",
+        "panel->max_visual_linkname_len = max_linkname;",
+        "panel->max_visual_userview_len = max_userview;",
+    ]
+    assert validation in helper_body
+    for write in writes:
+        assert write in helper_body
+        assert helper_body.index(validation) < helper_body.index(write)
+    assert "if (update_userview)" in helper_body
+
+    assert "AppStateCommitPanelFileRenderingMetrics(" in render_file
+    assert "AppStateCommitPanelFileRenderingMetrics(" in panel_anchor
+    for source in [render_file, panel_anchor]:
+        assert not re.search(
+            r"\b(?:p|dst)->max_visual_(?:filename|linkname|userview)_len\s*=[^=]",
+            source,
+        )
+
+
 def test_global_search_term_writes_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")

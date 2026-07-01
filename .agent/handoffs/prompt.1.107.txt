@@ -1,0 +1,53 @@
+You are the developer for one atomic AppState guard/scaffold unit in /home/rob/ytreenova.
+
+Required completion reply (exactly one line):
+APPSTATE OWNER INVARIANT ALIGNMENT UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.107.txt
+
+Goal
+- Require every AppState owner-field record's invariant_checks to include at least one invariant whose protected_fields includes that owner field.
+- This advances the Unified AppState Transition Machine + Projection Contract by ensuring owner-field registry guardrails actually protect the field being registered.
+
+Strict scope
+- Work on branch chore/appstate-owner-invariant-alignment.
+- Keep edits scoped to AppState contract guard/startup readiness/tests and only metadata changes strictly needed by the new rule.
+- Expected files likely include:
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+  - src/core/main.c
+  - possibly docs/appstate_owner_fields.json and src/core/appstate_actions.c only if current metadata needs a narrow correction.
+
+Explicit non-goals
+- Do not migrate runtime UI behavior.
+- Do not change input handling, rendering, restore behavior, filesystem behavior, or product UI semantics.
+- Do not rewrite unrelated AppState metadata.
+- Do not push or edit PR text; the architect handles publish/update after audit.
+
+Acceptance criteria checklist
+- [ ] Docs validation rejects an owner-field record whose invariant_checks are valid IDs but none protects the owner field.
+- [ ] Runtime registry validation rejects equivalent mismatch in parsed src/core/appstate_actions.c owner-field metadata.
+- [ ] Startup readiness checks runtime invariant protected_fields and fails closed unless at least one listed owner-field invariant protects the field.
+- [ ] Current docs/runtime owner-field metadata satisfies the invariant, with no metadata churn unless a real gap is found.
+- [ ] Focused regression tests prove docs drift, runtime drift, and startup validation shape.
+- [ ] No runtime UI behavior changes are introduced.
+
+Implementation guidance
+- Reuse the alignment pattern from shim/diff-harness/generation guard work.
+- Prefer a helper mapping invariant_id -> protected_fields.
+- Failure messages should identify the owner field label and field id.
+- Existing metadata is expected to be consistent; avoid unnecessary metadata edits.
+
+Verification commands (targeted first)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'owner and invariant'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.107.txt
+
+Report requirements
+- Summarize files changed.
+- List exact validation commands and pass/fail results.
+- Call out any metadata correction separately from guard logic.
+- Note residual risks/follow-ups.

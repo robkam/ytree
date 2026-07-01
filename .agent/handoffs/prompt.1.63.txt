@@ -1,0 +1,51 @@
+You are the developer for one atomic AppState roadmap subunit in `/home/rob/ytreenova`.
+
+Goal
+- Add startup fail-closed coverage for documented AppState diff harness check IDs.
+
+Strict scope
+- Work only on:
+  - `src/core/main.c`
+  - `tests/test_appstate_contract_guard.py`
+- Preserve existing style and architecture.
+- Do not implement runtime diff harness behavior, state snapshots, or transition execution.
+- Do not touch unrelated AppState files, docs, CI, or handoff policy.
+- You are not alone in the codebase: do not reset, clean, reformat, or revert unrelated edits.
+
+Implementation requirements
+- Mirror the existing required-ID startup patterns for dispatch surfaces, invariants, and compatibility shims.
+- Add a `kAppStateRequired...Ids` table for diff harness IDs in `src/core/main.c`, derived from `docs/appstate_diff_harness.json` key `diff_harness_checks[*].harness_id`.
+- Update `AppStateDiffHarnessRegistryReady()` so it:
+  - fails when runtime count differs from the required documented ID count,
+  - keeps existing field and cross-reference checks,
+  - rejects duplicate harness IDs,
+  - verifies each required documented harness ID resolves through `AppStateDiffHarnessLookup()`.
+- Add focused tests matching the existing style near the startup guard tests:
+  - one fail-closed test for diff harness startup checks,
+  - one required documented ID table parity test using `guard.DEFAULT_DIFF_HARNESS`, collection key `diff_harness_checks`, ID field `harness_id`.
+
+Acceptance criteria checklist
+- [ ] Required diff harness ID table exists and exactly matches `docs/appstate_diff_harness.json`.
+- [ ] Startup guard fails closed on count drift, duplicate IDs, sentinel misuse, null/empty/unknown lookup, missing fields, and bad cross references.
+- [ ] Startup invocation still includes `!AppStateDiffHarnessRegistryReady()`.
+- [ ] Tests are focused and do not duplicate broad CI output.
+- [ ] Only the two scoped files are modified.
+
+Exact verification commands, targeted first
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and startup'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- `make clean && make`
+- `git diff --check`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.63.txt`
+
+Report contents
+- Files changed.
+- Summary of implementation.
+- Exact commands run and pass/fail results.
+- Any risks or follow-up notes.
+
+Completion reply must be exactly one line:
+APPSTATE DIFF HARNESS STARTUP GUARD UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.63.txt

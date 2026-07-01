@@ -1,0 +1,42 @@
+You are the code auditor for ~/ytree.
+
+TASK 1 resolved title: Unified AppState Transition Machine + Projection Contract.
+Audit round: 1.2, auditing developer round 1.1.
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md and /home/rob/ytree/.ai/shared.md.
+2. Read /home/rob/ytree/docs/SPECIFICATION.md and /home/rob/ytree/docs/ARCHITECTURE.md.
+3. Use MCP semantic tools only for codebase exploration: serena + jcodemunch when available. If jcodemunch is configured but not callable, state that in your report and use serena rather than grep/find.
+4. Read developer report: /home/rob/ytree/.agent/handoffs/report.1.1.txt.
+
+Changed/expected files to audit:
+- Makefile
+- docs/ARCHITECTURE.md
+- docs/SPECIFICATION.md
+- docs/ROADMAP.md (note: this was already modified before developer round; audit whether its inclusion creates commit/scope risk)
+- docs/appstate_transition_matrix.json
+- docs/appstate_compat_shims.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Audit requirements:
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence from report. Do not rely only on claimed evidence; inspect changed artifacts and tests.
+- Check that no runtime behavior was changed beyond QA/docs/artifact wiring.
+- Check registry schema quality: required categories/fields, duplicate handling, non-empty list handling, shim target transition linkage, maintainability, deterministic error messages.
+- Check QA wiring: guard is included in qa-code-quality or equivalent and is not accidentally omitted from qa-all via qa-code-quality wiring.
+- Check tests: pass/fail coverage is meaningful and does not only test implementation details trivially.
+- Check documentation: architecture/spec language is canonical, not conflicting with existing split/restore ownership text, no stale/dead-history comments, no overbroad duplicated spec content.
+- Check source/security/style: safe file handling, no shell injection, no unsafe APIs, no overbroad path traversal in the guard.
+- Clear pass/fail decision.
+
+Validation evidence already run by architect after developer completion:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS, 5 passed.
+- make qa-code-quality: PASS.
+- make clean && make: PASS with pre-existing compiler warnings.
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.2.txt
+
+Completion reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.2.txt

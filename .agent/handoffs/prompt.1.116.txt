@@ -1,0 +1,47 @@
+You are the code auditor for the AppState transition invariant coverage unit in /home/rob/ytreenova.
+
+Unit goal
+- Audit transition declared-write-set invariant coverage enforcement added to the current PR #118 branch.
+- Required behavior: a transition may list an owner field in declared_write_set only when at least one registered invariant both lists that transition id in transition_ids and protects that owner field in protected_fields.
+
+Scope to audit
+- scripts/check_appstate_contract.py
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.115.txt
+- Existing dispatch coverage reports may be referenced if needed: report.1.111.txt through report.1.114.txt
+
+Acceptance criteria to verify
+- Python guard fails when docs transition declared_write_set lacks same-transition invariant coverage.
+- Python guard fails when runtime transition metadata lacks same-transition invariant coverage.
+- Tests prove same-invariant intersection: transition in one invariant and field protected by another must still fail.
+- Runtime startup guard fails closed for the same mismatch after list shape, owner-field, generation-write coverage, and transition write-set checks.
+- Current repository metadata still passes.
+- Existing dispatch-surface invariant coverage remains intact.
+- No unrelated UI/runtime migration or docs noise.
+
+Risk focus
+- Check whether helper aggregation actually enforces same-invariant intersection rather than independently aggregating transition IDs and protected fields from different records.
+- Check validation ordering and malformed record handling.
+- Check whether transition coverage helper runs for docs and runtime transition registries.
+- Check whether runtime startup helper can dereference malformed metadata or accepts invalid invariant shape.
+- Check test fixture choices do not accidentally make the new negative tests pass for unrelated reasons.
+
+Verification commands to run if needed
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and invariant'
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- python3 scripts/check_appstate_contract.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.116.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Include commands run and results.
+
+Completion reply must be exactly one line:
+APPSTATE TRANSITION INVARIANT COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.116.txt

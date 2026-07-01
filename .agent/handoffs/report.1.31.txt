@@ -1,0 +1,32 @@
+AppState compatibility shim runtime lookup scaffold report
+
+Files changed:
+- include/ytree_appstate_actions.h: added read-only AppStateCompatibilityShimMetadata plus count/index/lookup API declarations.
+- src/core/appstate_actions.c: added runtime compatibility shim invariant-check arrays, shim metadata rows mirroring docs/appstate_compat_shims.json, and fail-closed count/index/lookup implementations.
+- src/core/main.c: added startup invariant checks for non-empty shim registry, required fields, invariant checks, target transition linkage, and fail-closed shim lookups.
+- scripts/check_appstate_contract.py: added runtime shim parsing and validation against documented shims plus runtime transition registry linkage.
+- tests/test_appstate_contract_guard.py: extended fixtures to emit runtime shim metadata and added drift/missing/extra/target/invariant/runtime-link guard tests.
+
+Acceptance criteria status:
+- Runtime compatibility shim lookup/count/index APIs are declared and implemented: satisfied.
+- Runtime shim rows align with docs/appstate_compat_shims.json for required scalar fields and invariant_checks: satisfied and guard-validated.
+- Runtime shim target_transition values are validated against runtime transition ids by startup invariants and Python guard: satisfied.
+- Unknown shim id lookup fails closed with NULL: satisfied; startup also checks NULL, empty, out-of-range, and unknown lookup paths.
+- Startup invariant consumes the shim registry without changing normal behavior: satisfied.
+- Focused tests cover shim drift, missing/extra ids, target_transition drift, missing invariant checks, and runtime transition linkage: satisfied.
+
+Commands run and results:
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: FAIL on first run; one fixture test exposed runtime shim parser rejection of empty string fields before doc-level missing-field validation.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS, 201 passed in 2.34s after parser fix.
+- make clean && make: PASS. Build emitted pre-existing warnings in unchanged files; no warnings in changed files.
+- make qa-cppcheck: PASS.
+- make qa-code-quality: PASS.
+
+Warnings:
+- make clean && make emitted warnings in unchanged files including src/cmd/delete.c, src/cmd/move.c, src/cmd/rename.c, src/core/sort.c, src/core/volume.c, src/fs/freesp.c, src/ui/ctrl_dir.c, src/ui/dir_ops.c, src/ui/display_utils.c, src/ui/error.c, src/ui/progress.c, src/ui/render_dir.c, and src/ui/tagged_view.c.
+- No warnings were reported in changed files.
+
+Scope/deviations:
+- No deviations from the allowed file scope.
+- No runtime command/action behavior was migrated or changed.

@@ -1,0 +1,62 @@
+You are the developer for a focused PR #110 correction in /tmp/ytnova-pr110-fix.
+
+Goal
+- Fix PR #110 without dropping its durable aim: compatibility-shim invariant checks must resolve through the canonical AppState invariant registry at startup.
+
+Context
+- PR #110 branch: chore/appstate-shim-invariant-lookup.
+- CI failure: file mutation integrity gate exits ytnova with `EXIT: startup invariants not configured`.
+- Root cause: PR #110 added AppStateInvariantLookup() validation for shim invariant_checks, but the existing shim docs/runtime arrays contain prose strings rather than invariant ids.
+
+Strict scope
+- Work only in /tmp/ytnova-pr110-fix.
+- Expected files:
+  - docs/appstate_compat_shims.json
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+  - src/core/main.c only if needed to keep the existing PR #110 startup guard intact.
+- Keep the new startup guard in AppStateCompatibilityShimsReady().
+- Convert shim invariant_checks entries from prose to canonical invariant ids that exist in docs/appstate_invariants.json and runtime invariant registry.
+- Add/update contract-guard validation so shim invariant_checks entries are checked against runtime invariant ids, not merely non-empty.
+- Update focused tests/fixtures as needed so this relationship is enforced and current fixtures remain valid.
+
+Suggested mapping
+- shim.viewcontext-hide-dot-files: use invariant.hidden-entry-visible-navigation and invariant.shared-state-panel-local-isolation (also invariant.inactive-panel-frozen if needed).
+- shim.volume-saved-tree-index: use invariant.viewport-identity-rebind and invariant.stale-snapshot-fail-closed.
+- shim.focused-window-session-flag: use invariant.panel-local-focus-restore and invariant.inactive-panel-frozen.
+- shim-render-derived-row-position: use invariant.render-projection-read-only and invariant.viewport-identity-rebind.
+
+Explicit non-goals
+- Do not touch the stacked branch in /home/rob/ytreenova.
+- Do not migrate runtime UI paths.
+- Do not weaken the startup guard to allow prose strings.
+- Do not run make qa-all.
+- Do not include CI transcript noise in docs or reports.
+
+Acceptance criteria checklist
+- [ ] Running /tmp/ytnova-pr110-fix/build/ytnova no longer exits with startup invariants failure after rebuild.
+- [ ] Compatibility shim docs and runtime arrays use registered invariant ids.
+- [ ] scripts/check_appstate_contract.py fails if a shim invariant_checks entry is not in the runtime invariant registry.
+- [ ] Focused tests cover the new cross-registry validation.
+- [ ] Existing PR #110 startup test remains meaningful.
+
+Exact verification commands
+- cd /tmp/ytnova-pr110-fix && source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and invariant'
+- cd /tmp/ytnova-pr110-fix && source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- cd /tmp/ytnova-pr110-fix && source /home/rob/ytreenova/.venv/bin/activate && python3 scripts/check_appstate_contract.py
+- cd /tmp/ytnova-pr110-fix && make clean && make
+- cd /tmp/ytnova-pr110-fix && ./build/ytnova </dev/null 2>&1 | head -20
+- cd /tmp/ytnova-pr110-fix && git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.81.txt
+
+Report contents
+- Summary of changes.
+- Files changed.
+- Exact commands run and pass/fail results.
+- Any risks or follow-ups.
+
+Completion reply must be exactly one line:
+APPSTATE SHIM INVARIANT LOOKUP FIX completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.81.txt

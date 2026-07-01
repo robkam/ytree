@@ -1,0 +1,47 @@
+:at code_auditor
+
+Audit the completed AppState diff-harness write coverage unit in /home/rob/ytreenova.
+
+Goal under audit
+- Every transition declared write-set field must be covered by at least one registered AppState diff-harness check for that same transition.
+
+Scope to audit
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.91.txt
+- Expected changed files:
+  - `docs/appstate_diff_harness.json`
+  - `src/core/appstate_actions.c`
+  - `src/core/main.c`
+  - `scripts/check_appstate_contract.py`
+  - `tests/test_appstate_contract_guard.py`
+- Do not modify product/test code unless you find a concrete defect that can be fixed safely inside this exact scope.
+- Do not commit, push, open/update PRs, or touch unrelated files.
+- You are not alone in the codebase: preserve existing changes and adapt to them; do not revert other work.
+
+Risk-first audit requirements
+- Report findings severity ordered with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm docs/runtime metadata parity remains intact.
+- Confirm the new guard/startup check fails closed for missing same-transition write coverage and does not merely check global field coverage.
+- Confirm existing diff-harness validations for transition ids, owner fields, invariant ids, generation domains, categories, required ids, and doc/runtime parity are preserved.
+- Confirm tests cover docs drift, runtime drift, and startup validation shape.
+- Give a clear PASS/FAIL decision.
+
+Acceptance criteria to verify
+- [ ] Guard rejects a transition write-set field that is not covered by a diff-harness record for the same transition.
+- [ ] Runtime registry validation rejects equivalent drift.
+- [ ] Startup readiness validates diff-harness write-set coverage through runtime metadata.
+- [ ] Current diff-harness docs/runtime metadata satisfy the new invariant.
+- [ ] Focused regression tests prove the new guard/startup behavior.
+- [ ] Existing AppState contract tests remain green.
+
+Suggested verification commands
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff and write'`
+2. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+3. `git diff --check`
+4. Optional if needed: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.92.txt`
+
+Completion reply must be exactly one line:
+APPSTATE DIFF HARNESS WRITE COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.92.txt

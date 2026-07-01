@@ -1,0 +1,25 @@
+Summary:
+- Added dispatch-surface source anchoring to scripts/check_appstate_contract.py.
+- Dispatch surface source_path values must now resolve to real files under repo src/.
+- Dispatch surface entry_symbol_or_path values must now be found in the declared source file, using a function-like token check for C identifiers and exact substring matching for path-style entries.
+- Added focused pytest coverage for missing source files, source paths outside src/, and missing entry symbols.
+
+Files changed:
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Verification commands and results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py::test_current_repository_appstate_contract_passes
+  Result: passed (1 passed in 0.23s)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface'
+  Result: passed (24 passed, 249 deselected in 0.71s)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  Result: passed (273 passed in 5.94s)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+  Result: passed (PASS: AppState contract guard passed)
+- git diff --check
+  Result: passed (no output)
+
+Risks/follow-ups:
+- No C/runtime files were changed, so make clean && make was not required.
+- The entry anchor remains intentionally conservative and does not fully parse C; path-style entries use exact substring anchoring.

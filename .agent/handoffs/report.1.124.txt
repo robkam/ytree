@@ -1,0 +1,31 @@
+Code auditor report: AppState diff harness invariant alignment
+
+Decision: PASS
+
+Risk-first findings
+- No blocker/high/medium/low findings identified in the audited working tree changes.
+
+Evidence reviewed
+- Developer report: .agent/handoffs/report.1.121.txt.
+- Startup regression correction report: .agent/handoffs/report.1.122.txt.
+- Changed files: docs/appstate_diff_harness.json, scripts/check_appstate_contract.py, src/core/appstate_actions.c, src/core/main.c, tests/test_appstate_contract_guard.py.
+
+Acceptance criteria verification
+- Python docs guard same-harness enforcement: PASS. scripts/check_appstate_contract.py:3150-3159 now calls the new alignment helper for each docs diff_harness record, and scripts/check_appstate_contract.py:4158-4191 builds protected fields only from that same record's invariant_ids before checking registered owner_field_refs. tests/test_appstate_contract_guard.py:1536-1571 proves a docs diff harness fails when panel.tree_selection_key is not protected by any invariant listed on that same harness.
+- Python runtime guard same-harness enforcement: PASS. scripts/check_appstate_contract.py:2686-2696 applies the same helper to parsed runtime diff_harness metadata using runtime invariant protected fields. tests/test_appstate_contract_guard.py:2024-2057 proves runtime metadata drift fails for the same mismatch.
+- Runtime startup fail-closed behavior: PASS. src/core/main.c:1573-1591 validates diff_harness metadata shape, src/core/main.c:1614-1624 validates owner-field and invariant lookups, then src/core/main.c:1625-1630 calls the same-harness helper for every owner_field_refs entry. src/core/main.c:1539-1555 fails closed on null metadata, empty owner field, malformed invariant_ids, or absent same-harness protected-field coverage. tests/test_appstate_contract_guard.py:6516-6561 pins helper behavior and call/order after shape and lookup checks.
+- Current repository metadata and runtime registry pass after minimal alignment: PASS. docs/appstate_diff_harness.json:79-84 adds invariant.inactive-panel-frozen to harness.declared-write-set-diff, closing the previous panel.tree_cursor_pos gap. docs/appstate_diff_harness.json:158-164 adds invariant.render-projection-read-only and invariant.shared-state-panel-local-isolation to harness.generation-mismatch-check, closing ctx.layout, ctx.window_handles, and volume.payload_cache gaps. src/core/appstate_actions.c:833-838 and src/core/appstate_actions.c:926-932 mirror those invariant_ids exactly. python3 scripts/check_appstate_contract.py passes.
+- Tests remain focused and do not mask existing coverage: PASS. The diff only adds two negative fixture tests and one startup source-order assertion; existing diff-harness transition coverage and write coverage tests remain unchanged.
+- No unrelated UI/runtime migration or docs noise: PASS. Git diff is limited to the requested docs, guard, runtime registry/startup helper, and focused tests.
+
+Security and robustness checklist
+- No new memory allocation, file/process operations, command execution, path handling, or unsafe string APIs introduced.
+- New C startup helper uses existing metadata pointers and fails closed through NonEmptyString/NonEmptyStringList and AppStateInvariantProtectsField before accepting coverage.
+- Malformed docs/runtime JSON entries are skipped in the new alignment helper only after existing shape/reference validators have responsibility for reporting those malformed entries, avoiding misleading duplicate failures while still failing registered uncovered fields.
+
+Commands run and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant' — PASS (14 passed, 334 deselected).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (348 passed).
+- python3 scripts/check_appstate_contract.py — PASS (PASS: AppState contract guard passed).
+- git diff --check — PASS.
+- make clean && make — PASS; build completed with existing warnings in unrelated files.

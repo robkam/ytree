@@ -1,0 +1,28 @@
+AppState transition registry unit report
+
+Files changed
+- include/ytree_appstate_actions.h: added read-only AppStateTransitionMetadata plus transition registry lookup/count/index access prototypes.
+- src/core/appstate_actions.c: added the runtime transition registry aligned to docs/appstate_transition_matrix.json, write-set tables, count/index lookup, and fail-closed id lookup.
+- src/core/main.c: extended startup invariant checks to consume the transition registry, validate unknown lookup failure, and validate action transition ids/categories through the runtime transition registry.
+- scripts/check_appstate_contract.py: added runtime transition registry parsing and drift checks for missing/extra ids, category/owner/declared_write_set mismatches, unregistered runtime write-set fields, and action lookup references against the runtime registry.
+- tests/test_appstate_contract_guard.py: extended runtime fixtures and added focused guard coverage for registry drift and action-to-runtime-registry validation.
+
+Acceptance criteria
+- Runtime transition lookup exists and builds: AppStateTransitionLookup, AppStateTransitionAt, and AppStateTransitionCount are implemented and exported through the existing AppState metadata header.
+- Every transition matrix record has a runtime row: check_appstate_contract.py compares docs/appstate_transition_matrix.json ids against kAppStateTransitions and fails on missing ids.
+- Runtime rows align with transition matrix id/category/owner/declared_write_set: the guard compares these fields exactly for each runtime row.
+- Existing action lookup transition ids are validated against the runtime transition registry: startup invariants resolve every action transition id through AppStateTransitionLookup, and the Python guard checks runtime action rows against runtime transition ids.
+- Unknown transition id lookup fails closed with NULL: AppStateTransitionLookup returns NULL for NULL, empty, and unmatched ids; startup consumes an unmatched sentinel id and requires NULL.
+- Startup invariant consumes the registry without changing normal behavior: main now validates registry shape and action-to-transition consistency before normal startup continues.
+- Focused validation passes: all required focused commands passed.
+
+Verification
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - PASS: 195 passed in 2.57s (latest run)
+- make clean && make
+  - PASS: build completed and linked build/ytree; generated build/ytree.1
+  - Warnings observed only in unchanged files (for example src/cmd/delete.c, src/cmd/move.c, src/cmd/rename.c, src/core/sort.c, src/core/volume.c, src/fs/freesp.c, src/ui/ctrl_dir.c, src/ui/dir_ops.c, src/ui/display_utils.c, src/ui/error.c, src/ui/progress.c, src/ui/render_dir.c, src/ui/tagged_view.c). No warnings were emitted for changed C files.
+- make qa-cppcheck
+  - PASS: cppcheck completed all 86 files with exit code 0.
+- make qa-code-quality
+  - PASS: unsafe C API guard, module-boundary guard, AppState contract guard, and project AI config guard all passed.

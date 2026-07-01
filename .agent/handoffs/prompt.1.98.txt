@@ -1,0 +1,47 @@
+:at code_auditor
+
+Audit the completed AppState sequence invariant alignment unit in /home/rob/ytreenova.
+
+Goal under audit
+- Every AppState transition-sequence step must name at least one invariant that covers that same step transition.
+
+Scope to audit
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.97.txt
+- Expected changed files:
+  - `docs/appstate_transition_sequences.json`
+  - `src/core/appstate_actions.c`
+  - `src/core/main.c`
+  - `scripts/check_appstate_contract.py`
+  - `tests/test_appstate_contract_guard.py`
+- Do not modify product/test code unless you find a concrete defect that can be fixed safely inside this exact scope.
+- Do not commit, push, open/update PRs, or touch unrelated files.
+- You are not alone in the codebase: preserve existing changes and adapt to them; do not revert other work.
+
+Risk-first audit requirements
+- Report findings severity ordered with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm the new guard/startup check verifies same-transition invariant coverage, not merely existence of any invariant id.
+- Confirm the one metadata correction is mirrored in docs and runtime metadata.
+- Confirm docs/runtime parity and existing transition-sequence validations are preserved.
+- Confirm tests cover docs drift, runtime drift, and startup validation shape.
+- Give a clear PASS/FAIL decision.
+
+Acceptance criteria to verify
+- [ ] Guard rejects a sequence step whose invariant_ids do not include any invariant covering the step transition_id.
+- [ ] Runtime registry validation rejects equivalent drift.
+- [ ] Startup readiness validates sequence-step invariant/transition alignment through runtime metadata.
+- [ ] Current sequence/invariant docs/runtime metadata satisfy the new invariant.
+- [ ] Focused regression tests prove the new guard/startup behavior.
+- [ ] Existing AppState contract tests remain green.
+
+Suggested verification commands
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence and invariant'`
+2. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+3. `git diff --check`
+4. Optional if needed: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.98.txt`
+
+Completion reply must be exactly one line:
+APPSTATE SEQUENCE INVARIANT ALIGNMENT UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.98.txt

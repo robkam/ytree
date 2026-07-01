@@ -1,0 +1,23 @@
+# AppState dispatch invariant coverage correction
+
+## Files changed
+
+- `tests/test_appstate_contract_guard.py`
+  - Narrowed `_complete_invariants()` so the complete fixture assigns representative dispatch-surface ids across invariants instead of assigning every surface to every invariant.
+  - Kept the complete fixture valid by ensuring every fixture dispatch surface still has at least one invariant that also protects the allowed direct-write field.
+  - Added docs and runtime split-invariant regressions where one invariant lists the target surface without protecting `field`, while another protects `field` without listing the target surface.
+  - Updated the cross-cutting empty-invariant fixture test so surfaces moved off the empty invariant remain covered by another invariant.
+
+Existing current-unit changes in `scripts/check_appstate_contract.py` and `src/core/main.c` were preserved; this correction did not require further implementation edits.
+
+## Commands run
+
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and invariant'` — FAIL during iteration: 1 failed, 9 passed, 329 deselected. The narrowed fixture exposed that the empty cross-cutting invariant acceptance test had moved surfaces off their only coverage.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and invariant'` — PASS: 10 passed, 329 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS: 339 passed.
+- `python3 scripts/check_appstate_contract.py` — PASS: `PASS: AppState contract guard passed`.
+- `git diff --check` — PASS: no output.
+
+## Auditor finding correction
+
+The complete fixture now preserves invariant-to-surface specificity: dispatch surfaces are distributed across invariant categories instead of every invariant listing every surface. The new split-invariant docs and runtime regressions prove the required intersection semantics directly: a surface reference in one invariant and field protection in another is rejected because no single invariant provides both the target surface and allowed-write field coverage.

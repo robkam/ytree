@@ -1,0 +1,41 @@
+Findings
+- None.
+
+Decision: PASS
+
+Audit scope
+- Reviewed current working tree changes in:
+  - src/ui/display.c
+  - tests/test_appstate_contract_guard.py
+- Reviewed developer report: .agent/handoffs/report.1.169.txt
+- Checked relevant AppState projection contract in docs/ROADMAP.md Task 1 and existing runtime metadata references for surface.render-reflow-projection.
+
+Acceptance criteria verification
+- Existing helper reused: PASS. RefreshView calls AppStateValidatedDispatchSurface("surface.render-reflow-projection") directly at src/ui/display.c:686; no duplicate validation logic was added.
+- Boundary placement before projection work: PASS. The guard at src/ui/display.c:686-687 precedes the ctx->active stats dereference at src/ui/display.c:689 and the layout/window/render/dialog/clock/doupdate work beginning at src/ui/display.c:697.
+- Validation failure returns immediately/fail-closed: PASS. The failure branch returns at src/ui/display.c:687 before any RefreshView dereference or redraw work.
+- Valid metadata behavior unchanged apart from guard: PASS. The unit changes do not alter AppState metadata; tests only add the existing render-reflow surface to the runtime validation probe at tests/test_appstate_contract_guard.py:4382-4383.
+- Focused tests/source guards: PASS. tests/test_appstate_contract_guard.py:4382-4383 covers runtime dispatch-surface validation for surface.render-reflow-projection, and tests/test_appstate_contract_guard.py:4506-4535 pins the RefreshView boundary before stats and render/reflow calls.
+- Existing AppState guard coherence: PASS. scripts/check_appstate_contract.py passes.
+- Scope/no churn: PASS. Diff is limited to adding the header include and guard in src/ui/display.c plus focused guard coverage in tests/test_appstate_contract_guard.py. No rendering/layout/restore/rebind/command/keybinding/filesystem/controller behavior was migrated.
+
+Security and render-safety checklist
+- No new string, file, process, path, or memory-copy operations were introduced.
+- Invalid dispatch-surface state fails closed before ncurses redraw/projection work.
+- No WbkgdSet or redraw-loop behavior was changed.
+- No new source comments or documentation noise were introduced.
+
+Verification commands run
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or render_projection or render_reflow or readiness'
+   Result: PASS — 76 passed, 551 deselected in 2.41s.
+2. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+   Result: PASS — AppState contract guard passed.
+3. git diff --check
+   Result: PASS — no output.
+
+Developer evidence
+- Developer-reported final required checks were reproduced successfully.
+- Developer-reported optional full test/build checks were not rerun for this audit because the required audit commands passed and the scoped diff is narrow.
+
+Residual risk
+- RefreshView still has pre-existing null-active handling after the stats dereference, but this unit's required boundary is correctly before that dereference and does not expand the task scope.

@@ -1,0 +1,40 @@
+AppState dispatch-surface transition-sequence coverage audit
+Branch: chore/appstate-dispatch-sequence-coverage
+Scope reviewed: docs/appstate_dispatch_surfaces.json, docs/appstate_transition_sequences.json, include/ytnova_appstate_actions.h, src/core/appstate_actions.c, scripts/check_appstate_contract.py, src/core/main.c, tests/test_appstate_contract_guard.py, and developer report .agent/handoffs/report.1.133.txt.
+
+Decision: PASS
+
+Risk-first findings
+- No blocker, high, medium, or low severity findings found in the audited diff.
+
+Acceptance criteria verification
+- [PASS] Every docs dispatch surface has non-empty transition_sequence_refs. Evidence: all ten dispatch surface records declare refs in docs/appstate_dispatch_surfaces.json:17-18, 38-39, 56-57, 71-72, 92-93, 113-114, 135-136, 156-157, 171-172, 186-187.
+- [PASS] Runtime dispatch metadata exposes matching sequence refs. Evidence: AppStateDispatchSurfaceMetadata now includes transition_sequence_refs/count in include/ytnova_appstate_actions.h:66-67; runtime arrays and rows populate the refs in src/core/appstate_actions.c:2008-2264; guard drift comparison includes transition_sequence_refs in scripts/check_appstate_contract.py:2364-2378.
+- [PASS] Document guard rejects missing/malformed/unknown/duplicate sequence refs. Evidence: transition_sequence_refs is a required/list field in scripts/check_appstate_contract.py:174-183 and 303; validation rejects non-list/non-string, duplicate, unknown, and no matching transition coverage at scripts/check_appstate_contract.py:3508-3566. Regression tests cover missing, unknown, duplicate, and non-string refs at tests/test_appstate_contract_guard.py:4194-4237.
+- [PASS] Runtime/doc drift in sequence refs is detected. Evidence: runtime parser extracts TransitionSequenceRefs in scripts/check_appstate_contract.py:953-1003; runtime/doc field comparison includes transition_sequence_refs at scripts/check_appstate_contract.py:2364-2378; regression test at tests/test_appstate_contract_guard.py:4385-4406.
+- [PASS] Startup validation rejects missing/unknown/duplicate runtime sequence refs. Evidence: AppStateDispatchSurfaceSequenceRefsReady requires a non-empty ref list, successful AppStateTransitionSequenceLookup, and no duplicate refs in src/core/main.c:989-1024; AppStateDispatchSurfacesReady fails closed through this helper at src/core/main.c:1112-1122. Structural regression assertions are at tests/test_appstate_contract_guard.py:7415-7428.
+- [PASS] Dispatch surface transition_id is covered by referenced sequence steps. Evidence: document/runtime guard collects matching steps and fails when none cover the dispatch transition_id in scripts/check_appstate_contract.py:3551-3566; startup mirrors this with transition_step_found in src/core/main.c:1013-1024. Regression test at tests/test_appstate_contract_guard.py:4240-4257.
+- [PASS] Dispatch allowed_direct_writes are covered by referenced sequence diff/invariant coverage. Evidence: guard unions diff harness owner_field_refs and invariant protected_fields from matching sequence steps, then checks every allowed_direct_write in scripts/check_appstate_contract.py:3571-3601; startup mirrors the diff/invariant coverage check in src/core/main.c:939-987 and 1027-1059, called from src/core/main.c:1077-1092. Regression tests at tests/test_appstate_contract_guard.py:4260-4311 and 7487-7507. I also ran an independent JSON coverage scan: 10 surfaces, 0 errors.
+- [PASS] Existing dispatch-surface and transition-sequence behavior remains intact. Evidence: guard-required sequence categories/flows were extended narrowly at scripts/check_appstate_contract.py:145-172; existing contract guard suite still passes (427 passed), and contract script passes.
+- [PASS] No runtime UI behavior migration or unrelated edits are included. Evidence: working-tree diff is limited to AppState docs, metadata registry/header, startup validation, contract script, and contract tests; no controller/render behavior implementation was modified.
+
+New sequence scope review
+- terminal resize sequence is scoped to transition.terminal-signal-resize and links resize/reflow owner coverage through generation mismatch and viewport/render invariants: docs/appstate_transition_sequences.json:825-864 and src/core/appstate_actions.c:1851-1882.
+- render reflow sequence is scoped to transition.render-reflow.project-state and projection-only diff/invariant coverage: docs/appstate_transition_sequences.json:867-903 and src/core/appstate_actions.c:1885-1915.
+
+Security / correctness checklist
+- No new dynamic allocation, file/process operations, path handling, shelling out, or unsafe string formatting/copying in runtime code.
+- New runtime checks are bounded over static metadata counts and fail closed on NULL, empty, unknown, duplicate, and uncovered sequence metadata.
+- No new runtime UI state mutation path was introduced.
+
+Validation run by auditor
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch and sequence' — PASS, 13 passed, 414 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or transition_sequence' — PASS, 95 passed, 332 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 427 passed.
+- python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- git diff --check — PASS.
+- make clean && make — PASS; warnings observed are the same pre-existing warning classes reported by the developer and are outside this unit's diff.
+
+Residual risks
+- Local make qa-all was not run, per explicit instruction.
+- Build warning debt remains pre-existing and outside the audited AppState dispatch-sequence coverage unit.

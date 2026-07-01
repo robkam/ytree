@@ -1,0 +1,21 @@
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Summary of implementation:
+- Added kAppStateRequiredTransitionSequenceScenarioIds in src/core/main.c from docs/appstate_transition_sequences.json scenarios[*].scenario_id.
+- Updated AppStateTransitionSequencesReady() to fail closed when runtime transition sequence count differs from the required documented scenario ID count.
+- Kept existing transition sequence field, duplicate, sentinel, null/empty/unknown lookup, step metadata, and cross-reference checks, and added required documented scenario ID lookup coverage.
+- Added focused startup guard tests for transition sequence fail-closed source coverage and documented scenario ID table parity via guard.DEFAULT_TRANSITION_SEQUENCES / scenarios / scenario_id.
+
+Exact commands run and pass/fail results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition_sequence and startup' — FAIL before implementation as expected: 2 failed, 1 passed, 280 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition_sequence and startup' — PASS after implementation: 3 passed, 280 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS: 283 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- make clean && make — PASS; existing compiler warnings were emitted in unrelated files.
+- git diff --check — PASS.
+
+Risks or follow-up notes:
+- No runtime sequence execution, transition-machine behavior, or state snapshot behavior was added.
+- Only the two scoped implementation/test files are modified; the required report file was written.

@@ -1,0 +1,50 @@
+:at code_auditor
+
+Audit the AppState owner invariant lookup unit in /home/rob/ytreenova.
+
+Scope under review
+- Durable aim: owner-field `invariant_checks` are canonical runtime invariant IDs and fail closed when unknown.
+- Changed files expected:
+  - `docs/appstate_owner_fields.json`
+  - `src/core/appstate_actions.c`
+  - `src/core/main.c`
+  - `scripts/check_appstate_contract.py`
+  - `tests/test_appstate_contract_guard.py`
+- Developer report: `/home/rob/ytreenova/.agent/handoffs/report.1.85.txt`
+
+Constraints and non-goals
+- Do not push or open a PR.
+- Do not modify product/test code unless a blocking audit finding requires a minimal correction; if you do edit, state exactly what changed.
+- Keep review risk-first and severity ordered.
+- Do not include noisy handoff paths in final product/PR text; handoff paths are for local process only.
+- policy_block_retry_once
+- watchdog_stall_retry_terminal
+- maintainer_pause_gate=true_blocker_decision|commit_message_approval
+
+Acceptance criteria to verify
+- [ ] Owner-field `invariant_checks` in docs and runtime metadata use registered invariant IDs rather than prose strings.
+- [ ] `scripts/check_appstate_contract.py` fails when owner-field docs/runtime `invariant_checks` reference an invariant ID missing from the runtime invariant registry.
+- [ ] `AppStateOwnerFieldsReady()` validates each owner-field invariant check through `AppStateInvariantLookup()` at startup.
+- [ ] Focused tests cover unknown owner-field invariant IDs and the runtime startup validation shape.
+- [ ] Current appstate contract guard passes.
+- [ ] Scope is atomic and does not alter unrelated runtime UI behavior.
+
+Required audit work
+- Inspect the diff and developer report.
+- Verify risk areas: registry drift, startup fail-closed behavior, docs/runtime parity, guard false negatives, malformed-list behavior preservation, and scope creep.
+- Rerun at least targeted validation:
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'owner_field and invariant'`
+  - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- Run additional checks only if needed for a concrete risk.
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.86.txt`
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear pass/fail decision.
+- Exact commands run and results.
+
+Completion reply must be exactly one line:
+APPSTATE OWNER INVARIANT LOOKUP UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.86.txt

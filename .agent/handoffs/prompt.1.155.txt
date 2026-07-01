@@ -1,0 +1,65 @@
+Role: developer
+Model routing requested by architect: gpt-5.5, high reasoning because this is a corrective pass after audit failure on sequence-step/action-event coverage semantics.
+
+Goal
+Fix the failed AppState sequence-step coverage refs unit without broadening scope. The current branch already adds `action_coverage_refs` and `event_coverage_refs` to transition-sequence steps, but the audit found that validation only proves stimulus/transition identity and does not prove semantic overlap with the step's invariants, diff harnesses, or generation-domain expectations.
+
+Strict scope
+- Work only on the current unit files unless a narrowly necessary adjacent fixture/helper update is required:
+  - docs/appstate_transition_sequences.json
+  - docs/appstate_action_coverage.json only if a canonical coverage record must be truthfully expanded/realigned
+  - docs/appstate_event_coverage.json only if a canonical coverage record must be truthfully expanded/realigned
+  - include/ytnova_appstate_actions.h
+  - scripts/check_appstate_contract.py
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Keep this guard/scaffold-only. Do not migrate runtime UI behavior, refactor controllers, or alter actual dispatch behavior.
+- Preserve existing AppState JSON style and C metadata table style.
+
+Explicit non-goals
+- Do not paper over the audit by weakening or removing step invariant/diff/generation expectations.
+- Do not add broad unrelated action/event coverage metadata.
+- Do not change transition IDs, step stimuli, or existing registries except where needed to make sequence-step coverage refs truthful.
+- Do not touch unrelated files.
+
+Audit failures to fix
+1. `_validate_step_coverage_refs` only validates list shape/duplicates/unknown IDs, stimulus match, and transition match. It must also validate semantic overlap between each referenced action/event coverage record and the sequence step:
+   - step `invariant_ids` vs coverage `invariant_refs`
+   - step `diff_harness_ids` vs coverage `diff_harness_refs`
+   - step generation expectation domain IDs vs coverage `generation_domain_refs`
+   Apply the intended overlap rule consistently to docs and parsed runtime sequence metadata.
+2. Current docs contain no-overlap invariant cases, for example:
+   - `enter-directory` references `ACTION_ENTER`, step invariants include hidden-entry/viewport, action coverage currently only has inactive-panel.
+   - `manual-refresh` references `ACTION_REFRESH`, step invariants do not overlap the action record.
+   - `delete-or-mkdir-result` references `event.filesystem-mutation-result`, step invariants do not overlap the event record.
+   Align sequence steps and/or canonical action/event coverage records truthfully so the new semantic checks pass.
+
+Acceptance criteria checklist
+- [ ] Sequence-step coverage validation compares referenced action/event coverage records against step invariant IDs, diff-harness IDs, and generation-domain expectations under an explicit overlap rule.
+- [ ] Docs guard rejects invariant-mismatched, diff-harness-mismatched, generation-domain-mismatched, and mixed valid+wrong sequence-step coverage refs.
+- [ ] Runtime/docs drift and runtime parsed sequence-step validation include the same semantic overlap checks.
+- [ ] Startup/readiness validation rejects runtime sequence-step coverage refs with wrong invariant/diff/generation overlap before normal execution continues.
+- [ ] Current docs/runtime metadata are truthfully aligned; no sequence step references a coverage record with no required semantic overlap.
+- [ ] Focused negative tests cover docs and runtime mismatch cases for invariant, diff-harness, and generation-domain coverage refs, including at least one mixed valid+wrong case.
+- [ ] Existing AppState guard tests remain green.
+
+Verification commands
+Run targeted first, then broader local quick gate:
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence_coverage_refs or sequence_step or transition_sequence or action_coverage or event_coverage or readiness'`
+2. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+3. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+4. `make clean && make`
+5. `git diff --check`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.155.txt`
+
+Report requirements
+- Summarize the semantic overlap fix.
+- List files changed.
+- Give exact commands run and results.
+- Note any residual risks or follow-up suggestions.
+
+Completion reply must be exactly one line:
+APPSTATE SEQUENCE STEP COVERAGE REFS CORRECTION UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.155.txt

@@ -1,0 +1,27 @@
+Summary of changed files
+- docs/appstate_compat_shims.json: added diff_harness_refs to every compatibility shim, selecting existing harnesses whose union covers each shim target transition, owner fields, invariant checks, and generation domains.
+- include/ytnova_appstate_actions.h: extended AppStateCompatibilityShimMetadata with runtime diff_harness_refs and count fields.
+- src/core/appstate_actions.c: added runtime diff-harness ref tables and wired them into every shim metadata row.
+- src/core/main.c: added fail-closed startup validation for non-empty/known/duplicate shim diff_harness_refs and union coverage of target transitions, owner fields, invariant checks, and generation domains.
+- scripts/check_appstate_contract.py: added document/runtime parsing and validation for shim diff_harness_refs, including malformed list entries, duplicate/unknown refs, doc/runtime drift, target-transition coverage, and union coverage across referenced harnesses.
+- tests/test_appstate_contract_guard.py: added fixture/runtime metadata support and regression tests for shim diff-harness reference validation, runtime drift, runtime/startup guard coverage, and union coverage failures.
+
+Exact commands run and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and diff'
+  Result: PASS (21 passed, 393 deselected)
+- python3 scripts/check_appstate_contract.py
+  Result: PASS (PASS: AppState contract guard passed)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and generation'
+  Result: PASS (20 passed, 394 deselected)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'
+  Result: PASS (19 passed, 395 deselected)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  Result: PASS (414 passed)
+- make clean && make
+  Result: PASS; build completed and produced build/ytnova. Existing compiler warnings were emitted outside this atomic AppState metadata/guard change.
+- git diff --check
+  Result: PASS (no whitespace errors)
+
+Residual risks or follow-up recommendations
+- No local make qa-all was run per explicit non-goal.
+- Runtime validation is fail-closed metadata validation only; no live AppState diff executor was introduced, consistent with scope.

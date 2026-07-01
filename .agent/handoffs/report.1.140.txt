@@ -1,0 +1,37 @@
+Summary
+- Audited the working-tree changes for the AppState coverage dispatch-ref unit across docs/runtime metadata, guard logic, startup readiness, and focused tests.
+- Guard/runtime wiring for `dispatch_surface_refs` is present in docs, runtime metadata, the contract checker, and startup readiness.
+- I also ran `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface_refs or startup_validates_owner_alignment or startup_checks_fail_closed'`, which passed (`28 passed, 437 deselected`).
+- Result: FAIL due to two medium-severity gaps below.
+
+Findings
+1. Severity: medium
+   File: docs/appstate_dispatch_surfaces.json:212; docs/appstate_dispatch_surfaces.json:227; src/core/appstate_actions.c:2346; src/core/appstate_actions.c:2359
+   Evidence: The new `surface.volume-menu-selection` and `surface.panel-anchor-rebind` records both declare `allowed_direct_writes: []` / `NULL, 0`, but their backing code still performs direct panel/session mutations. `SelectLoadedVolume(...)` rebinding goes through `LogDisk(...)` and `EnsurePanelsReferenceActiveVolume(...)` after a successful selection, updating active-panel/session state (`src/ui/volume_menu.c:454-470`). `RestorePanelViewportSnapshot(...)` directly assigns `panel->disp_begin_pos`, `panel->cursor_pos`, and increments `panel->panel_generation` (`src/ui/panel_anchor.c:391-406`).
+   Impact: The new dispatch-surface registry entries under-document current write authority, which is inconsistent with the existing registry style and weakens the usefulness of this contract as an AppState migration guard.
+   Concrete fix: Populate `allowed_direct_writes` for the new surfaces with the owner fields they currently mutate (or narrow the documented entry point to a truly write-free boundary if that was the intent), and mirror the same fields in `src/core/appstate_actions.c`.
+
+2. Severity: medium
+   File: tests/test_appstate_contract_guard.py:7005; tests/test_appstate_contract_guard.py:7107; tests/test_appstate_contract_guard.py:7952
+   Evidence: The new focused tests cover missing/empty/malformed/duplicate/unknown/wrong-transition `dispatch_surface_refs`, but they never exercise the explicitly called-out mixed-list case (for example, one valid ref plus one wrong-transition ref) for action coverage, event coverage, or startup readiness. The nearby startup “mixed” assertions are only for transition-sequence refs, not dispatch-surface refs.
+   Impact: An explicit acceptance criterion remains unverified by regression tests, so future changes could regress per-ref fail-closed handling for mixed dispatch-surface lists without being caught.
+   Concrete fix: Add action/event guard tests and startup-readiness assertions that use mixed valid+invalid `dispatch_surface_refs` lists and verify failure is reported against the offending ref index rather than only aggregate mismatch.
+
+Acceptance criteria verification
+- [x] Action coverage docs/runtime records declare dispatch refs.
+- [x] Event coverage docs/runtime records declare dispatch refs.
+- [x] Guard rejects missing/malformed/duplicate/unknown/wrong-transition dispatch refs, including mixed correct+wrong lists by code inspection (`_validate_dispatch_surface_refs(...)` and `AppStateDispatchSurfaceRefsReady(...)`).
+- [x] Guard rejects runtime/docs drift for action/event dispatch refs.
+- [x] Startup readiness validates action/event dispatch refs, including mixed correct+wrong lists by code inspection.
+- [ ] Focused tests cover these cases. Mixed dispatch-surface lists are not covered.
+- [x] Existing AppState guard tests remain green according to developer evidence.
+- [x] Clean build remains green according to developer evidence.
+
+Developer evidence verification
+- Reviewed `/home/rob/ytreenova/.agent/handoffs/report.1.139.txt`.
+- Developer-reported commands/results are internally consistent with the current diff scope.
+- I did not independently rerun the developer's full `tests/test_appstate_contract_guard.py`, `python3 scripts/check_appstate_contract.py`, or `make clean && make` commands.
+- I independently reran a focused pytest subset covering the new dispatch-ref/startup paths; it passed (`28 passed, 437 deselected`).
+
+Pass/fail decision
+- FAIL. The unit has no observed blocker/high defect, but the new dispatch-surface records under-document current write authority and the required mixed-list dispatch-ref regressions are not covered by focused tests.

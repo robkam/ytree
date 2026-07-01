@@ -1,0 +1,19 @@
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Summary of implementation:
+- Added kAppStateRequiredGenerationDomainIds with the documented generation domain IDs from docs/appstate_generation_domains.json.
+- Updated AppStateGenerationDomainsReady() to fail when runtime count differs from the documented required ID count, reject duplicate domain IDs, keep existing metadata/owner/identity/transition validation, verify every required domain ID resolves through AppStateGenerationDomainLookup(), and preserve sentinel/null/empty/unknown lookup checks.
+- Added focused startup guard tests for generation domain fail-closed checks and documented domain ID table parity using guard.DEFAULT_GENERATION_DOMAINS with generation_domains/domain_id.
+
+Exact commands run and pass/fail results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation_domain and startup' — PASS (2 passed, 287 deselected)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (289 passed)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS
+- make clean && make — PASS (build completed; existing compiler warnings emitted in unrelated files)
+- git diff --check — PASS
+
+Risks or follow-up notes:
+- No known follow-up required for this scoped unit.
+- make emitted pre-existing warnings in unrelated files; none were introduced in the scoped AppState startup guard change.

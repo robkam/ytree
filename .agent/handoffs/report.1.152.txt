@@ -1,0 +1,27 @@
+Code auditor report: AppState diff-harness coverage refs unit
+
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low severity findings found in the audited working-tree changes.
+
+Acceptance criteria verification
+- Action coverage docs resolve canonical diff-harness refs: verified all 85 `docs/appstate_action_coverage.json` action records have non-empty `diff_harness_refs` that resolve to unchanged canonical `docs/appstate_diff_harness.json` `diff_harness_checks` IDs (canonical IDs at docs/appstate_diff_harness.json:7, docs/appstate_diff_harness.json:55, docs/appstate_diff_harness.json:99, docs/appstate_diff_harness.json:134, docs/appstate_diff_harness.json:182). Spot-checked inserted action refs at docs/appstate_action_coverage.json:52 and docs/appstate_action_coverage.json:4159.
+- Event coverage docs resolve canonical diff-harness refs: verified all 9 `docs/appstate_event_coverage.json` event records have non-empty refs resolving to the same canonical registry. Spot-checked event refs at docs/appstate_event_coverage.json:59, docs/appstate_event_coverage.json:111, and docs/appstate_event_coverage.json:460.
+- Transition coverage alignment: independent JSON audit confirmed every action/event `diff_harness_refs` entry covers the record `transition_id`; no unresolved, duplicate, or transition-mismatched docs refs were found.
+- Owner/invariant/generation consistency: independent JSON audit confirmed the union of each coverage record's referenced diff harnesses covers all listed owner-field refs, invariant refs, and generation-domain refs where those registries overlap; no misses were found.
+- Python guard fail-closed behavior: `diff_harness_refs` is required for action/event records (scripts/check_appstate_contract.py:81, scripts/check_appstate_contract.py:206), parsed from runtime metadata (scripts/check_appstate_contract.py:624, scripts/check_appstate_contract.py:809), and validated for malformed, duplicate, unknown, transition-mismatched, owner-field-mismatched, invariant-mismatched, generation-domain-mismatched, and mixed valid+wrong refs by `_validate_coverage_diff_harness_refs` (scripts/check_appstate_contract.py:3567). Negative tests cover those docs paths at tests/test_appstate_contract_guard.py:8037, tests/test_appstate_contract_guard.py:8101, and tests/test_appstate_contract_guard.py:8135.
+- Runtime metadata exposure: action/event structs now expose diff-harness ref arrays and counts (include/ytnova_appstate_actions.h:38, include/ytnova_appstate_actions.h:67), and runtime registries populate them (src/core/appstate_actions.c:3314, src/core/appstate_actions.c:3397, src/core/appstate_actions.c:3805, src/core/appstate_actions.c:3857).
+- Runtime/docs drift checks: action runtime drift compares `diff_harness_refs` against docs (scripts/check_appstate_contract.py:2218), and event runtime drift compares all required event fields including `diff_harness_refs` (scripts/check_appstate_contract.py:5004). Focused drift tests cover action and event cases (tests/test_appstate_contract_guard.py:8467, tests/test_appstate_contract_guard.py:8779).
+- Startup/readiness validation: `AppStateDiffHarnessRefsReady` rejects empty, unknown, duplicate, transition-mismatched, and missing owner/invariant/generation coverage before normal coverage readiness succeeds (src/core/main.c:1796). Both event and action readiness invoke it (src/core/main.c:1951, src/core/main.c:2048). Startup/readiness tests assert the guard is wired and checks the relevant fields (tests/test_appstate_contract_guard.py:9351, tests/test_appstate_contract_guard.py:9410).
+- Scope: no runtime UI migration/refactor found; changes are limited to docs metadata, guard parsing/validation, runtime metadata exposure/readiness, and tests.
+
+Validation run by auditor
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — PASS.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness_refs or diff_harness or action_coverage or event_coverage or readiness'` — PASS, 252 passed, 341 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS, 593 passed.
+- `git diff --check` — PASS.
+- `make clean && make` — PASS; warnings observed match pre-existing unrelated legacy warning categories reported by the developer.
+
+Residual risk
+- This remains scaffold/guard metadata only; it proves registry alignment and fail-closed validation, not the future dynamic before/after diff runner itself. That is consistent with the stated scope.

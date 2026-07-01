@@ -1,0 +1,21 @@
+Findings, severity ordered
+- No findings.
+
+Acceptance criteria verification
+- Scope/touched files: PASS. The uncommitted diff is limited to the expected files: include/ytnova_appstate_actions.h, src/core/appstate_actions.c, src/core/main.c, scripts/check_appstate_contract.py, and tests/test_appstate_contract_guard.py.
+- Scaffold-only behavior: PASS. The runtime additions are static metadata plus read-only count/index/lookup accessors in src/core/appstate_actions.c:740-1065 and 1968-2065, with startup validation only in src/core/main.c:369-438 and 518. I found no UI state writes, restore/render behavior changes, transition execution changes, dynamic diff-harness execution, or runtime snapshot behavior.
+- Fail-closed lookup/index behavior: PASS. AppStateDiffHarnessAt rejects indexes >= count at src/core/appstate_actions.c:1987-1992; AppStateDiffHarnessLookup rejects NULL, empty, and unknown ids at src/core/appstate_actions.c:2053-2065. Startup rechecks count, out-of-range, NULL, empty, and unknown lookup behavior at src/core/main.c:372-435, and the C probe test covers the same at tests/test_appstate_contract_guard.py:1552-1608.
+- Runtime metadata mirrors docs/appstate_diff_harness.json: PASS. The runtime registry mirrors all guarded scalar/list fields in src/core/appstate_actions.c:740-1065. The contract guard parses the runtime diff-harness registry at scripts/check_appstate_contract.py:1011-1119 and compares REQUIRED_DIFF_HARNESS_FIELDS against docs records at scripts/check_appstate_contract.py:1708-1747.
+- Startup validation coverage: PASS. Startup validation checks registry shape/non-empty scalar/list fields, fail-closed lookup/index behavior, and transition/owner-field/invariant/generation-domain references at src/core/main.c:369-438. Docs mirror validation is handled by the contract guard, not runtime startup, which is appropriate because startup does not read docs JSON.
+- Contract guard coverage: PASS. The parser/validator covers missing runtime registry, malformed rows/list entries, duplicate ids, extra ids, docs drift, and invalid runtime transition/owner-field/invariant/generation-domain links at scripts/check_appstate_contract.py:1011-1119 and 1708-1830. Tests cover missing, extra, duplicate, malformed, drifted, invalid linkage, and lookup fail-closed cases at tests/test_appstate_contract_guard.py:1376-1608.
+- Security and architecture gates: PASS. New C code performs bounded table iteration over static const data, introduces no allocation/file/process operations, no unsafe string APIs, and no command/path handling. Controller/business-logic boundaries are unchanged.
+
+Evidence reviewed
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.45.txt.
+- Current uncommitted diff and status for the five expected files.
+- docs/appstate_diff_harness.json compared against the new runtime registry content.
+- Semantic/code search for AppStateDiffHarness references confirmed the new APIs are used only by startup validation/tests/contract guard.
+- Reran from /home/rob/ytreenova: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py && make clean && make && make qa-cppcheck && make qa-code-quality && git diff --check. Result: PASS; pytest reported 241 passed, build passed with pre-existing warnings, qa-cppcheck passed, qa-code-quality passed, and git diff --check passed.
+
+PASS/FAIL decision
+PASS

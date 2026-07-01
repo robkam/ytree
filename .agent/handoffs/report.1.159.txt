@@ -1,0 +1,25 @@
+AppState event coverage boundary unit report
+
+Files changed:
+- include/ytnova_appstate_actions.h: declared AppStateValidatedEvent(const char *event_id).
+- src/core/appstate_actions.c: added AppStateValidatedEvent plus an internal coverage validator that rejects NULL/empty event IDs, missing coverage, event-id mismatches, and missing transition metadata.
+- src/ui/key_engine.c: routed terminal resize and watcher live-refresh synthetic key stand-ins through AppStateValidatedEvent before returning KEY_RESIZE or KEY_F(5).
+- tests/test_appstate_contract_guard.py: added runtime probe coverage for the event validator and source-boundary assertions for GetEventOrKey.
+
+Fail-closed return choice:
+- GetEventOrKey now returns ERR when event coverage validation fails before synthetic KEY_RESIZE or KEY_F(5) emission.
+- ERR is the least disruptive existing no-event/error result for this path because GetEventOrKey already uses the same -1/ERR sentinel for no input or select error cases, and it avoids converting an unvalidated AppState event into an unrelated legacy key/action stand-in while leaving watcher, resize, render, and refresh internals unchanged.
+
+Commands run and results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_coverage or EventCoverage or event_boundary or readiness' — PASS (initial run before renaming new tests into the selector: 69 passed, 554 deselected; final run after test selector fix: 71 passed, 552 deselected).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — FAIL once while developing the new source-boundary test because it looked for "void UI_AskConflict(" instead of the actual "int UI_AskConflict(" signature; fixed the test.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_coverage or EventCoverage or event_boundary or readiness' — FAIL once while developing the new source-boundary test because the resize-block regex had an unterminated named group; fixed the test.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_coverage or EventCoverage or event_boundary or readiness' — PASS, 71 passed, 552 deselected in 4.23s.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 623 passed in 27.61s.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- make clean && make — PASS (exit 0; existing compiler warnings remain outside this unit).
+- git diff --check — PASS (no output).
+
+Residual risks / follow-up suggestions:
+- The boundary still validates metadata only before legacy key stand-in emission; controller dispatch remains intentionally unmigrated.
+- If metadata is removed or broken, resize/watcher synthetic events now fail closed with ERR, so the UI will not perform the corresponding legacy action until metadata is restored.

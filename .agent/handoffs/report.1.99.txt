@@ -1,0 +1,17 @@
+Summary
+- docs/appstate_dispatch_surfaces.json: narrowed surface.file-window-action-dispatch allowed_direct_writes to the fields already declared by transition.keybinding.navigate-tree and updated its migration note.
+- src/core/appstate_actions.c: mirrored the file-window dispatch surface runtime metadata/note change.
+- src/core/main.c: made AppStateDispatchSurfaceWritesReady() fail closed unless each allowed_direct_writes field is in the referenced runtime transition declared_write_set.
+- scripts/check_appstate_contract.py: added docs/runtime dispatch-surface allowed-write subset validation against the referenced transition metadata.
+- tests/test_appstate_contract_guard.py: added docs/runtime guard regressions for out-of-contract allowed writes and startup validation-shape coverage.
+
+Commands run
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and write' — FAIL before implementation as expected (3 failing new regressions).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and write' — PASS (7 passed, 317 deselected).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (324 passed).
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS (AppState contract guard passed).
+- make clean && make — PASS (build completed; existing compiler warnings were emitted).
+- git diff --check — PASS.
+
+Risks/follow-ups
+- No runtime UI migration was performed. The file-window surface remains documented under the broad keybinding foundation with only writes shared by the referenced navigate-tree transition authorized until file-specific transitions are split out.

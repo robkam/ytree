@@ -35,12 +35,8 @@ void SetFileRenderingMetrics(YtreeNovaPanel *p, unsigned max_filename,
                              unsigned max_linkname, unsigned max_userview) {
   if (!p)
     return;
-  p->max_visual_filename_len = max_filename;
-  p->max_visual_linkname_len = max_linkname;
-  /* userview len is usually calculated inside GetVisualFileEntryLength,
-     but if passed explicitly, update it. */
-  if (max_userview > 0)
-    p->max_visual_userview_len = max_userview;
+  (void)AppStateCommitPanelFileRenderingMetrics(
+      p, max_filename, max_linkname, max_userview, max_userview > 0);
 }
 
 void SetRenderSortOrder(YtreeNovaPanel *p, BOOL reverse) {
@@ -161,7 +157,9 @@ static int GetVisualFileEntryLength(ViewContext *ctx, YtreeNovaPanel *p) {
   case MODE_5:
     len = GetVisualUserFileEntryLength(filename_len, p->max_visual_linkname_len,
                                        (GetProfileValue)(ctx, "USERVIEW"));
-    p->max_visual_userview_len = len;
+    (void)AppStateCommitPanelFileRenderingMetrics(
+        p, p->max_visual_filename_len, p->max_visual_linkname_len,
+        (unsigned)len, TRUE);
     break;
   }
 

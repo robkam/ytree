@@ -1,0 +1,52 @@
+You are the developer for ~/ytree. Apply a focused correction to the current AppState transition-sequence unit.
+
+Resolved roadmap title
+- docs/ROADMAP.md Task 1 is resolved as: Unified AppState Transition Machine + Projection Contract.
+
+Context
+- The code auditor failed the unit in /home/rob/ytree/.agent/handoffs/report.1.26.txt.
+- Fix only the two audit findings. Do not broaden scope.
+
+Strict scope
+1) Guard semantic cross-check
+- Collect action_id -> transition_id mappings from docs/appstate_action_coverage.json and event_id -> transition_id mappings from docs/appstate_event_coverage.json.
+- Pass those maps into the transition-sequence validator.
+- Reject any sequence step where stimulus.action_id or stimulus.event_id maps to a different transition_id than the step.transition_id.
+- If a future context-specific multi-transition exception seems needed, do not add a broad bypass; stop and report instead.
+- Add targeted tests proving action-transition mismatch and event-transition mismatch fail.
+
+2) Esc/modal active dismissal coverage
+- Update docs/appstate_transition_sequences.json so the Esc/modal scenario explicitly includes an active-modal Escape dismissal step with expected_result allowed referencing transition.modal-action.dismiss.
+- Keep the post-dismiss Escape no-op as a negative/blocked step only if useful, but it must not be the only ACTION_ESCAPE coverage for Esc/modal.
+- Ensure the step has invariant, diff-harness, generation-domain, and expected owner/write-set metadata consistent with the existing modal dismissal contract.
+
+Explicit non-goals
+- Do not change runtime C behavior.
+- Do not edit controller/runtime modules.
+- Do not implement the actual dynamic state runner.
+- Do not add unrelated docs/process changes.
+- Do not commit .agent/handoffs artifacts.
+
+Acceptance criteria checklist
+- [ ] Auditor finding 1 is fixed with action/event-to-transition mismatch rejection.
+- [ ] Tests fail on mismatched action->transition and event->transition references.
+- [ ] Auditor finding 2 is fixed with active-modal Escape dismissal coverage.
+- [ ] Existing sequence registry and guard remain valid.
+- [ ] No runtime C files are changed.
+
+Exact verification commands, targeted first
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- git diff --check
+- make qa-code-quality
+- make clean && make
+
+Required report path
+- Write /home/rob/ytree/.agent/handoffs/report.1.27.txt with:
+  - Summary
+  - Files changed
+  - Validation commands and results
+  - Any risks, skipped checks, or blockers
+
+Completion reply must be exactly one line:
+APPSTATE TRANSITION SEQUENCE CORRECTION completed, report in /home/rob/ytree/.agent/handoffs/report.1.27.txt

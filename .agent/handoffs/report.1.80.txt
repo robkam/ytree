@@ -1,0 +1,29 @@
+Findings
+- No blocker/high/medium/low findings.
+
+Audit decision: PASS
+
+Acceptance criteria checklist
+- [x] Unknown invariant protected-field ids fail startup readiness: `AppStateInvariantRegistryReady()` now iterates each `metadata->protected_fields` entry and returns 0 when `AppStateOwnerFieldLookup(field) == NULL` (`src/core/main.c:812-818`); `main()` treats `!AppStateInvariantRegistryReady()` as a startup failure (`src/core/main.c:1301-1314`).
+- [x] Empty protected-field id validation remains present: the existing `NonEmptyStringList(metadata->protected_fields, metadata->protected_field_count)` guard remains in the invariant readiness precondition (`src/core/main.c:786-799`).
+- [x] Focused Python regression captures the new startup guard requirement: `test_runtime_invariant_startup_validates_protected_fields_against_owner_registry()` asserts both the non-empty protected-field guard and the owner-field lookup loop (`tests/test_appstate_contract_guard.py:4896-4909`). This is source-level but consistent with the surrounding appstate contract guard style and narrowly scoped to the startup invariant guard.
+- [x] Repository appstate contract guard still passes: reran `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — PASS.
+- [x] Scope remains atomic and independently verifiable: pre-report `git diff --name-only` listed only `src/core/main.c` and `tests/test_appstate_contract_guard.py`; no runtime UI paths, docs, JSON records, shims, dispatch surfaces, transition writes, or generation domains were changed.
+
+Developer evidence verification
+- Read `.agent/handoffs/report.1.79.txt` and inspected the current diff.
+- Reran focused regression: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'invariant and startup'` — PASS, 4 passed / 289 deselected.
+- Reran repository appstate contract guard: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — PASS.
+- Developer-reported full file pytest, build, and diff-check evidence is plausible and not contradicted by this audit; I did not rerun the build because the focused runtime contract and repository appstate guard were sufficient for this atomic audit.
+
+Security/comment/doc/UX checks
+- Security: no new memory/file/process operations, unsafe string APIs, format strings, path handling, or command execution were introduced; the new validation fails closed on unknown protected-field ids.
+- Comments: no new source comments and no stale comment issue found in the changed lines.
+- Documentation: no documentation changes; no doc-noise issue.
+- UX: no interactive flow changes.
+
+Changes made by auditor
+- No product or test code changes. Wrote this required audit report only.
+
+Residual risks
+- The regression is structural/source-level rather than mutating a synthetic invariant record at runtime, but that matches the existing contract-guard testing approach and meaningfully protects the required startup guard shape.

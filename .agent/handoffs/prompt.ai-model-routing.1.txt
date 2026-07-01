@@ -1,0 +1,32 @@
+You are the developer for a small YtreeNova AI-instructions documentation update in /home/rob/ytreenova.
+
+Goal
+- Document that the orchestrator/architect must choose subagent model and reasoning effort when spawning developer/auditor agents, balancing capability and usage economy.
+
+Scope
+- Edit only the most relevant AI guidance location(s). Prefer .ai/shared.md if that is sufficient; optionally docs/ai/WORKFLOW.md only if needed for practical workflow details.
+- Do not edit runtime code, tests, roadmap, or unrelated docs.
+- Keep wording concise and current-actionable; do not add dead-history notes.
+
+Required content
+- State that model/reasoning selection is an orchestrator responsibility at spawn time, not a maintainer manual burden between subagents.
+- State the default routing policy:
+  - routine docs/metadata/guard/scaffold developer or auditor units: use an economical capable model/reasoning profile;
+  - risky runtime migrations, architecture decisions, complex failures, security-sensitive work, or final high-risk audits: use the strongest available model and higher reasoning;
+  - if uncertainty or failure suggests underpowered reasoning, retry/escalate once rather than continuing to burn cycles.
+- State that the orchestrator should apply this to future developer/auditor agents unless user explicitly overrides.
+
+Acceptance criteria
+- The guidance exists in a canonical AI/process docs location.
+- It avoids noisy duplication across multiple files.
+- It does not conflict with existing multi-agent autonomy rules.
+- `git diff --check` passes.
+
+Verification
+- Run `git diff --check`.
+
+Report
+- Write /home/rob/ytreenova/.agent/handoffs/report.ai-model-routing.1.txt with files changed, summary, and validation result.
+
+Completion reply
+- Reply exactly: `AI MODEL ROUTING DOCS completed, report in /home/rob/ytreenova/.agent/handoffs/report.ai-model-routing.1.txt`

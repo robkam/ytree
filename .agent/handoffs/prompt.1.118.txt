@@ -1,0 +1,44 @@
+You are the code auditor for the AppState invariant diff-harness coverage unit in /home/rob/ytreenova.
+
+Unit goal
+- Audit invariant protected-field diff-harness coverage enforcement.
+- Required behavior: every invariant protected_fields owner field must be listed by at least one diff harness owner_field_refs entry, so protected state has a declared observation point in transition-diff harness metadata.
+
+Scope to audit
+- scripts/check_appstate_contract.py
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.117.txt
+
+Acceptance criteria to verify
+- Python guard fails when docs invariant protected_fields includes an otherwise registered owner field absent from all diff harness owner_field_refs.
+- Python guard fails when runtime invariant metadata has protected_fields absent from all runtime diff harness owner_field_refs.
+- Runtime startup guard fails closed for the same mismatch after invariant protected_fields shape and owner-field lookup checks.
+- Current repository metadata still passes.
+- Tests remain focused and do not mask existing diff-harness write coverage behavior.
+- No unrelated UI/runtime migration or docs noise.
+
+Risk focus
+- Check validation ordering: malformed invariant/diff-harness shape should still produce clear existing failures and coverage should not mask meaningful diagnostics.
+- Check runtime startup helper does not dereference malformed harness metadata and does not accept invalid harness owner field lists.
+- Check whether the tests prove missing coverage of an otherwise registered owner field, not just an unknown owner field.
+- Check fixture changes do not over-broaden owner_field_refs in a way that weakens existing tests.
+
+Verification commands to run if needed
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'invariant and diff'
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- python3 scripts/check_appstate_contract.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.118.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Include commands run and results.
+
+Completion reply must be exactly one line:
+APPSTATE INVARIANT DIFF COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.118.txt

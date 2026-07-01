@@ -1,0 +1,23 @@
+AppState sequence invariant alignment unit report
+
+Files changed:
+- docs/appstate_transition_sequences.json: added invariant.hidden-entry-visible-navigation to the showall/global projection step so at least one listed invariant covers transition.keybinding.navigate-tree.
+- src/core/appstate_actions.c: mirrored the sequence metadata invariant list update.
+- scripts/check_appstate_contract.py: added sequence-step invariant/transition alignment checks for both docs and parsed runtime metadata.
+- src/core/main.c: added startup readiness validation that each runtime sequence step names at least one invariant covering its transition.
+- tests/test_appstate_contract_guard.py: added docs/runtime regression tests for unrelated-only invariant refs and extended startup validation shape assertions.
+
+Verification commands:
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence and invariant'
+  - 8 passed, 313 deselected.
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - 321 passed.
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+  - PASS: AppState contract guard passed.
+- PASS: make clean && make
+  - Build completed; existing compiler warnings were emitted in unrelated files.
+- PASS: git diff --check
+  - No whitespace errors.
+
+Risks/follow-ups:
+- No known functional follow-up. The build still emits pre-existing warnings outside this unit's scope.

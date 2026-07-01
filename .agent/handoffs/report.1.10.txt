@@ -1,0 +1,44 @@
+Code auditor report for Task 1.10: Unified AppState Transition Machine + Projection Contract
+
+Audit scope
+- Audited current action-coverage registry unit after developer correction report.1.9.
+- Required startup files read: .ai/codex.md, .ai/shared.md, docs/SPECIFICATION.md, docs/ARCHITECTURE.md, .agent/handoffs/report.1.7.txt, .agent/handoffs/report.1.9.txt, and prior audit .agent/handoffs/report.1.8.txt.
+- Semantic MCP/tool status: Serena was callable and used for project activation plus semantic/pattern inspection. tool_search did not expose a callable jcodemunch namespace/tool despite mcp-doctor reporting jcodemunch configured and startup-probe OK; no grep/find fallback was used.
+- Changed files observed: scripts/check_appstate_contract.py, tests/test_appstate_contract_guard.py, and untracked docs/appstate_action_coverage.json. No runtime/controller files were changed.
+
+Findings
+- No blocker, high, medium, or low findings remain.
+
+Prior finding verification
+- Fixed. scripts/check_appstate_contract.py:99-108 now requires required-list fields to be lists, non-empty, and composed only of non-empty strings after stripping whitespace.
+- Fixed. scripts/check_appstate_contract.py:126-130 applies that list validation to required list fields and known list field names present on records, including shim migration_notes fixture coverage.
+- Fixed. tests/test_appstate_contract_guard.py:18-24 enumerates the required action/transition/shim list-field cases; tests/test_appstate_contract_guard.py:311-341 covers non-string and blank-string members for action declared_write_set/migration_notes, transition declared_write_set/side_effects, and shim invariant_checks/migration_notes.
+
+Acceptance criteria verification
+- [x] Machine-readable action coverage artifact maps every YtreeAction enum member in include/ytree_defs.h to AppState transition metadata. Independent parse: enum_count=85, action_records=85, unique_actions=85, missing=[], extra=[], duplicates=[].
+- [x] Each action record includes at least action, transition_id, category, owner, declared_write_set, boundary_status, and migration_notes. Registry shape is visible at docs/appstate_action_coverage.json:5-20; independent scan found missing_required_fields=[].
+- [x] Guard parses include/ytree_defs.h, fails on missing/extra/duplicate action records, and verifies referenced transition IDs exist. Relevant guard logic is scripts/check_appstate_contract.py:136-159 and scripts/check_appstate_contract.py:262-310; tests cover these at tests/test_appstate_contract_guard.py:238-246 and 362-431.
+- [x] Guard rejects malformed required-list contents, including non-string and blank-string elements. Relevant guard logic is scripts/check_appstate_contract.py:99-108; tests cover this at tests/test_appstate_contract_guard.py:311-341.
+- [x] Guard remains deterministic and is wired into qa-appstate-contract/qa-code-quality without weakening existing checks. Makefile wiring remains Makefile:396-402. No broad suppressions/skips/xfails or guard weakening observed.
+- [x] Targeted tests cover complete pass, missing action, extra action, duplicate action, invalid transition reference, enum drift, and malformed list contents. Coverage points: tests/test_appstate_contract_guard.py:149-167, 238-246, 311-341, and 362-431.
+- [x] No runtime behavior changes. git diff --name-only reports only scripts/check_appstate_contract.py and tests/test_appstate_contract_guard.py; git status also shows expected untracked docs/appstate_action_coverage.json. No src/ or include/ runtime/controller file diffs were present.
+
+Developer evidence verification
+- report.1.9 claimed the guard rejects non-string/blank list elements across the requested action, transition, and shim fields; direct inspection and pytest confirm this.
+- report.1.9 claimed no runtime/controller files changed; git status/diff confirm only the guard, tests, and expected untracked action registry artifact are in scope.
+- report.1.9 validation evidence was reproduced independently: contract guard, targeted pytest, qa-code-quality, and build all passed.
+- Security checklist: no new runtime file/process operations, no command execution surface in the guard beyond deterministic local file reads, no path traversal exposure beyond caller-provided fixture paths, no broad permissions/escalation, no unsafe C API changes, and no fail-open malformed-list path found.
+
+Independent validation commands
+- python3 scripts/check_appstate_contract.py: PASS. Output: PASS: AppState contract guard passed.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS. Output: 40 passed in 0.40s.
+- make qa-code-quality: PASS. Output included unsafe API guard PASS, module-boundary guard PASS, AppState contract guard PASS, and project AI config guard PASS.
+- make clean && make: PASS. Build linked build/ytree and generated build/ytree.1; existing unrelated compiler warnings were emitted in runtime files.
+- make mcp-doctor: PASS/OK with two warnings about personal home-path MCP overrides; no FIX mode was run.
+
+Gate decision
+- PASS.
+
+Residual risks
+- The action coverage registry intentionally maps many actions to broad documented foundation transition records until runtime transition objects are split per action. This remains known migration debt, not a defect in this non-runtime registry unit.
+- Local make qa-all was not run, per prompt scope.

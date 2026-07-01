@@ -1,0 +1,43 @@
+Role: code_auditor
+Branch: chore/appstate-panel-anchor-boundary
+Scope:
+- src/ui/panel_anchor.c
+- tests/test_appstate_contract_guard.py
+- Developer evidence: .agent/handoffs/report.1.177.txt
+
+Findings
+- None.
+
+Acceptance criteria verification
+- PASS: AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") guards RestorePanelAnchorPath at src/ui/panel_anchor.c:418 before snapshot capture, restore/rebind helpers, positioning, and file_dir_entry mutation at src/ui/panel_anchor.c:426-452.
+- PASS: AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") guards EnsurePanelAnchorVisible at src/ui/panel_anchor.c:630 before tree lookup, ancestor expansion, BuildDirEntryList, anchor resolution, positioning, and file_dir_entry mutation at src/ui/panel_anchor.c:641-670.
+- PASS: Guard failure in both functions returns immediately without mutating panel state at src/ui/panel_anchor.c:418-419 and src/ui/panel_anchor.c:630-631.
+- PASS: Existing valid-metadata behavior is unchanged except for the guard; the runtime diff only adds the include at src/ui/panel_anchor.c:8 and the two fail-closed guard blocks at src/ui/panel_anchor.c:418-419 and src/ui/panel_anchor.c:630-631.
+- PASS: tests/test_appstate_contract_guard.py includes panel-anchor surface in the runtime dispatch-surface probe at tests/test_appstate_contract_guard.py:4392-4393.
+- PASS: tests/test_appstate_contract_guard.py includes focused source guards for both RestorePanelAnchorPath and EnsurePanelAnchorVisible at tests/test_appstate_contract_guard.py:4604-4650.
+- PASS: Existing AppState contract script remains green.
+
+Developer evidence verification
+- PASS: Reviewed .agent/handoffs/report.1.177.txt. The reported changed files match the current audit scope, and the reported residual compiler warnings are outside this scoped change.
+- PASS: Current tree confirms the developer's claimed include addition and panel-anchor guard placement.
+- PASS: Re-ran the exact required focused pytest command, AppState contract script, and whitespace diff check; all passed.
+
+Security / unsafe-pattern review
+- PASS: No new string/memory/file/process operations or unsafe APIs were introduced.
+- PASS: The new boundary checks fail closed before panel state mutation on invalid/missing dispatch-surface metadata.
+- PASS: No path traversal, TOCTOU, command injection, format-string, overflow, use-after-free, or double-free regression found in the scoped diff.
+
+Unrelated churn review
+- PASS: Runtime diff is limited to one include and two guard blocks in src/ui/panel_anchor.c.
+- PASS: Test diff is limited to adding the panel-anchor dispatch-surface probe and focused source-order assertions.
+- PASS: git diff --check is clean.
+
+Verification commands
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or panel_anchor or anchor_rebind or readiness'
+  - 75 passed, 556 deselected in 2.62s
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+  - PASS: AppState contract guard passed
+- PASS: git diff --check
+
+Decision: PASS
+Residual risk: None identified in the scoped AppState panel-anchor boundary changes.

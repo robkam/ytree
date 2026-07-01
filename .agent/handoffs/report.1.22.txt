@@ -1,0 +1,28 @@
+PASS
+
+Findings
+- No blocker, high, medium, or low findings in the scoped AppState generation-domain registry/guard unit.
+
+Acceptance verification
+- docs/appstate_generation_domains.json exists and is valid JSON; the guard loaded it successfully via DEFAULT_GENERATION_DOMAINS in scripts/check_appstate_contract.py:20 and validate_contract in scripts/check_appstate_contract.py:930-942.
+- Required domain coverage is present: docs/appstate_generation_domains.json:7-275 declares panel_generation, volume_generation, directory_identity, file_identity, focus_shape, modal_command_target, visibility_filter_state, topology_state, file_payload_state, volume_lifecycle, and layout_reflow. The guard's closed/required category set is in scripts/check_appstate_contract.py:113-125, with missing-category enforcement at scripts/check_appstate_contract.py:781-788.
+- Each registry record declares the required schema fields listed in scripts/check_appstate_contract.py:174-186; spot-checked records at docs/appstate_generation_domains.json:7-35 and docs/appstate_generation_domains.json:254-274 include owner field, identity fields, transition IDs, stale-snapshot policy, fail-closed fallback, restore boundary, enforcement status, and migration notes.
+- Registry records are concrete AppState scaffolding, not filler: generation_owner_field and identity_fields map to owner-field records such as panel.panel_generation and volume.volume_generation in docs/appstate_owner_fields.json:150-158 and docs/appstate_owner_fields.json:258-266, while advances_on_transition_ids map to transition IDs in docs/appstate_transition_matrix.json:6-159. Domains without dedicated runtime generation counters state migration debt in docs/appstate_generation_domains.json:85, docs/appstate_generation_domains.json:109, docs/appstate_generation_domains.json:132, docs/appstate_generation_domains.json:155, docs/appstate_generation_domains.json:180, docs/appstate_generation_domains.json:226, and docs/appstate_generation_domains.json:250.
+- Guard quality verified: required fields and list fields are validated by scripts/check_appstate_contract.py:236-258 and scripts/check_appstate_contract.py:721-747; duplicate domain IDs by scripts/check_appstate_contract.py:749-753; closed categories by scripts/check_appstate_contract.py:755-759; required categories by scripts/check_appstate_contract.py:781-788; generation_owner_field references by scripts/check_appstate_contract.py:761-767; identity_fields references by scripts/check_appstate_contract.py:769-779; advances_on_transition_ids references and malformed/empty-list handling by scripts/check_appstate_contract.py:657-695; transition generation_effect *_generation references by scripts/check_appstate_contract.py:793-814.
+- Focused tests cover positive behavior and representative negative behavior: repository pass and temporary fixture pass at tests/test_appstate_contract_guard.py:395-413; generation-domain CLI override at tests/test_appstate_contract_guard.py:440-463; missing category/field, duplicate ID, unknown category, unknown owner/identity fields, unknown transition ID, malformed advances lists, empty advances explanation, accepted projection-only empty advances, and unregistered generation_effect references at tests/test_appstate_contract_guard.py:466-694. Generic list-field parameterization also covers generation-domain identity_fields and migration_notes at tests/test_appstate_contract_guard.py:24-40 and tests/test_appstate_contract_guard.py:1383-1414.
+- No runtime C behavior changes and no workflow changes: git status/diff scope shows only scripts/check_appstate_contract.py, tests/test_appstate_contract_guard.py, and untracked docs/appstate_generation_domains.json; git diff --name-only -- '*.c' '*.h' returned no files.
+
+Developer evidence verification
+- Developer-reported commands were re-run for the scoped guard and test file and passed locally.
+- Developer-reported no-runtime-C-change claim is supported by the working-tree file scope above.
+- Developer-reported qa-code-quality and build evidence was not re-run because the handoff listed focused verification commands for this audit; no contradictory evidence was found.
+
+Commands run
+- python3 scripts/check_appstate_contract.py: PASS (AppState contract guard passed).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS (124 passed).
+- git diff --check: PASS.
+- Additional audit probes: parsed registry/owner/transition JSON to confirm 11 domains, no unknown owner-field references, no unknown transition references, no duplicate domain IDs, and only registered generation fields in transition generation_effect prose; checked git diff --name-only -- '*.c' '*.h' returned no runtime files.
+
+Residual risks
+- The registry remains documented-foundation-only scaffolding; runtime generation counters are intentionally future migration work and are explicitly documented as such in the affected records.
+- jcodemunch MCP tools were not discoverable in this Codex session; Serena was used where available, with direct reads for explicitly scoped files.

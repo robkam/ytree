@@ -1,0 +1,34 @@
+Worker: developer
+Task: shim-callsite-anchor
+Status: completed
+
+Completed state
+- Added explicit `source_boundary_refs` metadata for compatibility shims in `docs/appstate_compat_shims.json` and mirrored runtime metadata in `include/ytnova_appstate_actions.h` + `src/core/appstate_actions.c`.
+- Tightened `scripts/check_appstate_contract.py` so runtime shim validation now checks the registered source boundary file(s) for `AppStateValidatedCompatibilityShim("...")` instead of accepting a callsite anywhere under `src/`.
+- Added the failing-first regression for the moved-outside-source-boundary shim case and updated fixture runtime generation for shim source-boundary metadata.
+- Added runtime readiness coverage in `src/core/main.c` so shim metadata must carry non-empty source boundary refs.
+
+Red/green evidence
+- Red: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_shim_validation_moves_outside_source_boundary'` -> FAILED before implementation.
+- Green: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_shim_validation_moves_outside_source_boundary or runtime_shim_validation_callsite_is_missing or runtime_event_validation_moves_outside_source_boundary or runtime_event_validation_callsite_is_missing or runtime_dispatch_surface_validation_moves_outside_source_boundary or runtime_dispatch_surface_validation_callsite_is_missing or current_repository_appstate_contract_passes'` -> PASS.
+- Green: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py && git diff --check` -> PASS.
+
+Git state
+- Branch: `fix/appstate-shim-callsite-anchor`
+- Commit: `c181ca4`
+
+PR
+- Draft PR: https://github.com/robkam/ytreenova/pull/178
+- Title: `fix(appstate): anchor shim validation to source boundaries`
+
+One-time GitHub check snapshot
+- Queued: Analyze (actions); Guard fuzz harness sync.
+- In progress: Fedora Rawhide GCC build/install smoke; PR Size Label; Analyze (c-cpp); Analyze (python); Full local-equivalent QA gate (qa-all).
+- Completed success: Detect QA-relevant changes; Detect full-QA relevant changes; Up To Date With Main.
+- Completed skipped: Split panel regression gate; Sanitizer gate (qa-sanitize, labeled/manual).
+
+Resume instruction for maintainer
+- After GitHub is green, resume by reviewing PR 178, then continue from the updated live checkpoint in `.agent/handoffs/prompt.1.txt`.
+
+Notes
+- Left the pre-existing unrelated stash untouched: `stash@{0}` / `On main: preserve local wsl notify test deletion`.

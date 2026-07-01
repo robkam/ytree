@@ -1,0 +1,33 @@
+APPSTATE WATCHER REFRESH BOUNDARY AUDIT REPORT
+
+Decision: PASS
+
+Findings:
+- None.
+
+Risk-first review:
+- blocker: none found.
+- high: none found.
+- medium: none found.
+- low: none found.
+
+Acceptance criteria verification:
+- PASS: `src/ui/key_engine.c:875-881` places `AppStateValidatedDispatchSurface("surface.watcher-live-refresh")` immediately after `Watcher_ProcessEvents(ctx)` succeeds and before `AppStateValidatedEvent("event.watcher-live-refresh")` and `return KEY_F(5);`.
+- PASS: The guard failure returns `ERR` and does not reach `KEY_F(5)`.
+- PASS: The watcher refresh path otherwise remains unchanged; the only runtime addition is the new fail-closed dispatch-surface gate.
+- PASS: `tests/test_appstate_contract_guard.py:4384-4385` adds `surface.watcher-live-refresh` to the runtime dispatch-surface probe.
+- PASS: `tests/test_appstate_contract_guard.py:4801-4807` adds a focused source guard asserting watcher dispatch placement.
+- PASS: `python3 scripts/check_appstate_contract.py` remains green.
+
+Developer evidence verification:
+- Reviewed `.agent/handoffs/report.1.181.txt`.
+- That evidence showed the same targeted commands passing, plus `make clean && make` and `git diff --check` passing.
+- The noted rebuild warnings were pre-existing and unrelated to this change.
+
+Verification commands run:
+- PASS: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or watcher_live_refresh or watcher_refresh or readiness'`
+- PASS: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- PASS: `git diff --check`
+
+Conclusion:
+- PASS: The audit scope is satisfied with no blocker/high/medium/low findings.

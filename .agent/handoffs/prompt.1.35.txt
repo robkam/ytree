@@ -1,0 +1,34 @@
+Goal
+- Fix the AppState invariant runtime lookup scaffold audit finding so the contract guard fails closed on malformed/unparsed runtime invariant registry rows.
+- Durable aim: harden the invariant registry lookup guard for the Unified AppState transition architecture.
+
+Strict scope
+- Modify only what is needed in:
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Do not modify runtime C files unless you find the audit finding cannot be fixed in the guard/tests alone.
+- Do not touch unrelated branches/files or reset/reformat unrelated changes.
+- You are not alone in the codebase; preserve existing edits and style.
+
+Finding to fix
+- Code auditor report /home/rob/ytree/.agent/handoffs/report.1.34.txt found that `_parse_runtime_invariant_registry` records only rows matching the strict string-literal row regex and does not verify every initializer inside `kAppStateInvariants[]` was consumed.
+- A malformed extra compiled row such as one with `NULL` as `invariant_id` can be ignored, leaving documented id coverage intact and making `scripts/check_appstate_contract.py --action-runtime <mutated file>` pass incorrectly.
+
+Acceptance criteria checklist
+- The runtime invariant parser/guard fails closed when any top-level initializer row in `kAppStateInvariants[]` cannot be parsed into the expected schema.
+- Missing/extra/duplicate/string-field drift validations for valid rows still work.
+- A focused regression test appends or injects a malformed runtime invariant row (for example non-string/null id) and asserts the guard fails with a clear message.
+- Existing AppState contract guard tests remain green.
+- Existing local guard bundle remains green.
+
+Verification commands
+- python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- make qa-code-quality
+
+Report requirements
+- Write report to /home/rob/ytree/.agent/handoffs/report.1.35.txt
+- Include files changed, acceptance criteria status, exact commands run/results, and any deviations.
+- Completion reply must be exactly one line:
+  TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.35.txt

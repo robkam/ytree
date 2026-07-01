@@ -1,0 +1,27 @@
+Summary
+- Re-audited the current working-tree changes for the AppState coverage dispatch-ref unit across docs, runtime metadata, guard validation, startup readiness, and focused regressions.
+- Verified the two prior medium findings are addressed: the new dispatch-surface records now declare concrete write authority in docs/runtime metadata, and mixed valid+wrong dispatch-surface ref lists are covered for action coverage, event coverage, runtime action/event validation, and startup readiness source checks.
+- Independently reran `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'test_dispatch_surface_records_document_new_write_authority or mix_valid_and_wrong_transition or mixed_dispatch_surface_refs'` and `python3 scripts/check_appstate_contract.py`; both passed.
+
+Findings
+- No findings. No blocker/high/medium/low defects were identified in the audited working-tree scope.
+
+Acceptance criteria verification
+- [x] Action coverage docs/runtime records declare dispatch refs.
+- [x] Event coverage docs/runtime records declare dispatch refs.
+- [x] Guard rejects missing/malformed/duplicate/unknown/wrong-transition dispatch refs, including mixed correct+wrong lists.
+- [x] Guard rejects runtime/docs drift for action/event dispatch refs.
+- [x] Startup readiness validates action/event dispatch refs, including mixed correct+wrong lists.
+- [x] New dispatch-surface write declarations are contract-valid and not under-documented.
+- [x] Focused tests cover these cases.
+- [x] Existing AppState guard tests remain green according to developer/architect evidence.
+- [x] Clean build remains green according to developer/architect evidence.
+
+Developer evidence verification
+- Reviewed `/home/rob/ytreenova/.agent/handoffs/report.1.139.txt`, `/home/rob/ytreenova/.agent/handoffs/report.1.140.txt`, and `/home/rob/ytreenova/.agent/handoffs/report.1.141.txt`.
+- The corrective report's claimed fixes match the current diffs in `docs/appstate_dispatch_surfaces.json`, `docs/appstate_invariants.json`, `docs/appstate_transition_sequences.json`, `src/core/appstate_actions.c`, `src/core/main.c`, `scripts/check_appstate_contract.py`, and `tests/test_appstate_contract_guard.py`.
+- My focused rerun matched the reported direction of travel: the targeted mixed-ref/write-authority pytest subset passed (`7 passed, 465 deselected`) and the contract guard script passed.
+- I did not independently rerun the developer's full `pytest -q tests/test_appstate_contract_guard.py` or `make clean && make`; acceptance for those items remains based on the developer evidence in report `1.141`.
+
+Pass/fail decision
+- PASS. The audited unit satisfies the stated acceptance criteria, the prior audit findings are fixed, and no new scoped defects were found.

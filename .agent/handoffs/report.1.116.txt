@@ -1,0 +1,37 @@
+# AppState transition invariant coverage audit
+
+## Findings
+
+No findings. The current working tree satisfies the same-transition/same-invariant declared-write-set invariant coverage requirement in the audited scope.
+
+## Acceptance criteria verification
+
+- Python guard fails when docs transition `declared_write_set` lacks same-transition invariant coverage: **verified**. Docs transition validation calls `_validate_transition_write_set_has_invariant_coverage()` at `scripts/check_appstate_contract.py:4908-4914`, using coverage derived from docs invariants by `_invariant_protected_fields_by_transition()` at `scripts/check_appstate_contract.py:3962-3988`. Regression coverage is at `tests/test_appstate_contract_guard.py:3920-3952`.
+- Python guard fails when runtime transition metadata lacks same-transition invariant coverage: **verified**. Runtime transition validation calls the same helper at `scripts/check_appstate_contract.py:1941-1949`, using runtime invariant coverage built at `scripts/check_appstate_contract.py:4836-4838`. Regression coverage is at `tests/test_appstate_contract_guard.py:4167-4209`.
+- Tests prove same-invariant intersection: **verified**. `_split_transition_invariant_coverage()` deliberately leaves the target transition on one invariant with only an alternate protected field, while another invariant protects the target field but lists only a fallback transition (`tests/test_appstate_contract_guard.py:1125-1143`). The docs/runtime split regressions reject that shape at `tests/test_appstate_contract_guard.py:3920-3952` and `tests/test_appstate_contract_guard.py:4167-4209`.
+- Runtime startup guard fails closed for the same mismatch after list shape, owner-field, generation-write coverage, and transition write-set checks: **verified by source audit and startup smoke**. `AppStateTransitionRegistryReady()` validates transition metadata shape, owner-field registration, and generation write coverage before calling `AppStateTransitionWriteHasInvariantCoverage()` at `src/core/main.c:752-780`. The helper requires a single invariant containing both the transition id and protected field, and skips malformed invariant lists instead of dereferencing them, at `src/core/main.c:709-735`. The source-level regression coverage is at `tests/test_appstate_contract_guard.py:2309-2332`.
+- Current repository metadata still passes: **verified** by `python3 scripts/check_appstate_contract.py` and `build/ytnova --version`.
+- Existing dispatch-surface invariant coverage remains intact: **verified** by full `tests/test_appstate_contract_guard.py`; existing dispatch tests remained green, including prior same-surface split coverage.
+- No unrelated UI/runtime migration or docs noise: **verified**. `git diff --name-only` reports only `scripts/check_appstate_contract.py`, `src/core/main.c`, and `tests/test_appstate_contract_guard.py`.
+
+## Developer evidence verification
+
+Developer report `.agent/handoffs/report.1.115.txt` accurately describes the implementation scope and command results. I reran the requested checks successfully. The developer-noted residual risk is acceptable for this unit: runtime mismatch coverage remains source-level plus current-binary startup smoke rather than a compiled malformed-runtime fixture.
+
+## Security / safety review
+
+No new unsafe string APIs, allocations, file/process operations, command execution paths, path handling, UI flow, or ownership/lifetime changes were introduced. The C helper uses existing bounded metadata counts and fails closed on NULL/empty transition ids, fields, and invariant list shapes before matching.
+
+## Commands run
+
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and invariant'` — **PASS**, 23 passed, 319 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — **PASS**, 342 passed.
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — **PASS**, `PASS: AppState contract guard passed`.
+- `make clean && make` — **PASS**, completed with pre-existing compiler warnings.
+- `git diff --check` — **PASS**, no output.
+- `build/ytnova --version` — **PASS**, `ytnova 1.0.0-alpha (June 2026)`.
+- `git diff --name-only` — **PASS**, limited to the three scoped files.
+
+## Decision
+
+**PASS**. The audited changes meet the AppState transition invariant coverage acceptance criteria.

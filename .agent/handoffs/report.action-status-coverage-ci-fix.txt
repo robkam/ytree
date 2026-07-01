@@ -1,0 +1,42 @@
+Outcome
+- Fixed the PR CI failure caused by a duplicated `covered_by_transition_record` comparison in `AppStateKnownBoundaryStatus`.
+- Added a regression probe test that fails if `documented_foundation_only` stops being accepted by runtime boundary validation.
+- Amended the existing PR commit and force-pushed `chore/action-coverage-runtime-status` to origin.
+
+Root cause
+- `src/core/appstate_actions.c` accidentally compared `covered_by_transition_record` twice inside `AppStateKnownBoundaryStatus`.
+- That typo made `documented_foundation_only` unreachable in the validator and triggered cppcheck's `duplicateExpression` and `knownConditionTrueFalse` findings in `qa-cppcheck`.
+
+Files changed
+- `src/core/appstate_actions.c`
+- `tests/test_appstate_contract_guard.py`
+- `.agent/handoffs/prompt.1.txt`
+- `.agent/handoffs/report.action-status-coverage-ci-fix.txt`
+
+Red-green proof
+1. Red:
+   - Command: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_registry_boundary_validation_accepts_foundation_status'`
+   - Result: FAIL. The compiled probe exited with status 1 while validating a transition whose `boundary_status` was set to `documented_foundation_only`.
+2. Fix:
+   - Restored `documented_foundation_only` to the accepted set in `AppStateKnownBoundaryStatus`.
+   - Added a compiled regression probe covering transition, action coverage, event coverage, and dispatch surface validation.
+3. Green:
+   - Command: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_registry_boundary_validation_accepts_foundation_status or runtime_registry_status_validation_rejects_unknown_values or runtime_action_coverage_status_stays_foundation_only or current_repository_appstate_contract_passes'`
+   - Result: PASS.
+
+Additional validation
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` -> PASS.
+- `make clean && make` -> PASS.
+- `git diff --check` -> PASS.
+- Focused `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src/core/appstate_actions.c` no longer reports the previous `knownConditionTrueFalse` / `duplicateExpression` findings; the remaining isolated-file output is existing `unusedFunction` baseline noise from running cppcheck on one translation unit outside the full make target flow.
+- `git push --force-with-lease origin chore/action-coverage-runtime-status` succeeded after the pre-push `make qa-code-quality` gate passed.
+
+GitHub snapshot
+- PR: https://github.com/robkam/ytreenova/pull/182
+- Head: `7af5910eac99e077344cb2cbcbfa0854fa6a4f49`
+- Post-push snapshot on 2026-06-22: Baseline CI, Full QA, Fedora Rawhide GCC Smoke, CodeQL, PR Freshness Gate, and PR Size Gate were all queued.
+
+Recommended next action
+- Wait for the refreshed PR checks to finish, then inspect the PR once.
+- If required checks are green, continue with the normal merge/cleanup flow.
+- If a check fails again, inspect only the failure-relevant summary/tail and fix only clearly repo-side, in-scope issues.

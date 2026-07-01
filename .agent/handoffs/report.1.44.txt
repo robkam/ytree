@@ -1,0 +1,44 @@
+Code auditor report: AppState generation-domain runtime lookup scaffold
+
+Decision: PASS
+
+Findings
+- None. I found no blocker/high/medium/low defects in the scoped diff.
+
+Scope audited
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- src/core/main.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Acceptance criteria verification
+- Runtime lookup/count/index APIs: PASS. AppStateGenerationDomainCount, AppStateGenerationDomainAt, and AppStateGenerationDomainLookup are declared in include/ytnova_appstate_actions.h:123-126 and implemented in src/core/appstate_actions.c:1637-1653 and src/core/appstate_actions.c:1700-1712. Null, empty, unknown lookup IDs return NULL; index == count returns NULL.
+- Runtime rows mirror docs/appstate_generation_domains.json fields: PASS. AppStateGenerationDomainMetadata carries all required fields in include/ytnova_appstate_actions.h:83-98, rows populate all fields in src/core/appstate_actions.c:550-738, and the contract guard compares runtime fields against docs at scripts/check_appstate_contract.py:1497-1513.
+- Startup validation: PASS. AppStateGenerationDomainsReady validates non-empty registry, scalar fields, identity/advance/migration list shape, lookup identity, owner-field linkage, transition linkage, out-of-range index failure, and null/empty/unknown lookup failure at src/core/main.c:135-191. It is wired into startup at src/core/main.c:440-447.
+- Python contract guard coverage: PASS. Runtime generation-domain parsing is added at scripts/check_appstate_contract.py:910-1008, validation at scripts/check_appstate_contract.py:1463-1594, and validate_contract integration at scripts/check_appstate_contract.py:2793-2817 and scripts/check_appstate_contract.py:2893-2918. It covers missing, extra, duplicate, malformed rows, malformed string-list entries, field drift, invalid owner linkage, and invalid transition linkage.
+- Focused tests: PASS. Fixture generation includes runtime generation domains at tests/test_appstate_contract_guard.py:337-448 and tests/test_appstate_contract_guard.py:640-706. Added tests cover missing/extra/duplicate/malformed row/malformed list/invalid owner/invalid transition/stale-boundary drift at tests/test_appstate_contract_guard.py:1526-1726. Existing AppState guard suite remains green.
+- No runtime UI behavior changes: PASS. The C diff is metadata, lookup accessors, and startup validation only; no controller/render/input behavior was changed.
+
+Security and maintainability checks
+- No new file/process, path, command execution, or allocation behavior was introduced in the runtime diff.
+- String handling is read-only static metadata plus strcmp over null/empty-guarded lookup inputs.
+- Invalid metadata fails closed through startup validation rather than being tolerated.
+- No stale/change-diary comments were introduced in the scoped diff.
+
+Evidence verified in this audit
+- PYTHONPYCACHEPREFIX=/tmp/... python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py: PASS.
+- source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 PYTEST_ADDOPTS='-p no:cacheprovider' pytest -q tests/test_appstate_contract_guard.py: PASS, 230 passed.
+- PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_appstate_contract.py: PASS.
+- make: PASS, no-op ("Nothing to be done for 'all'"). I did not run make clean because the worker instruction explicitly prohibited cleaning/modifying files.
+- PYTHONDONTWRITEBYTECODE=1 make qa-code-quality: PASS.
+- make qa-cppcheck: PASS.
+- git diff --check -- scoped files: PASS.
+
+Developer/architect evidence verification
+- The focused Python guard and contract evidence is independently verified above.
+- qa-code-quality and qa-cppcheck are independently verified above.
+- Clean-build evidence (make clean && make, and the architect aggregate command segment containing make clean) was not rerun because this audit was explicitly constrained not to clean or modify files. The current incremental make is green/no-op, and cppcheck plus contract/test gates are green.
+
+Residual risk
+- The only residual evidence caveat is that the clean rebuild was not independently rerun under the no-clean/no-modify worker constraint.

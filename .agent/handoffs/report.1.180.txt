@@ -1,0 +1,33 @@
+PASS — AppState resize signal boundary unit
+
+Scope reviewed
+- src/ui/key_engine.c
+- tests/test_appstate_contract_guard.py
+- developer evidence: .agent/handoffs/report.1.179.txt
+
+Findings
+- None.
+
+Risk review
+- WGetch now fail-closes on AppStateValidatedDispatchSurface("surface.resize-signal-handling") before any ctx->resize_request mutation and returns ERR on guard failure: src/ui/key_engine.c:699-706.
+- GetEventOrKey now fail-closes on the same dispatch-surface guard before every KEY_RESIZE return path that consumes ctx->resize_request: src/ui/key_engine.c:793-798, 814-819, 859-865.
+- No unrelated refactor or formatting churn is present in the scoped diff; git diff --check passed.
+- Valid resize behavior is unchanged apart from the new guard calls; the code still returns KEY_RESIZE after AppStateValidatedEvent("event.terminal-resize-signal") succeeds.
+
+Acceptance criteria verification
+- AppStateValidatedDispatchSurface("surface.resize-signal-handling") guards WGetch before ctx->resize_request writes: satisfied at src/ui/key_engine.c:699-706.
+- AppStateValidatedDispatchSurface("surface.resize-signal-handling") guards each GetEventOrKey resize_request consumption path before returning KEY_RESIZE: satisfied at src/ui/key_engine.c:793-798, 814-819, 859-865.
+- Guard failure returns ERR and does not mutate resize_request in WGetch: satisfied at src/ui/key_engine.c:700-704.
+- Existing behavior for valid metadata is unchanged except for the guard: satisfied by unchanged KEY_RESIZE return flow after event validation.
+- tests/test_appstate_contract_guard.py includes resize surface in the runtime dispatch-surface probe: satisfied at tests/test_appstate_contract_guard.py:4376-4384.
+- tests/test_appstate_contract_guard.py includes focused source guards for WGetch and GetEventOrKey: satisfied at tests/test_appstate_contract_guard.py:4468-4480 and 4771-4797.
+- Existing AppState contract script remains green: satisfied by scripts/check_appstate_contract.py passing.
+
+Developer evidence verification
+- Reviewed .agent/handoffs/report.1.179.txt; its stated correction matches the current tree shape and current diff remains limited to the two scoped files.
+- The exact required verification commands now pass in this checkout.
+
+Validation run
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or resize_signal or terminal_resize or readiness' — PASS (75 passed, 557 deselected)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS
+- git diff --check — PASS

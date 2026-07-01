@@ -1,0 +1,57 @@
+You are the developer for one atomic AppState unit in /home/rob/ytreenova.
+
+Unit title: AppState volume menu boundary
+
+Resolved roadmap work title: Unified AppState Transition Machine + Projection Contract.
+
+Model/routing note: this is a runtime boundary around a stateful volume menu. Use careful reasoning; keep the patch narrow and preserve behavior for valid metadata.
+
+Strict scope
+- Work only in the Ubuntu checkout /home/rob/ytreenova.
+- Add narrow runtime validation boundaries for existing AppState dispatch surfaces:
+  - surface.volume-menu-selection
+  - surface.volume-operation
+- Expected production target: SelectLoadedVolume in src/ui/volume_menu.c.
+- Reuse existing AppStateValidatedDispatchSurface(const char *) from the AppState action registry.
+- Add/adjust tests only in tests/test_appstate_contract_guard.py.
+- You are not alone in the codebase: preserve unrelated edits. Do not modify, reset, stage, clean, or reformat unrelated files.
+
+Explicit non-goals
+- Do not migrate volume selection/release into runtime transition objects.
+- Do not change volume menu UI, volume lifecycle semantics, LogDisk/Volume_Delete behavior, panel binding behavior, restore/rebind behavior, keybindings, command semantics, rendering, or filesystem behavior.
+- Do not add new dispatch-surface metadata.
+- Do not commit, push, open PRs, or touch branch management.
+
+Implementation requirements
+- Include the AppState actions header where needed.
+- At the start of SelectLoadedVolume, before ClearHelp, allocation, window creation, menu drawing, LogDisk, Volume_Delete, BuildDirEntryList, EnsurePanelsReferenceActiveVolume, or state writes, validate both:
+  AppStateValidatedDispatchSurface("surface.volume-menu-selection")
+  AppStateValidatedDispatchSurface("surface.volume-operation")
+- If either validation fails, return -1 as the existing cancel/fail-closed result.
+- Keep valid behavior unchanged.
+- Extend the existing dispatch-surface runtime probe/source guards so both volume surfaces are covered and the boundary is pinned before volume menu work begins.
+
+Acceptance criteria checklist
+- [ ] Existing dispatch-surface helper is reused; no duplicate validation logic.
+- [ ] surface.volume-menu-selection and surface.volume-operation validate successfully in the focused runtime probe.
+- [ ] SelectLoadedVolume fails closed by returning -1 if either surface is invalid.
+- [ ] Source guard proves validation appears before ClearHelp, xmalloc, newwin, LogDisk, Volume_Delete, BuildDirEntryList, EnsurePanelsReferenceActiveVolume, and return_key writes.
+- [ ] No unrelated behavior/refactor/formatting churn.
+
+Verification commands, targeted first
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or volume_menu or volume_operation or readiness'
+2. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+3. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+4. make clean && make
+5. git diff --check
+
+Required report path
+- Write your report to: /home/rob/ytreenova/.agent/handoffs/report.1.171.txt
+
+Report must include
+- Files changed.
+- Exact commands run and results.
+- Any warnings/residual risks.
+
+Completion reply must be exactly one line:
+APPSTATE VOLUME MENU BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.171.txt

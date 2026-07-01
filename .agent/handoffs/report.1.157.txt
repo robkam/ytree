@@ -1,0 +1,32 @@
+Runtime boundary approach
+- Added AppStateValidatedKeyAction(action) in src/core/appstate_actions.c and declared it in include/ytnova_appstate_actions.h.
+- The helper returns ACTION_NONE unchanged as the intentional no-op/fail-closed result.
+- For every non-ACTION_NONE action, the helper requires AppStateActionCoverageLookup(action) to return matching coverage and AppStateTransitionLookup(coverage->transition_id) to return transition metadata; otherwise it fails closed to ACTION_NONE.
+- Routed GetKeyAction decoded returns in src/ui/key_engine.c through AppStateValidatedKeyAction without changing keybindings, action enum values, or controller dispatch.
+- Added guard tests that verify valid covered actions pass, invalid/missing coverage fails closed, a copied local metadata record with a missing transition fails closed without mutating production metadata, and GetKeyAction routes decoded ACTION_* returns through the AppState boundary.
+
+Files changed
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- src/ui/key_engine.c
+- tests/test_appstate_contract_guard.py
+
+Commands run and results
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'key_action or action_coverage or transition_lookup or readiness'
+   - RED before implementation: failed as expected with 2 failures for missing AppStateValidatedKeyAction/AppStateValidateKeyActionCoverage and missing key_engine AppState boundary include; 73 passed, 546 deselected.
+2. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'key_action or action_coverage or transition_lookup or readiness'
+   - PASS after implementation: 75 passed, 546 deselected.
+3. source .venv/bin/activate && pytest -q tests/test_vi_keys_mode.py
+   - PASS: 2 passed.
+4. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+   - PASS: 621 passed.
+5. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+   - PASS: AppState contract guard passed.
+6. make clean && make
+   - PASS: build/ytnova and manpage built successfully. The build still emits existing unrelated warnings in several files.
+7. git diff --check
+   - PASS: no whitespace errors.
+
+Residual risks / follow-up suggestions
+- The runtime boundary is intentionally narrow: controller dispatch is unchanged and still receives legacy actions when they have AppState coverage plus transition metadata.
+- GetKeyAction now performs one registry lookup pair per decoded key action; this is cheap for the current static tables, but future large registries may want indexed transition lookup if profiling ever shows input latency impact.

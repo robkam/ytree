@@ -1,0 +1,39 @@
+You are the code auditor for Ytree AppState work.
+
+Audit target
+- Current branch: task/appstate-generation-domain-registry
+- Current atomic unit: AppState identity/generation domain registry and guard.
+- Developer report: /home/rob/ytree/.agent/handoffs/report.1.21.txt
+
+Scope to audit
+- docs/appstate_generation_domains.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Strict audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm no runtime C behavior changes and no workflow changes.
+- Check that generation-domain records are concrete AppState architecture scaffolding, not vague filler: required domain categories must map to owner fields and transition IDs, and migration debt for domains without dedicated generation counters must be explicit.
+- Check guard quality: closed categories, required categories, duplicate IDs, missing fields, generation_owner_field references, identity_fields references, advances_on_transition_ids references, malformed list fields, empty advances_on_transition_ids explanation, and transition generation_effect *_generation references should be rejected by tests.
+- Do not implement changes. If you find issues, report them clearly.
+
+Acceptance criteria to verify
+- [ ] docs/appstate_generation_domains.json exists and is valid JSON.
+- [ ] Registry covers panel_generation, volume_generation, directory_identity, file_identity, focus_shape, modal_command_target, visibility_filter_state, topology_state, file_payload_state, volume_lifecycle, and layout_reflow.
+- [ ] Every domain declares domain_id, category, owner_region, generation_owner_field, identity_fields, advances_on_transition_ids, stale_snapshot_policy, fail_closed_fallback, restore_boundary, enforcement_status, migration_notes.
+- [ ] Guard validates required fields, closed categories, required categories, duplicate domain IDs, generation_owner_field and identity_fields against docs/appstate_owner_fields.json, and advances_on_transition_ids against docs/appstate_transition_matrix.json.
+- [ ] Guard validates transition generation_effect prose references only known generation owner fields when it names *_generation fields.
+- [ ] Focused tests cover positive and representative negative behavior.
+- [ ] No runtime C behavior changes.
+
+Verification commands you may run
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- git diff --check
+
+Report
+- Required report path: /home/rob/ytree/.agent/handoffs/report.1.22.txt
+- Include a clear PASS or FAIL decision.
+- Completion reply must be exactly one line:
+  APPSTATE GENERATION DOMAIN UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.22.txt

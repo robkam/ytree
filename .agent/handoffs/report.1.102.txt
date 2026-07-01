@@ -1,0 +1,51 @@
+Code auditor report: APPSTATE SHIM INVARIANT ALIGNMENT UNIT
+
+Scope audited
+- Branch: chore/appstate-shim-invariant-alignment
+- Working-tree diff only:
+  - scripts/check_appstate_contract.py
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Developer report reviewed: /home/rob/ytreenova/.agent/handoffs/report.1.101.txt
+
+Gate decision: PASS
+
+Findings
+- No blocker, high, medium, or low severity findings identified in the audited diff.
+
+Acceptance criteria verification
+- Docs validation rejects valid-but-non-covering shim invariant_checks: PASS
+  - scripts/check_appstate_contract.py:4670-4719 builds the docs invariant-to-transition map and applies _validate_invariant_transition_alignment to each shim's invariant_checks/target_transition.
+  - scripts/check_appstate_contract.py:3778-3816 returns a failure unless at least one referenced invariant covers the transition.
+  - tests/test_appstate_contract_guard.py:4360-4377 exercises a docs shim with valid invariant_checks that do not cover transition.render_reflow.
+- Runtime registry validation rejects the same mismatch in parsed src/core/appstate_actions.c shim metadata: PASS
+  - scripts/check_appstate_contract.py:2596-2675 accepts runtime_invariant_transition_ids and validates each parsed runtime shim record against target_transition coverage.
+  - scripts/check_appstate_contract.py:4720-4732 passes the parsed runtime invariant metadata map into the runtime shim registry validation.
+  - tests/test_appstate_contract_guard.py:4460-4481 exercises parsed fixture runtime metadata with a non-covering target_transition.
+- Startup readiness checks runtime invariant metadata and fails closed unless a shim invariant_check covers target_transition: PASS
+  - src/core/main.c:993-1016 resolves each shim invariant_check through AppStateInvariantLookup and requires StringListContains(..., metadata->target_transition) before returning ready.
+  - src/core/main.c:1057-1066 validates invariant refs and then fails AppStateCompatibilityShimsReady when no invariant covers the target transition.
+- Current docs/runtime shim metadata passes without metadata churn: PASS
+  - No docs or src/core/appstate_actions.c metadata files are changed in the working-tree diff.
+  - scripts/check_appstate_contract.py passed against the current repository metadata.
+- Focused tests cover docs drift, runtime drift, and startup readiness shape: PASS
+  - Docs drift: tests/test_appstate_contract_guard.py:4360-4377.
+  - Runtime drift: tests/test_appstate_contract_guard.py:4460-4481.
+  - Startup readiness shape: tests/test_appstate_contract_guard.py:5763-5780.
+- No runtime UI behavior change is introduced: PASS
+  - src/core/main.c changes are limited to startup metadata readiness gating; no input handling, rendering, menu, or panel behavior paths are changed.
+
+Developer validation evidence
+- Developer-reported evidence in report.1.101.txt was consistent with the audited diff.
+- Independently re-run validation:
+  - source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and invariant' -> PASS, 11 passed, 316 deselected.
+  - source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS, AppState contract guard passed.
+  - git diff --check -> PASS.
+  - source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS, 327 passed.
+  - make clean && make -> PASS; existing unrelated warning noise remains.
+
+Risk review notes
+- Fail-closed behavior is preserved: malformed, missing, unregistered, or non-covering shim invariant metadata returns failure rather than readiness.
+- Scope is contained to the expected files; no docs/process noise or metadata churn was introduced.
+- Security checklist: no new file/process operations, path handling, command execution, allocation, or string-copy surfaces were introduced; the new C logic uses existing lookup/list helpers and bounded counts from static metadata.
+- Residual risk: startup readiness is covered by source-shape assertions rather than an executable runtime mutation harness, matching the requested acceptance shape but not proving every mutated binary path at runtime.

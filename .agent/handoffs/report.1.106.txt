@@ -1,0 +1,34 @@
+Code auditor report: AppState generation harness coverage unit
+
+Scope audited
+- Branch: chore/appstate-generation-harness-coverage
+- Uncommitted files reviewed: docs/appstate_diff_harness.json, src/core/appstate_actions.c, scripts/check_appstate_contract.py, src/core/main.c, tests/test_appstate_contract_guard.py
+- Developer report reviewed: .agent/handoffs/report.1.105.txt
+
+Findings
+- No blocker/high/medium/low findings.
+
+Acceptance criteria verification
+- PASS: Docs validation rejects generation-domain advance transitions without same-domain/same-transition diff-harness coverage. Evidence: scripts/check_appstate_contract.py:2089-2120 builds per-domain coverage from individual harness records and rejects each uncovered advances_on_transition_ids entry; validate_contract invokes it for docs records at scripts/check_appstate_contract.py:5037-5041.
+- PASS: Runtime registry validation rejects equivalent mismatch in parsed runtime metadata. Evidence: validate_contract invokes the same coverage validator for runtime generation-domain and runtime diff-harness records at scripts/check_appstate_contract.py:5065-5070, after runtime diff-harness metadata is checked against docs at scripts/check_appstate_contract.py:2530-2667.
+- PASS: Startup readiness checks runtime diff harness metadata and fails closed unless every generation-domain advance has same-domain/same-transition coverage. Evidence: src/core/main.c:1355-1397 requires one harness to contain both the domain_id and transition_id; src/core/main.c:1503-1519 iterates every runtime generation-domain advance and returns 0 on any missing pair; src/core/main.c:1621-1634 keeps this in the startup invariant gate.
+- PASS: Current docs/runtime metadata satisfies the invariant with narrow coherent metadata corrections. Evidence: docs/appstate_diff_harness.json:37-45,84-88,162-169 add only the missing generation-domain references identified in the developer report; src/core/appstate_actions.c:785-793,839-843,931-938 mirrors those runtime arrays. A custom docs coverage scan found no missing generation-domain/transition pairs.
+- PASS: Focused tests cover docs drift, runtime drift, and startup readiness shape. Evidence: tests/test_appstate_contract_guard.py:2413-2441 covers docs drift, tests/test_appstate_contract_guard.py:2677-2707 covers runtime drift, and tests/test_appstate_contract_guard.py:6009-6033 covers the startup readiness shape.
+- PASS: No runtime UI behavior change is introduced. The C change is confined to metadata arrays and fail-closed startup readiness checks; no event handling, rendering, panel, or command behavior paths changed.
+
+Risk checks
+- Overbroad metadata expansion: no issue found. The added docs/runtime references are limited to existing harnesses needed to cover already-declared generation advances; no new transition ids, owner fields, or process/docs text were added.
+- Docs/runtime mismatch: no issue found. The contract guard passes and the changed docs arrays are mirrored in runtime metadata.
+- Noisy docs/process text: no issue found.
+- Weak test assertions: no blocking issue found for this scaffold unit. The startup test is intentionally a source-shape guard rather than a runtime mutation harness, matching the requested startup readiness shape coverage.
+- Fail-open guard behavior: no issue found. Invalid or missing runtime harness/domain/transition metadata returns 0 in startup readiness, and docs/runtime contract validation rejects uncovered generation advances.
+- Security checklist: no new file/process operations, command execution, path handling, string copying, allocation, or UI input handling were introduced. No new buffer/integer overflow, format-string, use-after-free, path traversal, symlink TOCTOU, or command-injection risk found.
+
+Validation performed
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation and harness' (9 passed, 323 deselected)
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- PASS: git diff --check
+- PASS: custom direct validator probe confirmed a harness that lists the domain but not the required transition is rejected as missing same-domain/same-transition coverage.
+
+Decision
+- PASS: The unit meets the requested AppState generation-domain diff-harness coverage invariant and is ready for maintainer review.

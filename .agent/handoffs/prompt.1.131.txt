@@ -1,0 +1,72 @@
+You are the developer for one atomic AppState subunit in /home/rob/ytreenova.
+
+Goal
+- Extend AppState compatibility shim metadata with diff-harness coverage so every temporary shim is explicitly tied to before/after transition-diff checks covering its target transition, owner fields, invariants, and generation domains.
+
+Current branch/context
+- Branch: chore/appstate-shim-owner-field-coverage
+- PR #121 already contains compatibility shim owner-field and generation-domain coverage. This subunit should be a third coherent commit in the same PR only if it stays tightly scoped.
+- You are not alone in the codebase; do not revert existing branch commits.
+
+Strict scope
+- Work only on compatibility-shim diff-harness metadata and guard/runtime validation.
+- Expected files are likely limited to:
+  - docs/appstate_compat_shims.json
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Keep edits minimal and consistent with existing AppState registry/guard patterns.
+
+Explicit non-goals
+- Do not migrate runtime UI behavior.
+- Do not introduce a live AppState executor.
+- Do not broaden or rewrite existing diff harness records unless needed to cover existing shim metadata.
+- Do not run local make qa-all.
+
+Required behavior
+- Add a `diff_harness_refs` list to every compatibility shim entry.
+- Add matching runtime diff-harness refs to `AppStateCompatibilityShimMetadata` and tables.
+- Guard must require non-empty diff_harness_refs for every shim.
+- Guard must reject malformed, duplicate, or unknown diff-harness refs.
+- Guard must reject runtime/doc drift for shim diff-harness refs.
+- Startup validation must fail closed for missing/unknown/duplicate shim diff-harness refs.
+- For each shim, at least one referenced diff harness must include the shim `target_transition`.
+- Referenced diff harness coverage must cover the shim's declared owner_field_refs, invariant_checks, and generation_domain_refs. Prefer requiring the union of referenced harnesses to cover those refs, unless the existing pattern strongly favors every referenced harness covering all refs.
+- Preserve the existing owner-field, write-capability, generation-domain, and invariant-transition checks.
+
+State/restore invariant requirements
+- This unit reinforces hidden state-machine boundaries: a compatibility shim must not exist as an untested owner/restoration bypass.
+- Tests must prove stale/missing diff-harness coverage fails before runtime can treat a shim as valid migration debt.
+
+Acceptance criteria checklist
+- [ ] `docs/appstate_compat_shims.json` has `diff_harness_refs` on every shim.
+- [ ] Runtime shim metadata exposes matching diff-harness refs.
+- [ ] Document guard rejects missing/unknown/duplicate diff-harness refs.
+- [ ] Runtime/doc drift in diff-harness refs is detected.
+- [ ] Startup validation rejects missing/unknown/duplicate runtime diff-harness refs.
+- [ ] Shim target transitions are covered by referenced diff harnesses.
+- [ ] Shim owner fields, invariant checks, and generation domains are covered by referenced diff harnesses.
+- [ ] Existing shim owner/generation/write-capability tests remain green.
+- [ ] No unrelated files changed.
+
+Verification commands
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and diff'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and generation'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+- `python3 scripts/check_appstate_contract.py`
+- `make clean && make`
+- `git diff --check`
+
+Report path
+- Write your report to `/home/rob/ytreenova/.agent/handoffs/report.1.131.txt`.
+
+Report contents
+- Summary of changed files.
+- Exact commands run and results.
+- Any residual risks or follow-up recommendations.
+
+Completion reply exactly one line:
+`APPSTATE SHIM DIFF HARNESS COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.131.txt`

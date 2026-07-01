@@ -1,0 +1,28 @@
+Code-auditor report: PASS
+
+Scope audited
+- Command-completion AppState runtime boundary in src/ui/ctrl_file_ops.c.
+- Focused guard updates in tests/test_appstate_contract_guard.py.
+
+Findings
+- blocker: none
+- high: none
+- medium: none
+- low: none
+
+Audit notes
+- The new guard validates event.command-completion immediately after the existing surface.command-completion-dispatch guard and before command switch dispatch or command side effects.
+- Failure path returns FALSE consistently with the existing fail-closed surface boundary.
+- No ownership writes, filesystem operations, prompt calls, or command handlers run before both boundary checks.
+- Test guard covers both placement before command work and registry/transition validation for the command-completion event.
+
+Validation observed
+- Red phase: focused guard failed before implementation because event.command-completion was not validated in handle_file_window_command_action.
+- Green phase: focused guard passed after implementation.
+- Full appstate contract guard passed.
+- AppState registry script passed.
+- Clean build passed with pre-existing warning baseline only.
+- git diff --check passed.
+
+Recommendation
+- approve after PR full-QA CI is green and branch protection permits merge.

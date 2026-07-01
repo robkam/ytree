@@ -1,0 +1,59 @@
+Role: code_auditor
+Unit: AppState event-coverage runtime lookup scaffold re-audit
+
+Goal
+- Re-audit the AppState event-coverage runtime lookup scaffold after the audit-fix report at /home/rob/ytreenova/.agent/handoffs/report.1.53.txt.
+
+Strict scope
+- Audit only the current branch changes in these files:
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Do not implement broad fixes or refactors.
+- Do not touch unrelated files, generated artifacts, branches, or existing untracked handoff files.
+- This is lookup/guard only; no runtime transition execution.
+
+Specific prior finding to verify fixed
+- Previous FAIL in report.1.52.txt: startup validation checked required event classes but not required event IDs. Verify startup now fails closed when a documented runtime event ID is missing or renamed.
+
+Acceptance criteria to verify
+- Public header exposes a cohesive read-only event-coverage record/API without writable registry access.
+- Runtime rows mirror docs/appstate_event_coverage.json fields: event_id, event_class, transition_id, category, source, owner, declared_write_set, boundary_status, trigger_paths, migration_notes.
+- Startup invariant validation rejects:
+  - missing/duplicate event IDs,
+  - missing/duplicate required event classes,
+  - invalid transition references,
+  - category drift from transition metadata,
+  - declared write-set drift against transition metadata,
+  - empty source/owner/boundary/trigger/migration fields,
+  - null/empty/unknown event-id lookup and out-of-range index lookup.
+- Python contract guard detects doc/runtime drift, malformed runtime rows/lists, invalid transition linkage, duplicate/missing/extra event IDs/classes, and write-set drift.
+- Tests cover the new guard/runtime paths and stay focused.
+- No user-visible state transition behavior changes are introduced.
+- No new hidden state-machine authority, direct AppState writes, restore behavior changes, or generation changes are introduced by this scaffold.
+
+Developer/architect evidence
+- Developer initial report: /home/rob/ytreenova/.agent/handoffs/report.1.51.txt
+- Auditor fail report: /home/rob/ytreenova/.agent/handoffs/report.1.52.txt
+- Developer fix report: /home/rob/ytreenova/.agent/handoffs/report.1.53.txt
+- Architect local validation after fix passed:
+  - source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - make clean && make
+  - make qa-cppcheck
+  - make qa-code-quality
+  - git diff --check
+  - ./build/ytnova --version
+
+Required audit output
+- Write the report to: /home/rob/ytreenova/.agent/handoffs/report.1.54.txt
+- Report must be risk-first, severity ordered, with file/line references for any finding.
+- Explicitly state PASS or FAIL.
+- Verify the prior finding and acceptance criteria.
+- Include exact commands you ran, if any, and results.
+- Keep the report concise; do not paste long transcripts.
+
+Completion reply
+- Reply exactly one line:
+  APPSTATE EVENT COVERAGE LOOKUP UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.54.txt

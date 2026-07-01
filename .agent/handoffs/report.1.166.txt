@@ -1,0 +1,31 @@
+APPSTATE MODAL DISPATCH BOUNDARY UNIT audit report
+
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low findings.
+
+Acceptance checklist
+- [x] Existing dispatch-surface helper is reused: src/ui/key_engine.c:234 and src/ui/key_engine.c:268 call AppStateValidatedDispatchSurface(); validation logic remains centralized in src/core/appstate_actions.c:6332-6348.
+- [x] Modal/menu dispatch boundary validates a semantically narrow surface before proceeding: both InputChoice and InputChoiceLiteral validate surface.menu-modal-completion before prompt setup; docs/appstate_dispatch_surfaces.json:61-69 identifies that surface as key_engine/InputChoice menu-modal completion with no allowed direct writes.
+- [x] Validation failure fails closed at the boundary before prompt rendering/key dispatch proceeds: src/ui/key_engine.c:234-237 and src/ui/key_engine.c:268-271 return ERR before ClearHelp, prompt rendering, doupdate, or WGetch.
+- [x] Existing behavior remains unchanged for valid metadata: the only runtime changes are the two pre-entry guards; the original prompt/read/cleanup bodies are otherwise unchanged.
+- [x] No unrelated refactor or formatting churn: git diff is limited to src/ui/key_engine.c and tests/test_appstate_contract_guard.py.
+
+Tests/source guards reviewed
+- tests/test_appstate_contract_guard.py:4376-4384 extends the dispatch-surface runtime probe to require surface.menu-modal-completion and retain NULL/empty/missing fail-closed helper checks.
+- tests/test_appstate_contract_guard.py:4433-4449 guards that both InputChoice variants include the AppState helper, return ERR, and place validation before ClearHelp and WGetch.
+
+Security/state-machine audit
+- No new unsafe string, file, path, process, allocation, or permission behavior was introduced.
+- No direct AppState/state-machine writes, restore logic, generation logic, or ownership migration was introduced.
+- The chosen surface has allowed_direct_writes: [] and keeps modal state writes with callers per the existing metadata note.
+
+Developer evidence verification
+- git diff --check: PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or modal or menu or readiness': PASS (77 passed, 548 deselected).
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASS.
+- source .venv/bin/activate && make clean && make: PASS; warnings were pre-existing/outside the touched key_engine.c change.
+
+Residual risks
+- None requiring changes for this unit.

@@ -1,0 +1,20 @@
+Files changed:
+- scripts/check_appstate_contract.py: added per-diff-harness invariant/transition alignment checks for docs and parsed runtime registry metadata.
+- src/core/main.c: added startup readiness validation that each diff harness transition is covered by a listed runtime invariant.
+- tests/test_appstate_contract_guard.py: added docs/runtime drift regression tests and startup scaffold assertions; adjusted fixture invariant coverage so default fixture metadata satisfies the new rule.
+- docs/appstate_diff_harness.json: metadata correction for harness.declared-write-set-diff.
+- src/core/appstate_actions.c: mirrored the docs metadata correction in runtime diff harness metadata.
+
+Metadata correction:
+- Added invariant.blocked-transition-determinism to harness.declared-write-set-diff so transition.command-completion.user-command has same-harness invariant coverage; mirrored as invariant.blocked-transition-determinism in kAppStateDiffHarnessInvariantIds1.
+
+Validation:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant' -> PASS (8 passed, 321 deselected). Initial red run before guard implementation failed the new docs/runtime invariant-alignment tests as expected.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS (PASS: AppState contract guard passed).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS (329 passed).
+- make clean && make -> PASS (build completed; existing warning output only).
+- git diff --check -> PASS.
+
+Residual risks/follow-ups:
+- No runtime UI behavior was changed. The new startup check is metadata-only fail-closed scaffolding.
+- Build still emits existing unrelated warnings outside this atomic AppState guard change.

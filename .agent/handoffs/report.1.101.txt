@@ -1,0 +1,17 @@
+Files changed:
+- scripts/check_appstate_contract.py: added shared invariant/transition coverage validation and applied it to docs shim metadata plus parsed runtime shim metadata.
+- src/core/main.c: added startup readiness helper that requires each compatibility shim to have at least one invariant_check covering its target_transition.
+- tests/test_appstate_contract_guard.py: added focused regressions for docs shim mismatch, runtime shim mismatch, and startup readiness source shape.
+
+Validation commands:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and invariant' -> PASS (11 passed, 316 deselected).
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS (AppState contract guard passed).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS (327 passed).
+- make clean && make -> PASS (build completed; existing warning noise remains in unrelated files).
+- git diff --check -> PASS (no whitespace errors).
+
+Metadata corrections:
+- None. Current docs/runtime shim metadata already has at least one invariant_check covering each target_transition.
+
+Residual risks/follow-ups:
+- Runtime startup coverage is exercised by source-shape regression only; no product UI behavior was changed.

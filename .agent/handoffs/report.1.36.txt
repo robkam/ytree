@@ -1,0 +1,38 @@
+Audit report: AppState invariant runtime lookup scaffold re-audit
+
+Decision: FAIL
+
+Findings
+
+1. Severity: high
+   File: scripts/check_appstate_contract.py:553-570, scripts/check_appstate_contract.py:624-632, src/core/appstate_actions.c:109-120
+   Evidence: `_parse_runtime_invariant_registry` parses the invariant field arrays with `re.findall(r'"([^"]+)"', ...)` and then trusts the extracted string literals as the full runtime field list. It does not split those array initializers into top-level entries or fail on unparsed entries. A targeted mutation that inserted `NULL,` into `kAppStateInvariantProtectedFields0[]` still produced `PASS: AppState contract guard passed` from `python3 scripts/check_appstate_contract.py --action-runtime <mutated runtime file>`.
+   Impact: `make qa-code-quality` can pass while the compiled runtime metadata contains a malformed invariant field array. Startup validation would fail closed because `sizeof(kAppStateInvariantProtectedFields0) / sizeof(kAppStateInvariantProtectedFields0[0])` includes the `NULL` element and `NonEmptyStringList` rejects it, so the guard no longer proves that runtime invariant metadata mirrors `docs/appstate_invariants.json` exactly for the declared list fields. This leaves the same class of unparsed-runtime-metadata gap that the top-level malformed-row correction closed, but inside the protected-fields/transition-ids/dispatch-surface-ids/migration-notes arrays.
+   Concrete fix: Reuse the fail-closed top-level initializer scanning approach for each `kAppStateInvariant{ProtectedFields,TransitionIds,DispatchSurfaceIds,MigrationNotes}N[]` array. Require every array entry to parse as a string literal, report malformed/unparsed entries by array name and index, and add a regression that injects a non-string entry such as `NULL` into an invariant metadata array and expects the contract guard to fail.
+
+Acceptance criteria verification
+
+- Runtime invariant metadata type and lookup/count/index APIs are read-only and fail closed for null/empty/unknown ids: PASS by inspection (`include/ytree_appstate_actions.h:42-57`, `include/ytree_appstate_actions.h:71-74`, `src/core/appstate_actions.c:779-848`).
+- No second AppState root was introduced: PASS; scoped C changes add static metadata tables, lookup APIs, and startup metadata validation only.
+- Runtime invariant rows mirror `docs/appstate_invariants.json` for ids and declared guard fields in the current unmodified tree: PASS; targeted mirror script found 8 runtime rows, 8 doc rows, exact equality for the guarded fields.
+- Startup invariant checks validate registry shape, fail-closed lookup behavior, and transition linkage through `AppStateTransitionLookup` without changing normal startup behavior: PASS by inspection (`src/core/main.c:101-145`, `src/core/main.c:291-299`).
+- Python contract guard detects missing/extra/duplicate runtime invariant rows, malformed top-level invariant rows, field drift for parsed string fields, invalid transition ids, and invalid dispatch-surface references: PARTIAL/FAIL. The prior top-level malformed-row finding is fixed, but malformed/unparsed invariant field array entries are still silently ignored (`scripts/check_appstate_contract.py:553-570`).
+- Focused tests prove the new malformed top-level row failure and keep existing AppState guard coverage green: PASS for the added top-level row regression (`tests/test_appstate_contract_guard.py:2320-2355`) and full focused suite execution.
+- No direct state writes or restore/render behavior changes are introduced outside metadata/startup validation: PASS by inspection of the scoped diff.
+- C/Python style, C portability, and security regressions: FAIL only for the guard fail-open parsing gap above. No unsafe C APIs, command injection, path traversal, ownership, or memory-lifetime regressions were found in the scoped C changes.
+
+Developer evidence verification
+
+- Read `.agent/handoffs/report.1.33.txt`, `.agent/handoffs/report.1.34.txt`, and `.agent/handoffs/report.1.35.txt`.
+- Verified the previous report.1.34 malformed top-level row finding is corrected: a targeted injected `NULL` top-level runtime invariant row now reports `FAIL: runtime_invariant[8]: malformed runtime invariant registry row: ... NULL ...` and exits nonzero.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`: PASS, 208 passed in 2.81s.
+- `make qa-code-quality`: PASS, including `scripts/check_appstate_contract.py`.
+- `git diff --check -- include/ytree_appstate_actions.h src/core/appstate_actions.c src/core/main.c scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`: PASS.
+- Targeted runtime/docs mirror script: PASS for the current unmodified runtime rows, 8 rows matched 8 doc records exactly.
+- Targeted malformed invariant field array check: FAIL as audit evidence; inserting `NULL,` into `kAppStateInvariantProtectedFields0[]` incorrectly returned `PASS: AppState contract guard passed`.
+
+Scope and edits
+
+- Reviewed only the requested changed files plus the handoff reports and `docs/appstate_invariants.json` needed for mirror verification.
+- No source or test files were modified. This report file is the only file written by this audit turn.
+- Serena MCP was used for C symbol navigation and scoped pattern reads. No jcodemunch tool was exposed by tool discovery in this session; scoped direct reads/scripts were used where semantic Python navigation was unavailable.

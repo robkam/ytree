@@ -1,0 +1,23 @@
+Completed state
+- Created branch chore/transition-status-coverage from main and opened draft PR https://github.com/robkam/ytreenova/pull/183.
+- Promoted runtime-backed transition matrix metadata from documented_foundation_only to covered_by_transition_record in docs/appstate_transition_matrix.json and src/core/appstate_actions.c.
+- Added a focused contract guard so registered runtime transition records cannot keep documented_foundation_only in scripts/check_appstate_contract.py.
+- Added regression coverage in tests/test_appstate_contract_guard.py, including a red-first test proving the new guard.
+
+Validation
+- Red first: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_transition_registry_keeps_foundation_status' -> FAIL before implementation.
+- Green after implementation:
+  - source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_transition_registry_keeps_foundation_status or runtime_transition_registry_mismatches_matrix or current_repository_appstate_contract_passes'
+  - source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+  - make clean && make
+  - git diff --check
+
+GitHub snapshot
+- Draft PR: https://github.com/robkam/ytreenova/pull/183
+- Head commit: 25a03f98377594de20f151cafb0f1953d7692de5
+- Combined status snapshot taken once after PR creation: no status entries yet.
+
+Resume instruction after GitHub is green
+- Re-check PR https://github.com/robkam/ytreenova/pull/183 once GitHub finishes.
+- If checks are green, continue the worker prompt flow for the active PR only; do not start a new AppState batch.
+- If checks are pending, failed for non-repo-side reasons, or another active PR exists, stop and hand back per the worker prompt.

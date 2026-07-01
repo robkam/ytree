@@ -1,0 +1,34 @@
+APPSTATE COVERAGE OWNER ALIGNMENT UNIT REPORT
+
+Files changed:
+- scripts/check_appstate_contract.py
+  - Added action coverage owner-vs-transition owner validation.
+  - Added event coverage owner-vs-transition owner validation.
+  - Added runtime action/event coverage owner-vs-transition owner validation.
+- src/core/main.c
+  - Added startup readiness owner alignment checks in AppStateActionCoverageReady() and AppStateEventCoverageReady().
+- tests/test_appstate_contract_guard.py
+  - Aligned fixture coverage owners with fixture transition owners.
+  - Added focused action/event docs and runtime owner mismatch regression tests.
+  - Added startup validation shape test for coverage owner alignment.
+
+Commands run and results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'coverage and owner'
+  - FAIL before implementation as expected: 5 failed, 298 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'coverage and owner'
+  - PASS after implementation: 5 passed, 298 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - PASS: 303 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+  - PASS: AppState contract guard passed.
+- make clean && make
+  - PASS: build completed. Existing compiler warnings were emitted in unrelated files.
+- git diff --check
+  - PASS: no whitespace errors.
+- /home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "AppState coverage owner alignment unit complete."
+  - FAIL: exited 126; non-verification notification attempt only.
+
+Risks/follow-ups:
+- No runtime UI migration or transition matrix expansion was performed.
+- src/core/appstate_actions.c did not require owner metadata correction; existing metadata already satisfies the new guard.
+- Existing unrelated build warnings remain outside this unit's scope.

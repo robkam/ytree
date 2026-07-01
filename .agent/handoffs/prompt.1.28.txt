@@ -1,0 +1,46 @@
+You are the code auditor for ~/ytree. Re-audit the corrected AppState transition-sequence unit.
+
+Resolved roadmap title
+- docs/ROADMAP.md Task 1 is resolved as: Unified AppState Transition Machine + Projection Contract.
+
+Unit under audit
+- Scripted transition-sequence scenario registry/guard foundation, after correction.
+
+Reports to read first
+- Initial developer report: /home/rob/ytree/.agent/handoffs/report.1.25.txt
+- Failed audit report: /home/rob/ytree/.agent/handoffs/report.1.26.txt
+- Correction developer report: /home/rob/ytree/.agent/handoffs/report.1.27.txt
+
+Audit scope
+- Review the current branch diff only.
+- Files expected in scope:
+  - docs/appstate_transition_sequences.json
+  - docs/appstate_action_coverage.json if needed for ACTION_ESCAPE transition alignment
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- No runtime C behavior should have changed.
+
+Required audit focus
+- First verify the two prior findings are fixed:
+  1) Guard rejects stimulus action_id/event_id whose registered transition_id differs from the step transition_id.
+  2) Esc/modal scenario explicitly includes active-modal Escape dismissal coverage with expected_result allowed for transition.modal-action.dismiss.
+- Then verify original acceptance criteria remain satisfied:
+  - High-risk flow coverage from docs/ROADMAP.md.
+  - Ordered scenario steps with transition/action/event references where applicable.
+  - Invariant checks, diff-harness checks, generation-domain expectations, blocked/fallback expectations where applicable.
+  - Stale-snapshot/generation-mismatch scenarios require deterministic fallback metadata.
+  - Guard rejects missing required fields, duplicate scenario IDs, unknown categories/flows, malformed step lists, duplicate step ordinals, unknown transition/action/event/invariant/diff-harness/generation-domain references, mismatched action/event transition references, and stale/generation mismatch scenarios without fallback expectations.
+  - CLI override support works.
+- Verify no runtime C files are changed and no unrelated docs/process noise was added.
+- Verify developer validation evidence is plausible and sufficient.
+
+Required report path
+- Write /home/rob/ytree/.agent/handoffs/report.1.28.txt with:
+  - Risk-first findings, severity ordered, with file/line references
+  - Prior finding closure status
+  - Acceptance criteria verification
+  - Developer evidence verification
+  - Clear PASS or FAIL decision
+
+Completion reply must be exactly one line:
+APPSTATE TRANSITION SEQUENCE UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.28.txt

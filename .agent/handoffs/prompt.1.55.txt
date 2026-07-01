@@ -1,0 +1,57 @@
+You are the developer for one atomic AppState roadmap subunit in /home/rob/ytreenova.
+
+Unit: AppState dispatch-surface source anchoring guard.
+
+Goal
+- Add a focused contract-guard check so every registered AppState dispatch surface is anchored to an existing first-party source path and a real declared entry symbol/path in that file.
+
+Strict scope
+- Work only in the Ubuntu checkout /home/rob/ytreenova.
+- Modify only the files needed for this guard/test unit, expected primarily:
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- You may inspect docs/appstate_dispatch_surfaces.json and current runtime registry code as needed.
+- Preserve existing style and architecture.
+
+Explicit non-goals
+- Do not change runtime transition execution behavior.
+- Do not change restore/generation ownership or user-visible state transitions.
+- Do not edit docs unless a test fixture needs no docs change; this unit should be a guard around existing metadata.
+- Do not stage, reset, clean, reformat, or modify unrelated files.
+- Do not include handoff/report paths in commit/PR text.
+
+Acceptance criteria checklist
+- The guard fails if a dispatch surface source_path is missing or points outside the repository source tree expected by the metadata.
+- The guard fails if entry_symbol_or_path is not found in the declared source_path.
+- Existing dispatch surface metadata parity and runtime registry checks still pass.
+- Focused pytest coverage proves both failure modes.
+- The current repository AppState contract guard passes.
+- No user-visible runtime behavior changes.
+
+Implementation guidance
+- Prefer adding validation inside the existing dispatch surface validation path rather than a new standalone script.
+- Treat source_path as repo-root relative and require it to exist as a file.
+- Treat entry_symbol_or_path as anchored by the declared source file content. Prefer a conservative symbol/path token check that is robust enough for C function names and existing path-style entries, without trying to parse C fully.
+- Keep failure messages concrete enough to identify the stale source path or entry symbol.
+
+Exact verification commands, targeted first
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py::test_current_repository_appstate_contract_passes
+2. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface'
+3. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+4. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+5. git diff --check
+
+If you touch C/runtime files unexpectedly, also run:
+- make clean && make
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.55.txt
+
+Report requirements
+- Summarize changes.
+- List files changed.
+- List exact commands run and results.
+- Note any risks/follow-ups.
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH SURFACE ANCHOR UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.55.txt

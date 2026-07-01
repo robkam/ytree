@@ -1,0 +1,44 @@
+Code auditor report: TASK 1 round 1.2 auditing developer round 1.1
+
+Decision: FAIL
+
+MCP/tooling note:
+- Serena was initialized and activated for /home/rob/ytree.
+- jcodemunch was not callable in this session: tool_search returned zero tools for query "jcodemunch". Codebase search/discovery used Serena; direct reads were limited to explicitly named prompt/docs/artifact/test files and git/Makefile verification.
+
+Findings
+
+1. Severity: high
+   File: Makefile:403-409
+   Evidence: The new guard is wired into `qa-code-quality` at line 403, but `qa-all` at line 409 expands individual checks (`qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`, etc.) and does not depend on `qa-code-quality` or `qa-appstate-contract`. `make -n qa-all` confirmed it runs `check_c_unsafe_apis.py`, `check_module_boundaries.py`, and `check_project_ai_config.py`, but not `scripts/check_appstate_contract.py`.
+   Impact: The AppState registry guard is omitted from the pre-merge/full-QA path, so changes can pass `qa-all` while breaking the transition/shim contract. This fails the audit requirement that the guard not be accidentally omitted from `qa-all` via the qa-code-quality wiring.
+   Concrete fix: Make `qa-all` depend on `qa-code-quality`, or add `qa-appstate-contract` directly to `qa-all` alongside the other architecture/code-quality guards. Prefer a single `qa-code-quality` dependency if that is the intended aggregate gate.
+
+2. Severity: medium
+   File: docs/ROADMAP.md:26-75
+   Evidence: The worktree includes a broad pre-existing roadmap rewrite for Task 1, including detailed future acceptance criteria and `- [ ] Status: Not Started`, while the developer report says this file was not edited in round 1.1.
+   Impact: If included with this round's commit, the change broadens the commit beyond the non-runtime foundation artifacts and risks confusing task status/scope. It also conflicts with the developer prompt's "No unrelated files changed" acceptance criterion unless the maintainer explicitly wants this pre-existing roadmap change bundled.
+   Concrete fix: Keep `docs/ROADMAP.md` out of the round 1.1/1.2 commit, or split it into a separate maintainer-approved roadmap/planning change with its own rationale and status.
+
+3. Severity: low
+   File: tests/test_appstate_contract_guard.py:76-141
+   Evidence: The tests cover current-artifact pass, temporary-fixture pass, missing required category, missing transition field, and missing shim field. They do not pin duplicate-id handling, non-empty list enforcement, or invalid shim `target_transition` linkage, even though the guard implements those checks in `scripts/check_appstate_contract.py`.
+   Impact: Important schema-quality behavior can regress without targeted test failure. This is lower risk than the QA wiring omission because the current implementation does perform those checks.
+   Concrete fix: Add focused tests that fail on duplicate transition/shim ids, empty or non-list list fields, and a shim target that does not match any transition id.
+
+Acceptance/evidence verification
+- docs/ARCHITECTURE.md defines the AppState root mapped to ViewContext, child regions, transition execution, blocked-transition semantics, generation metadata, render projection, and shim rules: verified at docs/ARCHITECTURE.md:186-216.
+- docs/SPECIFICATION.md cross-links the AppState contract without duplicating architecture content: verified at docs/SPECIFICATION.md:27-29.
+- Transition matrix artifact covers the required categories and required fields; shim registry includes required fields and links targets to existing transitions: verified by inspection and `python3 scripts/check_appstate_contract.py`.
+- No runtime source files changed: `git status --short` shows only Makefile/docs/scripts/tests/artifact files, with no src/include runtime changes.
+- Source/security/style: guard uses fixed default repo paths, read-only JSON loading, argparse `Path` arguments, deterministic sorted field/category failure messages, and no shell execution. Test subprocess uses a fixed argv list, not shell interpolation.
+
+Validation run by auditor
+- `python3 scripts/check_appstate_contract.py`: PASS (`PASS: AppState contract guard passed`).
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`: PASS (5 passed in 0.25s).
+- `make qa-code-quality`: PASS; output included `check_appstate_contract.py`.
+- `make -n qa-all`: FAIL for wiring audit purposes; dry-run output omitted `scripts/check_appstate_contract.py`.
+
+Residual notes
+- Developer evidence for targeted pytest, qa-code-quality, and build is credible for the files in scope; I did not rerun `make clean && make` because the audit blocker is in QA wiring and no runtime files changed.
+- The registry is a non-runtime/documentation foundation only; it does not enforce runtime dispatch boundaries yet, which matches the round 1 non-goal.

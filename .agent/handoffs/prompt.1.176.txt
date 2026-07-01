@@ -1,0 +1,49 @@
+Role: code_auditor
+
+Goal
+Audit the AppState directory-window dispatch boundary unit on branch chore/appstate-directory-window-boundary.
+
+Resolved roadmap title
+- Unified AppState Transition Machine + Projection Contract
+
+Audit scope
+- Review only the current working tree changes for:
+  - src/ui/ctrl_dir.c
+  - tests/test_appstate_contract_guard.py
+- Review developer evidence in /home/rob/ytreenova/.agent/handoffs/report.1.175.txt.
+- Do not implement fixes unless explicitly needed to complete audit; if you find issues, report them clearly instead of broadening scope.
+
+Risk-first review requirements
+- Findings must be severity ordered: blocker, high, medium, low.
+- Include file/line references for every finding.
+- Verify acceptance criteria and developer evidence.
+- Verify that the directory-window guard is fail-closed and appears before any directory-window layout/menu/focus/list/render/input/action work.
+- Verify that valid metadata behavior is unchanged except for the guard.
+- Verify no unrelated refactor/formatting churn.
+- Check for security regressions or unsafe patterns.
+
+Acceptance criteria to verify
+- AppStateValidatedDispatchSurface("surface.directory-window-action-dispatch") guards HandleDirWindow.
+- Guard appears before DEBUG_LOG/Layout_Recalculate/DisplayMenu, active-panel/focus sync, preview reset, BuildDirEntryList, RefreshView, GetEventOrKey, and GetKeyAction work.
+- Guard failure returns ESC.
+- Existing behavior for valid metadata is unchanged except for the guard.
+- tests/test_appstate_contract_guard.py includes directory-window surface in the runtime dispatch-surface probe.
+- tests/test_appstate_contract_guard.py includes a focused source guard for placement.
+- Existing AppState contract script remains green.
+
+Exact verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or directory_window or dir_window or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.176.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Acceptance criteria verification.
+- Developer evidence verification.
+- Clear PASS/FAIL decision.
+
+Completion reply must be exactly one line:
+APPSTATE DIRECTORY WINDOW BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.176.txt

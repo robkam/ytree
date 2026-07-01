@@ -79,6 +79,23 @@ BOOL AppStateCommitPanelFileMaxColumn(YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelFileRenderingMetrics(YtreeNovaPanel *panel,
+                                             unsigned max_filename,
+                                             unsigned max_linkname,
+                                             unsigned max_userview,
+                                             BOOL update_userview) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->max_visual_filename_len = max_filename;
+  panel->max_visual_linkname_len = max_linkname;
+  if (update_userview)
+    panel->max_visual_userview_len = max_userview;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {

@@ -1,0 +1,12 @@
+Files changed:
+- tests/test_appstate_contract_guard.py: added a focused startup source regression asserting AppStateDiffHarnessRegistryReady validates owner_field_refs shape, owner-field lookup, and invariant lookup before calling AppStateDiffHarnessInvariantProtectsOwnerField for each owner_field_refs entry; the assertion also pins the helper to same-harness metadata->invariant_ids matching via AppStateInvariantProtectsField.
+
+Commands run:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant' — PASS (14 passed, 334 deselected).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (348 passed).
+- python3 scripts/check_appstate_contract.py — PASS (PASS: AppState contract guard passed).
+- git diff --check — PASS.
+
+Correction notes:
+- The missing runtime startup regression is now covered directly in tests/test_appstate_contract_guard.py. It proves the runtime fail-closed path calls AppStateDiffHarnessInvariantProtectsOwnerField from AppStateDiffHarnessRegistryReady only after the owner-field and invariant metadata references have been shape-checked and registry-lookup validated.
+- No implementation changes were needed for this correction; existing runtime guard code already satisfied the newly pinned startup invariant.

@@ -1,0 +1,39 @@
+You are the code auditor for one atomic AppState roadmap subunit in /home/rob/ytreenova.
+
+Unit: AppState dispatch-surface startup guard.
+
+Scope to audit
+- Current branch: chore/appstate-dispatch-surface-startup-guard
+- Expected changed files only:
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.57.txt
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Check that startup validation now requires every documented dispatch-surface ID, not just a non-empty runtime registry.
+- Check that missing/renamed dispatch-surface IDs and duplicate runtime IDs fail closed.
+- Check that null/empty/unknown lookup and out-of-range index fail-closed checks remain intact.
+- Check that tests parse the required dispatch-surface ID table, compare it to docs/appstate_dispatch_surfaces.json, and assert AppStateDispatchSurfacesReady() uses it.
+- Check that no user-visible runtime transition behavior, restore behavior, or generation ownership changed.
+
+Acceptance criteria to verify
+- Startup validation requires every documented dispatch-surface ID.
+- Startup validation rejects missing/renamed dispatch-surface IDs and duplicate runtime IDs fail closed.
+- Focused tests prove the required dispatch-surface ID table exists, matches docs, and is used by AppStateDispatchSurfacesReady().
+- Existing runtime dispatch-surface metadata parity guard still passes.
+- Existing focused AppState guard tests pass.
+- No user-visible runtime behavior changes.
+
+Suggested verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and startup'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.58.txt
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH SURFACE STARTUP GUARD UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.58.txt

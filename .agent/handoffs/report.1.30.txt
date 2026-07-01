@@ -1,0 +1,43 @@
+AppState transition registry runtime lookup scaffold audit report
+
+Unit
+- AppState transition registry runtime lookup scaffold
+- Durable aim: Unified AppState Transition Machine + Projection Contract
+
+Scope reviewed
+- include/ytree_appstate_actions.h
+- src/core/appstate_actions.c
+- src/core/main.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+- Developer report verified: .agent/handoffs/report.1.29.txt
+
+Findings
+- No scoped findings.
+
+Acceptance criteria verification
+- Runtime transition lookup/count/index APIs are declared in include/ytree_appstate_actions.h:20-34 and implemented in src/core/appstate_actions.c:299-323.
+- Runtime transition registry rows are present in src/core/appstate_actions.c:13-140 and align with docs/appstate_transition_matrix.json for id, category, owner, and declared_write_set. Independent parser check found 10 runtime rows, 10 matrix rows, no missing ids, no extra ids, and no field mismatches.
+- Existing action metadata transition ids are validated against runtime transition ids by startup invariants in src/core/main.c:30-88 and by the Python guard in scripts/check_appstate_contract.py:481-603 and 1914-1922.
+- Unknown transition id lookup fails closed via AppStateTransitionLookup NULL/empty/unmatched handling in src/core/appstate_actions.c:310-323 and startup sentinel consumption in src/core/main.c:58-59.
+- Startup invariant consumes the registry before normal startup at src/core/main.c:160-166 without migrating command behavior.
+- Focused guard tests cover registry missing/extra/mismatched ids and write sets in tests/test_appstate_contract_guard.py:2075-2188.
+
+Security checklist
+- No new buffer writes, dynamic allocation, file/process operations, path traversal surface, symlink/TOCTOU surface, command execution, or format-string exposure found in the scoped C runtime lookup changes.
+- Lookup APIs fail closed for NULL, empty, out-of-range, and unknown ids/actions.
+- Python guard parsing remains read-only validation over repository-controlled files and reports failures rather than mutating state.
+
+Validation rerun
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 195 passed.
+- make clean && make — PASS; warnings observed in pre-existing unchanged files, no scoped C file warnings observed.
+- make qa-cppcheck && make qa-code-quality && git diff --check — PASS.
+
+Auditor corrections
+- None.
+
+Gate decision
+- PASS.
+
+Residual risks
+- The runtime transition registry is still a metadata/guard scaffold and does not execute transition behavior; that matches this unit's scope and acceptance criteria.

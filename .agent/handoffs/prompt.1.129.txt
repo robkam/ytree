@@ -1,0 +1,70 @@
+You are the developer for one atomic AppState subunit in /home/rob/ytreenova.
+
+Goal
+- Extend AppState compatibility shim metadata with generation-domain coverage so shimmed restore/rebind/projection boundaries cannot bypass stale-snapshot and generation-mismatch policy.
+
+Current branch/context
+- Branch: chore/appstate-shim-owner-field-coverage
+- PR #121 already contains shim owner-field coverage. This subunit should be a second coherent commit in the same PR if it stays scoped.
+- You are not alone in the codebase; do not revert existing branch changes.
+
+Strict scope
+- Work only on compatibility-shim generation-domain metadata and guard/runtime validation.
+- Expected files are likely limited to:
+  - docs/appstate_compat_shims.json
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Keep edits minimal and consistent with existing AppState registry/guard patterns.
+
+Explicit non-goals
+- Do not migrate runtime UI behavior.
+- Do not introduce a live AppState executor.
+- Do not alter unrelated AppState registries except to reference existing generation domains.
+- Do not run local make qa-all.
+
+Required behavior
+- Add a `generation_domain_refs` list to every compatibility shim entry.
+- Add matching runtime generation-domain refs to `AppStateCompatibilityShimMetadata` and tables.
+- Guard must require non-empty generation_domain_refs for every shim.
+- Guard must reject malformed, duplicate, or unknown generation-domain refs.
+- Guard must reject runtime/doc drift for shim generation-domain refs.
+- Startup validation must fail closed for missing/unknown/duplicate shim generation-domain refs.
+- Guard must enforce that every shim invariant check's transition coverage still includes the shim target transition (do not weaken existing invariant coverage).
+- For write-capable shims that list generation owner fields in owner_field_refs, ensure at least one listed generation domain uses that generation owner field. For example, if owner_field_refs includes `panel.panel_generation`, generation_domain_refs should include a domain whose generation_owner_field is `panel.panel_generation`.
+- For restore/rebind/snapshot-sensitive shims, include the relevant existing domains such as panel/volume/directory/file/focus/layout as appropriate; do not invent domains unless a current domain is genuinely missing.
+
+State/restore invariant requirements
+- This unit explicitly addresses restore identity and stale-snapshot freshness: generation-domain refs must connect compatibility shims to existing fail-closed generation policies.
+- Tests must prove missing or stale generation-domain metadata fails before runtime can treat a shim as an alternate authority.
+
+Acceptance criteria checklist
+- [ ] `docs/appstate_compat_shims.json` has `generation_domain_refs` on every shim.
+- [ ] Runtime shim metadata exposes matching generation-domain refs.
+- [ ] Document guard rejects missing/unknown/duplicate generation-domain refs.
+- [ ] Runtime/doc drift in generation-domain refs is detected.
+- [ ] Startup validation rejects missing/unknown/duplicate runtime generation-domain refs.
+- [ ] Owner refs that include generation owner fields are covered by matching generation domains.
+- [ ] Existing owner-field/write-capability tests remain green.
+- [ ] No unrelated files changed.
+
+Verification commands
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and generation'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+- `python3 scripts/check_appstate_contract.py`
+- `make clean && make`
+- `git diff --check`
+
+Report path
+- Write your report to `/home/rob/ytreenova/.agent/handoffs/report.1.129.txt`.
+
+Report contents
+- Summary of changed files.
+- Exact commands run and results.
+- Any residual risks or follow-up recommendations.
+
+Completion reply exactly one line:
+`APPSTATE SHIM GENERATION COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.129.txt`
