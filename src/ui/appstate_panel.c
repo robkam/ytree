@@ -113,6 +113,37 @@ BOOL AppStateCommitPanelTreeViewportTopPaths(YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelVolumeTreeViewportSnapshot(
+    PanelVolumeFileState *state, unsigned int panel_generation,
+    unsigned int volume_generation, BOOL has_selected_dir_path,
+    const char *selected_dir_path, BOOL has_top_dir_path,
+    const char *top_dir_path) {
+  if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
+    return FALSE;
+  if (!state)
+    return FALSE;
+
+  state->saved_tree_panel_generation = panel_generation;
+  state->saved_tree_volume_generation = volume_generation;
+  state->has_saved_tree_selection = has_selected_dir_path;
+  state->has_saved_tree_top = has_top_dir_path;
+  state->saved_tree_selected_dir_path[0] = '\0';
+  state->saved_tree_top_dir_path[0] = '\0';
+  if (has_selected_dir_path && selected_dir_path) {
+    (void)snprintf(state->saved_tree_selected_dir_path,
+                   sizeof(state->saved_tree_selected_dir_path), "%s",
+                   selected_dir_path);
+    state->saved_tree_selected_dir_path[PATH_LENGTH] = '\0';
+  }
+  if (has_top_dir_path && top_dir_path) {
+    (void)snprintf(state->saved_tree_top_dir_path,
+                   sizeof(state->saved_tree_top_dir_path), "%s",
+                   top_dir_path);
+    state->saved_tree_top_dir_path[PATH_LENGTH] = '\0';
+  }
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos) {
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
