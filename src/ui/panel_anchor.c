@@ -156,7 +156,10 @@ PanelVolumeFileState *GetPanelVolumeFileState(YtreeNovaPanel *panel,
   state = (PanelVolumeFileState *)xcalloc(1, sizeof(PanelVolumeFileState));
   state->volume_id = volume_id;
   state->next = panel->volume_file_state;
-  panel->volume_file_state = state;
+  if (!AppStateSetPanelVolumeFileStateList(panel, state)) {
+    free(state);
+    return NULL;
+  }
   return state;
 }
 
@@ -627,6 +630,7 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   unsigned int dst_panel_generation;
   char dst_file_selection_name[PATH_LENGTH + 1];
   char dst_file_selection_dir_path[PATH_LENGTH + 1];
+  PanelVolumeFileState *dst_volume_state_head;
   const PanelVolumeFileState *dst_volume_state;
   const PanelVolumeFileState *dst_current_volume_state;
   PanelVolumeFileState *volume_file_state;
@@ -652,7 +656,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
   (void)snprintf(dst_file_selection_dir_path,
                  sizeof(dst_file_selection_dir_path), "%s",
                  dst->file_selection_dir_path);
-  dst_volume_state = dst->volume_file_state;
+  dst_volume_state_head = dst->volume_file_state;
+  dst_volume_state = dst_volume_state_head;
   dst_current_volume_state = NULL;
   if (dst->vol) {
     for (; dst_volume_state; dst_volume_state = dst_volume_state->next) {
@@ -751,8 +756,12 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     if (!AppStateCommitPanelFocus(ctx, dst, FOCUS_TREE))
       return FALSE;
   } else {
-    FreePanelVolumeFileState(dst->volume_file_state);
-    dst->volume_file_state = volume_file_state;
+    if (!AppStateSetPanelVolumeFileStateList(dst, volume_file_state)) {
+      FreePanelVolumeFileState(volume_file_state);
+      return FALSE;
+    }
+    volume_file_state = NULL;
+    FreePanelVolumeFileState(dst_volume_state_head);
   }
   if (!AppStateCommitPanelVisibilityFilter(dst, src->hide_dot_files))
     return FALSE;

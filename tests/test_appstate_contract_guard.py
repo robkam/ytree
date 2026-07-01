@@ -6803,6 +6803,37 @@ def test_panel_volume_file_snapshot_routes_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileShape(panel, saved_big_file_view)" in save_body
 
 
+def test_panel_volume_file_state_list_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateSetPanelVolumeFileStateList(" in header
+
+    helper_start = helper.index("BOOL AppStateSetPanelVolumeFileStateList(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitPanelFileSelection(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.restore_snapshot")'
+    assignment = "panel->volume_file_state = volume_file_state;"
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    get_start = panel_anchor.index("PanelVolumeFileState *GetPanelVolumeFileState(")
+    save_start = panel_anchor.index("\nvoid SavePanelTreeViewportSnapshot(", get_start)
+    get_body = panel_anchor[get_start:save_start]
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+
+    assert "panel->volume_file_state = state;" not in get_body
+    assert "AppStateSetPanelVolumeFileStateList(panel, state)" in get_body
+    assert "dst->volume_file_state = volume_file_state;" not in donate_body
+    assert "AppStateSetPanelVolumeFileStateList(dst, volume_file_state)" in donate_body
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
