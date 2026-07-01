@@ -966,6 +966,10 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         continue;
     } break;
     case ACTION_CMD_X:
+      if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
+        return ESC;
+      if (!AppStateValidatedEvent("event.command-completion"))
+        return ESC;
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
       } else {
         char command_template[COMMAND_LINE_LENGTH + 1];

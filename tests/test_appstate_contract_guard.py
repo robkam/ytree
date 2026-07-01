@@ -5613,9 +5613,13 @@ def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> No
 
 def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     source = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    dir_source = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     start = source.index("BOOL handle_file_window_command_action(")
     end = source.index("\nBOOL handle_file_window_misc_dispatch_action(", start)
     body = source[start:end]
+    dir_start = dir_source.index("    case ACTION_CMD_X:")
+    dir_end = dir_source.index("    case ACTION_CMD_MKFILE:", dir_start)
+    dir_body = dir_source[dir_start:dir_end]
     validation = (
         'if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))'
     )
@@ -5637,6 +5641,7 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     ]
 
     assert 'include "ytnova_appstate_actions.h"' in source
+    assert 'include "ytnova_appstate_actions.h"' in dir_source
     assert validation in body
     assert event_validation in body
     assert early_return in body
@@ -5649,6 +5654,21 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     for call in boundary_calls:
         assert validation_index < body.index(call)
         assert event_validation_index < body.index(call)
+
+    assert validation in dir_body
+    assert event_validation in dir_body
+    dir_validation_index = dir_body.index(validation)
+    dir_event_validation_index = dir_body.index(event_validation)
+    assert dir_validation_index < dir_event_validation_index
+    assert dir_body.index("return ESC;", dir_validation_index) < (
+        dir_event_validation_index
+    )
+    assert dir_body.index("return ESC;", dir_event_validation_index) < (
+        dir_body.index("GetCommandLine(")
+    )
+    for call in ["GetCommandLine(", "Execute(", "RefreshTreeSafe(", "RefreshView("]:
+        assert dir_validation_index < dir_body.index(call)
+        assert dir_event_validation_index < dir_body.index(call)
 
 
 def test_refresh_view_render_reflow_projection_fails_closed_before_render_work() -> None:
