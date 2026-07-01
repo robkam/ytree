@@ -271,8 +271,8 @@ def test_restore_snapshots_validate_generation_before_reuse():
             f"Missing generation field declaration: {needle}\n{defs_source}"
         )
 
-    assert "state->saved_panel_generation = panel->panel_generation;" in log_source
-    assert "state->saved_volume_generation = panel->vol->volume_generation;" in log_source
+    assert "AppStateCommitPanelVolumeFileSnapshot(" in log_source
+    assert "panel->panel_generation, panel->vol->volume_generation" in log_source
     assert "state->saved_panel_generation != panel->panel_generation" in log_source
     assert "state->saved_volume_generation != vol->volume_generation" in log_source
     assert "generation_valid =" in panel_anchor_source

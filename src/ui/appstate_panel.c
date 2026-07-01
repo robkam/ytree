@@ -144,6 +144,45 @@ BOOL AppStateCommitPanelVolumeTreeViewportSnapshot(
   return TRUE;
 }
 
+BOOL AppStateCommitPanelVolumeFileSnapshot(
+    PanelVolumeFileState *state, int start_file, int file_cursor_pos,
+    unsigned int panel_generation, unsigned int volume_generation,
+    ViewFocus focus, BOOL big_file_view, const char *file_dir_path,
+    const char *file_selection_dir_path, const char *file_selection_name) {
+  if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
+    return FALSE;
+  if (!state)
+    return FALSE;
+
+  state->saved_file_start = start_file;
+  state->saved_file_cursor = file_cursor_pos;
+  state->saved_panel_generation = panel_generation;
+  state->saved_volume_generation = volume_generation;
+  state->saved_focus = focus;
+  state->saved_big_file_view = big_file_view;
+  state->saved_file_dir_path[0] = '\0';
+  state->saved_file_selection_dir_path[0] = '\0';
+  state->saved_file_selection_name[0] = '\0';
+  if (file_dir_path) {
+    (void)snprintf(state->saved_file_dir_path,
+                   sizeof(state->saved_file_dir_path), "%s", file_dir_path);
+    state->saved_file_dir_path[PATH_LENGTH] = '\0';
+  }
+  if (file_selection_dir_path) {
+    (void)snprintf(state->saved_file_selection_dir_path,
+                   sizeof(state->saved_file_selection_dir_path), "%s",
+                   file_selection_dir_path);
+    state->saved_file_selection_dir_path[PATH_LENGTH] = '\0';
+  }
+  if (file_selection_name) {
+    (void)snprintf(state->saved_file_selection_name,
+                   sizeof(state->saved_file_selection_name), "%s",
+                   file_selection_name);
+    state->saved_file_selection_name[PATH_LENGTH] = '\0';
+  }
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos) {
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))

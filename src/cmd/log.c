@@ -32,6 +32,8 @@ static void ResetPanelFileContext(YtreeNovaPanel *panel) {
 
 static void SavePanelFileSelection(YtreeNovaPanel *panel) {
   PanelVolumeFileState *state;
+  char saved_file_dir_path[PATH_LENGTH + 1];
+  BOOL saved_big_file_view = FALSE;
 
   if (!panel || !panel->vol)
     return;
@@ -39,33 +41,25 @@ static void SavePanelFileSelection(YtreeNovaPanel *panel) {
          panel->file_selection_dir_path[0] != '\0');
 
   state = GetPanelVolumeFileState(panel, panel->vol->id);
-  state->saved_file_start = panel->start_file;
-  state->saved_file_cursor = panel->file_cursor_pos;
-  state->saved_panel_generation = panel->panel_generation;
-  state->saved_volume_generation = panel->vol->volume_generation;
-  state->saved_focus = panel->saved_focus;
-  state->saved_big_file_view = FALSE;
-
-  state->saved_file_dir_path[0] = '\0';
+  saved_file_dir_path[0] = '\0';
   if (panel->file_selection_dir_path[0] != '\0') {
-    (void)snprintf(state->saved_file_dir_path,
-                   sizeof(state->saved_file_dir_path), "%s",
+    (void)snprintf(saved_file_dir_path, sizeof(saved_file_dir_path), "%s",
                    panel->file_selection_dir_path);
-    state->saved_file_dir_path[PATH_LENGTH] = '\0';
+    saved_file_dir_path[PATH_LENGTH] = '\0';
   } else if (panel->file_dir_entry != NULL) {
-    GetPath(panel->file_dir_entry, state->saved_file_dir_path);
-    state->saved_file_dir_path[PATH_LENGTH] = '\0';
+    GetPath(panel->file_dir_entry, saved_file_dir_path);
+    saved_file_dir_path[PATH_LENGTH] = '\0';
   }
   if (panel->file_dir_entry != NULL)
-    state->saved_big_file_view = panel->file_dir_entry->big_window;
-  (void)AppStateCommitPanelFileShape(panel, state->saved_big_file_view);
-
-  (void)snprintf(state->saved_file_selection_name,
-                 sizeof(state->saved_file_selection_name), "%s",
-                 panel->file_selection_name);
-  (void)snprintf(state->saved_file_selection_dir_path,
-                 sizeof(state->saved_file_selection_dir_path), "%s",
-                 panel->file_selection_dir_path);
+    saved_big_file_view = panel->file_dir_entry->big_window;
+  if (!AppStateCommitPanelVolumeFileSnapshot(
+          state, panel->start_file, panel->file_cursor_pos,
+          panel->panel_generation, panel->vol->volume_generation,
+          panel->saved_focus, saved_big_file_view, saved_file_dir_path,
+          panel->file_selection_dir_path, panel->file_selection_name))
+    return;
+  if (!AppStateCommitPanelFileShape(panel, saved_big_file_view))
+    return;
 }
 
 static void PositionSavedFileSelection(ViewContext *ctx, YtreeNovaPanel *panel,
