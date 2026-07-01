@@ -7598,6 +7598,29 @@ def test_ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper() 
     assert len(helper_call.findall(handoff_body)) == 2
 
 
+def test_ctrl_file_owner_dir_entry_viewports_commit_through_appstate_helper() -> None:
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bowner_dir->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    function_start = ctrl_file.index("static void PositionOwnerFileCursor(")
+    function_start = ctrl_file.index("static void PositionOwnerFileCursor(", function_start + 1)
+    function_end = ctrl_file.index("\nstatic BOOL JumpToOwnerDirectory(", function_start)
+    function_body = ctrl_file[function_start:function_end]
+
+    assert not mutation.search(function_body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitDirEntryFileViewport\(\s*owner_dir,",
+                function_body,
+            )
+        )
+        == 3
+    )
+
+
 def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     mutation = re.compile(

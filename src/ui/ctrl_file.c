@@ -848,6 +848,8 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   int page_size;
   int column_count;
   int file_count;
+  int start_file;
+  int cursor_pos;
 
   if (!ctx || !ctx->active || !owner_dir || !target_file)
     return;
@@ -856,10 +858,9 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
 
   file_count = (int)ctx->active->file_count;
   if (file_count <= 0) {
-    owner_dir->start_file = 0;
-    owner_dir->cursor_pos = 0;
-    (void)AppStateCommitPanelFileViewport(ctx->active, owner_dir->start_file,
-                                          owner_dir->cursor_pos);
+    if (!AppStateCommitDirEntryFileViewport(owner_dir, 0, 0))
+      return;
+    (void)AppStateCommitPanelFileViewport(ctx->active, 0, 0);
     return;
   }
 
@@ -871,10 +872,9 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   }
 
   if (file_idx < 0) {
-    owner_dir->start_file = 0;
-    owner_dir->cursor_pos = 0;
-    (void)AppStateCommitPanelFileViewport(ctx->active, owner_dir->start_file,
-                                          owner_dir->cursor_pos);
+    if (!AppStateCommitDirEntryFileViewport(owner_dir, 0, 0))
+      return;
+    (void)AppStateCommitPanelFileViewport(ctx->active, 0, 0);
     return;
   }
 
@@ -889,21 +889,22 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   if (page_size < 1)
     page_size = 1;
 
-  owner_dir->start_file = file_idx;
-  owner_dir->cursor_pos = 0;
+  start_file = file_idx;
+  cursor_pos = 0;
 
-  if (owner_dir->start_file + page_size > file_count) {
-    owner_dir->start_file = MAXIMUM(0, file_count - page_size);
-    owner_dir->cursor_pos = file_idx - owner_dir->start_file;
+  if (start_file + page_size > file_count) {
+    start_file = MAXIMUM(0, file_count - page_size);
+    cursor_pos = file_idx - start_file;
   }
 
-  if (owner_dir->cursor_pos < 0)
-    owner_dir->cursor_pos = 0;
-  if (owner_dir->cursor_pos >= page_size)
-    owner_dir->cursor_pos = page_size - 1;
+  if (cursor_pos < 0)
+    cursor_pos = 0;
+  if (cursor_pos >= page_size)
+    cursor_pos = page_size - 1;
 
-  (void)AppStateCommitPanelFileViewport(ctx->active, owner_dir->start_file,
-                                        owner_dir->cursor_pos);
+  if (!AppStateCommitDirEntryFileViewport(owner_dir, start_file, cursor_pos))
+    return;
+  (void)AppStateCommitPanelFileViewport(ctx->active, start_file, cursor_pos);
 }
 
 static BOOL JumpToOwnerDirectory(ViewContext *ctx,
