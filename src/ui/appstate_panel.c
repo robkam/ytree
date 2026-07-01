@@ -45,6 +45,17 @@ BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol) {
   return TRUE;
 }
 
+BOOL AppStateSetPanelVolumeFileStateList(
+    YtreeNovaPanel *panel, PanelVolumeFileState *volume_file_state) {
+  if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->volume_file_state = volume_file_state;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {
