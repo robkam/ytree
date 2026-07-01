@@ -959,8 +959,10 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
     case ACTION_ENTER: {
-      ctx->bypass_small_window =
-          ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"));
+      if (!AppStateCommitSmallWindowBypass(
+              ctx,
+              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
+        return ESC;
       DirWindowDispatchResult enter_result =
           HandleDirWindowEnterAction(ctx, &dir_entry, &s, &start_vol,
                                      &need_dsp_help, &ch, &unput_char, &action);

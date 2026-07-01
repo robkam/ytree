@@ -1032,12 +1032,17 @@ int Init(ViewContext *ctx, const char *configuration_file,
     ctx->number_seperator = ','; /* Fallback to English/Comma */
   DEBUG_LOG("Init: locale fallback done");
 
-  ctx->bypass_small_window =
-      ParseSmallWindowSkipValue(CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"));
-  ctx->highlight_full_line =
-      (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
-          ? TRUE
-          : FALSE;
+  if (!AppStateCommitSmallWindowBypass(
+          ctx,
+          ParseSmallWindowSkipValue(
+              CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"))))
+    return -1;
+  if (!AppStateCommitFullLineHighlight(
+          ctx,
+          (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
+              ? TRUE
+              : FALSE))
+    return -1;
   {
     BOOL hide_dot_files =
         (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0))
