@@ -6699,6 +6699,34 @@ def test_panel_tree_viewport_top_paths_route_through_appstate_helper() -> None:
         assert "AppStateCommitPanelTreeViewportTopPaths(ctx->right, ctx->left)" in body
 
 
+def test_panel_tree_viewport_top_path_updates_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelTreeViewportTopPath(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelTreeViewportTopPath(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitPanelTreeViewportTopPaths(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.restore_snapshot")'
+    top_path_write = "panel->tree_viewport_top_dir_path[slot][0] = '\\0';"
+    assert validation in helper_body
+    assert top_path_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(top_path_write)
+
+    remember_start = panel_anchor.index("void RememberPanelViewportTop(")
+    remember_end = panel_anchor.index("\nBOOL CapturePanelAnchorPath(", remember_start)
+    remember_body = panel_anchor[remember_start:remember_end]
+    assert "panel->tree_viewport_top_dir_path[slot]" not in remember_body
+    assert "AppStateCommitPanelTreeViewportTopPath(panel, slot, NULL)" in remember_body
+    assert "AppStateCommitPanelTreeViewportTopPath(panel, slot, top_path)" in (
+        remember_body
+    )
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

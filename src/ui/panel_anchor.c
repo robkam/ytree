@@ -43,20 +43,22 @@ static int FindTopVisibleDirIndex(const YtreeNovaPanel *panel) {
 void RememberPanelViewportTop(YtreeNovaPanel *panel) {
   int idx;
   int slot;
+  char top_path[PATH_LENGTH + 1];
 
   if (!panel)
     return;
 
   slot = PanelViewportSlot(panel);
-  panel->tree_viewport_top_dir_path[slot][0] = '\0';
+  if (!AppStateCommitPanelTreeViewportTopPath(panel, slot, NULL))
+    return;
 
   idx = FindTopVisibleDirIndex(panel);
   if (idx < 0)
     return;
 
-  GetPath(panel->vol->dir_entry_list[idx].dir_entry,
-          panel->tree_viewport_top_dir_path[slot]);
-  panel->tree_viewport_top_dir_path[slot][PATH_LENGTH] = '\0';
+  GetPath(panel->vol->dir_entry_list[idx].dir_entry, top_path);
+  top_path[PATH_LENGTH] = '\0';
+  (void)AppStateCommitPanelTreeViewportTopPath(panel, slot, top_path);
 }
 
 BOOL CapturePanelAnchorPath(const YtreeNovaPanel *panel, const struct Volume *vol,
