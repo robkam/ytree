@@ -4,9 +4,9 @@ Date: 2026-07-01
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-refresh-dir-entry-viewport-helper
-Active PR: https://github.com/robkam/ytreenova/pull/310
-Stop condition: STOP BEFORE 311. Resolve PR 310 only; do not start another PR.
+Current branch: appstate-handoff-push-checkpoint
+Active PR: https://github.com/robkam/ytreenova/pull/311
+Stop condition: maintainer requested one final prompt-process fix; do not resume AppState subunits after this fix without explicit instruction.
 
 Merged in this continuation:
 - refactor(appstate): route display options through helpers
@@ -38,11 +38,19 @@ Merged in this continuation:
 - refactor(appstate): route file operation viewports through helper
   - PR: https://github.com/robkam/ytreenova/pull/309
   - Merge commit: ba7c619642cefe9f814a8bfcb7ffefb0d2daff67
+- refactor(appstate): route file refresh viewports through helper
+  - PR: https://github.com/robkam/ytreenova/pull/310
+  - Merge commit: a85e9433d3519854eea92e4934c53cfa08c53a8c
 
-Current AppState batch:
+Last AppState batch:
 - Route ctrl_file refresh and file-window handoff DirEntry viewport commits through the validated AppState helper.
 - Keep existing panel file viewport commits after the DirEntry viewport helper commits.
 - Add guard coverage preventing direct ctrl_file refresh/handoff mutation of DirEntry start_file/cursor_pos outside the helper boundary.
+
+Current process fix:
+- Update `TASK 1 PROMPT.md` so future AppState subunit checkpoints are committed with the subunit branch before each push.
+- Require red-PR remediation pushes to amend the latest `.agent/handoffs/prompt.1.txt` state into the same commit.
+- Prevent post-merge handoff-only checkpoint edits from remaining orphaned locally.
 
 Validation recorded before PR creation:
 - Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper` failed before ctrl_file refresh/handoff paths used the DirEntry viewport helper.
@@ -54,8 +62,7 @@ Validation recorded before PR creation:
 - Passed after CI remediation: `make qa-cppcheck`
 - Red CI proof: PR full local-equivalent QA gate failed at `gitleaks detect --source . --redact --exit-code 1`; redacted report identified historical false-positive generic-api-key fingerprints in tracked `.agent/handoffs/prompt.1.5.txt` and `.agent/handoffs/report.1.5.txt` lines describing the old AppState refresh event label.
 - Passed after CI remediation: `make qa-gitleaks`
+- Passed for process prompt update: `make qa-gitleaks`
 
 Next action:
-- Follow the CI wait rule for the active draft PR.
-- If CI is green, mark ready if needed, merge when allowed, clean up branch state, update this checkpoint, then stop before starting any next PR.
-- If CI is red, inspect only failure-relevant summary/tail and fix clear repo-side failures.
+- Open a small prompt-process PR, merge when green, return to main, then wait for explicit maintainer instruction before starting another PR.

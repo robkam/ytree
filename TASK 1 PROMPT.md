@@ -12,7 +12,7 @@ First, load required repo instructions:
 Local recovery state:
 - Use /home/rob/ytreenova/.agent/handoffs/prompt.1.txt as the live checkpoint if it is current.
 - If that checkpoint is stale or incomplete, reconstruct from local files in /home/rob/ytreenova/.agent/handoffs.
-- The handoff files are gitignored/local-only; do not expect GitHub to contain them.
+- The handoff files are tracked recovery context; keep `/home/rob/ytreenova/.agent/handoffs/prompt.1.txt` current and include it in the same branch push as the subunit it describes.
 - Use docs/appstate*.json to identify remaining AppState registry/runtime boundary work.
 - Use git and GitHub to discover the current branch, current PR, merged PRs, and stale branches.
 - Do not rely on PR numbers, branch names, run IDs, or details from older chats.
@@ -52,16 +52,16 @@ What to do now:
 1. Inspect current git/GitHub state.
 2. If there is an active PR:
    - Follow the CI wait rule.
-   - If checks are green, mark ready if needed, merge when allowed, clean up stale remote/local branch state, update .agent/handoffs/prompt.1.txt, then continue according to the autonomous continuation policy unless a superseding stop condition applies.
+   - If checks are green, ensure `.agent/handoffs/prompt.1.txt` already reflects the pushed PR state, mark ready if needed, merge when allowed, clean up stale remote/local branch state, then continue according to the autonomous continuation policy unless a superseding stop condition applies. Do not leave a post-merge handoff-only edit orphaned locally; include any required checkpoint update in the next pushed branch, or in a small handoff/docs PR if stopping.
    - If checks failed, inspect only the failure-relevant log tail/summary. Fix only clearly repo-side, in-scope failures. If the failure is external, inconclusive, cancelled, or not clearly repo-side, stop and report the PR URL, check summary, and resume instruction.
 3. If there is no active PR:
    - Select the next small coherent AppState batch from docs/appstate*.json and the current handoff context.
    - Implement it through the repo’s developer/auditor/PR workflow.
    - Run focused local validation only.
-   - Push a draft PR.
-   - Update .agent/handoffs/prompt.1.txt as the live recovery checkpoint.
+   - Update `.agent/handoffs/prompt.1.txt` as the live recovery checkpoint before the first push.
+   - Commit the subunit and checkpoint together, then push a draft PR.
    - Follow the CI wait rule.
-   - When CI is green, mark ready if needed, merge when allowed, clean up stale remote/local branch state, update .agent/handoffs/prompt.1.txt, then continue with the next small coherent AppState batch unless a superseding stop condition applies.
+   - When CI is green, ensure the latest pushed commit already contains the current `.agent/handoffs/prompt.1.txt`, mark ready if needed, merge when allowed, clean up stale remote/local branch state, then continue with the next small coherent AppState batch unless a superseding stop condition applies. Do not leave a post-merge handoff-only edit orphaned locally; include any required checkpoint update in the next pushed branch, or in a small handoff/docs PR if stopping.
 
 Context discipline:
 - Do not stream full CI logs.
@@ -84,8 +84,8 @@ What you must do from now until completion of task 1, unless I tell you to pause
 For any active/open PR after CI starts or restarts, follow the CI wait rule from the main prompt.
 
 At each allowed CI status check:
-- If CI is green, mark the PR ready if needed, merge when branch protection and review requirements allow, clean up branch state, return to main, then proceed according to the final resume rule.
-- If CI is red, inspect only the failure-relevant summary/tail and fix clear repo-side failures. Each pushed fix restarts the CI wait rule.
+- If CI is green, ensure the latest pushed commit already contains the current `.agent/handoffs/prompt.1.txt`, mark the PR ready if needed, merge when branch protection and review requirements allow, clean up branch state, return to main, then proceed according to the final resume rule without leaving a handoff-only local edit orphaned.
+- If CI is red, inspect only the failure-relevant summary/tail and fix clear repo-side failures. Before each fix push, update `.agent/handoffs/prompt.1.txt` with the red proof/remediation state and amend it into the same commit; each pushed fix restarts the CI wait rule.
 - If CI is still running or pending, continue following the CI wait rule.
 
 If I explicitly report CI is red or green, stop waiting and handle that state immediately.
