@@ -7499,6 +7499,49 @@ def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     )
 
 
+def test_file_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryFileViewport(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryFileViewport(")
+    helper_end = helper.index("\nBOOL AppStateCommitPanelFileViewport(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.file_viewport_origin")'
+    start_write = "dir_entry->start_file = start_file;"
+    cursor_write = "dir_entry->cursor_pos = cursor_pos;"
+    assert validation in helper_body
+    assert start_write in helper_body
+    assert cursor_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(start_write)
+    assert helper_body.index(validation) < helper_body.index(cursor_write)
+
+    function_names = [
+        "FileNav_MoveDown",
+        "FileNav_MoveUp",
+        "FileNav_MoveRight",
+        "FileNav_MoveLeft",
+        "FileNav_PageDown",
+        "FileNav_PageUp",
+    ]
+    mutation = re.compile(
+        r"(?:&dir_entry->(?:cursor_pos|start_file)|"
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--))"
+    )
+    for name in function_names:
+        function_start = file_nav.index(f"void {name}(")
+        next_function = file_nav.find("\nvoid ", function_start + 1)
+        function_body = (
+            file_nav[function_start:]
+            if next_function == -1
+            else file_nav[function_start:next_function]
+        )
+        assert not mutation.search(function_body)
+        assert "AppStateCommitDirEntryFileViewport(dir_entry," in function_body
+
+
 def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

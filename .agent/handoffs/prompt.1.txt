@@ -4,8 +4,8 @@ Date: 2026-07-01
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-panel-donation-display-helper
-Active PR: https://github.com/robkam/ytreenova/pull/307
+Current branch: appstate-file-nav-dir-entry-viewport-helper
+Active PR: https://github.com/robkam/ytreenova/pull/308
 Stop condition: none; autonomous continuation remains active.
 
 Merged in this continuation:
@@ -29,14 +29,19 @@ Merged in this continuation:
 - refactor(appstate): route file sort order through helper
   - PR: https://github.com/robkam/ytreenova/pull/306
   - Merge commit: 4a04943b884c8781e5f4665ea183c85dfaae7bab
+- refactor(appstate): route panel donation display state through helpers
+  - PR: https://github.com/robkam/ytreenova/pull/307
+  - Merge commit: 1a8566f7ef92171073e6b903ac79739f67aac91a
 
 Current AppState batch:
-- Route DonatePanelState file display mode and max-column copies through existing panel AppState helpers.
-- Add guard coverage preventing direct panel donation writes to file_mode and max_column outside the helper boundary.
+- Route file navigation DirEntry file viewport mutations through a validated AppState helper.
+- Keep panel file viewport commits in the existing panel helper after the DirEntry viewport commit.
+- Add guard coverage preventing direct file navigation mutation of DirEntry start_file/cursor_pos outside the helper boundary.
 
 Validation recorded before PR creation:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_donation_file_display_state_commits_through_appstate_helpers` failed before DonatePanelState used the existing file display helpers.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'panel_donation_file_display_state_commits_through_appstate_helpers or panel_file_display_state_commits_through_appstate_helper or panel_file_rendering_metrics_commit_through_appstate_helper or panel_file_sort_order_commits_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_nav_dir_entry_viewports_commit_through_appstate_helper` failed before adding the DirEntry viewport helper.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_nav_dir_entry_viewports_commit_through_appstate_helper`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'file_nav_dir_entry_viewports_commit_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 - Passed: `make clean && make` with existing warnings.
