@@ -16,6 +16,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_panel.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
@@ -338,14 +339,18 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* Initial Display using Centralized Function if applicable */
   if (ctx->preview_mode) {
+    int fixed_col_width;
+
     /* F7 entered from tree mode arrives here with preview already enabled.
      * Mirror the same initialization contract used by ACTION_VIEW_PREVIEW.
      */
     saved_fixed_width = ctx->fixed_col_width;
     ReCreateWindows(ctx);
-    ctx->fixed_col_width = ctx->layout.big_file_win_width - 2;
-    if (ctx->fixed_col_width < 1)
-      ctx->fixed_col_width = 1;
+    fixed_col_width = ctx->layout.big_file_win_width - 2;
+    if (fixed_col_width < 1)
+      fixed_col_width = 1;
+    if (!AppStateCommitFixedColumnWidth(ctx, fixed_col_width))
+      return ESC;
     FileNav_RereadWindowSize(ctx, dir_entry);
 
     RefreshView(ctx, dir_entry);

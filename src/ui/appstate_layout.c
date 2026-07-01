@@ -40,3 +40,13 @@ BOOL AppStateCommitLayoutGeometry(ViewContext *ctx,
   ctx->layout = *layout;
   return TRUE;
 }
+
+BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width) {
+  if (!AppStateValidatedOwnerField("ctx.layout"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->fixed_col_width = fixed_col_width;
+  return TRUE;
+}

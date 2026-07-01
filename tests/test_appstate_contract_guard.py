@@ -6289,6 +6289,41 @@ def test_layout_geometry_commits_through_appstate_helper() -> None:
     assert not re.search(r"\bctx->layout\.[A-Za-z0-9_]+\s*=[^=]", layout_body)
 
 
+def test_fixed_column_width_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitFixedColumnWidth(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitFixedColumnWidth(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.layout")'
+    assignment = "ctx->fixed_col_width = fixed_col_width;"
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    for source in [init_source, ctrl_dir, ctrl_file, ctrl_file_ops]:
+        assert not re.search(r"\bctx->fixed_col_width\s*=[^=]", source)
+
+    assert "AppStateCommitFixedColumnWidth(ctx, 0)" in init_source
+    assert "AppStateCommitFixedColumnWidth(ctx, fixed_col_width)" in ctrl_file
+    assert "AppStateCommitFixedColumnWidth(ctx, fixed_col_width)" in ctrl_file_ops
+    assert "AppStateCommitFixedColumnWidth(ctx, *saved_fixed_width_ptr)" in (
+        ctrl_file_ops
+    )
+    for source in [ctrl_dir, ctrl_file_ops]:
+        assert re.search(
+            r"AppStateCommitFixedColumnWidth\(\s*ctx,\s*"
+            r"\(ctx->fixed_col_width == 0\) \? 32 : 0\)",
+            source,
+        )
+
+
 def test_view_mode_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_mode.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_mode.c").read_text(encoding="utf-8")
