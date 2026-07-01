@@ -4,8 +4,8 @@ Date: 2026-07-01
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-sort-order-helper
-Active PR: https://github.com/robkam/ytreenova/pull/306
+Current branch: appstate-panel-donation-display-helper
+Active PR: https://github.com/robkam/ytreenova/pull/307
 Stop condition: none; autonomous continuation remains active.
 
 Merged in this continuation:
@@ -26,15 +26,17 @@ Merged in this continuation:
   - PR: https://github.com/robkam/ytreenova/pull/305
   - Merge commit: 09615cc198c020025d20123d9095398f5bfb5062
   - Included tracked .agent/handoffs/*.txt files and the .gitignore update.
+- refactor(appstate): route file sort order through helper
+  - PR: https://github.com/robkam/ytreenova/pull/306
+  - Merge commit: 4a04943b884c8781e5f4665ea183c85dfaae7bab
 
 Current AppState batch:
-- Route panel file sort-order cache writes through the panel AppState helper boundary.
-- Expand panel.file_display_state metadata to cover reverse_sort.
-- Block direct reverse_sort assignments in render_file.c and panel_anchor.c outside AppState helper commits.
+- Route DonatePanelState file display mode and max-column copies through existing panel AppState helpers.
+- Add guard coverage preventing direct panel donation writes to file_mode and max_column outside the helper boundary.
 
 Validation recorded before PR creation:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_file_sort_order_commits_through_appstate_helper` failed before metadata/helper routing existed.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'panel_file_sort_order_commits_through_appstate_helper or panel_file_rendering_metrics_commit_through_appstate_helper or panel_file_display_state_commits_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_donation_file_display_state_commits_through_appstate_helpers` failed before DonatePanelState used the existing file display helpers.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'panel_donation_file_display_state_commits_through_appstate_helpers or panel_file_display_state_commits_through_appstate_helper or panel_file_rendering_metrics_commit_through_appstate_helper or panel_file_sort_order_commits_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 - Passed: `make clean && make` with existing warnings.

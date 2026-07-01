@@ -7062,6 +7062,19 @@ def test_panel_file_sort_order_commits_through_appstate_helper() -> None:
         assert not re.search(r"\b(?:p|dst)->reverse_sort\s*=[^=]", source)
 
 
+def test_panel_donation_file_display_state_commits_through_appstate_helpers() -> None:
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    donate_start = panel_anchor.index("BOOL DonatePanelState(")
+    donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
+    donate_body = panel_anchor[donate_start:donate_end]
+
+    assert "AppStateCommitPanelFileDisplayMode(dst, src->file_mode)" in donate_body
+    assert "AppStateCommitPanelFileMaxColumn(dst, src->max_column)" in donate_body
+    assert not re.search(r"\bdst->file_mode\s*=[^=]", donate_body)
+    assert not re.search(r"\bdst->max_column\s*=[^=]", donate_body)
+
+
 def test_global_search_term_writes_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")

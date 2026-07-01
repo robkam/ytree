@@ -692,8 +692,10 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
     return FALSE;
   if (!AppStateCommitPanelFileAnchor(dst, src->file_dir_entry))
     return FALSE;
-  dst->file_mode = src->file_mode;
-  dst->max_column = src->max_column;
+  if (!AppStateCommitPanelFileDisplayMode(dst, src->file_mode))
+    return FALSE;
+  if (!AppStateCommitPanelFileMaxColumn(dst, src->max_column))
+    return FALSE;
   if (!AppStateCommitPanelTreeSelection(dst, src->current_dir_entry))
     return FALSE;
   if (!AppStateRestorePanelGeneration(dst, src->panel_generation))
