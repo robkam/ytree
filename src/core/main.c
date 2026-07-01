@@ -189,6 +189,7 @@ static const char *const kAppStateRequiredOwnerFieldIds[] = {
   "ctx.render_dirty_flags",
   "ctx.window_handles",
   "panel.file_selection_key",
+  "panel.file_display_state",
   "panel.file_viewport_origin",
   "panel.focus_shape",
   "panel.panel_generation",

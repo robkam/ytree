@@ -16,6 +16,8 @@ BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
 BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol);
 BOOL AppStateSetPanelVolumeFileStateList(
     YtreeNovaPanel *panel, PanelVolumeFileState *volume_file_state);
+BOOL AppStateCommitPanelFileDisplayMode(YtreeNovaPanel *panel, int file_mode);
+BOOL AppStateCommitPanelFileMaxColumn(YtreeNovaPanel *panel, unsigned max_column);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);

@@ -160,6 +160,18 @@
       ]
     },
     {
+      "field": "panel.file_display_state",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreeNovaPanel.file display projection state",
+      "runtime_carrier": "YtreeNovaPanel.file_mode and max_column",
+      "mutation_rule": "May change only through file display mode commits that validate supported presentation modes and derived column bounds.",
+      "migration_status": "runtime_backed",
+      "invariant_checks": [
+        "invariant.inactive-panel-frozen",
+        "invariant.shared-state-panel-local-isolation"
+      ]
+    },
+    {
       "field": "panel.file_viewport_origin",
       "owner_region": "panel-local state",
       "canonical_owner": "YtreeNovaPanel.file viewport owner",

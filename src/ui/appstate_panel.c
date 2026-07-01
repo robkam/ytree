@@ -56,6 +56,29 @@ BOOL AppStateSetPanelVolumeFileStateList(
   return TRUE;
 }
 
+BOOL AppStateCommitPanelFileDisplayMode(YtreeNovaPanel *panel, int file_mode) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+  if (file_mode < MODE_1 || file_mode > MODE_5)
+    return FALSE;
+
+  panel->file_mode = file_mode;
+  return TRUE;
+}
+
+BOOL AppStateCommitPanelFileMaxColumn(YtreeNovaPanel *panel,
+                                      unsigned max_column) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel || max_column == 0)
+    return FALSE;
+
+  panel->max_column = max_column;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {

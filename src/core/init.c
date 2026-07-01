@@ -386,7 +386,12 @@ void InitView(ViewContext *ctx) {
     exit(1);
   }
   DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
-  ctx->left->file_mode = MODE_1;
+  if (!AppStateCommitPanelFileDisplayMode(ctx->left, MODE_1)) {
+    fprintf(stderr, "InitView: failed to initialize left panel file mode\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
   ctx->left->file_dir_entry = NULL;
   if (!AppStateCommitPanelFileViewport(ctx->left, 0, 0)) {
     fprintf(stderr, "InitView: failed to initialize left panel file viewport\n");
@@ -409,7 +414,14 @@ void InitView(ViewContext *ctx) {
     exit(1);
   }
   DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
-  ctx->right->file_mode = MODE_1;
+  if (!AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1)) {
+    fprintf(stderr, "InitView: failed to initialize right panel file mode\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
   ctx->right->file_dir_entry = NULL;
   if (!AppStateCommitPanelFileViewport(ctx->right, 0, 0)) {
     fprintf(stderr, "InitView: failed to initialize right panel file viewport\n");
@@ -879,11 +891,15 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->right->file_count = 0;
 
   /* Initialize Panel Defaults for Rendering */
-  ctx->left->file_mode = MODE_1;
-  ctx->left->max_column = 1;
+  if (!AppStateCommitPanelFileDisplayMode(ctx->left, MODE_1))
+    return -1;
+  if (!AppStateCommitPanelFileMaxColumn(ctx->left, 1))
+    return -1;
 
-  ctx->right->file_mode = MODE_1;
-  ctx->right->max_column = 1;
+  if (!AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1))
+    return -1;
+  if (!AppStateCommitPanelFileMaxColumn(ctx->right, 1))
+    return -1;
 
   /* Allocate and initialize the first volume using the dedicated module */
   struct Volume *initial_vol = Volume_Create(ctx);

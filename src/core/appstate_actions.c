@@ -178,6 +178,10 @@ static const char *const kAppStateOwnerFieldInvariantChecks21[] = {
   "invariant.render-projection-read-only",
   "invariant.stale-snapshot-fail-closed",
 };
+static const char *const kAppStateOwnerFieldInvariantChecks22[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.shared-state-panel-local-isolation",
+};
 
 static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
   {"ctx.active",
@@ -284,6 +288,15 @@ static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
    "runtime_backed",
    kAppStateOwnerFieldInvariantChecks9,
    sizeof(kAppStateOwnerFieldInvariantChecks9) / sizeof(kAppStateOwnerFieldInvariantChecks9[0])},
+  {"panel.file_display_state",
+   "panel-local state",
+   "YtreeNovaPanel.file display projection state",
+   "YtreeNovaPanel.file_mode and max_column",
+   "May change only through file display mode commits that validate supported presentation modes and derived column bounds.",
+   "runtime_backed",
+   kAppStateOwnerFieldInvariantChecks22,
+   sizeof(kAppStateOwnerFieldInvariantChecks22) /
+       sizeof(kAppStateOwnerFieldInvariantChecks22[0])},
   {"panel.file_viewport_origin",
    "panel-local state",
    "YtreeNovaPanel.file viewport owner",
@@ -833,6 +846,7 @@ static const char *const kAppStateDiffHarnessOwnerFieldRefs0[] = {
   "panel.tree_cursor_pos",
   "panel.tree_viewport_origin",
   "panel.file_selection_key",
+  "panel.file_display_state",
   "panel.file_viewport_origin",
   "panel.restore_snapshot",
   "panel.panel_generation",
@@ -894,6 +908,7 @@ static const char *const kAppStateDiffHarnessOwnerFieldRefs1[] = {
   "panel.tree_selection_key",
   "panel.tree_cursor_pos",
   "panel.tree_viewport_origin",
+  "panel.file_display_state",
   "panel.focus_shape",
   "panel.restore_snapshot",
   "panel.panel_generation",
@@ -2838,6 +2853,7 @@ static const char *const kAppStateInvariantProtectedFields0[] = {
   "panel.tree_cursor_pos",
   "panel.tree_viewport_origin",
   "panel.file_selection_key",
+  "panel.file_display_state",
   "panel.file_viewport_origin",
   "panel.focus_shape",
   "panel.restore_snapshot",
@@ -2994,6 +3010,7 @@ static const char *const kAppStateInvariantProtectedFields5[] = {
   "panel.volume_key",
   "panel.tree_selection_key",
   "panel.file_selection_key",
+  "panel.file_display_state",
   "panel.focus_shape",
   "panel.restore_snapshot",
   "panel.panel_generation",
