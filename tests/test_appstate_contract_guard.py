@@ -7542,6 +7542,41 @@ def test_file_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
         assert "AppStateCommitDirEntryFileViewport(dir_entry," in function_body
 
 
+def test_ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper() -> None:
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"(?:&dir_entry->(?:cursor_pos|start_file)|"
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--))"
+    )
+    expectations = {
+        "RebuildActiveFileListAfterMutation": 1,
+        "handle_file_window_navigation_action": 2,
+        "handle_file_window_misc_dispatch_action": 2,
+        "HandleTaggedFileOpDispatchAction": 1,
+        "HandleTaggedSelectionDispatchAction": 1,
+    }
+
+    for name, helper_count in expectations.items():
+        function_start = ctrl_file_ops.index(f"{name}(")
+        next_function = ctrl_file_ops.find("\nBOOL ", function_start + 1)
+        static_next_function = ctrl_file_ops.find("\nstatic ", function_start + 1)
+        if next_function == -1 or (
+            static_next_function != -1 and static_next_function < next_function
+        ):
+            next_function = static_next_function
+        function_body = (
+            ctrl_file_ops[function_start:]
+            if next_function == -1
+            else ctrl_file_ops[function_start:next_function]
+        )
+
+        assert not mutation.search(function_body)
+        assert (
+            function_body.count("AppStateCommitDirEntryFileViewport(dir_entry,")
+            == helper_count
+        )
+
+
 def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
