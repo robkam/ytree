@@ -1,0 +1,82 @@
+You are the developer for one atomic AppState subunit in /home/rob/ytree.
+
+Unit name: AppState compatibility shim runtime lookup scaffold
+Durable roadmap aim: Unified AppState Transition Machine + Projection Contract
+Resolved source: docs/ROADMAP.md Task 1, "Unified AppState Transition Machine + Projection Contract".
+
+Required autonomy tokens:
+- policy_block_retry_once
+- watchdog_stall_retry_terminal
+- maintainer_pause_gate=true_blocker_decision|commit_message_approval
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md.
+2. Read /home/rob/ytree/.ai/shared.md.
+3. Use MCP semantic tools for codebase exploration where available; avoid grep/find for exploration.
+4. Read /home/rob/ytree/docs/SPECIFICATION.md.
+5. Read /home/rob/ytree/docs/ARCHITECTURE.md.
+
+Strict scope:
+- Add a behavior-neutral runtime compatibility shim registry scaffold for the existing docs/appstate_compat_shims.json records.
+- Expected files are limited to:
+  - include/ytree_appstate_actions.h
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- If another file appears necessary, stop and explain in the report rather than broadening the patch.
+
+Non-goals:
+- Do not migrate runtime command/action behavior.
+- Do not remove, rename, or rewrite the documented compatibility shims.
+- Do not add new roadmap docs or PR/process guidance.
+- Do not alter unrelated AppState transition/action registry behavior except as needed to validate shim linkage.
+- Do not touch untracked .agent/handoffs except for the required report.
+
+Implementation requirements:
+1. Add a read-only runtime shim metadata type and lookup/count/index APIs, following the style of AppStateTransitionMetadata.
+   - Include required scalar fields at minimum: id, owner, old_authority_path, read_permission, write_permission, removal_trigger, target_transition, follow_up_task, qa_enforcement.
+   - Include invariant_checks as a const string array plus count, or an equally explicit read-only representation.
+2. Add runtime shim rows in src/core/appstate_actions.c that mirror docs/appstate_compat_shims.json exactly enough for guard validation.
+3. Add fail-closed lookup behavior for NULL, empty, out-of-range, and unknown shim ids.
+4. Extend startup invariants in src/core/main.c to consume the shim registry:
+   - registry non-empty;
+   - required fields non-empty;
+   - invariant_checks present and non-empty;
+   - target_transition resolves through AppStateTransitionLookup;
+   - unknown shim lookup returns NULL.
+5. Extend scripts/check_appstate_contract.py:
+   - parse runtime shim metadata;
+   - compare runtime shim ids and scalar fields to docs/appstate_compat_shims.json;
+   - verify invariant_checks match or are at least exactly represented if you choose array representation;
+   - verify runtime shim target_transition values exist in the runtime transition registry, not only the docs matrix;
+   - fail on missing/extra/duplicate runtime shim rows.
+6. Extend tests/test_appstate_contract_guard.py with focused tests proving the guard fails for shim registry drift, missing/extra shim ids, mismatched target_transition, missing invariant checks, and runtime target_transition not present in the runtime transition registry.
+7. Preserve existing style and architecture. Prefer small helper functions over duplicating parsing logic where appropriate, but do not broad-refactor the guard.
+
+Acceptance criteria checklist:
+- Runtime compatibility shim lookup/count/index APIs are declared and implemented.
+- Runtime shim rows align with docs/appstate_compat_shims.json for id, owner, old_authority_path, read_permission, write_permission, removal_trigger, target_transition, follow_up_task, qa_enforcement, and invariant_checks.
+- Runtime shim target_transition values are validated against runtime transition ids by both startup invariants and the Python guard.
+- Unknown shim id lookup fails closed with NULL.
+- Startup invariant consumes the shim registry without changing normal behavior.
+- Focused tests cover shim drift and runtime target-transition linkage.
+
+Exact verification commands, targeted first:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+- make qa-cppcheck
+- make qa-code-quality
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.31.txt
+
+Report requirements:
+- Summarize files changed.
+- List acceptance criteria status.
+- List exact commands run and pass/fail results.
+- Note any warnings and whether they are in changed files.
+- Note any deviations from strict scope.
+
+Your completion reply must be exactly one line:
+APPSTATE SHIM REGISTRY UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.31.txt

@@ -1,0 +1,68 @@
+Code auditor prompt for Task 1.10: Unified AppState Transition Machine + Projection Contract
+
+Goal
+- Audit the current action-coverage registry unit after developer correction report.1.9.
+- Focus on whether the guard now blocks malformed required-list contents and whether the unit still satisfies action-coverage acceptance criteria without runtime/controller scope creep.
+
+Mandatory startup
+- Read /home/rob/ytree/.ai/codex.md
+- Read /home/rob/ytree/.ai/shared.md
+- Read /home/rob/ytree/docs/SPECIFICATION.md
+- Read /home/rob/ytree/docs/ARCHITECTURE.md
+- Read developer reports:
+  - /home/rob/ytree/.agent/handoffs/report.1.7.txt
+  - /home/rob/ytree/.agent/handoffs/report.1.9.txt
+- Read prior audit finding:
+  - /home/rob/ytree/.agent/handoffs/report.1.8.txt
+- Use semantic MCP tools for codebase exploration when available. If jcodemunch is not callable, state that in your report and use serena rather than grep/find fallback.
+
+Audit scope
+- Changed files expected:
+  - docs/appstate_action_coverage.json
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- No runtime/controller files should be changed.
+- Do not implement changes unless you find a true blocker that can be proven with a minimal local check and the architect explicitly re-dispatches correction.
+- Do not run local make qa-all.
+
+Required scrutiny
+- Risk-first findings, severity ordered, with file/line references.
+- Verify prior finding from report.1.8 is fixed:
+  - required list fields are lists,
+  - non-empty,
+  - every element is a non-empty string after stripping whitespace.
+- Verify tests cover non-string and blank-string members for:
+  - action declared_write_set / migration_notes
+  - transition declared_write_set / side_effects
+  - shim invariant_checks / migration_notes
+- Verify action registry covers every YtreeAction enum member with no extras/duplicates and references existing transition IDs.
+- Verify no guard weakening, no broad suppressions/skips, and no unrelated runtime behavior changes.
+- Verify developer validation evidence and run independent focused checks.
+
+Required independent verification commands
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make qa-code-quality
+- make clean && make
+
+Acceptance criteria to verify
+- [ ] Machine-readable action coverage artifact maps every `YtreeAction` enum member in `include/ytree_defs.h` to AppState transition metadata.
+- [ ] Each action record includes at least: action, transition_id, category, owner, declared_write_set, boundary_status, migration_notes.
+- [ ] Guard parses `include/ytree_defs.h`, fails on missing/extra/duplicate action records, and verifies referenced transition IDs exist.
+- [ ] Guard rejects malformed required-list contents, including non-string and blank-string elements.
+- [ ] Guard remains deterministic and is wired into `qa-appstate-contract`/`qa-code-quality` without weakening existing checks.
+- [ ] Targeted tests cover complete pass, missing action, extra action, duplicate action, invalid transition reference, enum drift, and malformed list contents.
+- [ ] No runtime behavior changes.
+
+Required report
+- Write /home/rob/ytree/.agent/handoffs/report.1.10.txt with:
+  - risk-first findings, severity ordered, file/line refs,
+  - acceptance criteria verification,
+  - developer evidence verification,
+  - independent validation commands and pass/fail results,
+  - clear PASS or FAIL decision,
+  - residual risks.
+
+Completion reply
+- Your final reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.10.txt

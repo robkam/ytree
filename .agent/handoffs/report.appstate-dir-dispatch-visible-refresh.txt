@@ -1,0 +1,18 @@
+Completed state
+- Draft PR opened: https://github.com/robkam/ytreenova/pull/193
+- Branch pushed: appstate-dir-dispatch-visible-refresh
+- Head commit: 163b12e5e71d506e89bfd469be1feccb233ca3ce
+- Change: directory-window post-dispatch refresh now uses ResolveActiveDirEntry(ctx, s) instead of synthesizing selection with disp_begin_pos + cursor_pos and direct dir_entry_list indexing.
+- Regression: tests/test_dir_window_dispatch_regressions.py now guards the post-dispatch refresh against raw row-math selection authority.
+
+Validation
+- RED: source .venv/bin/activate && pytest tests/test_dir_window_dispatch_regressions.py::test_dir_window_post_dispatch_refresh_uses_visible_selection_authority failed before implementation.
+- GREEN: source .venv/bin/activate && pytest tests/test_dir_window_dispatch_regressions.py::test_dir_window_post_dispatch_refresh_uses_visible_selection_authority passed after implementation.
+- Focused: source .venv/bin/activate && pytest tests/test_dir_window_dispatch_regressions.py passed.
+- Build: make clean && make passed with pre-existing warnings.
+
+GitHub snapshot
+- gh pr checks 193 --repo robkam/ytreenova showed one pass (Detect QA-relevant changes) and remaining checks pending.
+
+Resume instruction
+- When GitHub checks for PR 193 are green, mark ready if allowed, merge only after required checks and reviewer signoff, clean up branch state, update .agent/handoffs/prompt.1.txt, and stop.

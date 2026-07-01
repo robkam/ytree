@@ -1,0 +1,47 @@
+You are the code auditor for one atomic AppState subunit in /home/rob/ytree.
+
+Unit name: AppState compatibility shim runtime lookup scaffold
+Durable roadmap aim: Unified AppState Transition Machine + Projection Contract
+
+Required autonomy tokens:
+- policy_block_retry_once
+- watchdog_stall_retry_terminal
+- maintainer_pause_gate=true_blocker_decision|commit_message_approval
+
+Scope to audit:
+- include/ytree_appstate_actions.h
+- src/core/appstate_actions.c
+- src/core/main.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Developer report to verify:
+- /home/rob/ytree/.agent/handoffs/report.1.31.txt
+
+Audit requirements:
+1. Risk-first findings, severity ordered, with file/line references.
+2. Verify the acceptance criteria below and the developer evidence.
+3. Decide PASS or FAIL clearly.
+4. Keep findings scoped to this unit; do not request broad future AppState migration in this unit.
+5. Treat behavior changes as risk: this unit should add runtime metadata/guard/startup invariant consumption without migrating command behavior.
+6. Do not modify code unless a small auditor correction is required; if you do modify, keep it strictly in the scoped files and document exact changes.
+7. Use MCP semantic tools for codebase exploration where available; do not use generic grep/find for exploration.
+
+Acceptance criteria checklist:
+- Runtime compatibility shim lookup/count/index APIs are declared and implemented.
+- Runtime shim rows align with docs/appstate_compat_shims.json for id, owner, old_authority_path, read_permission, write_permission, removal_trigger, target_transition, follow_up_task, qa_enforcement, and invariant_checks.
+- Runtime shim target_transition values are validated against runtime transition ids by both startup invariants and the Python guard.
+- Unknown shim id lookup fails closed with NULL.
+- Startup invariant consumes the shim registry without changing normal behavior.
+- Focused tests cover shim drift and runtime target-transition linkage.
+
+Validation already run by architect after developer completion:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 201 passed
+- make clean && make — PASS, with pre-existing warnings in unchanged files
+- make qa-cppcheck && make qa-code-quality && git diff --check — PASS
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.32.txt
+
+Your completion reply must be exactly one line:
+APPSTATE SHIM REGISTRY UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.32.txt

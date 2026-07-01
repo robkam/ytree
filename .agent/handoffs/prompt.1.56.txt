@@ -1,0 +1,38 @@
+You are the code auditor for one atomic AppState roadmap subunit in /home/rob/ytreenova.
+
+Unit: AppState dispatch-surface source anchoring guard.
+
+Scope to audit
+- Current branch: chore/appstate-dispatch-surface-anchors
+- Expected changed files only:
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.55.txt
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Check that the guard actually fails when dispatch surface source_path is missing/outside the intended source tree.
+- Check that entry_symbol_or_path anchoring is robust enough for existing function-like entries and path-style entries.
+- Check that the unit does not change runtime behavior, restore/generation ownership, or user-visible AppState transitions.
+- Check that tests are focused and would fail before/without the new guard.
+
+Acceptance criteria to verify
+- The AppState contract guard fails if a dispatch-surface source_path points outside an existing first-party source/header/script path.
+- The guard fails if entry_symbol_or_path for a registered dispatch surface is not anchored in its declared source file.
+- Existing dispatch surface metadata parity and runtime registry checks still pass.
+- Focused tests cover missing source path and stale entry symbol/path drift.
+- Existing focused AppState guard tests pass.
+- No user-visible runtime behavior changes.
+
+Suggested verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.56.txt
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH SURFACE ANCHOR UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.56.txt

@@ -1,0 +1,28 @@
+Branch: appstate-focus-session-shim
+PR URL: https://github.com/robkam/ytreenova/pull/206
+Commit: e8c6baabbf6b251ab735eed025403c093658cc7e
+
+Summary:
+- Restored targeted focus transitions so panel-local saved_focus is committed before ViewContext.focused_window is mirrored.
+- Switched split file handoff detection from the session mirror to ctx->active->saved_focus.
+- Added source guard coverage for the targeted focused-window/session-focus shim paths.
+
+Files changed:
+- src/ui/ctrl_dir.c
+- src/ui/ctrl_file.c
+- tests/test_appstate_contract_guard.py
+
+Validation evidence:
+- RED: source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py::test_compatibility_shim_boundaries_fail_closed_before_legacy_writes failed before implementation on focused-window session mirror ordering.
+- GREEN: source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py::test_compatibility_shim_boundaries_fail_closed_before_legacy_writes passed after implementation.
+- make clean && make passed with existing warnings.
+- source .venv/bin/activate && python scripts/check_appstate_contract.py passed.
+- git diff --check passed.
+
+GitHub check snapshot:
+- One snapshot taken immediately after PR creation with gh pr checks 206 --watch=false.
+- Snapshot result: Analyze (actions), Analyze (c-cpp), and Analyze (python) pending.
+
+Exact resume instruction:
+- When GitHub checks for PR https://github.com/robkam/ytreenova/pull/206 are green, mark the draft PR ready if needed, merge it into main when allowed, clean up branch appstate-focus-session-shim, update /home/rob/ytreenova/.agent/handoffs/prompt.1.txt, and then continue to the next small AppState batch unless instructed to pause.
+- If PR 206 checks are red, inspect only the failure-relevant summary/log tail and fix only clearly repo-side in-scope failures; otherwise stop with the PR URL, check summary, and resume instruction.

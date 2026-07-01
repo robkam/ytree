@@ -1,0 +1,48 @@
+You are the code auditor for one atomic AppState subunit in /home/rob/ytreenova.
+
+Audit goal
+- Risk-first review of the AppState compatibility shim owner-field coverage unit currently staged only as working-tree changes.
+
+Scope to audit
+- docs/appstate_compat_shims.json
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- scripts/check_appstate_contract.py
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.125.txt
+
+Intent to verify
+- Compatibility shims now declare `owner_field_refs`.
+- Document guard validates shim owner refs against canonical owner fields and target transition write sets for write-capable shims.
+- Read-only/no-write projection shims remain allowed without forcing write-set coverage, while still naming owner fields.
+- Runtime metadata exposes the same owner refs and startup/contract validation catches doc/runtime drift and invalid runtime refs.
+
+Acceptance criteria to verify
+- [ ] Every docs compatibility shim has non-empty owner_field_refs.
+- [ ] Owner refs resolve to docs/appstate_owner_fields.json.
+- [ ] Write-capable shim owner refs are a subset of the target transition declared_write_set.
+- [ ] No-write/read-only shim classification is narrow enough not to become a bypass for write-capable text.
+- [ ] Runtime C metadata schema and tables match docs metadata.
+- [ ] Startup validation fails closed for missing/unknown/duplicated/misaligned runtime shim owner refs.
+- [ ] Tests cover document-level failures and runtime/startup drift failures.
+- [ ] No runtime UI behavior migration or unrelated edits are included.
+
+Required verification
+- Inspect the diff, not just test output.
+- You may run targeted commands if needed. Do not run local make qa-all.
+- At minimum, verify developer evidence and identify whether the architect's validation is sufficient:
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'` — architect observed PASS, 13 passed
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — architect observed PASS, 362 passed
+  - `python3 scripts/check_appstate_contract.py` — architect observed PASS
+  - `make clean && make` — architect observed PASS with pre-existing warnings
+  - `git diff --check` — architect observed PASS
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Write report to `/home/rob/ytreenova/.agent/handoffs/report.1.126.txt`.
+
+Completion reply exactly one line:
+`APPSTATE SHIM OWNER FIELD COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.126.txt`

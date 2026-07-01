@@ -1,0 +1,33 @@
+Summary
+- Audited the current working-tree changes for AppState action/event generation-domain coverage.
+- Result: FAIL.
+- The unit adds the requested action/event generation-domain fields and broad guard coverage, but it does so by redefining a projection-only transition as an "advances_on_transition_ids" entry. That makes the new contract semantically wrong for no-generation/projection coverage and violates the requirement that docs remain minimal and truthful.
+
+Findings
+- high — docs/appstate_generation_domains.json:265-275; src/core/appstate_actions.c:485-521; scripts/check_appstate_contract.py:3924-3935; src/core/main.c:1643-1669; tests/test_appstate_contract_guard.py:3889-3911
+  Evidence: The new coverage model requires every referenced generation domain to list the action/event transition in `advances_on_transition_ids` (`_validate_generation_domain_refs()` and `AppStateGenerationDomainRefsReady()`). For the projection-only render path, the change makes `transition.render-reflow.project-state` appear in `advances_on_transition_ids`, while the same record explicitly says that render projection is read-only/projection-only and "does not advance generations". The existing test `test_guard_accepts_empty_generation_domain_advances_with_projection_note()` still documents the intended semantic distinction for projection-only domains, but the new action/event ref validation cannot honor that distinction for referenced domains.
+  Impact: The unit only passes by encoding false generation advancement for projection/no-generation transitions. That breaks the truthfulness of `docs/appstate_generation_domains.json`, couples coverage refs to the wrong field semantics, and means future honest projection-only domains cannot be referenced from action/event coverage without either failing startup/guard checks or lying in the registry.
+  Concrete fix: Split "coverage applies to this transition" from "this transition advances the generation domain". Keep `advances_on_transition_ids` truthful, add a separate transition-coverage field (or equivalent projection-coverage allowance) for generation domains, and update both the Python guard and `AppStateGenerationDomainRefsReady()` to accept projection/no-generation references without requiring fake advancement.
+
+Acceptance criteria verification
+- [x] Action coverage docs/runtime records declare generation-domain refs.
+- [x] Event coverage docs/runtime records declare generation-domain refs.
+- [x] Guard rejects missing/malformed/duplicate/unknown/wrong-transition generation-domain refs, including mixed correct+wrong lists.
+- [ ] Projection/no-generation transitions still have explicit generation-domain coverage.
+  - Structurally present, but only by misclassifying a projection-only transition as generation-advancing.
+- [x] Guard rejects runtime/docs drift for action/event generation-domain refs.
+- [ ] Startup readiness validates action/event generation-domain refs, including mixed correct+wrong lists.
+  - Validation exists, but it enforces the same incorrect "must advance" coupling, so truthful projection/no-generation refs are not supported.
+- [x] Focused tests cover these cases.
+- [x] Existing AppState guard tests remain green according to developer evidence.
+- [x] Clean build remains green according to developer evidence.
+
+Developer evidence verification
+- Reviewed /home/rob/ytreenova/.agent/handoffs/report.1.145.txt.
+- Independently verified:
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation_domain_refs or empty_generation_domain_advances_with_projection_note'` -> 37 passed, 491 deselected.
+  - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` -> PASS.
+- Did not independently rerun the developer's full `pytest -q tests/test_appstate_contract_guard.py` or `make clean && make`; those remain developer-reported only.
+
+Pass/fail decision
+- FAIL — the new contract semantics for projection/no-generation coverage are incorrect even though the guard and focused tests currently pass.

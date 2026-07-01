@@ -1,0 +1,36 @@
+Findings
+
+1. Severity: high
+   File: scripts/check_appstate_contract.py:1348
+   Evidence: The sequence validator checks that step.transition_id exists, then checks only that stimulus.action_id/event_id exist in their registries (scripts/check_appstate_contract.py:1127-1143, 1348-1361). validate_contract passes only action_ids/event_ids sets into the sequence validator (scripts/check_appstate_contract.py:1687-1705), so it cannot compare a step's stimulus to the transition_id registered for that action/event. I verified this by changing an override copy of docs/appstate_transition_sequences.json so sequence.split-toggle-f8 step 1 used transition.refresh-rebuild.manual-refresh with ACTION_SPLIT_SCREEN; python3 scripts/check_appstate_contract.py --transition-sequences <override> still returned PASS.
+   Impact: The guard can accept a machine-readable scenario registry whose action/event stimulus names a different transition boundary than the step claims. That violates the requested cross-check against existing registries and weakens the future scripted harness: generated tests could exercise or assert the wrong transition contract while CI remains green.
+   Concrete fix: Collect action -> transition_id and event_id -> transition_id maps from docs/appstate_action_coverage.json and docs/appstate_event_coverage.json, pass those maps to _validate_appstate_transition_sequences, and reject any step where stimulus.action_id or stimulus.event_id maps to a transition different from step.transition_id unless an explicit, validated multi-transition/context override is introduced. Add targeted tests proving action-transition and event-transition mismatches fail, plus a valid override test that still passes.
+
+2. Severity: medium
+   File: docs/appstate_transition_sequences.json:207
+   Evidence: The required first migration batch includes Esc (docs/ROADMAP.md:69), but sequence.esc-modal-dismissal's allowed dismissal step is driven only by event.modal-completion (docs/appstate_transition_sequences.json:213-218). The only ACTION_ESCAPE step is escape-after-dismiss-is-no-op and is expected_result blocked (docs/appstate_transition_sequences.json:239-246).
+   Impact: The scripted registry does not explicitly cover Esc dismissing an active modal; it covers a generic modal completion event and a post-dismiss Escape no-op. A future dynamic harness generated from this registry could miss the high-risk Esc/modal path that the roadmap called out for first-batch coverage.
+   Concrete fix: Add an active-modal Escape dismissal step (or a modal-specific Escape event/action registry entry, if the transition model needs contextual dispatch) that references transition.modal-action.dismiss, has expected_result allowed, and includes the same modal generation, invariant, and diff-harness expectations. Keep the blocked post-dismiss Escape no-op only as an additional negative step.
+
+Acceptance criteria verification
+- New transition sequence registry is machine-readable JSON and covers the named high-risk flow IDs, with ordered positive ordinals, invariant references, diff-harness references, generation-domain expectations, deterministic fallback metadata for stale/generation mismatch steps, and blocked no-unrelated-mutation metadata. FAIL overall because the Esc/modal scenario is incomplete as noted above, and because the guard does not prove transition/action/event alignment.
+- Guard validates docs/appstate_transition_sequences.json by default and supports --transition-sequences override. PASS for loading/default/override mechanics, FAIL for semantic cross-check completeness due finding 1.
+- Targeted tests cover valid override and many required failure modes: missing scenario field, duplicate scenario IDs, unknown category/flow, malformed steps, duplicate ordinals, unknown transition/action/event/invariant/diff-harness/generation-domain references, stale/generation fallback requirements, blocked no-unrelated-mutation requirements, and non-string/blank list fields. FAIL for missing action-transition and event-transition mismatch tests tied to finding 1.
+- Existing AppState guard remains green: PASS, reran python3 scripts/check_appstate_contract.py.
+- No runtime C behavior changed: PASS, git status shows only scripts/check_appstate_contract.py, tests/test_appstate_contract_guard.py, and docs/appstate_transition_sequences.json changed/untracked.
+- No unrelated edits: PASS for the current worktree diff; handoff files excluded from commit scope.
+
+Developer evidence verification
+- Reran source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASS.
+- Reran source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS, 184 passed.
+- Reran git diff --check: PASS.
+- Reran make qa-code-quality: PASS.
+- Reran make clean && make: PASS, with existing warnings in unchanged C files, consistent with the developer report.
+- Additional adversarial check: mismatched transition/action override passed unexpectedly, proving finding 1.
+
+Security checklist
+- No runtime C files changed and no new file/process execution path beyond the existing Python guard/CLI override path.
+- No buffer/integer overflow, format-string, UAF/double-free, path traversal, symlink TOCTOU, or command-injection issue found in this diff.
+- Override path reads are explicit local file reads and fail closed on JSON/read errors.
+
+Decision: FAIL

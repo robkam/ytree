@@ -1,0 +1,49 @@
+You are the code auditor for ~/ytree. Audit exactly one AppState unit.
+
+Resolved roadmap title
+- docs/ROADMAP.md Task 1 is resolved as: Unified AppState Transition Machine + Projection Contract.
+
+Unit under audit
+- Transition-diff harness schema/guard foundation.
+
+Developer report
+- Read /home/rob/ytree/.agent/handoffs/report.1.23.txt first.
+
+Audit scope
+- Review the current branch diff only.
+- Files expected in scope:
+  - docs/appstate_diff_harness.json
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- No runtime C behavior should have changed.
+
+Required audit focus
+- Risk-first findings, severity ordered, with file/line references.
+- Verify the registry gives durable coverage for:
+  - transition_before_after_snapshot
+  - declared_write_set_diff
+  - render_projection_read_only_diff
+  - generation_mismatch_check
+  - blocked_transition_no_unrelated_mutation
+- Verify guard validation rejects missing required fields, duplicate IDs, unknown categories, unknown transition references, unknown owner/write-set references, unknown invariant references, unknown generation-domain references, and malformed list fields.
+- Verify references are cross-checked against existing registries and CLI override support works.
+- Verify no runtime C files are changed and no unrelated docs/process noise was added.
+- Verify developer validation evidence is plausible and sufficient.
+
+Acceptance criteria checklist
+- [ ] New diff harness registry is valid, machine-readable, and aligned with the AppState transition/projection contract.
+- [ ] Guard validates it by default and supports a CLI override.
+- [ ] Targeted tests cover both valid override and required failure modes.
+- [ ] Existing AppState guard remains green.
+- [ ] No runtime C behavior changed.
+- [ ] No unrelated edits.
+
+Required report path
+- Write /home/rob/ytree/.agent/handoffs/report.1.24.txt with:
+  - Risk-first findings, severity ordered, with file/line references
+  - Acceptance criteria verification
+  - Developer evidence verification
+  - Clear PASS or FAIL decision
+
+Completion reply must be exactly one line:
+APPSTATE DIFF HARNESS UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.24.txt

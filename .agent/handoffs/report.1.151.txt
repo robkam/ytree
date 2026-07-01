@@ -1,0 +1,32 @@
+Summary
+- Added `diff_harness_refs` to AppState action and event coverage docs and mirrored those references into the runtime action/event coverage metadata tables.
+- Extended the contract guard so coverage refs must be non-empty, well-formed, unique, known diff-harness IDs, transition-aligned, and collectively overlap owner-field, invariant, and generation-domain refs where those registries intersect.
+- Extended runtime/docs drift parsing and startup readiness so malformed runtime action/event diff-harness refs fail closed before normal execution.
+- Added focused positive/negative tests for docs guard validation, runtime drift validation, and startup/readiness guard coverage.
+
+Files changed
+- docs/appstate_action_coverage.json
+- docs/appstate_event_coverage.json
+- include/ytnova_appstate_actions.h
+- scripts/check_appstate_contract.py
+- src/core/appstate_actions.c
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Commands run and results
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness_refs or diff_harness or action_coverage or event_coverage or readiness'`
+  - First run: failed, 8 failures in new diff-harness-ref negative tests because fixture harnesses covered all transitions and two event overlap cases used still-covered replacements.
+  - Final run: passed, 252 passed, 341 deselected in 25.34s.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+  - Passed, 593 passed in 44.26s.
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+  - Passed: `PASS: AppState contract guard passed`.
+- `make clean && make`
+  - Passed. Existing unrelated warnings remain in legacy C files; no build failure.
+- `git diff --check`
+  - Passed with no whitespace errors.
+
+Residual risks / follow-up
+- This unit is guard/scaffold-only; it does not migrate runtime UI dispatch behavior.
+- The fixture diff-harness registry remains intentionally broad for complete-fixture reuse; transition-mismatch tests now corrupt the specific fixture harness transition list to prove the guard path.
+- Existing build warnings outside this scope remain and may be handled by a separate cleanup unit.

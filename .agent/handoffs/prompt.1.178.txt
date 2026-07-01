@@ -1,0 +1,50 @@
+Role: code_auditor
+
+Goal
+Audit the AppState panel-anchor rebind boundary unit on branch chore/appstate-panel-anchor-boundary.
+
+Resolved roadmap title
+- Unified AppState Transition Machine + Projection Contract
+
+Audit scope
+- Review only the current working tree changes for:
+  - src/ui/panel_anchor.c
+  - tests/test_appstate_contract_guard.py
+- Review developer evidence in /home/rob/ytreenova/.agent/handoffs/report.1.177.txt.
+- Do not implement fixes unless explicitly needed to complete audit; if you find issues, report them clearly instead of broadening scope.
+
+Risk-first review requirements
+- Findings must be severity ordered: blocker, high, medium, low.
+- Include file/line references for every finding.
+- Verify acceptance criteria and developer evidence.
+- Verify that panel-anchor rebind guards are fail-closed and appear before restore/rebind state work.
+- Verify that valid metadata behavior is unchanged except for the guards.
+- Verify no unrelated refactor/formatting churn.
+- Check for security regressions or unsafe patterns.
+
+Acceptance criteria to verify
+- AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") guards RestorePanelAnchorPath.
+- AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") guards EnsurePanelAnchorVisible.
+- Guards appear before panel restore/rebind state work in both functions.
+- Guard failure returns without mutating panel state.
+- Existing behavior for valid metadata is unchanged except for the guard.
+- tests/test_appstate_contract_guard.py includes panel-anchor surface in the runtime dispatch-surface probe.
+- tests/test_appstate_contract_guard.py includes focused source guards for both functions.
+- Existing AppState contract script remains green.
+
+Exact verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or panel_anchor or anchor_rebind or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.178.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Acceptance criteria verification.
+- Developer evidence verification.
+- Clear PASS/FAIL decision.
+
+Completion reply must be exactly one line:
+APPSTATE PANEL ANCHOR BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.178.txt

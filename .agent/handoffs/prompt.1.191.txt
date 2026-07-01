@@ -1,0 +1,51 @@
+Role: developer
+
+Goal
+Add the next narrow AppState runtime event boundary for panel-anchor rebuild/rebind callbacks.
+
+Resolved roadmap title
+- Unified AppState Transition Machine + Projection Contract
+
+Strict scope
+- Modify only:
+  - src/ui/panel_anchor.c
+  - tests/test_appstate_contract_guard.py
+  - /home/rob/ytreenova/.agent/handoffs/report.1.191.txt
+- Reuse the existing AppStateValidatedEvent(const char *) helper.
+- In src/ui/panel_anchor.c, add fail-closed guards for "event.rebuild-rebind-callback" in RestorePanelAnchorPath and EnsurePanelAnchorVisible after the existing "surface.panel-anchor-rebind" dispatch-surface guards and before target/ancestor resolution, snapshot capture/restore, PositionPanelAtIndex, RefreshView, or file_dir_entry writes.
+- On validation failure, return immediately from the void function.
+
+Explicit non-goals
+- Do not refactor panel_anchor.c.
+- Do not change valid panel-anchor restore/rebind behavior.
+- Do not change restore fallback order, viewport math, navigation, rendering, filesystem, keybinding, modal, or split behavior.
+- Do not edit docs, ROADMAP, AppState registries, build files, or unrelated tests.
+- Do not stage, reset, clean, or reformat unrelated files.
+
+Acceptance criteria checklist
+- AppStateValidatedEvent("event.rebuild-rebind-callback") guards RestorePanelAnchorPath.
+- AppStateValidatedEvent("event.rebuild-rebind-callback") guards EnsurePanelAnchorVisible.
+- Event guards appear after AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") and before panel restore/rebind state work in both functions.
+- Guard failure returns without mutating panel state.
+- Existing behavior for valid metadata is unchanged except for the guards.
+- tests/test_appstate_contract_guard.py includes the rebuild/rebind callback event in the runtime event probe if not already present.
+- tests/test_appstate_contract_guard.py adds/updates focused source guards proving placement in both functions before PositionPanelAtIndex, RestorePanelViewportSnapshot, file_dir_entry assignment, and RefreshView where present.
+
+Exact verification commands, targeted first
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_boundary or validated_event or panel_anchor or rebuild_rebind or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.191.txt
+
+Report requirements
+- List files changed.
+- List commands run and PASS/FAIL results.
+- Note any warnings or residual risks.
+- Do not include PR wording or handoff paths beyond the required report path.
+
+Completion reply must be exactly one line:
+APPSTATE PANEL ANCHOR EVENT BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.191.txt

@@ -1,0 +1,41 @@
+You are the code auditor for one atomic AppState unit in /home/rob/ytreenova.
+
+Unit title: AppState render projection boundary
+
+Audit scope
+- Audit the current working tree changes for this unit only:
+  - src/ui/display.c
+  - tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.169.txt
+
+Relevant contract
+- docs/ROADMAP.md Task 1 resolved title: Unified AppState Transition Machine + Projection Contract.
+- This unit should add only a narrow runtime validation boundary for surface.render-reflow-projection.
+- It must not migrate rendering, layout, restore/rebind, command behavior, keybindings, filesystem semantics, or controller architecture.
+
+Acceptance criteria to verify
+- Existing AppStateValidatedDispatchSurface(const char *) helper is reused; no duplicate validation logic.
+- RefreshView validates surface.render-reflow-projection before ctx->active stats dereference and before Layout_Recalculate/ReCreateWindows/Display*/Refresh*/UI_Dialog_RefreshAll/ClockHandler/doupdate projection work.
+- Validation failure returns immediately/fail-closed.
+- Valid metadata behavior remains unchanged apart from the guard.
+- Focused tests/source guards cover render-reflow dispatch-surface validation and boundary placement.
+- Existing AppState guard remains coherent.
+- No unrelated refactor or formatting churn in the scoped files.
+
+Required verification commands
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or render_projection or render_reflow or readiness'
+2. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+3. git diff --check
+
+Optional if needed
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Required report path: /home/rob/ytreenova/.agent/handoffs/report.1.170.txt
+
+Completion reply must be exactly one line:
+APPSTATE RENDER PROJECTION BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.170.txt

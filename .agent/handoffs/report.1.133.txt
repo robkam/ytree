@@ -1,0 +1,27 @@
+Summary of changed files
+- docs/appstate_dispatch_surfaces.json: added non-empty transition_sequence_refs to every dispatch surface.
+- docs/appstate_transition_sequences.json: added terminal resize and render reflow scenarios needed by dispatch surfaces whose transition_id previously had no matching sequence step.
+- include/ytnova_appstate_actions.h: extended AppStateDispatchSurfaceMetadata with runtime transition sequence refs/count.
+- src/core/appstate_actions.c: added runtime dispatch-surface sequence refs and matching terminal/render sequence metadata.
+- scripts/check_appstate_contract.py: validates dispatch-surface sequence refs for required/non-empty shape, unknown/duplicate refs, runtime/doc drift, transition step coverage, and union diff/invariant owner-field coverage.
+- src/core/main.c: startup validation now fails closed for missing, unknown, duplicate, and insufficient dispatch-surface transition sequence refs.
+- tests/test_appstate_contract_guard.py: added guard/startup regression coverage for missing/malformed/stale/insufficient dispatch-surface sequence refs and updated fixtures for runtime metadata parity.
+
+Exact commands run and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch and sequence'
+  - First run failed: 12 passed, 1 failed. The new diff-coverage regression edited the wrong fixture harness because required harness categories are sorted.
+  - After fixture correction: 13 passed, 414 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or transition_sequence'
+  - 95 passed, 332 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - 427 passed.
+- python3 scripts/check_appstate_contract.py
+  - PASS: AppState contract guard passed.
+- python3 scripts/check_appstate_contract.py && make clean && make && git diff --check
+  - Guard passed.
+  - make clean && make completed successfully; compiler emitted existing warnings in unrelated files.
+  - git diff --check passed with no whitespace errors.
+
+Residual risks / follow-up recommendations
+- No local make qa-all was run, per explicit non-goal.
+- Build still reports pre-existing warnings outside this AppState metadata/guard scope; not addressed here.

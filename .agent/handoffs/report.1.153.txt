@@ -1,0 +1,29 @@
+Sequence-step coverage approach
+- Added explicit `action_coverage_refs` and `event_coverage_refs` to every documented AppState transition-sequence step.
+- Each action stimulus step now points at its canonical action coverage record; each event stimulus step points at its canonical event coverage record. Steps with both action and event stimuli declare both refs; non-applicable coverage kind is an empty list.
+- Extended the contract guard to validate sequence-step coverage ref shape, duplicates, unknown refs, wrong-kind refs, stimulus mismatches, transition mismatches, and runtime/docs drift for these refs.
+- Extended runtime sequence-step metadata with action/event coverage ref arrays and startup readiness validation that resolves the refs through action/event coverage lookup before normal execution continues.
+
+Files changed
+- docs/appstate_transition_sequences.json
+- include/ytnova_appstate_actions.h
+- scripts/check_appstate_contract.py
+- src/core/appstate_actions.c
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Verification commands and results
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence_coverage_refs or sequence_step or transition_sequence or action_coverage or event_coverage or readiness'`
+   - PASS: 200 passed, 412 deselected.
+2. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+   - PASS: 612 passed.
+3. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+   - PASS: AppState contract guard passed.
+4. `make clean && make`
+   - PASS: build completed; existing warning noise remains in unrelated files (for example const-discard/truncation warnings).
+5. `git diff --check`
+   - PASS: no whitespace errors.
+
+Residual risks / follow-up suggestions
+- The new sequence-step refs prove the canonical action/event coverage record and transition linkage for each scripted step; they do not expand action/event coverage registries to enumerate every scenario-specific invariant or projection-only generation expectation.
+- A future unit could tighten semantic overlap between sequence-step invariants/diff harnesses/generation expectations and coverage-record registries after the coverage records are split beyond their current foundation-level grouping.

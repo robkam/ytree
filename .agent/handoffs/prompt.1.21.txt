@@ -1,0 +1,69 @@
+You are the developer for Ytree AppState work.
+
+Goal
+- Implement the next atomic docs/ROADMAP.md AppState subunit: add a registry and QA guard for identity/generation domains used by stale snapshot, restore, and rebind invariants.
+- Durable aim: register generation domains.
+
+Strict scope
+- Edit only the files necessary for registry/guard/test coverage, expected:
+  - docs/appstate_generation_domains.json (new)
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- You may inspect relevant docs/source with MCP semantic tools, but do not change runtime C code.
+- Do not alter keybindings, controller behavior, restore/render behavior, prompts, docs/ROADMAP.md status, workflow files, or generated docs.
+- Do not commit changes.
+- Do not modify or delete .agent/handoffs except for your required report file.
+- You are not alone in the codebase; do not revert unrelated edits.
+
+Required design
+- Add docs/appstate_generation_domains.json with records for identity/generation domains required by docs/ROADMAP.md and docs/ARCHITECTURE.md AppState transition contract.
+- Required categories should cover at least:
+  - panel_generation
+  - volume_generation
+  - directory_identity
+  - file_identity
+  - focus_shape
+  - modal_command_target
+  - visibility_filter_state
+  - topology_state
+  - file_payload_state
+  - volume_lifecycle
+  - layout_reflow
+- Each domain record must declare:
+  - domain_id
+  - category
+  - owner_region
+  - generation_owner_field
+  - identity_fields
+  - advances_on_transition_ids
+  - stale_snapshot_policy
+  - fail_closed_fallback
+  - restore_boundary
+  - enforcement_status
+  - migration_notes
+- generation_owner_field must be a field already registered in docs/appstate_owner_fields.json. Use the closest authoritative owner field for domains without a dedicated runtime generation counter yet; make the migration debt explicit in migration_notes.
+- identity_fields must be a non-empty list of field IDs already registered in docs/appstate_owner_fields.json.
+- advances_on_transition_ids must be a list of IDs from docs/appstate_transition_matrix.json; allow empty only for domains that are read-only/projection-only today and explain in migration_notes.
+- Add guard validation for the new registry. Also validate transition generation_effect prose so any named *_generation field must be a registered generation_owner_field in the generation-domain registry.
+
+Acceptance criteria checklist
+- [ ] New generation-domain registry exists and is valid JSON.
+- [ ] Registry covers every required category listed above with concrete owner fields and transition references.
+- [ ] AppState guard loads and validates the generation-domain registry by default and via a CLI override.
+- [ ] Guard rejects missing fields, duplicate domain IDs, missing required categories, unknown categories, unknown generation owner fields, unknown identity fields, unknown transition IDs, malformed list fields, and empty advances_on_transition_ids without a migration note explaining read-only/projection-only behavior.
+- [ ] Guard rejects transition generation_effect text that names an unregistered *_generation field.
+- [ ] Focused pytest coverage exercises the new positive and negative guard behavior.
+- [ ] Existing AppState guard validations remain green.
+- [ ] No runtime C behavior changes.
+
+Exact verification commands, targeted first
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make qa-code-quality
+- make clean && make
+
+Report
+- Required report path: /home/rob/ytree/.agent/handoffs/report.1.21.txt
+- Report must include: changed files, summary, validation commands/results, residual risks, and any skipped checks.
+- Completion reply must be exactly one line:
+  APPSTATE GENERATION DOMAIN UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.21.txt

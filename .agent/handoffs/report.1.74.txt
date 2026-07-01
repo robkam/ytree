@@ -1,0 +1,22 @@
+Findings
+- None.
+
+Decision: PASS
+
+Acceptance criteria
+- [x] Unknown transition write-set fields fail startup readiness: `src/core/main.c:586-593` now checks each declared write-set field with `AppStateOwnerFieldLookup(field) == NULL` and returns not-ready on a miss; startup exits when `!AppStateTransitionRegistryReady()` at `src/core/main.c:1274-1287`.
+- [x] Empty write-set field validation remains present: the existing `!NonEmptyString(field)` fail-closed check remains immediately before the new owner-field lookup at `src/core/main.c:586-593`.
+- [x] Focused Python regression captures the new startup guard requirement: `tests/test_appstate_contract_guard.py:1803-1818` asserts the startup write-set loop preserves empty-field rejection and adds owner-field lookup rejection inside the loop.
+- [x] Repository appstate contract guard still passes: reran `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and startup' && python3 scripts/check_appstate_contract.py && git diff --check` successfully (`6 passed, 284 deselected`; `PASS: AppState contract guard passed`; no diff-check output).
+- [x] Scope remains atomic and independently verifiable: current diff is limited to `src/core/main.c` and `tests/test_appstate_contract_guard.py`.
+
+Developer evidence verification
+- Confirmed the reported changed files match the current diff.
+- Confirmed the implementation preserves the pre-existing non-empty write-set field check and adds the owner-field registry lookup validation in `AppStateTransitionRegistryReady`.
+- Confirmed focused coverage is meaningful for this repository's source-contract guard style: the new regression fails on absence of the owner-field lookup in the transition write-set startup loop and is narrow to the startup readiness requirement.
+
+Security/comment/documentation review
+- No new unsafe string handling, file/process operations, path handling, command execution, ownership/lifetime risk, or source-comment/doc-noise issue introduced by this two-line startup guard and focused test.
+
+Changes made during audit
+- Wrote this required audit report only. No product code or test changes were made.

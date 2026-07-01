@@ -1,0 +1,36 @@
+You are the developer worker for ~/ytree.
+
+TASK 1 resolved title: Unified AppState Transition Machine + Projection Contract.
+Correction round 1.3: address code auditor report /home/rob/ytree/.agent/handoffs/report.1.2.txt.
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md and /home/rob/ytree/.ai/shared.md.
+2. Read /home/rob/ytree/docs/SPECIFICATION.md and /home/rob/ytree/docs/ARCHITECTURE.md.
+3. Use MCP semantic tools only for codebase exploration: serena + jcodemunch when available. If jcodemunch is configured but not callable, state that in your report and use serena rather than grep/find.
+4. Read /home/rob/ytree/.agent/handoffs/report.1.2.txt.
+
+Strict scope:
+- Fix the high finding: AppState contract guard must be included in qa-all. Prefer routing qa-all through qa-code-quality if this preserves existing checks without dropping any current qa-all guard.
+- Fix the low finding: add targeted tests for duplicate ids, non-empty/list field enforcement, and invalid shim target_transition linkage.
+- Do not edit runtime src/include files.
+- Do not edit docs/ROADMAP.md in this correction round. It is a pre-existing maintainer worktree change and will be handled by architect staging policy.
+- Do not run make qa-all.
+
+Acceptance criteria checklist:
+- [ ] make -n qa-all output includes scripts/check_appstate_contract.py or equivalent qa-appstate-contract invocation while preserving existing qa-all checks.
+- [ ] tests/test_appstate_contract_guard.py covers duplicate transition/shim ids, empty or non-list list fields, and invalid shim target_transition linkage.
+- [ ] source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py passes.
+- [ ] make qa-code-quality passes.
+- [ ] make clean && make passes.
+
+Exact verification commands:
+- make -n qa-all | sed -n '/check_appstate_contract/p'
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make qa-code-quality
+- make clean && make
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.3.txt
+
+Completion reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.3.txt

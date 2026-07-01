@@ -1,0 +1,24 @@
+Summary
+- Added action_id/event_id-to-transition_id cross-checks to the AppState transition sequence validator.
+- Added regression tests that fail mismatched action and event stimuli against a different step transition.
+- Updated Esc/modal sequence coverage with an active-modal ACTION_ESCAPE dismissal step that also references event.modal-completion and transition.modal-action.dismiss.
+- Aligned ACTION_ESCAPE coverage metadata with the modal dismissal owner/write-set contract so the new semantic guard remains consistent.
+
+Files changed
+- docs/appstate_action_coverage.json
+- docs/appstate_transition_sequences.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Validation commands and results
+- Red proof before implementation: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition_sequence_action_mismatches_transition or transition_sequence_event_mismatches_transition' -> failed with 2 expected assertion failures.
+- python3 scripts/check_appstate_contract.py -> PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS, 186 passed.
+- git diff --check -> PASS.
+- make qa-code-quality -> PASS.
+- make clean && make -> PASS; existing compiler warnings remain in unchanged C files.
+
+Risks, skipped checks, or blockers
+- No runtime C files were changed.
+- No requested checks were skipped.
+- No blockers.

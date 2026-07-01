@@ -1,0 +1,51 @@
+Role: code_auditor
+Model routing requested by architect: gpt-5.4, high reasoning.
+
+Goal
+Audit the current working-tree changes for the AppState generation-domain coverage unit after the corrective developer pass. Decide PASS/FAIL on whether action/event generation-domain refs now preserve truthful generation semantics and fail closed for drift/wrong refs.
+
+Scope under audit
+- docs/appstate_action_coverage.json
+- docs/appstate_event_coverage.json
+- docs/appstate_generation_domains.json
+- include/ytnova_appstate_actions.h
+- scripts/check_appstate_contract.py
+- src/core/appstate_actions.c
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Context
+- Previous audit failed because the implementation forced action/event `generation_domain_refs` to validate against `advances_on_transition_ids`, causing `transition.render-reflow.project-state` to be falsely listed as generation-advancing.
+- Corrective intent: split “generation-domain coverage applies to this transition” from “this transition advances the generation domain”; keep `advances_on_transition_ids` truthful; use separate coverage metadata for projection/no-generation coverage.
+- Developer report: `/home/rob/ytreenova/.agent/handoffs/report.1.147.txt`.
+
+Acceptance criteria to verify
+- [ ] `docs/appstate_generation_domains.json` separates coverage-transition metadata from generation-advancing metadata.
+- [ ] `transition.render-reflow.project-state` is not falsely listed as generation-advancing.
+- [ ] Action coverage `generation_domain_refs` validate against truthful generation-domain coverage metadata.
+- [ ] Event coverage `generation_domain_refs` validate against truthful generation-domain coverage metadata.
+- [ ] Contract guard rejects missing/malformed/duplicate/unknown/wrong-transition refs and mixed valid+wrong refs under split semantics.
+- [ ] Runtime structs/tables expose new generation-domain coverage metadata consistently with docs.
+- [ ] Startup readiness accepts truthful projection/no-generation coverage and rejects wrong-transition refs.
+- [ ] Tests prove projection/no-generation domain refs pass without fake advancement, wrong-transition refs fail, mixed valid+wrong refs fail, runtime/docs drift fails, and startup readiness enforces split metadata.
+- [ ] Existing AppState guard tests remain green by evidence.
+- [ ] Scope remains tight and no unrelated runtime migration/refactor is introduced.
+
+Architect validation evidence already run after developer completion
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation_domain_refs or generation_ref or generation_domain or readiness'` — PASS, 87 passed, 445 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS, 532 passed.
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — PASS.
+- `make clean && make` — PASS with pre-existing unrelated warnings.
+- `git diff --check` — PASS.
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify developer evidence and acceptance criteria.
+- Clear PASS/FAIL decision.
+- If FAIL, include concrete minimal correction guidance.
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.148.txt`
+
+Completion reply must be exactly one line:
+APPSTATE GENERATION COVERAGE REFS AUDIT UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.148.txt

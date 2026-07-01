@@ -1,0 +1,41 @@
+Goal
+- Fix the second AppState invariant runtime lookup scaffold audit finding: the contract guard must fail closed on malformed/unparsed invariant metadata list-array entries.
+- Durable aim: harden the invariant registry lookup guard for the Unified AppState transition architecture.
+
+Strict scope
+- Modify only what is needed in:
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Do not modify runtime C files unless the guard/tests fix cannot be done without it.
+- Do not touch unrelated branches/files or reset/reformat unrelated changes.
+- You are not alone in the codebase; preserve existing edits and style.
+
+Finding to fix
+- Code auditor report /home/rob/ytree/.agent/handoffs/report.1.36.txt found that `_parse_runtime_invariant_registry` parses invariant field arrays using `re.findall(r'"([^"]+)"', ...)` and trusts extracted string literals.
+- A malformed entry like `NULL,` inside `kAppStateInvariantProtectedFields0[]` is ignored, so `scripts/check_appstate_contract.py --action-runtime <mutated runtime file>` passes even though compiled startup validation would fail.
+- This applies to invariant list arrays:
+  - `kAppStateInvariantProtectedFieldsN[]`
+  - `kAppStateInvariantTransitionIdsN[]`
+  - `kAppStateInvariantDispatchSurfaceIdsN[]`
+  - `kAppStateInvariantMigrationNotesN[]`
+
+Acceptance criteria checklist
+- The runtime invariant parser/guard fails closed when any top-level entry in any invariant metadata list array cannot be parsed as a string literal.
+- Error messages identify the malformed array and entry index clearly enough for maintainers.
+- Missing/extra/duplicate/string-field drift validations for valid rows still work.
+- Existing top-level malformed-row regression remains green.
+- Add a focused regression test that injects a non-string entry such as `NULL` into one invariant metadata list array and asserts the guard fails.
+- Existing AppState contract guard tests remain green.
+- Existing local guard bundle remains green.
+
+Verification commands
+- python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- make qa-code-quality
+
+Report requirements
+- Write report to /home/rob/ytree/.agent/handoffs/report.1.37.txt
+- Include files changed, acceptance criteria status, exact commands run/results, and any deviations.
+- Completion reply must be exactly one line:
+  TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.37.txt

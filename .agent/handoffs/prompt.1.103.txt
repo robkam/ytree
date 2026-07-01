@@ -1,0 +1,55 @@
+You are the developer for one atomic AppState guard/scaffold unit in /home/rob/ytreenova.
+
+Required completion reply (exactly one line):
+APPSTATE HARNESS INVARIANT ALIGNMENT UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.103.txt
+
+Goal
+- Require every AppState diff harness transition_id to be covered by at least one invariant_id listed on that same diff harness.
+- This advances the Unified AppState Transition Machine + Projection Contract by preventing diff harnesses from naming transitions without any same-harness invariant coverage for those transitions.
+
+Strict scope
+- Work on branch chore/appstate-shim-invariant-alignment.
+- This is the second atomic commit intended for draft PR #115.
+- Keep edits scoped to the AppState contract guard/startup readiness/tests and only metadata changes strictly needed to satisfy the new rule.
+- Expected files likely include:
+  - docs/appstate_diff_harness.json, if current metadata needs a narrow correction
+  - src/core/appstate_actions.c, if docs metadata changes must be mirrored in runtime metadata
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+  - src/core/main.c
+
+Explicit non-goals
+- Do not migrate runtime UI behavior.
+- Do not change input handling, rendering, restore behavior, or product UI semantics.
+- Do not rewrite unrelated metadata.
+- Do not touch PR text or push; the architect will handle publish/update after audit.
+
+Acceptance criteria checklist
+- [ ] Docs validation rejects a diff harness with a transition_id that is not covered by any invariant_id listed on that harness.
+- [ ] Runtime registry validation rejects the equivalent mismatch in parsed src/core/appstate_actions.c diff harness metadata.
+- [ ] Startup readiness checks runtime invariant metadata and fails closed unless every diff harness transition is covered by at least one listed invariant.
+- [ ] Current docs/runtime diff harness metadata satisfies the new invariant, with only narrow metadata corrections if needed.
+- [ ] Focused regression tests prove docs drift, runtime drift, and startup validation shape.
+- [ ] No runtime UI behavior changes are introduced.
+
+Implementation guidance
+- Reuse or extend the invariant/transition coverage helper introduced for shim and sequence alignment.
+- The rule should be per transition: every transition_id named by a diff harness must have at least one same-harness invariant_id whose transition_ids includes that transition.
+- Existing metadata may have a known gap around command-completion coverage in harness.declared-write-set-diff; if so, make the smallest coherent metadata correction and mirror it in runtime metadata.
+- Keep failure messages concrete: include harness label/id and the uncovered transition id.
+
+Verification commands (targeted first)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.103.txt
+
+Report requirements
+- Summarize files changed.
+- List exact validation commands and pass/fail results.
+- Call out any metadata correction separately from guard logic.
+- Note residual risks/follow-ups.

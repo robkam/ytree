@@ -1,0 +1,22 @@
+Summary
+- Added docs/appstate_diff_harness.json as a machine-readable transition-diff harness registry covering transition before/after snapshots, declared write-set diffs, render projection read-only diffs, generation mismatch checks, and blocked-transition mutation checks.
+- Extended scripts/check_appstate_contract.py to validate the diff harness by default, cross-checking transition, owner field, invariant, and generation-domain references against existing registries.
+- Added --diff-harness CLI override support.
+- Extended tests/test_appstate_contract_guard.py with valid override coverage and targeted failure coverage for missing required fields, duplicate harness IDs, unknown check categories, unknown transition/owner/invariant/generation-domain references, and malformed list fields.
+
+Files changed
+- docs/appstate_diff_harness.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Validation commands and results
+- python3 scripts/check_appstate_contract.py: PASS (AppState contract guard passed)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS (160 passed)
+- git diff --check: PASS
+- make qa-code-quality: PASS
+- make clean && make: PASS (build completed; existing compiler warnings were emitted in unrelated runtime files)
+
+Any risks, skipped checks, or blockers
+- No runtime C files were changed.
+- No required checks were skipped.
+- No blockers.

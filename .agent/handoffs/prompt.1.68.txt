@@ -1,0 +1,33 @@
+You are the code auditor for one atomic AppState roadmap subunit in `/home/rob/ytreenova`.
+
+Goal
+- Audit the just-implemented owner field startup guard unit for the Unified AppState Transition Machine + Projection Contract roadmap aim.
+
+Scope to audit
+- `src/core/main.c`
+- `tests/test_appstate_contract_guard.py`
+- Developer report: `/home/rob/ytreenova/.agent/handoffs/report.1.67.txt`
+
+Strict non-goals
+- Do not modify files.
+- Do not audit unrelated pre-existing compiler warnings except if this diff caused them.
+- Do not request broad refactors or future AppState implementation beyond this atomic guard.
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm the startup guard fails closed on documented owner field ID drift:
+  - required ID table matches `docs/appstate_owner_fields.json` `owner_fields[*].field`,
+  - count mismatch fails,
+  - duplicate field IDs fail,
+  - every required ID is lookup-checked,
+  - startup still invokes `!AppStateOwnerFieldsReady()`.
+- Confirm existing owner metadata checks were preserved.
+- Check test quality: focused, deterministic, no noisy CI transcript assumptions.
+- Clear pass/fail decision.
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.68.txt`
+
+Completion reply must be exactly one line:
+APPSTATE OWNER FIELD STARTUP GUARD UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.68.txt

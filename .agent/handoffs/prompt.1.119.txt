@@ -1,0 +1,41 @@
+You are the developer for a correction to the current AppState invariant diff-harness coverage unit in /home/rob/ytreenova.
+
+Context
+- Code auditor report: /home/rob/ytreenova/.agent/handoffs/report.1.118.txt
+- Auditor decision: FAIL due to runtime regression not proving registered-owner-field missing coverage.
+- Finding: test_guard_fails_when_runtime_invariant_field_lacks_diff_harness_owner_ref currently adds unregistered `runtime.missing_diff_coverage` to runtime invariant protected_fields. That can fail via owner-field registration rather than proving a registered protected field missing from runtime diff-harness owner_field_refs.
+
+Strict scope
+- Correct only the current unit's test/fixture coverage and any minimal guard code needed if the corrected test exposes a real gap.
+- Expected file: tests/test_appstate_contract_guard.py; avoid touching implementation unless necessary.
+- Do not migrate runtime UI behavior or edit unrelated docs.
+- Do not reset, clean, or disturb unrelated files.
+- Preserve existing changes.
+
+Required correction
+- Change the runtime regression so runtime invariant protected_fields remain registered owner fields.
+- Remove a registered protected field, e.g. panel.tree_selection_key, from runtime_diff_harness_checks[*]["owner_field_refs"].
+- Assert the runtime coverage diagnostic for that registered field.
+- Do not rely on an unknown owner field to trigger the test.
+
+Acceptance criteria checklist
+- [ ] Runtime regression proves registered protected owner field absent from runtime diff-harness owner_field_refs fails coverage.
+- [ ] No unregistered protected field is used in that runtime coverage test.
+- [ ] Focused and full AppState guard tests pass.
+
+Exact verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_invariant_field_lacks_diff_harness_owner_ref or invariant and diff'
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.119.txt
+
+Report requirements
+- Summarize files changed.
+- List exact commands run and pass/fail results.
+- Note how the correction addresses the auditor finding.
+
+Completion reply must be exactly one line:
+APPSTATE INVARIANT DIFF COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.119.txt

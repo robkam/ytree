@@ -1,0 +1,21 @@
+Findings:
+- No findings.
+
+Acceptance verification:
+- Changed-file scope: only scripts/check_appstate_contract.py and tests/test_appstate_contract_guard.py were modified before this report.
+- Missing/outside source_path guard: _validate_source_path now resolves dispatch-surface source paths under DISPATCH_SURFACE_SOURCE_ROOT and rejects paths outside src/ before checking file existence (scripts/check_appstate_contract.py:305, scripts/check_appstate_contract.py:2787). Focused coverage exercises missing files and outside-src paths (tests/test_appstate_contract_guard.py:2883, tests/test_appstate_contract_guard.py:2903).
+- entry_symbol_or_path anchoring: function-like entries are matched as identifier-followed-by-call tokens, and path-style entries fall back to exact substring anchoring after malformed absolute/backslash/parent/whitespace paths are rejected (scripts/check_appstate_contract.py:2812, scripts/check_appstate_contract.py:2828, scripts/check_appstate_contract.py:2840). Existing dispatch-surface metadata contains function-like entries only; no current path-style dispatch-surface entries were found.
+- Stale entry drift: dispatch surface validation now reads the declared source file and fails when the entry anchor is absent (scripts/check_appstate_contract.py:2840, scripts/check_appstate_contract.py:2858). Focused stale-entry coverage is present (tests/test_appstate_contract_guard.py:2943).
+- Runtime behavior/ownership/user-visible transitions: no runtime C files, generated docs, registry data, restore/generation ownership, or user-visible AppState transition files were changed; this unit is limited to the Python guard and its tests.
+- Developer evidence: reproduced the suggested dispatch-surface pytest subset, contract guard, git diff whitespace check, and full focused AppState guard test file successfully.
+
+Validation run:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface' -> 24 passed, 249 deselected
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed
+- git diff --check -> passed with no output
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> 273 passed
+
+Decision: PASS
+
+Residual risks:
+- Missing-source coverage validates required behavior but overlaps pre-existing existence checks; the outside-src and stale-entry tests are the red-before coverage for the new guard logic.

@@ -1,0 +1,38 @@
+You are the code auditor for ~/ytree.
+
+Tracked work title: Unified AppState Transition Machine + Projection Contract.
+Audit round: 1.8, auditing developer round 1.7 action-coverage registry unit.
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md and /home/rob/ytree/.ai/shared.md.
+2. Read /home/rob/ytree/docs/SPECIFICATION.md and /home/rob/ytree/docs/ARCHITECTURE.md.
+3. Use MCP semantic tools only for codebase exploration: serena + jcodemunch when available. If jcodemunch is configured but not callable, state that in your report and use serena rather than grep/find.
+4. Read developer report: /home/rob/ytree/.agent/handoffs/report.1.7.txt.
+
+Changed/expected files to audit:
+- docs/appstate_action_coverage.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Audit requirements:
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence from report. Do not rely only on claimed evidence; inspect changed artifacts and tests.
+- Check that every `YtreeAction` enum member in `include/ytree_defs.h` has exactly one coverage record and no extras.
+- Check that action records reference existing transition IDs and category values are coherent with referenced transitions.
+- Check guard implementation: deterministic parsing, fails closed on enum shape drift, catches missing/extra/duplicate actions, invalid transition IDs, category mismatch, missing fields, and malformed list fields.
+- Check tests: meaningful temporary-fixture coverage for complete pass, missing action, extra action, duplicate action, invalid transition reference, enum drift, and malformed fields/lists.
+- Check that no runtime behavior changed and no controller files were touched.
+- Check security/style: no unsafe shelling, path traversal risk, broad suppressions, or weakened QA.
+- Clear pass/fail decision.
+
+Architect validation already run after developer completion:
+- python3 scripts/check_appstate_contract.py: PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS, 16 passed.
+- make qa-code-quality: PASS.
+- make clean && make: PASS, with pre-existing compiler warnings in unrelated runtime files.
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.8.txt
+
+Completion reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.8.txt

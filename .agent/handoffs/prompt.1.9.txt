@@ -1,0 +1,72 @@
+Developer prompt for Task 1.9: Unified AppState Transition Machine + Projection Contract
+
+Goal
+- Fix the focused audit finding from /home/rob/ytree/.agent/handoffs/report.1.8.txt for the current action-coverage registry unit.
+- Make AppState contract required-list validation reject malformed list contents, not only empty or non-list top-level fields.
+
+Context
+- Branch: task/appstate-action-coverage-registry
+- Current unit aim: machine-readable YtreeAction -> AppState transition metadata coverage with a QA guard that blocks enum/registry drift.
+- Prior developer report: /home/rob/ytree/.agent/handoffs/report.1.7.txt
+- Failed auditor report: /home/rob/ytree/.agent/handoffs/report.1.8.txt
+
+Mandatory startup
+- Read /home/rob/ytree/.ai/codex.md
+- Read /home/rob/ytree/.ai/shared.md
+- Read /home/rob/ytree/docs/SPECIFICATION.md
+- Read /home/rob/ytree/docs/ARCHITECTURE.md
+- Use semantic MCP tools for codebase exploration when available. If jcodemunch is not callable, state that in your report and use serena rather than grep/find fallback.
+
+Strict scope
+- Own only:
+  - /home/rob/ytree/scripts/check_appstate_contract.py
+  - /home/rob/ytree/tests/test_appstate_contract_guard.py
+- Fix only the audit false-negative around required list field element validation.
+- Do not change runtime behavior, controllers, keybindings, prompts, footer text, panel state, restore behavior, filesystem operations, docs/ROADMAP.md, or PR/process docs.
+- Do not weaken any existing guard or test.
+- Do not run local make qa-all.
+- You are not alone in the codebase: preserve current uncommitted changes and do not revert others' edits.
+
+Required behavior
+- Required list fields validated by scripts/check_appstate_contract.py must be:
+  - a list,
+  - non-empty,
+  - every element is a non-empty string after stripping whitespace.
+- Malformed values such as [123], [{"not": "a string"}], [""], and ["   "] must fail.
+- Error messages should identify the offending record label and field name clearly enough for tests/users to diagnose.
+
+Required test coverage
+- Add focused tests proving non-string and blank-string elements fail for all these required list fields:
+  - action declared_write_set
+  - action migration_notes
+  - transition declared_write_set
+  - transition side_effects
+  - shim invariant_checks
+  - shim migration_notes
+- Keep tests deterministic and fixture-based.
+
+Acceptance criteria checklist
+- [ ] Contract guard rejects non-string required-list elements.
+- [ ] Contract guard rejects blank/whitespace-only required-list string elements.
+- [ ] Tests cover action, transition, and shim required-list fields named above.
+- [ ] Existing complete fixture still passes.
+- [ ] Current repository contract guard passes.
+- [ ] No runtime/controller files changed.
+
+Exact verification commands, targeted first
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make qa-code-quality
+- make clean && make
+
+Required report
+- Write /home/rob/ytree/.agent/handoffs/report.1.9.txt with:
+  - files changed,
+  - summary of implementation,
+  - verification commands and pass/fail results,
+  - any residual risks or skipped checks with reason,
+  - jcodemunch/serena tool availability note.
+
+Completion reply
+- Your final reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.9.txt

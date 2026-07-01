@@ -1,0 +1,29 @@
+Task appstate-owner-field-runtime-status completed.
+
+PR: https://github.com/robkam/ytreenova/pull/187
+Branch: appstate-owner-field-runtime-status
+Commit: 99247bee5cdd18d2d8d1aa2c73e724a544aa6c2c
+State: draft PR open; checks pending at first snapshot.
+
+Changed files:
+- docs/appstate_owner_fields.json
+- src/core/appstate_actions.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Summary:
+- Promoted owner-field documentation/runtime registry status to runtime_backed.
+- Split owner-field migration status validation from foundation/enforcement status validation.
+- Added guard coverage for documented_foundation_only owner-field status rejection.
+
+Validation:
+- source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q: PASS (676 passed).
+- make clean && make: PASS (pre-existing warnings only).
+- source .venv/bin/activate && python scripts/check_appstate_contract.py: PASS.
+
+GitHub check snapshot:
+- Pending: Analyze (actions), Detect QA-relevant changes, Detect full-QA relevant changes, Fedora Rawhide GCC build/install smoke, Up To Date With Main, Analyze (c-cpp), Analyze (python).
+- Passed: PR Size Label.
+
+Resume instruction:
+- After GitHub is green, mark PR 187 ready if maintainer policy allows, merge after required review/signoff, clean up branch state, update .agent/handoffs/prompt.1.txt, and stop.

@@ -1,0 +1,27 @@
+files changed
+- docs/appstate_event_coverage.json (new)
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+summary of implementation
+- Added a machine-readable non-key AppState event coverage registry with required_event_classes and events records for terminal_resize_signal, refresh_rebuild, rebuild_rebind_callback, filesystem_mutation_result, watcher_live_refresh, command_completion, modal_completion, volume_lifecycle, and render_reflow.
+- Linked each event record to an existing docs/appstate_transition_matrix.json transition id and matching category; watcher_live_refresh and modal_completion are explicitly marked as mapped to existing broad transition records rather than new runtime behavior.
+- Extended scripts/check_appstate_contract.py with --event-coverage defaulting to docs/appstate_event_coverage.json, event required-field/list validation, transition-id/category checks, and missing/unknown/duplicate event-class detection.
+- Extended tests/test_appstate_contract_guard.py with temporary event coverage fixtures and pass/fail coverage for repository validity, complete fixtures, missing/unknown/duplicate event classes, missing event fields, invalid transition ids, category mismatches, duplicate event ids, and malformed event list fields.
+- No runtime/controller files were changed.
+
+verification commands and pass/fail results
+- python3 scripts/check_appstate_contract.py: PASS (AppState contract guard passed)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS (59 passed)
+- make qa-code-quality: PASS (unsafe API, module-boundary, AppState contract, and AI config guards passed)
+- make clean && make: PASS (build completed; existing compiler warnings still emitted)
+- git diff --check: PASS (no whitespace errors)
+
+residual risks or skipped checks with reason
+- make qa-all was not run because the handoff explicitly forbids local make qa-all for this subunit.
+- This is documentation/guard/test coverage only and does not complete docs/ROADMAP.md Task 1 or introduce runtime transition-boundary behavior.
+- Build warnings are pre-existing in unrelated C files and were not changed within this strict scope.
+
+jcodemunch/serena tool availability note
+- jcodemunch was not callable in this session (tool discovery returned no jcodemunch tools).
+- Serena was available and used for initialization/project activation plus repository pattern exploration; Serena Python symbol overview was unavailable because this project is configured for C/C++ symbols, so direct file reads/edits were used for the scoped Python/JSON files without grep/find fallback.

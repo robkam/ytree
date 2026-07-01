@@ -1,0 +1,39 @@
+# AppState dispatch invariant coverage audit
+
+## Findings
+
+### medium — tests/test_appstate_contract_guard.py:1039
+- **Evidence:** `_complete_invariants()` now derives every fixture dispatch surface id from `_complete_dispatch_surfaces()` and passes that full list to every invariant (`tests/test_appstate_contract_guard.py:1039-1052`). Since `_invariant()` gives every invariant the same `protected_fields` including `"field"` (`tests/test_appstate_contract_guard.py:180-194`), the valid fixture no longer exercises any meaningful invariant-to-surface specificity. The new docs/runtime negative tests remove the target surface from every invariant (`tests/test_appstate_contract_guard.py:3772-3800`, `tests/test_appstate_contract_guard.py:3953-3983`), but they do not encode the stricter intersection case required by the contract: one invariant lists the surface without protecting the field while another protects the field without listing the surface.
+- **Impact:** The implementation currently enforces the contract correctly, but the fixture change weakens the test oracle and could let a future/alternate guard implementation pass by checking “field protected anywhere” and “surface listed anywhere” separately instead of requiring the same invariant to provide both. This misses the prompt acceptance criterion that tests remain focused and do not mask meaningful failures.
+- **Concrete fix:** Keep the complete fixture valid without assigning every surface to every invariant. For example, assign the direct-write surfaces to one explicit fixture invariant (or a small representative mapping), leave the other invariants with narrower/representative `dispatch_surface_ids`, and add a regression where the target surface and owner field are split across different invariants so the test proves the same-invariant intersection requirement.
+
+## Acceptance criteria verification
+
+- Python guard fails when docs dispatch surface `allowed_direct_writes` lacks same-surface invariant coverage: **verified by tests and audit read**. The guard builds per-surface protected-field coverage in `scripts/check_appstate_contract.py:3923-3949` and reports missing coverage in `scripts/check_appstate_contract.py:3952-3975`; the docs regression covers the all-invariants-missing-surface case at `tests/test_appstate_contract_guard.py:3772-3800`.
+- Python guard fails when runtime dispatch-surface metadata lacks same-surface invariant coverage: **verified by tests and audit read**. Runtime dispatch-surface validation calls the same coverage helper at `scripts/check_appstate_contract.py:2287-2293`; regression at `tests/test_appstate_contract_guard.py:3953-3983` passes.
+- Runtime startup guard fails closed for the same mismatch after list shape and transition write-set checks: **partially verified**. `AppStateDispatchSurfaceWritesReady()` checks allowed-write shape, owner registration, transition write-set membership, then invariant coverage at `src/core/main.c:886-905`. The helper is fail-closed and validates invariant list pointers before matching at `src/core/main.c:848-875`. The test is source-level only (`tests/test_appstate_contract_guard.py:5926-5945`), and the binary startup smoke passed with current metadata.
+- Current repository metadata still passes: **verified** by `python3 scripts/check_appstate_contract.py` and `build/ytnova --version`.
+- Tests are focused and do not weaken existing fixture coverage: **not met** due the medium finding above.
+- No unrelated UI/runtime migration or docs noise: **verified**. Working tree changes are limited to `scripts/check_appstate_contract.py`, `src/core/main.c`, and `tests/test_appstate_contract_guard.py`.
+
+## Developer evidence verification
+
+Developer report `.agent/handoffs/report.1.111.txt` accurately described the implemented files and command outcomes. I reran the requested checks successfully. The developer-noted residual risk remains: the runtime startup mismatch is asserted by source inspection plus binary startup smoke, not by compiling an intentionally malformed runtime registry.
+
+## Security / safety review
+
+No new unsafe string APIs, file/process operations, allocation ownership changes, or command execution paths were introduced. The runtime helper uses existing bounded list-count traversal and fails closed on NULL/empty strings. No UI interaction path or ncurses rendering behavior changed.
+
+## Commands run
+
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and invariant'` — **PASS**, 8 passed, 329 deselected.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — **PASS**, 337 passed.
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — **PASS**, `PASS: AppState contract guard passed`.
+- `make clean && make` — **PASS**, completed with existing compiler warnings.
+- `git diff --check` — **PASS**, no output.
+- `build/ytnova --version` — **PASS**, `ytnova 1.0.0-alpha (June 2026)`.
+- Audit-only temporary Python fixture split the requirements across invariants (surface listed without field, field protected without surface) — **implementation rejected as expected** with docs and runtime coverage failures; this confirms the code path is correct but highlights that committed tests do not encode this sharper case.
+
+## Decision
+
+**FAIL** until the fixture broadening/test-focus issue is corrected. The implementation behavior itself appears sound in the audited scope.

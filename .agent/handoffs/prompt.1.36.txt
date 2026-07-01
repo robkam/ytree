@@ -1,0 +1,48 @@
+Goal
+- Re-audit the AppState invariant runtime lookup scaffold after the malformed-row guard correction.
+- Durable roadmap aim: harden read-only AppState invariant metadata lookup and guard validation as part of the Unified AppState transition architecture.
+
+Constraints and non-goals
+- Follow /home/rob/ytree/.ai/codex.md and /home/rob/ytree/.ai/shared.md.
+- Use MCP semantic tools for codebase exploration where available; do not use grep/find-style fallback for code discovery unless MCP semantic tools are unavailable.
+- Do not modify files unless a critical audit blocker requires an obvious minimal correction; if you edit, report it explicitly.
+- Keep review scope to these changed files:
+  - include/ytree_appstate_actions.h
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- Non-goals: transition execution, dynamic sequence harness, render mutation enforcement, or runtime migration of UI controllers.
+
+Evidence to verify
+- Original developer report: /home/rob/ytree/.agent/handoffs/report.1.33.txt
+- Prior audit report: /home/rob/ytree/.agent/handoffs/report.1.34.txt — FAIL for malformed/unparsed runtime invariant rows being ignored.
+- Correction developer report: /home/rob/ytree/.agent/handoffs/report.1.35.txt
+- Architect validation after correction:
+  - source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 208 passed
+  - make clean && make — PASS, with pre-existing warnings in unchanged files
+  - make qa-cppcheck && make qa-code-quality && git diff --check — PASS
+
+Acceptance criteria checklist
+- Runtime invariant metadata type and lookup/count/index APIs are read-only, fail closed for unknown/empty/null ids, and do not create a second AppState root.
+- Runtime invariant rows mirror docs/appstate_invariants.json exactly for ids and declared metadata fields intended by the guard.
+- Startup invariant checks validate invariant registry shape, fail-closed lookup, and transition linkage through the runtime transition registry without changing normal startup behavior.
+- Python contract guard detects missing/extra/duplicate runtime invariant rows, malformed/unparsed invariant rows, field drift, invalid transition ids, and invalid dispatch-surface references.
+- Focused tests prove the new malformed-row failure and keep existing AppState guard coverage green.
+- No direct state writes or restore/render behavior changes are introduced outside metadata/startup validation.
+- Code follows existing C/Python style, C portability expectations, and no unsafe string API/security regressions.
+
+Required verification commands
+- Inspect the diff and reports.
+- Run at least:
+  - source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  - make qa-code-quality
+- Add any targeted checks needed for findings; do not run local make qa-all.
+
+Report requirements
+- Write the audit report to /home/rob/ytree/.agent/handoffs/report.1.36.txt
+- Report must be risk-first, severity ordered, with file/line references for findings.
+- Verify acceptance criteria and developer evidence, including the previous malformed-row finding.
+- Include a clear PASS or FAIL decision.
+- Completion reply must be exactly one line:
+  TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.36.txt

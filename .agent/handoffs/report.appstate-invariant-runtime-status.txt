@@ -1,0 +1,23 @@
+Task appstate-invariant-runtime-status report
+
+PR
+- https://github.com/robkam/ytreenova/pull/186
+- Draft: yes
+- Branch: appstate-invariant-runtime-status
+- Head: b880e9e79c4384c022415e28a39b477f37bf51fa
+
+Changes
+- Promoted docs/appstate_invariants.json invariant rows from documented_foundation_only to covered_by_runtime_registry.
+- Updated src/core/appstate_actions.c runtime invariant rows and validation to reject foundation-only runtime invariant metadata.
+- Updated scripts/check_appstate_contract.py to reject runtime invariant registry rows that remain foundation-only.
+- Added focused guard/runtime tests in tests/test_appstate_contract_guard.py.
+
+Validation
+- make clean && make: passed, with pre-existing compiler warnings only.
+- source .venv/bin/activate && python scripts/check_appstate_contract.py && pytest tests/test_appstate_contract_guard.py -q: passed; AppState contract guard passed and 675 tests passed.
+
+GitHub check snapshot
+- Connector status snapshot for b880e9e79c4384c022415e28a39b477f37bf51fa returned no posted status contexts yet immediately after PR creation.
+
+Resume instruction
+- After GitHub checks are green, inspect PR 186 once, mark ready if still draft, merge when allowed, clean up local/remote branch state, update .agent/handoffs/prompt.1.txt, and stop.

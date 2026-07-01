@@ -1,0 +1,28 @@
+Findings:
+- No findings.
+
+Decision: PASS
+
+Acceptance verification:
+- Startup validation now uses kAppStateRequiredDispatchSurfaceIds in src/core/main.c:163-174 and requires AppStateDispatchSurfaceCount() to equal the required table count before continuing at src/core/main.c:540-545.
+- Missing/renamed documented dispatch-surface IDs fail closed because AppStateDispatchSurfacesReady() looks up each required table ID and returns 0 on a missing lookup at src/core/main.c:577-580.
+- Duplicate runtime IDs fail closed through the lookup identity check and explicit previous-ID comparison at src/core/main.c:562-573.
+- Null, empty, unknown lookup and out-of-range index fail-closed checks remain intact at src/core/main.c:583-590.
+- Startup still gates main() through !AppStateDispatchSurfacesReady() at src/core/main.c:1058-1062.
+- Focused tests parse kAppStateRequiredDispatchSurfaceIds, load docs/appstate_dispatch_surfaces.json through guard.DEFAULT_DISPATCH_SURFACES, compare IDs, and assert the startup guard uses the required table at tests/test_appstate_contract_guard.py:4571-4599.
+- Scope check: only src/core/main.c and tests/test_appstate_contract_guard.py are modified in the worktree. No runtime transition behavior, restore behavior, or generation ownership paths were touched by the diff.
+
+Developer evidence verified:
+- Developer report reviewed: /home/rob/ytreenova/.agent/handoffs/report.1.57.txt.
+- Required table contains 10 IDs; docs/appstate_dispatch_surfaces.json contains 10 dispatch-surface IDs; sets match.
+- Existing runtime dispatch-surface metadata parity guard passed via scripts/check_appstate_contract.py.
+- Existing focused AppState guard tests passed via the full tests/test_appstate_contract_guard.py run.
+
+Validation commands run:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and startup' -> 2 passed, 273 deselected.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed.
+- git diff --check -> passed with no output.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> 275 passed.
+
+Residual risks:
+- None for this scoped startup guard.

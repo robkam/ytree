@@ -1,0 +1,61 @@
+Role: developer
+Model routing requested by architect: gpt-5.5, high reasoning because this unit ties scripted state-sequence steps to action/event coverage semantics across owners, write sets, invariants, generation domains, dispatch surfaces, and diff-harness checks.
+
+Goal
+Implement the next atomic guard/scaffold unit for the Unified AppState Transition Machine + Projection Contract: require each AppState transition-sequence step to reference the canonical action/event coverage record it exercises, so scripted flows cannot drift away from the coverage registries that declare transition ownership and guard expectations.
+
+Strict scope
+- Work only in the existing AppState registry/guard/runtime-readiness surface unless a narrowly necessary adjacent fixture/helper update is required:
+  - docs/appstate_transition_sequences.json
+  - docs/appstate_action_coverage.json only if a genuinely incorrect existing sequence reference must be aligned; do not churn action coverage unnecessarily
+  - docs/appstate_event_coverage.json only if a genuinely incorrect existing sequence reference must be aligned; do not churn event coverage unnecessarily
+  - include/ytnova_appstate_actions.h
+  - scripts/check_appstate_contract.py
+  - src/core/appstate_actions.c
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Keep this guard/scaffold-only. Do not migrate runtime UI behavior, refactor controllers, or alter actual dispatch behavior.
+- Preserve the existing AppState JSON style and C metadata table style.
+
+Explicit non-goals
+- Do not add broad new sequence scenarios.
+- Do not change the meaning of action/event coverage refs, declared write sets, owners, transition IDs, generation-domain refs, invariant refs, dispatch refs, or diff-harness refs except where sequence-step coverage refs need to align with existing truth.
+- Do not touch unrelated files or reformat large JSON blocks beyond necessary field additions.
+
+Acceptance criteria checklist
+- [ ] `docs/appstate_transition_sequences.json` steps with `stimulus.action_id` declare action coverage refs that resolve to `docs/appstate_action_coverage.json` records.
+- [ ] `docs/appstate_transition_sequences.json` steps with `stimulus.event_id` declare event coverage refs that resolve to `docs/appstate_event_coverage.json` records.
+- [ ] Each sequence-step coverage ref matches the step stimulus action/event and covers the same `transition_id`.
+- [ ] Each sequence-step coverage ref is consistent with the step `invariant_ids`, `diff_harness_ids`, and `generation_domain_expectations` where those registries overlap.
+- [ ] The guard rejects missing, malformed, duplicate, unknown, wrong-kind, stimulus-mismatched, transition-mismatched, invariant-mismatched, diff-harness-mismatched, generation-domain-mismatched, and mixed valid+wrong coverage refs.
+- [ ] Runtime transition-sequence step metadata exposes the new coverage refs consistently with docs.
+- [ ] Runtime/docs drift checks include the new sequence-step coverage refs.
+- [ ] Startup/readiness validation rejects malformed runtime sequence-step coverage refs before normal execution continues.
+- [ ] Focused tests cover positive and negative paths for docs guard, runtime drift, and startup readiness.
+- [ ] Existing AppState guard tests remain green.
+
+Implementation guidance
+- Prefer field names that make the coverage kind explicit, such as `action_coverage_refs` and `event_coverage_refs`, or a single `coverage_refs` field with unambiguous kind validation. Choose the style that best matches existing registry conventions.
+- Reuse/generalize existing helper patterns for action/event coverage refs and transition sequence validation instead of creating an unrelated validation style.
+- Treat sequence-step coverage refs as proof metadata, not as a substitute for the step stimulus, transition ID, invariant IDs, or diff-harness IDs.
+- For steps without an explicit stimulus action/event, require a deliberate documented allowance rather than silently accepting missing coverage.
+
+Verification commands
+Run targeted first, then the broader local quick gate:
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence_coverage_refs or sequence_step or transition_sequence or action_coverage or event_coverage or readiness'`
+2. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+3. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+4. `make clean && make`
+5. `git diff --check`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.153.txt`
+
+Report requirements
+- Summarize the sequence-step coverage approach.
+- List files changed.
+- Give exact commands run and results.
+- Note any residual risks or follow-up suggestions.
+
+Completion reply must be exactly one line:
+APPSTATE SEQUENCE STEP COVERAGE REFS UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.153.txt

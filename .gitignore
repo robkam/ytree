@@ -65,11 +65,10 @@ __pycache__/
 .coverage
 
 # File Type Rules (Deny all, Allow specific)
-*.txt
-!requirements.txt
-!.cppcheck-suppressions.txt
-*.html
-*.url
-*.sh
-!scripts/**/*.sh
-!scripts/**/*.txt
+/*.txt
+!/requirements.txt
+!/.cppcheck-suppressions.txt
+/*.sh
+/*.html
+/*.url
+

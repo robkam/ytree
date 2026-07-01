@@ -1,0 +1,48 @@
+Code auditor report: AppState shim generation-domain coverage unit
+Commit audited: 82d5c7e chore(appstate): cover shim generation domains
+Scope audited: docs/appstate_compat_shims.json; include/ytnova_appstate_actions.h; src/core/appstate_actions.c; scripts/check_appstate_contract.py; src/core/main.c; tests/test_appstate_contract_guard.py; developer report .agent/handoffs/report.1.129.txt
+
+Decision: PASS
+
+Findings
+- No blocker/high/medium/low findings in the audited diff.
+
+Risk-first audit notes
+- Compatibility shim docs now require and populate generation_domain_refs for all four shims: docs/appstate_compat_shims.json:25, docs/appstate_compat_shims.json:52, docs/appstate_compat_shims.json:79, docs/appstate_compat_shims.json:104.
+- Runtime metadata exposes the new refs through AppStateCompatibilityShimMetadata: include/ytnova_appstate_actions.h:74 and src/core/appstate_actions.c:2162-2186, with shim rows wired at src/core/appstate_actions.c:3878-3880, 3897-3899, 3916-3918, 3935-3937.
+- Guard validation is fail-closed for missing/malformed/unknown/duplicate shim generation refs and doc/runtime drift: scripts/check_appstate_contract.py:66, 287, 1657-1670, 2821-2839, 3035-3085.
+- Startup validation rejects malformed/empty, unknown, and duplicate runtime generation-domain refs: src/core/main.c:1221-1224 and src/core/main.c:1252-1260.
+- Write-capable shim owner refs that are generation owner fields require a matching referenced domain generation_owner_field: scripts/check_appstate_contract.py:3068-3084 and src/core/main.c:1275-1279.
+- Shim invariant target-transition coverage was tightened to every listed invariant in both guard and startup checks: scripts/check_appstate_contract.py:3088-3110 and src/core/main.c:1127-1149.
+- Existing owner-field/write-capability behavior remains intact: scripts/check_appstate_contract.py:2943-3032 and src/core/main.c:1111-1125, 1262-1274.
+- No runtime UI behavior migration or unrelated file edits were found; the commit is limited to docs, metadata, guard/startup validation, and tests.
+
+Acceptance criteria verification
+- [x] Every docs compatibility shim has non-empty generation_domain_refs.
+- [x] Runtime shim metadata exposes matching generation-domain refs.
+- [x] Document guard rejects missing/malformed/unknown/duplicate generation-domain refs.
+- [x] Runtime/doc drift in generation-domain refs is detected.
+- [x] Startup validation rejects missing/unknown/duplicate runtime generation-domain refs.
+- [x] Owner refs that include generation owner fields are covered by matching generation domains.
+- [x] Existing shim owner-field/write-capability behavior remains intact.
+- [x] No runtime UI behavior migration or unrelated edits are included.
+
+Validation evidence
+- Inspected commit diff for 82d5c7e, including all scoped files and developer report .agent/handoffs/report.1.129.txt.
+- Ran: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and generation' — PASS, 18 passed, 375 deselected.
+- Ran: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner' — PASS, 17 passed, 376 deselected.
+- Ran: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS, 393 passed.
+- Ran: python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- Ran: python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py — PASS.
+- Ran: git diff --check — PASS.
+- Ran: make clean && make — PASS, with pre-existing warning noise in unrelated files.
+- Ran a small read-only audit script to compare doc/runtime shim generation refs and write-capable generation owner coverage — PASS.
+
+Security and maintainability checklist
+- No untrusted file/process operations, path handling, command execution, or memory ownership changes were introduced.
+- Runtime validation fails closed on unexpected metadata states.
+- No unsafe string APIs were added in the audited diff.
+- Source comments and docs changes are scoped to the AppState contract metadata/guard surface.
+
+Residual risk
+- This unit validates metadata and startup/guard coverage only; it does not implement runtime AppState executor/UI migration, which is explicitly outside this commit's scope.

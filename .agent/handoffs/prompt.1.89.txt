@@ -1,0 +1,57 @@
+:at developer
+
+Implement the next atomic AppState scaffold unit in /home/rob/ytreenova.
+
+Goal
+- Require every transition write to a generation owner field to be covered by at least one registered AppState generation domain.
+
+Current branch/process
+- Work on current branch `chore/appstate-owner-invariant-lookup`, which backs draft PR #112.
+- Keep this unit as a separate atomic commit candidate; do not commit, push, or open/update the PR.
+- Do not modify, reset, stage, clean, or reformat unrelated files.
+- You are not alone in the codebase: preserve existing changes and adapt to them; do not revert other work.
+
+Strict scope
+- Allowed files:
+  - `scripts/check_appstate_contract.py`
+  - `src/core/main.c`
+  - `tests/test_appstate_contract_guard.py`
+  - `src/core/appstate_actions.c` or generation-domain docs only if existing metadata must be corrected to satisfy the new invariant
+  - required report file only
+- Non-goals:
+  - No runtime UI migration.
+  - No transition matrix expansion unless the current metadata is genuinely inconsistent and a narrow fix is required.
+  - No unrelated docs/roadmap updates.
+  - No noisy source comments or history notes.
+
+Implementation requirements
+- In the Python contract guard, fail when a transition's declared write set includes a generation owner field and that transition ID is not covered by any generation domain's `advances_on_transition_ids` for that same generation owner field.
+- In runtime startup readiness, add equivalent fail-closed validation using the runtime transition registry and runtime generation-domain registry.
+- Treat generation owner fields based on `generation_owner_field` values from registered generation domains; do not hardcode only the current two field names if avoidable.
+- Add focused tests for missing docs/runtime generation write coverage and the startup validation shape.
+- Preserve existing generation-domain validation: each generation domain's owner/identity fields and transition links must still resolve.
+
+Acceptance criteria checklist
+- [ ] Guard rejects a transition generation write when no generation domain covers that transition for the same generation owner field.
+- [ ] Runtime registry validation rejects equivalent drift.
+- [ ] Startup readiness validates generation write coverage through runtime metadata.
+- [ ] Focused tests prove the new guard/startup behavior.
+- [ ] Existing AppState contract tests remain green.
+
+Required verification commands, targeted first
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation and write'`
+2. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+3. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+4. `make clean && make`
+5. `git diff --check`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.89.txt`
+
+Report requirements
+- Summarize files changed.
+- Include exact commands run and pass/fail results.
+- Note any risks/follow-ups.
+
+Completion reply must be exactly one line:
+APPSTATE GENERATION WRITE COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.89.txt

@@ -1,0 +1,18 @@
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Summary of implementation:
+- Added kAppStateRequiredDiffHarnessIds in src/core/main.c with the documented harness IDs from docs/appstate_diff_harness.json diff_harness_checks[*].harness_id.
+- Updated AppStateDiffHarnessRegistryReady() to fail when runtime count differs from the required documented ID count, reject duplicate harness IDs, preserve existing field and cross-reference checks, and verify each required documented harness ID resolves through AppStateDiffHarnessLookup().
+- Added focused startup guard tests for diff harness fail-closed coverage and documented required-ID table parity using guard.DEFAULT_DIFF_HARNESS, collection key diff_harness_checks, and ID field harness_id.
+
+Exact commands run and pass/fail results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and startup' — PASS (2 passed, 279 deselected)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (281 passed)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS (PASS: AppState contract guard passed)
+- make clean && make — PASS (exit 0; existing compiler warnings emitted outside the scoped diff)
+- git diff --check — PASS
+
+Risks or follow-up notes:
+- No scoped follow-up identified. Build output still contains pre-existing warnings in unrelated files.

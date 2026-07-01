@@ -1,0 +1,41 @@
+Developer report for Task 1.9: Unified AppState Transition Machine + Projection Contract
+
+Files changed:
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Summary of implementation:
+- Added required-list element validation in the AppState contract guard: list fields must be lists, must be non-empty, and every element must be a non-empty string after stripping whitespace.
+- Error messages identify the offending record label, field name, and bad element index, e.g. `action[0]: declared_write_set[0] must be a non-empty string`.
+- The same list-field validation also applies to known list field names when present on a record, so fixture shim `migration_notes` is validated without requiring a docs registry change outside this task scope.
+- Added deterministic fixture-based pytest coverage for non-string elements (`[123]`, `[{"not": "a string"}]`) and blank string elements (`[""]`, `["   "]`) across:
+  - action `declared_write_set`
+  - action `migration_notes`
+  - transition `declared_write_set`
+  - transition `side_effects`
+  - shim `invariant_checks`
+  - shim `migration_notes`
+- No runtime/controller files were changed.
+
+Verification commands and results:
+- RED before implementation: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+  - Result: FAIL as expected, 24 new required-list element cases failed while the old guard accepted malformed list contents (`24 failed, 16 passed`).
+- `python3 scripts/check_appstate_contract.py`
+  - Result: PASS (`PASS: AppState contract guard passed`).
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+  - Result: PASS (`40 passed in 0.35s`; prior green rerun also `40 passed in 0.33s`).
+- `make qa-code-quality`
+  - Result: PASS. Output included no banned unsafe C APIs, module-boundary guard passed, AppState contract guard passed, and project AI config guard passed.
+- `make clean && make`
+  - Result: PASS. Build linked `build/ytree` and generated `build/ytree.1`; pre-existing unrelated compiler warnings were emitted in runtime files.
+- Scope check: `git diff --name-only && git status --short`
+  - Result: tracked diffs only in `scripts/check_appstate_contract.py` and `tests/test_appstate_contract_guard.py`; existing untracked `docs/appstate_action_coverage.json` remains present and was not edited by this task.
+
+Residual risks or skipped checks:
+- Local `make qa-all` was not run per prompt scope.
+- Existing untracked `docs/appstate_action_coverage.json` from the current action-coverage unit is preserved and not modified by this task.
+- Shim `migration_notes` is validated when present because current shim registry entries do not declare that field and the prompt scope forbids changing docs registry files.
+
+MCP/tool availability note:
+- jcodemunch was not callable in this session: `tool_search` returned no tools for query `jcodemunch`.
+- Serena was callable and used for project activation and semantic/pattern inspection. Serena Python symbol overview was unavailable because the active project language set is C/C++; Serena `search_for_pattern` was used instead of grep/find fallback for codebase exploration.

@@ -1,0 +1,49 @@
+Role: code_auditor
+
+Goal
+Audit the AppState watcher live-refresh boundary unit on branch chore/appstate-watcher-refresh-boundary.
+
+Resolved roadmap title
+- Unified AppState Transition Machine + Projection Contract
+
+Audit scope
+- Review only the current working tree changes for:
+  - src/ui/key_engine.c
+  - tests/test_appstate_contract_guard.py
+- Review developer evidence in /home/rob/ytreenova/.agent/handoffs/report.1.181.txt.
+- Do not implement fixes unless explicitly needed to complete audit; if you find issues, report them clearly instead of broadening scope.
+
+Risk-first review requirements
+- Findings must be severity ordered: blocker, high, medium, low.
+- Include file/line references for every finding.
+- Verify acceptance criteria and developer evidence.
+- Verify that watcher live-refresh dispatch-surface guard is fail-closed and appears after Watcher_ProcessEvents(ctx) succeeds but before event validation and KEY_F(5) dispatch.
+- Verify that valid watcher refresh behavior is unchanged except for the guard.
+- Verify no unrelated refactor/formatting churn.
+- Check for security regressions or unsafe patterns.
+
+Acceptance criteria to verify
+- AppStateValidatedDispatchSurface("surface.watcher-live-refresh") guards the Watcher_ProcessEvents(ctx) success path in GetEventOrKey.
+- Guard appears before AppStateValidatedEvent("event.watcher-live-refresh") and before returning KEY_F(5).
+- Guard failure returns ERR and does not dispatch KEY_F(5).
+- Existing behavior for valid metadata is unchanged except for the guard.
+- tests/test_appstate_contract_guard.py includes watcher live-refresh surface in the runtime dispatch-surface probe.
+- tests/test_appstate_contract_guard.py includes focused source guard for GetEventOrKey watcher dispatch placement.
+- Existing AppState contract script remains green.
+
+Exact verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or watcher_live_refresh or watcher_refresh or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.182.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Acceptance criteria verification.
+- Developer evidence verification.
+- Clear PASS/FAIL decision.
+
+Completion reply must be exactly one line:
+APPSTATE WATCHER REFRESH BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.182.txt

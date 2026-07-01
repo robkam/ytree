@@ -1,0 +1,41 @@
+You are the code auditor for the corrected AppState dispatch invariant coverage unit in /home/rob/ytreenova.
+
+Unit goal
+- Re-audit after correction of the previous fixture/test-focus finding.
+- Required behavior: a dispatch surface may list an owner field in allowed_direct_writes only when at least one registered invariant both lists that dispatch surface id in dispatch_surface_ids and protects that owner field in protected_fields.
+
+Scope to audit
+- scripts/check_appstate_contract.py
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.111.txt
+- Initial audit report: /home/rob/ytreenova/.agent/handoffs/report.1.112.txt
+- Correction report: /home/rob/ytreenova/.agent/handoffs/report.1.113.txt
+
+Acceptance criteria to verify
+- Python guard fails when docs dispatch surface allowed_direct_writes lacks same-surface invariant coverage.
+- Python guard fails when runtime dispatch-surface metadata lacks same-surface invariant coverage.
+- Tests prove same-invariant intersection: surface in one invariant and field protected by another must still fail.
+- Complete fixture remains valid without assigning every surface to every invariant.
+- Runtime startup guard fails closed for the same mismatch after list shape and transition write-set checks.
+- Current repository metadata still passes.
+- No unrelated UI/runtime migration or docs noise.
+
+Verification commands to run if needed
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and invariant'
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- python3 scripts/check_appstate_contract.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.114.txt
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer/correction evidence.
+- Clear PASS/FAIL decision.
+- Include commands run and results.
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH INVARIANT COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.114.txt

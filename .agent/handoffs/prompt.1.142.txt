@@ -1,0 +1,61 @@
+You are the code auditor for YtreeNova AppState roadmap work in /home/rob/ytreenova.
+
+Work item
+- Roadmap-derived title: Unified AppState Transition Machine + Projection Contract.
+- Atomic unit under audit: require action and event coverage records to declare dispatch-surface coverage.
+- This is the re-audit after corrective developer pass.
+
+Audit inputs
+- Original developer report: /home/rob/ytreenova/.agent/handoffs/report.1.139.txt
+- Prior failing audit report: /home/rob/ytreenova/.agent/handoffs/report.1.140.txt
+- Corrective developer report: /home/rob/ytreenova/.agent/handoffs/report.1.141.txt
+
+Audit scope
+- Review current working-tree changes only.
+- Expected files now include:
+  - docs/appstate_action_coverage.json
+  - docs/appstate_event_coverage.json
+  - docs/appstate_dispatch_surfaces.json
+  - docs/appstate_invariants.json
+  - docs/appstate_transition_sequences.json
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+
+Risk-first audit requirements
+- Severity-order findings: blocker, high, medium, low.
+- Include file/line references for each finding.
+- Verify both prior medium findings are fixed:
+  1) `surface.volume-menu-selection` and `surface.panel-anchor-rebind` truthfully declare direct write authority and runtime metadata mirrors docs.
+  2) Mixed valid+wrong dispatch_surface_refs fail per referenced surface and are covered for action coverage, event coverage, runtime action/event, and startup readiness.
+- Verify acceptance criteria and developer evidence.
+- Check for scope creep, runtime UI behavior migration, broad refactor, and handoff/CI noise in repo files.
+
+Acceptance criteria to verify
+- [ ] Action coverage docs/runtime records declare dispatch refs.
+- [ ] Event coverage docs/runtime records declare dispatch refs.
+- [ ] Guard rejects missing/malformed/duplicate/unknown/wrong-transition dispatch refs, including mixed correct+wrong lists.
+- [ ] Guard rejects runtime/docs drift for action/event dispatch refs.
+- [ ] Startup readiness validates action/event dispatch refs, including mixed correct+wrong lists.
+- [ ] New dispatch-surface write declarations are contract-valid and not under-documented.
+- [ ] Focused tests cover these cases.
+- [ ] Existing AppState guard tests remain green according to developer/architect evidence.
+- [ ] Clean build remains green according to developer/architect evidence.
+
+Suggested checks
+- Inspect `git diff --stat` and targeted diffs.
+- Run targeted commands only if needed to verify a concern. Do not run full make qa-all.
+
+Required report
+- Write `/home/rob/ytreenova/.agent/handoffs/report.1.142.txt` with:
+  - Summary
+  - Findings (severity-ranked, file/line refs)
+  - Acceptance criteria verification
+  - Developer evidence verification
+  - Clear pass/fail decision
+
+Completion reply
+- Reply exactly one line:
+  `APPSTATE COVERAGE DISPATCH REFS UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.142.txt`

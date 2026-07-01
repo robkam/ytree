@@ -1,0 +1,34 @@
+# Code audit report: AppState command dispatch boundary
+
+Decision: PASS
+
+## Findings
+
+No blocker, high, medium, or low findings in the audited unit.
+
+## Acceptance criteria verification
+
+- Existing helper reused: PASS. `src/ui/ctrl_file_ops.c:9` includes `ytnova_appstate_actions.h`, whose declaration for `AppStateValidatedDispatchSurface` is in `include/ytnova_appstate_actions.h:252-255`; the implementation remains the existing helper in `src/core/appstate_actions.c:6345-6348`. No duplicate validation logic was added.
+- Boundary placement: PASS. `handle_file_window_command_action` validates `surface.command-completion-dispatch` at `src/ui/ctrl_file_ops.c:532-533` before dereferencing/writeback of `dir_entry_ptr` (`src/ui/ctrl_file_ops.c:535`, `src/ui/ctrl_file_ops.c:839`), before `switch (action)` (`src/ui/ctrl_file_ops.c:537`), and before command prompts/execution/mutation/refresh paths.
+- Fail-closed behavior: PASS. Validation failure returns `FALSE` at `src/ui/ctrl_file_ops.c:532-533`, before command handling.
+- Valid metadata behavior: PASS. For valid metadata, the previous `dir_entry = *dir_entry_ptr` behavior is preserved after the guard at `src/ui/ctrl_file_ops.c:535`, and the existing switch/action body is otherwise unchanged.
+- Focused tests/source guards: PASS. Runtime validation now probes `surface.command-completion-dispatch` at `tests/test_appstate_contract_guard.py:4376-4381`; the source guard at `tests/test_appstate_contract_guard.py:4471-4501` checks the command boundary and ordering before command work/writeback.
+- Existing AppState guard coherence: PASS. `scripts/check_appstate_contract.py` passed, and the runtime probe includes the new dispatch surface without breaking existing surface validation.
+- Scope/refactor churn: PASS. Scoped diff is limited to the include, guard placement, and focused tests. The pre-existing `docs/ROADMAP.md` GNU Hurd edit was observed but not modified as part of this audit.
+
+## Developer evidence verification
+
+Developer report `/home/rob/ytreenova/.agent/handoffs/report.1.167.txt` accurately describes the scoped changes and required validation outcomes. I independently reran the required verification commands below.
+
+## Verification commands run
+
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or command_completion or command_dispatch or readiness'`
+   - Result: PASS, `75 passed, 551 deselected in 3.17s`.
+2. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+   - Result: PASS, `PASS: AppState contract guard passed`.
+3. `git diff --check`
+   - Result: PASS, no whitespace errors.
+
+## Residual risk
+
+Only the focused guard and contract checks were rerun for this audit. Optional full-file pytest/build evidence was reviewed from the developer report but not reproduced because the required commands and scoped inspection were sufficient for this narrow runtime validation boundary.

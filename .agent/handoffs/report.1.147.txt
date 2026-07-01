@@ -1,0 +1,37 @@
+Semantic fix
+- Split generation-domain transition coverage from true generation advancement.
+- Added `coverage_transition_ids` to generation-domain metadata in docs/runtime.
+- Kept `advances_on_transition_ids` truthful; `reflow.layout.projection` now covers `transition.render-reflow.project-state` without claiming that render projection advances a generation domain.
+- Updated checker and startup readiness so action/event `generation_domain_refs` validate against coverage transitions, while diff-harness generation-advance checks still validate only true advancing transitions.
+
+Files changed
+- docs/appstate_generation_domains.json
+- include/ytnova_appstate_actions.h
+- scripts/check_appstate_contract.py
+- src/core/appstate_actions.c
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Commands run and results
+1. RED seed after adding regression checks:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation_domain_refs or generation_ref or generation_domain or readiness'`
+   - Result: failed as expected; new checks caught `transition.render-reflow.project-state` in `advances_on_transition_ids` and `AppStateGenerationDomainRefsReady()` still using `advances_on_transition_ids`.
+2. Targeted guard slice after fix:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation_domain_refs or generation_ref or generation_domain or readiness'`
+   - Result: passed (`87 passed, 445 deselected`).
+3. Full guard file:
+   - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+   - Result: passed (`532 passed`).
+4. Contract script:
+   - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+   - Result: `PASS: AppState contract guard passed`.
+5. Build:
+   - `make clean && make`
+   - Result: passed; existing unrelated compiler warnings remained, no new build failure.
+6. Diff hygiene:
+   - `git diff --check`
+   - Result: passed.
+
+Residual risks / follow-up
+- `src/core/appstate_actions.c` remains hand-maintained mirror metadata; future edits to generation domains must update both `coverage_transition_ids` and `advances_on_transition_ids` consistently.
+- Build still emits pre-existing unrelated warnings outside this scope.

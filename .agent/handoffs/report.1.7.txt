@@ -1,0 +1,36 @@
+Developer report for Task 1.7: Unified AppState Transition Machine + Projection Contract
+
+Changed files:
+- docs/appstate_action_coverage.json: added a machine-readable registry with exactly one record for each of the 85 current YtreeAction enum members from include/ytree_defs.h, including ACTION_NONE and ACTION_USER_CMD. Each record declares action, transition_id, category, owner, declared_write_set, boundary_status, and migration_notes. All transition_id values reference existing docs/appstate_transition_matrix.json records.
+- scripts/check_appstate_contract.py: extended the AppState contract guard to load the action coverage registry, parse the YtreeAction enum from include/ytree_defs.h, and fail on missing enum coverage, extra unknown actions, duplicate action records, missing required action fields, invalid transition references, category/reference mismatch, and malformed required list fields.
+- tests/test_appstate_contract_guard.py: extended temporary-fixture tests to cover action coverage pass/fail behavior, including complete pass, missing action, extra action, duplicate action, invalid transition reference, required action field failure, malformed action list fields, category mismatch, and enum drift from a temporary header.
+
+Runtime scope:
+- No runtime source files were changed.
+- No changes were made to src/ui/ctrl_dir.c or src/ui/ctrl_file.c.
+- No keybindings, prompts, footer text, rendering, input behavior, or filesystem operations were changed.
+
+MCP/tooling evidence:
+- Serena was callable and used for codebase/search discovery, including YtreeAction enum discovery and AppState guard/test inspection.
+- jcodemunch was not callable in this session: tool_search returned no jcodemunch tools for query "jcodemunch". Fallback evidence was Serena-only semantic/search discovery rather than grep/find.
+
+Verification commands:
+- python3 scripts/check_appstate_contract.py
+  Result: PASS. Output: "PASS: AppState contract guard passed"
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  Result: PASS. Output: "16 passed in 0.37s"
+- make qa-code-quality
+  Result: PASS. Output included:
+  - "PASS: no banned unsafe C API calls found in src/**/*.c"
+  - "PASS: module-boundary guard passed (0 documented legacy exceptions)"
+  - "PASS: AppState contract guard passed"
+  - "PASS: project AI config guard passed"
+- make clean && make
+  Result: PASS. Build completed and linked build/ytree; pandoc generated build/ytree.1. Existing compiler warnings were emitted in unrelated runtime files, but the command exited 0.
+
+Acceptance criteria not met:
+- None.
+
+Risks / notes for architect or auditor:
+- The action coverage registry intentionally maps many enum members to broad documented foundation transition records because runtime transition objects are not yet split per action. This preserves the current non-runtime scope but should be revisited when runtime transition boundaries are introduced.
+- The guard now parses the C enum textually. It is intentionally narrow for the current YtreeAction typedef shape and will fail closed if that typedef shape changes.

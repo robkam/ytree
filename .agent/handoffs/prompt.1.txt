@@ -1,0 +1,42 @@
+# ytreenova AppState continuation checkpoint
+
+Date: 2026-07-01
+Repo: /home/rob/ytreenova
+Roadmap item: Unified AppState Transition Machine + Projection Contract
+Persona: developer
+Current branch: appstate-file-render-metrics-helper
+Active PR: https://github.com/robkam/ytreenova/pull/305
+Stop condition: none; maintainer resumed and requested tracked handoff text artifacts.
+
+Current AppState batch:
+- Routes panel file rendering metric cache writes through the panel AppState helper boundary.
+- Expands panel.file_display_state metadata to cover max_visual_filename_len, max_visual_linkname_len, and max_visual_userview_len.
+- Blocks direct panel metric assignments in render_file.c and panel_anchor.c outside AppState helper commits.
+- Includes the .gitignore update that allows nested text artifacts and tracks .agent/handoffs/*.txt as requested.
+
+Validation recorded before PR creation:
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_file_rendering_metrics_commit_through_appstate_helper` failed before metadata/helper routing existed.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'panel_file_rendering_metrics_commit_through_appstate_helper or panel_file_display_state_commits_through_appstate_helper or runtime_owner_field_startup or runtime_invariant_startup or runtime_diff_harness_startup'`
+- Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
+- Passed: `make clean && make` with existing warnings.
+
+Merged in this continuation:
+- refactor(appstate): route display options through helpers
+  - PR: https://github.com/robkam/ytreenova/pull/301
+  - Merge commit: 100dd5e3648ad3b8b98b2de835795af8cd409d80
+  - Included: TASK 1 PROMPT.md as requested by maintainer.
+- refactor(appstate): route refresh policy through helper
+  - PR: https://github.com/robkam/ytreenova/pull/302
+  - Merge commit: 638e97b84e256b5380f46af06b307ee3a169a121
+- refactor(appstate): route directory display mode through helper
+  - PR: https://github.com/robkam/ytreenova/pull/303
+  - Merge commit: 33f1a95ea6139478de69129f61e44821b7c8d8af
+- refactor(appstate): route file display state through helpers
+  - PR: https://github.com/robkam/ytreenova/pull/304
+  - Merge commit: 3ecfc804c4ccfcf08c1b8d2a0371d92434339b9d
+
+Next action:
+- Follow the CI wait rule for the active draft PR.
+- If CI is green, mark ready if needed, merge when allowed, clean up branch state, update this checkpoint, and continue with the next small coherent AppState batch unless superseded.
+- If CI is red, inspect only failure-relevant summary/tail and fix clear repo-side failures.

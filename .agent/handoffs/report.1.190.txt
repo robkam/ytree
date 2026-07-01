@@ -1,0 +1,28 @@
+Audit decision: PASS
+
+Scope reviewed:
+- src/ui/dir_ops.c
+- tests/test_appstate_contract_guard.py
+- Developer evidence: .agent/handoffs/report.1.189.txt
+
+Findings (severity ordered):
+- None.
+
+Acceptance criteria verification:
+- PASS: AppStateValidatedEvent("event.refresh-rebuild") is present in RefreshTreeSafe at src/ui/dir_ops.c:1983-1986 and is placed after AppStateValidatedDispatchSurface("surface.refresh-rebuild-rebind") and before refresh/rebuild/rebind work.
+- PASS: The guard is fail-closed; on validation failure RefreshTreeSafe returns entry unchanged before CapturePanelViewportSnapshot(), InvalidateVolumePanels(), RescanDir(), BuildDirEntryList(), RestorePanelViewportSnapshot(), DisplayTree(), or DisplayFileWindow() execute.
+- PASS: Valid refresh behavior appears unchanged except for the added guard; the refresh body remains intact after the new event validation.
+- PASS: tests/test_appstate_contract_guard.py:4676-4707 adds the refresh event to the runtime event probe and checks RefreshTreeSafe guard ordering while distinguishing the dispatch-surface return from the event return.
+- PASS: Existing AppState contract script remains green.
+
+Developer evidence verification:
+- PASS: .agent/handoffs/report.1.189.txt recorded green runs for the focused pytest target, the AppState contract script, the full contract test file, make clean && make, and git diff --check.
+
+Verification commands run during this audit:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_boundary or validated_event or refresh_rebuild or readiness' — PASS
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS
+- git diff --check — PASS
+
+Risk review:
+- No security regressions or unsafe patterns identified in the reviewed diff.
+- No unrelated refactor or formatting churn identified in the reviewed diff.

@@ -1,0 +1,24 @@
+Summary of changes
+- Added read-only AppState diff-harness runtime metadata type plus count, index, and harness_id lookup APIs.
+- Mirrored docs/appstate_diff_harness.json into src/core/appstate_actions.c as guarded runtime metadata only; no dynamic snapshot execution or AppState mutation behavior was added.
+- Extended startup invariants to validate diff-harness shape, fail-closed lookup/index behavior, required text/list fields, and transition/owner-field/invariant/generation-domain runtime links.
+- Extended scripts/check_appstate_contract.py to parse and compare runtime diff-harness metadata against docs and to report missing, extra, duplicate, malformed, drifted, and invalidly linked runtime data.
+- Extended focused AppState contract tests for runtime diff-harness metadata drift/linkage/malformed cases and fail-closed lookup behavior.
+
+Files changed
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- src/core/main.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Verification commands and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS (241 passed)
+- make clean && make: PASS (build completed; existing compiler warnings still emitted outside this scope)
+- make qa-cppcheck: PASS
+- make qa-code-quality: PASS
+- git diff --check: PASS
+
+Risks or follow-ups
+- Runtime metadata is a scaffold only; future work still needs the actual transition before/after snapshot runner and diff enforcement.
+- Existing repository compiler warnings remain outside this scoped change.

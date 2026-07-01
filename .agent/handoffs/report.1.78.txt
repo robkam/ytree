@@ -1,0 +1,29 @@
+Code auditor report: AppState shim invariant lookup
+
+Decision: PASS
+
+Findings: none.
+
+Scope verification:
+- Product/test diff is limited to src/core/main.c and tests/test_appstate_contract_guard.py; git diff --name-only shows only those two files.
+- I made no product or test changes. This report file is the only audit artifact I wrote.
+
+Acceptance criteria:
+- [x] Unknown shim invariant-check ids fail startup readiness: src/core/main.c:882-888 iterates each shim invariant_checks entry and returns 0 when AppStateInvariantLookup(...) returns NULL.
+- [x] Empty invariant-check id validation remains present: src/core/main.c:884-885 still checks !NonEmptyString(...) and returns 0 before registry lookup.
+- [x] Focused Python regression captures the new startup guard requirement: tests/test_appstate_contract_guard.py:4944-4958 asserts the startup loop preserves the non-empty check and adds AppStateInvariantLookup(... ) == NULL fail-closed validation in the same invariant_checks loop.
+- [x] Repository appstate contract guard still passes: developer evidence reports scripts/check_appstate_contract.py passed; I also reran the focused appstate contract test file successfully.
+- [x] Scope remains atomic and independently verifiable: one startup guard addition plus one focused source-contract regression.
+
+Validation performed:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and startup' -> PASS (3 passed, 289 deselected)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS (292 passed)
+
+Security/comment/doc/UX review:
+- No new memory, file, process, path, command, or formatting operations are introduced.
+- Invalid/unknown invariant ids now fail closed at startup.
+- No comments or documentation were added; no stale-comment or doc-noise issue observed.
+- No interactive UX flow is affected.
+
+Residual risks:
+- The regression is source-contract based rather than a runtime fault-injection test, but that matches the existing appstate contract guard style and is narrow enough to catch removal/reordering of the required fail-closed startup guard without broad noise.

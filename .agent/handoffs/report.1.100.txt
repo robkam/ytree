@@ -1,0 +1,36 @@
+Code auditor report: AppState dispatch-surface write alignment unit
+
+Decision: PASS
+
+Findings
+- None.
+
+Audit scope checked
+- Changed files are limited to the expected scope: docs/appstate_dispatch_surfaces.json, src/core/appstate_actions.c, src/core/main.c, scripts/check_appstate_contract.py, tests/test_appstate_contract_guard.py.
+- Developer report reviewed: /home/rob/ytreenova/.agent/handoffs/report.1.99.txt.
+
+Risk-first verification
+- Guard validation now checks dispatch-surface allowed_direct_writes against the referenced transition declared_write_set, not just the owner-field registry. Evidence: scripts/check_appstate_contract.py:2866-2901 implements the subset helper; scripts/check_appstate_contract.py:3138-3150 applies it to documented dispatch surfaces after transition resolution.
+- Runtime registry validation rejects equivalent drift through runtime transition metadata. Evidence: scripts/check_appstate_contract.py:2141-2217 passes runtime transition records into the runtime dispatch-surface validator and applies the same subset helper; scripts/check_appstate_contract.py:4802-4811 wires runtime transition metadata from extracted runtime records.
+- Startup readiness validates dispatch-surface write alignment through runtime metadata. Evidence: src/core/main.c:824-852 looks up the dispatch surface's transition, fails closed when missing, and requires each allowed direct write to be present in transition->declared_write_set; src/core/main.c:869-875 calls that helper during AppStateDispatchSurfacesReady().
+- Metadata correction is narrow and mirrored in docs/runtime metadata. Evidence: docs/appstate_dispatch_surfaces.json:37-48 and src/core/appstate_actions.c:1931-1938 both restrict surface.file-window-action-dispatch to panel.focus_shape and panel.panel_generation under transition.keybinding.navigate-tree. The referenced transition declares those fields in docs/appstate_transition_matrix.json:7-17 and runtime metadata in src/core/appstate_actions.c:17-23, 2529-2534. No product UI migration or controller behavior changes are present in the diff.
+- Existing dispatch-surface validations are preserved. Evidence: scripts/check_appstate_contract.py:2139-2217 still checks runtime/doc parity, allowed_direct_writes shape, migration notes, transition refs, and now adds subset validation; scripts/check_appstate_contract.py:3128-3151 still checks categories, transition refs, and source/entry validation continues immediately after this block.
+- Tests cover docs drift, runtime drift, and startup validation shape. Evidence: tests/test_appstate_contract_guard.py:3595-3613 covers documented dispatch-surface drift; tests/test_appstate_contract_guard.py:3741-3762 covers runtime dispatch-surface drift; tests/test_appstate_contract_guard.py:5577-5593 covers startup readiness shape.
+- Current dispatch-surface metadata satisfies the invariant: a direct JSON cross-check found 0 extra allowed_direct_writes for all 10 documented dispatch surfaces.
+
+Acceptance criteria
+- [x] Guard rejects dispatch-surface allowed_direct_writes outside the referenced transition declared_write_set.
+- [x] Runtime registry validation rejects equivalent drift.
+- [x] Startup readiness validates dispatch-surface write alignment through runtime metadata.
+- [x] Current dispatch-surface/transition docs/runtime metadata satisfy the new invariant.
+- [x] Focused regression tests prove the new guard/startup behavior.
+- [x] Existing AppState contract tests remain green.
+
+Validation commands run
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and write' -> PASS (7 passed, 317 deselected).
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS (AppState contract guard passed).
+- git diff --check -> PASS.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS (324 passed).
+
+Residual risks
+- None identified within the requested scope.

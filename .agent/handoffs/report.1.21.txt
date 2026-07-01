@@ -1,0 +1,22 @@
+Changed files
+- docs/appstate_generation_domains.json: added AppState generation-domain registry covering panel/volume generation, directory/file identity, focus shape, modal/command targets, visibility/filter state, topology, file payload, volume lifecycle, and layout reflow domains.
+- scripts/check_appstate_contract.py: added default and --generation-domains registry loading plus validation for required generation-domain fields/categories/references and transition generation_effect *_generation field registration.
+- tests/test_appstate_contract_guard.py: added fixture support and focused positive/negative coverage for generation-domain guard behavior and CLI override.
+
+Summary
+- Registered 11 generation-domain records with owner regions, generation owner fields, identity fields, transition references, stale snapshot policy, fail-closed fallback, restore boundary, enforcement status, and migration notes.
+- Guard now rejects missing generation-domain fields, duplicate domain IDs, missing/unknown categories, unknown generation owner fields, unknown identity fields, unknown transition IDs, malformed list fields, empty advances_on_transition_ids without read-only/projection-only migration notes, and generation_effect prose naming an unregistered *_generation field.
+- No runtime C behavior was modified.
+
+Validation commands/results
+- python3 scripts/check_appstate_contract.py: PASS (AppState contract guard passed).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py: PASS (124 passed).
+- source .venv/bin/activate && make qa-code-quality: PASS (unsafe API, module-boundary, AppState contract, and AI config guards passed).
+- make clean && make: PASS (build completed; existing compiler warnings emitted).
+
+Residual risks
+- Registry is documented-foundation-only and maps domains without dedicated runtime generation counters to the closest current owner fields; migration debt is noted in each affected record.
+- Transition generation_effect parsing intentionally checks prose tokens ending in *_generation and compares both fully-qualified owner fields and leaf names.
+
+Skipped checks
+- None.

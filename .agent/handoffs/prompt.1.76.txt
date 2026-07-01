@@ -1,0 +1,32 @@
+You are the code auditor for one atomic AppState unit in /home/rob/ytreenova.
+
+Goal under audit
+- Dispatch-surface direct-write owner validation at startup.
+- Durable aim: dispatch surfaces cannot declare allowed direct writes to fields outside the canonical AppState owner-field registry.
+
+Developer evidence
+- Read /home/rob/ytreenova/.agent/handoffs/report.1.75.txt.
+- Inspect current git diff on branch chore/appstate-dispatch-write-owners.
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Confirm product/test changes are scoped to src/core/main.c and tests/test_appstate_contract_guard.py.
+- Confirm the startup guard preserves zero-count/null-list behavior and empty-field fail-closed behavior, and adds owner-field lookup validation.
+- Confirm focused regression coverage is meaningful and not noisy.
+- Do not modify files unless you identify a blocking defect that must be fixed; if you do modify, explain exactly what and why.
+
+Acceptance criteria checklist
+- [ ] Unknown dispatch allowed-direct-write fields fail startup readiness.
+- [ ] Empty direct-write field validation remains present.
+- [ ] Zero direct-write surfaces still require allowed_direct_writes == NULL.
+- [ ] Focused Python regression captures the new startup guard requirement.
+- [ ] Repository appstate contract guard still passes based on developer evidence or rerun if needed.
+- [ ] Scope remains atomic and independently verifiable.
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.76.txt
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH WRITE OWNER UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.76.txt

@@ -1,0 +1,25 @@
+PASS
+
+Findings
+- None.
+
+Prior finding verification
+- The report.1.52 high finding is fixed. Startup now carries a documented event-id table in `src/core/main.c:151` and `AppStateEventCoverageReady()` checks each required ID through `AppStateRequiredEventIdCovered(kAppStateRequiredEventIds[index])` at `src/core/main.c:800`. Because that helper delegates to `AppStateEventCoverageLookup()` (`src/core/main.c:738`) and the lookup rejects null/empty/unknown IDs (`src/core/appstate_actions.c:4109`), a missing or renamed documented event ID fails closed during startup before `main()` continues (`src/core/main.c:1036`).
+
+Acceptance criteria review
+- Public header exposes read-only event coverage metadata/API without writable registry access: PASS (`include/ytnova_appstate_actions.h:33`, `include/ytnova_appstate_actions.h:203`).
+- Runtime rows mirror `docs/appstate_event_coverage.json` fields: PASS (`src/core/appstate_actions.c:2790` through `src/core/appstate_actions.c:2909`), with doc/runtime/required ID sets all matching at 9 events.
+- Startup validation rejects missing/duplicate event IDs/classes, invalid transitions, category/write-set drift, empty required scalar/list fields, null/empty/unknown lookup, and out-of-range index lookup: PASS (`src/core/main.c:750` through `src/core/main.c:812`).
+- Python guard detects doc/runtime drift, malformed rows/lists, invalid transition linkage, duplicate/missing/extra IDs/classes, and write-set drift: PASS (`scripts/check_appstate_contract.py:678`, `scripts/check_appstate_contract.py:3180`, `scripts/check_appstate_contract.py:4268`).
+- Tests cover the new guard/runtime paths and stay focused: PASS (`tests/test_appstate_contract_guard.py:4387` through `tests/test_appstate_contract_guard.py:4496`).
+- No user-visible transition behavior changes, hidden state-machine authority, direct AppState writes, restore behavior changes, or generation changes were found in the scoped files. The scaffold remains metadata lookup/guard only.
+
+Commands run
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`: PASS (270 passed).
+- `make clean && make && git diff --check && ./build/ytnova --version`: PASS; build completed with existing unrelated warnings, diff check passed, version output `ytnova 1.0.0-alpha (June 2026)`.
+- `source .venv/bin/activate && python scripts/check_appstate_contract.py`: FAIL (environment has no `python` executable in PATH).
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`: PASS (`PASS: AppState contract guard passed`).
+- `source .venv/bin/activate && python3 - <<'PY' ...`: PASS; runtime parser failures `[]`, required ID parser failures `[]`, doc/runtime/required event-id sets all matched at 9 IDs.
+
+Residual risk
+- Audit was limited to the five files in scope plus the referenced event coverage/transition docs needed to verify parity.

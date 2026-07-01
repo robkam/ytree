@@ -18,6 +18,11 @@ BOOL AppStateSetPanelVolumeFileStateList(
     YtreeNovaPanel *panel, PanelVolumeFileState *volume_file_state);
 BOOL AppStateCommitPanelFileDisplayMode(YtreeNovaPanel *panel, int file_mode);
 BOOL AppStateCommitPanelFileMaxColumn(YtreeNovaPanel *panel, unsigned max_column);
+BOOL AppStateCommitPanelFileRenderingMetrics(YtreeNovaPanel *panel,
+                                             unsigned max_filename,
+                                             unsigned max_linkname,
+                                             unsigned max_userview,
+                                             BOOL update_userview);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);

@@ -1,0 +1,49 @@
+:at code_auditor
+
+Audit the completed AppState fallback no-unrelated-mutation unit in /home/rob/ytreenova.
+
+Goal under audit
+- Fallback/stale-snapshot/generation-mismatch transition-sequence steps must declare no-unrelated-mutation expectations tied to a diff harness that covers the same transition.
+
+Scope to audit
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.95.txt
+- Expected changed files:
+  - `docs/appstate_transition_sequences.json`
+  - `src/core/appstate_actions.c`
+  - `src/core/main.c`
+  - `scripts/check_appstate_contract.py`
+  - `tests/test_appstate_contract_guard.py`
+- Do not modify product/test code unless you find a concrete defect that can be fixed safely inside this exact scope.
+- Do not commit, push, open/update PRs, or touch unrelated files.
+- You are not alone in the codebase: preserve existing changes and adapt to them; do not revert other work.
+
+Risk-first audit requirements
+- Report findings severity ordered with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm fallback/stale-snapshot/generation-mismatch steps now require no_unrelated_mutation, not only deterministic_fallback.
+- Confirm no_unrelated_mutation.diff_harness_id must be listed in the same step and must cover the same transition_id.
+- Confirm docs/runtime parity and existing sequence validations are preserved.
+- Confirm tests cover docs drift, runtime drift, unlisted diff harness, unrelated diff-harness coverage, and startup validation shape.
+- Give a clear PASS/FAIL decision.
+
+Acceptance criteria to verify
+- [ ] Guard rejects fallback/stale-snapshot/generation-mismatch steps without no_unrelated_mutation expectations.
+- [ ] Guard rejects no_unrelated_mutation.diff_harness_id that is not listed in the same step's diff_harness_ids.
+- [ ] Guard rejects no_unrelated_mutation.diff_harness_id that does not cover the step transition_id.
+- [ ] Runtime registry validation rejects equivalent drift.
+- [ ] Startup readiness validates fallback no-unrelated-mutation metadata through runtime metadata.
+- [ ] Current docs/runtime metadata satisfy the new invariant.
+- [ ] Focused regression tests prove the new guard/startup behavior.
+- [ ] Existing AppState contract tests remain green.
+
+Suggested verification commands
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'fallback and no_unrelated'`
+2. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+3. `git diff --check`
+4. Optional if needed: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.96.txt`
+
+Completion reply must be exactly one line:
+APPSTATE FALLBACK NO-UNRELATED MUTATION UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.96.txt

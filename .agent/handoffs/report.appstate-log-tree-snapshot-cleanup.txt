@@ -1,0 +1,37 @@
+Completed state: Draft PR opened for the AppState log tree snapshot cleanup batch. Log/relog setup no longer reads Volume.saved_tree_generation as restore fallback in LogDisk and no longer directly resets Volume.saved_tree_index; relog reset now clears panel-local tree snapshot defaults through ResetPanelTreeViewportSnapshot.
+
+Files changed:
+- include/ytnova_panel_anchor.h
+- src/cmd/log.c
+- src/ui/panel_anchor.c
+- tests/test_dir_window_dispatch_regressions.py
+
+Branch: appstate-log-tree-snapshot-cleanup
+Commit: 1ba713a fix(appstate): keep log tree restore on panel snapshots
+PR URL: https://github.com/robkam/ytreenova/pull/202
+
+Focused validation:
+- RED: source .venv/bin/activate && pytest tests/test_dir_window_dispatch_regressions.py -q -k log_disk_restore_does_not_use_volume_tree_breadcrumbs failed on the pre-existing panel->vol->saved_tree_generation fallback.
+- GREEN: source .venv/bin/activate && pytest tests/test_dir_window_dispatch_regressions.py -q -k 'volume_tree_restore or log_disk_restore' passed.
+- python scripts/check_appstate_contract.py passed.
+- make clean && make passed, with existing warnings.
+- git diff --check passed.
+- make qa-cppcheck was attempted but interrupted because it was too slow for this focused batch; a limited-file cppcheck run reported unrelated existing unusedFunction/unmatchedSuppression noise and is not treated as a gating pass.
+
+GitHub check snapshot:
+- Analyze (actions): pending
+- Analyze (c-cpp): pending
+- Analyze (python): pending
+- Detect QA-relevant changes: pending
+- Detect full-QA relevant changes: pending
+- Fedora Rawhide GCC build/install smoke: pending
+- PR Size Label: pending
+- Up To Date With Main: pending
+
+Residual risks:
+- PR CI was still pending at the required one-shot snapshot.
+- shim.volume-saved-tree-index remains active; remaining Volume field initialization and panel_anchor compatibility breadcrumb writes are intentionally left for later evidence-backed batches.
+- make qa-cppcheck was not completed locally; rely on PR CI/full QA gate for merge confidence.
+
+Exact supervisor resume instruction:
+Wait 45 minutes after PR creation or until the maintainer reports green/red sooner, then check PR #202. If checks are green, mark ready only if allowed, merge after required checks/signoff, delete local/remote branch appstate-log-tree-snapshot-cleanup, update /home/rob/ytreenova/.agent/handoffs/prompt.1.txt, and continue the next AppState batch. If checks are red, inspect only failure-relevant logs and fix only clearly in-scope repo failures; otherwise report blocked with the check summary.

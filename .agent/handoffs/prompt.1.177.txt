@@ -1,0 +1,53 @@
+Role: developer
+
+Goal
+Add the next narrow AppState runtime boundary for panel-anchor rebind/restore entry points.
+
+Resolved roadmap title
+- Unified AppState Transition Machine + Projection Contract
+
+Strict scope
+- Modify only:
+  - src/ui/panel_anchor.c
+  - tests/test_appstate_contract_guard.py
+  - /home/rob/ytreenova/.agent/handoffs/report.1.177.txt
+- Reuse the existing AppStateValidatedDispatchSurface(const char *) helper.
+- In src/ui/panel_anchor.c, add the required include for ytnova_appstate_actions.h if absent.
+- Add a fail-closed guard for "surface.panel-anchor-rebind" at the top of RestorePanelAnchorPath before snapshot capture, target resolution, PositionPanelAtIndex, RestorePanelViewportSnapshot, or file_dir_entry writes.
+- Add a fail-closed guard for "surface.panel-anchor-rebind" at the top of EnsurePanelAnchorVisible before target/ancestor resolution, PositionPanelAtIndex, RestorePanelViewportSnapshot, RefreshView, or file_dir_entry writes.
+- On validation failure, return immediately from the void function.
+
+Explicit non-goals
+- Do not refactor panel_anchor.c.
+- Do not change valid metadata behavior.
+- Do not change restore fallback order, viewport math, navigation, rendering, filesystem, keybinding, modal, or split behavior.
+- Do not edit docs, ROADMAP, AppState registries, build files, or unrelated tests.
+- Do not stage, reset, clean, or reformat unrelated files.
+
+Acceptance criteria checklist
+- AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") guards RestorePanelAnchorPath.
+- AppStateValidatedDispatchSurface("surface.panel-anchor-rebind") guards EnsurePanelAnchorVisible.
+- Guard appears before panel restore/rebind state work in both functions.
+- Guard failure returns without mutating panel state.
+- Existing behavior for valid metadata is unchanged except for the guard.
+- tests/test_appstate_contract_guard.py includes the panel-anchor surface in the runtime dispatch-surface probe.
+- tests/test_appstate_contract_guard.py adds focused source guards proving placement in both functions before PositionPanelAtIndex, RestorePanelViewportSnapshot, file_dir_entry assignment, and RefreshView where present.
+
+Exact verification commands, targeted first
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or panel_anchor or anchor_rebind or readiness'
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make clean && make
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.177.txt
+
+Report requirements
+- List files changed.
+- List commands run and PASS/FAIL results.
+- Note any warnings or residual risks.
+- Do not include PR wording or handoff paths beyond the required report path.
+
+Completion reply must be exactly one line:
+APPSTATE PANEL ANCHOR BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.177.txt

@@ -1,0 +1,50 @@
+You are the code auditor for the AppState compatibility shim generation-domain coverage unit in /home/rob/ytreenova.
+
+Audit goal
+- Risk-first review of commit `82d5c7e chore(appstate): cover shim generation domains`, added on top of PR #121.
+
+Scope to audit
+- docs/appstate_compat_shims.json
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- scripts/check_appstate_contract.py
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.129.txt
+
+Intent to verify
+- Compatibility shims now declare generation_domain_refs.
+- Document and runtime guard validation fail closed for missing/malformed/duplicate/unknown generation-domain refs and docs/runtime drift.
+- Write-capable shims that reference generation owner fields are covered by matching generation domains.
+- Shim invariant checks still cover the shim target transition.
+
+Acceptance criteria to verify
+- [ ] Every docs compatibility shim has non-empty generation_domain_refs.
+- [ ] Runtime shim metadata exposes matching generation-domain refs.
+- [ ] Document guard rejects missing/malformed/unknown/duplicate generation-domain refs.
+- [ ] Runtime/doc drift in generation-domain refs is detected.
+- [ ] Startup validation rejects missing/unknown/duplicate runtime generation-domain refs.
+- [ ] Owner refs that include generation owner fields are covered by matching generation domains.
+- [ ] Existing shim owner-field/write-capability behavior remains intact.
+- [ ] No runtime UI behavior migration or unrelated edits are included.
+
+Verification evidence already observed by architect
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and generation'` — PASS, 18 passed
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and owner'` — PASS, 17 passed
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS, 393 passed
+- `python3 scripts/check_appstate_contract.py` — PASS
+- `make clean && make` — PASS with pre-existing warnings
+- `git diff --check` — PASS
+
+Required review
+- Inspect the diff for commit 82d5c7e, not just test output.
+- You may run targeted checks if needed. Do not run local make qa-all.
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Write report to `/home/rob/ytreenova/.agent/handoffs/report.1.130.txt`.
+
+Completion reply exactly one line:
+`APPSTATE SHIM GENERATION COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.130.txt`

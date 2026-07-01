@@ -1,0 +1,20 @@
+Summary
+- include/ytnova_appstate_actions.h: declared public AppStateValidatedDispatchSurface(const char *surface_id).
+- src/core/appstate_actions.c: added dispatch-surface validation helper pair. The public helper resolves metadata through the existing dispatch-surface registry and fails closed for NULL/empty IDs, missing coverage, surface_id mismatches, and missing transition metadata.
+- src/ui/key_engine.c: added a narrow runtime boundary at GetKeyAction for the semantically active key-decode dispatch surface; validation failure returns ACTION_NONE before input dispatch proceeds.
+- tests/test_appstate_contract_guard.py: added a compiled mutation probe for valid/fail-closed dispatch-surface validation and strengthened the GetKeyAction source-boundary check.
+
+Commands run and results
+- git status --short: clean before edits.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or runtime_surface or readiness': PASS, 74 passed, 550 deselected in 1.57s.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASS: AppState contract guard passed.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or runtime_surface or readiness': PASS, 74 passed, 550 deselected in 3.33s after the source-check tightening.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py: PASS: AppState contract guard passed after the source-check tightening.
+- git diff --check: PASS, no output.
+- make clean && make: PASS, build/ytnova and manpage generated.
+
+Warnings
+- make clean && make emitted existing warnings in unrelated files, including comment nesting in src/cmd/delete.c, const qualifier warnings in src/cmd/move.c/src/cmd/rename.c/src/ui/ctrl_dir.c/src/ui/dir_ops.c/src/core/sort.c, _GNU_SOURCE redefinition in src/core/sort.c, strncpy truncation warnings in src/core/volume.c and src/fs/freesp.c, and format-truncation warnings in UI/rendering/progress/tagged-view code. No new warnings were observed from the changed files.
+
+Risks / follow-up
+- The runtime boundary intentionally covers only key-decode input dispatch to keep scope narrow. Other dispatch surfaces remain candidates for future atomic validation boundaries.

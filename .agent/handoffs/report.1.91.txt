@@ -1,0 +1,24 @@
+AppState diff-harness write coverage unit report
+
+Files changed:
+- docs/appstate_diff_harness.json: expanded existing diff-harness owner_field_refs so every declared transition write-set field is covered by at least one harness for that transition.
+- src/core/appstate_actions.c: mirrored the diff-harness owner_field_refs metadata updates.
+- src/core/main.c: added runtime diff-harness write coverage validation and wired it into AppStateDiffHarnessRegistryReady() startup readiness.
+- scripts/check_appstate_contract.py: added docs/runtime validation that each transition declared_write_set field has same-transition diff-harness coverage.
+- tests/test_appstate_contract_guard.py: added focused docs/runtime guard regressions and startup validation-shape coverage; updated complete fixtures to satisfy the new invariant.
+
+Verification commands and results:
+1. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff and write'`
+   - PASS: 3 passed, 306 deselected in 0.45s
+2. `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+   - PASS: 309 passed in 9.49s
+3. `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+   - PASS: AppState contract guard passed
+4. `make clean && make`
+   - PASS: build completed and produced build/ytnova; existing compiler warnings were emitted in unrelated files.
+5. `git diff --check`
+   - PASS: no whitespace errors reported
+
+Risks/follow-ups:
+- The new startup check is metadata-only and fails closed if a transition write-set field has no matching diff-harness transition/owner-field coverage.
+- No runtime UI migration or dynamic diff runner was added in this unit.

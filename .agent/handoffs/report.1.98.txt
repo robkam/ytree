@@ -1,0 +1,33 @@
+AppState sequence invariant alignment audit report
+
+Decision: PASS
+
+Findings
+- No findings.
+
+Scope audited
+- Developer report: .agent/handoffs/report.1.97.txt
+- Changed files: docs/appstate_transition_sequences.json, src/core/appstate_actions.c, src/core/main.c, scripts/check_appstate_contract.py, tests/test_appstate_contract_guard.py
+
+Acceptance verification
+- Guard rejects same-step transition/invariant mismatch: PASS. The guard now builds invariant-to-transition coverage maps in scripts/check_appstate_contract.py:3693 and validates each step's invariant_ids against that step's transition_id in scripts/check_appstate_contract.py:3714. The docs path passes that map into sequence validation at scripts/check_appstate_contract.py:4883, and the validator reports a failure when no listed invariant covers the step transition.
+- Runtime registry validation rejects equivalent drift: PASS. Runtime sequence validation receives runtime_invariant_transition_ids at scripts/check_appstate_contract.py:4125 and applies the same alignment check at scripts/check_appstate_contract.py:4271, with runtime metadata maps populated at scripts/check_appstate_contract.py:4914.
+- Startup readiness validates sequence-step invariant/transition alignment through runtime metadata: PASS. src/core/main.c:348 adds AppStateTransitionSequenceStepInvariantCoversTransition(), which looks up each referenced runtime invariant and checks its transition_ids; src/core/main.c:456 wires that helper into AppStateTransitionSequenceStepReady().
+- Metadata correction is mirrored in docs and runtime metadata: PASS. The toggle-showall-global-projection step now lists invariant.hidden-entry-visible-navigation in docs/appstate_transition_sequences.json:580 and docs/appstate_transition_sequences.json:588, mirrored by kAppStateTransitionSequenceStepInvariantIds8_1 in src/core/appstate_actions.c:1594 and src/core/appstate_actions.c:1596, used by the runtime step at src/core/appstate_actions.c:1628 and src/core/appstate_actions.c:1633.
+- Current sequence/invariant docs/runtime metadata satisfy the new invariant: PASS. invariant.hidden-entry-visible-navigation covers transition.keybinding.navigate-tree in docs/appstate_invariants.json:90 and docs/appstate_invariants.json:91 and in runtime metadata via kAppStateInvariantTransitionIds2 at src/core/appstate_actions.c:2204 and src/core/appstate_actions.c:2205; scripts/check_appstate_contract.py passes.
+- Tests cover docs drift, runtime drift, and startup validation shape: PASS. Docs drift regression is tests/test_appstate_contract_guard.py:1398, runtime drift regression is tests/test_appstate_contract_guard.py:1810, and startup validation shape is asserted at tests/test_appstate_contract_guard.py:2030 and tests/test_appstate_contract_guard.py:2060.
+- Existing AppState contract tests remain green: PASS. Focused and full test_appstate_contract_guard.py runs passed.
+
+Validation commands
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence and invariant' -> 8 passed, 313 deselected.
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed.
+- PASS: git diff --check -> no whitespace errors.
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> 321 passed.
+
+Security and maintainability checklist
+- No new file/process operations, command execution, path traversal surface, format-string risk, unsafe string API use, memory ownership change, or UI workflow depth change found in this unit.
+- The runtime startup check is fail-closed for missing/non-covering invariant metadata.
+- No source-comment or documentation noise issues found.
+
+Residual risks
+- None identified inside the requested scope.

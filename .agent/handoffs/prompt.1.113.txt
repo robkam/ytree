@@ -1,0 +1,45 @@
+You are the developer for a correction to the current AppState dispatch invariant coverage unit in /home/rob/ytreenova.
+
+Context
+- Code auditor report: /home/rob/ytreenova/.agent/handoffs/report.1.112.txt
+- Auditor decision: FAIL due to test/fixture focus, not implementation behavior.
+- Finding: _complete_invariants() now gives every fixture dispatch surface id to every invariant, which weakens the oracle. The committed tests cover all-invariants-missing-surface but do not prove the same-invariant intersection requirement: one invariant listing the surface is not enough unless that same invariant also protects the field.
+
+Strict scope
+- Correct only the current unit's tests/fixtures and any minimal guard code needed if the sharper test exposes a real gap.
+- Expected file: tests/test_appstate_contract_guard.py; avoid touching implementation unless necessary.
+- Do not migrate runtime UI behavior or edit unrelated docs.
+- Do not reset, clean, or disturb unrelated files.
+- You are not alone in the codebase; preserve existing changes.
+
+Required correction
+- Keep the complete fixture valid without assigning every dispatch surface to every invariant.
+- Add focused docs and runtime regression coverage proving same-invariant intersection:
+  - invariant A lists the target surface but does not protect the allowed write field;
+  - invariant B protects the allowed write field but does not list the target surface;
+  - guard must fail because no single invariant provides both.
+- Ensure existing tests relying on valid complete fixture still pass.
+
+Acceptance criteria checklist
+- [ ] Valid fixture remains valid with narrower/representative invariant-to-surface mapping.
+- [ ] Docs guard test fails if surface listing and field protection are split across different invariants.
+- [ ] Runtime guard test fails for the same split-invariant condition.
+- [ ] The previous all-invariants-missing-surface tests may remain if still useful, but the sharper split test must exist.
+- [ ] Targeted and full AppState guard tests pass.
+
+Exact verification commands
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and invariant'
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- python3 scripts/check_appstate_contract.py
+- git diff --check
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.113.txt
+
+Report requirements
+- Summarize files changed.
+- List exact commands run and pass/fail results.
+- Note how the correction addresses the auditor finding.
+
+Completion reply must be exactly one line:
+APPSTATE DISPATCH INVARIANT COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.113.txt

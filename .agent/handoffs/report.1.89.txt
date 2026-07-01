@@ -1,0 +1,22 @@
+AppState generation write coverage unit report
+
+Files changed:
+- scripts/check_appstate_contract.py: added generation-owner write coverage validation for documented transition records and runtime transition registry records, keyed by generation_domain.generation_owner_field and advances_on_transition_ids.
+- src/core/main.c: added startup fail-closed validation that checks transition declared_write_set entries against runtime generation-domain coverage before accepting the transition registry.
+- tests/test_appstate_contract_guard.py: added focused docs/runtime generation write coverage tests, updated complete fixtures so generation domains cover all fixture generation writes, and added startup validation shape coverage.
+
+Verification commands:
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation and write'
+   Result: PASS (3 passed, 303 deselected).
+2. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+   Result: PASS (306 passed).
+3. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+   Result: PASS (PASS: AppState contract guard passed).
+4. make clean && make
+   Result: PASS (build completed; existing warnings emitted in unrelated files).
+5. git diff --check
+   Result: PASS (no whitespace errors).
+
+Risks/follow-ups:
+- No known follow-ups for this unit.
+- Build still emits existing unrelated compiler warnings; this change did not address them.

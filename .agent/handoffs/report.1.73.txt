@@ -1,0 +1,18 @@
+Summary of changes:
+- Added startup readiness validation that every AppState transition declared write-set field resolves through AppStateOwnerFieldLookup(field), while preserving the existing non-empty field check.
+- Added focused Python regression coverage asserting AppStateTransitionRegistryReady validates transition write-set fields against the owner-field registry.
+
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+
+Exact commands run and pass/fail results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and startup' — FAIL before implementation: new regression failed because AppStateTransitionRegistryReady did not call AppStateOwnerFieldLookup(field).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and startup' — PASS after implementation: 6 passed, 284 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS: 290 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS: AppState contract guard passed.
+- make clean && make — PASS: build completed; existing compiler warnings remain unrelated to this change.
+- git diff --check — PASS: no whitespace errors.
+
+Risks or follow-ups:
+- No known follow-ups. Runtime startup now fails closed if a transition declares a write-set field not present in the canonical owner-field registry.

@@ -1,0 +1,63 @@
+You are the developer for Ytree AppState work.
+
+Goal
+- Implement the next atomic docs/ROADMAP.md Task 1 subunit: add a registry and QA guard for current UI-affecting dispatch surfaces.
+- Durable aim: guard transition dispatch surfaces.
+
+Strict scope
+- Edit only the files necessary for registry/guard/test coverage, expected:
+  - docs/appstate_dispatch_surfaces.json (new)
+  - scripts/check_appstate_contract.py
+  - tests/test_appstate_contract_guard.py
+- You may inspect relevant docs/source with MCP semantic tools, but do not change runtime C code.
+- Do not alter keybindings, controller behavior, restore/render behavior, prompts, docs/ROADMAP.md status, or generated docs.
+- Do not commit changes.
+- Do not modify or delete .agent/handoffs except for your required report file.
+- You are not alone in the codebase; do not revert unrelated edits.
+
+Required design
+- Add docs/appstate_dispatch_surfaces.json with records for current UI-affecting dispatch surfaces before runtime migration.
+- Required categories should cover at least:
+  - key_decode_input_dispatch
+  - directory_window_action_dispatch
+  - file_window_action_dispatch
+  - menu_modal_completion
+  - resize_signal_handling
+  - refresh_rebuild_rebind
+  - filesystem_mutation_result
+  - volume_operation
+  - watcher_live_refresh
+  - render_reflow_projection
+- Each surface record must declare:
+  - surface_id
+  - category
+  - source_path
+  - entry_symbol_or_path
+  - transition_id
+  - boundary_status
+  - allowed_direct_writes
+  - migration_notes
+- Use existing transition IDs from docs/appstate_transition_matrix.json.
+- allowed_direct_writes must be a list of field IDs already registered in docs/appstate_owner_fields.json, or an empty list for projection/read-only surfaces.
+- Keep boundary_status consistent with existing registry vocabulary (likely documented_foundation_only unless a stricter existing status is clearly appropriate).
+
+Acceptance criteria checklist
+- [ ] New dispatch-surface registry exists and is valid JSON.
+- [ ] Records cover the required surface categories listed above with concrete current source paths/entry symbols or paths.
+- [ ] AppState guard loads and validates the dispatch registry.
+- [ ] Guard rejects missing fields, duplicate surface IDs, unknown categories, unknown transition IDs, malformed source_path or entry_symbol_or_path, non-list allowed_direct_writes, and allowed_direct_writes entries absent from docs/appstate_owner_fields.json.
+- [ ] Focused pytest coverage exercises the new positive and negative guard behavior.
+- [ ] Existing AppState guard validations remain green.
+- [ ] No runtime C behavior changes.
+
+Exact verification commands, targeted first
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make qa-code-quality
+- make clean && make
+
+Report
+- Required report path: /home/rob/ytree/.agent/handoffs/report.1.15.txt
+- Report must include: changed files, summary, validation commands/results, residual risks, and any skipped checks.
+- Completion reply must be exactly one line:
+  APPSTATE DISPATCH SURFACE UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.15.txt

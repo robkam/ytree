@@ -1,0 +1,28 @@
+Files changed:
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- src/core/main.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Acceptance criteria status:
+- Runtime AppState owner-field metadata lookup/count/index APIs added: AppStateOwnerFieldLookup, AppStateOwnerFieldAt, AppStateOwnerFieldCount.
+- Lookup/index APIs fail closed for null, empty, unknown ids, and out-of-range indexes.
+- Runtime owner-field rows mirror docs/appstate_owner_fields.json fields: field, owner_region, canonical_owner, runtime_carrier, mutation_rule, migration_status, invariant_checks.
+- Startup validation now checks owner-field registry shape, unknown lookup failure, non-empty required scalar fields, and invariant_checks list shape.
+- Python contract guard parses runtime owner-field rows and validates missing, extra, duplicate, malformed, drifted, and malformed-list owner-field metadata.
+- Focused tests cover owner-field guard behavior, including malformed owner-field top-level rows and malformed runtime invariant-check list entries.
+- Existing AppState registry guard behavior remains green.
+- No transition execution, dynamic sequence execution, generation counters, owner mutation behavior, UI controller migration, render/restore migration, or runtime UI behavior changes were introduced.
+
+Verification commands run and results:
+- python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py — PASS (exit 0)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (222 passed)
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py — PASS (AppState contract guard passed)
+- make clean && make — PASS (exit 0; build completed, existing compiler warnings emitted outside the new owner-field scaffold)
+- make qa-code-quality — PASS (unsafe API, module-boundary, AppState contract, AI config guards passed)
+- make qa-cppcheck — PASS (exit 0)
+
+Deviations or risks:
+- No deviations from the requested scope.
+- make clean && make emitted existing project compiler warnings in unrelated files; touched AppState scaffold compiled without observed warnings.

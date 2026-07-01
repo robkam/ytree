@@ -1,0 +1,19 @@
+Files changed:
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+- .agent/handoffs/report.1.187.txt
+
+Commands run:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_dispatch_surface_validation_callsite_is_missing' -> FAIL (before guard change: unexpected keyword argument 'repository_root')
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'runtime_dispatch_surface_validation_callsite_is_missing' -> PASS
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and callsite or current_repository_appstate_contract' -> PASS
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> FAIL (intermediate fixture mismatch while refining the guard scope)
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> PASS
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and callsite or current_repository_appstate_contract' -> PASS
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> PASS
+- git diff --check -> PASS
+
+Warnings / residual risks:
+- Runtime validation callsite enforcement is intentionally limited to runtime registries parsed from src/core/appstate_actions.c-shaped paths so temporary non-production fixture runtimes keep their existing focused coverage.
+- The callsite scan is regex-based over src/**/*.c and src/**/*.h and therefore validates presence of AppStateValidatedDispatchSurface("...") callsites rather than deeper control-flow reachability.

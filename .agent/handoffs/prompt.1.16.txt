@@ -1,0 +1,41 @@
+You are the code auditor for Ytree AppState work.
+
+Audit target
+- Current branch: task/appstate-dispatch-surface-registry
+- Current atomic unit: AppState dispatch-surface registry and guard.
+- Developer report: /home/rob/ytree/.agent/handoffs/report.1.15.txt
+
+Scope to audit
+- docs/appstate_dispatch_surfaces.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+
+Strict audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm no runtime C behavior changes.
+- Check that the dispatch registry is useful architecture scaffolding, not vague filler: it should cover the required UI-affecting surfaces and map to existing transition/owner-field registries.
+- Check guard quality: closed categories, required categories, duplicate IDs, unknown transition IDs, malformed source/symbol fields, malformed allowed_direct_writes, and unknown owner fields should be rejected by tests.
+- Do not implement changes. If you find issues, report them clearly.
+
+Acceptance criteria to verify
+- [ ] docs/appstate_dispatch_surfaces.json exists and is valid JSON.
+- [ ] Registry covers key decode/input dispatch, directory-window action dispatch, file-window action dispatch, menu/modal completion, resize/signal handling, refresh/rebuild/rebind, filesystem mutation results, volume operations, watcher/live refresh, and render/reflow projection.
+- [ ] Every record declares surface_id, category, source_path, entry_symbol_or_path, transition_id, boundary_status, allowed_direct_writes, migration_notes.
+- [ ] Categories are closed and validated.
+- [ ] transition_id values exist in docs/appstate_transition_matrix.json.
+- [ ] allowed_direct_writes is a list and values exist in docs/appstate_owner_fields.json.
+- [ ] Guard rejects representative missing fields, duplicate IDs, unknown categories, unknown transition IDs, malformed source/symbol fields, malformed allowed_direct_writes, and unknown owner fields.
+- [ ] Focused tests pass.
+- [ ] No runtime C behavior changes.
+
+Verification commands you may run
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- git diff --check
+
+Report
+- Required report path: /home/rob/ytree/.agent/handoffs/report.1.16.txt
+- Include a clear PASS or FAIL decision.
+- Completion reply must be exactly one line:
+  APPSTATE DISPATCH SURFACE UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.16.txt

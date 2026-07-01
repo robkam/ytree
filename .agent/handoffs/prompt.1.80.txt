@@ -1,0 +1,31 @@
+You are the code auditor for one atomic AppState unit in /home/rob/ytreenova.
+
+Goal under audit
+- Invariant protected-field owner validation at startup.
+- Durable aim: invariant records cannot declare protected fields outside the canonical AppState owner-field registry.
+
+Developer evidence
+- Read /home/rob/ytreenova/.agent/handoffs/report.1.79.txt.
+- Inspect current git diff on branch chore/appstate-invariant-protected-owners.
+
+Audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear PASS/FAIL decision.
+- Confirm product/test changes are scoped to src/core/main.c and tests/test_appstate_contract_guard.py.
+- Confirm the startup guard preserves non-empty protected-field validation and adds AppStateOwnerFieldLookup validation.
+- Confirm focused regression coverage is meaningful and not noisy.
+- Do not modify files unless you identify a blocking defect that must be fixed; if you do modify, explain exactly what and why.
+
+Acceptance criteria checklist
+- [ ] Unknown invariant protected-field ids fail startup readiness.
+- [ ] Empty protected-field id validation remains present.
+- [ ] Focused Python regression captures the new startup guard requirement.
+- [ ] Repository appstate contract guard still passes based on developer evidence or rerun if needed.
+- [ ] Scope remains atomic and independently verifiable.
+
+Required report path
+- /home/rob/ytreenova/.agent/handoffs/report.1.80.txt
+
+Completion reply must be exactly one line:
+APPSTATE INVARIANT PROTECTED OWNER UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.80.txt

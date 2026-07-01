@@ -1,0 +1,52 @@
+You are the developer worker for ~/ytree.
+
+Tracked work title: Unified AppState Transition Machine + Projection Contract.
+Current unit objective: make the AppState transition registry explicitly cover every current `YtreeAction`, and add a QA guard so action enum drift cannot bypass transition metadata.
+
+Mandatory startup:
+1. Read /home/rob/ytree/.ai/codex.md and /home/rob/ytree/.ai/shared.md.
+2. Read /home/rob/ytree/docs/SPECIFICATION.md and /home/rob/ytree/docs/ARCHITECTURE.md.
+3. Use MCP semantic tools only for codebase exploration: serena + jcodemunch when available. If jcodemunch is configured but not callable, state that in your report and use serena rather than grep/find.
+4. Work on branch task/appstate-action-coverage-registry.
+
+Strict scope:
+- Add a machine-readable action coverage artifact, likely under docs/, that maps every `YtreeAction` enum member from `include/ytree_defs.h` to AppState transition metadata.
+- Extend `scripts/check_appstate_contract.py` to validate action coverage in addition to transition/shim registry schema.
+- Add targeted tests for action coverage guard behavior.
+- Wire/keep the extended guard under `qa-appstate-contract`; do not weaken existing guard checks.
+
+Explicit non-goals:
+- Do not change runtime behavior, keybindings, prompts, footer text, rendering behavior, input behavior, or filesystem operations.
+- Do not migrate controllers or split/restore code through a runtime transition boundary in this unit.
+- Do not edit `src/ui/ctrl_dir.c` or `src/ui/ctrl_file.c`.
+- Do not mark docs/ROADMAP.md complete.
+- Do not run `make qa-all`.
+- Do not add process/PR commentary to user-facing docs.
+
+Acceptance criteria checklist:
+- [ ] The action coverage artifact includes exactly one record for every `ACTION_*` enum member in `include/ytree_defs.h`, including `ACTION_NONE` and `ACTION_USER_CMD`.
+- [ ] Each record includes at least: `action`, `transition_id`, `category`, `owner`, `declared_write_set`, `boundary_status`, `migration_notes`.
+- [ ] `transition_id` values must reference existing IDs in `docs/appstate_transition_matrix.json`.
+- [ ] The guard fails on missing enum actions, extra unknown actions, duplicate records, missing required fields, invalid `transition_id`, and malformed required list fields.
+- [ ] Tests cover: complete pass, missing action, extra action, duplicate action, invalid transition reference, and enum drift detection using temporary fixture files.
+- [ ] `qa-appstate-contract` and `qa-code-quality` pass.
+- [ ] No runtime files changed except if an unavoidable non-runtime header parser fixture is justified; prefer no runtime edits.
+
+Exact verification commands, targeted first:
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- make qa-code-quality
+- make clean && make
+
+Required report path:
+/home/rob/ytree/.agent/handoffs/report.1.7.txt
+
+Report requirements:
+- Summarize changed files and why.
+- State whether jcodemunch was callable; if not, state the fallback evidence.
+- Include exact command results with pass/fail status.
+- Note any acceptance criteria not met and why.
+- Note any risks for the architect/auditor.
+
+Completion reply must be exactly one line:
+TASK 1 completed, report in /home/rob/ytree/.agent/handoffs/report.1.7.txt

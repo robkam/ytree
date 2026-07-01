@@ -1,0 +1,37 @@
+code_auditor: PASS
+
+Findings
+- None in the scoped AppState sequence-step coverage-ref changes.
+
+Scope note
+- README.md has an unrelated working-tree edit outside the handoff's stated file list. I did not treat it as part of this AppState unit because the prompt's scope under audit excludes it and this checkout may contain concurrent work. If that edit belongs to this unit, remove/split it before commit to keep the patch scoped.
+
+Audit verification
+- Semantic overlap rule is present in docs validation. `_validate_step_coverage_ref_overlap` requires each referenced action/event coverage record to overlap the step's `invariant_ids`, `diff_harness_ids`, and `generation_domain_expectations` via set intersection, and `_validate_step_coverage_refs` also preserves stimulus-id and transition-id checks before applying that rule. Evidence: scripts/check_appstate_contract.py:5341-5460.
+- Docs transition-sequence validation calls the same coverage-ref validator for both `action_coverage_refs` and `event_coverage_refs`. Evidence: scripts/check_appstate_contract.py:6083-6116.
+- Runtime registry parsing now includes action/event coverage ref arrays and normalized docs/runtime drift comparison includes both fields. Evidence: scripts/check_appstate_contract.py:1557-1775 and scripts/check_appstate_contract.py:6211-6229.
+- Runtime parsed sequence-step validation reuses the same semantic overlap checks for action and event coverage refs. Evidence: scripts/check_appstate_contract.py:6385-6418.
+- Startup/readiness validation fails closed before normal execution: `AppStateTransitionSequenceStepReady` requires matching stimulus coverage refs, rejects wrong transition IDs, calls `AppStateTransitionSequenceStepCoverageOverlaps` for invariant/diff/generation overlap, rejects duplicates, and `main` exits if `AppStateTransitionSequencesReady()` fails. Evidence: src/core/main.c:434-457, src/core/main.c:496-586, src/core/main.c:647-705, src/core/main.c:2565-2579.
+- Runtime metadata shape is aligned with the new struct fields and generated sequence rows. Evidence: include/ytnova_appstate_actions.h:201-220 and src/core/appstate_actions.c:1121-1189.
+- Current docs metadata are truthfully aligned: independent audit script checked all 26 sequence steps and found zero referenced action/event coverage records lacking transition, invariant, diff-harness, or generation-domain overlap.
+- Negative tests cover missing/malformed/duplicate/unknown/stimulus-mismatched/mixed refs, transition mismatch, semantic invariant/diff/generation mismatch, runtime drift/malformed/stimulus mismatch, runtime semantic mismatch, and startup/readiness source guards. Evidence: tests/test_appstate_contract_guard.py:2521-2750, tests/test_appstate_contract_guard.py:3070-3189, tests/test_appstate_contract_guard.py:3510-3539.
+- Scope remains tight for runtime behavior: changes are metadata, guard parsing/validation, startup readiness checks, and tests; I found no runtime UI migration/refactor in the scoped files.
+
+Validation rerun
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence_coverage_refs or sequence_step or transition_sequence or action_coverage or event_coverage or readiness' && python3 scripts/check_appstate_contract.py` — PASS: 207 passed, 412 deselected; AppState contract guard passed.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS: 619 passed.
+- `git diff --check` — PASS.
+
+Acceptance criteria
+- PASS: Sequence-step coverage validation compares referenced action/event coverage records against step invariant IDs, diff-harness IDs, and generation-domain expectations under an explicit overlap rule.
+- PASS: Docs guard rejects invariant-mismatched, diff-harness-mismatched, generation-domain-mismatched, and mixed valid+wrong sequence-step coverage refs.
+- PASS: Runtime/docs drift and runtime parsed sequence-step validation include the same semantic overlap checks.
+- PASS: Startup/readiness validation rejects runtime sequence-step coverage refs with wrong invariant/diff/generation overlap before normal execution continues.
+- PASS: Current docs/runtime metadata are truthfully aligned; no sequence step references a coverage record with no required semantic overlap.
+- PASS: Focused negative tests cover docs and runtime mismatch cases for invariant, diff-harness, and generation-domain coverage refs, including mixed valid+wrong coverage-ref cases.
+- PASS: Existing AppState guard tests remain green by rerun evidence.
+- PASS for scoped AppState files: no runtime UI migration/refactor introduced. See README scope note above.
+
+Residual risks
+- The validation is metadata/guard focused and does not prove migrated runtime UI behavior; that is consistent with the stated intended design.
+- I did not rerun `make clean && make`; architect-provided evidence says it passed, and this audit reran the full AppState guard suite plus contract script.

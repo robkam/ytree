@@ -1,0 +1,39 @@
+Audit report: AppState invariant runtime lookup scaffold re-audit
+
+Decision: PASS
+
+Findings
+
+- No blocker, high, medium, or low severity findings in the scoped changes.
+
+Acceptance criteria verification
+
+- Runtime invariant metadata type and lookup/count/index APIs are read-only and fail closed for null, empty, and unknown ids: PASS by inspection of `include/ytree_appstate_actions.h:42-74` and `src/core/appstate_actions.c:778-847`.
+- No second AppState root was introduced: PASS; scoped C changes add static metadata, lookup APIs, and startup validation only.
+- Runtime invariant rows mirror `docs/appstate_invariants.json` exactly for guarded id and metadata fields: PASS; targeted mirror script found 8 runtime rows and 8 doc rows with exact equality for `invariant_id`, `category`, `owner_region`, `protected_fields`, `transition_ids`, `dispatch_surface_ids`, `failure_mode`, `enforcement_status`, `test_strategy`, and `migration_notes`.
+- Startup invariant checks validate registry shape, fail-closed lookup behavior, and transition linkage through the runtime transition registry without changing normal startup behavior: PASS by inspection of `src/core/main.c:47-145` and `src/core/main.c:292-299`.
+- Python contract guard detects missing, extra, duplicate, malformed/unparsed runtime invariant rows, malformed/unparsed invariant metadata list entries, field drift, invalid transition ids, and invalid dispatch-surface references: PASS by inspection of `scripts/check_appstate_contract.py:397-528`, `scripts/check_appstate_contract.py:622-718`, and `scripts/check_appstate_contract.py:918-1023`, plus targeted mutation checks.
+- Focused tests prove both previous malformed parsing failures and keep existing AppState guard coverage green: PASS by inspection of `tests/test_appstate_contract_guard.py:2320-2381` and focused pytest execution.
+- No direct state writes or restore/render behavior changes are introduced outside metadata/startup validation: PASS by scoped diff inspection.
+- C/Python style, C portability, and security regressions: PASS for reviewed changes; no unsafe C APIs, command injection, path traversal, ownership/lifetime, use-after-free, integer/buffer overflow, or format-string regressions were found in the scoped changes.
+
+Developer evidence verification
+
+- Read `.agent/handoffs/report.1.33.txt`, `.agent/handoffs/report.1.34.txt`, `.agent/handoffs/report.1.35.txt`, `.agent/handoffs/report.1.36.txt`, and `.agent/handoffs/report.1.37.txt`.
+- Verified the report.1.34 malformed top-level runtime invariant row gap remains closed: injecting a `NULL` id row into `kAppStateInvariants[]` now exits nonzero with `runtime_invariant[8]: malformed runtime invariant registry row`.
+- Verified the report.1.36 malformed metadata list-entry gap is closed: injecting `NULL,` into `kAppStateInvariantProtectedFields0[]` now exits nonzero with `kAppStateInvariantProtectedFields0[0]: malformed string literal entry: NULL`.
+- Verified invalid runtime dispatch-surface references fail the guard: replacing a runtime dispatch surface id with `surface.__missing__` exits nonzero with both field-drift and unknown-dispatch-surface failures.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`: PASS, 209 passed in 3.11s.
+- `make qa-code-quality`: PASS; unsafe API, module-boundary, AppState contract, and project AI config guards passed.
+- `git diff --check -- include/ytree_appstate_actions.h src/core/appstate_actions.c src/core/main.c scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`: PASS.
+- `make mcp-doctor`: PASS with two personal-path warnings; reported both `serena` and `jcodemunch` configured and startup probes succeeding.
+
+Scope and edits
+
+- Reviewed only the requested changed files plus the handoff reports and `docs/appstate_invariants.json` needed to verify runtime/docs mirroring.
+- No source or test files were modified. This report file is the only file written by this audit turn.
+- Serena MCP was used for available symbol/pattern navigation. C source symbol extraction failed for the scoped `.c` files in this session, and no callable jcodemunch namespace was exposed through tool discovery despite `make mcp-doctor` reporting the server configured; scoped direct reads and targeted scripts were used for remaining evidence gathering.
+
+Residual risks
+
+- This scaffold validates read-only metadata and startup/guard consistency only. It intentionally does not validate future transition execution, dynamic sequence harness behavior, render mutation enforcement, or UI-controller migration behavior.

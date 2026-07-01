@@ -1,0 +1,75 @@
+You are developer for the next atomic AppState unit in /home/rob/ytreenova.
+
+Unit name
+- AppState event coverage boundary
+
+Goal
+- Add a narrow runtime AppState validation boundary for synthetic non-key UI-affecting events emitted by input/event polling before they are converted into legacy key/action stand-ins.
+- Keep this as an incremental bridge toward the roadmap aim: Unified AppState Transition Machine + Projection Contract.
+
+Strict scope
+- Work only in the Ubuntu checkout at /home/rob/ytreenova.
+- Expected production scope is limited to:
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - src/ui/key_engine.c
+- Expected tests are limited to:
+  - tests/test_appstate_contract_guard.py
+- Do not migrate controller dispatch.
+- Do not change keybindings, action enum values, event IDs, transition records, or generated docs unless tests prove the existing metadata is wrong.
+- Do not alter restore/render behavior, watcher internals, filesystem refresh semantics, or signal handlers beyond adding the validation boundary in the event polling path.
+- Do not touch unrelated files or handoff artifacts outside the required report.
+- You are not alone in the codebase; do not reset, clean, or reformat unrelated work.
+
+Current context
+- PR #132 merged a key-action boundary: GetKeyAction now returns decoded actions through AppStateValidatedKeyAction(action).
+- Non-key event coverage already exists in docs/appstate_event_coverage.json and runtime metadata lookup functions:
+  - AppStateEventCoverageLookup(event_id)
+  - AppStateTransitionLookup(transition_id)
+- GetEventOrKey currently emits synthetic key stand-ins for non-key events:
+  - ctx->resize_request -> KEY_RESIZE
+  - watcher activity via Watcher_ProcessEvents(ctx) -> KEY_F(5), which later maps to ACTION_REFRESH
+- These event emissions should now pass through a single obvious AppState event coverage validation boundary before returning the legacy key stand-in.
+
+Implementation expectations
+- Add a small production helper, e.g. AppStateValidatedEvent(const char *event_id), in src/core/appstate_actions.c and declare it in include/ytnova_appstate_actions.h.
+- The helper should fail closed:
+  - NULL or empty event_id returns false/0.
+  - Unknown event coverage returns false/0.
+  - Coverage whose event_id does not match returns false/0.
+  - Missing transition metadata for coverage->transition_id returns false/0.
+  - Valid coverage plus transition metadata returns true/1.
+- Route GetEventOrKey synthetic non-key event returns through the helper:
+  - terminal resize signal event id: event.terminal-resize-signal
+  - watcher live refresh event id: event.watcher-live-refresh
+- Preserve current behavior when metadata is valid.
+- On validation failure, do not synthesize the legacy key/action stand-in. Fail closed with the least disruptive existing no-event/error result for that path; document the chosen result in the report.
+- Do not introduce a second AppState root, new state owner, or new runtime transition executor.
+
+Acceptance criteria checklist
+- [ ] One obvious AppState event validation helper exists and is declared in the public AppState action/metadata header.
+- [ ] The helper validates event coverage and transition metadata before allowing an event through.
+- [ ] NULL, empty, unknown event, and missing-transition cases fail closed.
+- [ ] GetEventOrKey routes resize_request and watcher-live-refresh synthetic event emissions through the helper.
+- [ ] Valid metadata preserves current KEY_RESIZE and KEY_F(5) behavior.
+- [ ] Tests prove helper behavior and that GetEventOrKey source has the event boundary for both synthetic event paths.
+- [ ] No keybinding, controller dispatch, watcher, restore/render, or filesystem behavior is changed beyond the boundary.
+
+Exact verification commands, targeted first
+1. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_coverage or EventCoverage or event_boundary or readiness'
+2. source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+3. source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+4. make clean && make
+5. git diff --check
+
+Required report path
+- Write your report to /home/rob/ytreenova/.agent/handoffs/report.1.159.txt
+
+Report requirements
+- Summarize files changed.
+- Include exact commands run and pass/fail results.
+- If you make a fail-closed return choice in GetEventOrKey, explain why it is the least disruptive no-event/error result.
+- List residual risks or follow-up suggestions.
+
+Completion reply must be exactly one line:
+APPSTATE EVENT COVERAGE BOUNDARY UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.159.txt

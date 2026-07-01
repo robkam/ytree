@@ -1,0 +1,47 @@
+code_auditor:
+
+Findings
+- No blocker, high, medium, or low findings in the audited scope.
+
+Audit scope verified
+- Runtime lookup scaffold exists in `src/core/appstate_actions.c` and public declarations exist in `include/ytree_appstate_actions.h`.
+- The scaffold is read-only metadata lookup only. Semantic/reference search found no callers outside `src/core/appstate_actions.c`, so this unit does not change controller dispatch, restore, render, panel ownership, or runtime behavior.
+- `src/core/appstate_actions.c:10-181` defines a static metadata table plus count/lookup helpers only; no mutation, IO, allocation, rendering, controller dispatch, filesystem, or process operations were added.
+- `scripts/check_module_boundaries.py:16` classifies `ytree_appstate_actions.h` as a core header; placement is appropriate for a runtime core metadata scaffold.
+
+Acceptance criteria
+- [x] Runtime lookup exists and builds: verified `make clean && make`; build compiled `src/core/appstate_actions.c` into `obj/core/appstate_actions.o` and linked it into `build/ytree`.
+- [x] Every `YtreeAction` enum member has a lookup row: independent parser check found 85 enum members and 85 runtime rows, with no missing or extra actions and exact enum/table order match.
+- [x] Lookup rows align with `docs/appstate_action_coverage.json` transition/category records and `docs/appstate_transition_matrix.json` categories: independent parser check found zero mismatches; `scripts/check_appstate_contract.py` also passed.
+- [x] Unknown/out-of-range action lookup fails closed: `src/core/appstate_actions.c:173-178` returns `NULL` for negative/out-of-range values and for table/action mismatch; a temporary compiled smoke check confirmed `-1` and `AppStateActionTransitionCount()` return `NULL`.
+- [x] No behavior changes outside adding the lookup scaffold: no callers beyond the scaffold itself were found for `AppStateActionTransitionLookup` or `AppStateActionTransitionCount`; changes are limited to metadata table/header and guard/test scripts.
+- [x] Focused validation passes: see validation evidence below.
+
+Developer/architect evidence verification
+- Architect-reported focused contract test pass is reproduced locally.
+- Architect-reported build pass is reproduced locally, with warnings only in pre-existing unchanged files.
+- Architect-reported `make qa-code-quality` pass is reproduced locally.
+
+Validation run by auditor
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS, 190 passed in 8.25s.
+- `source .venv/bin/activate && python scripts/check_appstate_contract.py` — PASS.
+- `make clean && make` — PASS; pre-existing warnings in unchanged files.
+- `source .venv/bin/activate && python scripts/check_module_boundaries.py` — PASS.
+- `source .venv/bin/activate && make qa-code-quality` — PASS.
+- Temporary local smoke check: `cc -Iinclude /tmp/check_appstate_lookup.c src/core/appstate_actions.c -o /tmp/check_appstate_lookup && /tmp/check_appstate_lookup` — PASS.
+
+Security checklist
+- No buffer/integer overflow vector introduced: table lookup bounds-checks before indexing, and table strings are static literals.
+- No format-string, use-after-free, double-free, path traversal, symlink TOCTOU, or command-injection surface introduced.
+- Invalid action values fail closed with `NULL`.
+- No file/process operations, privilege changes, allocation, or mutable shared state added in runtime code.
+
+Files changed by auditor
+- None in product/test source. This report was written to `.agent/handoffs/report.1.14.txt` as requested.
+
+Residual risks
+- The lookup is intentionally scaffold-only and currently unconsumed; integration behavior remains future work outside this unit.
+- The table relies on the current contiguous zero-based enum layout. Current guards enforce textual enum/table order and completeness, which is sufficient for the existing enum shape; if future enum values become sparse or explicitly renumbered, designated initializers or an added numeric-contiguity guard should be considered.
+
+Gate decision
+- PASS.

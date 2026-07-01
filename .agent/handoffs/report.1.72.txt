@@ -1,0 +1,31 @@
+Audit: AppState generation domain startup guard unit
+
+Decision: PASS
+
+Findings
+- None.
+
+Acceptance verification
+- Required generation domain ID table matches docs/appstate_generation_domains.json generation_domains[*].domain_id in order: src/core/main.c:201-213 matches the 11 documented IDs verified from docs/appstate_generation_domains.json.
+- Count mismatch fails closed before registry iteration: src/core/main.c:614-619 compares AppStateGenerationDomainCount() with the required table count and returns 0 on mismatch.
+- Duplicate runtime domain IDs fail closed: src/core/main.c:648-655 checks all previous runtime entries and returns 0 on NULL previous rows or matching domain_id.
+- Every required ID is lookup-checked: src/core/main.c:672-675 requires AppStateGenerationDomainLookup(kAppStateRequiredGenerationDomainIds[index]) to resolve for each required ID.
+- Startup still invokes the guard: src/core/main.c:1272-1283 includes !AppStateGenerationDomainsReady() in the startup invariant chain.
+- Existing metadata and cross-reference checks were preserved: src/core/main.c:628-641 keeps required string/list validation including owner_region, identity fields, transitions, and migration notes; src/core/main.c:643-646 keeps self-lookup and generation owner field lookup; src/core/main.c:657-668 keeps identity owner-field and transition lookup checks; src/core/main.c:678-685 keeps sentinel, NULL, empty, and unknown lookup checks.
+
+Test quality
+- Focused tests were added at tests/test_appstate_contract_guard.py:4732-4811 for generation-domain startup fail-closed source checks and documented domain ID table parity.
+- The parity test loads guard.DEFAULT_GENERATION_DOMAINS and parses kAppStateRequiredGenerationDomainIds instead of assuming CI output, so it is deterministic and tied to canonical contract data.
+- Residual limitation: these are static contract/source checks rather than executing a mutated C registry, but that matches the existing contract guard style for adjacent startup registries and is adequate for this atomic guard.
+
+Developer evidence checked
+- Developer report reviewed: /home/rob/ytreenova/.agent/handoffs/report.1.71.txt.
+- Reran: source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 pytest -q -p no:cacheprovider tests/test_appstate_contract_guard.py -k 'generation_domain and startup' — PASS (2 passed, 287 deselected).
+- Reran: source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 pytest -q -p no:cacheprovider tests/test_appstate_contract_guard.py — PASS (289 passed).
+- Reran: source .venv/bin/activate && PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_appstate_contract.py — PASS.
+- Reran: git diff --check — PASS.
+- Did not rerun make clean && make to avoid broad build artifacts under the strict no-modify audit instruction; developer report records it as PASS with unrelated pre-existing warnings.
+
+Security/comment/doc review
+- No new unsafe string writes, file/process operations, path handling, command execution, or ownership/lifetime changes were introduced in the audited diff.
+- No new source comments or documentation noise were introduced.

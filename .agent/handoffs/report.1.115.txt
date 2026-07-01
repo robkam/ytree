@@ -1,0 +1,16 @@
+Files changed:
+- scripts/check_appstate_contract.py: added same-transition invariant protected-field derivation and enforced declared_write_set coverage for docs and runtime transition records.
+- src/core/main.c: added startup fail-closed transition write/invariant coverage helper and called it from AppStateTransitionRegistryReady.
+- tests/test_appstate_contract_guard.py: added same-invariant intersection regression cases for docs/runtime transition writes and startup helper source check.
+
+Commands run:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and invariant' — FAIL before implementation as expected; new tests exposed missing transition invariant coverage enforcement.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'transition and invariant' — PASS (23 passed, 319 deselected).
+- python3 scripts/check_appstate_contract.py — PASS (AppState contract guard passed).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (342 passed).
+- make clean && make — PASS; existing compiler warnings were emitted in unrelated files.
+- git diff --check — PASS.
+
+Residual risk or skipped commands:
+- No requested command was skipped.
+- Residual risk: enforcement depends on metadata registry shape parsing; malformed records continue to be reported by existing shape validation before coverage helpers derive records.

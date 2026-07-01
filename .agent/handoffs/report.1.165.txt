@@ -1,0 +1,22 @@
+APPSTATE MODAL DISPATCH BOUNDARY UNIT report
+
+Files changed
+- src/ui/key_engine.c: added AppStateValidatedDispatchSurface("surface.menu-modal-completion") guards at the start of InputChoice and InputChoiceLiteral. Invalid modal dispatch metadata now returns ERR before prompt rendering or key dispatch proceeds; valid metadata preserves existing behavior.
+- tests/test_appstate_contract_guard.py: extended runtime dispatch-surface probe to validate surface.menu-modal-completion, and added a source guard proving InputChoice/InputChoiceLiteral call the helper and fail closed before ClearHelp/WGetch.
+
+Verification commands and results
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface or DispatchSurface or modal or menu or readiness'
+  Result: PASS (77 passed, 548 deselected in 3.64s).
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+  Result: PASS (AppState contract guard passed).
+- git diff --check
+  Result: PASS (no output).
+- make clean && make
+  Result: PASS, build/ytnova and build/ytnova.1 produced.
+
+Warnings
+- make emitted warnings in pre-existing unrelated files, including src/cmd/delete.c, src/cmd/move.c, src/cmd/rename.c, src/core/sort.c, src/core/volume.c, src/fs/freesp.c, src/ui/ctrl_dir.c, src/ui/dir_ops.c, src/ui/display_utils.c, src/ui/error.c, src/ui/progress.c, src/ui/render_dir.c, and src/ui/tagged_view.c. No warning was emitted for the touched src/ui/key_engine.c change.
+
+Risks / follow-up
+- The guard returns ERR on invalid modal/menu dispatch-surface metadata; callers that already treat input errors as no valid choice should remain safe.
+- No AppState API or registry shape changes were needed.

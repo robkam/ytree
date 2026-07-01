@@ -1,0 +1,22 @@
+Files changed:
+- docs/appstate_diff_harness.json: added narrow generation_domain_ids coverage to existing harnesses.
+- src/core/appstate_actions.c: mirrored the diff-harness generation_domain_ids metadata corrections in the runtime registry.
+- scripts/check_appstate_contract.py: added generation-domain -> transition diff-harness coverage validation for docs and parsed runtime metadata.
+- src/core/main.c: added startup readiness validation that every generation-domain advance has a diff harness listing both the domain and transition.
+- tests/test_appstate_contract_guard.py: added docs/runtime drift tests and startup-shape coverage for the new generation/diff-harness invariant; updated complete fixtures to satisfy it.
+
+Metadata corrections:
+- harness.transition-before-after-snapshot now covers shape.panel.focus, state.visibility-filter.panel-volume, state.topology.volume, and lifecycle.volume.registry for its existing transition set.
+- harness.declared-write-set-diff now covers lifecycle.volume.registry for transition.menu-action.volume-select.
+- harness.generation-mismatch-check now covers reflow.layout.projection for transition.terminal-signal-resize.
+
+Validation:
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation and harness' (9 passed, 323 deselected)
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py (332 passed)
+- PASS: make clean && make (completed with existing compiler warnings)
+- PASS: git diff --check
+
+Residual risks/follow-ups:
+- No runtime UI behavior was changed; startup only fails closed on inconsistent metadata.
+- The diff harnesses remain metadata scaffolding/documented foundation until a future dynamic runner executes concrete before/after snapshots.

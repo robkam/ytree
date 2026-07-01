@@ -1,0 +1,34 @@
+Summary of fix
+- Populated dispatch-surface write authority for `surface.volume-menu-selection` and `surface.panel-anchor-rebind` in both docs and runtime metadata.
+- Added focused regression coverage proving mixed valid+wrong `dispatch_surface_refs` fail closed for action coverage, event coverage, runtime action/event coverage validation, and startup-readiness source checks.
+- Updated invariant/sequence metadata and mirrored runtime registry arrays so the stricter write-authority declarations remain contract-valid.
+
+Files changed
+- docs/appstate_dispatch_surfaces.json
+- docs/appstate_invariants.json
+- docs/appstate_transition_sequences.json
+- src/core/appstate_actions.c
+- tests/test_appstate_contract_guard.py
+
+Commands run and results
+- RED proof: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'test_dispatch_surface_records_document_new_write_authority or mix_valid_and_wrong_transition or mixed_dispatch_surface_refs'`
+  - Result: failed before implementation (`test_dispatch_surface_records_document_new_write_authority` asserted empty allowed_direct_writes).
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'test_dispatch_surface_records_document_new_write_authority or mix_valid_and_wrong_transition or mixed_dispatch_surface_refs'`
+  - Result: passed (`7 passed, 465 deselected`).
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface_refs or dispatch_ref or action_coverage or event_coverage or startup'`
+  - Result: passed (`105 passed, 367 deselected`).
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py`
+  - Result: passed (`472 passed`).
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+  - Result: passed (`PASS: AppState contract guard passed`).
+- `make clean && make`
+  - Result: passed; existing unrelated compiler warnings remained, build completed successfully.
+- `git diff --check`
+  - Result: passed.
+
+Confirmation that both audit findings are addressed
+- Finding 1 addressed: `surface.volume-menu-selection` now declares `ctx.active`, `panel.volume_key`, `panel.restore_snapshot`, and `panel.panel_generation`; `surface.panel-anchor-rebind` now declares `panel.tree_selection_key`, `panel.file_selection_key`, `panel.tree_cursor_pos`, `panel.tree_viewport_origin`, `panel.file_viewport_origin`, and `panel.panel_generation`. Runtime metadata mirrors docs.
+- Finding 2 addressed: focused tests now cover mixed valid+wrong `dispatch_surface_refs` for action coverage guard validation, event coverage guard validation, runtime action coverage validation, runtime event coverage validation, and startup-readiness source checks so one valid ref cannot mask a wrong-transition ref.
+
+Residual risks, if any
+- Build output still contains pre-existing unrelated compiler warnings outside this unit; no new warnings/errors from this fix were introduced.

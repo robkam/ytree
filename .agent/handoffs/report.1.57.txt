@@ -1,0 +1,23 @@
+Summary:
+- Added a required AppState dispatch-surface ID table in src/core/main.c matching docs/appstate_dispatch_surfaces.json.
+- Updated AppStateDispatchSurfacesReady() to fail closed unless the runtime registry count matches the required ID table, every required ID resolves through AppStateDispatchSurfaceLookup(), and runtime surface IDs are unique.
+- Added focused startup guard tests that parse the required dispatch-surface ID table, compare it with the JSON docs, and assert the startup guard uses the table and duplicate/count fail-closed checks.
+
+Files changed:
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- .agent/handoffs/report.1.57.txt
+
+Commands run and results:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and startup' -> failed before implementation as expected: 2 failed, 273 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and startup' -> failed during iteration: 1 failed, 1 passed, 273 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'dispatch_surface and startup' -> passed: 2 passed, 273 deselected.
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> passed: 275 passed.
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py -> passed: PASS: AppState contract guard passed.
+- make clean && make -> passed; build completed with existing compiler warnings in unrelated files.
+- make qa-code-quality -> passed: unsafe API, module-boundary, AppState contract, and AI config guards passed.
+- git diff --check -> passed with no output.
+
+Risks/follow-ups:
+- No user-visible runtime transition behavior was changed.
+- Build still emits pre-existing warnings outside this unit; no follow-up required for this scoped guard.

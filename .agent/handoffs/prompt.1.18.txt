@@ -1,0 +1,43 @@
+You are the code auditor for Ytree AppState work.
+
+Audit target
+- Current branch: task/appstate-transition-invariant-registry
+- Current atomic unit: AppState transition invariant registry and guard, plus maintainer-approved full-QA trigger hardening.
+- Developer reports:
+  - /home/rob/ytree/.agent/handoffs/report.1.17.txt
+  - /home/rob/ytree/.agent/handoffs/report.1.19.txt
+
+Scope to audit
+- docs/appstate_invariants.json
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+- .github/workflows/full-qa.yml
+
+Strict audit requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Confirm no runtime C behavior changes.
+- Check that invariant records are concrete AppState architecture scaffolding, not vague filler: required invariant categories must map to owner fields, transitions, and dispatch surfaces.
+- Check guard quality: closed categories, required categories, duplicate IDs, missing fields, protected_fields references, transition_ids references, dispatch_surface_ids references, malformed list fields, and cross-cutting empty dispatch explanations should be rejected by tests.
+- Check full-QA trigger hardening: ready_for_review removed only from full-qa pull_request.types; opened/synchronize/reopened/labeled/unlabeled and workflow_dispatch remain intact; no QA job or branch-safety weakening.
+- Do not implement changes. If you find issues, report them clearly.
+
+Acceptance criteria to verify
+- [ ] docs/appstate_invariants.json exists and is valid JSON.
+- [ ] Registry covers inactive_panel_frozen, render_projection_read_only, hidden_entry_visible_navigation, panel_local_focus_restore, viewport_identity_rebind, shared_state_panel_local_isolation, stale_snapshot_fail_closed, and blocked_transition_determinism.
+- [ ] Every invariant declares invariant_id, category, owner_region, protected_fields, transition_ids, dispatch_surface_ids, failure_mode, enforcement_status, test_strategy, migration_notes.
+- [ ] Guard validates required fields, closed categories, required categories, duplicate invariant IDs, protected_fields against docs/appstate_owner_fields.json, transition_ids against docs/appstate_transition_matrix.json, and dispatch_surface_ids against docs/appstate_dispatch_surfaces.json.
+- [ ] Focused tests cover positive and representative negative behavior.
+- [ ] .github/workflows/full-qa.yml no longer includes ready_for_review in pull_request.types while retaining opened, synchronize, reopened, labeled, unlabeled, and workflow_dispatch.
+- [ ] No runtime C behavior changes.
+
+Verification commands you may run
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- git diff --check
+
+Report
+- Required report path: /home/rob/ytree/.agent/handoffs/report.1.18.txt
+- Include a clear PASS or FAIL decision.
+- Completion reply must be exactly one line:
+  APPSTATE INVARIANT REGISTRY UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.18.txt

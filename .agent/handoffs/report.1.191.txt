@@ -1,0 +1,14 @@
+Files changed:
+- src/ui/panel_anchor.c
+- tests/test_appstate_contract_guard.py
+
+Commands run:
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'event_boundary or validated_event or panel_anchor or rebuild_rebind or readiness'
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- PASS: make clean && make
+- PASS: git diff --check
+
+Warnings / residual risks:
+- make emitted unrelated pre-existing compiler warnings in other files; none were introduced by this change.
+- The runtime event probe already included rebuild_rebind_callback via the shared fixture set, so no extra probe edit was required.

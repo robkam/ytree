@@ -1,0 +1,30 @@
+Code auditor report: AppState owner invariant alignment unit
+
+Gate decision: FAIL
+
+Findings
+
+1. Severity: medium
+   File: src/core/main.c:599
+   Evidence: The new AppStateInvariantProtectsField helper passes metadata->protected_fields directly to StringListContains. StringListContains dereferences values[index] without checking values for NULL (src/core/main.c:269-278). This helper is called from AppStateOwnerFieldsReady before AppStateInvariantRegistryReady runs, so the existing invariant registry NonEmptyStringList protected_fields validation has not yet guarded the pointer.
+   Impact: If runtime invariant metadata drifts to a NULL protected_fields pointer with a nonzero protected_field_count, startup can segfault before reaching the intended fail-closed readiness path. The new guard should reject invalid metadata by returning 0, not depend on later registry validation that is ordered after this call.
+   Concrete fix: In AppStateInvariantProtectsField, fail closed before StringListContains unless the invariant protected field list is structurally valid, e.g. `if (!NonEmptyStringList(metadata->protected_fields, metadata->protected_field_count)) return 0;`. Add/adjust the startup shape test to require the protected_fields null/list validity guard.
+
+Acceptance criteria review
+- Docs validation rejects an owner-field record whose invariant_checks are valid IDs but none protects the owner field: PASS. The new docs fixture mutation is covered by test_guard_fails_when_owner_field_invariant_does_not_protect_field, and the validator reports the alignment failure.
+- Runtime registry validation rejects equivalent mismatch in parsed runtime owner-field metadata: PASS. The runtime fixture mutation is covered by test_guard_fails_when_runtime_owner_field_invariant_does_not_protect_field.
+- Startup readiness checks runtime invariant protected_fields and fails closed unless at least one listed owner-field invariant protects the field: FAIL. It checks protected_fields for normal mismatch, but the new helper can dereference an unvalidated protected_fields pointer before the invariant registry readiness guard runs.
+- Current docs/runtime owner-field metadata satisfies the invariant without metadata churn: PASS. Only the expected three files are changed, and scripts/check_appstate_contract.py passes.
+- Focused tests cover docs drift, runtime drift, and startup readiness shape: PASS with caveat. Tests cover the intended docs/runtime drift and source shape, but they do not catch the null-list fail-closed gap above.
+- No runtime UI behavior change is introduced: PASS. The diff is limited to contract validation, startup metadata readiness, and tests; no interactive UI path is changed.
+
+Developer validation evidence checked
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'owner and invariant' (12 passed, 322 deselected)
+- PASS: source .venv/bin/activate && python3 scripts/check_appstate_contract.py
+- PASS: git diff --check
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py (334 passed)
+- PASS: make clean && make (existing compiler warnings remain)
+
+Residual risks
+- The contract-script side of the unit is otherwise scoped and aligned with the acceptance criteria.
+- No unrelated files or docs/process text were changed.

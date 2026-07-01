@@ -1,0 +1,45 @@
+AppState compatibility shim runtime lookup scaffold audit report
+
+Unit: AppState compatibility shim runtime lookup scaffold
+Durable roadmap aim: Unified AppState Transition Machine + Projection Contract
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low severity findings remain in the audited scope.
+
+Scope audited
+- include/ytree_appstate_actions.h
+- src/core/appstate_actions.c
+- src/core/main.c
+- scripts/check_appstate_contract.py
+- tests/test_appstate_contract_guard.py
+- Developer report verified: /home/rob/ytree/.agent/handoffs/report.1.31.txt
+
+Acceptance criteria verification
+- Runtime compatibility shim lookup/count/index APIs are declared and implemented: PASS. Declarations are present in include/ytree_appstate_actions.h:28-53, and implementations are present in src/core/appstate_actions.c:374-421.
+- Runtime shim rows align with docs/appstate_compat_shims.json for id, owner, old_authority_path, read_permission, write_permission, removal_trigger, target_transition, follow_up_task, qa_enforcement, and invariant_checks: PASS. Runtime rows are in src/core/appstate_actions.c:315-364; a focused parser comparison reported 4 runtime rows, 4 documented rows, and all required fields matched for each row.
+- Runtime shim target_transition values are validated against runtime transition ids by both startup invariants and the Python guard: PASS. Startup checks AppStateTransitionLookup(metadata->target_transition) in src/core/main.c:91-94, and the guard validates target_transition membership in scripts/check_appstate_contract.py:728-737 using runtime transition ids wired at scripts/check_appstate_contract.py:1992-2000.
+- Unknown shim id lookup fails closed with NULL: PASS. AppStateCompatibilityShimLookup rejects NULL/empty ids and returns NULL after no match in src/core/appstate_actions.c:409-421; startup also verifies NULL, empty, out-of-range, and unknown-id paths in src/core/main.c:103-110.
+- Startup invariant consumes the shim registry without changing normal command behavior: PASS. src/core/main.c:68-112 validates metadata presence/linkage only, and main only adds this readiness check to the existing startup invariant gate at src/core/main.c:213-218. No command/action dispatch behavior is migrated in this unit.
+- Focused tests cover shim drift and runtime target-transition linkage: PASS. Fixture runtime shim generation is in tests/test_appstate_contract_guard.py:450-506; drift/missing/extra/invariant/runtime-link tests are in tests/test_appstate_contract_guard.py:2085-2204.
+
+Developer evidence verification
+- Developer report claims were consistent with the diff and local validation.
+- Architect evidence listed in the prompt was independently spot-verified with focused guard, build, and diff checks below.
+- No auditor code corrections were made.
+
+Validation run by auditor
+- source .venv/bin/activate && python3 scripts/check_appstate_contract.py && pytest -q tests/test_appstate_contract_guard.py: PASS, 201 passed.
+- make clean && make && git diff --check: PASS. Build emitted warnings only in pre-existing unchanged files; no warnings appeared for the scoped changed files.
+- source .venv/bin/activate && python3 - <<'PY' ... runtime/doc shim comparison ... PY: PASS; parse_failures=[], runtime_count=4, doc_count=4, all rows matched required fields.
+- make mcp-doctor: PASS/OK with warnings. jcodemunch is configured and its startup probe succeeds, but jcodemunch tools were not exposed as callable tools in this Codex session; Serena semantic tools and scoped direct reads were used for exploration.
+
+Risk checks
+- Memory safety/security: PASS. New runtime code only exposes read-only static metadata and bounded index/lookup access; unknown ids fail closed. No buffer, filesystem, process, path traversal, format-string, or ownership-sensitive operations were introduced in the scoped runtime changes.
+- Portability: PASS. New C code uses existing project patterns: static const tables, size_t counts, NULL checks, and strcmp lookup. No non-portable APIs were added.
+- Maintainability/comment quality: PASS. No redundant or stale source comments were introduced in the scoped files.
+- Documentation signal quality: PASS. The unit consumes existing docs/appstate_compat_shims.json through the guard and does not add noisy duplicate process guidance.
+- UX economy: Not applicable; this unit adds metadata/guards/startup invariant consumption only and changes no interactive flow.
+
+Residual risks
+- The Python runtime parser is intentionally shape-specific to the current static C table layout. That is acceptable for this guard because it fails closed on unparseable/empty runtime shim registries, and the runtime startup invariant independently validates the compiled table linkage.

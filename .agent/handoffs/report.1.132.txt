@@ -1,0 +1,51 @@
+code_auditor: AppState compatibility shim diff-harness coverage audit
+
+Decision: PASS
+
+Findings
+- No blocker, high, medium, or low findings identified in the scoped diff.
+
+Scope inspected
+- docs/appstate_compat_shims.json
+- include/ytnova_appstate_actions.h
+- src/core/appstate_actions.c
+- scripts/check_appstate_contract.py
+- src/core/main.c
+- tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.131.txt
+
+Risk-first review notes
+- The change is metadata/contract/startup-validation scoped. The working-tree diff only touches the six requested metadata, guard, startup-validation, and unit-test files; no UI controller/render/runtime migration files are changed.
+- The runtime validation path remains fail-closed: missing/non-empty list failures, unknown refs, duplicate refs, and coverage gaps all make readiness return false rather than degrading silently.
+- No new heap ownership, file/process operations, path handling, shelling out, or user-input processing are introduced. No new security-sensitive vulnerability class was found.
+
+Acceptance criteria verification
+- [PASS] Every docs compatibility shim has non-empty diff_harness_refs.
+  Evidence: all four shim records declare non-empty lists at docs/appstate_compat_shims.json:30, docs/appstate_compat_shims.json:63, docs/appstate_compat_shims.json:91, and docs/appstate_compat_shims.json:121.
+- [PASS] Runtime shim metadata exposes matching diff-harness refs.
+  Evidence: AppStateCompatibilityShimMetadata now has diff_harness_refs/count fields at include/ytnova_appstate_actions.h:83-84; runtime ref tables are defined at src/core/appstate_actions.c:2188-2206 and wired into each shim row at src/core/appstate_actions.c:3901-3903, 3923-3925, 3945-3947, and 3967-3969. Independent parser check found 4 runtime shims and exact doc/runtime diff_harness_refs matches for all 4.
+- [PASS] Document guard rejects missing/malformed/unknown/duplicate diff-harness refs.
+  Evidence: diff_harness_refs is required at scripts/check_appstate_contract.py:64-67 and validated as a shim list field at scripts/check_appstate_contract.py:288-292. Generic malformed list validation rejects non-list, empty, non-string, and blank elements at scripts/check_appstate_contract.py:343-351. Unknown and duplicate refs are rejected at scripts/check_appstate_contract.py:3152-3176. Tests cover missing at tests/test_appstate_contract_guard.py:4838-4853, malformed elements through REQUIRED_LIST_FIELD_CASES at tests/test_appstate_contract_guard.py:59-63 and tests/test_appstate_contract_guard.py:5038-5068, and unknown/duplicate refs at tests/test_appstate_contract_guard.py:5259-5295.
+- [PASS] Runtime/doc drift in diff-harness refs is detected.
+  Evidence: runtime shim field-by-field doc parity includes diff_harness_refs at scripts/check_appstate_contract.py:2858-2877, with regression coverage at tests/test_appstate_contract_guard.py:5539-5563.
+- [PASS] Startup validation rejects missing/unknown/duplicate runtime diff-harness refs.
+  Evidence: startup requires a non-empty diff_harness_refs list at src/core/main.c:1324-1327, rejects unknown refs with AppStateDiffHarnessLookup at src/core/main.c:1358-1362, and rejects duplicates at src/core/main.c:1363-1365.
+- [PASS] Shim target transitions are covered by referenced diff harnesses.
+  Evidence: document/runtime guard transition coverage is implemented at scripts/check_appstate_contract.py:3181-3202 and wired for docs at scripts/check_appstate_contract.py:5720-5727 plus runtime at scripts/check_appstate_contract.py:2945-2952. Startup coverage is implemented at src/core/main.c:1196-1218 and enforced at src/core/main.c:1403-1406. Independent doc check confirmed each shim target_transition is present in the union of its referenced harness transition_ids.
+- [PASS] Shim owner fields, invariant checks, and generation domains are covered by referenced diff harnesses.
+  Evidence: document/runtime union coverage is implemented at scripts/check_appstate_contract.py:3205-3247 and wired for docs at scripts/check_appstate_contract.py:5728-5738 plus runtime at scripts/check_appstate_contract.py:2953-2963. Startup owner/invariant/generation coverage helpers are at src/core/main.c:1221-1294 and enforced at src/core/main.c:1354-1356, 1376-1378, and 1399-1401. Independent doc check found no uncovered owner fields, invariant checks, or generation domains for any shim.
+- [PASS] Existing shim owner/generation/write-capability behavior remains intact.
+  Evidence: write capability validation remains at scripts/check_appstate_contract.py:3007-3013, owner/write-set validation remains at scripts/check_appstate_contract.py:3050-3096, and generation-domain validation remains at scripts/check_appstate_contract.py:3099-3149. Runtime startup still enforces write-set and generation-owner coverage at src/core/main.c:1388-1398. The existing owner/generation/write-capability regression set remains green in the full test-file run.
+- [PASS] No runtime UI behavior migration or unrelated edits are included.
+  Evidence: git diff --stat contains only docs/appstate_compat_shims.json, include/ytnova_appstate_actions.h, scripts/check_appstate_contract.py, src/core/appstate_actions.c, src/core/main.c, and tests/test_appstate_contract_guard.py. No src/ui files or interactive behavior paths are modified.
+
+Verification evidence
+- PASS: source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -> 414 passed in 23.93s. This full-file run subsumes the architect-reported focused -k shim/diff, shim/generation, and shim/owner subsets.
+- PASS: python3 scripts/check_appstate_contract.py -> PASS: AppState contract guard passed.
+- PASS: git diff --check -> exit code 0.
+- PASS: make clean && make -> build completed and produced build/ytnova; warnings observed are pre-existing project warnings outside this metadata/guard change.
+- PASS: Independent doc/runtime coverage script confirmed all 4 doc shims have matching parsed runtime refs and no uncovered transition, owner-field, invariant, or generation-domain refs.
+- Not run: make qa-all, per explicit instruction.
+
+Residual risk
+- The diff-harness entries remain registry/contract metadata and startup/guard validation; this unit does not add a live dynamic diff executor. That matches the stated scope and existing docs/appstate_diff_harness.json documented_foundation_only status.

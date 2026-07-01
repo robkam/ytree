@@ -1,0 +1,41 @@
+code_auditor:
+
+Gate decision: FAIL
+
+Findings
+
+1. Severity: blocker
+   File: scripts/check_appstate_contract.py:5316
+   Evidence: `_validate_step_coverage_refs` only checks ref list shape/duplicates/unknown ids, matching stimulus id, and matching transition id (scripts/check_appstate_contract.py:5316-5379). Its callers pass only stimulus and transition context for both docs and runtime sequence steps (scripts/check_appstate_contract.py:6001-6022, scripts/check_appstate_contract.py:6293-6314), while invariant/diff-harness/generation validation remains independent of the referenced coverage record (scripts/check_appstate_contract.py:6024-6064, scripts/check_appstate_contract.py:6317-6354). The added focused tests cover missing/malformed/duplicate/unknown/wrong-kind/stimulus/transition cases (tests/test_appstate_contract_guard.py:2507-2642) and runtime drift/malformed/stimulus cases (tests/test_appstate_contract_guard.py:2962-3035), but not sequence-step coverage-ref invariant, diff-harness, or generation-domain mismatches. I also confirmed a false negative with the existing fixture helpers: mutating the referenced ACTION_NONE coverage record and mirrored runtime coverage to use non-overlapping `invariant_refs`, `diff_harness_refs`, or same-transition non-overlapping `generation_domain_refs` while leaving the sequence step unchanged returned zero guard failures.
+   Impact: The guard does not fail closed for the explicitly required invariant-mismatched, diff-harness-mismatched, or generation-domain-mismatched sequence-step coverage refs. A scripted step can claim it exercises a canonical action/event coverage record for the right stimulus and transition while the record's invariant, harness, or generation-domain coverage is unrelated to the step assertions. That breaks the acceptance criterion that sequence-step refs prove the canonical coverage record for the step's stimulus and transition without replacing the step's invariant/diff/generation expectations.
+   Concrete fix: Extend sequence-step coverage-ref validation for both docs and parsed runtime records to compare each referenced action/event coverage record's `invariant_refs`, `diff_harness_refs`, and `generation_domain_refs` against the step's `invariant_ids`, `diff_harness_ids`, and generation expectation domain ids under the intended overlap rule, and reject no-overlap or otherwise mismatched refs. Add focused negative tests for docs and runtime coverage-ref invariant, diff-harness, and generation-domain mismatches, including mixed valid+wrong cases. Then update the transition-sequence docs/runtime metadata so the current canonical refs satisfy the new rule.
+
+2. Severity: blocker
+   File: docs/appstate_transition_sequences.json:165
+   Evidence: Current docs already contain sequence steps whose new coverage refs have no invariant overlap with the referenced canonical coverage record. Example: `enter-directory` references `ACTION_ENTER` (docs/appstate_transition_sequences.json:165-167) and declares only `invariant.hidden-entry-visible-navigation` plus `invariant.viewport-identity-rebind` (docs/appstate_transition_sequences.json:170-173), while the canonical `ACTION_ENTER` record declares only `invariant.inactive-panel-frozen` (docs/appstate_action_coverage.json:772-774). Similar no-overlap cases include `manual-refresh` referencing `ACTION_REFRESH` with step invariants at docs/appstate_transition_sequences.json:363-370 versus the action record invariant at docs/appstate_action_coverage.json:1395-1397, and `delete-or-mkdir-result` referencing `event.filesystem-mutation-result` with step invariants at docs/appstate_transition_sequences.json:456-463 versus the event record invariant at docs/appstate_event_coverage.json:209-211.
+   Impact: Even if the guard gap above is closed, the current working tree would fail the stated consistency criterion for sequence-step coverage refs versus step invariant coverage. These refs prove stimulus/transition identity, but not invariant-record consistency where the invariant registry overlaps.
+   Concrete fix: For each sequence-step coverage ref, align step `invariant_ids` with the referenced action/event coverage record under the intended overlap rule, or adjust the canonical coverage record if it is too broad/narrow for the scripted scenarios. Regenerate/update the runtime metadata in `src/core/appstate_actions.c` to match docs and add a regression that detects this exact no-overlap shape.
+
+Acceptance criteria verification
+
+- Sequence steps with `stimulus.action_id` declare action coverage refs resolving to action coverage records: PASS for presence/stimulus/transition identity in current docs; verified by script inspection and `scripts/check_appstate_contract.py`.
+- Sequence steps with `stimulus.event_id` declare event coverage refs resolving to event coverage records: PASS for presence/stimulus/transition identity in current docs; verified by script inspection and `scripts/check_appstate_contract.py`.
+- Each sequence-step coverage ref matches the step stimulus action/event and covers the same `transition_id`: PASS for current docs and runtime metadata.
+- Sequence-step coverage refs are consistent with step `invariant_ids`, `diff_harness_ids`, and `generation_domain_expectations` where those registries overlap: FAIL. Guard does not enforce this, and current docs contain no-overlap invariant cases.
+- Python guard rejects missing, malformed, duplicate, unknown, wrong-kind, stimulus-mismatched, transition-mismatched, invariant-mismatched, diff-harness-mismatched, generation-domain-mismatched, and mixed valid+wrong refs: FAIL. The first group is covered; invariant/diff-harness/generation-domain mismatch rejection is missing.
+- Runtime transition-sequence step metadata exposes the coverage refs consistently with docs: PASS for current drift comparison; refs were added to `AppStateTransitionSequenceStepMetadata` and normalized into docs/runtime comparison.
+- Runtime/docs drift checks include sequence-step coverage refs: PASS; normalization includes `action_coverage_refs` and `event_coverage_refs`.
+- Startup/readiness validation rejects malformed runtime sequence-step coverage refs before normal execution continues: PASS for malformed/missing/wrong-kind/duplicate/unknown/stimulus/transition coverage-ref readiness; not a substitute for the missing docs/runtime semantic mismatch guard above.
+- Focused tests cover positive and negative paths for docs guard, runtime drift, and startup readiness: FAIL. Tests do not cover invariant/diff-harness/generation-domain mismatch negatives for sequence-step coverage refs.
+- Scope remains tight and no runtime UI migration/refactor is introduced: PASS. Diff is limited to the declared docs, guard, metadata, startup-readiness, and tests files.
+
+Validation run during audit
+
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'sequence_coverage_refs or sequence_step or transition_sequence or action_coverage or event_coverage or readiness'` — PASS, 200 passed, 412 deselected.
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` — PASS.
+- `git diff --check` — PASS.
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py` — PASS, 612 passed.
+
+Residual risk
+
+The green tests demonstrate the implemented checks work for the cases they cover, but the missing semantic overlap checks mean the suite is currently green while an explicit acceptance class remains unguarded.

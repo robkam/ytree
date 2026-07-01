@@ -1,0 +1,48 @@
+:at code_auditor
+
+Audit the AppState generation write coverage unit in /home/rob/ytreenova.
+
+Scope under review
+- Durable aim: every transition write to a generation owner field must be covered by at least one registered AppState generation domain for that same owner field.
+- Changed files expected:
+  - `scripts/check_appstate_contract.py`
+  - `src/core/main.c`
+  - `tests/test_appstate_contract_guard.py`
+- Developer report: `/home/rob/ytreenova/.agent/handoffs/report.1.89.txt`
+
+Constraints and non-goals
+- Do not push or open/update a PR.
+- Do not modify product/test code unless a blocking audit finding requires a minimal correction; if you do edit, state exactly what changed.
+- Keep review risk-first and severity ordered.
+- This is part of a low-risk multi-commit batch branch for PR #112; preserve prior committed unit boundaries and current uncommitted unit scope.
+- policy_block_retry_once
+- watchdog_stall_retry_terminal
+- maintainer_pause_gate=true_blocker_decision|commit_message_approval
+
+Acceptance criteria to verify
+- [ ] Guard rejects a transition generation write when no generation domain covers that transition for the same generation owner field.
+- [ ] Runtime registry validation rejects equivalent drift.
+- [ ] Startup readiness validates generation write coverage through runtime metadata.
+- [ ] Focused tests prove the new guard/startup behavior.
+- [ ] Current appstate contract guard passes.
+- [ ] Scope is atomic and does not alter unrelated runtime UI behavior.
+
+Required audit work
+- Inspect the diff and developer report.
+- Verify risk areas: docs/runtime parity, false positives from intentional non-generation writes, false negatives for runtime rows, startup fail-closed behavior, dynamic derivation of generation owner fields, existing generation-domain validation preserved, and scope creep.
+- Rerun at least targeted validation:
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'generation and write'`
+  - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- Run additional checks only if needed for a concrete risk.
+
+Required report path
+- `/home/rob/ytreenova/.agent/handoffs/report.1.90.txt`
+
+Report requirements
+- Risk-first findings, severity ordered, with file/line references.
+- Verify acceptance criteria and developer evidence.
+- Clear pass/fail decision.
+- Exact commands run and results.
+
+Completion reply must be exactly one line:
+APPSTATE GENERATION WRITE COVERAGE UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.90.txt

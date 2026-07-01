@@ -1,0 +1,61 @@
+You are the code auditor for YtreeNova AppState roadmap work in /home/rob/ytreenova.
+
+Work item
+- Roadmap-derived title: Unified AppState Transition Machine + Projection Contract.
+- Atomic unit under audit: require action and event coverage records to declare invariant coverage.
+
+Model/routing note
+- You were spawned with an economical capable model/reasoning profile because this is a routine registry/guard/scaffold unit. If you find ambiguity or high-risk concerns that need stronger reasoning, report that clearly rather than broadening scope.
+
+Audit scope
+- Review current working-tree changes only.
+- Expected files:
+  - docs/appstate_action_coverage.json
+  - docs/appstate_event_coverage.json
+  - include/ytnova_appstate_actions.h
+  - src/core/appstate_actions.c
+  - scripts/check_appstate_contract.py
+  - src/core/main.c
+  - tests/test_appstate_contract_guard.py
+- Developer report: /home/rob/ytreenova/.agent/handoffs/report.1.143.txt
+
+Risk-first audit requirements
+- Report findings severity ordered: blocker, high, medium, low.
+- Include file/line references for each finding.
+- Verify acceptance criteria and developer evidence.
+- Check for scope creep, runtime behavior migration, broad refactor, redundancy, and consistency with existing AppState registry style.
+- Pay special attention to:
+  - missing/malformed/duplicate/unknown/wrong-transition invariant-ref fail-closed behavior for action coverage and event coverage;
+  - mixed correct+wrong refs must fail per referenced invariant, not aggregate;
+  - declared-write-set protection must be collective but must not allow unrelated transition invariants to satisfy coverage;
+  - runtime/docs drift checks for the new fields;
+  - startup readiness checks for action/event invariant refs;
+  - generated/runtime metadata field ordering and counts;
+  - no handoff paths or CI transcript noise in repo files.
+
+Acceptance criteria to verify
+- [ ] Action coverage docs/runtime records declare invariant refs.
+- [ ] Event coverage docs/runtime records declare invariant refs.
+- [ ] Guard rejects missing/malformed/duplicate/unknown/wrong-transition invariant refs, including mixed correct+wrong lists.
+- [ ] Guard rejects insufficient write-field invariant coverage for action/event declared writes.
+- [ ] Guard rejects runtime/docs drift for action/event invariant refs.
+- [ ] Startup readiness validates action/event invariant refs, including mixed correct+wrong and insufficient write coverage.
+- [ ] Focused tests cover these cases.
+- [ ] Existing AppState guard tests remain green according to developer evidence.
+- [ ] Clean build remains green according to developer evidence.
+
+Suggested checks
+- Inspect `git diff --stat` and targeted diffs.
+- Run targeted commands only if needed to verify a concern. Do not run full make qa-all.
+
+Required report
+- Write `/home/rob/ytreenova/.agent/handoffs/report.1.144.txt` with:
+  - Summary
+  - Findings (severity-ranked, file/line refs)
+  - Acceptance criteria verification
+  - Developer evidence verification
+  - Clear pass/fail decision
+
+Completion reply
+- Reply exactly one line:
+  `APPSTATE COVERAGE INVARIANT REFS UNIT completed, report in /home/rob/ytreenova/.agent/handoffs/report.1.144.txt`

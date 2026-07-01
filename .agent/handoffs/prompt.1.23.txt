@@ -1,0 +1,56 @@
+You are the developer for ~/ytree. Implement exactly one atomic AppState unit.
+
+Resolved roadmap title
+- docs/ROADMAP.md Task 1 is resolved as: Unified AppState Transition Machine + Projection Contract.
+
+Goal
+- Define the transition-diff harness schema/guard foundation: a machine-readable registry that specifies future before/after AppState snapshot and diff checks for registered transitions and render/reflow projection passes.
+
+Strict scope
+- Add a docs/appstate_diff_harness.json registry (or a clearly better appstate_* name if required by existing patterns).
+- Extend scripts/check_appstate_contract.py to validate it by default and add a CLI override.
+- Extend tests/test_appstate_contract_guard.py with targeted pass/fail coverage.
+- Keep changes registry/guard/test-only.
+
+Explicit non-goals
+- Do not change runtime C behavior.
+- Do not edit controller/runtime modules.
+- Do not implement the actual dynamic state runner yet.
+- Do not broaden the roadmap or add unrelated docs.
+- Do not commit .agent/handoffs artifacts.
+
+Required registry coverage
+- Include records for at least these durable harness checks:
+  - transition_before_after_snapshot
+  - declared_write_set_diff
+  - render_projection_read_only_diff
+  - generation_mismatch_check
+  - blocked_transition_no_unrelated_mutation
+- Each record should declare enough fields for a later harness to know the snapshot phase/regions, transition references, owner/write-set fields, invariant references, generation-domain references, expected behavior, and failure mode.
+- Validate references against existing registries: docs/appstate_transition_matrix.json, docs/appstate_owner_fields.json, docs/appstate_invariants.json, docs/appstate_generation_domains.json.
+
+Acceptance criteria checklist
+- [ ] docs/appstate_diff_harness.json exists and is valid JSON.
+- [ ] scripts/check_appstate_contract.py loads and validates the registry by default.
+- [ ] The script has a CLI override for the new registry path.
+- [ ] The current repository passes python3 scripts/check_appstate_contract.py.
+- [ ] Tests prove failures for missing required field, duplicate harness IDs, unknown check category, unknown transition reference, unknown owner/write-set reference, unknown invariant reference, unknown generation-domain reference, and malformed list fields.
+- [ ] Tests prove a valid temporary registry override passes.
+- [ ] No runtime C files are changed.
+
+Exact verification commands, targeted first
+- python3 scripts/check_appstate_contract.py
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+- git diff --check
+- make qa-code-quality
+- make clean && make
+
+Required report path
+- Write /home/rob/ytree/.agent/handoffs/report.1.23.txt with:
+  - Summary
+  - Files changed
+  - Validation commands and results
+  - Any risks, skipped checks, or blockers
+
+Completion reply must be exactly one line:
+APPSTATE DIFF HARNESS UNIT completed, report in /home/rob/ytree/.agent/handoffs/report.1.23.txt

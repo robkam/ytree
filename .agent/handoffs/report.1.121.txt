@@ -1,0 +1,17 @@
+Files changed:
+- scripts/check_appstate_contract.py: added same-harness diff_harness owner_field_refs/invariant_ids protected-field alignment checks for docs and runtime metadata, skipping malformed/unknown refs so existing validators report them.
+- tests/test_appstate_contract_guard.py: added docs and runtime regression coverage for a diff harness owner field not protected by any invariant listed on that same harness.
+- src/core/main.c: added fail-closed startup helper used by AppStateDiffHarnessRegistryReady after owner field and invariant id lookups are validated.
+- docs/appstate_diff_harness.json: minimally added existing invariants to the two harnesses whose owner_field_refs needed same-harness protection coverage.
+- src/core/appstate_actions.c: mirrored the diff harness invariant id metadata additions in the runtime registry so docs/runtime contract checks remain aligned.
+
+Commands run:
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'diff_harness and invariant' — PASS (13 passed, 334 deselected).
+- source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py — PASS (347 passed).
+- python3 scripts/check_appstate_contract.py — PASS.
+- make clean && make — PASS (build completed; existing compiler warnings were emitted in unrelated files).
+- git diff --check — PASS.
+
+Residual risk or skipped commands:
+- No required commands were skipped.
+- Residual risk: src/core/appstate_actions.c was updated in addition to the prompt's expected source file list because it contains the runtime diff harness registry; without that mirror change the new runtime drift guard would fail the current contract.

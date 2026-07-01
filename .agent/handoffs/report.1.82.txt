@@ -1,0 +1,31 @@
+PR #110 correction report: preserve shim invariant array parse failures
+
+Scope
+- Worked only in /tmp/ytnova-pr110-fix.
+- Changed scripts/check_appstate_contract.py and tests/test_appstate_contract_guard.py.
+- Left pre-existing modified docs/appstate_compat_shims.json and src/core/appstate_actions.c untouched.
+
+Changes
+- _parse_runtime_shim_registry() now keeps the failures list initialized before parsing kAppStateCompatibilityShimInvariantChecks arrays and no longer reinitializes it before row parsing, so _parse_string_initializer_array() failures survive to the returned failure list.
+- Added test_guard_preserves_runtime_shim_invariant_array_parse_failures(), which corrupts a runtime shim invariant array entry to NULL and asserts the malformed string literal entry failure is reported.
+
+Red/green evidence
+- RED before implementation fix:
+  source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'preserves_runtime_shim_invariant_array_parse_failures'
+  Result: failed as expected; malformed kAppStateCompatibilityShimInvariantChecks0[0] parse failure was not preserved.
+- GREEN after implementation fix:
+  source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'preserves_runtime_shim_invariant_array_parse_failures'
+  Result: 1 passed, 293 deselected.
+
+Required verification
+- source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'shim and invariant'
+  Result: 8 passed, 286 deselected.
+- source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py
+  Result: 294 passed.
+- source /home/rob/ytreenova/.venv/bin/activate && python3 scripts/check_appstate_contract.py
+  Result: PASS: AppState contract guard passed.
+- git diff --check
+  Result: passed with no output.
+
+Not run
+- make qa-all, per prompt.
