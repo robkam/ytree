@@ -6727,6 +6727,49 @@ def test_panel_tree_viewport_top_path_updates_route_through_appstate_helper() ->
     )
 
 
+def test_panel_volume_tree_viewport_snapshot_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitPanelVolumeTreeViewportSnapshot(" in header
+
+    helper_start = helper.index(
+        "BOOL AppStateCommitPanelVolumeTreeViewportSnapshot("
+    )
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitPanelFileViewport(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("panel.restore_snapshot")'
+    generation_write = "state->saved_tree_panel_generation = panel_generation;"
+    selected_path_write = "state->saved_tree_selected_dir_path[0] = '\\0';"
+    top_path_write = "state->saved_tree_top_dir_path[0] = '\\0';"
+    assert validation in helper_body
+    assert generation_write in helper_body
+    assert selected_path_write in helper_body
+    assert top_path_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(generation_write)
+    assert helper_body.index(validation) < helper_body.index(selected_path_write)
+    assert helper_body.index(validation) < helper_body.index(top_path_write)
+
+    save_start = panel_anchor.index("void SavePanelTreeViewportSnapshot(")
+    reset_start = panel_anchor.index(
+        "\nvoid ResetPanelTreeViewportSnapshot(", save_start
+    )
+    save_body = panel_anchor[save_start:reset_start]
+    reset_end = panel_anchor.index("\nint FindDirIndexByPath(", reset_start)
+    reset_body = panel_anchor[reset_start:reset_end]
+    for body in [save_body, reset_body]:
+        assert "state->saved_tree_panel_generation =" not in body
+        assert "state->saved_tree_volume_generation =" not in body
+        assert "state->has_saved_tree_selection =" not in body
+        assert "state->has_saved_tree_top =" not in body
+        assert "state->saved_tree_selected_dir_path" not in body
+        assert "state->saved_tree_top_dir_path" not in body
+        assert "AppStateCommitPanelVolumeTreeViewportSnapshot(" in body
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

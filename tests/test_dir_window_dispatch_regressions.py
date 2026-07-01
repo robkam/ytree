@@ -321,13 +321,12 @@ def test_volume_tree_restore_uses_panel_path_snapshot_before_index_breadcrumb():
         )
 
     assert "CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);" in save_source
-    assert "state->saved_tree_panel_generation = panel->panel_generation;" in save_source
     assert (
-        "state->saved_tree_volume_generation = panel->vol->volume_generation;"
+        "AppStateCommitPanelVolumeTreeViewportSnapshot("
         in save_source
     )
     assert (
-        "snprintf(state->saved_tree_selected_dir_path,"
+        "snapshot.has_selected_dir_path, snapshot.selected_dir_path,"
         in save_source
     ), save_source
 
@@ -366,8 +365,11 @@ def test_log_disk_restore_does_not_use_volume_tree_breadcrumbs():
     assert "panel->disp_begin_pos = 0;" not in log_disk_source
     assert "panel->cursor_pos = 0;" not in log_disk_source
     assert "ResetPanelTreeViewportSnapshot(panel);" in log_disk_source
-    assert "state->has_saved_tree_selection = FALSE;" in reset_snapshot_source
-    assert "state->has_saved_tree_top = FALSE;" in reset_snapshot_source
+    assert (
+        "AppStateCommitPanelVolumeTreeViewportSnapshot("
+        in reset_snapshot_source
+    )
+    assert "NULL, FALSE, NULL" in reset_snapshot_source
     assert "saved_tree_index" not in reset_snapshot_source
     assert "saved_tree_generation" not in reset_snapshot_source
 

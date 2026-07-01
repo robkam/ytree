@@ -167,25 +167,11 @@ void SavePanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
     return;
   state = GetPanelVolumeFileState(panel, panel->vol->id);
   CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);
-  state->saved_tree_panel_generation = panel->panel_generation;
-  state->saved_tree_volume_generation = panel->vol->volume_generation;
-  state->has_saved_tree_selection = snapshot.has_selected_dir_path;
-  state->has_saved_tree_top = snapshot.has_top_dir_path;
-  state->saved_tree_selected_dir_path[0] = '\0';
-  state->saved_tree_top_dir_path[0] = '\0';
-  if (snapshot.has_selected_dir_path) {
-    (void)snprintf(state->saved_tree_selected_dir_path,
-                   sizeof(state->saved_tree_selected_dir_path), "%s",
-                   snapshot.selected_dir_path);
-    state->saved_tree_selected_dir_path[PATH_LENGTH] = '\0';
-  }
-  if (snapshot.has_top_dir_path) {
-    (void)snprintf(state->saved_tree_top_dir_path,
-                   sizeof(state->saved_tree_top_dir_path), "%s",
-                   snapshot.top_dir_path);
-    state->saved_tree_top_dir_path[PATH_LENGTH] = '\0';
-  }
-
+  if (!AppStateCommitPanelVolumeTreeViewportSnapshot(
+          state, panel->panel_generation, panel->vol->volume_generation,
+          snapshot.has_selected_dir_path, snapshot.selected_dir_path,
+          snapshot.has_top_dir_path, snapshot.top_dir_path))
+    return;
 }
 
 void ResetPanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
@@ -195,12 +181,10 @@ void ResetPanelTreeViewportSnapshot(YtreeNovaPanel *panel) {
     return;
 
   state = GetPanelVolumeFileState(panel, panel->vol->id);
-  state->saved_tree_panel_generation = panel->panel_generation;
-  state->saved_tree_volume_generation = panel->vol->volume_generation;
-  state->has_saved_tree_selection = FALSE;
-  state->has_saved_tree_top = FALSE;
-  state->saved_tree_selected_dir_path[0] = '\0';
-  state->saved_tree_top_dir_path[0] = '\0';
+  if (!AppStateCommitPanelVolumeTreeViewportSnapshot(
+          state, panel->panel_generation, panel->vol->volume_generation, FALSE,
+          NULL, FALSE, NULL))
+    return;
 }
 
 int FindDirIndexByPath(const struct Volume *vol, const char *path) {
