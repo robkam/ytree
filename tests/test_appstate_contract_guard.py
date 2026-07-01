@@ -6870,6 +6870,28 @@ def test_global_search_term_writes_route_through_appstate_helper() -> None:
     assert "strncpy(raw_pattern, input_buf, 255)" not in search_body
 
 
+def test_event_coverage_transition_sequence_arrays_are_referenced() -> None:
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    array_names = set(
+        re.findall(
+            r"static const char \*const "
+            r"(kAppStateEventCoverageTransitionSequenceRefs\d+)\[\]",
+            source,
+        )
+    )
+
+    table_start = source.index(
+        "static const AppStateEventCoverageMetadata\n"
+        "    kAppStateEventCoverages[APPSTATE_EVENT_COVERAGE_COUNT]"
+    )
+    table_source = source[table_start:]
+    referenced_names = set(
+        re.findall(r"\b(kAppStateEventCoverageTransitionSequenceRefs\d+)\b", table_source)
+    )
+
+    assert array_names <= referenced_names
+
+
 def test_panel_generation_restores_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

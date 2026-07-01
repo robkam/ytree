@@ -3745,9 +3745,6 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs2[] = {
 static const char *const kAppStateEventCoverageTransitionSequenceRefs3[] = {
   "sequence.search-jump",
 };
-static const char *const kAppStateEventCoverageTransitionSequenceRefs4[] = {
-  "sequence.esc-modal-dismissal",
-};
 static const char *const kAppStateEventCoverageTransitionSequenceRefs5[] = {
   "sequence.volume-cycling-release",
 };
