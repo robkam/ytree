@@ -711,7 +711,8 @@ BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
           dst, src->max_visual_filename_len, src->max_visual_linkname_len,
           src->max_visual_userview_len, TRUE))
     return FALSE;
-  dst->reverse_sort = src->reverse_sort;
+  if (!AppStateCommitPanelFileSortOrder(dst, src->reverse_sort))
+    return FALSE;
   if (!AppStateCommitPanelFileAnchor(dst, NULL))
     return FALSE;
   PanelTags_Copy(dst, src);

@@ -23,6 +23,8 @@ BOOL AppStateCommitPanelFileRenderingMetrics(YtreeNovaPanel *panel,
                                              unsigned max_linkname,
                                              unsigned max_userview,
                                              BOOL update_userview);
+BOOL AppStateCommitPanelFileSortOrder(YtreeNovaPanel *panel,
+                                      BOOL reverse_sort);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);

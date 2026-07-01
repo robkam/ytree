@@ -96,6 +96,17 @@ BOOL AppStateCommitPanelFileRenderingMetrics(YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelFileSortOrder(YtreeNovaPanel *panel,
+                                      BOOL reverse_sort) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->reverse_sort = reverse_sort;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {
