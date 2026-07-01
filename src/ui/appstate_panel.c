@@ -84,6 +84,23 @@ BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelTreeViewportTopPath(YtreeNovaPanel *panel, int slot,
+                                            const char *top_path) {
+  if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
+    return FALSE;
+  if (!panel || slot < 0 || slot >= 2)
+    return FALSE;
+
+  panel->tree_viewport_top_dir_path[slot][0] = '\0';
+  if (top_path) {
+    (void)snprintf(panel->tree_viewport_top_dir_path[slot],
+                   sizeof(panel->tree_viewport_top_dir_path[slot]), "%s",
+                   top_path);
+    panel->tree_viewport_top_dir_path[slot][PATH_LENGTH] = '\0';
+  }
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelTreeViewportTopPaths(YtreeNovaPanel *panel,
                                              const YtreeNovaPanel *source) {
   if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
