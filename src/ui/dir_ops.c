@@ -1067,16 +1067,16 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
       ctx->active->vol->total_dirs <= 0) {
     dir_entry = ResolveActiveDirEntry(ctx, s);
     if (dir_entry) {
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = -1;
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
+        return dir_entry;
       RefreshView(ctx, dir_entry);
     }
     return dir_entry;
   }
   dir_entry = ResolveActiveDirEntry(ctx, s);
   if (dir_entry) {
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = -1;
+    if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
+      return dir_entry;
     RefreshView(ctx, dir_entry);
   }
   return dir_entry;
