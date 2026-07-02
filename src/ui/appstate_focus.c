@@ -35,6 +35,16 @@ BOOL AppStateCommitPanelFileShape(YtreeNovaPanel *panel, BOOL big_file_view) {
   return TRUE;
 }
 
+BOOL AppStateCommitDirEntryFileShape(DirEntry *dir_entry, BOOL big_file_view) {
+  if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->big_window = big_file_view ? TRUE : FALSE;
+  return TRUE;
+}
+
 BOOL AppStateCommitVolumeFocusMirror(struct Volume *volume, ViewFocus focus) {
   if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
     return FALSE;

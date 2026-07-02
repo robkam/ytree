@@ -1521,7 +1521,8 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
   if (!AppStateCommitPanelFocus(ctx, panel, FOCUS_FILE))
     return dir_entry;
   if (!dir_entry->global_flag && !dir_entry->tagged_flag) {
-    dir_entry->big_window = panel->saved_big_file_view;
+    if (!AppStateCommitDirEntryFileShape(dir_entry, panel->saved_big_file_view))
+      return dir_entry;
   }
   DEBUG_LOG(
       "RestorePanelFileSelection:dir='%s' total=%u matching=%u file_count=%u "
