@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_defs.h"
+#include "ytnova_appstate_modal.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -73,8 +74,10 @@ char *PrepareCompletionMatches(ViewContext *ctx, char *base, int *show_dialog) {
     return NULL;
   }
 
-  ctx->tab_disp_begin_pos = 1;
-  ctx->tab_cursor_pos = 0;
+  if (!AppStateCommitCompletionViewport(ctx, 1, 0)) {
+    free(expanded_base);
+    return NULL;
+  }
   if (show_dialog != NULL)
     *show_dialog = 1;
 

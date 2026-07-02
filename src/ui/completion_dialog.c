@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_ui.h"
+#include "ytnova_appstate_modal.h"
 #include "ytnova_cmd.h"
 #include <string.h>
 
@@ -122,6 +123,8 @@ char *GetMatches(ViewContext *ctx, char *base) {
   char *RetVal = NULL;
   char *TMP;
   int hide_left, hide_right;
+  int next_begin;
+  int next_cursor;
 
   RetVal = PrepareCompletionMatches(ctx, base, &show_dialog);
   if (!show_dialog)
@@ -179,7 +182,12 @@ char *GetMatches(ViewContext *ctx, char *base) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
                          &hide_right);
-          ctx->tab_cursor_pos++;
+          if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
+                                                ctx->tab_cursor_pos + 1)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                          &hide_right);
@@ -188,7 +196,12 @@ char *GetMatches(ViewContext *ctx, char *base) {
                          ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
                          &hide_right);
           scroll(ctx->ctx_matches_window);
-          ctx->tab_disp_begin_pos++;
+          if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos + 1,
+                                                ctx->tab_cursor_pos)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                          &hide_right);
@@ -204,7 +217,12 @@ char *GetMatches(ViewContext *ctx, char *base) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
                          &hide_right);
-          ctx->tab_cursor_pos--;
+          if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
+                                                ctx->tab_cursor_pos - 1)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                          &hide_right);
@@ -214,7 +232,12 @@ char *GetMatches(ViewContext *ctx, char *base) {
                          &hide_right);
           wmove(ctx->ctx_matches_window, 0, 0);
           winsertln(ctx->ctx_matches_window);
-          ctx->tab_disp_begin_pos--;
+          if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos - 1,
+                                                ctx->tab_cursor_pos)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                          &hide_right);
@@ -232,10 +255,16 @@ char *GetMatches(ViewContext *ctx, char *base) {
                          &hide_right);
           if (ctx->tab_disp_begin_pos + MATCHES_WINDOW_HEIGHT >
               ctx->tab_total_matches - 1)
-            ctx->tab_cursor_pos =
+            next_cursor =
                 ctx->tab_total_matches - ctx->tab_disp_begin_pos - 1;
           else
-            ctx->tab_cursor_pos = MATCHES_WINDOW_HEIGHT - 1;
+            next_cursor = MATCHES_WINDOW_HEIGHT - 1;
+          if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
+                                                next_cursor)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                          &hide_right);
@@ -243,15 +272,18 @@ char *GetMatches(ViewContext *ctx, char *base) {
           if (ctx->tab_disp_begin_pos + ctx->tab_cursor_pos +
                   MATCHES_WINDOW_HEIGHT <
               ctx->tab_total_matches) {
-            ctx->tab_disp_begin_pos += MATCHES_WINDOW_HEIGHT;
-            ctx->tab_cursor_pos = MATCHES_WINDOW_HEIGHT - 1;
+            next_begin = ctx->tab_disp_begin_pos + MATCHES_WINDOW_HEIGHT;
+            next_cursor = MATCHES_WINDOW_HEIGHT - 1;
           } else {
-            ctx->tab_disp_begin_pos =
-                ctx->tab_total_matches - MATCHES_WINDOW_HEIGHT;
-            if (ctx->tab_disp_begin_pos < 1)
-              ctx->tab_disp_begin_pos = 1;
-            ctx->tab_cursor_pos =
-                ctx->tab_total_matches - ctx->tab_disp_begin_pos - 1;
+            next_begin = ctx->tab_total_matches - MATCHES_WINDOW_HEIGHT;
+            if (next_begin < 1)
+              next_begin = 1;
+            next_cursor = ctx->tab_total_matches - next_begin - 1;
+          }
+          if (!AppStateCommitCompletionViewport(ctx, next_begin, next_cursor)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
           }
           DisplayMatches(ctx);
         }
@@ -265,15 +297,24 @@ char *GetMatches(ViewContext *ctx, char *base) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
                          &hide_right);
-          ctx->tab_cursor_pos = 0;
+          if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
+                                                0)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
                          ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                          &hide_right);
         } else {
-          if ((ctx->tab_disp_begin_pos -= MATCHES_WINDOW_HEIGHT) < 1) {
-            ctx->tab_disp_begin_pos = 1;
+          next_begin = ctx->tab_disp_begin_pos - MATCHES_WINDOW_HEIGHT;
+          if (next_begin < 1)
+            next_begin = 1;
+          if (!AppStateCommitCompletionViewport(ctx, next_begin, 0)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
           }
-          ctx->tab_cursor_pos = 0;
           DisplayMatches(ctx);
         }
       }
@@ -282,16 +323,22 @@ char *GetMatches(ViewContext *ctx, char *base) {
       if (ctx->tab_disp_begin_pos == 1 && ctx->tab_cursor_pos == 0) {
         UI_Beep(ctx, FALSE);
       } else {
-        ctx->tab_disp_begin_pos = 1;
-        ctx->tab_cursor_pos = 0;
+        if (!AppStateCommitCompletionViewport(ctx, 1, 0)) {
+          RetVal = NULL;
+          ch = ESC;
+          break;
+        }
         DisplayMatches(ctx);
       }
       break;
     case KEY_END:
-      ctx->tab_disp_begin_pos =
-          MAX(1, ctx->tab_total_matches - MATCHES_WINDOW_HEIGHT);
-      ctx->tab_cursor_pos =
-          ctx->tab_total_matches - ctx->tab_disp_begin_pos - 1;
+      next_begin = MAX(1, ctx->tab_total_matches - MATCHES_WINDOW_HEIGHT);
+      next_cursor = ctx->tab_total_matches - next_begin - 1;
+      if (!AppStateCommitCompletionViewport(ctx, next_begin, next_cursor)) {
+        RetVal = NULL;
+        ch = ESC;
+        break;
+      }
       DisplayMatches(ctx);
       break;
     case LF:

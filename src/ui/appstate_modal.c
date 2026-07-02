@@ -45,3 +45,15 @@ BOOL AppStateCommitHistoryViewport(ViewContext *ctx, int disp_begin_pos,
   ctx->cursor_pos = cursor_pos;
   return TRUE;
 }
+
+BOOL AppStateCommitCompletionViewport(ViewContext *ctx, int disp_begin_pos,
+                                      int cursor_pos) {
+  if (!AppStateValidatedOwnerField("ctx.modal_state"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->tab_disp_begin_pos = disp_begin_pos;
+  ctx->tab_cursor_pos = cursor_pos;
+  return TRUE;
+}
