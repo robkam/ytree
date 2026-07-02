@@ -1133,12 +1133,14 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
     if (dir_entry->log_flag) {
       dir_entry->log_flag = FALSE;
     } else {
-      dir_entry->big_window = TRUE;
-      dir_entry->global_flag = TRUE;
-      dir_entry->global_all_volumes = all_volumes;
-      dir_entry->tagged_flag = tagged_only;
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = 0;
+      if (!AppStateCommitDirEntryFileShape(dir_entry, TRUE))
+        return;
+      if (!AppStateCommitDirEntryGlobalFilter(dir_entry, TRUE, all_volumes))
+        return;
+      if (!AppStateCommitDirEntryTaggedFilter(dir_entry, tagged_only))
+        return;
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0))
+        return;
     }
     /*
      * Tree-to-file handoff must not replay queued tree keystrokes in the
@@ -1154,18 +1156,24 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
 
     if (result != LOG_ESC) {
       /* Restore normal mode and refresh the entire view */
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = -1;
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
+        return;
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
       dir_entry = GetPanelDirEntry(p);
       RefreshView(ctx, dir_entry);
-      dir_entry->global_all_volumes = FALSE;
+      if (!dir_entry ||
+          !AppStateCommitDirEntryGlobalFilter(
+              dir_entry, dir_entry->global_flag, FALSE))
+        return;
     } else {
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
       dir_entry = GetPanelDirEntry(p);
       RefreshView(ctx, dir_entry);
       *ch = 'L';
-      dir_entry->global_all_volumes = FALSE;
+      if (!dir_entry ||
+          !AppStateCommitDirEntryGlobalFilter(
+              dir_entry, dir_entry->global_flag, FALSE))
+        return;
     }
   } else {
     dir_entry->log_flag = FALSE;
@@ -1212,13 +1220,17 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
     if (dir_entry->log_flag) {
       dir_entry->log_flag = FALSE;
     } else {
-      dir_entry->global_flag = FALSE;
-      dir_entry->global_all_volumes = FALSE;
-      dir_entry->tagged_flag = FALSE;
-      if (restore_saved_file_window && p->saved_big_file_view)
-        dir_entry->big_window = TRUE;
-      else
-        dir_entry->big_window = ctx->bypass_small_window;
+      BOOL big_file_view;
+
+      if (!AppStateCommitDirEntryGlobalFilter(dir_entry, FALSE, FALSE))
+        return;
+      if (!AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE))
+        return;
+      big_file_view = restore_saved_file_window && p->saved_big_file_view
+                          ? TRUE
+                          : ctx->bypass_small_window;
+      if (!AppStateCommitDirEntryFileShape(dir_entry, big_file_view))
+        return;
       {
         int file_start;
         int file_cursor;

@@ -4,24 +4,22 @@ Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-window-mode-reset-helpers
-Active PR: https://github.com/robkam/ytreenova/pull/327
+Current branch: appstate-dir-window-mode-helpers
+Active PR: https://github.com/robkam/ytreenova/pull/328
 Supersession state: maintainer resumed autonomous AppState work; no later pause or stop instruction is active.
 
 Recently confirmed remote state:
-- Main is at `483db83` after the tagged-filter helper PR merged.
-- No open PRs were reported by `gh pr status` before this branch publication.
-- Untracked local files are present and intentionally untouched: `docs/quickstart.md`.
+- No open PRs were reported before this branch was created.
+- Local `main` and `origin/main` were at `93e2772` after the file-window mode reset helper PR merged.
 
 Current AppState batch:
-- Add `AppStateCommitDirEntryGlobalFilter` as the DirEntry global-filter boundary helper.
-- Route file-window mode reset writes in `src/ui/ctrl_file.c` through AppState helpers for global filter, tagged filter, and file shape state.
-- Add guard coverage that prevents direct writes to `global_flag`, `global_all_volumes`, `tagged_flag`, and `big_window` in the file-window reset paths.
-- Scope is limited to `include/ytnova_appstate_visibility.h`, `src/ui/appstate_visibility.c`, `src/ui/ctrl_file.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
+- Route directory-window show/global and switch-window mode handoffs through AppState helpers for DirEntry file shape, global filter, tagged filter, and file viewport state.
+- Add guard coverage that prevents direct writes to `global_flag`, `global_all_volumes`, `tagged_flag`, `big_window`, `start_file`, and `cursor_pos` in the directory-window mode handoff paths.
+- Scope is limited to `src/ui/dir_ops.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_window_mode_resets_commit_through_appstate_helpers` failed before `AppStateCommitDirEntryGlobalFilter` existed.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'file_window_mode_resets_commit_through_appstate_helpers or dir_entry_tagged_filter_commits_through_appstate_helper or panel_file_shape_commits_use_appstate_helper'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_ops_mode_handoffs_commit_through_appstate_helpers` failed before the directory-window handoffs used AppState helpers.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'dir_ops_mode_handoffs_commit_through_appstate_helpers or dir_ops_restore_file_shape_commits_use_appstate_helper or dir_ops_switch_window_viewports_commit_through_appstate_helper or dir_entry_tagged_filter_commits_through_appstate_helper or file_window_mode_resets_commit_through_appstate_helpers'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `make clean && make` with existing warnings.
 

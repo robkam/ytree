@@ -39,7 +39,7 @@ v1.0.0-alpha is being published early so people can use the program, inspect the
 
 ## Features (v1.0.0-alpha)
 
-*   **Classic XTree&trade; Interface:** Directory Tree + File List layout.
+*   **Classic XTree™ Interface:** Directory Tree + File List layout.
 *   **Split Screen Mode (F8):** Manage two independent file panels side-by-side.
 *   **File Preview (F7):** Instant view of file contents without launching external tools.
 *   **Multi-Volume Support:** Log multiple drives or archives simultaneously and switch instantly.
@@ -98,6 +98,7 @@ The project documentation is split into several focused files.
 | Document | Purpose |
 | :--- | :--- |
 | **[USAGE.md](docs/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytnova.1.md`). |
+| **[quickstart.md](docs/quickstart.md)** | **Developer Setup**: How to set up the environment, run tests, and work on the codebase. |
 | **[BUGS.md](docs/BUGS.md)** | **Known Issues**: Current defects, reproductions, and fix status. |
 | **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
 | **[PR_GATE.md](docs/PR_GATE.md)** | **PR Governance**: Required PR gate checks and triage rules needed for merge readiness. |
