@@ -123,10 +123,13 @@ BOOL RebindActiveFilePanelSelection(YtreeNovaPanel *panel, DirEntry **dir_entry_
    * window shape so the next keypress continues that panel's own selection
    * instead of inheriting the last pane's row or zoom state.
    */
-  panel_dir->start_file = panel->start_file;
-  panel_dir->cursor_pos = panel->file_cursor_pos;
-  if (!panel_dir->global_flag && !panel_dir->tagged_flag)
-    panel_dir->big_window = panel->saved_big_file_view;
+  if (!AppStateCommitDirEntryFileViewport(panel_dir, panel->start_file,
+                                          panel->file_cursor_pos))
+    return FALSE;
+  if (!panel_dir->global_flag && !panel_dir->tagged_flag) {
+    if (!AppStateCommitDirEntryFileShape(panel_dir, panel->saved_big_file_view))
+      return FALSE;
+  }
   if (!AppStateCommitPanelFileAnchor(panel, panel_dir))
     return FALSE;
   *dir_entry_io = panel_dir;
@@ -1102,7 +1105,8 @@ BOOL handle_file_window_misc_dispatch_action(
       break;
     if (!AppStateCommitPanelFileShape(ctx->active, TRUE))
       return FALSE;
-    dir_entry->big_window = TRUE;
+    if (!AppStateCommitDirEntryFileShape(dir_entry, TRUE))
+      return FALSE;
     RefreshView(ctx, dir_entry);
     FileNav_RereadWindowSize(ctx, dir_entry);
     loop_action = ACTION_NONE;
