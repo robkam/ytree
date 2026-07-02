@@ -4,26 +4,26 @@ Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-history-viewport-helper
-Active PR: https://github.com/robkam/ytreenova/pull/334
-Supersession state: maintainer resumed autonomous AppState work; no later pause or stop instruction is active.
+Current branch: appstate-completion-viewport-helper
+Active PR: https://github.com/robkam/ytreenova/pull/335
+Supersession state: maintainer instructed to continue current work until the next idle boundary, then stop and do not start another batch.
 
 Recently confirmed remote state:
-- PR https://github.com/robkam/ytreenova/pull/333 merged at `9679f33` after green checks.
-- Local `main` and `origin/main` are at `9679f33`.
-- The feature branch `appstate-tree-read-dir-entry-init-helpers` was removed remotely during merge cleanup.
+- PR https://github.com/robkam/ytreenova/pull/334 merged at `81439e4` after green checks.
+- Local `main` and `origin/main` are at `81439e4`.
+- The feature branch `appstate-history-viewport-helper` was removed remotely during merge cleanup.
 
 Current AppState batch:
-- Route history dialog viewport cursor/origin mutations through the modal AppState helper boundary.
-- Add guard coverage that prevents direct writes to the history dialog viewport fields in `GetHistory`.
-- Scope is limited to `include/ytnova_appstate_modal.h`, `src/ui/appstate_modal.c`, `src/ui/history_dialog.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
+- Route completion dialog viewport cursor/origin mutations through the modal AppState helper boundary.
+- Add guard coverage that prevents direct writes to the completion dialog viewport fields in `GetMatches` and completion preparation.
+- Scope is limited to `include/ytnova_appstate_modal.h`, `src/ui/appstate_modal.c`, `src/ui/completion_dialog.c`, `src/util/completion_utils.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k history_viewport_routes_through_appstate_helper` failed before the helper existed.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k history_viewport_routes_through_appstate_helper`
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'history_viewport_routes_through_appstate_helper or preview_modal_state_routes_through_appstate_helper or panel_tree_viewport_commits_route_through_appstate_helper'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k completion_viewport_routes_through_appstate_helper` failed before the helper existed.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k completion_viewport_routes_through_appstate_helper`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'completion_viewport_routes_through_appstate_helper or history_viewport_routes_through_appstate_helper or preview_modal_state_routes_through_appstate_helper'`
 - Passed: `make clean && make` with existing warnings.
 
 Next action:
-- Follow the CI wait rule for the draft PR, then mark ready and merge only after checks and review requirements allow.
+- Follow the CI wait rule for the draft PR, then mark ready and merge only after checks and review requirements allow. After merge, clean up, update this checkpoint, mark the active goal blocked due the stop instruction, and stop without selecting another batch.
