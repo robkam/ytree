@@ -4,23 +4,23 @@ Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-refresh-dir-entry-mode-helpers
-Active PR: https://github.com/robkam/ytreenova/pull/330
+Current branch: appstate-log-restored-file-shape-helper
+Active PR: https://github.com/robkam/ytreenova/pull/331
 Supersession state: maintainer resumed autonomous AppState work; no later pause or stop instruction is active.
 
 Recently confirmed remote state:
-- PR https://github.com/robkam/ytreenova/pull/329 merged at `df9b251` after green checks.
-- Local `main` is fast-forwarded to `origin/main` at `df9b251`.
-- The feature branch `appstate-dir-enter-file-viewport-helper` was removed remotely during merge cleanup.
+- PR https://github.com/robkam/ytreenova/pull/330 merged at `c71ba72` after green checks.
+- Local `main` is fast-forwarded to `origin/main` at `c71ba72`.
+- The feature branch `appstate-refresh-dir-entry-mode-helpers` was removed remotely during merge cleanup.
 
 Current AppState batch:
-- Route `RefreshTreeSafe` restoration of DirEntry file shape, global filter, and tagged filter state through AppState helpers after destructive rescans.
-- Add guard coverage that prevents direct writes to `global_flag`, `global_all_volumes`, `tagged_flag`, and `big_window` in that refresh path.
-- Scope is limited to `src/ui/dir_ops.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
+- Route restored file-window shape for resolved log file anchors through `AppStateCommitDirEntryFileShape`.
+- Extend guard coverage so direct writes to `resolved_file_dir->big_window` are blocked in the log restore path.
+- Scope is limited to `src/cmd/log.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_ops_refresh_mode_restore_commits_through_appstate_helpers` failed before the refresh restore path used AppState helpers.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'dir_ops_refresh_mode_restore_commits_through_appstate_helpers or dir_ops_mode_handoffs_commit_through_appstate_helpers or dir_entry_tagged_filter_commits_through_appstate_helper or file_window_mode_resets_commit_through_appstate_helpers'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_ops_restore_file_shape_commits_use_appstate_helper` failed before the log restore path used AppState helper routing.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'dir_ops_restore_file_shape_commits_use_appstate_helper or panel_file_shape_commits_use_appstate_helper or log_file_anchors_route_through_appstate_helper'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `make clean && make` with existing warnings.
 

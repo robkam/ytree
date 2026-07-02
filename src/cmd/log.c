@@ -167,7 +167,9 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
     if (!AppStateCommitPanelFileAnchor(panel, resolved_file_dir))
       return;
     if (resolved_file_dir) {
-      resolved_file_dir->big_window = state->saved_big_file_view;
+      if (!AppStateCommitDirEntryFileShape(resolved_file_dir,
+                                           state->saved_big_file_view))
+        return;
       PositionSavedFileSelection(ctx, panel, resolved_file_dir,
                                  state->saved_file_selection_name);
     }
