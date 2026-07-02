@@ -232,16 +232,22 @@ void FileNav_SyncGridMetrics(ViewContext *ctx) {
 }
 
 void FileNav_RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry) {
+  int start_file;
+  int cursor_pos;
+
   if (!ctx || !ctx->active || !dir_entry)
     return;
 
   FileNav_SyncGridMetrics(ctx);
 
+  start_file = dir_entry->start_file;
+  cursor_pos = dir_entry->cursor_pos;
   if (dir_entry->start_file + dir_entry->cursor_pos <
       (int)ctx->active->file_count) {
-    while (dir_entry->cursor_pos >= GetSafeMaxDispFiles(ctx)) {
-      dir_entry->start_file += GetSafeXStep(ctx);
-      dir_entry->cursor_pos -= GetSafeXStep(ctx);
+    while (cursor_pos >= GetSafeMaxDispFiles(ctx)) {
+      start_file += GetSafeXStep(ctx);
+      cursor_pos -= GetSafeXStep(ctx);
     }
   }
+  (void)AppStateCommitDirEntryFileViewport(dir_entry, start_file, cursor_pos);
 }

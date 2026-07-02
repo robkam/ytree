@@ -1,26 +1,26 @@
 # ytreenova AppState continuation checkpoint
 
-Date: 2026-07-01
+Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-owner-dir-viewport-helper
-Active PR: https://github.com/robkam/ytreenova/pull/314
+Current branch: appstate-file-grid-viewport-helper
+Active PR: https://github.com/robkam/ytreenova/pull/315
 Supersession state: maintainer resumed autonomous AppState work after the earlier prompt-process stop condition.
 
 Recently confirmed remote state:
-- PR https://github.com/robkam/ytreenova/pull/313 merged at 2026-07-01T23:35:20Z.
-- Local main was up to date with origin/main at merge commit 4d2bcee87bdd81c3c396f64e2ef08629d6acb0a1.
-- The prior remote branch was already deleted by GitHub when local cleanup ran.
+- PR https://github.com/robkam/ytreenova/pull/314 merged after PR checks were green.
+- Local main was up to date with origin/main at merge commit 08e32cdaafbe1e293b56a9f85e613a9a682b9443.
+- No open PRs were present before this branch started.
 
 Current AppState batch:
-- Route owner-directory file cursor positioning in `src/ui/ctrl_file.c` through `AppStateCommitDirEntryFileViewport` before mirroring into the panel viewport snapshot.
-- Add guard coverage preventing direct `owner_dir->start_file` / `owner_dir->cursor_pos` writes in `PositionOwnerFileCursor`.
-- Scope is limited to `src/ui/ctrl_file.c` and `tests/test_appstate_contract_guard.py`.
+- Route file-navigation window-size/grid viewport adjustments through `AppStateCommitDirEntryFileViewport`.
+- Add guard coverage preventing direct `dir_entry->start_file` / `dir_entry->cursor_pos` writes in `FileNav_RereadWindowSize`.
+- Scope is limited to `src/ui/file_nav.c` and `tests/test_appstate_contract_guard.py`.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ctrl_file_owner_dir_entry_viewports_commit_through_appstate_helper` failed before owner-directory positioning used the DirEntry viewport helper.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'ctrl_file_owner_dir_entry_viewports_commit_through_appstate_helper or ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper or dir_tag_dir_entry_viewports_commit_through_appstate_helper'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_nav_grid_metrics_viewport_commit_through_appstate_helper` failed before `FileNav_RereadWindowSize` used the DirEntry viewport helper.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'file_nav_grid_metrics_viewport_commit_through_appstate_helper or file_nav_dir_entry_viewports_commit_through_appstate_helper or ctrl_file_owner_dir_entry_viewports_commit_through_appstate_helper'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `make clean && make` with existing warnings.
 
