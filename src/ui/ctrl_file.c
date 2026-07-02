@@ -1024,6 +1024,8 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   int max_disp_files;
   int original_start_file;
   int original_cursor_pos;
+  int start_file;
+  int cursor_pos;
   int i;
   int found_idx;
   int start_x = 0;
@@ -1035,6 +1037,8 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   max_disp_files = FileNav_GetMaxDispFiles(ctx);
   original_start_file = dir_entry->start_file;
   original_cursor_pos = dir_entry->cursor_pos;
+  start_file = original_start_file;
+  cursor_pos = original_cursor_pos;
   jump_win = ctx->ctx_menu_window ? ctx->ctx_menu_window : stdscr;
 
   (void)str; /* Unused */
@@ -1057,8 +1061,9 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
 
     if (ch == ESC) {
       /* Cancel: Restore */
-      dir_entry->start_file = original_start_file;
-      dir_entry->cursor_pos = original_cursor_pos;
+      if (!AppStateCommitDirEntryFileViewport(
+              dir_entry, original_start_file, original_cursor_pos))
+        return;
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
                    ctx->ctx_file_window);
@@ -1077,8 +1082,8 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
 
         /* Re-search or Restore */
         if (buf_len == 0) {
-          dir_entry->start_file = original_start_file;
-          dir_entry->cursor_pos = original_cursor_pos;
+          start_file = original_start_file;
+          cursor_pos = original_cursor_pos;
         } else {
           /* Search again from top for the shorter string */
           found_idx = -1;
@@ -1091,15 +1096,18 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
           }
 
           if (found_idx != -1) {
-            if (found_idx >= dir_entry->start_file &&
-                found_idx < dir_entry->start_file + max_disp_files) {
-              dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+            if (found_idx >= start_file &&
+                found_idx < start_file + max_disp_files) {
+              cursor_pos = found_idx - start_file;
             } else {
-              dir_entry->start_file = found_idx;
-              dir_entry->cursor_pos = 0;
+              start_file = found_idx;
+              cursor_pos = 0;
             }
           }
         }
+        if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file,
+                                                cursor_pos))
+          return;
         DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
                      ctx->ctx_file_window);
@@ -1121,13 +1129,16 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
 
         if (found_idx != -1) {
           buf_len++; /* Accept char */
-          if (found_idx >= dir_entry->start_file &&
-              found_idx < dir_entry->start_file + max_disp_files) {
-            dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+          if (found_idx >= start_file &&
+              found_idx < start_file + max_disp_files) {
+            cursor_pos = found_idx - start_file;
           } else {
-            dir_entry->start_file = found_idx;
-            dir_entry->cursor_pos = 0;
+            start_file = found_idx;
+            cursor_pos = 0;
           }
+          if (!AppStateCommitDirEntryFileViewport(dir_entry, start_file,
+                                                  cursor_pos))
+            return;
           DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                        dir_entry->start_file + dir_entry->cursor_pos, start_x,
                        ctx->ctx_file_window);
