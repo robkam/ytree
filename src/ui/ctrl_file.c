@@ -18,6 +18,7 @@
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_visibility.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
 #include "../../include/ytnova_split_transition.h"
@@ -763,10 +764,12 @@ file_window_done:
       /* Ensure all mode flags are cleared when exiting back to the tree.
        * This guarantees that RefreshView returns to small window
        * ctx->layout. */
-      dir_entry->global_flag = FALSE;
-      dir_entry->global_all_volumes = FALSE;
-      dir_entry->tagged_flag = FALSE;
-      dir_entry->big_window = FALSE;
+      if (!AppStateCommitDirEntryGlobalFilter(dir_entry, FALSE, FALSE))
+        return ESC;
+      if (!AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE))
+        return ESC;
+      if (!AppStateCommitDirEntryFileShape(dir_entry, FALSE))
+        return ESC;
     }
   } else {
     if (!AppStateCommitPanelFileAnchor(owner_panel, NULL))
@@ -979,10 +982,12 @@ static BOOL JumpToOwnerDirectory(ViewContext *ctx,
   if (!AppStateCommitPanelTreeViewport(panel, next_begin, next_cursor))
     return FALSE;
 
-  owner_dir->global_flag = FALSE;
-  owner_dir->global_all_volumes = FALSE;
-  owner_dir->tagged_flag = FALSE;
-  owner_dir->big_window = FALSE;
+  if (!AppStateCommitDirEntryGlobalFilter(owner_dir, FALSE, FALSE))
+    return FALSE;
+  if (!AppStateCommitDirEntryTaggedFilter(owner_dir, FALSE))
+    return FALSE;
+  if (!AppStateCommitDirEntryFileShape(owner_dir, FALSE))
+    return FALSE;
 
   PositionOwnerFileCursor(ctx, owner_dir, selected_file);
 
