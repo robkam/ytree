@@ -51,3 +51,16 @@ BOOL AppStateCommitDirEntryTaggedFilter(DirEntry *dir_entry, BOOL tagged_only) {
   dir_entry->tagged_flag = tagged_only ? TRUE : FALSE;
   return TRUE;
 }
+
+BOOL AppStateCommitDirEntryGlobalFilter(DirEntry *dir_entry, BOOL global_filter,
+                                        BOOL all_volumes) {
+  if (!AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->global_flag = global_filter ? TRUE : FALSE;
+  dir_entry->global_all_volumes =
+      global_filter && all_volumes ? TRUE : FALSE;
+  return TRUE;
+}

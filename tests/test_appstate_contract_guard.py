@@ -6117,6 +6117,62 @@ def test_dir_entry_tagged_filter_commits_through_appstate_helper() -> None:
         )
 
 
+def test_file_window_mode_resets_commit_through_appstate_helpers() -> None:
+    visibility_header = Path("include/ytnova_appstate_visibility.h").read_text(
+        encoding="utf-8"
+    )
+    visibility_helper = Path("src/ui/appstate_visibility.c").read_text(
+        encoding="utf-8"
+    )
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryGlobalFilter(" in visibility_header
+
+    helper_start = visibility_helper.index(
+        "BOOL AppStateCommitDirEntryGlobalFilter("
+    )
+    helper_body = visibility_helper[helper_start:]
+    assert (
+        'AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume")'
+        in helper_body
+    )
+    assert "dir_entry->global_flag = global_filter ? TRUE : FALSE;" in helper_body
+    assert re.search(
+        r"dir_entry->global_all_volumes\s*=\s*"
+        r"global_filter && all_volumes \? TRUE : FALSE;",
+        helper_body,
+    )
+
+    handle_start = ctrl_file.index("int HandleFileWindow(")
+    find_start = ctrl_file.index("\nstatic int FindDirIndexInVolume(", handle_start)
+    handle_body = ctrl_file[handle_start:find_start]
+    owner_start = ctrl_file.index("\nstatic BOOL JumpToOwnerDirectory(", find_start)
+    draw_prompt_start = ctrl_file.index("\nstatic void DrawFileListJumpPrompt(", owner_start)
+    owner_body = ctrl_file[owner_start:draw_prompt_start]
+
+    flag_write = re.compile(
+        r"\b(?:dir_entry|owner_dir)->"
+        r"(?:global_flag|global_all_volumes|tagged_flag|big_window)\s*=(?!=)"
+    )
+    for body in [handle_body, owner_body]:
+        assert not flag_write.search(body)
+        assert re.search(
+            r"AppStateCommitDirEntryGlobalFilter\(\s*"
+            r"(?:dir_entry|owner_dir),\s*FALSE,\s*FALSE\s*\)",
+            body,
+        )
+        assert re.search(
+            r"AppStateCommitDirEntryTaggedFilter\(\s*"
+            r"(?:dir_entry|owner_dir),\s*FALSE\s*\)",
+            body,
+        )
+        assert re.search(
+            r"AppStateCommitDirEntryFileShape\(\s*"
+            r"(?:dir_entry|owner_dir),\s*FALSE\s*\)",
+            body,
+        )
+
+
 def test_active_panel_session_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")
