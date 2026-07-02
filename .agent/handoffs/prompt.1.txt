@@ -4,24 +4,25 @@ Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-restore-file-viewport-helper
-Active PR: https://github.com/robkam/ytreenova/pull/323
+Current branch: appstate-restore-file-shape-helper
+Active PR: https://github.com/robkam/ytreenova/pull/324
 Supersession state: maintainer resumed autonomous AppState work after the earlier prompt-process stop condition.
 
 Recently confirmed remote state:
-- PR https://github.com/robkam/ytreenova/pull/322 merged after PR checks were green.
-- Local main fast-forwarded to origin/main at merge commit 9e038a9.
-- Remote branch `appstate-init-file-anchor-helper` was pruned after merge.
+- PR https://github.com/robkam/ytreenova/pull/323 merged after PR checks were green.
+- Local main fast-forwarded to origin/main at merge commit 4a607be.
+- Remote branch `appstate-restore-file-viewport-helper` was pruned after merge.
 - No open PRs were present before this branch started.
 
 Current AppState batch:
-- Route `RestorePanelFileSelection` DirEntry file viewport restores through `AppStateCommitDirEntryFileViewport`.
-- Add guard coverage preventing direct `dir_entry->start_file` / `dir_entry->cursor_pos` writes inside `RestorePanelFileSelection`.
-- Scope is limited to `src/ui/dir_ops.c` and `tests/test_appstate_contract_guard.py`.
+- Add `AppStateCommitDirEntryFileShape` as a focus-shape compatibility helper for DirEntry file-window shape writes.
+- Route `RestorePanelFileSelection` DirEntry `big_window` restore through that helper.
+- Add guard coverage preventing direct `dir_entry->big_window` writes inside `RestorePanelFileSelection`.
+- Scope is limited to `include/ytnova_appstate_focus.h`, `src/ui/appstate_focus.c`, `src/ui/dir_ops.c`, and `tests/test_appstate_contract_guard.py`.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_ops_restore_file_viewports_commit_through_appstate_helper` failed before `RestorePanelFileSelection` used the DirEntry viewport helper.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'dir_ops_restore_file_viewports_commit_through_appstate_helper or dir_ops_switch_window_viewports_commit_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k dir_ops_restore_file_shape_commits_use_appstate_helper` failed before the DirEntry file-shape helper existed.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'dir_ops_restore_file_shape_commits_use_appstate_helper or panel_file_shape_commits_use_appstate_helper'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `make clean && make` with existing warnings.
 

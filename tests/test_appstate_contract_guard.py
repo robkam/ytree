@@ -8975,6 +8975,38 @@ def test_panel_file_shape_commits_use_appstate_helper() -> None:
     )
 
 
+def test_dir_ops_restore_file_shape_commits_use_appstate_helper() -> None:
+    focus_header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
+    focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryFileShape(" in focus_header
+
+    helper_start = focus_helper.index("BOOL AppStateCommitDirEntryFileShape(")
+    helper_end = focus_helper.index(
+        "\nBOOL AppStateCommitVolumeFocusMirror(",
+        helper_start,
+    )
+    helper_body = focus_helper[helper_start:helper_end]
+    assert (
+        'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")'
+        in helper_body
+    )
+    assert "dir_entry->big_window = big_file_view ? TRUE : FALSE;" in helper_body
+
+    restore_start = dir_ops.index("\nDirEntry *RestorePanelFileSelection(")
+    restore_end = dir_ops.index(
+        "\nDirWindowDispatchResult\nHandleDirWindowPanelAction(",
+        restore_start,
+    )
+    restore_body = dir_ops[restore_start:restore_end]
+    assert not re.search(r"\bdir_entry->big_window\s*=(?!=)", restore_body)
+    assert (
+        "AppStateCommitDirEntryFileShape(dir_entry, panel->saved_big_file_view)"
+        in restore_body
+    )
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (
