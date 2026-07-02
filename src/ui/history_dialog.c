@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_ui.h"
+#include "ytnova_appstate_modal.h"
 #include "ytnova_cmd.h"
 #include <stdlib.h>
 #include <string.h>
@@ -149,6 +150,8 @@ char *GetHistory(ViewContext *ctx, int type) {
   char *RetVal = NULL;
   History *TMP;
   int hide_left, hide_right;
+  int next_begin;
+  int next_cursor;
 
   /* Initialize View */
   BuildHistoryViewList(ctx, type);
@@ -157,8 +160,8 @@ char *GetHistory(ViewContext *ctx, int type) {
   if (ctx->total_hist == 0)
     return NULL;
 
-  ctx->disp_begin_pos = 0;
-  ctx->cursor_pos = 0;
+  if (!AppStateCommitHistoryViewport(ctx, 0, 0))
+    return NULL;
   start_x = 0;
 
   UI_Dialog_Push(ctx->ctx_history_window, UI_TIER_POPOVER);
@@ -213,10 +216,16 @@ char *GetHistory(ViewContext *ctx, int type) {
 
         /* Adjust cursor */
         if (ctx->disp_begin_pos + ctx->cursor_pos >= ctx->total_hist) {
-          if (ctx->cursor_pos > 0)
-            ctx->cursor_pos--;
-          else if (ctx->disp_begin_pos > 0)
-            ctx->disp_begin_pos--;
+          next_begin = ctx->disp_begin_pos;
+          next_cursor = ctx->cursor_pos;
+          if (next_cursor > 0)
+            next_cursor--;
+          else if (next_begin > 0)
+            next_begin--;
+          if (!AppStateCommitHistoryViewport(ctx, next_begin, next_cursor)) {
+            RetVal = NULL;
+            ch = ESC;
+          }
         }
         if (ctx->total_hist == 0) {
           RetVal = NULL;
@@ -267,7 +276,12 @@ char *GetHistory(ViewContext *ctx, int type) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
-          ctx->cursor_pos++;
+          if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos,
+                                             ctx->cursor_pos + 1)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
@@ -276,7 +290,12 @@ char *GetHistory(ViewContext *ctx, int type) {
                         ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           scroll(ctx->ctx_history_window);
-          ctx->disp_begin_pos++;
+          if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos + 1,
+                                             ctx->cursor_pos)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
@@ -292,7 +311,12 @@ char *GetHistory(ViewContext *ctx, int type) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
-          ctx->cursor_pos--;
+          if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos,
+                                             ctx->cursor_pos - 1)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
@@ -302,7 +326,12 @@ char *GetHistory(ViewContext *ctx, int type) {
                         &hide_right);
           wmove(ctx->ctx_history_window, 0, 0);
           winsertln(ctx->ctx_history_window);
-          ctx->disp_begin_pos--;
+          if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos - 1,
+                                             ctx->cursor_pos)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
@@ -318,22 +347,33 @@ char *GetHistory(ViewContext *ctx, int type) {
                         ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           if (ctx->disp_begin_pos + HISTORY_WINDOW_HEIGHT > ctx->total_hist - 1)
-            ctx->cursor_pos = ctx->total_hist - ctx->disp_begin_pos - 1;
+            next_cursor = ctx->total_hist - ctx->disp_begin_pos - 1;
           else
-            ctx->cursor_pos = HISTORY_WINDOW_HEIGHT - 1;
+            next_cursor = HISTORY_WINDOW_HEIGHT - 1;
+          if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos,
+                                             next_cursor)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         } else {
           if (ctx->disp_begin_pos + ctx->cursor_pos + HISTORY_WINDOW_HEIGHT <
               ctx->total_hist) {
-            ctx->disp_begin_pos += HISTORY_WINDOW_HEIGHT;
-            ctx->cursor_pos = HISTORY_WINDOW_HEIGHT - 1;
+            next_begin = ctx->disp_begin_pos + HISTORY_WINDOW_HEIGHT;
+            next_cursor = HISTORY_WINDOW_HEIGHT - 1;
           } else {
-            ctx->disp_begin_pos = ctx->total_hist - HISTORY_WINDOW_HEIGHT;
-            if (ctx->disp_begin_pos < 0)
-              ctx->disp_begin_pos = 0;
-            ctx->cursor_pos = ctx->total_hist - ctx->disp_begin_pos - 1;
+            next_begin = ctx->total_hist - HISTORY_WINDOW_HEIGHT;
+            if (next_begin < 0)
+              next_begin = 0;
+            next_cursor = ctx->total_hist - next_begin - 1;
+          }
+          if (!AppStateCommitHistoryViewport(ctx, next_begin, next_cursor)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
           }
           DisplayHistory(ctx);
         }
@@ -347,15 +387,23 @@ char *GetHistory(ViewContext *ctx, int type) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
-          ctx->cursor_pos = 0;
+          if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos, 0)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
+          }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
                         ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         } else {
-          if ((ctx->disp_begin_pos -= HISTORY_WINDOW_HEIGHT) < 0) {
-            ctx->disp_begin_pos = 0;
+          next_begin = ctx->disp_begin_pos - HISTORY_WINDOW_HEIGHT;
+          if (next_begin < 0)
+            next_begin = 0;
+          if (!AppStateCommitHistoryViewport(ctx, next_begin, 0)) {
+            RetVal = NULL;
+            ch = ESC;
+            break;
           }
-          ctx->cursor_pos = 0;
           DisplayHistory(ctx);
         }
       }
@@ -364,14 +412,22 @@ char *GetHistory(ViewContext *ctx, int type) {
       if (ctx->disp_begin_pos == 0 && ctx->cursor_pos == 0) {
         UI_Beep(ctx, FALSE);
       } else {
-        ctx->disp_begin_pos = 0;
-        ctx->cursor_pos = 0;
+        if (!AppStateCommitHistoryViewport(ctx, 0, 0)) {
+          RetVal = NULL;
+          ch = ESC;
+          break;
+        }
         DisplayHistory(ctx);
       }
       break;
     case KEY_END:
-      ctx->disp_begin_pos = MAX(0, ctx->total_hist - HISTORY_WINDOW_HEIGHT);
-      ctx->cursor_pos = ctx->total_hist - ctx->disp_begin_pos - 1;
+      next_begin = MAX(0, ctx->total_hist - HISTORY_WINDOW_HEIGHT);
+      next_cursor = ctx->total_hist - next_begin - 1;
+      if (!AppStateCommitHistoryViewport(ctx, next_begin, next_cursor)) {
+        RetVal = NULL;
+        ch = ESC;
+        break;
+      }
       DisplayHistory(ctx);
       break;
     case LF:

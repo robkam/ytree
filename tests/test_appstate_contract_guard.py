@@ -7264,6 +7264,35 @@ def test_preview_modal_state_routes_through_appstate_helper() -> None:
     assert "AppStateCommitPreviewEntryFocus(ctx, FOCUS_TREE)" in dir_ops
 
 
+def test_history_viewport_routes_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_modal.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_modal.c").read_text(encoding="utf-8")
+    history_dialog = Path("src/ui/history_dialog.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitHistoryViewport(" in header
+    assert 'include "ytnova_appstate_modal.h"' in history_dialog
+
+    helper_start = helper.index("BOOL AppStateCommitHistoryViewport(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.modal_state")'
+    disp_write = "ctx->disp_begin_pos = disp_begin_pos;"
+    cursor_write = "ctx->cursor_pos = cursor_pos;"
+    assert validation in helper_body
+    assert disp_write in helper_body
+    assert cursor_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(disp_write)
+    assert helper_body.index(validation) < helper_body.index(cursor_write)
+
+    get_start = history_dialog.index("char *GetHistory(")
+    get_body = history_dialog[get_start:]
+    direct_state_write = re.compile(
+        r"\bctx->(?:disp_begin_pos|cursor_pos)\s*(?:\+\+|--|[+*/-]?=(?!=))"
+    )
+    assert not direct_state_write.search(get_body)
+    assert "AppStateCommitHistoryViewport(ctx, 0, 0)" in get_body
+    assert "AppStateCommitHistoryViewport(ctx, next_begin, next_cursor)" in get_body
+
+
 def test_event_coverage_transition_sequence_arrays_are_referenced() -> None:
     source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
     array_names = set(
