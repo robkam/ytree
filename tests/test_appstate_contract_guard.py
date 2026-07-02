@@ -7669,6 +7669,28 @@ def test_ctrl_file_list_jump_viewports_commit_through_appstate_helper() -> None:
     )
 
 
+def test_ctrl_dir_handle_dir_window_viewports_commit_through_appstate_helper() -> None:
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    function_start = ctrl_dir.index("\nextern int HandleDirWindow(")
+    function_end = ctrl_dir.index("\nstatic void DirListJump(", function_start)
+    function_body = ctrl_dir[function_start:function_end]
+
+    assert not mutation.search(function_body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,",
+                function_body,
+            )
+        )
+        == 3
+    )
+
+
 def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     mutation = re.compile(
