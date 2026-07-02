@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_ui.h"
+#include "ytnova_appstate_volume.h"
 
 /* Internal recursive helper for BuildDirEntryList */
 static void ReadDirList(ViewContext *ctx, DirEntry *dir_entry,
@@ -18,18 +19,29 @@ static void ReadDirList(ViewContext *ctx, DirEntry *dir_entry,
     /* Bounds Checking & Dynamic Reallocation */
     if (*index_ptr >= (int)vol->dir_entry_list_capacity) {
       size_t new_capacity = vol->dir_entry_list_capacity * 2;
+      DirEntryList *new_list;
       if (new_capacity == 0)
         new_capacity = 128;
 
-      DirEntryList *new_list = (DirEntryList *)xrealloc(
-          vol->dir_entry_list, new_capacity * sizeof(DirEntryList));
+      if (!AppStateCommitVolumeDirEntryList(
+              vol, vol->dir_entry_list, vol->dir_entry_list_capacity,
+              vol->total_dirs)) {
+        UI_Error(ctx, "", 0, "AppState volume cache boundary failed*ABORT");
+        exit(1);
+      }
+
+      new_list = (DirEntryList *)xrealloc(vol->dir_entry_list,
+                                          new_capacity * sizeof(DirEntryList));
 
       memset(new_list + vol->dir_entry_list_capacity, 0,
              (new_capacity - vol->dir_entry_list_capacity) *
                  sizeof(DirEntryList));
 
-      vol->dir_entry_list = new_list;
-      vol->dir_entry_list_capacity = new_capacity;
+      if (!AppStateCommitVolumeDirEntryList(vol, new_list, new_capacity,
+                                            vol->total_dirs)) {
+        UI_Error(ctx, "", 0, "AppState volume cache update failed*ABORT");
+        exit(1);
+      }
     }
 
     indent &= ~(1L << level);
@@ -51,29 +63,31 @@ static void ReadDirList(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 void BuildDirEntryList(ViewContext *ctx, struct Volume *vol, int *index_ptr) {
-  if (vol->dir_entry_list != NULL) {
-    free(vol->dir_entry_list);
-    vol->dir_entry_list = NULL;
-    vol->dir_entry_list_capacity = 0;
-  }
+  DirEntryList *new_list;
+  size_t alloc_count;
 
-  /* Initialize with the estimated count, but enforce a minimum safety size */
-  size_t alloc_count = vol->vol_stats.disk_total_directories;
+  if (vol->dir_entry_list != NULL &&
+      !AppStateReleaseVolumeDirEntryList(vol))
+    return;
+
+  alloc_count = vol->vol_stats.disk_total_directories;
   if (alloc_count < 16)
     alloc_count = 16;
 
-  vol->dir_entry_list =
-      (DirEntryList *)xcalloc(alloc_count, sizeof(DirEntryList));
+  new_list = (DirEntryList *)xcalloc(alloc_count, sizeof(DirEntryList));
+  if (!AppStateCommitVolumeDirEntryList(vol, new_list, alloc_count, 0)) {
+    free(new_list);
+    return;
+  }
 
-  vol->dir_entry_list_capacity = alloc_count;
   *index_ptr = 0;
 
-  /* Only read if we have a valid tree structure */
   if (vol->vol_stats.tree) {
     ReadDirList(ctx, vol->vol_stats.tree, vol, index_ptr);
   }
 
-  vol->total_dirs = *index_ptr;
+  (void)AppStateCommitVolumeDirEntryList(
+      vol, vol->dir_entry_list, vol->dir_entry_list_capacity, *index_ptr);
 
 #ifdef DEBUG
   if (vol->vol_stats.disk_total_directories != vol->total_dirs) {
@@ -296,12 +310,8 @@ int GetPanelVisibleSelectionIndex(const YtreeNovaPanel *p) {
  * Frees the memory allocated for the dir_entry_list array of a volume.
  */
 void FreeVolumeCache(struct Volume *vol) {
-  if (vol && vol->dir_entry_list != NULL) {
-    free(vol->dir_entry_list);
-    vol->dir_entry_list = NULL;
-    vol->dir_entry_list_capacity = 0;
-    vol->total_dirs = 0;
-  }
+  if (vol)
+    (void)AppStateReleaseVolumeDirEntryList(vol);
 }
 
 /*

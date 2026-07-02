@@ -84,7 +84,7 @@ If you use VSCodium with the Codex extension or another AI client, the setup sho
 
 - your editor points at the repo root
 - your AI client can adapt `.ai/codex.md`
-- your client can adapt the repo's `.codex/config.toml` or an equivalent local config
+- your client can adapt the repo's `.codex/config.toml`
 
 You may need to adjust the path settings in your clone to suit your setup.
 
