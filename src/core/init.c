@@ -236,22 +236,24 @@ void Layout_Recalculate(ViewContext *ctx) {
     if (!AppStateCommitLayoutGeometry(ctx, &layout))
       return;
 
-    /* Update ActivePanel Geometry */
     if (ctx->active) {
-      ctx->active->dir_x = layout.dir_win_x;
-      ctx->active->dir_y = layout.dir_win_y;
-      ctx->active->dir_w = layout.dir_win_width;
-      ctx->active->dir_h = layout.dir_win_height;
+      YtreeNovaPanelWindowGeometry geometry;
 
-      ctx->active->small_file_x = layout.small_file_win_x;
-      ctx->active->small_file_y = layout.small_file_win_y;
-      ctx->active->small_file_w = layout.small_file_win_width;
-      ctx->active->small_file_h = layout.small_file_win_height;
+      geometry.dir_x = layout.dir_win_x;
+      geometry.dir_y = layout.dir_win_y;
+      geometry.dir_w = layout.dir_win_width;
+      geometry.dir_h = layout.dir_win_height;
+      geometry.small_file_x = layout.small_file_win_x;
+      geometry.small_file_y = layout.small_file_win_y;
+      geometry.small_file_w = layout.small_file_win_width;
+      geometry.small_file_h = layout.small_file_win_height;
+      geometry.big_file_x = layout.big_file_win_x;
+      geometry.big_file_y = layout.big_file_win_y;
+      geometry.big_file_w = layout.big_file_win_width;
+      geometry.big_file_h = available_height;
 
-      ctx->active->big_file_x = layout.big_file_win_x;
-      ctx->active->big_file_y = layout.big_file_win_y;
-      ctx->active->big_file_w = layout.big_file_win_width;
-      ctx->active->big_file_h = available_height;
+      if (!AppStateCommitPanelWindowGeometry(ctx->active, &geometry))
+        return;
     }
 
     /* Inactive Panel is not used for file listing in Preview Mode */
@@ -320,44 +322,46 @@ void Layout_Recalculate(ViewContext *ctx) {
   if (!AppStateCommitLayoutGeometry(ctx, &layout))
     return;
 
-  /* Update LeftPanel Geometry */
   if (ctx->left) {
-    ctx->left->dir_x = layout.dir_win_x;
-    ctx->left->dir_y = layout.dir_win_y;
-    ctx->left->dir_w = layout.dir_win_width;
-    ctx->left->dir_h = layout.dir_win_height;
+    YtreeNovaPanelWindowGeometry geometry;
 
-    ctx->left->small_file_x = layout.small_file_win_x;
-    ctx->left->small_file_y = layout.small_file_win_y;
-    ctx->left->small_file_w = layout.small_file_win_width;
-    ctx->left->small_file_h = layout.small_file_win_height;
+    geometry.dir_x = layout.dir_win_x;
+    geometry.dir_y = layout.dir_win_y;
+    geometry.dir_w = layout.dir_win_width;
+    geometry.dir_h = layout.dir_win_height;
+    geometry.small_file_x = layout.small_file_win_x;
+    geometry.small_file_y = layout.small_file_win_y;
+    geometry.small_file_w = layout.small_file_win_width;
+    geometry.small_file_h = layout.small_file_win_height;
+    geometry.big_file_x = layout.big_file_win_x;
+    geometry.big_file_y = layout.big_file_win_y;
+    geometry.big_file_w = layout.big_file_win_width;
+    geometry.big_file_h = available_height;
 
-    ctx->left->big_file_x = layout.big_file_win_x;
-    ctx->left->big_file_y = layout.big_file_win_y;
-    ctx->left->big_file_w = layout.big_file_win_width;
-    ctx->left->big_file_h = available_height;
+    if (!AppStateCommitPanelWindowGeometry(ctx->left, &geometry))
+      return;
   }
 
-  /* Update RightPanel Geometry */
   if (ctx->right && ctx->is_split_screen) {
-    /* Right panel starts after left panel + vertical separator */
     int right_x = layout.dir_win_x + panel_width + 1;
     int right_w = layout.main_win_width - panel_width - 1;
+    YtreeNovaPanelWindowGeometry geometry;
 
-    ctx->right->dir_x = right_x;
-    ctx->right->dir_y = 2;
-    ctx->right->dir_w = right_w;
-    ctx->right->dir_h = dir_h;
+    geometry.dir_x = right_x;
+    geometry.dir_y = 2;
+    geometry.dir_w = right_w;
+    geometry.dir_h = dir_h;
+    geometry.small_file_x = right_x;
+    geometry.small_file_y = geometry.dir_y + dir_h + 1;
+    geometry.small_file_w = right_w;
+    geometry.small_file_h = small_file_h;
+    geometry.big_file_x = right_x;
+    geometry.big_file_y = 2;
+    geometry.big_file_w = right_w;
+    geometry.big_file_h = available_height;
 
-    ctx->right->small_file_x = right_x;
-    ctx->right->small_file_y = ctx->right->dir_y + dir_h + 1;
-    ctx->right->small_file_w = right_w;
-    ctx->right->small_file_h = small_file_h;
-
-    ctx->right->big_file_x = right_x;
-    ctx->right->big_file_y = 2;
-    ctx->right->big_file_w = right_w;
-    ctx->right->big_file_h = available_height;
+    if (!AppStateCommitPanelWindowGeometry(ctx->right, &geometry))
+      return;
   }
 }
 
