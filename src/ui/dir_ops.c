@@ -2087,11 +2087,14 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
 
     /* 2a. Restore critical flags destroyed by ReadTree */
-    entry->big_window = saved_big_window;
+    if (!AppStateCommitDirEntryFileShape(entry, saved_big_window))
+      return entry;
     entry->log_flag = saved_log_flag;
-    entry->global_flag = saved_global_flag;
-    entry->global_all_volumes = saved_global_all_volumes;
-    entry->tagged_flag = saved_tagged_flag;
+    if (!AppStateCommitDirEntryGlobalFilter(entry, saved_global_flag,
+                                            saved_global_all_volumes))
+      return entry;
+    if (!AppStateCommitDirEntryTaggedFilter(entry, saved_tagged_flag))
+      return entry;
 
     /* 3. Restore State */
     RestoreTreeState(ctx, s->tree, &expanded, tagged, s);
@@ -2172,11 +2175,14 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     /* Archive Mode - Standard Rescan */
     RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
     /* Restore flags for Archive mode too, as RescanDir/ReadTree clears them */
-    entry->big_window = saved_big_window;
+    if (!AppStateCommitDirEntryFileShape(entry, saved_big_window))
+      return entry;
     entry->log_flag = saved_log_flag;
-    entry->global_flag = saved_global_flag;
-    entry->global_all_volumes = saved_global_all_volumes;
-    entry->tagged_flag = saved_tagged_flag;
+    if (!AppStateCommitDirEntryGlobalFilter(entry, saved_global_flag,
+                                            saved_global_all_volumes))
+      return entry;
+    if (!AppStateCommitDirEntryTaggedFilter(entry, saved_tagged_flag))
+      return entry;
     PanelTags_Restore(ctx, p);
 
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
