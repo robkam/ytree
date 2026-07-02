@@ -41,3 +41,13 @@ BOOL AppStateSeedPanelVisibilityFilter(YtreeNovaPanel *panel,
   panel->hide_dot_files = hide_dot_files ? TRUE : FALSE;
   return TRUE;
 }
+
+BOOL AppStateCommitDirEntryTaggedFilter(DirEntry *dir_entry, BOOL tagged_only) {
+  if (!AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->tagged_flag = tagged_only ? TRUE : FALSE;
+  return TRUE;
+}

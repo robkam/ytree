@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_ui.h"
 
 void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
@@ -116,10 +117,10 @@ static void HandleInvertDirTags(ViewContext *ctx, DirEntry *dir_entry,
 
 static void HandleDirTaggedOnlyToggle(ViewContext *ctx, DirEntry *dir_entry,
                                       YtreeNovaPanel *p) {
-  if (dir_entry->tagged_files)
-    dir_entry->tagged_flag = !dir_entry->tagged_flag;
-  else
-    dir_entry->tagged_flag = FALSE;
+  BOOL tagged_only =
+      dir_entry->tagged_files ? !dir_entry->tagged_flag : FALSE;
+  if (!AppStateCommitDirEntryTaggedFilter(dir_entry, tagged_only))
+    return;
 
   BuildFileEntryList(ctx, p);
   (void)AppStateCommitDirEntryFileViewport(dir_entry, 0, 0);
