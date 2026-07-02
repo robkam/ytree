@@ -7542,6 +7542,31 @@ def test_file_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
         assert "AppStateCommitDirEntryFileViewport(dir_entry," in function_body
 
 
+def test_file_nav_grid_metrics_viewport_commit_through_appstate_helper() -> None:
+    file_nav = Path("src/ui/file_nav.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"(?:&dir_entry->(?:cursor_pos|start_file)|"
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--))"
+    )
+
+    function_start = file_nav.index("void FileNav_RereadWindowSize(")
+    next_function = file_nav.find("\nvoid ", function_start + 1)
+    function_body = file_nav[
+        function_start : (next_function if next_function >= 0 else len(file_nav))
+    ]
+
+    assert not mutation.search(function_body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,",
+                function_body,
+            )
+        )
+        == 1
+    )
+
+
 def test_ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper() -> None:
     ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
     mutation = re.compile(
