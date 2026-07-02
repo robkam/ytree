@@ -119,20 +119,13 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   /* Initialize dir_entry */
   /*--------------------------*/
 
-  dir_entry->file = NULL;
   /*
     dir_entry->next           = NULL;
     dir_entry->prev           = NULL;
   */
   dir_entry->sub_tree = NULL;
-  dir_entry->total_bytes = 0L;
-  dir_entry->matching_bytes = 0L;
-  dir_entry->tagged_bytes = 0L;
-  dir_entry->total_files = 0;
-  dir_entry->matching_files = 0;
-  dir_entry->tagged_files = 0;
-  dir_entry->access_denied = FALSE;
-  dir_entry->log_flag = FALSE;
+  if (!AppStateResetDirEntryPayloadCache(dir_entry))
+    return (-1);
   if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0) ||
       !AppStateCommitDirEntryGlobalFilter(dir_entry, FALSE, FALSE) ||
       !AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE) ||

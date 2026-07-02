@@ -162,18 +162,13 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
     /* FIX: Added +1 to allocation for null terminator */
     den_ptr = (DirEntry *)xcalloc(1, sizeof(DirEntry) + strlen(dir_name) + 1);
 
-    den_ptr->file = NULL;
     den_ptr->next = NULL;
     den_ptr->prev = NULL;
     den_ptr->sub_tree = NULL;
-    den_ptr->total_bytes = 0L;
-    den_ptr->matching_bytes = 0L;
-    den_ptr->tagged_bytes = 0L;
-    den_ptr->total_files = 0;
-    den_ptr->matching_files = 0;
-    den_ptr->tagged_files = 0;
-    den_ptr->access_denied = FALSE;
-    den_ptr->log_flag = FALSE;
+    if (!AppStateResetDirEntryPayloadCache(den_ptr)) {
+      free(den_ptr);
+      return NULL;
+    }
     if (!AppStateCommitDirEntryFileViewport(den_ptr, 0, 0) ||
         !AppStateCommitDirEntryGlobalFilter(den_ptr, FALSE, FALSE) ||
         !AppStateCommitDirEntryTaggedFilter(den_ptr, FALSE) ||
