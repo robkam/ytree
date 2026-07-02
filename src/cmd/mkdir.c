@@ -6,6 +6,9 @@
  ***************************************************************************/
 
 #include "ytnova_cmd.h"
+#include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include <dirent.h>
 #include <errno.h>
@@ -169,11 +172,14 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
     den_ptr->matching_files = 0;
     den_ptr->tagged_files = 0;
     den_ptr->access_denied = FALSE;
-    den_ptr->cursor_pos = 0;
-    den_ptr->start_file = 0;
-    den_ptr->global_flag = FALSE;
     den_ptr->log_flag = FALSE;
-    den_ptr->big_window = FALSE;
+    if (!AppStateCommitDirEntryFileViewport(den_ptr, 0, 0) ||
+        !AppStateCommitDirEntryGlobalFilter(den_ptr, FALSE, FALSE) ||
+        !AppStateCommitDirEntryTaggedFilter(den_ptr, FALSE) ||
+        !AppStateCommitDirEntryFileShape(den_ptr, FALSE)) {
+      free(den_ptr);
+      return NULL;
+    }
     den_ptr->up_tree = father_dir_entry;
     den_ptr->not_scanned = FALSE;
 
