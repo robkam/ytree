@@ -1219,24 +1219,31 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
         dir_entry->big_window = TRUE;
       else
         dir_entry->big_window = ctx->bypass_small_window;
-      if (restore_saved_file_window) {
-        dir_entry->start_file = p->start_file;
-        dir_entry->cursor_pos = p->file_cursor_pos;
-      } else {
-        /*
-         * A fresh file-view entry should start at the top of the file list,
-         * not inherit the tree cursor position that happened to select the
-         * directory. Preserve the saved file cursor only for the directory
-         * that already owns a file-selection snapshot.
-         */
-        dir_entry->start_file = 0;
-        dir_entry->cursor_pos = 0;
+      {
+        int file_start;
+        int file_cursor;
+
+        if (restore_saved_file_window) {
+          file_start = p->start_file;
+          file_cursor = p->file_cursor_pos;
+        } else {
+          /*
+           * A fresh file-view entry should start at the top of the file list,
+           * not inherit the tree cursor position that happened to select the
+           * directory. Preserve the saved file cursor only for the directory
+           * that already owns a file-selection snapshot.
+           */
+          file_start = 0;
+          file_cursor = 0;
+        }
+        if (file_start < 0)
+          file_start = 0;
+        if (file_cursor < 0)
+          file_cursor = 0;
+        if (!AppStateCommitDirEntryFileViewport(dir_entry, file_start,
+                                                file_cursor))
+          return;
       }
-      /* Preserve per-directory file selection when returning to file view. */
-      if (dir_entry->start_file < 0)
-        dir_entry->start_file = 0;
-      if (dir_entry->cursor_pos < 0)
-        dir_entry->cursor_pos = 0;
     }
     DEBUG_LOG("DEBUG: HandleSwitchWindow calling HandleFileWindow for %s",
               dir_entry->name);
@@ -1278,15 +1285,12 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
         return;
       }
 
-      /* REPLACEMENT: Use Centralized Refresh */
       RefreshView(ctx, dir_entry);
 
     } else {
-      /* ... existing LOG_ESC handling ... */
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
       dir_entry = GetPanelDirEntry(p);
 
-      /* Ensure visual consistency here too */
       if (dir_entry)
         RefreshView(ctx, dir_entry);
 
