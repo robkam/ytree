@@ -9205,6 +9205,35 @@ def test_dir_ops_mode_handoffs_commit_through_appstate_helpers() -> None:
     assert "AppStateCommitDirEntryFileShape(dir_entry, big_file_view)" in switch_body
 
 
+def test_dir_ops_refresh_mode_restore_commits_through_appstate_helpers() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    refresh_start = dir_ops.index("\nDirEntry *RefreshTreeSafe(")
+    refresh_end = dir_ops.index("\nint RefreshDirWindow(", refresh_start)
+    refresh_body = dir_ops[refresh_start:refresh_end]
+    mode_write = re.compile(
+        r"\bentry->"
+        r"(?:global_flag|global_all_volumes|tagged_flag|big_window)\s*=(?!=)"
+    )
+
+    assert not mode_write.search(refresh_body)
+    assert len(re.findall(r"AppStateCommitDirEntryFileShape\(", refresh_body)) == 2
+    assert len(re.findall(r"AppStateCommitDirEntryGlobalFilter\(", refresh_body)) == 2
+    assert len(re.findall(r"AppStateCommitDirEntryTaggedFilter\(", refresh_body)) == 2
+    assert (
+        "AppStateCommitDirEntryFileShape(entry, saved_big_window)"
+        in refresh_body
+    )
+    assert (
+        "AppStateCommitDirEntryGlobalFilter(entry, saved_global_flag,"
+        in refresh_body
+    )
+    assert (
+        "AppStateCommitDirEntryTaggedFilter(entry, saved_tagged_flag)"
+        in refresh_body
+    )
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (
