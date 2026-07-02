@@ -90,7 +90,7 @@ You may need to adjust the path settings in your clone to suit your setup.
 
 ## 7. Where to look next
 
-- `docs/CONTRIBUTING.md` for the full development workflow
-- `docs/ARCHITECTURE.md` for architecture constraints
-- `docs/SPECIFICATION.md` for behavior requirements
-- `docs/AUDIT.md` for validation rules
+- [CONTRIBUTING.md](CONTRIBUTING.md) for the full development workflow
+- [ARCHITECTURE.md](ARCHITECTURE.md) for architecture constraints
+- [SPECIFICATION.md](SPECIFICATION.md) for behavior requirements
+- [AUDIT.md](AUDIT.md) for validation rules

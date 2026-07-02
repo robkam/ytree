@@ -308,6 +308,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   int target_file_idx = -1;
   int visible_rows = 1;
   int file_idx;
+  int file_start = 0;
+  int file_cursor = focus_file ? 0 : -1;
 
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry_ptr ||
       !*dir_entry_ptr || !s_ptr || !*s_ptr || !start_vol_ptr) {
@@ -349,8 +351,9 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
     *dir_entry_ptr = (*s_ptr)->tree;
   }
 
-  (*dir_entry_ptr)->start_file = 0;
-  (*dir_entry_ptr)->cursor_pos = focus_file ? 0 : -1;
+  if (!AppStateCommitDirEntryFileViewport(*dir_entry_ptr, file_start,
+                                          file_cursor))
+    return FALSE;
 
   BuildFileEntryList(ctx, ctx->active);
   if (ctx->ctx_small_file_window) {
@@ -370,29 +373,34 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   }
 
   if (target_file_idx >= visible_rows) {
-    (*dir_entry_ptr)->start_file = target_file_idx - (visible_rows - 1);
+    file_start = target_file_idx - (visible_rows - 1);
   }
-  if ((*dir_entry_ptr)->start_file >= (int)ctx->active->file_count) {
-    (*dir_entry_ptr)->start_file = MAXIMUM(0, (int)ctx->active->file_count - 1);
+  if (file_start >= (int)ctx->active->file_count) {
+    file_start = MAXIMUM(0, (int)ctx->active->file_count - 1);
   }
-  if ((*dir_entry_ptr)->start_file < 0) {
-    (*dir_entry_ptr)->start_file = 0;
+  if (file_start < 0) {
+    file_start = 0;
   }
 
   if (focus_file && target_file_idx >= 0 && ctx->active->file_count > 0) {
-    int file_cursor = target_file_idx - (*dir_entry_ptr)->start_file;
+    file_cursor = target_file_idx - file_start;
     if (file_cursor < 0)
       file_cursor = 0;
     if (file_cursor >= visible_rows)
       file_cursor = visible_rows - 1;
-    (*dir_entry_ptr)->cursor_pos = file_cursor;
+    if (!AppStateCommitDirEntryFileViewport(*dir_entry_ptr, file_start,
+                                            file_cursor))
+      return FALSE;
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
       return FALSE;
     if (!AppStateCommitPanelFileShape(ctx->active, FALSE))
       return FALSE;
     CapturePanelSelectionAnchor(ctx, ctx->active, *dir_entry_ptr);
   } else {
-    (*dir_entry_ptr)->cursor_pos = -1;
+    file_cursor = -1;
+    if (!AppStateCommitDirEntryFileViewport(*dir_entry_ptr, file_start,
+                                            file_cursor))
+      return FALSE;
     if (!AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_TREE))
       return FALSE;
     if (!AppStateCommitPanelFileShape(ctx->active, FALSE))
@@ -401,9 +409,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   if (!AppStateCommitPanelFileAnchor(ctx->active, *dir_entry_ptr))
     return FALSE;
-  (void)AppStateCommitPanelFileViewport(ctx->active,
-                                        (*dir_entry_ptr)->start_file,
-                                        (*dir_entry_ptr)->cursor_pos);
+  if (!AppStateCommitPanelFileViewport(ctx->active, file_start, file_cursor))
+    return FALSE;
 
   if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
     return FALSE;

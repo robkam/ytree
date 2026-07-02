@@ -7824,6 +7824,30 @@ def test_ctrl_dir_handle_dir_window_viewports_commit_through_appstate_helper() -
     )
 
 
+def test_ctrl_dir_archive_root_file_viewport_commits_through_appstate_helper() -> None:
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+
+    function_start = ctrl_dir.index("\nstatic BOOL ExitArchiveRootToParent(")
+    function_end = ctrl_dir.index("\nextern int HandleDirWindow(", function_start)
+    function_body = ctrl_dir[function_start:function_end]
+    mutation = re.compile(
+        r"\(\*dir_entry_ptr\)->(?:start_file|cursor_pos)\s*"
+        r"(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    assert not mutation.search(function_body)
+    assert re.search(
+        r"AppStateCommitDirEntryFileViewport\(\s*"
+        r"\*dir_entry_ptr,\s*file_start,\s*file_cursor\s*\)",
+        function_body,
+    )
+    assert re.search(
+        r"AppStateCommitPanelFileViewport\(\s*"
+        r"ctx->active,\s*file_start,\s*file_cursor\s*\)",
+        function_body,
+    )
+
+
 def test_sort_interaction_viewports_commit_through_appstate_helper() -> None:
     interactions = Path("src/ui/interactions.c").read_text(encoding="utf-8")
     mutation = re.compile(
