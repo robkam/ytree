@@ -7788,6 +7788,27 @@ def test_dir_ops_switch_window_viewports_commit_through_appstate_helper() -> Non
     )
 
 
+def test_dir_ops_restore_file_viewports_commit_through_appstate_helper() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    helper_call = re.compile(
+        r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,\s*"
+        r"restored_start,\s*restored_cursor\s*\)"
+    )
+
+    function_start = dir_ops.index("\nDirEntry *RestorePanelFileSelection(")
+    function_end = dir_ops.index(
+        "\nDirWindowDispatchResult\nHandleDirWindowPanelAction(",
+        function_start,
+    )
+    function_body = dir_ops[function_start:function_end]
+
+    assert not mutation.search(function_body)
+    assert len(helper_call.findall(function_body)) == 1
+
+
 def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     mutation = re.compile(

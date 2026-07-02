@@ -1395,6 +1395,8 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
                                     YtreeNovaPanel *panel) {
   int selected_idx = -1;
   unsigned int file_count = 0;
+  int restored_start;
+  int restored_cursor;
 
   if (!ctx || !dir_entry || !panel)
     return dir_entry;
@@ -1433,8 +1435,8 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
 
   DirOps_ReloadPanelFileAnchorIfMissing(ctx, panel, dir_entry);
 
-  dir_entry->start_file = panel->start_file;
-  dir_entry->cursor_pos = panel->file_cursor_pos;
+  restored_start = panel->start_file;
+  restored_cursor = panel->file_cursor_pos;
 
   if (panel->file_selection_name[0] != '\0' &&
       panel->file_selection_dir_path[0] != '\0') {
@@ -1459,7 +1461,7 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
 
   if (selected_idx >= 0) {
     int max_disp_files = FileNav_GetMaxDispFiles(ctx);
-    int start = dir_entry->start_file;
+    int start = restored_start;
 
     if (max_disp_files < 1)
       max_disp_files = 1;
@@ -1473,8 +1475,8 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
     if (start < 0)
       start = 0;
 
-    dir_entry->start_file = start;
-    dir_entry->cursor_pos = selected_idx - start;
+    restored_start = start;
+    restored_cursor = selected_idx - start;
   }
 
   file_count = panel->file_count;
@@ -1485,46 +1487,42 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
   if (file_count == 0) {
     DEBUG_LOG("RestorePanelFileSelection:empty_file_list path='%s' file='%s'",
               panel->file_selection_dir_path, panel->file_selection_name);
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = 0;
+    restored_start = 0;
+    restored_cursor = 0;
   } else {
-    int original_start = dir_entry->start_file;
-    int original_cursor = dir_entry->cursor_pos;
-    if (dir_entry->start_file < 0)
-      dir_entry->start_file = 0;
-    if ((unsigned int)dir_entry->start_file >= file_count)
-      dir_entry->start_file = (int)file_count - 1;
-    if (dir_entry->cursor_pos < 0)
-      dir_entry->cursor_pos = 0;
-    if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >=
-        file_count) {
-      dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
-      if (dir_entry->cursor_pos < 0)
-        dir_entry->cursor_pos = 0;
+    int original_start = restored_start;
+    int original_cursor = restored_cursor;
+    if (restored_start < 0)
+      restored_start = 0;
+    if ((unsigned int)restored_start >= file_count)
+      restored_start = (int)file_count - 1;
+    if (restored_cursor < 0)
+      restored_cursor = 0;
+    if ((unsigned int)(restored_start + restored_cursor) >= file_count) {
+      restored_cursor = (int)file_count - 1 - restored_start;
+      if (restored_cursor < 0)
+        restored_cursor = 0;
     }
-    if (original_start != dir_entry->start_file ||
-        original_cursor != dir_entry->cursor_pos) {
+    if (original_start != restored_start || original_cursor != restored_cursor) {
       DEBUG_LOG(
           "RestorePanelFileSelection:clamp start=%d->%d cursor=%d->%d count=%u",
-          original_start, dir_entry->start_file, original_cursor,
-          dir_entry->cursor_pos, file_count);
+          original_start, restored_start, original_cursor, restored_cursor,
+          file_count);
     }
   }
 
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, restored_start,
+                                          restored_cursor))
+    return dir_entry;
   if (!AppStateCommitPanelFileAnchor(panel, dir_entry))
     return dir_entry;
-  if (!AppStateCommitPanelFileViewport(panel, dir_entry->start_file,
-                                       dir_entry->cursor_pos))
+  if (!AppStateCommitPanelFileViewport(panel, restored_start, restored_cursor))
     return dir_entry;
   if (!AppStateCommitPanelFocus(ctx, panel, FOCUS_FILE))
     return dir_entry;
   if (!dir_entry->global_flag && !dir_entry->tagged_flag) {
     dir_entry->big_window = panel->saved_big_file_view;
   }
-  if (dir_entry->start_file < 0)
-    dir_entry->start_file = 0;
-  if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
-    dir_entry->cursor_pos = 0;
   DEBUG_LOG(
       "RestorePanelFileSelection:dir='%s' total=%u matching=%u file_count=%u "
       "start=%d cursor=%d focus=%d spec='%s'",
