@@ -7846,6 +7846,7 @@ def test_dir_tag_dir_entry_viewports_commit_through_appstate_helper() -> None:
 def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
     log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
     volume_source = Path("src/core/volume.c").read_text(encoding="utf-8")
 
@@ -7874,6 +7875,20 @@ def test_panel_file_anchor_clears_route_through_appstate_helper() -> None:
     restore_body = log_source[restore_start:restore_end]
     assert not re.search(r"\bpanel->file_dir_entry\s*=\s*NULL", restore_body)
     assert "AppStateCommitPanelFileAnchor(panel, NULL)" in restore_body
+
+    init_start = init_source.index("void InitView(")
+    init_end = init_source.index("\nvoid CoreMainOps_Register(", init_start)
+    init_body = init_source[init_start:init_end]
+    assert not re.search(r"\bctx->(?:left|right)->file_dir_entry\s*=", init_body)
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitPanelFileAnchor\(\s*ctx->(?:left|right),\s*NULL\s*\)",
+                init_body,
+            )
+        )
+        == 2
+    )
 
 
 def test_volume_menu_file_anchors_route_through_appstate_helper() -> None:
