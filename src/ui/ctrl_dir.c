@@ -625,31 +625,35 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     }
   }
 
-  /* REPLACEMENT START: Unified Rendering Call */
   if (!dir_entry->log_flag) {
     if (ctx->active && ctx->active->saved_focus == FOCUS_FILE) {
-      if (ctx->active->file_dir_entry == dir_entry) {
-        dir_entry->start_file = ctx->active->start_file;
-        dir_entry->cursor_pos = ctx->active->file_cursor_pos;
-      }
-      if (dir_entry->start_file < 0)
-        dir_entry->start_file = 0;
-      if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
-        dir_entry->cursor_pos = 0;
+      int file_start = dir_entry->start_file;
+      int file_cursor = dir_entry->cursor_pos;
 
+      if (ctx->active->file_dir_entry == dir_entry) {
+        file_start = ctx->active->start_file;
+        file_cursor = ctx->active->file_cursor_pos;
+      }
+      if (file_start < 0)
+        file_start = 0;
+      if (file_cursor < 0 && dir_entry->total_files > 0)
+        file_cursor = 0;
+
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, file_start,
+                                              file_cursor))
+        return ESC;
       if (!AppStateCommitPanelFileAnchor(ctx->active, dir_entry))
         return ESC;
       (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
                                             dir_entry->cursor_pos);
       BuildFileEntryList(ctx, ctx->active);
     } else {
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = -1;
+      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
+        return ESC;
     }
   }
 
   RefreshView(ctx, dir_entry);
-  /* REPLACEMENT END */
 
   if (dir_entry->log_flag) {
     if ((dir_entry->global_flag) || (dir_entry->tagged_flag)) {
@@ -912,8 +916,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     case ACTION_FILTER:
       if (UI_ReadFilter(ctx) == 0) {
         RecalculateSysStats(ctx, s);
-        dir_entry->start_file = 0;
-        dir_entry->cursor_pos = -1;
+        if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
+          return ESC;
         RefreshView(ctx, dir_entry);
       }
       need_dsp_help = TRUE;
