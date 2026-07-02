@@ -392,7 +392,12 @@ void InitView(ViewContext *ctx) {
     ctx->left = NULL;
     exit(1);
   }
-  ctx->left->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileAnchor(ctx->left, NULL)) {
+    fprintf(stderr, "InitView: failed to initialize left panel file anchor\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
   if (!AppStateCommitPanelFileViewport(ctx->left, 0, 0)) {
     fprintf(stderr, "InitView: failed to initialize left panel file viewport\n");
     free(ctx->left);
@@ -422,7 +427,14 @@ void InitView(ViewContext *ctx) {
     ctx->left = NULL;
     exit(1);
   }
-  ctx->right->file_dir_entry = NULL;
+  if (!AppStateCommitPanelFileAnchor(ctx->right, NULL)) {
+    fprintf(stderr, "InitView: failed to initialize right panel file anchor\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
   if (!AppStateCommitPanelFileViewport(ctx->right, 0, 0)) {
     fprintf(stderr, "InitView: failed to initialize right panel file viewport\n");
     free(ctx->right);
