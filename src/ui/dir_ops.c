@@ -170,7 +170,9 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
       (dir_entry->sub_tree != NULL || dir_entry->file != NULL)) {
     if (!AppStateCommitVolumeGeneration(p->vol))
       return;
-    dir_entry->not_scanned = FALSE;
+    if (!AppStateCommitDirEntryLoggedState(dir_entry, FALSE,
+                                           dir_entry->unlogged_flag))
+      return;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     if (inactive && inactive->vol == p->vol) {
@@ -201,8 +203,8 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
     ApplyFilter(dir_entry, s);
     InitClock(ctx); /* Resume clock after scanning */
 
-    dir_entry->not_scanned = FALSE;
-    dir_entry->unlogged_flag = FALSE;
+    if (!AppStateCommitDirEntryLoggedState(dir_entry, FALSE, FALSE))
+      return;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     if (inactive && inactive->vol == p->vol) {
@@ -232,7 +234,9 @@ void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
     /* Aborted. Fall through to refresh what we have. */
   }
   InitClock(ctx); /* Resume clock after scanning */
-  dir_entry->unlogged_flag = FALSE;
+  if (!AppStateCommitDirEntryLoggedState(dir_entry, dir_entry->not_scanned,
+                                         FALSE))
+    return;
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   if (inactive && inactive->vol == p->vol) {
@@ -399,7 +403,9 @@ static BOOL EnsureDirVisible(ViewContext *ctx, YtreeNovaPanel *panel, DirEntry *
 
   for (ancestor = target->up_tree; ancestor; ancestor = ancestor->up_tree) {
     if (ancestor->not_scanned && ancestor->sub_tree) {
-      ancestor->not_scanned = FALSE;
+      if (!AppStateCommitDirEntryLoggedState(ancestor, FALSE,
+                                             ancestor->unlogged_flag))
+        return FALSE;
       changed = TRUE;
     }
   }
@@ -783,8 +789,8 @@ void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
     RemoveFile(ctx, fe_ptr, s);
   }
 
-  dir_entry->not_scanned = TRUE;
-  dir_entry->unlogged_flag = TRUE;
+  if (!AppStateCommitDirEntryLoggedState(dir_entry, TRUE, TRUE))
+    return;
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
@@ -831,8 +837,8 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
     next_fe_ptr = fe_ptr->next;
     RemoveFile(ctx, fe_ptr, s);
   }
-  dir_entry->not_scanned = TRUE;
-  dir_entry->unlogged_flag = TRUE;
+  if (!AppStateCommitDirEntryLoggedState(dir_entry, TRUE, TRUE))
+    return;
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
@@ -1657,8 +1663,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
     if (*dir_entry_ptr) {
       for (child = (*dir_entry_ptr)->sub_tree; child; child = child->next) {
-        child->not_scanned = TRUE;
-        child->unlogged_flag = TRUE;
+        if (!AppStateCommitDirEntryLoggedState(child, TRUE, TRUE))
+          return DIR_WINDOW_DISPATCH_RETURN_ESC;
       }
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
 
@@ -2104,8 +2110,8 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
           FindDirByPathInSubTree(s->tree, collapsed_curr->path);
       if (!collapsed_dir)
         continue;
-      collapsed_dir->not_scanned = TRUE;
-      collapsed_dir->unlogged_flag = TRUE;
+      if (!AppStateCommitDirEntryLoggedState(collapsed_dir, TRUE, TRUE))
+        return entry;
     }
     PanelTags_Restore(ctx, p);
     FreePathList(expanded);
@@ -2220,7 +2226,9 @@ int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
       }
       ApplyFilter(de_ptr, s);
     }
-    dir_entry->not_scanned = FALSE;
+    if (!AppStateCommitDirEntryLoggedState(dir_entry, FALSE,
+                                           dir_entry->unlogged_flag))
+      return -1;
   } else {
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
       if (ScanSubTree(ctx, de_ptr, s) == -1) {

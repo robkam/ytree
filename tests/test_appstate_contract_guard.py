@@ -9060,6 +9060,43 @@ def test_volume_dir_entry_list_cache_commits_route_through_appstate_helper() -> 
     assert dir_list.count("AppStateReleaseVolumeDirEntryList(") >= 2
 
 
+def test_volume_logged_state_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    tree_read = Path("src/fs/tree_read.c").read_text(encoding="utf-8")
+    mkdir = Path("src/cmd/mkdir.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryLoggedState(" in header
+    assert 'include "ytnova_appstate_volume.h"' in tree_read
+    assert 'include "ytnova_appstate_volume.h"' in mkdir
+    assert 'include "ytnova_appstate_volume.h"' in dir_ops
+    assert 'include "ytnova_appstate_volume.h"' in panel_anchor
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryLoggedState(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitVolumeGeneration(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.logged_state")'
+    assignments = [
+        "dir_entry->not_scanned = not_scanned ? TRUE : FALSE;",
+        "dir_entry->unlogged_flag = unlogged_flag ? TRUE : FALSE;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    direct_logged_state_write = re.compile(
+        r"->(?:not_scanned|unlogged_flag)\s*=[^=]"
+    )
+    for source in (tree_read, mkdir, dir_ops, panel_anchor):
+        assert not direct_logged_state_write.search(source)
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")

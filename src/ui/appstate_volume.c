@@ -8,6 +8,18 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_volume.h"
 
+BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
+                                       BOOL unlogged_flag) {
+  if (!AppStateValidatedOwnerField("volume.logged_state"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->not_scanned = not_scanned ? TRUE : FALSE;
+  dir_entry->unlogged_flag = unlogged_flag ? TRUE : FALSE;
+  return TRUE;
+}
+
 BOOL AppStateCommitVolumeGeneration(struct Volume *volume) {
   if (!AppStateValidatedOwnerField("volume.volume_generation"))
     return FALSE;

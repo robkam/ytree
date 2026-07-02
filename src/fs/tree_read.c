@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include <stdarg.h>
@@ -137,8 +138,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       !AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE) ||
       !AppStateCommitDirEntryFileShape(dir_entry, FALSE))
     return (-1);
-  dir_entry->not_scanned = FALSE;
-  dir_entry->unlogged_flag = FALSE;
+  if (!AppStateCommitDirEntryLoggedState(dir_entry, FALSE, FALSE))
+    return (-1);
 
   if (S_ISBLK(dir_entry->stat_struct.st_mode))
     return (0); /* Block-Device */
@@ -146,8 +147,11 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   if (depth < 0) {
     if (dir_entry->up_tree) {
       /* Keep both parent and this node expandable for progressive scans. */
-      dir_entry->not_scanned = TRUE;
-      dir_entry->up_tree->not_scanned = TRUE;
+      if (!AppStateCommitDirEntryLoggedState(dir_entry, TRUE,
+                                             dir_entry->unlogged_flag) ||
+          !AppStateCommitDirEntryLoggedState(dir_entry->up_tree, TRUE,
+                                             dir_entry->up_tree->unlogged_flag))
+        return (-1);
       return (1);
     }
   }
@@ -392,8 +396,8 @@ void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
       UnReadSubTree(ctx, dir_entry->sub_tree, s);
       dir_entry->sub_tree = NULL;
     }
-    dir_entry->not_scanned = TRUE;
-    dir_entry->unlogged_flag = TRUE;
+    if (!AppStateCommitDirEntryLoggedState(dir_entry, TRUE, TRUE))
+      return;
     if (s->disk_total_directories > 0)
       s->disk_total_directories--;
     (void)GetAvailBytes(&s->disk_space, s);

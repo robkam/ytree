@@ -8,6 +8,7 @@
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include <dirent.h>
@@ -181,7 +182,10 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
       return NULL;
     }
     den_ptr->up_tree = father_dir_entry;
-    den_ptr->not_scanned = FALSE;
+    if (!AppStateCommitDirEntryLoggedState(den_ptr, FALSE, FALSE)) {
+      free(den_ptr);
+      return NULL;
+    }
 
     if (s)
       s->disk_total_directories++;
