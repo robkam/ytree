@@ -7,6 +7,7 @@
 
 #include "sort.h"
 #include "watcher.h"
+#include "ytnova_appstate_panel.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
@@ -759,10 +760,7 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
 
   SetKindOfSort(sort_kind + order, s);
 
-  if (dir_entry) {
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = 0;
-  }
+  (void)AppStateCommitDirEntryFileViewport(dir_entry, 0, 0);
 
   if (ctx->active) {
     Panel_Sort(ctx->active, s->kind_of_sort);

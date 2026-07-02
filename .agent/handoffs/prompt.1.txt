@@ -4,24 +4,24 @@ Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-dir-window-file-viewport-helper
-Active PR: https://github.com/robkam/ytreenova/pull/317
+Current branch: appstate-sort-file-viewport-helper
+Active PR: https://github.com/robkam/ytreenova/pull/318
 Supersession state: maintainer resumed autonomous AppState work after the earlier prompt-process stop condition.
 
 Recently confirmed remote state:
-- PR https://github.com/robkam/ytreenova/pull/316 merged after PR checks were green.
-- Local main fast-forwarded to origin/main at merge commit 3937767.
+- PR https://github.com/robkam/ytreenova/pull/317 merged after PR checks were green.
+- Local main fast-forwarded to origin/main at merge commit 3a9c3c0.
 - No open PRs were present before this branch started.
 
 Current AppState batch:
-- Route `HandleDirWindow` DirEntry file viewport restore and reset writes through `AppStateCommitDirEntryFileViewport`.
-- Add guard coverage preventing direct `dir_entry->start_file` / `dir_entry->cursor_pos` writes inside `HandleDirWindow`.
-- Scope is limited to `src/ui/ctrl_dir.c` and `tests/test_appstate_contract_guard.py`.
+- Route the `UI_HandleSort` DirEntry file viewport reset through `AppStateCommitDirEntryFileViewport`.
+- Add guard coverage preventing direct `dir_entry->start_file` / `dir_entry->cursor_pos` writes inside `UI_HandleSort`.
+- Scope is limited to `src/ui/interactions.c` and `tests/test_appstate_contract_guard.py`.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ctrl_dir_handle_dir_window_viewports_commit_through_appstate_helper` failed before `HandleDirWindow` used the DirEntry viewport helper.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ctrl_dir_handle_dir_window_viewports_commit_through_appstate_helper`
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'ctrl_dir_handle_dir_window_viewports_commit_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper or dir_nav_dir_entry_viewports_commit_through_appstate_helper'`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k sort_interaction_viewports_commit_through_appstate_helper` failed before `UI_HandleSort` used the DirEntry viewport helper.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k sort_interaction_viewports_commit_through_appstate_helper`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'sort_interaction_viewports_commit_through_appstate_helper or global_search_term_writes_route_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - Passed: `make clean && make` with existing warnings.
 

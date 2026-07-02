@@ -7691,6 +7691,28 @@ def test_ctrl_dir_handle_dir_window_viewports_commit_through_appstate_helper() -
     )
 
 
+def test_sort_interaction_viewports_commit_through_appstate_helper() -> None:
+    interactions = Path("src/ui/interactions.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    function_start = interactions.index("void UI_HandleSort(")
+    function_body = interactions[function_start:]
+
+    assert not mutation.search(function_body)
+    assert 'include "ytnova_appstate_panel.h"' in interactions
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,",
+                function_body,
+            )
+        )
+        == 1
+    )
+
+
 def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     mutation = re.compile(
