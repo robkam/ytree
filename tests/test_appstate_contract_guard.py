@@ -6083,6 +6083,40 @@ def test_panel_visibility_filter_commits_through_appstate_helper() -> None:
     )
 
 
+def test_dir_entry_tagged_filter_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_visibility.h").read_text(
+        encoding="utf-8"
+    )
+    helper = Path("src/ui/appstate_visibility.c").read_text(encoding="utf-8")
+    dir_tags = Path("src/ui/dir_tags.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryTaggedFilter(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryTaggedFilter(")
+    helper_body = helper[helper_start:]
+    assert (
+        'AppStateValidatedGenerationDomain("state.visibility-filter.panel-volume")'
+        in helper_body
+    )
+    assert "dir_entry->tagged_flag = tagged_only ? TRUE : FALSE;" in helper_body
+
+    dir_toggle_start = dir_tags.index("static void HandleDirTaggedOnlyToggle(")
+    dir_toggle_end = dir_tags.index("\nBOOL HandleDirTagActions(", dir_toggle_start)
+    dir_toggle_body = dir_tags[dir_toggle_start:dir_toggle_end]
+    file_toggle_start = ctrl_file_ops.index(
+        "static BOOL HandleTaggedSelectionDispatchAction("
+    )
+    file_toggle_body = ctrl_file_ops[file_toggle_start:]
+
+    for body in [dir_toggle_body, file_toggle_body]:
+        assert not re.search(r"\bdir_entry->tagged_flag\s*=(?!=)", body)
+        assert re.search(
+            r"AppStateCommitDirEntryTaggedFilter\(\s*dir_entry,",
+            body,
+        )
+
+
 def test_active_panel_session_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_session.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")

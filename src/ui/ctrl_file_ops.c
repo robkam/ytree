@@ -13,6 +13,7 @@
 #include "ytnova_appstate_modal.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_appstate_window.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -1793,10 +1794,10 @@ static BOOL HandleTaggedSelectionDispatchAction(
     return TRUE;
 
   case ACTION_TOGGLE_TAGGED_MODE:
-    if (dir_entry->tagged_files)
-      dir_entry->tagged_flag = !dir_entry->tagged_flag;
-    else
-      dir_entry->tagged_flag = FALSE;
+    if (!AppStateCommitDirEntryTaggedFilter(
+            dir_entry,
+            dir_entry->tagged_files ? !dir_entry->tagged_flag : FALSE))
+      return FALSE;
 
     BuildFileEntryList(ctx, ctx->active);
     if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0))
