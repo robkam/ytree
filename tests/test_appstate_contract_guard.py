@@ -7895,6 +7895,25 @@ def test_log_file_selection_viewports_commit_through_appstate_helper() -> None:
     )
 
 
+def test_mkdir_dir_entry_state_commits_through_appstate_helpers() -> None:
+    mkdir_source = Path("src/cmd/mkdir.c").read_text(encoding="utf-8")
+
+    function_start = mkdir_source.index("static DirEntry *MakeDirEntry(")
+    function_end = mkdir_source.index("\nint MakePath(", function_start)
+    function_body = mkdir_source[function_start:function_end]
+    direct_state_write = re.compile(
+        r"\bden_ptr->"
+        r"(?:cursor_pos|start_file|global_flag|global_all_volumes|tagged_flag|"
+        r"big_window)\s*=(?!=)"
+    )
+
+    assert not direct_state_write.search(function_body)
+    assert "AppStateCommitDirEntryFileViewport(den_ptr, 0, 0)" in function_body
+    assert "AppStateCommitDirEntryGlobalFilter(den_ptr, FALSE, FALSE)" in function_body
+    assert "AppStateCommitDirEntryTaggedFilter(den_ptr, FALSE)" in function_body
+    assert "AppStateCommitDirEntryFileShape(den_ptr, FALSE)" in function_body
+
+
 def test_dir_ops_delete_viewports_commit_through_appstate_helper() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     mutation = re.compile(
