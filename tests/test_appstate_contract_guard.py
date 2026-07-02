@@ -9140,6 +9140,47 @@ def test_dir_ops_restore_file_shape_commits_use_appstate_helper() -> None:
     )
 
 
+def test_dir_ops_mode_handoffs_commit_through_appstate_helpers() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+    show_all_start = dir_ops.index("\nvoid HandleShowAll(")
+    show_all_end = dir_ops.index("\nvoid HandleSwitchWindow(", show_all_start)
+    show_all_body = dir_ops[show_all_start:show_all_end]
+    switch_start = show_all_end
+    switch_end = dir_ops.index("\nvoid SyncActivePanelWindows(", switch_start)
+    switch_body = dir_ops[switch_start:switch_end]
+
+    mode_write = re.compile(
+        r"\bdir_entry->"
+        r"(?:global_flag|global_all_volumes|tagged_flag|big_window)\s*=(?!=)"
+    )
+    viewport_write = re.compile(r"\bdir_entry->(?:start_file|cursor_pos)\s*=(?!=)")
+
+    assert not mode_write.search(show_all_body)
+    assert not viewport_write.search(show_all_body)
+    assert "AppStateCommitDirEntryFileShape(dir_entry, TRUE)" in show_all_body
+    assert (
+        "AppStateCommitDirEntryGlobalFilter(dir_entry, TRUE, all_volumes)"
+        in show_all_body
+    )
+    assert (
+        "AppStateCommitDirEntryTaggedFilter(dir_entry, tagged_only)"
+        in show_all_body
+    )
+    assert "AppStateCommitDirEntryFileViewport(dir_entry, 0, 0)" in show_all_body
+    assert re.search(
+        r"AppStateCommitDirEntryGlobalFilter\(\s*"
+        r"dir_entry,\s*dir_entry->global_flag,\s*FALSE\s*\)",
+        show_all_body,
+    )
+    assert "AppStateCommitDirEntryFileViewport(dir_entry, 0, -1)" in show_all_body
+
+    assert not mode_write.search(switch_body)
+    assert "AppStateCommitDirEntryGlobalFilter(dir_entry, FALSE, FALSE)" in switch_body
+    assert "AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE)" in switch_body
+    assert "AppStateCommitDirEntryFileShape(dir_entry, big_file_view)" in switch_body
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (
