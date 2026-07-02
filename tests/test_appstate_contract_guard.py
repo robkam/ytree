@@ -7914,6 +7914,25 @@ def test_mkdir_dir_entry_state_commits_through_appstate_helpers() -> None:
     assert "AppStateCommitDirEntryFileShape(den_ptr, FALSE)" in function_body
 
 
+def test_tree_read_dir_entry_state_commits_through_appstate_helpers() -> None:
+    tree_read = Path("src/fs/tree_read.c").read_text(encoding="utf-8")
+
+    function_start = tree_read.index("int ReadTree(")
+    function_end = tree_read.index("\nvoid UnReadTree(", function_start)
+    function_body = tree_read[function_start:function_end]
+    direct_state_write = re.compile(
+        r"\bdir_entry->"
+        r"(?:cursor_pos|start_file|global_flag|global_all_volumes|tagged_flag|"
+        r"big_window)\s*=(?!=)"
+    )
+
+    assert not direct_state_write.search(function_body)
+    assert "AppStateCommitDirEntryFileViewport(dir_entry, 0, 0)" in function_body
+    assert "AppStateCommitDirEntryGlobalFilter(dir_entry, FALSE, FALSE)" in function_body
+    assert "AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE)" in function_body
+    assert "AppStateCommitDirEntryFileShape(dir_entry, FALSE)" in function_body
+
+
 def test_dir_ops_delete_viewports_commit_through_appstate_helper() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     mutation = re.compile(
