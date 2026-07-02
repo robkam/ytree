@@ -9025,6 +9025,41 @@ def test_volume_generation_commits_route_through_appstate_helper() -> None:
     assert dir_ops.count("AppStateCommitVolumeGeneration(") == 4
 
 
+def test_volume_dir_entry_list_cache_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    volume = Path("src/core/volume.c").read_text(encoding="utf-8")
+    dir_list = Path("src/ui/dir_list.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitVolumeDirEntryList(" in header
+    assert "BOOL AppStateReleaseVolumeDirEntryList(" in header
+    assert 'include "ytnova_appstate_volume.h"' in volume
+    assert 'include "ytnova_appstate_volume.h"' in dir_list
+
+    helper_start = helper.index("BOOL AppStateCommitVolumeDirEntryList(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("volume.dir_tree")'
+    assignments = [
+        "volume->dir_entry_list = dir_entry_list;",
+        "volume->dir_entry_list_capacity = capacity;",
+        "volume->total_dirs = total_dirs;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    direct_cache_write = (
+        r"\bvol->(?:dir_entry_list|dir_entry_list_capacity|total_dirs)\s*=[^=]"
+    )
+    assert not re.search(direct_cache_write, volume)
+    assert not re.search(direct_cache_write, dir_list)
+    assert volume.count("AppStateReleaseVolumeDirEntryList(") >= 2
+    assert dir_list.count("AppStateCommitVolumeDirEntryList(") >= 3
+    assert dir_list.count("AppStateReleaseVolumeDirEntryList(") >= 2
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")

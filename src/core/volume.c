@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_volume_registry.h"
 #include "ytnova_defs.h"
 
@@ -38,12 +39,9 @@ static void Volume_ClearPanelTags(YtreeNovaPanel *panel) {
 }
 
 static void Volume_FreeCache(struct Volume *vol) {
-  if (vol && vol->dir_entry_list != NULL) {
-    free(vol->dir_entry_list);
-    vol->dir_entry_list = NULL;
-    vol->dir_entry_list_capacity = 0;
-    vol->total_dirs = 0;
-  }
+  if (!vol)
+    return;
+  (void)AppStateReleaseVolumeDirEntryList(vol);
 }
 
 static BOOL Volume_HasUserActions(const ViewContext *ctx) {
@@ -144,10 +142,8 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
   if (!AppStateUnregisterVolume(ctx, vol))
     return;
 
-  if (vol->dir_entry_list) {
-    free(vol->dir_entry_list);
-    vol->dir_entry_list = NULL;
-  }
+  if (vol->dir_entry_list && !AppStateReleaseVolumeDirEntryList(vol))
+    return;
   /* Invalidate any panels using this volume to prevent stale references */
   if (ctx->left && ctx->left->vol == vol) {
     Volume_ClearPanelFileEntries(ctx->left);

@@ -11,5 +11,9 @@
 #include "ytnova_defs.h"
 
 BOOL AppStateCommitVolumeGeneration(struct Volume *volume);
+BOOL AppStateCommitVolumeDirEntryList(struct Volume *volume,
+                                      DirEntryList *dir_entry_list,
+                                      size_t capacity, int total_dirs);
+BOOL AppStateReleaseVolumeDirEntryList(struct Volume *volume);
 
 #endif /* YTNOVA_APPSTATE_VOLUME_H */
