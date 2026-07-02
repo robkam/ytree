@@ -7713,6 +7713,31 @@ def test_sort_interaction_viewports_commit_through_appstate_helper() -> None:
     )
 
 
+def test_log_file_selection_viewports_commit_through_appstate_helper() -> None:
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    mutation = re.compile(
+        r"\bdir_entry->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    function_start = log_source.index("static void PositionSavedFileSelection(")
+    function_end = log_source.index(
+        "\nstatic void RestorePanelFileSelection(", function_start
+    )
+    function_body = log_source[function_start:function_end]
+
+    assert not mutation.search(function_body)
+    assert 'include "ytnova_appstate_panel.h"' in log_source
+    assert (
+        len(
+            re.findall(
+                r"AppStateCommitDirEntryFileViewport\(\s*dir_entry,",
+                function_body,
+            )
+        )
+        == 1
+    )
+
+
 def test_dir_nav_dir_entry_viewports_commit_through_appstate_helper() -> None:
     dir_nav = Path("src/ui/dir_nav.c").read_text(encoding="utf-8")
     mutation = re.compile(
