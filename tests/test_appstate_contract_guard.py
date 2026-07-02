@@ -7602,6 +7602,49 @@ def test_ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper() -> N
         )
 
 
+def test_ctrl_file_ops_rebind_dir_entry_state_commits_through_appstate_helpers() -> None:
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    viewport_mutation = re.compile(
+        r"\bpanel_dir->(?:cursor_pos|start_file)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    shape_mutation = re.compile(r"\bpanel_dir->big_window\s*=(?!=)")
+
+    function_start = ctrl_file_ops.index("BOOL RebindActiveFilePanelSelection(")
+    function_end = ctrl_file_ops.index(
+        "\nstatic void DebugLogFilePanelState(",
+        function_start,
+    )
+    function_body = ctrl_file_ops[function_start:function_end]
+
+    assert not viewport_mutation.search(function_body)
+    assert not shape_mutation.search(function_body)
+    assert (
+        "AppStateCommitDirEntryFileViewport(panel_dir, panel->start_file,"
+        in function_body
+    )
+    assert (
+        "AppStateCommitDirEntryFileShape(panel_dir, panel->saved_big_file_view)"
+        in function_body
+    )
+
+
+def test_ctrl_file_ops_enter_dir_entry_shape_commits_through_appstate_helper() -> None:
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    mutation = re.compile(r"\bdir_entry->big_window\s*=(?!=)")
+
+    function_start = ctrl_file_ops.index(
+        "BOOL handle_file_window_misc_dispatch_action("
+    )
+    function_end = ctrl_file_ops.index(
+        "\nstatic BOOL HandleTaggedFileOpDispatchAction(",
+        function_start,
+    )
+    function_body = ctrl_file_ops[function_start:function_end]
+
+    assert not mutation.search(function_body)
+    assert "AppStateCommitDirEntryFileShape(dir_entry, TRUE)" in function_body
+
+
 def test_ctrl_file_refresh_dir_entry_viewports_commit_through_appstate_helper() -> None:
     ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
     mutation = re.compile(
