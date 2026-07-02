@@ -41,6 +41,28 @@ BOOL AppStateCommitLayoutGeometry(ViewContext *ctx,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelWindowGeometry(
+    YtreeNovaPanel *panel, const YtreeNovaPanelWindowGeometry *geometry) {
+  if (!AppStateValidatedOwnerField("ctx.layout"))
+    return FALSE;
+  if (!panel || !geometry)
+    return FALSE;
+
+  panel->dir_x = geometry->dir_x;
+  panel->dir_y = geometry->dir_y;
+  panel->dir_w = geometry->dir_w;
+  panel->dir_h = geometry->dir_h;
+  panel->small_file_x = geometry->small_file_x;
+  panel->small_file_y = geometry->small_file_y;
+  panel->small_file_w = geometry->small_file_w;
+  panel->small_file_h = geometry->small_file_h;
+  panel->big_file_x = geometry->big_file_x;
+  panel->big_file_y = geometry->big_file_y;
+  panel->big_file_w = geometry->big_file_w;
+  panel->big_file_h = geometry->big_file_h;
+  return TRUE;
+}
+
 BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width) {
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;

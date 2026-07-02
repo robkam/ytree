@@ -4,26 +4,28 @@ Date: 2026-07-02
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-completion-viewport-helper
-Active PR: https://github.com/robkam/ytreenova/pull/335
-Supersession state: maintainer instructed to continue current work until the next idle boundary, then stop and do not start another batch.
+Current branch: appstate-panel-window-geometry-helper
+Active PR: https://github.com/robkam/ytreenova/pull/337
+Supersession state: maintainer instructed autonomous continuation of AppState task work until completion or a later stop/pause instruction.
 
 Recently confirmed remote state:
-- PR https://github.com/robkam/ytreenova/pull/334 merged at `81439e4` after green checks.
-- Local `main` and `origin/main` are at `81439e4`.
-- The feature branch `appstate-history-viewport-helper` was removed remotely during merge cleanup.
+- PR https://github.com/robkam/ytreenova/pull/336 is merged.
+- Local `main` and `origin/main` were fast-forwarded to `de34c00` before this branch was created.
+- Stale local branch `update-uthash-dep` was removed after its remote was pruned.
+- MCP doctor reports `serena` and `jcodemunch` configured, but this runner's MCP resource handshake timed out; exact-file reads and repo guards were used after the semantic tools were unavailable.
 
 Current AppState batch:
-- Route completion dialog viewport cursor/origin mutations through the modal AppState helper boundary.
-- Add guard coverage that prevents direct writes to the completion dialog viewport fields in `GetMatches` and completion preparation.
-- Scope is limited to `include/ytnova_appstate_modal.h`, `src/ui/appstate_modal.c`, `src/ui/completion_dialog.c`, `src/util/completion_utils.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
+- Route panel window geometry mirror writes in `Layout_Recalculate` through an AppState layout helper boundary.
+- Add guard coverage that prevents direct `ctx->active/left/right` panel geometry writes in `Layout_Recalculate`.
+- Scope is limited to `include/ytnova_appstate_layout.h`, `src/ui/appstate_layout.c`, `src/core/init.c`, `tests/test_appstate_contract_guard.py`, and this handoff file.
 
 Validation recorded before first push:
-- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k completion_viewport_routes_through_appstate_helper` failed before the helper existed.
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k completion_viewport_routes_through_appstate_helper`
+- Red proof: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_window_geometry_commits_through_appstate_helper` failed before the helper existed.
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k panel_window_geometry_commits_through_appstate_helper`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'layout_geometry_commits_through_appstate_helper or panel_window_geometry_commits_through_appstate_helper'`
 - Passed: `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'completion_viewport_routes_through_appstate_helper or history_viewport_routes_through_appstate_helper or preview_modal_state_routes_through_appstate_helper'`
+- Passed: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 - Passed: `make clean && make` with existing warnings.
 
 Next action:
-- Follow the CI wait rule for the draft PR, then mark ready and merge only after checks and review requirements allow. After merge, clean up, update this checkpoint, mark the active goal blocked due the stop instruction, and stop without selecting another batch.
+- Follow the CI wait rule for the draft PR. When checks are green and merge requirements allow, mark ready if needed, merge, clean branch state, update this checkpoint, and continue with the next AppState batch unless a superseding stop condition applies.

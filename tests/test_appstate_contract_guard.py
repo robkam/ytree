@@ -6379,6 +6379,49 @@ def test_layout_geometry_commits_through_appstate_helper() -> None:
     assert not re.search(r"\bctx->layout\.[A-Za-z0-9_]+\s*=[^=]", layout_body)
 
 
+def test_panel_window_geometry_commits_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    init_source = Path("src/core/init.c").read_text(encoding="utf-8")
+
+    assert "YtreeNovaPanelWindowGeometry" in header
+    assert "BOOL AppStateCommitPanelWindowGeometry(" in header
+
+    helper_start = helper.index("BOOL AppStateCommitPanelWindowGeometry(")
+    helper_body = helper[helper_start:]
+    validation = 'AppStateValidatedOwnerField("ctx.layout")'
+    assignments = [
+        "panel->dir_x = geometry->dir_x;",
+        "panel->dir_y = geometry->dir_y;",
+        "panel->dir_w = geometry->dir_w;",
+        "panel->dir_h = geometry->dir_h;",
+        "panel->small_file_x = geometry->small_file_x;",
+        "panel->small_file_y = geometry->small_file_y;",
+        "panel->small_file_w = geometry->small_file_w;",
+        "panel->small_file_h = geometry->small_file_h;",
+        "panel->big_file_x = geometry->big_file_x;",
+        "panel->big_file_y = geometry->big_file_y;",
+        "panel->big_file_w = geometry->big_file_w;",
+        "panel->big_file_h = geometry->big_file_h;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    layout_start = init_source.index("void Layout_Recalculate(")
+    layout_end = init_source.index("\n\nvoid InitView(", layout_start)
+    layout_body = init_source[layout_start:layout_end]
+    direct_geometry_write = (
+        r"\bctx->(?:active|left|right)->"
+        r"(?:dir_[xywh]|small_file_[xywh]|big_file_[xywh])\s*=[^=]"
+    )
+
+    assert "AppStateCommitPanelWindowGeometry(" in layout_body
+    assert not re.search(direct_geometry_write, layout_body)
+
+
 def test_fixed_column_width_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_layout.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
