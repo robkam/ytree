@@ -5,6 +5,9 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_focus.h"
+#include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include <stdarg.h>
 
@@ -128,12 +131,12 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   dir_entry->matching_files = 0;
   dir_entry->tagged_files = 0;
   dir_entry->access_denied = FALSE;
-  dir_entry->start_file = 0;
-  dir_entry->cursor_pos = 0;
-  dir_entry->global_flag = FALSE;
-  dir_entry->global_all_volumes = FALSE;
   dir_entry->log_flag = FALSE;
-  dir_entry->big_window = FALSE;
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0) ||
+      !AppStateCommitDirEntryGlobalFilter(dir_entry, FALSE, FALSE) ||
+      !AppStateCommitDirEntryTaggedFilter(dir_entry, FALSE) ||
+      !AppStateCommitDirEntryFileShape(dir_entry, FALSE))
+    return (-1);
   dir_entry->not_scanned = FALSE;
   dir_entry->unlogged_flag = FALSE;
 
