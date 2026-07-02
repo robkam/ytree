@@ -9136,6 +9136,7 @@ def test_dir_ops_restore_file_shape_commits_use_appstate_helper() -> None:
     focus_header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
     focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    log_source = Path("src/cmd/log.c").read_text(encoding="utf-8")
 
     assert "BOOL AppStateCommitDirEntryFileShape(" in focus_header
 
@@ -9161,6 +9162,16 @@ def test_dir_ops_restore_file_shape_commits_use_appstate_helper() -> None:
     assert (
         "AppStateCommitDirEntryFileShape(dir_entry, panel->saved_big_file_view)"
         in restore_body
+    )
+
+    log_restore_start = log_source.index("static void RestorePanelFileSelection(")
+    log_restore_end = log_source.index("\nstatic void SavePanelTreeSelection(", log_restore_start)
+    log_restore_body = log_source[log_restore_start:log_restore_end]
+    assert not re.search(r"\bresolved_file_dir->big_window\s*=(?!=)", log_restore_body)
+    assert re.search(
+        r"AppStateCommitDirEntryFileShape\(\s*resolved_file_dir,\s*"
+        r"state->saved_big_file_view\s*\)",
+        log_restore_body,
     )
 
 
