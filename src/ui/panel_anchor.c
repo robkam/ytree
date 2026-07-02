@@ -8,6 +8,7 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -818,7 +819,9 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
 
   for (ancestor = target->up_tree; ancestor; ancestor = ancestor->up_tree) {
     if (ancestor->not_scanned && ancestor->sub_tree) {
-      ancestor->not_scanned = FALSE;
+      if (!AppStateCommitDirEntryLoggedState(ancestor, FALSE,
+                                             ancestor->unlogged_flag))
+        return;
       changed = TRUE;
     }
   }

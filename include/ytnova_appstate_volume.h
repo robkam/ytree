@@ -10,6 +10,8 @@
 
 #include "ytnova_defs.h"
 
+BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
+                                       BOOL unlogged_flag);
 BOOL AppStateCommitVolumeGeneration(struct Volume *volume);
 BOOL AppStateCommitVolumeDirEntryList(struct Volume *volume,
                                       DirEntryList *dir_entry_list,
