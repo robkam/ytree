@@ -103,8 +103,9 @@ static void PositionSavedFileSelection(ViewContext *ctx, YtreeNovaPanel *panel,
 
   if (!AppStateCommitPanelFileViewport(panel, start, selected_idx - start))
     return;
-  dir_entry->start_file = start;
-  dir_entry->cursor_pos = selected_idx - start;
+  if (!AppStateCommitDirEntryFileViewport(dir_entry, start,
+                                          selected_idx - start))
+    return;
 }
 
 static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
