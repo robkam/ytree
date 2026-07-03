@@ -12,6 +12,18 @@
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
+static const UICommandStripPart volume_command_strip[] = {
+    {UI_COMMAND_LABEL, "Select"}, {UI_COMMAND_PUNCT, " ("},
+    {UI_COMMAND_KEY, "Up"},       {UI_COMMAND_PUNCT, ")/("},
+    {UI_COMMAND_KEY, "Down"},     {UI_COMMAND_PUNCT, ")  "},
+    {UI_COMMAND_LABEL, "Switch"}, {UI_COMMAND_PUNCT, " ("},
+    {UI_COMMAND_KEY, "Enter"},    {UI_COMMAND_PUNCT, ")  ("},
+    {UI_COMMAND_KEY, "Esc"},      {UI_COMMAND_PUNCT, ")/("},
+    {UI_COMMAND_KEY, "Q"},        {UI_COMMAND_PUNCT, ")"},
+    {UI_COMMAND_LABEL, "uit"},    {UI_COMMAND_PUNCT, "  ("},
+    {UI_COMMAND_KEY, "D"},        {UI_COMMAND_PUNCT, ")"},
+    {UI_COMMAND_LABEL, "elete"}};
+
 static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
   int disp_begin_pos;
   int cursor_pos;
@@ -100,9 +112,8 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
   WINDOW *win = NULL;
   int win_height, win_width, win_x, win_y;
   int result = -1; /* Assume cancel by default */
+  int prompt_width;
   char title[] = "Select Volume";
-  char prompt[] =
-      "Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete";
   BOOL changes_made = FALSE;
   BOOL restart_menu = FALSE;
 
@@ -126,6 +137,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
     restart_menu = FALSE;
     menu_active = TRUE;
+    prompt_width = UI_CommandStripVisualLength(
+        volume_command_strip,
+        sizeof(volume_command_strip) / sizeof(volume_command_strip[0]));
 
     /* Reset num_volumes and max_path_len for fresh snapshot */
     max_path_len = 0;
@@ -178,7 +192,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     win_width = MAXIMUM((int)(strlen(title) + 4), max_path_len + 12);
 
     /* Ensure it covers the prompt */
-    win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4);
+    win_width = MAXIMUM(win_width, prompt_width + 4);
 
     /* Constraint: Fit strictly within the main directory area (left of stats
      * panel) */
@@ -236,8 +250,11 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       werase(win);
       box(win, 0, 0);
       mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
-      mvwprintw(win, win_height - 2, (win_width - StrVisualLength(prompt)) / 2,
-                "%s", prompt);
+      UI_RenderCommandStrip(
+          win, win_height - 2, (win_width - prompt_width) / 2,
+          volume_command_strip,
+          sizeof(volume_command_strip) / sizeof(volume_command_strip[0]),
+          CPAIR_HST, CPAIR_HIMENUS);
 
       /* Drawing loop using scroll_offset and visible_lines */
       for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */

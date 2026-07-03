@@ -754,3 +754,59 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
     wattrset(win, 0);
   }
 }
+
+int UI_CommandStripVisualLength(const UICommandStripPart *parts,
+                                size_t part_count) {
+  size_t i;
+  int len = 0;
+
+  if (parts == NULL)
+    return 0;
+
+  for (i = 0; i < part_count; ++i) {
+    if (parts[i].text != NULL)
+      len += StrVisualLength(parts[i].text);
+  }
+
+  return len;
+}
+
+void UI_RenderCommandStrip(WINDOW *win, int y, int x,
+                           const UICommandStripPart *parts, size_t part_count,
+                           int ncolor, int hcolor) {
+  size_t i;
+  int max_x;
+
+  if (win == NULL || parts == NULL || x < 0 || y < 0)
+    return;
+
+  max_x = getmaxx(win);
+  if (max_x <= 0 || x >= max_x)
+    return;
+
+  for (i = 0; i < part_count && x < max_x; ++i) {
+    const char *text = parts[i].text;
+    int attr;
+
+    if (text == NULL)
+      continue;
+
+#ifdef COLOR_SUPPORT
+    attr = COLOR_PAIR(parts[i].kind == UI_COMMAND_KEY ? hcolor : ncolor);
+    if (parts[i].kind == UI_COMMAND_KEY)
+      attr |= A_BOLD;
+#else
+    attr = parts[i].kind == UI_COMMAND_KEY ? A_BOLD : A_NORMAL;
+#endif
+
+    wattrset(win, attr);
+    for (; *text && x < max_x; ++text) {
+      int raw = (unsigned char)*text;
+      chtype ch = raw < 32 ? ACS_BLOCK : (chtype)raw;
+
+      mvwaddch(win, y, x++, ch);
+    }
+  }
+
+  wattrset(win, 0);
+}

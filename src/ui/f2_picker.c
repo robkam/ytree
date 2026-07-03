@@ -12,6 +12,14 @@
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
 
+static const UICommandStripPart f2_command_strip[] = {
+    {UI_COMMAND_PUNCT, "("},   {UI_COMMAND_KEY, "L"},
+    {UI_COMMAND_PUNCT, ")"},   {UI_COMMAND_LABEL, "og"},
+    {UI_COMMAND_PUNCT, "  ("},
+    {UI_COMMAND_KEY, "<"},     {UI_COMMAND_PUNCT, ")/("},
+    {UI_COMMAND_KEY, ">"},     {UI_COMMAND_PUNCT, ") "},
+    {UI_COMMAND_LABEL, "Cycle"}};
+
 int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */
   unsigned int original_panel_generation;
@@ -85,10 +93,10 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
               local_disp_begin_pos + local_cursor_pos, TRUE);
   do {
-    /* Footer Drawing */
-    wattron(ctx->ctx_f2_window, A_BOLD);
-    mvwaddstr(ctx->ctx_f2_window, win_height - 1, 2, "(L)og  (<)/(>) Cycle");
-    wattroff(ctx->ctx_f2_window, A_BOLD);
+    UI_RenderCommandStrip(
+        ctx->ctx_f2_window, win_height - 1, 2, f2_command_strip,
+        sizeof(f2_command_strip) / sizeof(f2_command_strip[0]), CPAIR_HST,
+        CPAIR_HIMENUS);
 
     RefreshWindow(ctx->ctx_f2_window);
     doupdate();

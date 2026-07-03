@@ -188,6 +188,20 @@ extern void PrintLine(WINDOW *win, int y, int x, const char *line, int len);
 extern void PrintMenuOptions(WINDOW *, int, int, char *, int, int);
 extern void PrintOptions(WINDOW *, int, int, char *);
 extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
+typedef enum {
+  UI_COMMAND_PUNCT,
+  UI_COMMAND_LABEL,
+  UI_COMMAND_KEY
+} UICommandPartKind;
+typedef struct {
+  UICommandPartKind kind;
+  const char *text;
+} UICommandStripPart;
+extern int UI_CommandStripVisualLength(const UICommandStripPart *parts,
+                                       size_t part_count);
+extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
+                                  const UICommandStripPart *parts,
+                                  size_t part_count, int ncolor, int hcolor);
 extern int WAddStr(WINDOW *win, char *str);
 extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 

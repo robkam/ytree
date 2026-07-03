@@ -1,0 +1,63 @@
+Task 60 live checkpoint — /home/rob/nova60 branch task-60
+
+Current branch and HEAD:
+- Branch: task-60
+- HEAD before committing this checkpoint: af83538 docs(theme): document semantic rendering roles
+- This checkpoint is committed with the token-aware command strip subunit; use `git log -1` for the exact containing commit.
+
+Completed local subunits toward Task 60:
+- Compact file-type palette parsing
+  - Commit: a2c584d feat(theme): parse compact palette groups
+- Packaged semantic theme catalog
+  - Commit: d3e0a92 feat(theme): add packaged theme catalog
+- Semantic theme file loading
+  - Commit: ab545e6 feat(theme): load semantic theme files
+  - Includes path fallback order, startup/theme application, migration-only semantic-role-to-legacy color shim, and file-type background inheritance.
+- Picker command strip alignment
+  - Commit: fe654a9 fix(ui): align picker command strips
+  - F2 footer exactly `(L)og  (<)/(>) Cycle`; volume menu strip exactly `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`.
+- F10 config command surface
+  - Commit: 26a4e2a feat(ui): add config command surface
+  - F10 strip exactly `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`; Enter/C edits config, T edits themes, R reloads, Esc/Q exits; successful reload remains silent.
+- Preferred config profile path handling
+  - Commit: b7b7ab9 feat(config): prefer XDG profile paths
+  - Startup and F10 config editing prefer `~/.config/ytnova/ytnova.conf` with legacy fallback to `~/.ytnova`; F10 creates the preferred config directory when creating a new config.
+- Reload failure status reporting
+  - Commit: 20d6d10 fix(ui): report reload failures in status
+  - Config/theme reload failures use `UI_ShowStatusLineError`; color-pair reinit is skipped on theme-load failure; no success message is introduced.
+- Help and picker semantic role routing
+  - Commit: 528ccc7 feat(ui): route help and picker surfaces through theme roles
+  - Adds an internal help pair shim, maps context-help surfaces to `help`, routes volume/completion/history selectable-list rendering through picker/selection pairs, and avoids per-entry background changes in completion rendering.
+- Stats rendering role split
+  - Commit: 47f3522 feat(ui): split stats rendering roles
+  - Stats box lines use the border role, section titles/fixed labels use static text, dynamic values use dynamic text, and stats filename/detail rendering no longer applies file-type color pairs.
+- Error color alias cleanup
+  - Commit: d8ae569 refactor(ui): collapse error color alias
+  - Removes the unused `CPAIR_WINERR` runtime pair, routes error windows/status through `CPAIR_ERR`, removes `WINERR_COLOR` from packaged/default profile examples, and keeps `WINERR_COLOR` as a migration-only alias to `ERR_COLOR` for legacy profiles.
+- Semantic rendering role documentation
+  - Commit: af83538 docs(theme): document semantic rendering roles
+  - Updates SPEC/ARCH contracts for help/picker/error semantic routing, `WINERR_COLOR` migration-only aliasing, and rendering invariants for backgrounds and stats roles.
+- Token-aware command strip rendering
+  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Adds structured command strip parts for key tokens, labels, and punctuation, and renders the F2 and volume command strips with highlighted key tokens while preserving their exact contract text.
+
+Focused validation for latest local subunit:
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py` -> 20 passed.
+- `git diff --check` -> exit 0.
+- `make` -> exit 0; existing PRINT macro signedness warnings remain, and no new UI_RenderCommandStrip warning remains.
+
+Local notes:
+- No `.venv` exists in /home/rob/nova60, so focused pytest has been run with `python3 -m pytest` from repo root.
+- Task-local recovery/prompt artifacts are included with the local subunit commit when changed.
+- Not pushed; no PR/CI actions taken.
+- Task 60 remains open.
+
+Untracked or dirty files intentionally left behind:
+- None intended after the token-aware command strip commit.
+
+Next recommended Task 60 subunit:
+- Continue remaining CPAIR/background-bleed audit, especially main panel/window background role mapping and foreground/background completeness for active file/dir rendering.
+
+Known blockers or risks:
+- No active blocker.
+- Legacy color-pair shim remains migration-only and must be removed or isolated before Task 60 closure.
