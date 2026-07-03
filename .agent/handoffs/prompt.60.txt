@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the clock dynamic role subunit.
+- This checkpoint is committed with the F1 help role rendering subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -100,12 +100,15 @@ Completed local subunits toward Task 60:
 - Clock dynamic role rendering
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - Clock/timestamp rendering now uses the dynamic text role and removes the malformed color-pair/background expression from time-window initialization.
+- F1 help role rendering
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - Directory, file, and history help rows in the help window now render with the help role and keybind role instead of the generic static/menu role.
 
 Focused validation for latest local subunit:
-- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k clock` -> failed before implementation.
-- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k clock` -> 1 passed.
+- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k help_surfaces` -> failed before implementation.
+- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k help_surfaces` -> 1 passed.
 - `python3 -m pytest tests/test_theme_ui_contract.py` -> 16 passed.
-- `make clean && make` -> passed with existing warnings.
+- `make clean && make` -> passed with existing warnings after code change.
 - `git diff --check` -> exit 0.
 
 Local notes:

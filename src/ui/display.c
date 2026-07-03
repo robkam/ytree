@@ -127,7 +127,8 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   }
   werase(ctx->ctx_menu_window);
   for (i = 0; i < 2; i++) {
-    PrintOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i]);
+    PrintMenuOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i],
+                     CPAIR_HELP, CPAIR_HIMENUS);
   }
   if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
     nav_line = (dir_entry->up_tree != NULL) ? dir_help_nav_archive_to_root
@@ -156,7 +157,8 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   }
   werase(ctx->ctx_menu_window);
   for (i = 0; i < 2; i++) {
-    PrintOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i]);
+    PrintMenuOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i],
+                     CPAIR_HELP, CPAIR_HIMENUS);
   }
   if (dir_entry && dir_entry->global_flag) {
     nav_line = dir_entry->global_all_volumes ? file_help_nav_global
@@ -237,8 +239,9 @@ void DisplayHistoryHelp(ViewContext *ctx) {
   if (!ctx->ctx_menu_window)
     return;
   werase(ctx->ctx_menu_window);
-  PrintOptions(ctx->ctx_menu_window, 0, 0,
-               "History   (P)in/unpin    (Enter) OK    (Esc) Cancel");
+  PrintMenuOptions(ctx->ctx_menu_window, 0, 0,
+                   (char *)"History   (P)in/unpin    (Enter) OK    (Esc) Cancel",
+                   CPAIR_HELP, CPAIR_HIMENUS);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 

@@ -50,6 +50,11 @@ def test_help_surfaces_use_help_role():
     assert '{"help", {"HELP_COLOR", NULL}},' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(CPAIR_HELP)" in init_source
     assert "lo_color = CPAIR_HELP;" in display_source
+    assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0," in display_source
+    assert "dir_help[ctx->view_mode][i]," in display_source
+    assert "file_help[ctx->view_mode][i]," in display_source
+    assert "CPAIR_HELP, CPAIR_HIMENUS" in display_source
+    assert '(char *)"History   (P)in/unpin' in display_source
     assert "COLOR_PAIR(CPAIR_HELP)" in compare_source
 
 
