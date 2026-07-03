@@ -114,7 +114,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     /* Use UnReadSubTree to recursively free children and decrement stats
      * correctly */
     UnReadSubTree(ctx, dir_entry->sub_tree, s);
-    dir_entry->sub_tree = NULL;
+    if (!AppStateCommitDirEntrySubTree(dir_entry, NULL))
+      return (-1);
   }
 
   /* Initialize dir_entry */
@@ -124,7 +125,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     dir_entry->next           = NULL;
     dir_entry->prev           = NULL;
   */
-  dir_entry->sub_tree = NULL;
+  if (!AppStateCommitDirEntrySubTree(dir_entry, NULL))
+    return (-1);
   if (!AppStateResetDirEntryPayloadCache(dir_entry))
     return (-1);
   if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, 0) ||
@@ -195,7 +197,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
           first_dir_entry.next->prev = NULL;
         if (!AppStateCommitDirEntryFileList(dir_entry, first_file_entry.next))
           return -1;
-        dir_entry->sub_tree = first_dir_entry.next;
+        if (!AppStateCommitDirEntrySubTree(dir_entry, first_dir_entry.next))
+          return -1;
         return -1;
       } else {
         ClearPromptLineWithBoundary(ctx);
@@ -260,7 +263,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
           first_dir_entry.next->prev = NULL;
         if (!AppStateCommitDirEntryFileList(dir_entry, first_file_entry.next))
           return -1;
-        dir_entry->sub_tree = first_dir_entry.next;
+        if (!AppStateCommitDirEntrySubTree(dir_entry, first_dir_entry.next))
+          return -1;
         return -1;
       }
 
@@ -359,7 +363,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   if (!AppStateCommitDirEntryFileList(dir_entry, first_file_entry.next))
     return -1;
-  dir_entry->sub_tree = first_dir_entry.next;
+  if (!AppStateCommitDirEntrySubTree(dir_entry, first_dir_entry.next))
+    return -1;
 
   /* Final UI update via callback */
   if (cb)
@@ -396,7 +401,8 @@ void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
     }
     if (dir_entry->sub_tree) {
       UnReadSubTree(ctx, dir_entry->sub_tree, s);
-      dir_entry->sub_tree = NULL;
+      if (!AppStateCommitDirEntrySubTree(dir_entry, NULL))
+        return;
     }
     if (!AppStateCommitDirEntryLoggedState(dir_entry, TRUE, TRUE))
       return;
@@ -455,7 +461,8 @@ int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
   /* Unlink and free all child directories recursively, updating stats. */
   if (dir_entry->sub_tree) {
     UnReadSubTree(ctx, dir_entry->sub_tree, s);
-    dir_entry->sub_tree = NULL;
+    if (!AppStateCommitDirEntrySubTree(dir_entry, NULL))
+      return -1;
   }
 
   /* Unlink and free all files, updating stats. */

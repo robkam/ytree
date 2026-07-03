@@ -9308,6 +9308,31 @@ def test_tree_read_file_list_commits_route_through_appstate_helper() -> None:
     assert tree_read.count("AppStateCommitDirEntryFileList(") >= 5
 
 
+def test_tree_read_child_list_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    tree_read = Path("src/fs/tree_read.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntrySubTree(" in header
+    assert 'include "ytnova_appstate_volume.h"' in tree_read
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntrySubTree(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitVolumeGeneration(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.dir_tree")'
+    assignment = "dir_entry->sub_tree = sub_tree;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    direct_child_list_write = re.compile(r"\bdir_entry->sub_tree\s*=(?!=)")
+    assert not direct_child_list_write.search(tree_read)
+    assert tree_read.count("AppStateCommitDirEntrySubTree(") >= 7
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
