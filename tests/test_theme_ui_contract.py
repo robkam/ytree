@@ -112,6 +112,15 @@ def test_viewer_frame_uses_border_role_not_directory_fill_role():
     assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in tagged_source
 
 
+def test_preview_content_resets_search_hit_to_base_role_pair():
+    preview_source = _read("src/ui/view_preview.c")
+
+    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINFILE));" in preview_source
+    assert "wattrset(win, COLOR_PAIR(CPAIR_FILE));" in preview_source
+    assert "wattrset(win, COLOR_PAIR(CPAIR_HIGLOBAL));" in preview_source
+    assert "wattroff(win, COLOR_PAIR(CPAIR_HIGLOBAL));" not in preview_source
+
+
 def test_modal_prompt_keeps_severity_role_pair():
     error_source = _read("src/ui/error.c")
 
