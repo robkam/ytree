@@ -206,7 +206,7 @@ static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
 
   Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
   Print(stdscr, geom->header_y, 6,
-        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_FILE);
   PrintOptions(stdscr, geom->message_y, 0,
                "(Edit file in hexadecimal mode)");
   wclrtoeol(stdscr);
@@ -237,7 +237,7 @@ static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
 
   Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
   Print(stdscr, geom->header_y, 6,
-        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_FILE);
   PrintOptions(stdscr, geom->message_y, 0,
                "View file in hexadecimal mode");
   wclrtoeol(stdscr);

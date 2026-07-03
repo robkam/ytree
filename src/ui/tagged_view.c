@@ -170,7 +170,7 @@ static void DrawTaggedViewHeader(ViewContext *ctx, const char *display_path,
 
   Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
   Print(stdscr, ctx->layout.header_y, 6,
-        CutPathname(clipped_header, header_buf, available), CPAIR_HIMENUS);
+        CutPathname(clipped_header, header_buf, available), CPAIR_FILE);
 
   PrintOptions(stdscr, ctx->layout.message_y, 0,
                "(Q)uit  (Space/PgDn) next page/file  (PgUp) prev page");

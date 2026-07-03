@@ -175,6 +175,24 @@ def test_viewer_frame_uses_border_role_not_directory_fill_role():
     assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in tagged_source
 
 
+def test_viewer_file_headers_use_dynamic_text_role():
+    internal_source = _read("src/ui/view_internal.c")
+    tagged_source = _read("src/ui/tagged_view.c")
+
+    assert 'Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);' in (
+        internal_source
+    )
+    assert "CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_FILE" in (
+        internal_source
+    )
+    assert 'Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);' in (
+        tagged_source
+    )
+    assert "CutPathname(clipped_header, header_buf, available), CPAIR_FILE" in (
+        tagged_source
+    )
+
+
 def test_preview_content_resets_search_hit_to_base_role_pair():
     preview_source = _read("src/ui/view_preview.c")
 
