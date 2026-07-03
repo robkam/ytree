@@ -25,7 +25,7 @@ typedef struct {
 
 typedef struct {
   const char *role;
-  const char *legacy_names[6];
+  const char *legacy_names[8];
 } ThemeRoleShim;
 
 static const char *required_roles[THEME_ROLE_COUNT] = {
@@ -37,11 +37,11 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
 /* Migration-only bridge: theme files expose semantic roles while current
    render paths still consume legacy color-pair names. */
 static const ThemeRoleShim role_shims[] = {
-    {"box_lines",
-     {"WINDIR_COLOR", "WINFILE_COLOR", "WINSTATS_COLOR", "BORDERS_COLOR",
-      NULL}},
+    {"box_lines", {"BORDERS_COLOR", NULL}},
     {"static_text", {"MENU_COLOR", NULL}},
-    {"dynamic_text", {"DIR_COLOR", "FILE_COLOR", "STATS_COLOR", NULL}},
+    {"dynamic_text",
+     {"DIR_COLOR", "WINDIR_COLOR", "FILE_COLOR", "WINFILE_COLOR",
+      "STATS_COLOR", "WINSTATS_COLOR", NULL}},
     {"keybind", {"HIMENUS_COLOR", NULL}},
     {"selection", {"HIDIR_COLOR", "HIFILE_COLOR", "HIHST_COLOR", NULL}},
     {"dialog", {"DIALOG_COLOR", NULL}},

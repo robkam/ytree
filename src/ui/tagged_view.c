@@ -130,7 +130,7 @@ static void SetupTaggedViewWindow(ViewContext *ctx) {
 
 #ifdef COLOR_SUPPORT
   WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR));
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS) | A_BOLD);
 #endif
 }
 
@@ -494,8 +494,12 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
         if (strlen(canonical_internal_path) > 0) {
           char *dir_only;
 
-          snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir,
-                   canonical_internal_path);
+          if (Path_Join(t_dirname, sizeof(t_dirname), temp_dir,
+                        canonical_internal_path) != 0) {
+            UI_Warning(ctx, "Skipped long temp path*\"%s\"",
+                       canonical_internal_path);
+            continue;
+          }
           dir_only = xstrdup(t_dirname);
           dirname(dir_only);
           if (recursive_mkdir(dir_only) != 0) {
@@ -505,10 +509,18 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
             continue;
           }
           free(dir_only);
-          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir,
-                   canonical_internal_path);
+          if (Path_Join(t_filename, sizeof(t_filename), temp_dir,
+                        canonical_internal_path) != 0) {
+            UI_Warning(ctx, "Skipped long temp path*\"%s\"",
+                       canonical_internal_path);
+            continue;
+          }
         } else {
-          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
+          if (Path_Join(t_filename, sizeof(t_filename), temp_dir, fe->name) !=
+              0) {
+            UI_Warning(ctx, "Skipped long temp path*\"%s\"", fe->name);
+            continue;
+          }
         }
 
         if (ExtractArchiveNode(s->log_path, canonical_internal_path, t_filename,

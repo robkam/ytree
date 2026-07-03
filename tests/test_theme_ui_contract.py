@@ -94,10 +94,22 @@ def test_stats_rendering_splits_static_dynamic_and_border_roles():
     assert "COLOR_PAIR(CPAIR_BORDERS)" in stats_source
     assert "COLOR_PAIR(color)" not in stats_source
     assert '{"static_text", {"MENU_COLOR", NULL}},' in theme_source
+    assert '{"box_lines", {"BORDERS_COLOR", NULL}},' in theme_source
     assert (
-        '{"dynamic_text", {"DIR_COLOR", "FILE_COLOR", "STATS_COLOR", NULL}},'
+        '"DIR_COLOR", "WINDIR_COLOR", "FILE_COLOR", "WINFILE_COLOR"'
         in theme_source
     )
+    assert '"STATS_COLOR", "WINSTATS_COLOR", NULL' in theme_source
+
+
+def test_viewer_frame_uses_border_role_not_directory_fill_role():
+    internal_source = _read("src/ui/view_internal.c")
+    tagged_source = _read("src/ui/tagged_view.c")
+
+    assert "ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR)" in internal_source
+    assert "ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR)" in tagged_source
+    assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in internal_source
+    assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in tagged_source
 
 
 def test_theme_docs_capture_role_routing_invariants():

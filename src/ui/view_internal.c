@@ -290,7 +290,7 @@ static void SetupViewWindow(ViewContext *ctx, const char *file_path,
     wmove(ctx->viewer.view, i, 0);
     wclrtoeol(ctx->viewer.view);
   }
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS) | A_BOLD);
   Change2View(ctx, geom, file_path);
   box(ctx->viewer.border, 0, 0);
   RefreshWindow(ctx->viewer.border);
