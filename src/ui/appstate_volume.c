@@ -8,6 +8,24 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_volume.h"
 
+BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry) {
+  if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->file = NULL;
+  dir_entry->total_bytes = 0L;
+  dir_entry->matching_bytes = 0L;
+  dir_entry->tagged_bytes = 0L;
+  dir_entry->total_files = 0;
+  dir_entry->matching_files = 0;
+  dir_entry->tagged_files = 0;
+  dir_entry->access_denied = FALSE;
+  dir_entry->log_flag = FALSE;
+  return TRUE;
+}
+
 BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
                                        BOOL unlogged_flag) {
   if (!AppStateValidatedOwnerField("volume.logged_state"))

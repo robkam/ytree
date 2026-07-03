@@ -9097,6 +9097,56 @@ def test_volume_logged_state_commits_route_through_appstate_helper() -> None:
         assert not direct_logged_state_write.search(source)
 
 
+def test_directory_payload_reset_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    tree_read = Path("src/fs/tree_read.c").read_text(encoding="utf-8")
+    mkdir = Path("src/cmd/mkdir.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateResetDirEntryPayloadCache(" in header
+    assert 'include "ytnova_appstate_volume.h"' in tree_read
+    assert 'include "ytnova_appstate_volume.h"' in mkdir
+
+    helper_start = helper.index("BOOL AppStateResetDirEntryPayloadCache(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitDirEntryLoggedState(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.payload_cache")'
+    assignments = [
+        "dir_entry->file = NULL;",
+        "dir_entry->total_bytes = 0L;",
+        "dir_entry->matching_bytes = 0L;",
+        "dir_entry->tagged_bytes = 0L;",
+        "dir_entry->total_files = 0;",
+        "dir_entry->matching_files = 0;",
+        "dir_entry->tagged_files = 0;",
+        "dir_entry->access_denied = FALSE;",
+        "dir_entry->log_flag = FALSE;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    reset_write = re.compile(
+        r"->(?:file|total_bytes|matching_bytes|tagged_bytes|total_files|"
+        r"matching_files|tagged_files|access_denied|log_flag)\s*=[^=]"
+    )
+    tree_start = tree_read.index("/* Initialize dir_entry */")
+    tree_end = tree_read.index("if (S_ISBLK", tree_start)
+    tree_init_body = tree_read[tree_start:tree_end]
+    mkdir_start = mkdir.index("den_ptr = (DirEntry *)xcalloc")
+    mkdir_end = mkdir.index("den_ptr->up_tree = father_dir_entry;", mkdir_start)
+    mkdir_init_body = mkdir[mkdir_start:mkdir_end]
+
+    assert not reset_write.search(tree_init_body)
+    assert not reset_write.search(mkdir_init_body)
+    assert "AppStateResetDirEntryPayloadCache(dir_entry)" in tree_init_body
+    assert "AppStateResetDirEntryPayloadCache(den_ptr)" in mkdir_init_body
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
