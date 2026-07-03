@@ -75,11 +75,31 @@ def test_active_file_and_tree_selection_use_selection_role_pairs():
     assert "highlight_color = CPAIR_HIDIR;" in dir_source
     assert "highlight_color = CPAIR_HIHST;" in dir_source
     assert "COLOR_PAIR(highlight_color)" in dir_source
-    assert "if (!is_active)\n      wattron(win, A_BOLD | A_UNDERLINE);" in dir_source
+    assert "inactive_full_line_attr = (hilight && ctx->highlight_full_line && !is_active)" in dir_source
+    assert "wattron(win, A_BOLD | A_UNDERLINE);" in dir_source
 
     assert "highlight_color_pair = CPAIR_HIFILE;" in file_source
     assert "COLOR_PAIR(highlight_color_pair)" in file_source
     assert "if (hilight && !is_active_panel)" in file_source
+
+
+def test_tree_lines_and_margin_use_dedicated_theme_roles():
+    defs_source = _read("include/ytnova_defs.h")
+    color_source = _read("src/ui/color.c")
+    theme_source = _read("src/cmd/theme.c")
+    dir_source = _read("src/ui/render_dir.c")
+
+    assert "CPAIR_TREE_LINES" in defs_source
+    assert "CPAIR_MARGIN" in defs_source
+    assert '{"TREE_LINES_COLOR", CPAIR_TREE_LINES, 7, 0},' in color_source
+    assert '{"MARGIN_COLOR", CPAIR_MARGIN, 7, 0},' in color_source
+    assert '{"tree_lines", {"TREE_LINES_COLOR", NULL}},' in theme_source
+    assert '{"margin", {"MARGIN_COLOR", NULL}},' in theme_source
+    assert "margin_color = CPAIR_MARGIN;" in dir_source
+    assert "tree_line_color = CPAIR_TREE_LINES;" in dir_source
+    assert "wattrset(win, margin_attr);" in dir_source
+    assert "wattrset(win, tree_line_attr);" in dir_source
+    assert "GetFileTypeColor" not in dir_source
 
 
 def test_stats_rendering_splits_static_dynamic_and_border_roles():
@@ -143,6 +163,9 @@ def test_theme_docs_capture_role_routing_invariants():
     assert "stats titles and fixed labels use `static_text`" in arch_source
     assert "changing stats values use `dynamic_text`" in arch_source
     assert "MUST NOT use raw reverse/blink styling" in spec_source
+    assert "tree guide glyphs use `tree_lines`" in spec_source
+    assert "File-type palette rules do not style directory tree rows" in spec_source
+    assert "tree status columns use `margin`" in arch_source
     assert "Preview/search-hit highlighting uses `search_hit`" in spec_source
     assert "Frame/Fill Separation" in arch_source
     assert "search-hit spans use `search_hit`" in arch_source

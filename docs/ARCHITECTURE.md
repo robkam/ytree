@@ -249,7 +249,7 @@ Compatibility shims are retired from the current AppState contract. Any legacy m
 *   **Tree State Rendering Contract:** Unlogged state is rendered in the dedicated tree status-margin column; directory names do not carry a `+` suffix, while `/` may still be shown when the directory has subdirectories.
 *   **Micro-Consistency:** Mode flags must be synchronized with the layout before any redraw.
 *   **Background Ownership:** Set a window background once per refresh path, then clear before drawing. Entry renderers may set temporary attributes but must not change the window background inside item loops.
-*   **Semantic Role Projection:** Renderers consume semantic role pairs, not user-facing legacy color-key names. F1/context help uses `help`; picker surfaces use `picker`; severity errors use `error`; search-hit spans use `search_hit` and then restore their surrounding content role.
+*   **Semantic Role Projection:** Renderers consume semantic role pairs, not user-facing legacy color-key names. F1/context help uses `help`; picker surfaces use `picker`; tree status columns use `margin`; tree guide glyphs use `tree_lines`; directory tree names stay on `dynamic_text`; severity errors use `error`; search-hit spans use `search_hit` and then restore their surrounding content role.
 *   **Frame/Fill Separation:** Window fills use the content/background role for their surface, while frames and separators use `box_lines`; do not map a border role onto the full window fill.
 *   **Stats Role Split:** In stats rendering, box lines use `box_lines`, stats titles and fixed labels use `static_text`, and changing stats values use `dynamic_text`.
 

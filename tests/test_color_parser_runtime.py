@@ -396,6 +396,8 @@ int main(int argc, char **argv) {
   if (expect_color("FILE_COLOR", 15, COLOR_BLUE) != 0 ||
       expect_color("WINFILE_COLOR", 15, COLOR_BLUE) != 0 ||
       expect_color("WINDIR_COLOR", 15, COLOR_BLUE) != 0 ||
+      expect_color("TREE_LINES_COLOR", 15, COLOR_BLUE) != 0 ||
+      expect_color("MARGIN_COLOR", 15, COLOR_BLUE) != 0 ||
       expect_color("BORDERS_COLOR", COLOR_CYAN, COLOR_BLUE) != 0 ||
       expect_color("HIFILE_COLOR", COLOR_BLACK, COLOR_WHITE) != 0 ||
       expect_color("ERR_COLOR", 15, COLOR_RED) != 0)

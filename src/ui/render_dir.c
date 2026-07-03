@@ -63,6 +63,8 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   unsigned int j;
   int color;
   int highlight_color;
+  int margin_color;
+  int tree_line_color;
 
   if (!ctx || !vol || !win)
     return;
@@ -84,9 +86,13 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   if (win == ctx->ctx_f2_window) {
     color = CPAIR_HST;
     highlight_color = CPAIR_HIHST;
+    margin_color = CPAIR_HST;
+    tree_line_color = CPAIR_HST;
   } else {
     color = CPAIR_DIR;
     highlight_color = CPAIR_HIDIR;
+    margin_color = CPAIR_MARGIN;
+    tree_line_color = CPAIR_TREE_LINES;
   }
 
   /* Build the tree graph string (e.g., "| 6- ") */
@@ -162,13 +168,15 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     break;
   }
 
-  /* --- Redesigned Drawing Logic --- */
-
   const int status_col = 0;
   const int graph_col = 3;
   int attr_start_col = 38; /* Column where attributes begin */
   int graph_len = strlen(graph_buffer);
   chtype line_attr;
+  chtype margin_attr;
+  chtype tree_line_attr;
+  chtype name_attr;
+  chtype inactive_full_line_attr;
 
   wmove(win, y, 0);
   wclrtoeol(win);
@@ -178,28 +186,38 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   line_attr = (hilight && ctx->highlight_full_line && is_active)
                   ? COLOR_PAIR(highlight_color)
                   : COLOR_PAIR(color);
+  margin_attr = (hilight && ctx->highlight_full_line && is_active)
+                    ? COLOR_PAIR(highlight_color)
+                    : COLOR_PAIR(margin_color);
+  tree_line_attr = (hilight && ctx->highlight_full_line && is_active)
+                       ? COLOR_PAIR(highlight_color)
+                       : COLOR_PAIR(tree_line_color);
 #else
   line_attr = A_NORMAL;
+  margin_attr = A_NORMAL;
+  tree_line_attr = A_NORMAL;
 #endif
-  wattron(win, line_attr);
-
-  /* If full line highlight is enabled, turn on reverse now. */
-  if (hilight && ctx->highlight_full_line) {
-#ifdef COLOR_SUPPORT
-    if (!is_active)
-      wattron(win, A_BOLD | A_UNDERLINE);
-#else
-    if (is_active)
-      wattron(win, A_REVERSE);
-    else
-      wattron(win, A_BOLD | A_UNDERLINE);
-#endif
+  name_attr = line_attr;
+  inactive_full_line_attr = (hilight && ctx->highlight_full_line && !is_active)
+                                ? (A_BOLD | A_UNDERLINE)
+                                : A_NORMAL;
+  if (inactive_full_line_attr != A_NORMAL) {
+    margin_attr |= inactive_full_line_attr;
+    tree_line_attr |= inactive_full_line_attr;
+    name_attr |= inactive_full_line_attr;
   }
 
+#ifndef COLOR_SUPPORT
+  if (hilight && ctx->highlight_full_line && is_active)
+    name_attr = margin_attr = tree_line_attr = A_REVERSE;
+#endif
+
   /* Part 1: Draw status marker and tree graph characters manually */
+  wattrset(win, margin_attr);
   mvwaddch(win, y, status_col,
            (de_ptr->unlogged_flag || de_ptr->not_scanned) ? '+' : ' ');
   wmove(win, y, graph_col);
+  wattrset(win, tree_line_attr);
   wattron(win, A_ALTCHARSET);
   for (j = 0; j < (unsigned int)graph_len; ++j) {
     int ch;
@@ -223,6 +241,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     waddch(win, (chtype)ch | A_BOLD); /* Keep graph characters bold */
   }
   wattroff(win, A_ALTCHARSET);
+  wattrset(win, name_attr);
 
   /* Part 2: Prepare and draw the directory name */
   char name_buffer[PATH_LENGTH + 2];
@@ -265,7 +284,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     (void)snprintf(name_buffer, sizeof(name_buffer), "%s", temp_name);
   }
 
-  /* If name-only highlight, toggle reverse just for the name. */
+  /* If name-only highlight is active, select just the directory name. */
   if (hilight && !ctx->highlight_full_line) {
 #ifdef COLOR_SUPPORT
     if (is_active)
@@ -283,7 +302,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   if (hilight && !ctx->highlight_full_line) {
 #ifdef COLOR_SUPPORT
     if (is_active)
-      wattrset(win, line_attr);
+      wattrset(win, name_attr);
     else
       wattroff(win, A_BOLD | A_UNDERLINE);
 #else
@@ -304,19 +323,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     mvwaddstr(win, y, attr_start_col, line_buffer);
   }
 
-  /* Turn off attributes */
-  if (hilight && ctx->highlight_full_line) {
-#ifdef COLOR_SUPPORT
-    if (!is_active)
-      wattroff(win, A_BOLD | A_UNDERLINE);
-#else
-    if (is_active)
-      wattroff(win, A_REVERSE);
-    else
-      wattroff(win, A_BOLD | A_UNDERLINE);
-#endif
-  }
-  wattroff(win, line_attr);
+  wattrset(win, 0);
 
   if (line_buffer)
     free(line_buffer);

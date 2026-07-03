@@ -38,6 +38,8 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
    render paths still consume legacy color-pair names. */
 static const ThemeMigrationRoleShim migration_role_shims[] = {
     {"box_lines", {"BORDERS_COLOR", NULL}},
+    {"tree_lines", {"TREE_LINES_COLOR", NULL}},
+    {"margin", {"MARGIN_COLOR", NULL}},
     {"static_text", {"MENU_COLOR", NULL}},
     {"dynamic_text",
      {"DIR_COLOR", "WINDIR_COLOR", "FILE_COLOR", "WINFILE_COLOR",
