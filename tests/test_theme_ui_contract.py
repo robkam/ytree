@@ -112,6 +112,14 @@ def test_viewer_frame_uses_border_role_not_directory_fill_role():
     assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in tagged_source
 
 
+def test_modal_prompt_keeps_severity_role_pair():
+    error_source = _read("src/ui/error.c")
+
+    assert "COLOR_PAIR(color_pair) | A_BOLD" in error_source
+    assert "A_REVERSE | A_BLINK" not in error_source
+    assert "wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));" in error_source
+
+
 def test_theme_docs_capture_role_routing_invariants():
     spec_source = _read("docs/SPECIFICATION.md")
     arch_source = _read("docs/ARCHITECTURE.md")
