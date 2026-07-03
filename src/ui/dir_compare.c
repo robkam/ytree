@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_ui.h"
 #include <errno.h>
 #include <stdlib.h>
@@ -235,8 +236,9 @@ static void TagComparedFile(YtreeNovaPanel *panel, FileEntry *source_file,
   owner_dir = source_file->dir_entry;
   file_size = source_file->stat_struct.st_size;
   source_file->tagged = TRUE;
-  owner_dir->tagged_files++;
-  owner_dir->tagged_bytes += file_size;
+  (void)AppStateCommitDirEntryTaggedPayload(
+      owner_dir, owner_dir->tagged_files + 1,
+      owner_dir->tagged_bytes + file_size);
   stats->disk_tagged_files++;
   stats->disk_tagged_bytes += file_size;
   PanelTags_RecordFileState(panel, source_file, TRUE);

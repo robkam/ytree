@@ -4,27 +4,27 @@ Date: 2026-07-03
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-ui-tag-payload-helper
-Active PR: https://github.com/robkam/ytreenova/pull/349 (draft)
+Current branch: appstate-file-tag-payload-helper
+Active PR: https://github.com/robkam/ytreenova/pull/350 (draft)
 Supersession state: maintainer explicitly resumed autonomous AppState work; no active stop condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/348 merged at `d7a8128` after green checks.
-- Local `main`, `origin/main`, and this branch start at `d7a8128`.
-- Remote branches for the merged stats and tag-state payload helper batches were pruned locally. Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
+- PR https://github.com/robkam/ytreenova/pull/349 merged at `1237fb7` after green checks.
+- Local `main`, `origin/main`, and this branch start at `1237fb7`.
+- The remote branch `appstate-ui-tag-payload-helper` was pruned locally. Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
 
 Current AppState batch:
-- Routes UI directory/file tag payload mutations in `src/ui/dir_tags.c` and `src/ui/file_tags.c` through `AppStateCommitDirEntryTaggedPayload`.
-- Keeps existing per-file tag changes, disk-stat updates, and viewport behavior unchanged while removing direct `DirEntry` tagged payload writes from the migrated UI tag paths.
-- Adds guard coverage in `tests/test_appstate_contract_guard.py` to prevent direct tagged payload writes in the migrated UI tag handlers.
+- Routes remaining UI file tag payload writers in `src/ui/ctrl_file_ops.c` and `src/ui/dir_compare.c` through `AppStateCommitDirEntryTaggedPayload`.
+- Keeps existing file tag, compare tagging, disk-stat, and panel tag-state behavior unchanged while removing direct `DirEntry` tagged payload writes from the migrated file-tag paths.
+- Adds guard coverage in `tests/test_appstate_contract_guard.py` to prevent direct tagged payload writes in the migrated file tag helpers.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ui_tag_payload_commits_route_through_appstate_helper` failed because `src/ui/dir_tags.c` and `src/ui/file_tags.c` did not include `ytnova_appstate_volume.h` or route tagged payload commits through `AppStateCommitDirEntryTaggedPayload`.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k ui_tag_payload_commits_route_through_appstate_helper`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py tests/test_panel_isolation.py -q -k 'ui_tag_payload_commits_route_through_appstate_helper or dir_tag_dir_entry_viewports_commit_through_appstate_helper or split_same_directory_file_tags_are_panel_local_tags'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_tag_payload_commits_route_through_appstate_helper` failed because `src/ui/dir_compare.c` did not include `ytnova_appstate_volume.h` and the file-tag writers did not route tagged payload commits through `AppStateCommitDirEntryTaggedPayload`.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_tag_payload_commits_route_through_appstate_helper`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py tests/test_panel_isolation.py tests/test_compare_actions.py -q -k 'file_tag_payload_commits_route_through_appstate_helper or ui_tag_payload_commits_route_through_appstate_helper or file_tags_are_panel_local or compare_tag'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make clean && make` passed with existing warnings.
 - `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/349. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/350. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
