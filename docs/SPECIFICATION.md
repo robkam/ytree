@@ -348,12 +348,14 @@ A bordered pop-up box that overlays the center of the screen, used for:
 
 ### 6.5 Modal/Dialog Color Taxonomy Contract
 `ytnova` modal and dialog surfaces are split into two classes:
-*   **Severity class (`info`, `warn`, `error`):** Outcome/diagnostic overlays that communicate informational notices, warnings, or errors and require acknowledgment.
+*   **Severity class (`info`, `warning`, `error`):** Outcome/diagnostic overlays that communicate informational notices, warnings, or errors and require acknowledgment.
 *   **Neutral interaction class:** Selection/picker/help/history/volume/prompt-like interaction surfaces used to collect or browse input.
 
 Routing contract:
 *   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
+*   Severity modal headers, body text, frames, and prompts MUST retain the active severity role pair. They MUST NOT use raw reverse/blink styling that swaps foreground/background away from the configured severity colors.
 *   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role.
+*   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
 *   `WINERR_COLOR` is a migration-only alias for `ERR_COLOR`; it is not part of the semantic theme model.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
 

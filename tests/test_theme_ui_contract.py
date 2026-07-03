@@ -142,6 +142,10 @@ def test_theme_docs_capture_role_routing_invariants():
     assert "Set a window background once per refresh path" in arch_source
     assert "stats titles and fixed labels use `static_text`" in arch_source
     assert "changing stats values use `dynamic_text`" in arch_source
+    assert "MUST NOT use raw reverse/blink styling" in spec_source
+    assert "Preview/search-hit highlighting uses `search_hit`" in spec_source
+    assert "Frame/Fill Separation" in arch_source
+    assert "search-hit spans use `search_hit`" in arch_source
 
 
 def test_f10_surface_uses_required_command_strip_and_enter_default():

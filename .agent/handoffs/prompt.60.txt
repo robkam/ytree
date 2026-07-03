@@ -2,8 +2,8 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before committing this checkpoint: e9aef67 feat(ui): keep modal prompts on severity roles
-- This checkpoint is committed with the preview search-hit role subunit; use `git log -1` for the exact containing commit.
+- HEAD before committing this checkpoint: 8718004 feat(ui): reset preview search hits to content role
+- This checkpoint is committed with the rendering invariant documentation subunit; use `git log -1` for the exact containing commit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -53,13 +53,16 @@ Completed local subunits toward Task 60:
   - Commit: e9aef67 feat(ui): keep modal prompts on severity roles
   - Modal prompts and headers retain the active severity color pair instead of raw reverse/blink attributes, and internal-error message assembly now uses bounded appends to keep the touched build warning-clean.
 - Preview search-hit role reset
-  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Commit: 8718004 feat(ui): reset preview search hits to content role
   - Preview rendering sets the base filename/content pair before clearing and resets from search-hit highlighting back to the base pair instead of relying on attribute subtraction.
+- Rendering invariant documentation sync
+  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Documents severity-pair retention, preview search-hit reset, and frame/fill separation invariants in SPEC/ARCH with contract tests.
 
 Focused validation for latest local subunit:
-- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py` -> 23 passed.
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py` -> 18 passed.
 - `git diff --check` -> exit 0.
-- `make` -> exit 0.
+- No build rerun for docs/test-only subunit; previous code subunit build passed.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest has been run with `python3 -m pytest` from repo root.
@@ -68,10 +71,10 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the preview search-hit role commit.
+- None intended after the rendering invariant documentation commit.
 
 Next recommended Task 60 subunit:
-- Continue remaining CPAIR/background-bleed audit, especially remaining raw reverse-video paths and any final documentation/test synchronization needed before broader QA.
+- Continue remaining CPAIR/background-bleed audit, especially remaining raw reverse-video paths and final acceptance-criteria coverage review.
 
 Known blockers or risks:
 - No active blocker.
