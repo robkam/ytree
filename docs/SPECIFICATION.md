@@ -352,22 +352,23 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Neutral interaction class:** Selection/picker/help/history/volume/prompt-like interaction surfaces used to collect or browse input.
 
 Routing contract:
-*   Severity class MUST route through runtime-mapped severity pairs only: `INFO_COLOR` -> `CPAIR_INFO`, `WARN_COLOR` -> `CPAIR_WARN`, `ERR_COLOR` -> `CPAIR_ERR`.
-*   Neutral interaction class MUST NOT use severity pairs. Neutral dialogs/pickers use dedicated neutral palette keys (`DIALOG_COLOR` for generic neutral dialogs/prompts; history surfaces use `WINHST_COLOR`/`HST_COLOR`).
+*   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role.
+*   `WINERR_COLOR` is a migration-only alias for `ERR_COLOR`; it is not part of the semantic theme model.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
 
 Current modal/dialog audit:
 
 | Surface | Class | Routing |
 | :--- | :--- | :--- |
-| `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `INFO_COLOR` |
-| `src/ui/error.c` `UI_Warning` | Severity `warn` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `WARN_COLOR` |
-| `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `ERR_COLOR` |
-| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
-| `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
-| `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
-| `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `WINHST_COLOR` + `HST_COLOR`/`HIHST_COLOR` |
-| `src/ui/completion_dialog.c` completion list window | Neutral interaction (selection list) | `WINHST_COLOR` + `HST_COLOR`/`HIHST_COLOR` |
+| `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `info` |
+| `src/ui/error.c` `UI_Warning` | Severity `warning` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `warning` |
+| `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `error` |
+| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `help` (`CPAIR_HELP`) |
+| `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `picker` |
+| `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `dialog` |
+| `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `picker` |
+| `src/ui/completion_dialog.c` completion list window | Neutral interaction (selection list) | `picker` |
 
 ---
 

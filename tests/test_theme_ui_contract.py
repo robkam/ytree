@@ -71,6 +71,21 @@ def test_stats_rendering_splits_static_dynamic_and_border_roles():
     )
 
 
+def test_theme_docs_capture_role_routing_invariants():
+    spec_source = _read("docs/SPECIFICATION.md")
+    arch_source = _read("docs/ARCHITECTURE.md")
+
+    assert "F1/context help surfaces use the `help` role" in spec_source
+    assert (
+        "F2, history, completion, and volume selection surfaces use the `picker` role"
+        in spec_source
+    )
+    assert "`WINERR_COLOR` is a migration-only alias for `ERR_COLOR`" in spec_source
+    assert "Set a window background once per refresh path" in arch_source
+    assert "stats titles and fixed labels use `static_text`" in arch_source
+    assert "changing stats values use `dynamic_text`" in arch_source
+
+
 def test_f10_surface_uses_required_command_strip_and_enter_default():
     source = _read("src/ui/ui_edit_config.c")
 

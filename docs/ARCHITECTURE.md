@@ -248,6 +248,9 @@ Compatibility shims are retired from the current AppState contract. Any legacy m
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) are used only for horizontal boundary lines. Vertical separators must remain clean.
 *   **Tree State Rendering Contract:** Unlogged state is rendered in the dedicated tree status-margin column; directory names do not carry a `+` suffix, while `/` may still be shown when the directory has subdirectories.
 *   **Micro-Consistency:** Mode flags must be synchronized with the layout before any redraw.
+*   **Background Ownership:** Set a window background once per refresh path, then clear before drawing. Entry renderers may set temporary attributes but must not change the window background inside item loops.
+*   **Semantic Role Projection:** Renderers consume semantic role pairs, not user-facing legacy color-key names. F1/context help uses `help`; picker surfaces use `picker`; severity errors use `error`.
+*   **Stats Role Split:** In stats rendering, box lines use `box_lines`, stats titles and fixed labels use `static_text`, and changing stats values use `dynamic_text`.
 
 ---
 
