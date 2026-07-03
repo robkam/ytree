@@ -191,8 +191,8 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.1: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
-*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the only human-edited default profile source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`.
-*   **Mechanism:** Add a reproducible generator path (`etc/ytnova.conf` -> `src/core/default_profile_template.h`) and a QA/CI check that fails when generated output is stale or hand-edited.
+*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the human-edited default runtime config source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`. When Task 60 splits themes out of the main config, `etc/ytnova.themes` becomes the separate human-edited default theme source and must be covered by the same deterministic source/generated checks.
+*   **Mechanism:** Add a reproducible generator path (`etc/ytnova.conf` -> `src/core/default_profile_template.h`, plus any Task 60 theme template/gate output) and a QA/CI check that fails when generated output is stale or hand-edited.
 *   **Acceptance Criteria:**
 *   `ytnova --init` output remains byte-equivalent to the canonical template semantics.
 *   A single documented command regenerates the header deterministically.
@@ -984,11 +984,14 @@ Ordering policy (for all editors, including AI editors):
         *   `background`: default application background.
         *   `box_lines`: panel borders, separators, dialog boxes, and window frames.
         *   `tree_lines`: tree guide glyphs; default follows dynamic/content text rather than border chrome.
+        *   `margin`: tree/file margins and status marker columns; inherits `dynamic_text` unless explicitly set by the active theme.
         *   `static_text`: fixed labels/captions and text that rarely changes.
         *   `dynamic_text`: filenames, paths, counts, sizes, timestamps, current mode values, tree names, and file names.
         *   `keybind`: footer/menu keybinding characters.
-        *   `selection`: active highlighted row/bar.
+        *   `selection`: active highlighted row/bar; selection may use inverse video or explicit colors, but if explicit colors are used both foreground and background must be configurable.
         *   `dialog`: neutral prompt/dialog surface.
+        *   `picker`: selectable-list surfaces such as F2, history/completion lists, and the volume menu.
+        *   `help`: F1/context-help reading surface; keep distinct from selectable pickers so help text does not inherit row-picker styling.
         *   `info`: informational road-sign color.
         *   `warning`: warning road-sign color.
         *   `error`: error road-sign color.
@@ -1007,19 +1010,21 @@ Ordering policy (for all editors, including AI editors):
     *   File-type palettes belong to themes, so different themes can define different extension colors.
     *   If the active theme defines no file-type palette rules, all filenames use the theme `dynamic_text`/filename role.
     *   If an extension is not listed in the active theme palette, it uses the default filename color.
-    *   Prefer compact grouped rules over one line per extension, for example:
-        *   `red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img`
-        *   `+cyan: sh,bash,zsh,py,pl,rb`
-    *   The left side should accept the same color syntax as theme roles, including optional background:
+    *   Prefer named, compact grouped rules over one line per extension. Do not use a bare color line followed by a bare extension line; every rule must be self-contained and labeled enough to be understandable. The group name before `=` is for human readability; matching is driven by the style and selectors after `=`:
+        *   `archives = red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img`
+        *   `scripts = +cyan: sh,bash,zsh,py,pl,rb`
+        *   `archives = 1: tar,tgz,zip` is acceptable for numeric-color users, but named colors are preferred in shipped examples.
+    *   The style side must accept the same color syntax as theme roles, including optional background:
         *   `red`
         *   `+red`
         *   `red on blue`
         *   `+cyan on black`
     *   When a file-type rule omits a background, inherit the active theme filename background but still resolve to a complete foreground/background pair internally.
-    *   Legacy numeric color pairs may remain supported for compatibility, but new examples should use named colors.
+    *   Rules list extensions without `*.` by default. Special selectors may include `LINK` and `EXEC`; directories in the tree use theme roles rather than file-type palette rules.
+    *   Rules are evaluated top-to-bottom and the first matching rule wins. Put more specific rules before generic rules; for example, place `scripts = +cyan: sh,bash,zsh,py,pl,rb` before `executables = green: EXEC` if executable scripts should keep the script color rather than the generic executable color.
 *   **Configuration Direction:**
-    *   Preserve compatibility with existing color settings where practical.
-    *   Add `grey` / `gray` support for dark grey.
+    *   Do not preserve confusing legacy color-key names as the user-facing model. Temporary internal compatibility shims may be used only during the rewrite to keep staged changes testable, and must be removed or isolated before Task 60 closure.
+    *   Add `grey` / `gray` support for dark grey. User-facing docs and comments must use `grey`/`gray`, not `bright black`.
     *   Add `+grey` / `+gray` support for light grey.
     *   Add a bright-prefix syntax such as `+red`, `+yellow`, `+white`, and `+grey`.
     *   Prefer canonical plain-text style syntax such as:
@@ -1029,20 +1034,30 @@ Ordering policy (for all editors, including AI editors):
         *   `black on +grey`
         *   `black on yellow`
         *   `+white on red`
-    *   Move larger theme definitions out of the main `~/.ytnova` config into a plain-text theme file `~/.ythemes`, while keeping `~/.ytnova` for selecting the active theme.
-    *   `~/.ythemes` may contain an unlimited number of named themes.
-    *   Used theme definitions are uncommented.
-    *   Unused bundled or user themes can be prefixed with `#` to comment them out.
+    *   Move larger theme definitions out of the main config. The main config selects the active theme; the theme file defines named themes and each theme's file-type palette.
+    *   Packaged defaults are `etc/ytnova.conf` and `etc/ytnova.themes`.
+    *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
+    *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
+    *   The theme file may contain an unlimited number of named themes. Used theme definitions are uncommented; unused bundled or user themes can be prefixed with `#` to comment them out.
     *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
+*   **F10 Config Surface and Reload Direction:**
+    *   `F10` opens a shallow configuration command surface, not a single hardwired raw-file editor.
+    *   The command strip is exactly: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`.
+    *   Common path remains `F10 -> Enter -> edit config`; direct expert paths are `F10 -> C`, `F10 -> T`, and `F10 -> R`.
+    *   Reload is available only under `F10`; do not add a top-level/global reload key.
+    *   Successful reload silently repaints using the new config/theme. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
 *   **Default Palette Direction:**
     *   `background = blue`
     *   `box_lines = cyan on blue`
     *   `tree_lines = +white on blue`
+    *   `margin = dynamic_text`
     *   `static_text = white on blue`
     *   `dynamic_text = +white on blue`
     *   `keybind = +white on blue`
     *   `selection = black on +grey`
     *   `dialog = black on +grey`
+    *   `picker = black on +grey`
+    *   `help = white on blue`
     *   `info = +white on blue`
     *   `warning = black on yellow`
     *   `error = +white on red`
@@ -1055,17 +1070,23 @@ Ordering policy (for all editors, including AI editors):
     *   Ensure `cyan,blue` renders cyan glyphs on blue background, never blue glyphs on cyan background.
     *   Ensure panel borders and stats borders draw cyan line glyphs on blue background; they must not set the whole panel fill to cyan.
     *   Ensure stats titles render as white on blue and stats dynamic values render as bright white on blue.
+    *   Split stats rendering roles explicitly: section titles and fixed labels use `static_text`/title styling, changing values use `dynamic_text`, and box lines use `box_lines`.
     *   Ensure tree and file names render as bright white on blue in the classic-blue theme.
     *   Ensure switching from black-theme coloring to blue-theme coloring cannot leave black-background or incompatible file-color attributes behind.
+    *   Replace misleading menu/keybinding strings with token-aware rendering. The required F2 footer wording is `(L)og  (<)/(>) Cycle`; key tokens `L`, `<`, and `>` use `keybind`, while translated/descriptive text uses the surrounding role.
+    *   Volume-menu keybindings must use the same integrated keybinding grammar as the rest of the UI; do not use detached labels such as `D Delete`. The volume-menu command strip is exactly: `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`.
+    *   Prepare for Task 61 by storing menu/help entries as structured command labels plus key tokens, not as one translated display string. Example: command `COPY` has label `Copy` and key token `C`, allowing English `(C)opy`; a German keymap/locale can use label `Kopieren` and key token `K`, allowing `(K)opieren`, without translators editing raw punctuation to expose the shortcut.
+    *   Audit `WINERR_COLOR` versus `ERR_COLOR`. If `WINERR_COLOR` is leftover cruft, map it only through a temporary migration path and remove it from the final user-facing theme model.
     *   Set window background once per refresh path and clear/redraw safely; avoid background changes inside per-row rendering loops.
     *   Keep file-type color application as a distinct optional layer after base theme role resolution.
 *   **Theme Set:**
     *   Provide at least two built-in themes:
         *   `classic-blue`: restrained public/default theme.
         *   `bash-black`: power-user black-background theme with optional richer file coloring.
+    *   Each built-in theme must carry its own file-type palette. A theme may intentionally define an empty file-type palette, in which case ordinary filenames use the theme filename/`dynamic_text` role.
     *   Future in-app theme editing should operate on semantic roles and the separate file-type coloring layer rather than exposing unrelated one-off color knobs.
 *   **Out of Scope / Follow-On:**
-    *   Modal-dialog placement may deserve separate UX work. XTree/ZTree-style footer prompts can be preferable because they appear where the user is already looking, but that should be handled as a separate interaction-design task rather than bundled into the theme system.
+    *   Full modal-placement redesign is separate interaction work, but Task 60 must not introduce modal success/noise for theme/config reload. Successful theme/config reload must silently repaint without a success message. Non-obvious errors use footer/status text only. Destructive confirmations and real choice pickers may still use prompt/dialog surfaces until a later interaction task replaces them.
 *   **Acceptance Criteria:**
     *   The default theme is readable, restrained, and suitable for screenshots.
     *   Normal filenames, tree names, tree lines, paths, keybindings, and dynamic values are bright white or otherwise high-contrast in the classic-blue theme.
@@ -1077,15 +1098,22 @@ Ordering policy (for all editors, including AI editors):
     *   Any theme can define its own file-type coloring palette.
     *   File-type colors do not bleed assumptions from one theme into another theme.
     *   `grey`/`gray`, `+grey`/`+gray`, and `+color` bright-prefix parsing are documented and tested.
+    *   User-facing theme/config examples use `grey`/`gray`, never `bright black`.
+    *   Theme files use the agreed paths (`etc/ytnova.themes`, XDG `themes.conf`, and legacy `~/.ytnova.themes`).
+    *   F2 shows `(L)og  (<)/(>) Cycle` with only key tokens styled as keybindings.
+    *   F10 exposes `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`; reload is not exposed as a global/main-UI key.
+    *   The volume menu shows `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete` with only key tokens styled as keybindings.
+    *   F1/context help uses the `help` role, while F2/history/completion/volume selectable lists use `picker`.
     *   Theme implementation proves foreground/background pair correctness.
     *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
     *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
-    *   Existing user color configuration remains compatible where practical, with documented migration behavior for any renamed/deprecated options.
+    *   Temporary legacy color compatibility shims are documented as migration-only and are not allowed to define the final user-facing model.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
 *   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytnova.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
+*   **Keybinding token contract:** Translate human command labels only. Key tokens come from the active keymap and punctuation comes from the renderer. For example, English can render key token `C` + label `Copy` as `(C)opy`, while German can render key token `K` + label `Kopieren` as `(K)opieren`. Translators must not be required to preserve raw strings like `(C)opy` for shortcut visibility.
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
 *   **Pilot locale:** Ship one non-English reference locale (for example German) as a contributor template proving end-to-end UI + manpage translation workflow.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
@@ -1094,8 +1122,9 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 62: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
 *   **Sequencing dependency:** Implement after Task 45 (Ctrl-held footer signaling + footer wording cleanup). Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
-*   **Config contract:** Select profile via `ytnova.conf` (opt-in), keeping a stable default keymap for existing users.
-*   **Display contract:** Footer/help text must render active key + localized command label together (for example active binding `C` + translated `Copy` -> `(C)opy`) so runtime hints always match active bindings.
+*   **Config contract:** Select a keymap profile via `ytnova.conf` (opt-in). Locale-oriented profiles are allowed as explicit user choices, for example an English mnemonic profile can bind `C` to `Copy`, while a German mnemonic profile can bind `K` to `Kopieren` and `L` to `Löschen`. The shipped default keymap must remain portable and internally consistent, but compatibility with old confusing UI wording is not a reason to preserve that wording.
+*   **Display contract:** Footer/help text must render active key tokens plus localized command labels together (for example active binding `C` + translated label `Copy` -> `(C)opy`) so runtime hints always match active bindings. Key tokens are data from the keymap, labels are data from localization, and punctuation/styling are renderer-owned.
+*   **Legacy menu override contract:** The existing `[MENU]` text override only changes displayed text and does not change keyboard behavior. It may remain as an expert display override during migration, but it is not the final localization/keybinding model and must not be used as a substitute for real keymap-driven labels.
 *   **Canonicalization/validation contract:** Normalize terminal byte aliases during keymap load (`^M`=`Enter`/`CR`, `^J`=`LF`/newline enter path, `^I`=`Tab`, `^[`=`Esc`) and reject profiles that map alias-equivalent inputs to different commands. Alias-equivalent inputs mapping to the same command are valid.
 *   **Portability fallback contract:** Require workflow-level fallback for core actions (reachable without fragile terminal-specific modifiers). This is not a per-key duplication mandate; tagged/single-item variants may share menu/mode-driven paths when direct keyspace is exhausted.
 *   **Behavior stability contract:** Default shipping keymap remains portable and stable; custom overrides are opt-in and must pass collision/unbound-action validation before activation.
@@ -1297,7 +1326,9 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-11: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a user-friendly configuration editor (activated by `F10`) that supports guided editing for common options in `~/.ytnova` (e.g., `CONFIRMQUIT`, colors), while retaining an expert raw-text path.
+*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for split config files.
+*   **UI Contract:** The F10 command strip is `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under F10, not as a global/main-UI key.
+*   **File Contract:** Config editing targets the active runtime config (`~/.config/ytnova/ytnova.conf` or legacy `~/.ytnova`); theme editing targets the active theme file (`~/.config/ytnova/themes.conf` or legacy `~/.ytnova.themes`). If the current post-`[VIEWER]` customization sections are split later, group `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]` into one key/commands customization file and expose it as one top-level F10 action rather than adding deeper nested menus or many tiny files.
 *   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility.
 *   - [ ] **Status:** Not Started.
 
