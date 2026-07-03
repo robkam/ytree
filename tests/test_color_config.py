@@ -25,8 +25,9 @@ def test_dialog_color_key_is_defined_in_runtime_palette():
     color_source = _read_source("src/ui/color.c")
 
     assert "CPAIR_DIALOG" in defs_source
-    assert "CPAIR_MENU,\n  CPAIR_DIALOG,\n  CPAIR_WINERR," in defs_source
+    assert "CPAIR_MENU,\n  CPAIR_DIALOG,\n  CPAIR_HELP," in defs_source
     assert '{"DIALOG_COLOR", CPAIR_DIALOG, 7, 0},' in color_source
+    assert "CPAIR_WINERR" not in defs_source
 
 
 def test_dialog_color_key_is_documented_in_config_templates():
@@ -49,6 +50,23 @@ def test_modal_severity_comment_lines_include_non_bright_equivalents():
         assert info_comment in source
         assert warn_comment in source
         assert err_comment in source
+
+
+def test_winerr_color_is_migration_only_alias():
+    conf_source = _read_source("etc/ytnova.conf")
+    template_source = _read_source("src/core/default_profile_template.h")
+    color_source = _read_source("src/ui/color.c")
+    theme_source = _read_source("src/cmd/theme.c")
+    init_source = _read_source("src/core/init.c")
+    error_source = _read_source("src/ui/error.c")
+
+    assert "WINERR_COLOR" not in conf_source
+    assert "WINERR_COLOR" not in template_source
+    assert "CPAIR_WINERR" not in color_source
+    assert '"WINERR_COLOR"' in color_source
+    assert '{"error", {"ERR_COLOR", NULL}},' in theme_source
+    assert "ctx->ctx_error_window, COLOR_PAIR(CPAIR_ERR)" in init_source
+    assert "CPAIR_WINERR" not in error_source
 
 
 def _theme_section(source, section_name):

@@ -22,7 +22,6 @@ UIColor ui_colors[] = {
     {"HIMENUS_COLOR", CPAIR_HIMENUS, 15, 0},
     {"MENU_COLOR", CPAIR_MENU, 7, 0},
     {"DIALOG_COLOR", CPAIR_DIALOG, 7, 0},
-    {"WINERR_COLOR", CPAIR_WINERR, 15, 1},
     {"HELP_COLOR", CPAIR_HELP, 7, 0},
     {"HST_COLOR", CPAIR_HST, 7, 0},
     {"HIHST_COLOR", CPAIR_HIHST, 0, 3},
@@ -157,8 +156,14 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
 
 void UpdateUIColor(const char *name, int fg, int bg) {
   int i;
+  const char *resolved_name = name;
+
+  /* Migration-only alias for legacy profiles; the runtime error role is ERR. */
+  if (strcasecmp(name, "WINERR_COLOR") == 0)
+    resolved_name = "ERR_COLOR";
+
   for (i = 0; i < NUM_UI_COLORS; i++) {
-    if (strcasecmp(name, ui_colors[i].name) == 0) {
+    if (strcasecmp(resolved_name, ui_colors[i].name) == 0) {
       ui_colors[i].fg = fg;
       ui_colors[i].bg = bg;
       return;

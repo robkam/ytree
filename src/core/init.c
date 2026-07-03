@@ -760,7 +760,7 @@ void ReCreateWindows(ViewContext *ctx) {
       return;
     }
   }
-  CoreInitWbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR));
+  CoreInitWbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_ERR));
 
   leaveok(ctx->ctx_error_window, TRUE);
 

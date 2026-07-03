@@ -49,7 +49,7 @@ static const ThemeRoleShim role_shims[] = {
     {"picker", {"HST_COLOR", "WINHST_COLOR", NULL}},
     {"info", {"INFO_COLOR", NULL}},
     {"warning", {"WARN_COLOR", NULL}},
-    {"error", {"ERR_COLOR", "WINERR_COLOR", NULL}},
+    {"error", {"ERR_COLOR", NULL}},
     {"search_hit", {"GLOBAL_COLOR", "HIGLOBAL_COLOR", NULL}},
     {NULL, {NULL}}};
 

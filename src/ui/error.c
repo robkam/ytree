@@ -45,7 +45,7 @@ void UI_RenderStatusLineError(ViewContext *ctx) {
   wmove(ctx->ctx_menu_window, 2, 0);
   wclrtoeol(ctx->ctx_menu_window);
   PrintMenuOptions(ctx->ctx_menu_window, 2, 0, ctx->status_line_error_text,
-                   CPAIR_MENU, CPAIR_WINERR);
+                   CPAIR_MENU, CPAIR_ERR);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
