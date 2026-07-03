@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the F10 token-aware command strip subunit.
+- This checkpoint is committed with the disabled role projection subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -79,10 +79,13 @@ Completed local subunits toward Task 60:
 - F10 token-aware command strip rendering
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - F10 config/themes/reload prompt now uses structured command strip parts so key tokens, labels, and punctuation are separated while preserving the exact displayed text.
+- Disabled semantic role projection
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - Adds a runtime disabled role pair and maps semantic `disabled` themes through the migration bridge without exposing legacy color-key names in theme files.
 
 Focused validation for latest local subunit:
-- `make clean && make` -> exit 0 (pre-existing warnings only; no new F10/key-engine compile failures).
-- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_parser_runtime.py tests/test_color_config.py` -> 26 passed.
+- `make` -> exit 0 (pre-existing warnings only; no new theme/color compile failures).
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_parser_runtime.py tests/test_color_config.py` -> 27 passed.
 - `git diff --check` -> exit 0.
 
 Local notes:
@@ -92,7 +95,7 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the F10 token-aware command strip commit.
+- None intended after the disabled role projection commit.
 
 Next recommended Task 60 subunit:
 - Continue acceptance-criteria coverage review for remaining raw reverse-video/no-color fallback paths and any remaining foreground-only styling in interactive surfaces.

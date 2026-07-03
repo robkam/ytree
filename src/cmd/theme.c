@@ -53,6 +53,7 @@ static const ThemeMigrationRoleShim migration_role_shims[] = {
     {"warning", {"WARN_COLOR", NULL}},
     {"error", {"ERR_COLOR", NULL}},
     {"search_hit", {"GLOBAL_COLOR", "HIGLOBAL_COLOR", NULL}},
+    {"disabled", {"DISABLED_COLOR", NULL}},
     {NULL, {NULL}}};
 
 static char *TrimInPlace(char *text);

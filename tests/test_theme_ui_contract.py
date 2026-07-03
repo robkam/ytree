@@ -102,6 +102,16 @@ def test_tree_lines_and_margin_use_dedicated_theme_roles():
     assert "GetFileTypeColor" not in dir_source
 
 
+def test_disabled_role_projects_to_runtime_pair():
+    defs_source = _read("include/ytnova_defs.h")
+    color_source = _read("src/ui/color.c")
+    theme_source = _read("src/cmd/theme.c")
+
+    assert "CPAIR_DISABLED" in defs_source
+    assert '{"DISABLED_COLOR", CPAIR_DISABLED, 8, 0}' in color_source
+    assert '{"disabled", {"DISABLED_COLOR", NULL}},' in theme_source
+
+
 def test_stats_rendering_splits_static_dynamic_and_border_roles():
     stats_source = _read("src/ui/stats.c")
     theme_source = _read("src/cmd/theme.c")

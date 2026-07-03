@@ -400,7 +400,8 @@ int main(int argc, char **argv) {
       expect_color("MARGIN_COLOR", 15, COLOR_BLUE) != 0 ||
       expect_color("BORDERS_COLOR", COLOR_CYAN, COLOR_BLUE) != 0 ||
       expect_color("HIFILE_COLOR", COLOR_BLACK, COLOR_WHITE) != 0 ||
-      expect_color("ERR_COLOR", 15, COLOR_RED) != 0)
+      expect_color("ERR_COLOR", 15, COLOR_RED) != 0 ||
+      expect_color("DISABLED_COLOR", 8, COLOR_BLUE) != 0)
     return 1;
 
   if (rule_count != 4) {

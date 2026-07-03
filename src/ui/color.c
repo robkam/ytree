@@ -32,7 +32,8 @@ UIColor ui_colors[] = {
     {"GLOBAL_COLOR", CPAIR_GLOBAL, 3, 0},
     {"INFO_COLOR", CPAIR_INFO, 15, 4},
     {"WARN_COLOR", CPAIR_WARN, 11, 0},
-    {"ERR_COLOR", CPAIR_ERR, 15, 1}};
+    {"ERR_COLOR", CPAIR_ERR, 15, 1},
+    {"DISABLED_COLOR", CPAIR_DISABLED, 8, 0}};
 
 int NUM_UI_COLORS = sizeof(ui_colors) / sizeof(ui_colors[0]);
 
