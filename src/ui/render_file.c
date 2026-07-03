@@ -239,7 +239,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
   BOOL is_tagged;
   BOOL is_active_panel;
   BOOL align_name_col;
-  int highlight_attr;
+  int inactive_highlight_attr;
   int highlight_color_pair;
   char row_label[PATH_LENGTH + 2];
   const char *primary_name;
@@ -262,7 +262,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
   }
   is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
   is_active_panel = !(ctx->is_split_screen && panel != ctx->active);
-  highlight_attr = is_active_panel ? A_REVERSE : (A_BOLD | A_UNDERLINE);
+  inactive_highlight_attr = A_BOLD | A_UNDERLINE;
   highlight_color_pair = CPAIR_HIFILE;
 
   if (ctx->fixed_col_width > 0) {
@@ -283,7 +283,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     if (is_tagged)
       wattron(win, A_BOLD);
     if (hilight && !is_active_panel)
-      wattron(win, highlight_attr);
+      wattron(win, inactive_highlight_attr);
 
     /* Draw */
     wprintw(win, "%c %s", (is_tagged) ? TAGGED_SYMBOL : ' ', display_name);
@@ -297,7 +297,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
 
     /* Cleanup */
     if (hilight && !is_active_panel)
-      wattroff(win, highlight_attr);
+      wattroff(win, inactive_highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
     wattroff(win, COLOR_PAIR(color));
@@ -389,7 +389,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     if (is_tagged)
       wattron(win, A_BOLD);
     if (hilight && !is_active_panel)
-      wattron(win, highlight_attr);
+      wattron(win, inactive_highlight_attr);
 
     /* Build the full line string */
     switch (panel->file_mode) {
@@ -559,7 +559,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     waddstr(win, line_ptr);
 
     if (hilight && !is_active_panel)
-      wattroff(win, highlight_attr);
+      wattroff(win, inactive_highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
 
@@ -631,14 +631,14 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
       if (is_active_panel)
         wattrset(win, COLOR_PAIR(highlight_color_pair));
       else
-        wattron(win, highlight_attr);
+        wattron(win, inactive_highlight_attr);
     }
     AddClippedAtCursor(win, display_name, width);
     if (hilight) {
       if (is_active_panel)
         wattrset(win, COLOR_PAIR(base_color_pair));
       else
-        wattroff(win, highlight_attr);
+        wattroff(win, inactive_highlight_attr);
     }
 
     /* Print attributes for modes other than MODE_3 */

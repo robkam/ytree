@@ -80,7 +80,9 @@ def test_active_file_and_tree_selection_use_selection_role_pairs():
 
     assert "highlight_color_pair = CPAIR_HIFILE;" in file_source
     assert "COLOR_PAIR(highlight_color_pair)" in file_source
+    assert "inactive_highlight_attr = A_BOLD | A_UNDERLINE;" in file_source
     assert "if (hilight && !is_active_panel)" in file_source
+    assert "A_REVERSE" not in file_source
 
 
 def test_tree_lines_and_margin_use_dedicated_theme_roles():
