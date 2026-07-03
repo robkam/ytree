@@ -9379,6 +9379,30 @@ def test_delete_count_payload_commits_route_through_appstate_helpers() -> None:
     assert "AppStateCommitDirEntryMatchingPayload(" in remove_body
 
 
+def test_mutation_count_payload_commits_route_through_appstate_helpers() -> None:
+    direct_count_write = re.compile(
+        r"->(?:total_files|total_bytes|matching_files|matching_bytes)"
+        r"\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    migrated_functions = [
+        ("src/cmd/copy.c", "int CopyFile(", "\nint CopyFileContent("),
+        ("src/cmd/move.c", "int MoveFile(", "\nstatic int Move("),
+    ]
+
+    for path, start_marker, end_marker in migrated_functions:
+        source = Path(path).read_text(encoding="utf-8")
+
+        assert "ytnova_appstate_volume.h" in source
+
+        function_start = source.index(start_marker)
+        function_body = source[
+            function_start : source.index(end_marker, function_start)
+        ]
+        assert not direct_count_write.search(function_body)
+        assert "AppStateCommitDirEntryTotalPayload(" in function_body
+        assert "AppStateCommitDirEntryMatchingPayload(" in function_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")

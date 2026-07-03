@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_cmd.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_fs.h"
 #include <errno.h>
 #include <stdio.h>
@@ -223,8 +224,11 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
       file_size = stat_struct.st_size;
 
       /* Update Total Stats for TARGET volume */
-      dest_dir_entry->total_bytes += file_size;
-      dest_dir_entry->total_files++;
+      if (!AppStateCommitDirEntryTotalPayload(
+              dest_dir_entry, dest_dir_entry->total_files + 1,
+              dest_dir_entry->total_bytes + file_size)) {
+        ESCAPE;
+      }
 
       if (target_stats_ptr) {
         target_stats_ptr->disk_total_bytes += file_size;
@@ -253,8 +257,12 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
 
       /* Update Matching Stats for TARGET volume */
       if (fen_ptr->matching) {
-        dest_dir_entry->matching_bytes += file_size;
-        dest_dir_entry->matching_files++;
+        if (!AppStateCommitDirEntryMatchingPayload(
+                dest_dir_entry, dest_dir_entry->matching_files + 1,
+                dest_dir_entry->matching_bytes + file_size)) {
+          free(fen_ptr);
+          ESCAPE;
+        }
         if (target_stats_ptr) {
           target_stats_ptr->disk_matching_bytes += file_size;
           target_stats_ptr->disk_matching_files++;
