@@ -76,13 +76,17 @@ static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s) {
   FileEntry *f;
   DirEntry *sub;
   unsigned int total_files;
+  unsigned int tagged_files;
   long long total_bytes;
+  long long tagged_bytes;
 
   /* Apply current filter to this directory */
   ApplyFilter(d, s);
 
   total_files = 0;
   total_bytes = 0;
+  tagged_files = d->tagged_files;
+  tagged_bytes = d->tagged_bytes;
   /* matching_files/bytes already updated by ApplyFilter, but we sum them
    * globally below */
 
@@ -94,11 +98,13 @@ static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s) {
     total_bytes += f->stat_struct.st_size;
 
     if (f->tagged) {
-      d->tagged_files++;
-      d->tagged_bytes += f->stat_struct.st_size;
+      tagged_files++;
+      tagged_bytes += f->stat_struct.st_size;
     }
   }
   if (!AppStateCommitDirEntryTotalPayload(d, total_files, total_bytes))
+    return;
+  if (!AppStateCommitDirEntryTaggedPayload(d, tagged_files, tagged_bytes))
     return;
 
   sub = d->sub_tree;

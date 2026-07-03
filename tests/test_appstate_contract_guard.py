@@ -9207,6 +9207,41 @@ def test_directory_matching_payload_commits_route_through_appstate_helper() -> N
     assert "AppStateCommitDirEntryMatchingPayload(" in apply_body
 
 
+def test_directory_tagged_payload_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    stats = Path("src/ui/stats.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryTaggedPayload(" in header
+    assert 'include "ytnova_appstate_volume.h"' in stats
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryTaggedPayload(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitDirEntryAccessDenied(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.payload_cache")'
+    assignments = [
+        "dir_entry->tagged_files = tagged_files;",
+        "dir_entry->tagged_bytes = tagged_bytes;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    recalc_start = stats.index("static void RecalcDir(BOOL hide_dot_files,")
+    recalc_body = stats[
+        recalc_start : stats.index("\nvoid RecalculateSysStats", recalc_start)
+    ]
+    direct_tagged_write = re.compile(
+        r"->(?:tagged_files|tagged_bytes)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    assert not direct_tagged_write.search(recalc_body)
+    assert "AppStateCommitDirEntryTaggedPayload(" in recalc_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
