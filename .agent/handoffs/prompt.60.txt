@@ -2,8 +2,9 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before committing this checkpoint: 809d996 docs(theme): describe semantic theme catalogs
-- This checkpoint is committed with the migration shim isolation subunit; use `git log -1` for the exact containing commit.
+- HEAD before committing this checkpoint: 4e6e995 fix(theme): retain palette after failed theme load
+- Rebased onto latest origin/main with `git fetch origin && git rebase origin/main`; rebase completed without conflicts.
+- This checkpoint is amended into the failed-theme palette retention subunit; use `git log -1` for the exact containing commit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -62,11 +63,16 @@ Completed local subunits toward Task 60:
   - Commit: 809d996 docs(theme): describe semantic theme catalogs
   - Updates CHANGES to describe semantic theme catalogs instead of obsolete main-config `[COLORS]`/`[FILE_COLORS]` customization.
 - Migration shim isolation
-  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Commit: 0859f61 refactor(theme): isolate migration role shims
   - Renames the semantic-role-to-legacy bridge as migration-only code to keep the final user-facing theme model separate from temporary legacy pair projection.
+- Failed-theme palette retention
+  - Commit: 4e6e995 fix(theme): retain palette after failed theme load
+  - `ReadThemeFile` stages theme file-type palette rules separately and restores the previous palette when a theme file does not contain the requested theme.
+- Local rebase onto current main
+  - Completed without conflicts after `git fetch origin && git rebase origin/main`.
 
-Focused validation for latest local subunit:
-- `python3 -m pytest tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_ui_contract.py` -> 23 passed.
+Focused validation after rebase:
+- `python3 -m pytest tests/test_color_parser_runtime.py tests/test_theme_ui_contract.py tests/test_color_config.py` -> 24 passed.
 - `git diff --check` -> exit 0.
 - `make` -> exit 0.
 
@@ -77,10 +83,10 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the migration shim isolation commit.
+- None intended after amending this checkpoint into the failed-theme palette retention commit.
 
 Next recommended Task 60 subunit:
-- Continue acceptance-criteria coverage review and focused audits for legacy color-key exposure that is not explicitly migration-only/test-only/historical bug context.
+- Continue reload retention audit for config/profile values, then continue acceptance-criteria coverage review.
 
 Known blockers or risks:
 - No active blocker.

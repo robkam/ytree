@@ -71,6 +71,7 @@ static void ApplyMigrationRoleShim(ViewContext *ctx, const char *role, int fg,
 static BOOL BuildFileColorPattern(const char *selector, char *pattern,
                                   size_t pattern_size);
 static void AddCompactFileColorRules(ViewContext *ctx, char *value);
+static void FreeThemeFileColorRules(FileColorRule *rule);
 static int TryConfiguredThemePath(ViewContext *ctx, char *path,
                                   size_t path_size, const char *home,
                                   const char *suffix,
@@ -304,12 +305,23 @@ static void AddCompactFileColorRules(ViewContext *ctx, char *value) {
   }
 }
 
+static void FreeThemeFileColorRules(FileColorRule *rule) {
+  while (rule != NULL) {
+    FileColorRule *next = rule->next;
+
+    free(rule->pattern);
+    free(rule);
+    rule = next;
+  }
+}
+
 int ReadThemeFile(ViewContext *ctx, const char *filename,
                   const char *theme_name) {
   FILE *fp;
   char buffer[2048];
   ThemeRoleValue roles[THEME_ROLE_COUNT];
   ThemeSection section = THEME_SECTION_NONE;
+  FileColorRule *old_file_rules;
   BOOL found_theme = FALSE;
   BOOL roles_applied = FALSE;
   int i;
@@ -320,6 +332,9 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
   fp = fopen(filename, "r");
   if (fp == NULL)
     return -1;
+
+  old_file_rules = (FileColorRule *)ctx->file_color_rules_head;
+  ctx->file_color_rules_head = NULL;
 
   memset(roles, 0, sizeof(roles));
   for (i = 0; i < THEME_ROLE_COUNT; ++i)
@@ -373,11 +388,15 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
 
   fclose(fp);
 
-  if (!found_theme)
+  if (!found_theme) {
+    FreeThemeFileColorRules((FileColorRule *)ctx->file_color_rules_head);
+    ctx->file_color_rules_head = old_file_rules;
     return -1;
+  }
 
   if (!roles_applied)
     ApplyThemeRoles(ctx, roles);
+  FreeThemeFileColorRules(old_file_rules);
   return 0;
 }
 

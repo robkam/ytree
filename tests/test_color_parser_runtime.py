@@ -536,3 +536,84 @@ int main(int argc, char **argv) {
         check=True,
     )
     subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_failed_theme_load_keeps_previous_file_palette(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_failure_driver.c"
+    binary = tmp_path / "theme_failure_driver"
+
+    theme_file.write_text(
+        """
+[file-types sample]
+archives = red: zip
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  FileColorRule *rule;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  AddFileColorRule(&ctx, "*.old", COLOR_GREEN, COLOR_BLACK);
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") == 0) {
+    fprintf(stderr, "missing theme unexpectedly loaded\n");
+    return 1;
+  }
+
+  rule = (FileColorRule *)ctx.file_color_rules_head;
+  if (rule == NULL || strcmp(rule->pattern, "*.old") != 0 ||
+      rule->next != NULL) {
+    fprintf(stderr, "previous file palette was not retained\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
