@@ -9242,6 +9242,24 @@ def test_directory_tagged_payload_commits_route_through_appstate_helper() -> Non
     assert "AppStateCommitDirEntryTaggedPayload(" in recalc_body
 
 
+def test_tag_state_tagged_payload_commits_route_through_appstate_helper() -> None:
+    tag_state = Path("src/ui/tag_state.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_volume.h"' in tag_state
+
+    apply_start = tag_state.index("static void ApplyPanelTagsToDir(")
+    apply_body = tag_state[
+        apply_start : tag_state.index(
+            "\nstatic void ApplyPanelTagsToTree", apply_start
+        )
+    ]
+    direct_tagged_write = re.compile(
+        r"->(?:tagged_files|tagged_bytes)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    assert not direct_tagged_write.search(apply_body)
+    assert "AppStateCommitDirEntryTaggedPayload(" in apply_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
