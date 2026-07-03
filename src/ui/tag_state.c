@@ -1,3 +1,4 @@
+#include "ytnova_appstate_volume.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 #include <stdlib.h>
@@ -150,21 +151,25 @@ void PanelTags_RecordFileState(YtreeNovaPanel *panel, FileEntry *file_entry,
 static void ApplyPanelTagsToDir(const YtreeNovaPanel *panel, DirEntry *dir_entry,
                                 Statistic *stats) {
   FileEntry *file_entry;
+  unsigned int tagged_files;
+  long long tagged_bytes;
 
   if (!panel || !dir_entry || !stats)
     return;
 
-  dir_entry->tagged_files = 0;
-  dir_entry->tagged_bytes = 0;
+  tagged_files = 0;
+  tagged_bytes = 0;
   for (file_entry = dir_entry->file; file_entry; file_entry = file_entry->next) {
     file_entry->tagged = PanelTags_FileIsTagged(panel, file_entry);
     if (file_entry->tagged) {
-      dir_entry->tagged_files++;
-      dir_entry->tagged_bytes += file_entry->stat_struct.st_size;
+      tagged_files++;
+      tagged_bytes += file_entry->stat_struct.st_size;
       stats->disk_tagged_files++;
       stats->disk_tagged_bytes += file_entry->stat_struct.st_size;
     }
   }
+  (void)AppStateCommitDirEntryTaggedPayload(dir_entry, tagged_files,
+                                            tagged_bytes);
 }
 
 static void ApplyPanelTagsToTree(YtreeNovaPanel *panel, DirEntry *dir_entry,
