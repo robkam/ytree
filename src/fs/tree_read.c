@@ -107,7 +107,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       n = f->next;
       RemoveFileWithBoundary(ctx, f, s); /* Updates stats and frees memory */
     }
-    dir_entry->file = NULL;
+    if (!AppStateCommitDirEntryFileList(dir_entry, NULL))
+      return (-1);
   }
   if (dir_entry->sub_tree) {
     /* Use UnReadSubTree to recursively free children and decrement stats
@@ -192,7 +193,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
           first_file_entry.next->prev = NULL;
         if (first_dir_entry.next)
           first_dir_entry.next->prev = NULL;
-        dir_entry->file = first_file_entry.next;
+        if (!AppStateCommitDirEntryFileList(dir_entry, first_file_entry.next))
+          return -1;
         dir_entry->sub_tree = first_dir_entry.next;
         return -1;
       } else {
@@ -256,7 +258,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
           first_file_entry.next->prev = NULL;
         if (first_dir_entry.next)
           first_dir_entry.next->prev = NULL;
-        dir_entry->file = first_file_entry.next;
+        if (!AppStateCommitDirEntryFileList(dir_entry, first_file_entry.next))
+          return -1;
         dir_entry->sub_tree = first_dir_entry.next;
         return -1;
       }
@@ -354,7 +357,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   if (first_dir_entry.next)
     first_dir_entry.next->prev = NULL;
 
-  dir_entry->file = first_file_entry.next;
+  if (!AppStateCommitDirEntryFileList(dir_entry, first_file_entry.next))
+    return -1;
   dir_entry->sub_tree = first_dir_entry.next;
 
   /* Final UI update via callback */
@@ -460,7 +464,8 @@ int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
     /* RemoveFile updates stats and frees the entry */
     RemoveFileWithBoundary(ctx, fe_ptr, s);
   }
-  dir_entry->file = NULL;
+  if (!AppStateCommitDirEntryFileList(dir_entry, NULL))
+    return -1;
 
   /*
    * The dir_entry itself still exists and is counted. ReadTree will re-init
