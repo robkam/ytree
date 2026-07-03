@@ -9260,6 +9260,47 @@ def test_tag_state_tagged_payload_commits_route_through_appstate_helper() -> Non
     assert "AppStateCommitDirEntryTaggedPayload(" in apply_body
 
 
+def test_ui_tag_payload_commits_route_through_appstate_helper() -> None:
+    dir_tags = Path("src/ui/dir_tags.c").read_text(encoding="utf-8")
+    file_tags = Path("src/ui/file_tags.c").read_text(encoding="utf-8")
+    direct_tagged_write = re.compile(
+        r"->(?:tagged_files|tagged_bytes)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    assert 'include "ytnova_appstate_volume.h"' in dir_tags
+    assert 'include "ytnova_appstate_volume.h"' in file_tags
+
+    dir_tag_bodies = [
+        dir_tags[
+            dir_tags.index("void HandleTagDir(") : dir_tags.index(
+                "\nvoid HandleTagAllDirs"
+            )
+        ],
+        dir_tags[
+            dir_tags.index("void HandleTagAllDirs(") : dir_tags.index(
+                "\nstatic void HandleInvertDirTags"
+            )
+        ],
+        dir_tags[
+            dir_tags.index("static void HandleInvertDirTags(") : dir_tags.index(
+                "\nstatic void HandleDirTaggedOnlyToggle"
+            )
+        ],
+    ]
+    file_tag_bodies = [
+        file_tags[
+            file_tags.index("void FileTags_SilentTagWalkTaggedFiles(") : file_tags.index(
+                "\nBOOL FileTags_IsMatchingTaggedFiles"
+            )
+        ],
+        file_tags[file_tags.index("void FileTags_HandleInvertTags(") :],
+    ]
+
+    for tag_body in dir_tag_bodies + file_tag_bodies:
+        assert not direct_tagged_write.search(tag_body)
+        assert "AppStateCommitDirEntryTaggedPayload(" in tag_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
