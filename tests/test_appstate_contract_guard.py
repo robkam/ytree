@@ -9329,6 +9329,22 @@ def test_file_tag_payload_commits_route_through_appstate_helper() -> None:
         assert "AppStateCommitDirEntryTaggedPayload(" in tag_body
 
 
+def test_tree_restore_tagged_payload_commits_route_through_appstate_helper() -> None:
+    tree_utils = Path("src/fs/tree_utils.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_volume.h"' in tree_utils
+
+    restore_start = tree_utils.index("void RestoreTreeState(")
+    restore_body = tree_utils[
+        restore_start : tree_utils.index("\nvoid ApplyFilterToTree", restore_start)
+    ]
+    direct_tagged_write = re.compile(
+        r"->(?:tagged_files|tagged_bytes)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    assert not direct_tagged_write.search(restore_body)
+    assert "AppStateCommitDirEntryTaggedPayload(" in restore_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
