@@ -1,0 +1,67 @@
+# YtreeNova semantic themes.
+#
+# Copy this file to ~/.config/ytnova/themes.conf for user-specific themes.
+# The legacy fallback path is ~/.ytnova.themes.
+#
+# Role syntax:
+#   foreground
+#   +foreground
+#   foreground on background
+#   +foreground on +background
+#
+# File-type palettes are optional per theme. Rule order is significant: the
+# first matching selector wins. Omitted backgrounds inherit from the active
+# filename/window background.
+
+[theme classic-blue]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types classic-blue]
+archives = red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img
+scripts = +cyan: sh,bash,zsh,py,pl,rb
+media = magenta: jpg,jpeg,gif,bmp,png,tif,tiff,svg,webp,ico,avi,mpg,mpeg,mp4,mkv,mov,wmv,flv,webm,mp3,wav,flac,ogg,m4a,aac,wma,mid
+documents = white: pdf,epub,mobi,doc,docx,xls,xlsx,ppt,pptx,odt,ods,odp,odg,odf,odb,txt,rtf,md
+links = cyan: LINK
+executables = green: EXEC
+
+[theme bash-black]
+background = black
+box_lines = grey on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = +white on black
+keybind = +white on black
+selection = black on yellow
+dialog = white on black
+picker = black on yellow
+help = white on black
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on black
+
+[file-types bash-black]
+archives = red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img
+scripts = +cyan: sh,bash,zsh,py,pl,rb,lua,awk,sed
+code = green: c,h,cc,cpp,hpp,rs,go,java,js,ts,css,html,xml,json,yaml,yml,toml
+media = magenta: jpg,jpeg,gif,bmp,png,tif,tiff,svg,webp,ico,avi,mpg,mpeg,mp4,mkv,mov,wmv,flv,webm,mp3,wav,flac,ogg,m4a,aac,wma,mid
+documents = white: pdf,epub,mobi,doc,docx,xls,xlsx,ppt,pptx,odt,ods,odp,odg,odf,odb,txt,rtf,md
+links = cyan: LINK
+executables = green: EXEC
