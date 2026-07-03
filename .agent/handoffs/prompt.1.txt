@@ -4,27 +4,27 @@ Date: 2026-07-03
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-tree-file-list-helper
-Active PR: https://github.com/robkam/ytreenova/pull/345 (draft)
+Current branch: appstate-tree-child-list-helper
+Active PR: https://github.com/robkam/ytreenova/pull/346 (draft)
 Supersession state: maintainer explicitly resumed autonomous AppState work; no active stop condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/344 merged at `c7b939b` after green checks.
-- Local `main` and `origin/main` are at `c7b939b`.
-- The remote branch `appstate-tree-read-payload-helper` was deleted during merge cleanup.
+- PR https://github.com/robkam/ytreenova/pull/345 merged at `b8f1d57` after green checks.
+- Local `main` and `origin/main` are at `b8f1d57`.
+- The remote branch `appstate-tree-file-list-helper` was deleted during merge cleanup.
 
 Current AppState batch:
-- Adds `AppStateCommitDirEntryFileList` with `volume.payload_cache` owner-field validation.
-- Routes tree-read and rescan directory file-list payload ownership through the helper.
-- Adds guard coverage in `tests/test_appstate_contract_guard.py` for direct `dir_entry->file` write prevention in `ReadTree` and `RescanDir`.
+- Adds `AppStateCommitDirEntrySubTree` with `volume.dir_tree` owner-field validation.
+- Routes tree-read, unread, and rescan child-directory topology link updates through the helper.
+- Adds guard coverage in `tests/test_appstate_contract_guard.py` for direct `dir_entry->sub_tree` write prevention in `src/fs/tree_read.c`.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k tree_read_file_list_commits_route_through_appstate_helper` failed because `AppStateCommitDirEntryFileList` was missing.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k tree_read_file_list_commits_route_through_appstate_helper`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'tree_read_file_list_commits_route_through_appstate_helper or tree_read_payload_commits_route_through_appstate_helpers or directory_payload_reset_commits_route_through_appstate_helper'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k tree_read_child_list_commits_route_through_appstate_helper` failed because `AppStateCommitDirEntrySubTree` was missing.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k tree_read_child_list_commits_route_through_appstate_helper`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'tree_read_child_list_commits_route_through_appstate_helper or tree_read_file_list_commits_route_through_appstate_helper or tree_read_payload_commits_route_through_appstate_helpers'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- `make clean && make` passed with existing warnings; a newly introduced double-close warning was fixed and the build was rerun.
+- `make clean && make` passed with existing warnings.
 - `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/345. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/346. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.

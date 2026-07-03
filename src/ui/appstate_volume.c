@@ -95,6 +95,16 @@ BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
   return TRUE;
 }
 
+BOOL AppStateCommitDirEntrySubTree(DirEntry *dir_entry, DirEntry *sub_tree) {
+  if (!AppStateValidatedOwnerField("volume.dir_tree"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->sub_tree = sub_tree;
+  return TRUE;
+}
+
 BOOL AppStateCommitVolumeGeneration(struct Volume *volume) {
   if (!AppStateValidatedOwnerField("volume.volume_generation"))
     return FALSE;
