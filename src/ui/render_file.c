@@ -237,8 +237,10 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
   int base_color_pair;
   int width;
   BOOL is_tagged;
+  BOOL is_active_panel;
   BOOL align_name_col;
   int highlight_attr;
+  int highlight_color_pair;
   char row_label[PATH_LENGTH + 2];
   const char *primary_name;
 
@@ -259,9 +261,9 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     primary_name = row_label;
   }
   is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
-  highlight_attr = (ctx->is_split_screen && panel != ctx->active)
-                       ? (A_BOLD | A_UNDERLINE)
-                       : A_REVERSE;
+  is_active_panel = !(ctx->is_split_screen && panel != ctx->active);
+  highlight_attr = is_active_panel ? A_REVERSE : (A_BOLD | A_UNDERLINE);
+  highlight_color_pair = CPAIR_HIFILE;
 
   if (ctx->fixed_col_width > 0) {
     pos_x = x * (ctx->fixed_col_width + 1);
@@ -275,11 +277,12 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     CutFilename(display_name, compact_label, ctx->fixed_col_width - 2);
 
     /* Set Attributes */
-    int color = GetFileTypeColor(ctx, fe_ptr);
+    int color = (hilight && is_active_panel) ? highlight_color_pair
+                                             : GetFileTypeColor(ctx, fe_ptr);
     wattron(win, COLOR_PAIR(color));
     if (is_tagged)
       wattron(win, A_BOLD);
-    if (hilight)
+    if (hilight && !is_active_panel)
       wattron(win, highlight_attr);
 
     /* Draw */
@@ -293,7 +296,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     }
 
     /* Cleanup */
-    if (hilight)
+    if (hilight && !is_active_panel)
       wattroff(win, highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
@@ -376,14 +379,16 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     ef_window_width = 0;
 
   wmove(win, y, pos_x);
-  base_color_pair = GetFileTypeColor(ctx, fe_ptr);
+  base_color_pair = (hilight && ctx->highlight_full_line && is_active_panel)
+                        ? highlight_color_pair
+                        : GetFileTypeColor(ctx, fe_ptr);
 
   if (ctx->highlight_full_line) {
     /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
     wattron(win, COLOR_PAIR(base_color_pair));
     if (is_tagged)
       wattron(win, A_BOLD);
-    if (hilight)
+    if (hilight && !is_active_panel)
       wattron(win, highlight_attr);
 
     /* Build the full line string */
@@ -553,7 +558,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     }
     waddstr(win, line_ptr);
 
-    if (hilight)
+    if (hilight && !is_active_panel)
       wattroff(win, highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
@@ -622,11 +627,19 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     }
 
     /* Highlight only the name */
-    if (hilight)
-      wattron(win, highlight_attr);
+    if (hilight) {
+      if (is_active_panel)
+        wattrset(win, COLOR_PAIR(highlight_color_pair));
+      else
+        wattron(win, highlight_attr);
+    }
     AddClippedAtCursor(win, display_name, width);
-    if (hilight)
-      wattroff(win, highlight_attr);
+    if (hilight) {
+      if (is_active_panel)
+        wattrset(win, COLOR_PAIR(base_color_pair));
+      else
+        wattroff(win, highlight_attr);
+    }
 
     /* Print attributes for modes other than MODE_3 */
     if (panel->file_mode != MODE_3) {

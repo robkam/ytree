@@ -68,6 +68,20 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     assert "color = CPAIR_HST;" in render_dir_source
 
 
+def test_active_file_and_tree_selection_use_selection_role_pairs():
+    dir_source = _read("src/ui/render_dir.c")
+    file_source = _read("src/ui/render_file.c")
+
+    assert "highlight_color = CPAIR_HIDIR;" in dir_source
+    assert "highlight_color = CPAIR_HIHST;" in dir_source
+    assert "COLOR_PAIR(highlight_color)" in dir_source
+    assert "if (!is_active)\n      wattron(win, A_BOLD | A_UNDERLINE);" in dir_source
+
+    assert "highlight_color_pair = CPAIR_HIFILE;" in file_source
+    assert "COLOR_PAIR(highlight_color_pair)" in file_source
+    assert "if (hilight && !is_active_panel)" in file_source
+
+
 def test_stats_rendering_splits_static_dynamic_and_border_roles():
     stats_source = _read("src/ui/stats.c")
     theme_source = _read("src/cmd/theme.c")

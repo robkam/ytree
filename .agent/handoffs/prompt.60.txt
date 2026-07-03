@@ -2,8 +2,8 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before committing this checkpoint: 368d224 feat(ui): render command strips from key tokens
-- This checkpoint is committed with the packaged config theme-delegation subunit; use `git log -1` for the exact containing commit.
+- HEAD before committing this checkpoint: 197f73a feat(config): delegate theme details to catalog
+- This checkpoint is committed with the active-row selection role subunit; use `git log -1` for the exact containing commit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -41,12 +41,14 @@ Completed local subunits toward Task 60:
   - Commit: 368d224 feat(ui): render command strips from key tokens
   - Adds structured command strip parts for key tokens, labels, and punctuation, and renders the F2 and volume command strips with highlighted key tokens while preserving their exact contract text.
 - Packaged config theme delegation
-  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Commit: 197f73a feat(config): delegate theme details to catalog
   - Removes user-facing legacy `[COLORS]` and `[FILE_COLORS]` examples from the packaged config/default profile template and points customization to the separate semantic theme catalog.
+- Active-row selection role rendering
+  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Active file/tree/F2 rows use selection role color pairs instead of reversing the content/file-type pair; inactive split rows retain the underline fallback. Touched directory row formatting buffers were resized to keep the focused build warning-clean.
 
 Focused validation for latest local subunit:
-- `python3 -m pytest tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_ui_contract.py` -> 19 passed.
-- `python3 -m pytest tests/test_cli_version_flags.py` -> 3 passed.
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py` -> 20 passed.
 - `git diff --check` -> exit 0.
 - `make` -> exit 0.
 
@@ -57,10 +59,10 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the packaged config theme-delegation commit.
+- None intended after the active-row selection role commit.
 
 Next recommended Task 60 subunit:
-- Continue remaining CPAIR/background-bleed audit, especially main panel/window background role mapping and foreground/background completeness for active file/dir rendering.
+- Continue remaining CPAIR/background-bleed audit, especially window background role mapping and foreground/background completeness for viewer/search-highlight rendering.
 
 Known blockers or risks:
 - No active blocker.
