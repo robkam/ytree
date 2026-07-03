@@ -53,6 +53,24 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     assert "color = CPAIR_HST;" in render_dir_source
 
 
+def test_stats_rendering_splits_static_dynamic_and_border_roles():
+    stats_source = _read("src/ui/stats.c")
+    theme_source = _read("src/cmd/theme.c")
+
+    assert "static void SetStatsStaticColor" in stats_source
+    assert "static void SetStatsDynamicColor" in stats_source
+    assert "static void SetStatsBorderColor" in stats_source
+    assert "COLOR_PAIR(CPAIR_MENU)" in stats_source
+    assert "COLOR_PAIR(CPAIR_STATS)" in stats_source
+    assert "COLOR_PAIR(CPAIR_BORDERS)" in stats_source
+    assert "COLOR_PAIR(color)" not in stats_source
+    assert '{"static_text", {"MENU_COLOR", NULL}},' in theme_source
+    assert (
+        '{"dynamic_text", {"DIR_COLOR", "FILE_COLOR", "STATS_COLOR", NULL}},'
+        in theme_source
+    )
+
+
 def test_f10_surface_uses_required_command_strip_and_enter_default():
     source = _read("src/ui/ui_edit_config.c")
 

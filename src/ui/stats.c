@@ -31,11 +31,17 @@ static void RecalcLayout(ViewContext *ctx);
 static void FormatNumber(const ViewContext *ctx, char *buf, size_t size,
                          long long val);
 static void FormatShortSize(char *buf, size_t size, long long val);
-static void SetColor(ViewContext *ctx);
+static void SetStatsBaseColor(ViewContext *ctx);
+static void SetStatsStaticColor(ViewContext *ctx);
+static void SetStatsDynamicColor(ViewContext *ctx);
+static void SetStatsBorderColor(ViewContext *ctx);
 static void DrawBoxFrame(ViewContext *ctx);
 static void DrawSeparator(ViewContext *ctx, int y, const char *title);
 static void PrintStatRow(ViewContext *ctx, int y, const char *label,
                          long long count, long long bytes);
+static void PrintStatsDynamicLine(ViewContext *ctx, int y, const char *value);
+static void PrintStatsLabelValue(ViewContext *ctx, int y, const char *label,
+                                 const char *value);
 static void DrawAttributes(ViewContext *ctx, const char *name,
                            const struct stat *s, const FileEntry *fe);
 static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s);
@@ -197,15 +203,44 @@ static void FormatShortSize(char *buf, size_t size, long long val) {
   }
 }
 
-static void SetColor(ViewContext *ctx) {
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_WINDIR));
+static void SetStatsBaseColor(ViewContext *ctx) {
+#ifdef COLOR_SUPPORT
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_WINSTATS));
+#else
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+#endif
+}
+
+static void SetStatsStaticColor(ViewContext *ctx) {
+#ifdef COLOR_SUPPORT
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+#else
+  wattrset(ctx->ctx_border_window, A_BOLD);
+#endif
+}
+
+static void SetStatsDynamicColor(ViewContext *ctx) {
+#ifdef COLOR_SUPPORT
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_STATS));
+#else
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+#endif
+}
+
+static void SetStatsBorderColor(ViewContext *ctx) {
+#ifdef COLOR_SUPPORT
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
+#else
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+#endif
 }
 
 static void DrawBoxFrame(ViewContext *ctx) {
   int y;
   int sep_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
-  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  SetStatsBorderColor(ctx);
+  wattron(ctx->ctx_border_window, A_ALTCHARSET);
 
   /* --- Top Border with embedded " FILTER " --- */
   {
@@ -220,11 +255,10 @@ static void DrawBoxFrame(ViewContext *ctx) {
     mvwhline(ctx->ctx_border_window, Y_TOP, x, ACS_HLINE, left_len);
     x += left_len;
 
-    /* Title */
     wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-    wattron(ctx->ctx_border_window, A_BOLD);
+    SetStatsStaticColor(ctx);
     mvwaddstr(ctx->ctx_border_window, Y_TOP, x, title);
-    wattroff(ctx->ctx_border_window, A_BOLD);
+    SetStatsBorderColor(ctx);
     wattron(ctx->ctx_border_window, A_ALTCHARSET);
     x += t_len;
 
@@ -262,8 +296,7 @@ static void DrawBoxFrame(ViewContext *ctx) {
            ACS_BTEE);
 
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-  wattrset(ctx->ctx_border_window, A_NORMAL);
-  SetColor(ctx);
+  SetStatsBaseColor(ctx);
 }
 
 static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
@@ -273,7 +306,8 @@ static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
   if (y <= 0)
     return;
 
-  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  SetStatsBorderColor(ctx);
+  wattron(ctx->ctx_border_window, A_ALTCHARSET);
 
   /* Side Junctions */
   mvwaddch(ctx->ctx_border_window, y, L_BORDER, ACS_LTEE);
@@ -293,13 +327,12 @@ static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
       mvwhline(ctx->ctx_border_window, y, L_BORDER + 1, ACS_HLINE,
                left_hline_len);
 
-      /* Title */
       wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-      wattron(ctx->ctx_border_window, A_BOLD);
+      SetStatsStaticColor(ctx);
       mvwaddstr(ctx->ctx_border_window, y, title_content_start_x, " ");
       waddstr(ctx->ctx_border_window, title);
       waddstr(ctx->ctx_border_window, " ");
-      wattroff(ctx->ctx_border_window, A_BOLD);
+      SetStatsBorderColor(ctx);
       wattron(ctx->ctx_border_window, A_ALTCHARSET);
 
       /* Right Line */
@@ -307,10 +340,10 @@ static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
                title_content_start_x + text_len + pad, ACS_HLINE,
                total_inner_width - left_hline_len - text_len - pad);
     } else {
-      /* No room for line, just title */
-      wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_BOLD);
+      SetStatsStaticColor(ctx);
       mvwaddnstr(ctx->ctx_border_window, y, L_BORDER + 1, title,
                  total_inner_width);
+      SetStatsBorderColor(ctx);
     }
   } else {
     /* Pure line */
@@ -318,7 +351,7 @@ static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
              total_inner_width);
   }
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-  wattrset(ctx->ctx_border_window, A_NORMAL);
+  SetStatsBaseColor(ctx);
 }
 
 static void PrintStatRow(ViewContext *ctx, int y, const char *label,
@@ -332,13 +365,52 @@ static void PrintStatRow(ViewContext *ctx, int y, const char *label,
   FormatNumber(ctx, count_buf, sizeof(count_buf), count);
   FormatShortSize(size_buf, sizeof(size_buf), bytes);
 
-  SetColor(ctx);
-  /* Format: "Tot: 1,831,129 12.5M"
-   * Math: 4 (Label) + 1 (Space) + 9 (Count) + 1 (Space) + 6 (Size) = 21 chars.
-   * INNER_W is 22. This leaves 1 char padding. Perfect.
-   */
-  mvwprintw(ctx->ctx_border_window, y, STAT_X + 1, "%-4s %9s %6s", label,
-            count_buf, size_buf);
+  SetStatsBaseColor(ctx);
+  mvwhline(ctx->ctx_border_window, y, STAT_X + 1, ' ', INNER_W);
+  SetStatsStaticColor(ctx);
+  mvwprintw(ctx->ctx_border_window, y, STAT_X + 1, "%-4s ", label);
+  SetStatsDynamicColor(ctx);
+  mvwprintw(ctx->ctx_border_window, y, STAT_X + 6, "%9s %6s", count_buf,
+            size_buf);
+  SetStatsBaseColor(ctx);
+}
+
+static void PrintStatsDynamicLine(ViewContext *ctx, int y, const char *value) {
+  char clipped[256];
+
+  if (y >= ctx->layout.bottom_border_y)
+    return;
+
+  CutPathname(clipped, (char *)value, INNER_W);
+  SetStatsBaseColor(ctx);
+  mvwhline(ctx->ctx_border_window, y, STAT_X + 1, ' ', INNER_W);
+  SetStatsDynamicColor(ctx);
+  mvwprintw(ctx->ctx_border_window, y, STAT_X + 1, "%-*s", INNER_W, clipped);
+  SetStatsBaseColor(ctx);
+}
+
+static void PrintStatsLabelValue(ViewContext *ctx, int y, const char *label,
+                                 const char *value) {
+  int label_len;
+  int value_width;
+
+  if (y >= ctx->layout.bottom_border_y)
+    return;
+
+  label_len = (int)strlen(label);
+  value_width = INNER_W - label_len;
+  if (value_width < 0)
+    value_width = 0;
+
+  SetStatsBaseColor(ctx);
+  mvwhline(ctx->ctx_border_window, y, STAT_X + 1, ' ', INNER_W);
+  SetStatsStaticColor(ctx);
+  mvwprintw(ctx->ctx_border_window, y, STAT_X + 1, "%s", label);
+  SetStatsDynamicColor(ctx);
+  if (value_width > 0)
+    mvwprintw(ctx->ctx_border_window, y, STAT_X + 1 + label_len, "%-*.*s",
+              value_width, value_width, value);
+  SetStatsBaseColor(ctx);
 }
 
 static void DrawAttributes(ViewContext *ctx, const char *name,
@@ -346,53 +418,22 @@ static void DrawAttributes(ViewContext *ctx, const char *name,
   char buf[128];
   char num_buf[32];
   char time_buf[20];
-  char temp[256]; /* Increased from 128 to fix truncation warning */
 
   if (!name || !s)
     return;
 
   DrawSeparator(ctx, ctx->layout.stats_y_attr_sep, "ATTRIBUTES");
 
-  /* Name */
-  CutPathname(buf, (char *)name, INNER_W); /* Keep CutPathname for stats box */
+  (void)fe;
+  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_attr_val, name);
 
-  /* Explicitly clear the line to avoid background artifacts */
-  mvwhline(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
-           ' ', INNER_W);
-
-  if (fe) {
-#ifdef COLOR_SUPPORT
-    int color = GetFileTypeColor(ctx, fe);
-    wattron(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
-    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
-              "%s", buf); /* Print without padding */
-    wattroff(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
-#else
-    wattron(ctx->ctx_border_window, A_BOLD);
-    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
-              "%s", buf);
-    wattroff(ctx->ctx_border_window, A_BOLD);
-#endif
-  } else {
-    wattron(ctx->ctx_border_window, A_BOLD);
-    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
-              "%s", buf); /* Print without padding */
-    wattroff(ctx->ctx_border_window, A_BOLD);
-  }
-
-  /* Size */
   FormatShortSize(num_buf, sizeof(num_buf), s->st_size);
-  snprintf(temp, sizeof(temp), "Size: %s", num_buf);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 1,
-            STAT_X + 1, "%-22s", temp);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 1, "Size: ",
+                       num_buf);
 
-  /* Attr */
   GetAttributes(s->st_mode, buf);
-  snprintf(temp, sizeof(temp), "Attr: %s", buf);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 2,
-            STAT_X + 1, "%-22s", temp);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 2, "Attr: ", buf);
 
-  /* Owner */
   {
     const char *owner = GetDisplayPasswdName(s->st_uid);
     const char *group = GetDisplayGroupName(s->st_gid);
@@ -410,14 +451,12 @@ static void DrawAttributes(ViewContext *ctx, const char *name,
     char full_own[64];
     snprintf(full_own, sizeof(full_own), "%s:%s", owner, group);
     CutName(buf, full_own, INNER_W - 6); /* "Own : " is 6 chars */
-    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 3,
-              STAT_X + 1, "Own : %-16s", buf);
+    PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 3, "Own : ", buf);
   }
 
-  /* Mod */
   CTime(s->st_mtime, time_buf);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 4,
-            STAT_X + 1, "Mod : %-16s", time_buf);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 4, "Mod : ",
+                       time_buf);
 }
 
 /* ************************************************************************* */
@@ -451,50 +490,42 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
   if (current_index == 0 && total_volumes > 0)
     current_index = 1;
 
-  /* 2. Setup Panel */
-  SetColor(ctx);
-  DrawBoxFrame(ctx); /* Draws Top Border with "FILTER" */
+  SetStatsBaseColor(ctx);
+  DrawBoxFrame(ctx);
 
-  /* 3. Filter Value */
   CutName(buf, s->file_spec, INNER_W);
-  wattron(ctx->ctx_border_window, A_BOLD);
-  /* Center filter text using padding format to clear ghosts */
+  SetStatsBaseColor(ctx);
+  mvwhline(ctx->ctx_border_window, ctx->layout.stats_y_filter_val, STAT_X + 1,
+           ' ', INNER_W);
+  SetStatsDynamicColor(ctx);
   {
     int pad = (INNER_W - strlen(buf)) / 2;
     mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_filter_val,
               STAT_X + 1, "%*s%-*s", pad, "", INNER_W - pad, buf);
   }
-  wattroff(ctx->ctx_border_window, A_BOLD);
+  SetStatsBaseColor(ctx);
 
-  /* 4. Volume Section */
   snprintf(buf, sizeof(buf), "VOLUME %d/%d", current_index, total_volumes);
   DrawSeparator(ctx, ctx->layout.stats_y_vol_sep, buf);
 
-  /* Path */
   if (ctx->view_mode == ARCHIVE_MODE)
     strncpy(path_buf, s->log_path, PATH_LENGTH);
   else
     strncpy(path_buf, s->path, PATH_LENGTH);
   path_buf[PATH_LENGTH] = '\0';
 
-  CutPathname(buf, path_buf, INNER_W); /* Changed to CutPathname */
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info, STAT_X + 1,
-            "%-*s", INNER_W, buf); /* Pad to clear */
+  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_vol_info, path_buf);
 
-  /* FS */
   char fs_buf[64];
   if (ctx->view_mode == ARCHIVE_MODE)
-    snprintf(fs_buf, sizeof(fs_buf), "FS: ARCHIVE");
+    snprintf(fs_buf, sizeof(fs_buf), "ARCHIVE");
   else
-    snprintf(fs_buf, sizeof(fs_buf), "FS: %s", s->disk_name);
-  /* Truncate to fit */
-  CutName(buf, fs_buf, INNER_W);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info + 1,
-            STAT_X + 1, "%-*s", INNER_W, buf);
+    snprintf(fs_buf, sizeof(fs_buf), "%s", s->disk_name);
+  CutName(buf, fs_buf, INNER_W - 4);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_vol_info + 1, "FS: ", buf);
 
-  /* Free */
   if (ctx->view_mode == ARCHIVE_MODE) {
-    snprintf(fs_buf, sizeof(fs_buf), "Free: -");
+    snprintf(fs_buf, sizeof(fs_buf), "-");
   } else {
     char size_buf[32];
     int free_percent = -1;
@@ -508,12 +539,12 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
       free_percent = (int)(percent + 0.5);
     }
     if (free_percent >= 0)
-      snprintf(fs_buf, sizeof(fs_buf), "Free: %s (%d%%)", size_buf, free_percent);
+      snprintf(fs_buf, sizeof(fs_buf), "%s (%d%%)", size_buf, free_percent);
     else
-      snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
+      snprintf(fs_buf, sizeof(fs_buf), "%s", size_buf);
   }
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info + 2,
-            STAT_X + 1, "%-*s", INNER_W, fs_buf);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_vol_info + 2, "Free: ",
+                       fs_buf);
 }
 
 void DisplayAvailBytes(ViewContext *ctx, const Statistic *s) {
@@ -542,8 +573,6 @@ void DisplayDiskStatistic(ViewContext *ctx, const Statistic *s) {
 
 void DisplayDirStatistic(ViewContext *ctx, const DirEntry *de,
                          const char *title, const Statistic *s) {
-  char buf[128];
-
   if (ctx->layout.stats_width == 0)
     return;
 
@@ -563,12 +592,7 @@ void DisplayDirStatistic(ViewContext *ctx, const DirEntry *de,
     }
   }
 
-  /* Dir Name */
-  CutPathname(buf, de->name, INNER_W); /* Changed to CutPathname */
-  wattron(ctx->ctx_border_window, A_BOLD);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val, STAT_X + 1,
-            "%-*s", INNER_W, buf); /* Clear ghosting */
-  wattroff(ctx->ctx_border_window, A_BOLD);
+  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_dstat_val, de->name);
 
   if (de->global_flag) {
     /* In Show All mode, display global totals */
@@ -602,7 +626,6 @@ void DisplayDirStatistic(ViewContext *ctx, const DirEntry *de,
  */
 void DisplayFileStatistic(ViewContext *ctx, const FileEntry *fe,
                           const Statistic *s) {
-  char buf[128];
   char size_buf[32];
   char time_buf[20];
 
@@ -612,38 +635,24 @@ void DisplayFileStatistic(ViewContext *ctx, const FileEntry *fe,
   if (!fe)
     return;
 
-  /* Title */
   DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "CURRENT FILE");
 
-  /* File Name */
-  CutPathname(buf, fe->name, INNER_W);
-#ifdef COLOR_SUPPORT
-  int color = GetFileTypeColor(ctx, fe);
-  wattron(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val, STAT_X + 1,
-            "%-*s", INNER_W, buf);
-  wattroff(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
-#else
-  wattron(ctx->ctx_border_window, A_BOLD);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val, STAT_X + 1,
-            "%-*s", INNER_W, buf);
-  wattroff(ctx->ctx_border_window, A_BOLD);
-#endif
+  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_dstat_val, fe->name);
 
-  /* Size */
   FormatShortSize(size_buf, sizeof(size_buf), fe->stat_struct.st_size);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val + 1,
-            STAT_X + 1, "Size: %-*s", INNER_W - 6, size_buf);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 1, "Size: ",
+                       size_buf);
 
-  /* Permissions */
-  GetAttributes(fe->stat_struct.st_mode, buf);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val + 2,
-            STAT_X + 1, "Perm: %-*s", INNER_W - 6, buf);
+  {
+    char attr_buf[16];
+    GetAttributes(fe->stat_struct.st_mode, attr_buf);
+    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 2, "Perm: ",
+                         attr_buf);
+  }
 
-  /* Modified Time */
   CTime(fe->stat_struct.st_mtime, time_buf);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val + 3,
-            STAT_X + 1, "Mod : %-*s", INNER_W - 6, time_buf);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 3, "Mod : ",
+                       time_buf);
 }
 
 void DisplayFileParameter(ViewContext *ctx, FileEntry *fe) {
