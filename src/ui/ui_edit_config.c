@@ -139,6 +139,30 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   return 0;
 }
 
+static int EnsureConfigHomeDirectory(const char *home) {
+  char config_dir[PATH_LENGTH + 1];
+  char ytnova_dir[PATH_LENGTH + 1];
+  int written;
+
+  if (home == NULL || *home == '\0')
+    return -1;
+
+  written = snprintf(config_dir, sizeof(config_dir), "%s/%s", home,
+                     PROFILE_CONFIG_HOME_PARENT);
+  if (written < 0 || written >= (int)sizeof(config_dir))
+    return -1;
+
+  if (mkdir(config_dir, S_IRWXU) != 0 && errno != EEXIST)
+    return -1;
+  written = snprintf(ytnova_dir, sizeof(ytnova_dir), "%s/%s", home,
+                     PROFILE_CONFIG_HOME_DIR);
+  if (written < 0 || written >= (int)sizeof(ytnova_dir))
+    return -1;
+  if (mkdir(ytnova_dir, S_IRWXU) != 0 && errno != EEXIST)
+    return -1;
+  return 0;
+}
+
 static void ResolveProfilePath(char *profile_path, size_t profile_path_size) {
   const char *home;
 
@@ -149,10 +173,23 @@ static void ResolveProfilePath(char *profile_path, size_t profile_path_size) {
   home = getenv("HOME");
   if (home && *home) {
     int written;
+    char legacy_path[PATH_LENGTH + 1];
+
     written = snprintf(profile_path, profile_path_size, "%s/%s", home,
-                       PROFILE_FILENAME);
+                       PROFILE_CONFIG_HOME_PATH);
     if (written < 0 || written >= (int)profile_path_size)
       profile_path[0] = '\0';
+
+    written =
+        snprintf(legacy_path, sizeof(legacy_path), "%s/%s", home,
+                 PROFILE_FILENAME);
+    if (written >= 0 && written < (int)sizeof(legacy_path) &&
+        profile_path[0] != '\0' && access(profile_path, F_OK) != 0 &&
+        access(legacy_path, F_OK) == 0) {
+      (void)snprintf(profile_path, profile_path_size, "%s", legacy_path);
+    } else if (profile_path[0] != '\0') {
+      (void)EnsureConfigHomeDirectory(home);
+    }
   }
   if (!profile_path[0])
     (void)snprintf(profile_path, profile_path_size, "%s", PROFILE_FILENAME);

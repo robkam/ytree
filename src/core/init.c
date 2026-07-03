@@ -1008,10 +1008,17 @@ int Init(ViewContext *ctx, const char *configuration_file,
   } else if ((home = getenv("HOME"))) {
     int read_profile_result = -1;
     snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-             PROFILE_FILENAME);
+             PROFILE_CONFIG_HOME_PATH);
     DEBUG_LOG("Init: Reading profile %s", buffer);
     if (ctx->core_init_ops.read_profile != NULL)
       read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+    if (read_profile_result != 0) {
+      snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
+               PROFILE_FILENAME);
+      DEBUG_LOG("Init: Reading legacy profile %s", buffer);
+      if (ctx->core_init_ops.read_profile != NULL)
+        read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+    }
     if (read_profile_result != 0) {
       const char *editor_env = getenv("EDITOR");
       const char *pager_env = getenv("PAGER");

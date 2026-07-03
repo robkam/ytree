@@ -209,6 +209,9 @@ typedef struct _ViewContext ViewContext;
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 #define TAGGED_SYMBOL '*'
+#define PROFILE_CONFIG_HOME_PATH ".config/ytnova/ytnova.conf"
+#define PROFILE_CONFIG_HOME_PARENT ".config"
+#define PROFILE_CONFIG_HOME_DIR ".config/ytnova"
 #define PROFILE_FILENAME ".ytnova"
 #define HISTORY_FILENAME ".ytnova-hst"
 #define CLOCK_INTERVAL 1
