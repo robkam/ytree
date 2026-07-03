@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_volume.h"
 #include "ytnova_fs.h"
 #include <ctype.h>
 #include <fnmatch.h>
@@ -72,18 +73,22 @@ BOOL FsMatchFilter(FileEntry *fe, const Statistic *s) {
 
 void FsApplyFilter(DirEntry *dir_entry, const Statistic *s) {
   FileEntry *fe;
+  unsigned int matching_files;
+  long long matching_bytes;
 
   if (!dir_entry || !s)
     return;
 
-  dir_entry->matching_files = 0;
-  dir_entry->matching_bytes = 0;
+  matching_files = 0;
+  matching_bytes = 0;
 
   for (fe = dir_entry->file; fe; fe = fe->next) {
     fe->matching = FsMatchFilter(fe, s);
     if (fe->matching) {
-      dir_entry->matching_files++;
-      dir_entry->matching_bytes += fe->stat_struct.st_size;
+      matching_files++;
+      matching_bytes += fe->stat_struct.st_size;
     }
   }
+  (void)AppStateCommitDirEntryMatchingPayload(dir_entry, matching_files,
+                                              matching_bytes);
 }
