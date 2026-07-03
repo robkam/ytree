@@ -9301,6 +9301,34 @@ def test_ui_tag_payload_commits_route_through_appstate_helper() -> None:
         assert "AppStateCommitDirEntryTaggedPayload(" in tag_body
 
 
+def test_file_tag_payload_commits_route_through_appstate_helper() -> None:
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    dir_compare = Path("src/ui/dir_compare.c").read_text(encoding="utf-8")
+    direct_tagged_write = re.compile(
+        r"->(?:tagged_files|tagged_bytes)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+
+    assert 'include "ytnova_appstate_volume.h"' in ctrl_file_ops
+    assert 'include "ytnova_appstate_volume.h"' in dir_compare
+
+    tag_bodies = [
+        ctrl_file_ops[
+            ctrl_file_ops.index("static void SetFileTaggedState(") : ctrl_file_ops.index(
+                "\nstatic void SetFileTaggedStateRange"
+            )
+        ],
+        dir_compare[
+            dir_compare.index("static void TagComparedFile(") : dir_compare.index(
+                "\nstatic int BuildRelativeComparePath"
+            )
+        ],
+    ]
+
+    for tag_body in tag_bodies:
+        assert not direct_tagged_write.search(tag_body)
+        assert "AppStateCommitDirEntryTaggedPayload(" in tag_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")

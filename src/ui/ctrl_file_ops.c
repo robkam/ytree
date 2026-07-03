@@ -1711,8 +1711,8 @@ static void SetFileTaggedState(YtreeNovaPanel *panel, FileEntry *fe_ptr,
       return;
 
     fe_ptr->tagged = TRUE;
-    de_ptr->tagged_files++;
-    de_ptr->tagged_bytes += file_size;
+    (void)AppStateCommitDirEntryTaggedPayload(
+        de_ptr, de_ptr->tagged_files + 1, de_ptr->tagged_bytes + file_size);
     s->disk_tagged_files++;
     s->disk_tagged_bytes += file_size;
     PanelTags_RecordFileState(panel, fe_ptr, TRUE);
@@ -1723,8 +1723,8 @@ static void SetFileTaggedState(YtreeNovaPanel *panel, FileEntry *fe_ptr,
     return;
 
   fe_ptr->tagged = FALSE;
-  de_ptr->tagged_files--;
-  de_ptr->tagged_bytes -= file_size;
+  (void)AppStateCommitDirEntryTaggedPayload(
+      de_ptr, de_ptr->tagged_files - 1, de_ptr->tagged_bytes - file_size);
   s->disk_tagged_files--;
   s->disk_tagged_bytes -= file_size;
   PanelTags_RecordFileState(panel, fe_ptr, FALSE);
