@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the file selection reverse cleanup subunit.
+- This checkpoint is committed with the public theme contract documentation subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -85,10 +85,12 @@ Completed local subunits toward Task 60:
 - File selection reverse cleanup
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - Removes the dead active-file `A_REVERSE` path so active file rows use the selection role pair and only inactive split rows use underline/bold fallback styling.
+- Public theme contract documentation
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - SPEC now documents user-visible theme files, discovery paths, semantic roles, color syntax, file-type palette rules, and F10 reload behavior; ARCHITECTURE records theme/config and file-palette boundaries.
 
 Focused validation for latest local subunit:
-- `make` -> exit 0.
-- `python3 -m pytest tests/test_theme_ui_contract.py` -> 14 passed.
+- `python3 -m pytest tests/test_color_config.py` -> 8 passed.
 - `git diff --check` -> exit 0.
 
 Local notes:
@@ -98,7 +100,7 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the file selection reverse cleanup commit.
+- None intended after the public theme contract documentation commit.
 
 Next recommended Task 60 subunit:
 - Continue acceptance-criteria coverage review for remaining raw reverse-video/no-color fallback paths and any remaining foreground-only styling in interactive surfaces.

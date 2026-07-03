@@ -129,3 +129,44 @@ def test_packaged_theme_catalog_uses_compact_file_palettes():
         assert "\nDIR" not in section
         assert "*." not in section
         assert ":" in section
+
+
+def test_spec_documents_user_visible_theme_contract():
+    spec_source = _read_source("docs/SPECIFICATION.md")
+
+    assert "## 7. Theme and Color Contract" in spec_source
+    assert (
+        "Themes are plain-text user-editable files separate from the main configuration"
+        in spec_source
+    )
+    assert (
+        "Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`"
+        in spec_source
+    )
+    assert (
+        "Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`"
+        in spec_source
+    )
+    assert (
+        "Required roles are `background`, `box_lines`, `tree_lines`, `margin`"
+        in spec_source
+    )
+    assert "`grey`/`gray`" in spec_source
+    assert "bright black" not in spec_source.lower()
+    assert "Rules are first-match-wins" in spec_source
+    assert "Reload is available only inside this surface" in spec_source
+
+
+def test_architecture_documents_theme_boundaries():
+    arch_source = _read_source("docs/ARCHITECTURE.md")
+
+    assert "Theme Configuration Boundary" in arch_source
+    assert (
+        "role definitions and file-type palettes live in separate theme files"
+        in arch_source
+    )
+    assert "Legacy color-key parsing is migration-only compatibility input" in (
+        arch_source
+    )
+    assert "File-Type Palette Boundary" in arch_source
+    assert "must not style directory tree rows" in arch_source

@@ -375,14 +375,67 @@ Current modal/dialog audit:
 
 ---
 
-## 7. The Virtual Filesystem (VFS)
+## 7. Theme and Color Contract
+Themes are plain-text user-editable files separate from the main configuration. The main config selects the active theme; theme files define semantic UI roles and optional file-type palette rules.
+
+### 7.1 Theme Files and Discovery
+*   Packaged defaults are `etc/ytnova.conf` and `etc/ytnova.themes`.
+*   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
+*   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
+*   Built-in theme names include `classic-blue` and `bash-black`.
+*   User-facing theme files use semantic role names only. Legacy color-key names are migration-only compatibility input and are not the public theme model.
+
+### 7.2 Semantic Roles
+Required roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `help`, `info`, `warning`, `error`, `search_hit`, and `disabled`.
+
+Role meanings:
+*   `background`: default application background.
+*   `box_lines`: panel borders, separators, dialog boxes, and window frames.
+*   `tree_lines`: tree guide glyphs.
+*   `margin`: tree/file margins and status marker columns; inherits `dynamic_text` unless explicitly set.
+*   `static_text`: fixed labels and captions.
+*   `dynamic_text`: filenames, paths, counts, sizes, timestamps, current mode values, tree names, and file names.
+*   `keybind`: footer/menu key tokens only.
+*   `selection`: active highlighted row/bar.
+*   `dialog`: neutral prompt/dialog surfaces.
+*   `picker`: selectable-list surfaces.
+*   `help`: F1/context help reading surfaces.
+*   `info`, `warning`, `error`: severity road-sign roles.
+*   `search_hit`: search/current-hit standout highlight.
+*   `disabled`: inactive or unavailable commands/options.
+
+### 7.3 Color Syntax
+Theme styles accept named colors, numeric colors, `grey`/`gray`, and bright-prefix colors such as `+red`, `+yellow`, `+white`, and `+grey`/`+gray`. Preferred examples are `+white on blue`, `white on blue`, `cyan on blue`, `black on +grey`, `black on yellow`, and `+white on red`. User-facing docs and examples use `grey`/`gray` terminology for grey shades.
+
+Every rendered style resolves internally to a complete foreground/background pair. If a role or file-type style omits a background, it inherits the active theme background appropriate for that surface.
+
+### 7.4 File-Type Palette Rules
+File-type coloring is an optional content-decoration layer owned by the active theme. If a theme has no file-type rules, ordinary filenames use `dynamic_text`.
+
+Palette rules use compact grouped lines:
+
+```text
+archives = red: tar,tgz,zip
+scripts = +cyan: sh,bash,zsh,py,pl,rb
+links = +cyan: LINK
+executables = green: EXEC
+```
+
+Rules are first-match-wins. Selectors are extension names without `*.` by default; `LINK` and `EXEC` are special selectors. Directories in the tree use theme roles and are not styled by file-type palette rules. When a rule omits a background, it inherits the active filename/window background.
+
+### 7.5 F10 Config Surface and Reload
+`F10` opens the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Reload is available only inside this surface. Successful reload silently repaints. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
+
+---
+
+## 8. The Virtual Filesystem (VFS)
 *   **Archive Integration:** Archives are treated as directories. Entering an archive logs it as a Virtual Volume. `Left Arrow` at the root of an archive "Backs Out" to the parent physical volume.
 *   **Stream Rewrite:** Modifications to archives use an atomic rewrite strategy to ensure data integrity.
 *   **Live View:** Use `inotify` (where available) for automatic refreshes. If kernel limits are hit, the system falls back to manual refresh logic safely.
 
 ---
 
-## 8. Filtering & Command Execution
+## 9. Filtering & Command Execution
 *   **Filter Stack:** Cumulative logic applies: `Filespec AND Attribute Mask AND Date/Size AND Regex`.
 *   **Grep Tagged (`^s`):** A non-destructive content filter applied to the currently tagged set.
 *   **Targeting:** In Split-Screen, Copy/Move operations in the Active Panel use the Inactive Panel's current path as the default destination.
@@ -393,7 +446,7 @@ Current modal/dialog audit:
 
 ---
 
-## 9. Safety & Integrity
+## 10. Safety & Integrity
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
@@ -401,7 +454,7 @@ Current modal/dialog audit:
 
 ---
 
-## 10. Module Organization & Architecture
+## 11. Module Organization & Architecture
 
 ### 10.1 Directory Ownership
 Every module (`.c`/`.h` pair) must reside in the directory corresponding to its architectural layer:
