@@ -9,6 +9,7 @@
 #include "../../include/ytnova.h"
 #endif
 
+#include "../../include/ytnova_appstate_volume.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
 #include <errno.h>
@@ -125,8 +126,8 @@ int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s) {
     s->disk_matching_files--;
   }
   if (fe_ptr->tagged) {
-    de_ptr->tagged_bytes -= file_size;
-    de_ptr->tagged_files--;
+    (void)AppStateCommitDirEntryTaggedPayload(
+        de_ptr, de_ptr->tagged_files - 1, de_ptr->tagged_bytes - file_size);
     s->disk_tagged_bytes -= file_size;
     s->disk_tagged_files--;
   }
