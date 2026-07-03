@@ -44,6 +44,19 @@ BOOL AppStateCommitDirEntryMatchingPayload(DirEntry *dir_entry,
   return TRUE;
 }
 
+BOOL AppStateCommitDirEntryTaggedPayload(DirEntry *dir_entry,
+                                         unsigned int tagged_files,
+                                         long long tagged_bytes) {
+  if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->tagged_files = tagged_files;
+  dir_entry->tagged_bytes = tagged_bytes;
+  return TRUE;
+}
+
 BOOL AppStateCommitDirEntryAccessDenied(DirEntry *dir_entry,
                                         BOOL access_denied) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
