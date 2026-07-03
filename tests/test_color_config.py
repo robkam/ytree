@@ -30,26 +30,19 @@ def test_dialog_color_key_is_defined_in_runtime_palette():
     assert "CPAIR_WINERR" not in defs_source
 
 
-def test_dialog_color_key_is_documented_in_config_templates():
+def test_packaged_config_delegates_theme_details_to_theme_catalog():
     conf_source = _read_source("etc/ytnova.conf")
     template_source = _read_source("src/core/default_profile_template.h")
-
-    assert conf_source.count("DIALOG_COLOR=") >= 2
-    assert template_source.count("DIALOG_COLOR=") >= 2
-
-
-def test_modal_severity_comment_lines_include_non_bright_equivalents():
-    conf_source = _read_source("etc/ytnova.conf")
-    template_source = _read_source("src/core/default_profile_template.h")
-
-    info_comment = "# INFO_COLOR=15,4     # Bright White on Blue (non-bright: 7,4)"
-    warn_comment = "# WARN_COLOR=11,0     # Bright Yellow on Black (non-bright: 3,0)"
-    err_comment = "# ERR_COLOR=15,1      # Bright White on Red (non-bright: 7,1)"
 
     for source in (conf_source, template_source):
-        assert info_comment in source
-        assert warn_comment in source
-        assert err_comment in source
+        assert "THEME=classic-blue" in source
+        assert "theme catalog" in source
+        assert "dynamic_text" in source
+        assert "[COLORS]" not in source
+        assert "[FILE_COLORS]" not in source
+        assert "DIR_COLOR=" not in source
+        assert "FILE_COLOR=" not in source
+        assert "DIALOG_COLOR=" not in source
 
 
 def test_winerr_color_is_migration_only_alias():
