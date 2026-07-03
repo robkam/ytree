@@ -7,6 +7,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_volume.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 
@@ -74,12 +75,14 @@ static void RecalcLayout(ViewContext *ctx) {
 static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s) {
   FileEntry *f;
   DirEntry *sub;
+  unsigned int total_files;
+  long long total_bytes;
 
   /* Apply current filter to this directory */
   ApplyFilter(d, s);
 
-  d->total_files = 0;
-  d->total_bytes = 0;
+  total_files = 0;
+  total_bytes = 0;
   /* matching_files/bytes already updated by ApplyFilter, but we sum them
    * globally below */
 
@@ -87,14 +90,16 @@ static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s) {
     if (hide_dot_files && f->name[0] == '.')
       continue;
 
-    d->total_files++;
-    d->total_bytes += f->stat_struct.st_size;
+    total_files++;
+    total_bytes += f->stat_struct.st_size;
 
     if (f->tagged) {
       d->tagged_files++;
       d->tagged_bytes += f->stat_struct.st_size;
     }
   }
+  if (!AppStateCommitDirEntryTotalPayload(d, total_files, total_bytes))
+    return;
 
   sub = d->sub_tree;
   while (sub) {

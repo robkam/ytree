@@ -4,29 +4,26 @@ Date: 2026-07-03
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-dir-matching-payload-helper
-Active PR: https://github.com/robkam/ytreenova/pull/342 (draft)
+Current branch: appstate-dir-total-payload-helper
+Active PR: https://github.com/robkam/ytreenova/pull/343 (draft)
 Supersession state: maintainer explicitly resumed autonomous AppState work; no active stop condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/341 merged at `69a8e09` after green checks.
-- Local `main` and `origin/main` are at `69a8e09`.
-- The remote branch `appstate-dir-log-flag-helper` was pruned after merge cleanup.
+- PR https://github.com/robkam/ytreenova/pull/342 merged after green checks.
+- Local `main` and `origin/main` were at `0eeb7d7` before this branch was created.
 
 Current AppState batch:
-- Adds `AppStateCommitDirEntryMatchingPayload` with `volume.payload_cache` owner-field validation.
-- Routes filter matching payload totals in `src/fs/filter_core.c` through that helper.
-- Adds guard coverage in `tests/test_appstate_contract_guard.py` for the helper boundary and direct matching counter write prevention in filter application.
-- Updates `tests/fuzz/fuzz_filter_core.c` with a harness-local AppState helper stub for the filter-core boundary.
+- Adds `AppStateCommitDirEntryTotalPayload` with `volume.payload_cache` owner-field validation.
+- Routes directory total payload counts in `src/ui/stats.c` through that helper after local aggregation.
+- Adds guard coverage in `tests/test_appstate_contract_guard.py` for the helper boundary and direct total payload write prevention in stats recalculation.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_matching_payload_commits_route_through_appstate_helper` failed because `AppStateCommitDirEntryMatchingPayload` was missing.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_matching_payload_commits_route_through_appstate_helper`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'directory_matching_payload_commits_route_through_appstate_helper or directory_log_flag_commits_route_through_appstate_helper or directory_payload_reset_commits_route_through_appstate_helper'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_total_payload_commits_route_through_appstate_helper` failed because `AppStateCommitDirEntryTotalPayload` was missing.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_total_payload_commits_route_through_appstate_helper`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'directory_total_payload_commits_route_through_appstate_helper or directory_matching_payload_commits_route_through_appstate_helper or directory_payload_reset_commits_route_through_appstate_helper'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make clean && make` passed with existing warnings.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
-- `make fuzz-filter-core`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py tests/test_stats_panel.py -q`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/342. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/343. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
