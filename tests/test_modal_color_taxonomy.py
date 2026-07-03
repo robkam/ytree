@@ -16,23 +16,23 @@ def test_severity_modals_route_only_info_warn_error_pairs():
     )
 
 
-def test_compare_help_popup_uses_neutral_dialog_palette():
+def test_compare_help_popup_uses_help_palette():
     compare_source = _read_source("src/ui/compare_request.c")
     popup_block = _extract_function_block(
         compare_source,
         "static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic)",
     )
 
-    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));" in popup_block
+    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_HELP));" in popup_block
     assert (
-        "PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, CPAIR_DIALOG,"
+        "PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, CPAIR_HELP,"
         in popup_block
     )
     assert "COLOR_PAIR(CPAIR_WARN)" not in popup_block
     assert "COLOR_PAIR(CPAIR_ERR)" not in popup_block
 
 
-def test_prompt_and_volume_dialogs_use_neutral_dialog_palette():
+def test_prompt_uses_dialog_and_volume_uses_picker_palette():
     input_source = _read_source("src/ui/input_line.c")
     input_block = _extract_function_block(
         input_source,
@@ -47,6 +47,8 @@ def test_prompt_and_volume_dialogs_use_neutral_dialog_palette():
     volume_block = _extract_function_block(
         volume_source, "int SelectLoadedVolume(ViewContext *ctx, int *return_key)"
     )
-    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));" in volume_block
+    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));" in volume_block
+    assert "UI_RenderCommandStrip" in volume_block
+    assert "COLOR_PAIR(CPAIR_HIHST)" in volume_block
     assert "COLOR_PAIR(CPAIR_WARN)" not in volume_block
     assert "COLOR_PAIR(CPAIR_ERR)" not in volume_block

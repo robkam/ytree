@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the manpage theme contract documentation sync subunit.
+- This checkpoint is committed with the modal role contract test sync subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -91,10 +91,13 @@ Completed local subunits toward Task 60:
 - Manpage theme contract documentation sync
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - `etc/ytnova.1.md` and generated `docs/USAGE.md` now describe the F10 config/themes/reload surface, preferred and legacy config/theme paths, semantic theme roles, color syntax, and compact file-type palette behavior.
+- Modal role contract test sync
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - Updated modal taxonomy tests to match the clarified semantic contract: compare help uses the help role, prompt input remains dialog, and volume selectable lists use picker/selection roles.
 
 Focused validation for latest local subunit:
-- `make docs` -> regenerated `docs/USAGE.md` from `etc/ytnova.1.md`.
-- `python3 -m pytest tests/test_color_config.py` -> 9 passed.
+- `python3 -m pytest tests/test_modal_color_taxonomy.py tests/test_theme_ui_contract.py` -> 17 passed.
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_parser_runtime.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py` -> 27 passed.
 - `git diff --check` -> exit 0.
 
 Local notes:
