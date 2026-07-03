@@ -1,30 +1,30 @@
 # ytreenova AppState continuation checkpoint
 
-Date: 2026-07-02
+Date: 2026-07-03
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-dir-payload-reset-helper
-Active PR: https://github.com/robkam/ytreenova/pull/340 (draft)
+Current branch: appstate-dir-log-flag-helper
+Active PR: https://github.com/robkam/ytreenova/pull/341 (draft)
 Supersession state: maintainer explicitly resumed autonomous AppState work; no active stop condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/339 merged at `0d1986a` after green checks.
-- Local `main` and `origin/main` are at `0d1986a`.
-- The remote branch `appstate-volume-logged-state-helper` was pruned after merge cleanup.
+- PR https://github.com/robkam/ytreenova/pull/340 merged at `100f3a1` after green checks.
+- Local `main` and `origin/main` are at `100f3a1`.
+- The remote branch `appstate-dir-payload-reset-helper` was pruned after merge cleanup.
 
 Current AppState batch:
-- Adds `AppStateResetDirEntryPayloadCache` with `volume.payload_cache` owner-field validation.
-- Routes directory payload reset initialization in `src/fs/tree_read.c` and `src/cmd/mkdir.c` through that helper.
-- Adds guard coverage in `tests/test_appstate_contract_guard.py` for the helper boundary and reset call sites.
+- Adds `AppStateCommitDirEntryLogFlag` with `volume.payload_cache` owner-field validation.
+- Routes directory log-flag commits in `src/ui/dir_ops.c` and `src/ui/ctrl_file_ops.c` through that helper.
+- Adds guard coverage in `tests/test_appstate_contract_guard.py` for the helper boundary and direct log-flag write prevention in those files.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_payload_reset_commits_route_through_appstate_helper` failed because `AppStateResetDirEntryPayloadCache` was missing.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_payload_reset_commits_route_through_appstate_helper`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'directory_payload_reset_commits_route_through_appstate_helper or volume_logged_state_commits_route_through_appstate_helper or volume_generation_commits_route_through_appstate_helper or volume_dir_entry_list_cache_commits_route_through_appstate_helper'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_log_flag_commits_route_through_appstate_helper` failed because `AppStateCommitDirEntryLogFlag` was missing.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k directory_log_flag_commits_route_through_appstate_helper`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'directory_log_flag_commits_route_through_appstate_helper or directory_payload_reset_commits_route_through_appstate_helper or volume_logged_state_commits_route_through_appstate_helper'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make clean && make` passed with existing warnings.
 - `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/340. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/341. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.

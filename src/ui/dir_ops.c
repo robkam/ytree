@@ -1137,7 +1137,8 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
   if (visible_count > 0) {
     int result;
     if (dir_entry->log_flag) {
-      dir_entry->log_flag = FALSE;
+      if (!AppStateCommitDirEntryLogFlag(dir_entry, FALSE))
+        return;
     } else {
       if (!AppStateCommitDirEntryFileShape(dir_entry, TRUE))
         return;
@@ -1182,7 +1183,8 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
         return;
     }
   } else {
-    dir_entry->log_flag = FALSE;
+    if (!AppStateCommitDirEntryLogFlag(dir_entry, FALSE))
+      return;
   }
   *need_dsp_help = TRUE;
   return;
@@ -1224,7 +1226,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
 
   if (dir_entry->matching_files) {
     if (dir_entry->log_flag) {
-      dir_entry->log_flag = FALSE;
+      if (!AppStateCommitDirEntryLogFlag(dir_entry, FALSE))
+        return;
     } else {
       BOOL big_file_view;
 
@@ -1317,7 +1320,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
     DisplayAvailBytes(ctx, s);
     *need_dsp_help = TRUE;
   } else {
-    dir_entry->log_flag = FALSE;
+    if (!AppStateCommitDirEntryLogFlag(dir_entry, FALSE))
+      return;
   }
   return;
 }
@@ -2095,7 +2099,8 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     /* 2a. Restore critical flags destroyed by ReadTree */
     if (!AppStateCommitDirEntryFileShape(entry, saved_big_window))
       return entry;
-    entry->log_flag = saved_log_flag;
+    if (!AppStateCommitDirEntryLogFlag(entry, saved_log_flag))
+      return entry;
     if (!AppStateCommitDirEntryGlobalFilter(entry, saved_global_flag,
                                             saved_global_all_volumes))
       return entry;
@@ -2183,7 +2188,8 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     /* Restore flags for Archive mode too, as RescanDir/ReadTree clears them */
     if (!AppStateCommitDirEntryFileShape(entry, saved_big_window))
       return entry;
-    entry->log_flag = saved_log_flag;
+    if (!AppStateCommitDirEntryLogFlag(entry, saved_log_flag))
+      return entry;
     if (!AppStateCommitDirEntryGlobalFilter(entry, saved_global_flag,
                                             saved_global_all_volumes))
       return entry;

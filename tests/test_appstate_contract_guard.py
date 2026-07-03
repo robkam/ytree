@@ -9147,6 +9147,35 @@ def test_directory_payload_reset_commits_route_through_appstate_helper() -> None
     assert "AppStateResetDirEntryPayloadCache(den_ptr)" in mkdir_init_body
 
 
+def test_directory_log_flag_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryLogFlag(" in header
+    assert 'include "ytnova_appstate_volume.h"' in dir_ops
+    assert 'include "ytnova_appstate_volume.h"' in ctrl_file_ops
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryLogFlag(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitDirEntryLoggedState(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.payload_cache")'
+    assignment = "dir_entry->log_flag = log_flag ? TRUE : FALSE;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    direct_log_flag_write = re.compile(r"->log_flag\s*=[^=]")
+    assert not direct_log_flag_write.search(dir_ops)
+    assert not direct_log_flag_write.search(ctrl_file_ops)
+    assert dir_ops.count("AppStateCommitDirEntryLogFlag(") >= 6
+    assert ctrl_file_ops.count("AppStateCommitDirEntryLogFlag(") >= 1
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
