@@ -26,7 +26,7 @@ typedef struct {
 typedef struct {
   const char *role;
   const char *legacy_names[8];
-} ThemeRoleShim;
+} ThemeMigrationRoleShim;
 
 static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
@@ -36,7 +36,7 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
 
 /* Migration-only bridge: theme files expose semantic roles while current
    render paths still consume legacy color-pair names. */
-static const ThemeRoleShim role_shims[] = {
+static const ThemeMigrationRoleShim migration_role_shims[] = {
     {"box_lines", {"BORDERS_COLOR", NULL}},
     {"static_text", {"MENU_COLOR", NULL}},
     {"dynamic_text",
@@ -66,7 +66,8 @@ static BOOL ParseThemeStyle(ViewContext *ctx, ThemeRoleValue *roles,
                             int *bg);
 static int ThemeBackground(ViewContext *ctx, ThemeRoleValue *roles);
 static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles);
-static void ApplyRoleShim(ViewContext *ctx, const char *role, int fg, int bg);
+static void ApplyMigrationRoleShim(ViewContext *ctx, const char *role, int fg,
+                                   int bg);
 static BOOL BuildFileColorPattern(const char *selector, char *pattern,
                                   size_t pattern_size);
 static void AddCompactFileColorRules(ViewContext *ctx, char *value);
@@ -217,23 +218,25 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
       continue;
 
     if (ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
-      ApplyRoleShim(ctx, roles[i].name, fg, bg);
+      ApplyMigrationRoleShim(ctx, roles[i].name, fg, bg);
   }
 }
 
-static void ApplyRoleShim(ViewContext *ctx, const char *role, int fg, int bg) {
+static void ApplyMigrationRoleShim(ViewContext *ctx, const char *role, int fg,
+                                   int bg) {
   int i;
   int j;
 
   if (ctx == NULL || role == NULL || ctx->hook_update_ui_color == NULL)
     return;
 
-  for (i = 0; role_shims[i].role != NULL; ++i) {
-    if (strcmp(role_shims[i].role, role) != 0)
+  for (i = 0; migration_role_shims[i].role != NULL; ++i) {
+    if (strcmp(migration_role_shims[i].role, role) != 0)
       continue;
 
-    for (j = 0; role_shims[i].legacy_names[j] != NULL; ++j)
-      ctx->hook_update_ui_color(role_shims[i].legacy_names[j], fg, bg);
+    for (j = 0; migration_role_shims[i].legacy_names[j] != NULL; ++j)
+      ctx->hook_update_ui_color(migration_role_shims[i].legacy_names[j], fg,
+                                bg);
     return;
   }
 }

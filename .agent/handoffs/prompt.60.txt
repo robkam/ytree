@@ -2,8 +2,8 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before committing this checkpoint: f05c65e docs(theme): capture rendering role invariants
-- This checkpoint is committed with the public change-log theme wording subunit; use `git log -1` for the exact containing commit.
+- HEAD before committing this checkpoint: 809d996 docs(theme): describe semantic theme catalogs
+- This checkpoint is committed with the migration shim isolation subunit; use `git log -1` for the exact containing commit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -59,13 +59,16 @@ Completed local subunits toward Task 60:
   - Commit: f05c65e docs(theme): capture rendering role invariants
   - Documents severity-pair retention, preview search-hit reset, and frame/fill separation invariants in SPEC/ARCH with contract tests.
 - Public change-log theme wording
-  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Commit: 809d996 docs(theme): describe semantic theme catalogs
   - Updates CHANGES to describe semantic theme catalogs instead of obsolete main-config `[COLORS]`/`[FILE_COLORS]` customization.
+- Migration shim isolation
+  - Commit: committed with this checkpoint; use `git log -1` for the exact hash after the local commit is created.
+  - Renames the semantic-role-to-legacy bridge as migration-only code to keep the final user-facing theme model separate from temporary legacy pair projection.
 
 Focused validation for latest local subunit:
-- `python3 -m pytest tests/test_color_config.py tests/test_theme_ui_contract.py` -> 18 passed.
+- `python3 -m pytest tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_ui_contract.py` -> 23 passed.
 - `git diff --check` -> exit 0.
-- No build rerun for docs/test-only subunit; previous code subunit build passed.
+- `make` -> exit 0.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest has been run with `python3 -m pytest` from repo root.
@@ -74,11 +77,11 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the public change-log theme wording commit.
+- None intended after the migration shim isolation commit.
 
 Next recommended Task 60 subunit:
-- Continue remaining acceptance-criteria coverage review and focused audits for legacy color-key exposure that is not explicitly migration-only/test-only/historical bug context.
+- Continue acceptance-criteria coverage review and focused audits for legacy color-key exposure that is not explicitly migration-only/test-only/historical bug context.
 
 Known blockers or risks:
 - No active blocker.
-- Legacy color-pair shim remains migration-only and must be removed or isolated before Task 60 closure.
+- Legacy color-pair shim remains migration-only by design until remaining render paths no longer consume legacy pair IDs.
