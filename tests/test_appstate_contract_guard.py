@@ -9361,6 +9361,24 @@ def test_delete_tagged_payload_commits_route_through_appstate_helper() -> None:
     assert "AppStateCommitDirEntryTaggedPayload(" in remove_body
 
 
+def test_delete_count_payload_commits_route_through_appstate_helpers() -> None:
+    delete = Path("src/cmd/delete.c").read_text(encoding="utf-8")
+
+    assert "ytnova_appstate_volume.h" in delete
+
+    remove_start = delete.index("int RemoveFile(")
+    remove_body = delete[
+        remove_start : delete.index("\nint DeleteTaggedFiles", remove_start)
+    ]
+    direct_count_write = re.compile(
+        r"->(?:total_files|total_bytes|matching_files|matching_bytes)"
+        r"\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    assert not direct_count_write.search(remove_body)
+    assert "AppStateCommitDirEntryTotalPayload(" in remove_body
+    assert "AppStateCommitDirEntryMatchingPayload(" in remove_body
+
+
 def test_directory_total_payload_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")

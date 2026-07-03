@@ -115,13 +115,16 @@ int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s) {
 
   file_size = fe_ptr->stat_struct.st_size;
 
-  de_ptr->total_bytes -= file_size;
-  de_ptr->total_files--;
+  if (!AppStateCommitDirEntryTotalPayload(
+          de_ptr, de_ptr->total_files - 1, de_ptr->total_bytes - file_size))
+    return -1;
   s->disk_total_bytes -= file_size;
   s->disk_total_files--;
   if (fe_ptr->matching) {
-    de_ptr->matching_bytes -= file_size;
-    de_ptr->matching_files--;
+    if (!AppStateCommitDirEntryMatchingPayload(
+            de_ptr, de_ptr->matching_files - 1,
+            de_ptr->matching_bytes - file_size))
+      return -1;
     s->disk_matching_bytes -= file_size;
     s->disk_matching_files--;
   }
