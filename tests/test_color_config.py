@@ -33,6 +33,7 @@ def test_dialog_color_key_is_defined_in_runtime_palette():
 def test_packaged_config_delegates_theme_details_to_theme_catalog():
     conf_source = _read_source("etc/ytnova.conf")
     template_source = _read_source("src/core/default_profile_template.h")
+    changes_source = _read_source("docs/CHANGES.md")
 
     for source in (conf_source, template_source):
         assert "THEME=classic-blue" in source
@@ -43,6 +44,10 @@ def test_packaged_config_delegates_theme_details_to_theme_catalog():
         assert "DIR_COLOR=" not in source
         assert "FILE_COLOR=" not in source
         assert "DIALOG_COLOR=" not in source
+
+    assert "[COLORS]" not in changes_source
+    assert "[FILE_COLORS]" not in changes_source
+    assert "semantic theme catalog" in changes_source
 
 
 def test_winerr_color_is_migration_only_alias():

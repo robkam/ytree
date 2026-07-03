@@ -41,7 +41,7 @@ Minor/trivial fixes are tracked in git history.
 - **UDF/ISO Bridge Support**: Enhanced detection logic to correctly handle multi-format bridge media (e.g., modern Windows ISOs).
 
 ### New Features & UI/UX Refinements
-- **Color Theme Engine**: Added full **256-Color Support** and a dynamic theme engine. Users can now define custom color palettes for both UI elements (`[COLORS]`) and specific file types/extensions (`[FILE_COLORS]`) in the configuration file.
+- **Color Theme Engine**: Added full **256-color support** and a semantic theme catalog. Users select a named theme in `ytnova.conf`, then define UI roles and optional file-type palettes in `themes.conf`.
 - **Hidden File Visibility**: Dotfiles and hidden directories are now filtered by default. Use the backtick (`` ` ``) key to toggle their visibility globally.
 - **Split-Screen (F8)**: Support for independent panels with separate context, cursors, and filters for efficient cross-volume operations.
 - **Integrated Comparison Suite**: Added a dedicated Compare submenu supporting Directory, File, and Logged-Tree comparisons.
