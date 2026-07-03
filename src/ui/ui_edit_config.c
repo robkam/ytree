@@ -232,21 +232,30 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
   return themes_path[0] ? 0 : -1;
 }
 
-static void ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
+static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
       access(profile_path, F_OK) == 0) {
     if (ctx->core_init_ops.read_profile(ctx, profile_path) == 0) {
       if (!AppStateCommitSmallWindowBypass(
               ctx,
-              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
-        return;
+              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP")))) {
+        UI_ShowStatusLineError(ctx, "Reload failed: can't apply config");
+        return -1;
+      }
+    } else {
+      UI_ShowStatusLineError(ctx, "Reload failed: can't read config");
+      return -1;
     }
   }
 
-  if (ctx->core_init_ops.load_theme != NULL)
-    ctx->core_init_ops.load_theme(ctx);
+  if (ctx->core_init_ops.load_theme != NULL &&
+      ctx->core_init_ops.load_theme(ctx) != 0) {
+    UI_ShowStatusLineError(ctx, "Reload failed: can't load theme");
+    return -1;
+  }
   if (ctx->core_init_ops.reinit_color_pairs != NULL)
     ctx->core_init_ops.reinit_color_pairs(ctx);
+  return 0;
 }
 
 static void EditConfigProfile(ViewContext *ctx, DirEntry *dir_entry,

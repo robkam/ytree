@@ -31,3 +31,13 @@ def test_f10_surface_uses_required_command_strip_and_enter_default():
     assert 'case \'C\':' in source
     assert 'case \'T\':' in source
     assert 'case \'R\':' in source
+
+
+def test_reload_failures_use_status_line_without_success_message():
+    source = _read("src/ui/ui_edit_config.c")
+
+    assert "UI_ShowStatusLineError" in source
+    assert "Reload failed: can't read config" in source
+    assert "Reload failed: can't load theme" in source
+    assert "Reloaded" not in source
+    assert "reload successful" not in source.lower()
