@@ -157,6 +157,24 @@ def test_spec_documents_user_visible_theme_contract():
     assert "Reload is available only inside this surface" in spec_source
 
 
+def test_manpage_documents_user_visible_theme_contract():
+    man_source = _read_source("etc/ytnova.1.md")
+    usage_source = _read_source("docs/USAGE.md")
+
+    for source in (man_source, usage_source):
+        assert "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
+        assert "~/.config/ytnova/ytnova.conf" in source
+        assert "~/.config/ytnova/themes.conf" in source
+        assert "~/.ytnova.themes" in source
+        assert "classic-blue" in source
+        assert "bash-black" in source
+        assert "`grey`/`gray`" in source
+        assert "+white on blue" in source
+        assert "archives = red: tar,tgz,zip" in source
+        assert "first matching extension or special selector wins" in source
+        assert "bright black" not in source.lower()
+
+
 def test_architecture_documents_theme_boundaries():
     arch_source = _read_source("docs/ARCHITECTURE.md")
 

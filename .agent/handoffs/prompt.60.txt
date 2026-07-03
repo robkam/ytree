@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the public theme contract documentation subunit.
+- This checkpoint is committed with the manpage theme contract documentation sync subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -88,9 +88,13 @@ Completed local subunits toward Task 60:
 - Public theme contract documentation
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - SPEC now documents user-visible theme files, discovery paths, semantic roles, color syntax, file-type palette rules, and F10 reload behavior; ARCHITECTURE records theme/config and file-palette boundaries.
+- Manpage theme contract documentation sync
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - `etc/ytnova.1.md` and generated `docs/USAGE.md` now describe the F10 config/themes/reload surface, preferred and legacy config/theme paths, semantic theme roles, color syntax, and compact file-type palette behavior.
 
 Focused validation for latest local subunit:
-- `python3 -m pytest tests/test_color_config.py` -> 8 passed.
+- `make docs` -> regenerated `docs/USAGE.md` from `etc/ytnova.1.md`.
+- `python3 -m pytest tests/test_color_config.py` -> 9 passed.
 - `git diff --check` -> exit 0.
 
 Local notes:
