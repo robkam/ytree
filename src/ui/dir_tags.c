@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_visibility.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_ui.h"
 
 void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
@@ -22,13 +23,15 @@ void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
     if ((fe_ptr->matching) && (fe_ptr->tagged != value)) {
       fe_ptr->tagged = value;
       if (value) {
-        dir_entry->tagged_files++;
-        dir_entry->tagged_bytes += fe_ptr->stat_struct.st_size;
+        (void)AppStateCommitDirEntryTaggedPayload(
+            dir_entry, dir_entry->tagged_files + 1,
+            dir_entry->tagged_bytes + fe_ptr->stat_struct.st_size);
         s->disk_tagged_files++;
         s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
       } else {
-        dir_entry->tagged_files--;
-        dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
+        (void)AppStateCommitDirEntryTaggedPayload(
+            dir_entry, dir_entry->tagged_files - 1,
+            dir_entry->tagged_bytes - fe_ptr->stat_struct.st_size);
         s->disk_tagged_files--;
         s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
       }
@@ -58,14 +61,16 @@ void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
       if ((fe_ptr->matching) && (fe_ptr->tagged != value)) {
         if (value) {
           fe_ptr->tagged = value;
-          dir_entry->tagged_files++;
-          dir_entry->tagged_bytes += fe_ptr->stat_struct.st_size;
+          (void)AppStateCommitDirEntryTaggedPayload(
+              dir_entry, dir_entry->tagged_files + 1,
+              dir_entry->tagged_bytes + fe_ptr->stat_struct.st_size);
           s->disk_tagged_files++;
           s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
         } else {
           fe_ptr->tagged = value;
-          dir_entry->tagged_files--;
-          dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
+          (void)AppStateCommitDirEntryTaggedPayload(
+              dir_entry, dir_entry->tagged_files - 1,
+              dir_entry->tagged_bytes - fe_ptr->stat_struct.st_size);
           s->disk_tagged_files--;
           s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
         }
@@ -95,13 +100,15 @@ static void HandleInvertDirTags(ViewContext *ctx, DirEntry *dir_entry,
 
     fe_ptr->tagged = !fe_ptr->tagged;
     if (fe_ptr->tagged) {
-      dir_entry->tagged_files++;
-      dir_entry->tagged_bytes += fe_ptr->stat_struct.st_size;
+      (void)AppStateCommitDirEntryTaggedPayload(
+          dir_entry, dir_entry->tagged_files + 1,
+          dir_entry->tagged_bytes + fe_ptr->stat_struct.st_size);
       s->disk_tagged_files++;
       s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
     } else {
-      dir_entry->tagged_files--;
-      dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
+      (void)AppStateCommitDirEntryTaggedPayload(
+          dir_entry, dir_entry->tagged_files - 1,
+          dir_entry->tagged_bytes - fe_ptr->stat_struct.st_size);
       s->disk_tagged_files--;
       s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
     }

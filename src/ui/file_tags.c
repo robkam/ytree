@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_volume.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 
@@ -136,8 +137,9 @@ void FileTags_SilentTagWalkTaggedFiles(ViewContext *ctx,
       if (result != 0) {
         fe_ptr->tagged = FALSE;
         /* Update Stats */
-        fe_ptr->dir_entry->tagged_files--;
-        fe_ptr->dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
+        (void)AppStateCommitDirEntryTaggedPayload(
+            fe_ptr->dir_entry, fe_ptr->dir_entry->tagged_files - 1,
+            fe_ptr->dir_entry->tagged_bytes - fe_ptr->stat_struct.st_size);
         ctx->active->vol->vol_stats.disk_tagged_files--;
         ctx->active->vol->vol_stats.disk_tagged_bytes -=
             fe_ptr->stat_struct.st_size;
@@ -278,10 +280,14 @@ void FileTags_HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
       fe->tagged = !fe->tagged;
       if (fe->tagged) {
         s->disk_tagged_files++;
-        dir_entry->tagged_files++;
+        (void)AppStateCommitDirEntryTaggedPayload(
+            dir_entry, dir_entry->tagged_files + 1,
+            dir_entry->tagged_bytes);
       } else {
         s->disk_tagged_files--;
-        dir_entry->tagged_files--;
+        (void)AppStateCommitDirEntryTaggedPayload(
+            dir_entry, dir_entry->tagged_files - 1,
+            dir_entry->tagged_bytes);
       }
       PanelTags_RecordFileState(ctx->active, fe, fe->tagged);
     }
