@@ -135,6 +135,11 @@ extern void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
                                      BOOL tagged);
 
 /* profile.c */
+typedef struct _profile_runtime_snapshot ProfileRuntimeSnapshot;
+extern ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx);
+extern void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
+                                           ProfileRuntimeSnapshot *snapshot);
+extern void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot);
 extern void SetProfileValue(const ViewContext *ctx, char *name,
                             const char *value);
 extern char *GetProfileValue(const ViewContext *ctx, const char *name);

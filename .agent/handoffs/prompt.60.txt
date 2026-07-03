@@ -2,9 +2,9 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before committing this checkpoint: 4e6e995 fix(theme): retain palette after failed theme load
+- HEAD before committing this checkpoint: bada484 fix(theme): retain palette after failed theme load
 - Rebased onto latest origin/main with `git fetch origin && git rebase origin/main`; rebase completed without conflicts.
-- This checkpoint is amended into the failed-theme palette retention subunit; use `git log -1` for the exact containing commit.
+- This checkpoint is committed with the failed-reload profile retention subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -70,9 +70,13 @@ Completed local subunits toward Task 60:
   - `ReadThemeFile` stages theme file-type palette rules separately and restores the previous palette when a theme file does not contain the requested theme.
 - Local rebase onto current main
   - Completed without conflicts after `git fetch origin && git rebase origin/main`.
+- Failed-reload profile retention
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - F10 reload snapshots profile/menu/viewer state and legacy file palette rules before config/theme reload, then restores them when config read/apply or theme load fails.
 
-Focused validation after rebase:
-- `python3 -m pytest tests/test_color_parser_runtime.py tests/test_theme_ui_contract.py tests/test_color_config.py` -> 24 passed.
+Focused validation for latest local subunit:
+- `python3 -m pytest tests/test_color_parser_runtime.py::test_profile_runtime_snapshot_restores_values_and_palette` -> 1 passed.
+- `python3 -m pytest tests/test_color_parser_runtime.py tests/test_theme_ui_contract.py tests/test_color_config.py` -> 25 passed.
 - `git diff --check` -> exit 0.
 - `make` -> exit 0.
 
@@ -83,10 +87,10 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after amending this checkpoint into the failed-theme palette retention commit.
+- None intended after the failed-reload profile retention commit.
 
 Next recommended Task 60 subunit:
-- Continue reload retention audit for config/profile values, then continue acceptance-criteria coverage review.
+- Continue acceptance-criteria coverage review for remaining legacy color-key exposure and raw reverse-video paths.
 
 Known blockers or risks:
 - No active blocker.

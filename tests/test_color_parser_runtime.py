@@ -617,3 +617,133 @@ int main(int argc, char **argv) {
         check=True,
     )
     subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_profile_runtime_snapshot_restores_values_and_palette(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    original = tmp_path / "original.conf"
+    changed = tmp_path / "changed.conf"
+    driver = tmp_path / "profile_snapshot_driver.c"
+    binary = tmp_path / "profile_snapshot_driver"
+
+    original.write_text(
+        """
+[GLOBAL]
+THEME=classic-blue
+SMALLWINDOWSKIP=1
+
+[FILE_COLORS]
+archives = green: old
+""",
+        encoding="utf-8",
+    )
+    changed.write_text(
+        """
+[GLOBAL]
+THEME=missing-theme
+SMALLWINDOWSKIP=0
+
+[FILE_COLORS]
+archives = red: new
+""",
+        encoding="utf-8",
+    )
+    driver.write_text(
+        r'''
+#include "config.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void free_file_rules(FileColorRule *rule) {
+  while (rule != NULL) {
+    FileColorRule *next = rule->next;
+    free(rule->pattern);
+    free(rule);
+    rule = next;
+  }
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  ProfileRuntimeSnapshot *snapshot;
+  FileColorRule *rule;
+
+  if (argc != 3)
+    return 2;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadProfile(&ctx, argv[1]) != 0) {
+    fprintf(stderr, "original profile failed\n");
+    return 1;
+  }
+
+  snapshot = ProfileRuntimeSnapshot_Create(&ctx);
+  if (ReadProfile(&ctx, argv[2]) != 0) {
+    fprintf(stderr, "changed profile failed\n");
+    return 1;
+  }
+
+  if (strcmp(GetProfileValue(&ctx, "THEME"), "missing-theme") != 0) {
+    fprintf(stderr, "changed profile was not applied before restore\n");
+    return 1;
+  }
+
+  ProfileRuntimeSnapshot_Restore(&ctx, snapshot);
+  ProfileRuntimeSnapshot_Free(snapshot);
+
+  if (strcmp(GetProfileValue(&ctx, "THEME"), "classic-blue") != 0 ||
+      strcmp(GetProfileValue(&ctx, "SMALLWINDOWSKIP"), "1") != 0) {
+    fprintf(stderr, "profile values were not restored\n");
+    return 1;
+  }
+
+  rule = (FileColorRule *)ctx.file_color_rules_head;
+  if (rule == NULL || strcmp(rule->pattern, "*.old") != 0 ||
+      rule->fg != COLOR_GREEN || rule->bg != COLOR_BLACK ||
+      rule->next != NULL) {
+    fprintf(stderr, "file palette was not restored\n");
+    return 1;
+  }
+
+  free_file_rules((FileColorRule *)ctx.file_color_rules_head);
+  ctx.file_color_rules_head = NULL;
+  FreeProfileRuntimeData(&ctx);
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/profile.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run(
+        [str(binary), str(original), str(changed)], cwd=repo_root, check=True
+    )
