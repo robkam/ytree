@@ -837,7 +837,7 @@ void ReCreateWindows(ViewContext *ctx) {
     }
   }
   if (ctx->ctx_menu_window) {
-    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_MENU));
+    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_HELP));
 
     leaveok(ctx->ctx_menu_window, TRUE);
   }

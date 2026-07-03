@@ -182,7 +182,7 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
     return;
 
 #ifdef COLOR_SUPPORT
-  lo_color = CPAIR_MENU;
+  lo_color = CPAIR_HELP;
   hi_color = CPAIR_HIMENUS;
 #else
   lo_color = A_NORMAL;
@@ -222,7 +222,7 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
 
 static void PrintNavLine(WINDOW *win, int y, const char *str) {
 #ifdef COLOR_SUPPORT
-  wattrset(win, COLOR_PAIR(CPAIR_HIMENUS) | A_BOLD);
+  wattrset(win, COLOR_PAIR(CPAIR_HELP) | A_BOLD);
 #else
   wattrset(win, A_BOLD);
 #endif

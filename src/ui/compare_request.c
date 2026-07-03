@@ -159,7 +159,7 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
 
   UI_Dialog_Push(win, UI_TIER_MODAL);
   keypad(win, TRUE);
-  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
+  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_HELP));
   curs_set(0);
 
   while (1) {
@@ -172,7 +172,7 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
     for (i = 0; i < 3; i++) {
       mvwprintw(win, 2 + i, 2, "%.*s", width - 4, help_lines[i]);
     }
-    PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, CPAIR_DIALOG,
+    PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, CPAIR_HELP,
                      CPAIR_HIMENUS);
     wrefresh(win);
 

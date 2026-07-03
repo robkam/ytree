@@ -76,14 +76,14 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
     WAddStr(ctx->ctx_matches_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
-    WbkgdSet(ctx, ctx->ctx_matches_window, COLOR_PAIR(color));
+    wattrset(ctx->ctx_matches_window, COLOR_PAIR(color));
 #else
     if (color == CPAIR_HIHST)
       wattrset(ctx->ctx_matches_window, A_REVERSE);
 #endif /* COLOR_SUPPORT */
     WAddStr(ctx->ctx_matches_window, line_ptr);
 #ifdef COLOR_SUPPORT
-    WbkgdSet(ctx, ctx->ctx_matches_window, COLOR_PAIR(CPAIR_WINHST));
+    wattrset(ctx->ctx_matches_window, COLOR_PAIR(CPAIR_WINHST));
 #else
     if (color == CPAIR_HIHST)
       wattrset(ctx->ctx_matches_window, 0);

@@ -79,20 +79,7 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
     WAddStr(ctx->ctx_history_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
-    /*
-     * Align with F2 Visual Style:
-     * 1. Use CPAIR_HST as the base color (matches F2).
-     * 2. Use A_REVERSE for selection (matches F2).
-     * 3. Ignore CPAIR_HIHST to prevent color mismatch.
-     */
-    int display_attr = COLOR_PAIR(CPAIR_HST);
-
-    /* If passed color indicates selection, use Reverse Video */
-    if (color == CPAIR_HIHST) {
-      display_attr |= A_REVERSE;
-    }
-
-    wattrset(ctx->ctx_history_window, display_attr);
+    wattrset(ctx->ctx_history_window, COLOR_PAIR(color));
 
 #else
     if (color == CPAIR_HIHST)

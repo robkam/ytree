@@ -228,7 +228,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     UI_Dialog_Push(win, UI_TIER_MODAL);
 
     keypad(win, TRUE);
-    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));
     curs_set(0); /* Hide cursor */
 
     /* 3. Input Loop */
@@ -250,12 +250,17 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
             3 + j; /* Start listing from y=3, relative to visible line j */
 
         if (actual_idx == selected_index) {
-          wattron(win, A_REVERSE); /* Highlight selected item */
+#ifdef COLOR_SUPPORT
+          wattron(win, COLOR_PAIR(CPAIR_HIHST));
+#else
+          wattron(win, A_REVERSE);
+#endif
         } else if (actual_idx == current_volume_index) {
-          wattron(
-              win,
-              COLOR_PAIR(
-                  CPAIR_HIMENUS)); /* Highlight current volume differently */
+#ifdef COLOR_SUPPORT
+          wattron(win, COLOR_PAIR(CPAIR_HST) | A_BOLD);
+#else
+          wattron(win, A_BOLD);
+#endif
         }
 
         const char *path_to_display =
@@ -277,9 +282,17 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
         if (actual_idx == current_volume_index &&
             actual_idx != selected_index) {
-          wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
+#ifdef COLOR_SUPPORT
+          wattroff(win, COLOR_PAIR(CPAIR_HST) | A_BOLD);
+#else
+          wattroff(win, A_BOLD);
+#endif
         } else if (actual_idx == selected_index) {
+#ifdef COLOR_SUPPORT
+          wattroff(win, COLOR_PAIR(CPAIR_HIHST));
+#else
           wattroff(win, A_REVERSE);
+#endif
         }
       }
       wrefresh(win);

@@ -45,6 +45,7 @@ static const ThemeRoleShim role_shims[] = {
     {"keybind", {"HIMENUS_COLOR", NULL}},
     {"selection", {"HIDIR_COLOR", "HIFILE_COLOR", "HIHST_COLOR", NULL}},
     {"dialog", {"DIALOG_COLOR", NULL}},
+    {"help", {"HELP_COLOR", NULL}},
     {"picker", {"HST_COLOR", "WINHST_COLOR", NULL}},
     {"info", {"INFO_COLOR", NULL}},
     {"warning", {"WARN_COLOR", NULL}},

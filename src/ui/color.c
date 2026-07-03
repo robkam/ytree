@@ -23,6 +23,7 @@ UIColor ui_colors[] = {
     {"MENU_COLOR", CPAIR_MENU, 7, 0},
     {"DIALOG_COLOR", CPAIR_DIALOG, 7, 0},
     {"WINERR_COLOR", CPAIR_WINERR, 15, 1},
+    {"HELP_COLOR", CPAIR_HELP, 7, 0},
     {"HST_COLOR", CPAIR_HST, 7, 0},
     {"HIHST_COLOR", CPAIR_HIHST, 0, 3},
     {"WINHST_COLOR", CPAIR_WINHST, 7, 0},
