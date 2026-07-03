@@ -282,6 +282,9 @@ extern void HitReturnToContinue(void);
 extern int InputChoice(ViewContext *ctx, const char *msg, const char *term);
 extern int InputChoiceLiteral(ViewContext *ctx, const char *msg,
                               const char *term);
+extern int InputChoiceCommandStrip(ViewContext *ctx,
+                                   const UICommandStripPart *parts,
+                                   size_t part_count, const char *term);
 extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
                           const char *dst_path, int *mode_flags);
 

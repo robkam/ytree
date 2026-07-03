@@ -173,8 +173,17 @@ def test_theme_docs_capture_role_routing_invariants():
 
 def test_f10_surface_uses_required_command_strip_and_enter_default():
     source = _read("src/ui/ui_edit_config.c")
+    key_source = _read("src/ui/key_engine.c")
+    header_source = _read("include/ytnova_ui.h")
 
-    assert '"(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"' in source
+    assert (
+        _command_strip_text(source, "config_command_strip")
+        == "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"
+    )
+    assert "InputChoiceCommandStrip" in source
+    assert "InputChoiceCommandStrip" in key_source
+    assert "InputChoiceCommandStrip" in header_source
+    assert '"(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"' not in source
     assert 'case CR:' in source
     assert 'case LF:' in source
     assert 'case \'C\':' in source

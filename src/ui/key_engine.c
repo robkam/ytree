@@ -306,6 +306,45 @@ int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
   return (c);
 }
 
+int InputChoiceCommandStrip(ViewContext *ctx, const UICommandStripPart *parts,
+                            size_t part_count, const char *term) {
+  int c;
+
+  if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
+    return ERR;
+  if (!AppStateValidatedDispatchSurface("surface.modal-completion-event"))
+    return ERR;
+  if (!AppStateValidatedEvent("event.modal-completion"))
+    return ERR;
+
+  ClearHelp(ctx);
+
+  curs_set(1);
+  leaveok(ctx->ctx_border_window, FALSE);
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, 1, parts,
+                        part_count, CPAIR_MENU, CPAIR_HIMENUS);
+  wnoutrefresh(ctx->ctx_border_window);
+  doupdate();
+  do {
+    c = WGetch(ctx, ctx->ctx_border_window);
+    if (c == ESC)
+      break;
+    if (c >= 0)
+      if (islower(c))
+        c = toupper(c);
+  } while (c != -1 && !strchr(term, c));
+
+  mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  wnoutrefresh(ctx->ctx_border_window);
+  leaveok(ctx->ctx_border_window, TRUE);
+  curs_set(0);
+  doupdate();
+
+  return (c);
+}
+
 void HitReturnToContinue(void) {
 #if !defined(XCURSES)
   char *te;

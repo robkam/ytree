@@ -22,6 +22,17 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+static const UICommandStripPart config_command_strip[] = {
+    {UI_COMMAND_PUNCT, "("},     {UI_COMMAND_KEY, "C"},
+    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "onfig"},
+    {UI_COMMAND_PUNCT, "  ("},   {UI_COMMAND_KEY, "T"},
+    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "hemes"},
+    {UI_COMMAND_PUNCT, "  ("},   {UI_COMMAND_KEY, "R"},
+    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "eload"},
+    {UI_COMMAND_PUNCT, "  ("},   {UI_COMMAND_KEY, "Esc"},
+    {UI_COMMAND_PUNCT, ")/("},   {UI_COMMAND_KEY, "Q"},
+    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "uit"}};
+
 static int WriteAll(int fd, const char *buf, size_t len) {
   size_t written_total = 0;
 
@@ -318,8 +329,10 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   int term;
 
   ResolveProfilePath(profile_path, sizeof(profile_path));
-  term = InputChoice(ctx, "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit",
-                     "CTRQ\r\n\033");
+  term = InputChoiceCommandStrip(
+      ctx, config_command_strip,
+      sizeof(config_command_strip) / sizeof(config_command_strip[0]),
+      "CTRQ\r\n\033");
 
   switch (term) {
   case CR:
