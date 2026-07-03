@@ -10,6 +10,7 @@
 
 #include "ytnova_defs.h"
 
+BOOL AppStateCommitDirEntryFileList(DirEntry *dir_entry, FileEntry *file_list);
 BOOL AppStateCommitDirEntryTotalPayload(DirEntry *dir_entry,
                                         unsigned int total_files,
                                         long long total_bytes);

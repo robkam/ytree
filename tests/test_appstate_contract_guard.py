@@ -9275,6 +9275,39 @@ def test_tree_read_payload_commits_route_through_appstate_helpers() -> None:
     assert read_body.count("AppStateCommitDirEntryTotalPayload(") >= 1
 
 
+def test_tree_read_file_list_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    tree_read = Path("src/fs/tree_read.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryFileList(" in header
+    assert 'include "ytnova_appstate_volume.h"' in tree_read
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryFileList(")
+    helper_end = helper.index(
+        "\nBOOL AppStateCommitDirEntryTotalPayload(", helper_start
+    )
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.payload_cache")'
+    assignment = "dir_entry->file = file_list;"
+
+    assert validation in helper_body
+    assert assignment in helper_body
+    assert helper_body.index(validation) < helper_body.index(assignment)
+
+    read_start = tree_read.index("int ReadTree(")
+    read_body = tree_read[
+        read_start : tree_read.index("\nstatic BOOL", read_start)
+    ]
+    rescan_start = tree_read.index("int RescanDir(")
+    rescan_body = tree_read[rescan_start:]
+    direct_file_list_write = re.compile(r"\bdir_entry->file\s*=(?!=)")
+
+    assert not direct_file_list_write.search(read_body)
+    assert not direct_file_list_write.search(rescan_body)
+    assert tree_read.count("AppStateCommitDirEntryFileList(") >= 5
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
