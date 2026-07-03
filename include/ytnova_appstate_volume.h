@@ -16,6 +16,8 @@ BOOL AppStateCommitDirEntryTotalPayload(DirEntry *dir_entry,
 BOOL AppStateCommitDirEntryMatchingPayload(DirEntry *dir_entry,
                                            unsigned int matching_files,
                                            long long matching_bytes);
+BOOL AppStateCommitDirEntryAccessDenied(DirEntry *dir_entry,
+                                        BOOL access_denied);
 BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry);
 BOOL AppStateCommitDirEntryLogFlag(DirEntry *dir_entry, BOOL log_flag);
 BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
