@@ -26,6 +26,16 @@ BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry) {
   return TRUE;
 }
 
+BOOL AppStateCommitDirEntryLogFlag(DirEntry *dir_entry, BOOL log_flag) {
+  if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->log_flag = log_flag ? TRUE : FALSE;
+  return TRUE;
+}
+
 BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
                                        BOOL unlogged_flag) {
   if (!AppStateValidatedOwnerField("volume.logged_state"))

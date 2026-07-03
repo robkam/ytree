@@ -11,6 +11,7 @@
 #include "ytnova_defs.h"
 
 BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry);
+BOOL AppStateCommitDirEntryLogFlag(DirEntry *dir_entry, BOOL log_flag);
 BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
                                        BOOL unlogged_flag);
 BOOL AppStateCommitVolumeGeneration(struct Volume *volume);

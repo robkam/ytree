@@ -14,6 +14,7 @@
 #include "ytnova_appstate_panel.h"
 #include "ytnova_appstate_session.h"
 #include "ytnova_appstate_visibility.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_appstate_window.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -1083,7 +1084,8 @@ BOOL handle_file_window_misc_dispatch_action(
     if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
       (void)GetFileNamePath(fe_ptr, new_log_path);
       if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
-        dir_entry->log_flag = TRUE;
+        if (!AppStateCommitDirEntryLogFlag(dir_entry, TRUE))
+          return FALSE;
         if (LogDisk(ctx, ctx->active, new_log_path) == 0) {
           dir_entry = GetPanelDirEntry(ctx->active);
           if (!dir_entry) {
