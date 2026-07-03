@@ -9176,6 +9176,37 @@ def test_directory_log_flag_commits_route_through_appstate_helper() -> None:
     assert ctrl_file_ops.count("AppStateCommitDirEntryLogFlag(") >= 1
 
 
+def test_directory_matching_payload_commits_route_through_appstate_helper() -> None:
+    header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
+    helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    filter_core = Path("src/fs/filter_core.c").read_text(encoding="utf-8")
+
+    assert "BOOL AppStateCommitDirEntryMatchingPayload(" in header
+    assert 'include "ytnova_appstate_volume.h"' in filter_core
+
+    helper_start = helper.index("BOOL AppStateCommitDirEntryMatchingPayload(")
+    helper_end = helper.index("\nBOOL AppStateResetDirEntryPayloadCache(", helper_start)
+    helper_body = helper[helper_start:helper_end]
+    validation = 'AppStateValidatedOwnerField("volume.payload_cache")'
+    assignments = [
+        "dir_entry->matching_files = matching_files;",
+        "dir_entry->matching_bytes = matching_bytes;",
+    ]
+
+    assert validation in helper_body
+    for assignment in assignments:
+        assert assignment in helper_body
+        assert helper_body.index(validation) < helper_body.index(assignment)
+
+    apply_start = filter_core.index("void FsApplyFilter(")
+    apply_body = filter_core[apply_start:]
+    direct_matching_write = re.compile(
+        r"->(?:matching_files|matching_bytes)\s*(?:[+*/%-]?=|\+\+|--)"
+    )
+    assert not direct_matching_write.search(apply_body)
+    assert "AppStateCommitDirEntryMatchingPayload(" in apply_body
+
+
 def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
     dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")

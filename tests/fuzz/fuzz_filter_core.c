@@ -6,6 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+BOOL AppStateCommitDirEntryMatchingPayload(DirEntry *dir_entry,
+                                           unsigned int matching_files,
+                                           long long matching_bytes) {
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->matching_files = matching_files;
+  dir_entry->matching_bytes = matching_bytes;
+  return TRUE;
+}
+
 static FileEntry *AllocFileEntry(const char *name) {
   size_t name_len = strlen(name);
   FileEntry *file_entry =
