@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_volume.h"
 #include "ytnova_fs.h"
 #include <errno.h>
 #include <stdio.h>
@@ -369,9 +370,9 @@ void RestoreTreeState(ViewContext *ctx, DirEntry *root, PathList **expanded,
       if (GetFileEntry(de, file_name, &fe) == 0 && fe) {
         if (!fe->tagged) {
           fe->tagged = TRUE;
-          /* Update stats */
-          de->tagged_files++;
-          de->tagged_bytes += fe->stat_struct.st_size;
+          (void)AppStateCommitDirEntryTaggedPayload(
+              de, de->tagged_files + 1,
+              de->tagged_bytes + fe->stat_struct.st_size);
           s->disk_tagged_files++;
           s->disk_tagged_bytes += fe->stat_struct.st_size;
         }

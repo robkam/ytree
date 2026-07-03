@@ -4,27 +4,26 @@ Date: 2026-07-03
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-tag-payload-helper
-Active PR: https://github.com/robkam/ytreenova/pull/350 (draft)
+Current branch: appstate-filter-tag-payload-helper
+Active PR: https://github.com/robkam/ytreenova/pull/351 (draft)
 Supersession state: maintainer explicitly resumed autonomous AppState work; no active stop condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/349 merged at `1237fb7` after green checks.
-- Local `main`, `origin/main`, and this branch start at `1237fb7`.
-- The remote branch `appstate-ui-tag-payload-helper` was pruned locally. Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
+- PR https://github.com/robkam/ytreenova/pull/350 merged at `6f7fe6b` after green checks.
+- Local `main`, `origin/main`, and this branch start at `6f7fe6b`.
+- Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
 
 Current AppState batch:
-- Routes remaining UI file tag payload writers in `src/ui/ctrl_file_ops.c` and `src/ui/dir_compare.c` through `AppStateCommitDirEntryTaggedPayload`.
-- Keeps existing file tag, compare tagging, disk-stat, and panel tag-state behavior unchanged while removing direct `DirEntry` tagged payload writes from the migrated file-tag paths.
-- Adds guard coverage in `tests/test_appstate_contract_guard.py` to prevent direct tagged payload writes in the migrated file tag helpers.
+- Routes restored tree tagged payload totals in `src/fs/tree_utils.c` through `AppStateCommitDirEntryTaggedPayload`.
+- Keeps existing tag restoration and disk-stat accumulation behavior unchanged while removing direct `DirEntry` tagged payload writes from `RestoreTreeState`.
+- Adds guard coverage in `tests/test_appstate_contract_guard.py` to prevent direct tagged payload writes in the tree restore path.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_tag_payload_commits_route_through_appstate_helper` failed because `src/ui/dir_compare.c` did not include `ytnova_appstate_volume.h` and the file-tag writers did not route tagged payload commits through `AppStateCommitDirEntryTaggedPayload`.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k file_tag_payload_commits_route_through_appstate_helper`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py tests/test_panel_isolation.py tests/test_compare_actions.py -q -k 'file_tag_payload_commits_route_through_appstate_helper or ui_tag_payload_commits_route_through_appstate_helper or file_tags_are_panel_local or compare_tag'`
+- Red proof before implementation: `source /home/rob/ytreenova/.venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k tree_restore_tagged_payload_commits_route_through_appstate_helper` failed in a temporary clean worktree because `src/fs/tree_utils.c` did not include `ytnova_appstate_volume.h` or call `AppStateCommitDirEntryTaggedPayload`.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k tree_restore_tagged_payload_commits_route_through_appstate_helper`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make clean && make` passed with existing warnings.
 - `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/350. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/351. If checks pass, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
