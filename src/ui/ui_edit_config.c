@@ -139,22 +139,82 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   return 0;
 }
 
-void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
-  char profile_path[PATH_LENGTH + 1];
+static void ResolveProfilePath(char *profile_path, size_t profile_path_size) {
   const char *home;
-  int profile_exists;
+
+  if (profile_path == NULL || profile_path_size == 0)
+    return;
 
   profile_path[0] = '\0';
   home = getenv("HOME");
   if (home && *home) {
     int written;
-    written = snprintf(profile_path, sizeof(profile_path), "%s/%s", home,
+    written = snprintf(profile_path, profile_path_size, "%s/%s", home,
                        PROFILE_FILENAME);
-    if (written < 0 || written >= (int)sizeof(profile_path))
+    if (written < 0 || written >= (int)profile_path_size)
       profile_path[0] = '\0';
   }
   if (!profile_path[0])
-    (void)snprintf(profile_path, sizeof(profile_path), "%s", PROFILE_FILENAME);
+    (void)snprintf(profile_path, profile_path_size, "%s", PROFILE_FILENAME);
+}
+
+static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
+  const char *home;
+
+  if (themes_path == NULL || themes_path_size == 0)
+    return -1;
+
+  themes_path[0] = '\0';
+  home = getenv("HOME");
+  if (home && *home) {
+    char config_dir[PATH_LENGTH + 1];
+    char ytnova_dir[PATH_LENGTH + 1];
+    int written;
+
+    written = snprintf(config_dir, sizeof(config_dir), "%s/.config", home);
+    if (written < 0 || written >= (int)sizeof(config_dir))
+      return -1;
+    if (mkdir(config_dir, S_IRWXU) != 0 && errno != EEXIST)
+      return -1;
+
+    written = snprintf(ytnova_dir, sizeof(ytnova_dir), "%s/ytnova", config_dir);
+    if (written < 0 || written >= (int)sizeof(ytnova_dir))
+      return -1;
+    if (mkdir(ytnova_dir, S_IRWXU) != 0 && errno != EEXIST)
+      return -1;
+
+    written =
+        snprintf(themes_path, themes_path_size, "%s/themes.conf", ytnova_dir);
+    if (written < 0 || written >= (int)themes_path_size)
+      themes_path[0] = '\0';
+  }
+
+  if (!themes_path[0])
+    (void)snprintf(themes_path, themes_path_size, "%s", ".ytnova.themes");
+
+  return themes_path[0] ? 0 : -1;
+}
+
+static void ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
+  if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
+      access(profile_path, F_OK) == 0) {
+    if (ctx->core_init_ops.read_profile(ctx, profile_path) == 0) {
+      if (!AppStateCommitSmallWindowBypass(
+              ctx,
+              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
+        return;
+    }
+  }
+
+  if (ctx->core_init_ops.load_theme != NULL)
+    ctx->core_init_ops.load_theme(ctx);
+  if (ctx->core_init_ops.reinit_color_pairs != NULL)
+    ctx->core_init_ops.reinit_color_pairs(ctx);
+}
+
+static void EditConfigProfile(ViewContext *ctx, DirEntry *dir_entry,
+                              char *profile_path) {
+  int profile_exists;
 
   profile_exists = (access(profile_path, F_OK) == 0);
   if (profile_exists) {
@@ -169,18 +229,48 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
     }
   }
 
-  if (ctx->core_init_ops.read_profile != NULL &&
-      access(profile_path, F_OK) == 0) {
-    if (ctx->core_init_ops.read_profile(ctx, profile_path) == 0) {
-      if (!AppStateCommitSmallWindowBypass(
-              ctx,
-              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
-        return;
-      if (ctx->core_init_ops.load_theme != NULL)
-        ctx->core_init_ops.load_theme(ctx);
-      if (ctx->core_init_ops.reinit_color_pairs != NULL) {
-        ctx->core_init_ops.reinit_color_pairs(ctx);
-      }
-    }
+  ReloadConfigAndTheme(ctx, profile_path);
+}
+
+static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry) {
+  char themes_path[PATH_LENGTH + 1];
+
+  if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
+    MESSAGE(ctx, "Can't resolve themes file path");
+    return;
+  }
+
+  if (Edit(ctx, dir_entry, themes_path) != 0) {
+    MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
+    return;
+  }
+
+  ReloadConfigAndTheme(ctx, NULL);
+}
+
+void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
+  char profile_path[PATH_LENGTH + 1];
+  int term;
+
+  ResolveProfilePath(profile_path, sizeof(profile_path));
+  term = InputChoice(ctx, "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit",
+                     "CTRQ\r\n\033");
+
+  switch (term) {
+  case CR:
+  case LF:
+  case 'C':
+    EditConfigProfile(ctx, dir_entry, profile_path);
+    break;
+  case 'T':
+    EditThemesFile(ctx, dir_entry);
+    break;
+  case 'R':
+    ReloadConfigAndTheme(ctx, profile_path);
+    break;
+  case 'Q':
+  case ESC:
+  default:
+    break;
   }
 }

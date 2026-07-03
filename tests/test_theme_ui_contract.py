@@ -20,3 +20,14 @@ def test_volume_menu_uses_required_theme_command_strip():
         in source
     )
     assert "Use UP/DOWN to select" not in source
+
+
+def test_f10_surface_uses_required_command_strip_and_enter_default():
+    source = _read("src/ui/ui_edit_config.c")
+
+    assert '"(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"' in source
+    assert 'case CR:' in source
+    assert 'case LF:' in source
+    assert 'case \'C\':' in source
+    assert 'case \'T\':' in source
+    assert 'case \'R\':' in source
