@@ -102,7 +102,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
   int result = -1; /* Assume cancel by default */
   char title[] = "Select Volume";
   char prompt[] =
-      "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete.";
+      "Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete";
   BOOL changes_made = FALSE;
   BOOL restart_menu = FALSE;
 

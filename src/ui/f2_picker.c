@@ -87,7 +87,7 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   do {
     /* Footer Drawing */
     wattron(ctx->ctx_f2_window, A_BOLD);
-    mvwaddstr(ctx->ctx_f2_window, win_height - 1, 2, "[ (L)og (< >) Cycle ]");
+    mvwaddstr(ctx->ctx_f2_window, win_height - 1, 2, "(L)og  (<)/(>) Cycle");
     wattroff(ctx->ctx_f2_window, A_BOLD);
 
     RefreshWindow(ctx->ctx_f2_window);
