@@ -248,7 +248,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         if (ctx->hook_parse_color) {
           ctx->hook_parse_color(value, &fg, &bg);
         }
-        if (fg != -1 && bg != -1 && ctx->hook_add_file_color_rule) {
+        if (fg != -1 && ctx->hook_add_file_color_rule) {
           ctx->hook_add_file_color_rule(ctx, name, fg, bg);
         }
       }

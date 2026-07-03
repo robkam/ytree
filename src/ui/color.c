@@ -66,12 +66,64 @@ static int NormalizeColorIndex(int color, int color_limit) {
   return color % color_limit;
 }
 
-void ParseColorString(const char *color_str, int *fg, int *bg) {
-  char *dup, *token, *saveptr;
+static BOOL ParseColorToken(const char *token, int color_limit, int *color) {
+  const char *name;
+  BOOL bright = FALSE;
   int i;
-  int *target;
   char *endptr;
   long val;
+
+  if (!token || !*token || !color)
+    return FALSE;
+
+  name = token;
+  if (*name == '+') {
+    bright = TRUE;
+    ++name;
+  }
+  if (!*name)
+    return FALSE;
+
+  if (strcasecmp(name, "grey") == 0 || strcasecmp(name, "gray") == 0) {
+    *color = bright ? COLOR_WHITE : NormalizeColorIndex(8, color_limit);
+    return TRUE;
+  }
+
+  for (i = 0; color_map[i].name; i++) {
+    if (strcasecmp(name, color_map[i].name) == 0) {
+      *color = NormalizeColorIndex(
+          bright ? color_map[i].value + 8 : color_map[i].value, color_limit);
+      return TRUE;
+    }
+  }
+
+  if (!bright) {
+    errno = 0;
+    val = strtol(name, &endptr, 10);
+    if (errno == 0 && endptr != name && *endptr == '\0' && val >= -1 &&
+        val <= 255) {
+      *color = NormalizeColorIndex((int)val, color_limit);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+static int UIColorBackground(int pair_id) {
+  int i;
+
+  for (i = 0; i < NUM_UI_COLORS; i++) {
+    if (ui_colors[i].id == pair_id)
+      return ui_colors[i].bg;
+  }
+
+  return COLOR_BLACK;
+}
+
+void ParseColorString(const char *color_str, int *fg, int *bg) {
+  char *dup, *token, *saveptr;
+  int *target;
   int color_limit;
 
   if (!color_str || !fg || !bg)
@@ -80,7 +132,7 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
   dup = xstrdup(color_str);
 
   target = fg;
-  token = strtok_r(dup, " ,", &saveptr);
+  token = strtok_r(dup, " ,\t\r\n", &saveptr);
 
   /* Determine maximum valid color index.
      Use global COLORS if initialized, otherwise assume 256 for config parsing
@@ -88,33 +140,16 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
   color_limit = (COLORS > 0) ? COLORS : 256;
 
   while (token) {
-    BOOL found = FALSE;
+    int parsed;
 
-    /* 1. Try named colors */
-    for (i = 0; color_map[i].name; i++) {
-      if (strcasecmp(token, color_map[i].name) == 0) {
-        *target = color_map[i].value;
-        found = TRUE;
-        break;
-      }
+    if (strcasecmp(token, "on") == 0) {
+      target = bg;
+    } else if (ParseColorToken(token, color_limit, &parsed)) {
+      *target = parsed;
+      target = bg;
     }
 
-    /* 2. Try numeric colors (0-255) */
-    if (!found) {
-      errno = 0;
-      val = strtol(token, &endptr, 10);
-
-      /* Check if valid number: no error, parsed something, and full string
-       * consumed */
-      if (errno == 0 && endptr != token && *endptr == '\0') {
-        if (val >= -1 && val <= 255) {
-          *target = NormalizeColorIndex((int)val, color_limit);
-        }
-      }
-    }
-
-    target = bg; /* Second token is the background color */
-    token = strtok_r(NULL, " ,", &saveptr);
+    token = strtok_r(NULL, " ,\t\r\n", &saveptr);
   }
   free(dup);
 }
@@ -132,12 +167,23 @@ void UpdateUIColor(const char *name, int fg, int bg) {
 
 void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg, int bg) {
   FileColorRule *new_rule = xmalloc(sizeof(FileColorRule));
+  FileColorRule *tail;
+
   new_rule->pattern = xstrdup(pattern);
   new_rule->fg = fg;
-  new_rule->bg = bg;
+  new_rule->bg = (bg == -1) ? UIColorBackground(CPAIR_FILE) : bg;
   new_rule->pair_id = 0;
-  new_rule->next = ctx->file_color_rules_head;
-  ctx->file_color_rules_head = new_rule;
+  new_rule->next = NULL;
+
+  if (ctx->file_color_rules_head == NULL) {
+    ctx->file_color_rules_head = new_rule;
+    return;
+  }
+
+  tail = (FileColorRule *)ctx->file_color_rules_head;
+  while (tail->next != NULL)
+    tail = tail->next;
+  tail->next = new_rule;
 }
 
 void ReinitColorPairs(ViewContext *ctx) {
