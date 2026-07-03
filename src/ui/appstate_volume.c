@@ -8,6 +8,19 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_volume.h"
 
+BOOL AppStateCommitDirEntryTotalPayload(DirEntry *dir_entry,
+                                        unsigned int total_files,
+                                        long long total_bytes) {
+  if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->total_files = total_files;
+  dir_entry->total_bytes = total_bytes;
+  return TRUE;
+}
+
 BOOL AppStateCommitDirEntryMatchingPayload(DirEntry *dir_entry,
                                            unsigned int matching_files,
                                            long long matching_bytes) {
