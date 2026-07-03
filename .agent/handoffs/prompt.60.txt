@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the header path dynamic role subunit.
+- This checkpoint is committed with the clock dynamic role subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -97,11 +97,14 @@ Completed local subunits toward Task 60:
 - Header path dynamic role rendering
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - Header path rendering now sets and clears the path subwindow with the dynamic filename/text role so paths do not inherit border chrome coloring.
+- Clock dynamic role rendering
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - Clock/timestamp rendering now uses the dynamic text role and removes the malformed color-pair/background expression from time-window initialization.
 
 Focused validation for latest local subunit:
-- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k header_path` -> failed before implementation.
-- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k header_path` -> 1 passed.
-- `python3 -m pytest tests/test_theme_ui_contract.py` -> 15 passed.
+- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k clock` -> failed before implementation.
+- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k clock` -> 1 passed.
+- `python3 -m pytest tests/test_theme_ui_contract.py` -> 16 passed.
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
 

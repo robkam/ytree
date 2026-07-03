@@ -126,6 +126,20 @@ def test_header_path_uses_dynamic_text_role():
     )
 
 
+def test_clock_uses_dynamic_text_role():
+    init_source = _read("src/core/init.c")
+    clock_source = _read("src/core/clock.c")
+
+    assert (
+        "ctx->ctx_time_window, COLOR_PAIR(CPAIR_FILE)" in init_source
+    )
+    assert "COLOR_PAIR(CPAIR_WINDIR | A_BOLD)" not in init_source
+    assert "wattrset(ctx->ctx_time_window, COLOR_PAIR(CPAIR_FILE));" in (
+        clock_source
+    )
+    assert "COLOR_PAIR(CPAIR_MENU)" not in clock_source
+
+
 def test_stats_rendering_splits_static_dynamic_and_border_roles():
     stats_source = _read("src/ui/stats.c")
     theme_source = _read("src/cmd/theme.c")
