@@ -114,6 +114,18 @@ def test_disabled_role_projects_to_runtime_pair():
     assert '{"disabled", {"DISABLED_COLOR", NULL}},' in theme_source
 
 
+def test_header_path_uses_dynamic_text_role():
+    display_source = _read("src/ui/display.c")
+
+    assert "DisplayHeaderPath" in display_source
+    assert "WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));" in (
+        display_source
+    )
+    assert "wattrset(ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));" in (
+        display_source
+    )
+
+
 def test_stats_rendering_splits_static_dynamic_and_border_roles():
     stats_source = _read("src/ui/stats.c")
     theme_source = _read("src/cmd/theme.c")

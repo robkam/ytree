@@ -284,6 +284,8 @@ void DisplayHeaderPath(ViewContext *ctx, const char *path) {
   DEBUG_LOG("DisplayHeaderPath: path='%s' cut='%s' avail=%d", path,
             display_buffer, available_width);
 
+  WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));
+  wattrset(ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));
   werase(ctx->ctx_path_window);
   mvwaddstr(ctx->ctx_path_window, 0, 0, display_buffer);
   wnoutrefresh(ctx->ctx_path_window);
