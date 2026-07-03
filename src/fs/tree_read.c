@@ -157,7 +157,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   /* Silently skip unreadable or missing directories */
   if ((dir = opendir(path)) == NULL) {
-    dir_entry->access_denied = TRUE;
+    if (!AppStateCommitDirEntryAccessDenied(dir_entry, TRUE))
+      return (-1);
     return 0;
   }
 
@@ -335,8 +336,12 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       fes_ptr->next = fen_ptr;
       fen_ptr->prev = fes_ptr;
       fes_ptr = fen_ptr;
-      dir_entry->total_files++;
-      dir_entry->total_bytes += stat_struct.st_size;
+      if (!AppStateCommitDirEntryTotalPayload(
+              dir_entry, dir_entry->total_files + 1,
+              dir_entry->total_bytes + stat_struct.st_size)) {
+        (void)closedir(dir);
+        return -1;
+      }
       s->disk_total_files++;
       s->disk_total_bytes += stat_struct.st_size;
     }

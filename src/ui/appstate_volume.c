@@ -34,6 +34,17 @@ BOOL AppStateCommitDirEntryMatchingPayload(DirEntry *dir_entry,
   return TRUE;
 }
 
+BOOL AppStateCommitDirEntryAccessDenied(DirEntry *dir_entry,
+                                        BOOL access_denied) {
+  if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!dir_entry)
+    return FALSE;
+
+  dir_entry->access_denied = access_denied ? TRUE : FALSE;
+  return TRUE;
+}
+
 BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
     return FALSE;
