@@ -260,3 +260,277 @@ int main(int argc, char **argv) {
         check=True,
     )
     subprocess.run([str(binary), str(profile)], cwd=repo_root, check=True)
+
+
+def test_theme_file_loader_maps_roles_and_palette_rules(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_loader_driver.c"
+    binary = tmp_path / "theme_loader_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types sample]
+archives = red: tar,zip
+scripts = +cyan on black: sh
+links = cyan: LINK
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+  char name[32];
+  int fg;
+  int bg;
+} CapturedColor;
+
+typedef struct {
+  char pattern[32];
+  int fg;
+  int bg;
+} CapturedRule;
+
+static CapturedColor colors[32];
+static int color_count;
+static CapturedRule rules[8];
+static int rule_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void capture_parse_color(const char *color_str, int *fg, int *bg) {
+  ParseColorString(color_str, fg, bg);
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  if (color_count >= 32)
+    return;
+  snprintf(colors[color_count].name, sizeof(colors[color_count].name), "%s",
+           name);
+  colors[color_count].fg = fg;
+  colors[color_count].bg = bg;
+  ++color_count;
+}
+
+static void capture_file_color_rule(ViewContext *ctx, const char *pattern,
+                                    int fg, int bg) {
+  (void)ctx;
+  if (rule_count >= 8)
+    return;
+  snprintf(rules[rule_count].pattern, sizeof(rules[rule_count].pattern), "%s",
+           pattern);
+  rules[rule_count].fg = fg;
+  rules[rule_count].bg = bg;
+  ++rule_count;
+}
+
+static int expect_color(const char *name, int fg, int bg) {
+  int i;
+
+  for (i = 0; i < color_count; ++i) {
+    if (strcmp(colors[i].name, name) == 0 && colors[i].fg == fg &&
+        colors[i].bg == bg)
+      return 0;
+  }
+
+  fprintf(stderr, "missing color %s %d,%d\n", name, fg, bg);
+  return 1;
+}
+
+static int expect_rule(int index, const char *pattern, int fg, int bg) {
+  if (strcmp(rules[index].pattern, pattern) != 0 || rules[index].fg != fg ||
+      rules[index].bg != bg) {
+    fprintf(stderr, "rule %d => %s %d,%d expected %s %d,%d\n", index,
+            rules[index].pattern, rules[index].fg, rules[index].bg, pattern,
+            fg, bg);
+    return 1;
+  }
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = capture_parse_color;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = capture_file_color_rule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+  if (expect_color("FILE_COLOR", 15, COLOR_BLUE) != 0 ||
+      expect_color("WINDIR_COLOR", COLOR_CYAN, COLOR_BLUE) != 0 ||
+      expect_color("HIFILE_COLOR", COLOR_BLACK, COLOR_WHITE) != 0 ||
+      expect_color("ERR_COLOR", 15, COLOR_RED) != 0)
+    return 1;
+
+  if (rule_count != 4) {
+    fprintf(stderr, "captured %d rules\n", rule_count);
+    return 1;
+  }
+
+  if (expect_rule(0, "*.tar", COLOR_RED, -1) != 0 ||
+      expect_rule(1, "*.zip", COLOR_RED, -1) != 0 ||
+      expect_rule(2, "*.sh", 14, COLOR_BLACK) != 0 ||
+      expect_rule(3, "LINK", COLOR_CYAN, -1) != 0)
+    return 1;
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_theme_palette_omitted_background_inherits_theme_filename_background(
+    tmp_path,
+):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_background_driver.c"
+    binary = tmp_path / "theme_background_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types sample]
+archives = red: zip
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  FileColorRule *rule;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+  rule = (FileColorRule *)ctx.file_color_rules_head;
+  if (rule == NULL || strcmp(rule->pattern, "*.zip") != 0 ||
+      rule->fg != COLOR_RED || rule->bg != COLOR_BLUE) {
+    fprintf(stderr, "file rule did not inherit theme filename background\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)

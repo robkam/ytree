@@ -144,6 +144,9 @@ extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
+extern int ReadThemeFile(ViewContext *ctx, const char *filename,
+                         const char *theme_name);
+extern int LoadConfiguredTheme(ViewContext *ctx);
 
 /* history.c */
 extern void ReadHistory(ViewContext *ctx, const char *filename);

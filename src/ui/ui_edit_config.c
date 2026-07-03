@@ -176,6 +176,8 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
               ctx,
               ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
         return;
+      if (ctx->core_init_ops.load_theme != NULL)
+        ctx->core_init_ops.load_theme(ctx);
       if (ctx->core_init_ops.reinit_color_pairs != NULL) {
         ctx->core_init_ops.reinit_color_pairs(ctx);
       }

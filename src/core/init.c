@@ -119,6 +119,7 @@ static void RegisterCoreInitOps(ViewContext *ctx) {
   memset(&ctx->core_init_ops, 0, sizeof(ctx->core_init_ops));
   CoreInitOps_RegisterCmdConfig(&ctx->core_init_ops);
   CoreInitOps_RegisterCmdProfile(&ctx->core_init_ops);
+  CoreInitOps_RegisterCmdTheme(&ctx->core_init_ops);
   CoreInitOps_RegisterUIRuntime(&ctx->core_init_ops);
 }
 
@@ -1031,6 +1032,10 @@ int Init(ViewContext *ctx, const char *configuration_file,
     }
   }
   DEBUG_LOG("Init: ReadProfile done");
+
+  if (ctx->core_init_ops.load_theme != NULL)
+    ctx->core_init_ops.load_theme(ctx);
+  DEBUG_LOG("Init: LoadTheme done");
 
   if (history_file != NULL) {
     DEBUG_LOG("Init: Reading history %s", history_file);

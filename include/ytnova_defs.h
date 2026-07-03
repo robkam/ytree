@@ -864,6 +864,7 @@ typedef struct {
   int (*read_group_entries)(void);
   int (*read_passwd_entries)(void);
   int (*read_profile)(ViewContext *ctx, const char *filename);
+  int (*load_theme)(ViewContext *ctx);
   void (*read_history)(ViewContext *ctx, const char *filename);
   char *(*get_profile_value)(const ViewContext *ctx, const char *name);
   BOOL (*has_user_action)(const ViewContext *ctx);
@@ -921,6 +922,7 @@ extern void UI_CoreQuitSuspendClock(ViewContext *ctx);
 extern void UI_CoreQuitShutdownTerminal(ViewContext *ctx);
 extern void CoreInitOps_RegisterCmdConfig(CoreInitOps *ops);
 extern void CoreInitOps_RegisterCmdProfile(CoreInitOps *ops);
+extern void CoreInitOps_RegisterCmdTheme(CoreInitOps *ops);
 extern void CoreInitOps_RegisterUIRuntime(CoreInitOps *ops);
 extern void CoreMainOps_Register(ViewContext *ctx);
 extern void CoreStorageOps_Register(ViewContext *ctx);
