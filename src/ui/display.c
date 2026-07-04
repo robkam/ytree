@@ -128,7 +128,7 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   werase(ctx->ctx_menu_window);
   for (i = 0; i < 2; i++) {
     PrintMenuOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i],
-                     CPAIR_HELP, CPAIR_HIMENUS);
+                     UI_ROLE_HELP, UI_ROLE_KEYBIND);
   }
   if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
     nav_line = (dir_entry->up_tree != NULL) ? dir_help_nav_archive_to_root
@@ -158,7 +158,7 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   werase(ctx->ctx_menu_window);
   for (i = 0; i < 2; i++) {
     PrintMenuOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i],
-                     CPAIR_HELP, CPAIR_HIMENUS);
+                     UI_ROLE_HELP, UI_ROLE_KEYBIND);
   }
   if (dir_entry && dir_entry->global_flag) {
     nav_line = dir_entry->global_all_volumes ? file_help_nav_global
@@ -184,8 +184,8 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
     return;
 
 #ifdef COLOR_SUPPORT
-  lo_color = CPAIR_HELP;
-  hi_color = CPAIR_HIMENUS;
+  lo_color = UI_ROLE_HELP;
+  hi_color = UI_ROLE_KEYBIND;
 #else
   lo_color = A_NORMAL;
   hi_color = A_BOLD;
@@ -221,7 +221,7 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
 
 static void PrintNavLine(WINDOW *win, int y, const char *str) {
 #ifdef COLOR_SUPPORT
-  wattrset(win, COLOR_PAIR(CPAIR_HELP));
+  wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
 #else
   wattrset(win, A_BOLD);
 #endif
@@ -238,7 +238,7 @@ void DisplayHistoryHelp(ViewContext *ctx) {
   werase(ctx->ctx_menu_window);
   PrintMenuOptions(ctx->ctx_menu_window, 0, 0,
                    (char *)"History   (P)in/unpin    (Enter) OK    (Esc) Cancel",
-                   CPAIR_HELP, CPAIR_HIMENUS);
+                   UI_ROLE_HELP, UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -299,7 +299,7 @@ void DisplayMenu(ViewContext *ctx) {
   werase(ctx->ctx_border_window);
 
   /* Draw Header Label */
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
   mvwaddstr(ctx->ctx_border_window, 0, 0, "Path: ");
   wattrset(ctx->ctx_border_window, A_NORMAL);
 

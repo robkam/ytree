@@ -97,14 +97,16 @@ def test_help_surfaces_use_help_role():
     compare_source = _read("src/ui/compare_request.c")
 
     assert "CPAIR_HELP" in defs_source
+    assert "UI_ROLE_HELP = CPAIR_HELP" in defs_source
+    assert "UI_ROLE_KEYBIND = CPAIR_HIMENUS" in defs_source
     assert '{"HELP_COLOR", CPAIR_HELP, 7, 0},' in color_source
     assert '{"help", {"HELP_COLOR", NULL}},' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(CPAIR_HELP)" in init_source
-    assert "lo_color = CPAIR_HELP;" in display_source
+    assert "lo_color = UI_ROLE_HELP;" in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0," in display_source
     assert "dir_help[ctx->view_mode][i]," in display_source
     assert "file_help[ctx->view_mode][i]," in display_source
-    assert "CPAIR_HELP, CPAIR_HIMENUS" in display_source
+    assert "UI_ROLE_HELP, UI_ROLE_KEYBIND" in display_source
     assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' in display_source
@@ -173,8 +175,10 @@ def test_disabled_role_projects_to_runtime_pair():
 
 
 def test_header_path_uses_dynamic_text_role():
+    defs_source = _read("include/ytnova_defs.h")
     display_source = _read("src/ui/display.c")
 
+    assert "UI_ROLE_STATIC_TEXT = CPAIR_MENU" in defs_source
     assert "DisplayHeaderPath" in display_source
     assert "WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));" in (
         display_source
@@ -183,6 +187,7 @@ def test_header_path_uses_dynamic_text_role():
         display_source
     )
     assert "COLOR_PAIR(CPAIR_MENU) | A_BOLD" not in display_source
+    assert "COLOR_PAIR(UI_ROLE_STATIC_TEXT)" in display_source
 
 
 def test_clock_uses_dynamic_text_role():

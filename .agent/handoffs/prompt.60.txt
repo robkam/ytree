@@ -2,16 +2,19 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress display-helper role styling commit: d39d40a fix(ui): let help roles control styling.
+- HEAD before the in-progress semantic role alias commit: 13e3f45 fix(ui): let display helper roles control styling.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Display helper role styling cleanup
+- Semantic role alias consumption
   - Commit: pending local commit at this checkpoint update.
-  - Generic display helper key/highlight spans now use the caller-selected color pair under color support without adding unconditional `A_BOLD`.
-  - No-color fallback emphasis remains where those helpers model key/highlight spans for monochrome terminals.
+  - Added internal `UI_ROLE_*` aliases that map Task 60 semantic roles to runtime color pair IDs.
+  - Updated help/header display rendering to consume semantic role aliases instead of naming legacy pair constants directly.
+  - Legacy `CPAIR_*` values remain as runtime pair IDs and compatibility/migration plumbing, not the renderer-facing role vocabulary for these paths.
 
 Prior local subunits in this continuation:
+- Display helper role styling cleanup
+  - Commit: 13e3f45 fix(ui): let display helper roles control styling
 - Help/header role styling cleanup
   - Commit: d39d40a fix(ui): let help roles control styling
 - Modal severity role styling cleanup
@@ -36,8 +39,8 @@ Prior local subunits in this continuation:
   - Commit: 38b498c fix(theme): reject invalid user catalogs
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_command_strip_key_role_controls_color_styling -q` -> 1 failed because display helpers still used `COLOR_PAIR(color) | A_BOLD`.
-- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_command_strip_key_role_controls_color_styling tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_volume_menu_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_f10_surface_uses_required_command_strip_and_enter_default -q` -> 4 passed.
+- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_help_surfaces_use_help_role tests/test_theme_ui_contract.py::test_header_path_uses_dynamic_text_role -q` -> 2 failed because internal semantic role aliases did not exist and display rendering still used legacy pair constants directly.
+- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_help_surfaces_use_help_role tests/test_theme_ui_contract.py::test_header_path_uses_dynamic_text_role tests/test_theme_ui_contract.py::test_f10_surface_uses_required_command_strip_and_enter_default -q` -> 3 passed.
 - `make` -> passed with existing warnings.
 
 Local notes:
@@ -50,7 +53,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Continue semantic role consumption cleanup: introduce/use internal semantic role aliases in small renderer entry points so renderers no longer name legacy color pairs directly where a Task 60 role exists.
+- Inspect current code-auditor findings again; if no listed findings remain in the touched surface, prepare a concise closure report and leave broader Task 60 audit/remotes for maintainer direction.
 
 Known blockers or risks:
 - No active blocker.
