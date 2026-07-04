@@ -3,7 +3,7 @@ You are continuing ytreenova Task 60 work as a stateless AI.
 Repo: /home/rob/nova60
 Branch: task-60
 Objective: continue docs/ROADMAP.md item titled “Establish Role-Based Theme System and Restrained Default Palette”.
-Current remediation focus: the listed code-auditor findings have local remediation commits; await maintainer direction for broader Task 60 audit or remote workflow.
+Current remediation focus: strict color/theme parsing is locally remediated; continue with role rendering cleanup and semantic role consumption findings before broader Task 60 audit or remote workflow.
 
 Worktree override:
 - For this task, run all git, build, test, and edit commands from /home/rob/nova60.

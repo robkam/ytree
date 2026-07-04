@@ -79,6 +79,7 @@ extern void StartColors(ViewContext *ctx);
 extern void ReinitColorPairs(ViewContext *ctx);
 extern void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c);
 extern void ParseColorString(const char *color_str, int *fg, int *bg);
+extern BOOL ParseColorStringStrict(const char *color_str, int *fg, int *bg);
 extern void UpdateUIColor(const char *name, int fg, int bg);
 extern void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg,
                              int bg);

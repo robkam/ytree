@@ -2,26 +2,26 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress selector-cleanup commit: ec918355dc03cefac53dba81cbe55718faa1449a.
+- HEAD before the in-progress strict color parsing commit: 9b3353f fix(theme): limit file palette special selectors.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- File-type palette special selector cleanup
+- Strict theme/file-palette color parsing
   - Commit: pending local commit at this checkpoint update.
-  - Semantic theme file palette parsing no longer treats `DIR` as a special selector; only `LINK` and `EXEC` remain special selector tokens.
-  - Legacy compact `[FILE_COLORS]` parsing also no longer maps `DIR` to a special runtime pattern.
-  - Runtime file-type color matching no longer has a directory-special rule branch, preserving the contract that directory tree rows use theme roles, not file-type palette rules.
+  - Added strict color parsing that rejects unknown color tokens instead of silently ignoring them.
+  - Explicit `on` now requires a following valid background color; invalid background tokens fail closed.
+  - Theme role validation and compact file-palette validation consume the strict parser before mutating runtime colors/palette state.
+  - Existing lenient parse entry point remains available for compatibility callers, but theme loading uses fail-closed validation.
 
 Prior local subunits in this continuation:
+- File-type palette special selector cleanup
+  - Commit: 9b3353f fix(theme): limit file palette special selectors
 - Startup theme failure handling remediation
   - Commit: ec91835 fix(theme): abort startup on theme load failure
-  - Startup checks theme load failure and fails closed with `LoadTheme failed*ABORT` through the existing startup notice/abort path.
 - Theme catalog fallback semantics remediation
   - Commit: a4c45ba fix(theme): allow packaged fallback for missing user themes
-  - Valid user catalogs that lack the requested theme fall through to later catalogs, while matching malformed/incomplete themes still fail closed.
 - Command-strip label/token model remediation
   - Commit: c337411 fix(ui): model command strip labels separately
-  - F2, F10, and volume command strips now use `UICommandStripCommand` descriptors with full labels and separate primary/secondary key tokens; punctuation and key styling are rendered separately.
 - User-facing helper guidance path cleanup
   - Commit: 862e8d0 fix(config): avoid legacy helper guidance
 - Atomic theme reload and preferred-path remediation
@@ -30,11 +30,10 @@ Prior local subunits in this continuation:
   - Commit: 38b498c fix(theme): reject invalid user catalogs
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_color_config.py::test_file_type_palette_special_selectors_are_link_and_exec_only -q` -> 1 failed because theme/profile palette parsing still special-cased `DIR`.
-- GREEN after implementation: `python3 -m pytest tests/test_color_config.py::test_file_type_palette_special_selectors_are_link_and_exec_only tests/test_color_config.py::test_packaged_theme_catalog_uses_compact_file_palettes tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> 3 passed.
+- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state -q` -> 1 failed because `error = white on not-a-color` still loaded.
+- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state -q` -> 1 passed; now also covers invalid compact file-palette background tokens.
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
-- Post-fix semantic search found no `strcasecmp(selector, "DIR")` or `strcmp(rule->pattern, "DIR")` in `src/cmd/theme.c`, `src/cmd/profile.c`, or `src/ui/color.c`.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -46,7 +45,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- None for the four current code-auditor findings; after this commit they are closed in local `task-60` state. Await maintainer direction for broader Task 60 audit, push/PR/CI, or additional Task 60 scope.
+- Role rendering cleanup: remove hard-coded color-path styling overrides such as unconditional `A_BOLD` from semantic role rendering paths so configured roles control appearance under color support.
 
 Known blockers or risks:
 - No active blocker.

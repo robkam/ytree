@@ -202,14 +202,14 @@ static BOOL ParseThemeStyle(ViewContext *ctx, ThemeRoleValue *roles,
                             int *bg) {
   const char *style;
 
-  if (ctx == NULL || ctx->hook_parse_color == NULL || value == NULL ||
-      fg == NULL || bg == NULL)
+  if (ctx == NULL || value == NULL || fg == NULL || bg == NULL)
     return FALSE;
 
   style = ResolveRoleStyle(roles, value, 0);
   *fg = -1;
   *bg = -1;
-  ctx->hook_parse_color(style, fg, bg);
+  if (!ParseColorStringStrict(style, fg, bg))
+    return FALSE;
   if (*fg == -1)
     return FALSE;
   if (*bg == -1)
@@ -223,11 +223,10 @@ static int ThemeBackground(ViewContext *ctx, ThemeRoleValue *roles) {
   int bg = -1;
 
   background_role = FindRole(roles, "background");
-  if (background_role == NULL || !background_role->is_set ||
-      ctx->hook_parse_color == NULL)
+  if (background_role == NULL || !background_role->is_set)
     return COLOR_BLACK;
 
-  ctx->hook_parse_color(background_role->value, &fg, &bg);
+  (void)ParseColorStringStrict(background_role->value, &fg, &bg);
   return (fg == -1) ? COLOR_BLACK : fg;
 }
 
@@ -303,7 +302,7 @@ static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
   int bg = -1;
   BOOL added = FALSE;
 
-  if (ctx == NULL || value == NULL || ctx->hook_parse_color == NULL)
+  if (ctx == NULL || value == NULL)
     return FALSE;
   if (target_ctx != NULL && target_ctx->hook_add_file_color_rule == NULL)
     return FALSE;
@@ -319,8 +318,7 @@ static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
       *selectors == '\0')
     return FALSE;
 
-  ctx->hook_parse_color(style, &fg, &bg);
-  if (fg == -1)
+  if (!ParseColorStringStrict(style, &fg, &bg) || fg == -1)
     return FALSE;
 
   selector = strtok_r(selectors, ",", &saveptr);
@@ -385,12 +383,12 @@ static BOOL ValidateThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
       return FALSE;
   }
 
-  if (ctx->hook_parse_color == NULL)
-    return FALSE;
   background_role = FindRole(roles, "background");
   if (background_role == NULL)
     return FALSE;
-  ctx->hook_parse_color(background_role->value, &background_fg, &background_bg);
+  if (!ParseColorStringStrict(background_role->value, &background_fg,
+                              &background_bg))
+    return FALSE;
   if (background_fg == -1)
     return FALSE;
 

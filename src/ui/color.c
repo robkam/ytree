@@ -169,13 +169,15 @@ void UIColorSnapshot_Free(UIColorSnapshot *snapshot) {
   free(snapshot);
 }
 
-void ParseColorString(const char *color_str, int *fg, int *bg) {
+BOOL ParseColorStringStrict(const char *color_str, int *fg, int *bg) {
   char *dup, *token, *saveptr;
   int *target;
   int color_limit;
+  BOOL have_fg = FALSE;
+  BOOL expect_bg = FALSE;
 
   if (!color_str || !fg || !bg)
-    return;
+    return FALSE;
 
   dup = xstrdup(color_str);
 
@@ -191,15 +193,37 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
     int parsed;
 
     if (strcasecmp(token, "on") == 0) {
+      if (!have_fg || expect_bg) {
+        free(dup);
+        return FALSE;
+      }
       target = bg;
+      expect_bg = TRUE;
     } else if (ParseColorToken(token, color_limit, &parsed)) {
+      if (target == bg && *bg != -1) {
+        free(dup);
+        return FALSE;
+      }
       *target = parsed;
+      if (target == fg) {
+        have_fg = TRUE;
+      } else {
+        expect_bg = FALSE;
+      }
       target = bg;
+    } else {
+      free(dup);
+      return FALSE;
     }
 
     token = strtok_r(NULL, " ,\t\r\n", &saveptr);
   }
   free(dup);
+  return have_fg && !expect_bg;
+}
+
+void ParseColorString(const char *color_str, int *fg, int *bg) {
+  (void)ParseColorStringStrict(color_str, fg, bg);
 }
 
 void UpdateUIColor(const char *name, int fg, int bg) {

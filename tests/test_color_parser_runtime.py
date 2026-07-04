@@ -626,6 +626,7 @@ def test_invalid_theme_load_keeps_previous_runtime_state(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     incomplete_theme = tmp_path / "incomplete.conf"
     invalid_theme = tmp_path / "invalid.conf"
+    invalid_palette_theme = tmp_path / "invalid_palette.conf"
     driver = tmp_path / "theme_atomic_failure_driver.c"
     binary = tmp_path / "theme_atomic_failure_driver"
 
@@ -656,12 +657,37 @@ picker = black on +grey
 help = white on blue
 info = +white on blue
 warning = black on yellow
-error = not-a-color
+error = white on not-a-color
 search_hit = black on yellow
 disabled = grey on blue
 
 [file-types sample]
 archives = red: zip
+""",
+        encoding="utf-8",
+    )
+    invalid_palette_theme.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types sample]
+archives = red on not-a-color: zip
 """,
         encoding="utf-8",
     )
@@ -715,7 +741,7 @@ static int expect_previous_state(ViewContext *ctx, const char *path) {
 int main(int argc, char **argv) {
   ViewContext ctx;
 
-  if (argc != 3)
+  if (argc != 4)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -727,6 +753,8 @@ int main(int argc, char **argv) {
   if (expect_previous_state(&ctx, argv[1]) != 0)
     return 1;
   if (expect_previous_state(&ctx, argv[2]) != 0)
+    return 1;
+  if (expect_previous_state(&ctx, argv[3]) != 0)
     return 1;
 
   return 0;
@@ -754,7 +782,12 @@ int main(int argc, char **argv) {
         check=True,
     )
     subprocess.run(
-        [str(binary), str(incomplete_theme), str(invalid_theme)],
+        [
+            str(binary),
+            str(incomplete_theme),
+            str(invalid_theme),
+            str(invalid_palette_theme),
+        ],
         cwd=repo_root,
         check=True,
     )
