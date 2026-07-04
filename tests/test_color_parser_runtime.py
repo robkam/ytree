@@ -139,7 +139,7 @@ int main(void) {
     subprocess.run([str(binary)], cwd=repo_root, check=True)
 
 
-def test_compact_file_color_palette_rules_expand_in_profile_order(tmp_path):
+def test_legacy_profile_color_sections_are_ignored(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     profile = tmp_path / "palette.conf"
     driver = tmp_path / "palette_driver.c"
@@ -147,6 +147,9 @@ def test_compact_file_color_palette_rules_expand_in_profile_order(tmp_path):
 
     profile.write_text(
         """
+[COLORS]
+DIALOG_COLOR = white on blue
+
 [FILE_COLORS]
 archives = red: tar,tgz,zip
 scripts = +cyan on black: sh,bash
@@ -161,16 +164,9 @@ special = cyan: LINK,EXEC
 #include "ytnova_ui.h"
 #include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 
-typedef struct {
-  char pattern[32];
-  int fg;
-  int bg;
-} CapturedRule;
-
-static CapturedRule captured[8];
-static int captured_count;
+static int captured_colors;
+static int captured_rules;
 
 int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   (void)ctx;
@@ -182,27 +178,20 @@ static void capture_parse_color(const char *color_str, int *fg, int *bg) {
   ParseColorString(color_str, fg, bg);
 }
 
-static void capture_file_color_rule(ViewContext *ctx, const char *pattern,
-                                    int fg, int bg) {
-  (void)ctx;
-  if (captured_count >= 8)
-    return;
-  snprintf(captured[captured_count].pattern,
-           sizeof(captured[captured_count].pattern), "%s", pattern);
-  captured[captured_count].fg = fg;
-  captured[captured_count].bg = bg;
-  ++captured_count;
+static void capture_update_color(const char *name, int fg, int bg) {
+  (void)name;
+  (void)fg;
+  (void)bg;
+  ++captured_colors;
 }
 
-static int expect_rule(int index, const char *pattern, int fg, int bg) {
-  if (strcmp(captured[index].pattern, pattern) != 0 ||
-      captured[index].fg != fg || captured[index].bg != bg) {
-    fprintf(stderr, "rule %d => %s %d,%d expected %s %d,%d\n", index,
-            captured[index].pattern, captured[index].fg, captured[index].bg,
-            pattern, fg, bg);
-    return 1;
-  }
-  return 0;
+static void capture_file_color_rule(ViewContext *ctx, const char *pattern,
+                                     int fg, int bg) {
+  (void)ctx;
+  (void)pattern;
+  (void)fg;
+  (void)bg;
+  ++captured_rules;
 }
 
 int main(int argc, char **argv) {
@@ -213,6 +202,7 @@ int main(int argc, char **argv) {
 
   memset(&ctx, 0, sizeof(ctx));
   ctx.hook_parse_color = capture_parse_color;
+  ctx.hook_update_ui_color = capture_update_color;
   ctx.hook_add_file_color_rule = capture_file_color_rule;
 
   if (ReadProfile(&ctx, argv[1]) != 0) {
@@ -220,19 +210,11 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (captured_count != 7) {
-    fprintf(stderr, "captured %d rules\n", captured_count);
+  if (captured_colors != 0 || captured_rules != 0) {
+    fprintf(stderr, "legacy color sections changed runtime colors: %d/%d\n",
+            captured_colors, captured_rules);
     return 1;
   }
-
-  if (expect_rule(0, "*.tar", COLOR_RED, -1) != 0 ||
-      expect_rule(1, "*.tgz", COLOR_RED, -1) != 0 ||
-      expect_rule(2, "*.zip", COLOR_RED, -1) != 0 ||
-      expect_rule(3, "*.sh", 14, COLOR_BLACK) != 0 ||
-      expect_rule(4, "*.bash", 14, COLOR_BLACK) != 0 ||
-      expect_rule(5, "LINK", COLOR_CYAN, -1) != 0 ||
-      expect_rule(6, "EXEC", COLOR_CYAN, -1) != 0)
-    return 1;
 
   FreeProfileRuntimeData(&ctx);
   return 0;
@@ -393,15 +375,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (expect_color("FILE_COLOR", 15, COLOR_BLUE) != 0 ||
-      expect_color("WINFILE_COLOR", 15, COLOR_BLUE) != 0 ||
-      expect_color("WINDIR_COLOR", 15, COLOR_BLUE) != 0 ||
-      expect_color("TREE_LINES_COLOR", 15, COLOR_BLUE) != 0 ||
-      expect_color("MARGIN_COLOR", 15, COLOR_BLUE) != 0 ||
-      expect_color("BORDERS_COLOR", COLOR_CYAN, COLOR_BLUE) != 0 ||
-      expect_color("HIFILE_COLOR", COLOR_BLACK, COLOR_WHITE) != 0 ||
-      expect_color("ERR_COLOR", 15, COLOR_RED) != 0 ||
-      expect_color("DISABLED_COLOR", 8, COLOR_BLUE) != 0)
+  if (expect_color("dynamic_text", 15, COLOR_BLUE) != 0 ||
+      expect_color("tree_lines", 15, COLOR_BLUE) != 0 ||
+      expect_color("margin", 15, COLOR_BLUE) != 0 ||
+      expect_color("box_lines", COLOR_CYAN, COLOR_BLUE) != 0 ||
+      expect_color("selection", COLOR_BLACK, COLOR_WHITE) != 0 ||
+      expect_color("error", 15, COLOR_RED) != 0 ||
+      expect_color("disabled", 8, COLOR_BLUE) != 0)
     return 1;
 
   if (rule_count != 4) {
@@ -532,7 +512,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (expect_color("MARGIN_COLOR", 15, COLOR_BLUE) != 0)
+  if (expect_color("margin", 15, COLOR_BLUE) != 0)
     return 1;
 
   return 0;
@@ -913,6 +893,94 @@ int main(int argc, char **argv) {
     )
 
 
+def test_theme_palette_rejects_wildcard_selectors(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_wildcard_selector_driver.c"
+    binary = tmp_path / "theme_wildcard_selector_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types sample]
+wildcards = red: *.log,?
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") == 0) {
+    fprintf(stderr, "wildcard selector unexpectedly loaded\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
 def test_invalid_user_theme_catalog_blocks_packaged_fallback(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
@@ -1232,9 +1300,6 @@ def test_profile_runtime_snapshot_restores_values_and_palette(tmp_path):
 [GLOBAL]
 THEME=classic-blue
 SMALLWINDOWSKIP=1
-
-[FILE_COLORS]
-archives = green: old
 """,
         encoding="utf-8",
     )
@@ -1243,9 +1308,6 @@ archives = green: old
 [GLOBAL]
 THEME=missing-theme
 SMALLWINDOWSKIP=0
-
-[FILE_COLORS]
-archives = red: new
 """,
         encoding="utf-8",
     )
@@ -1284,6 +1346,7 @@ int main(int argc, char **argv) {
   memset(&ctx, 0, sizeof(ctx));
   ctx.hook_parse_color = ParseColorString;
   ctx.hook_add_file_color_rule = AddFileColorRule;
+  AddFileColorRule(&ctx, "*.old", COLOR_GREEN, COLOR_BLACK);
 
   if (ReadProfile(&ctx, argv[1]) != 0) {
     fprintf(stderr, "original profile failed\n");

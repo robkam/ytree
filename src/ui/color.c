@@ -9,33 +9,56 @@
 
 #ifdef COLOR_SUPPORT
 
-UIColor ui_colors[] = {
-    {"DIR_COLOR", CPAIR_DIR, 7, 0},
-    {"HIDIR_COLOR", CPAIR_HIDIR, 0, 3},
-    {"WINDIR_COLOR", CPAIR_WINDIR, 7, 0},
-    {"FILE_COLOR", CPAIR_FILE, 7, 0},
-    {"HIFILE_COLOR", CPAIR_HIFILE, 0, 3},
-    {"WINFILE_COLOR", CPAIR_WINFILE, 7, 0},
-    {"TREE_LINES_COLOR", CPAIR_TREE_LINES, 7, 0},
-    {"MARGIN_COLOR", CPAIR_MARGIN, 7, 0},
-    {"STATS_COLOR", CPAIR_STATS, 7, 0},
-    {"WINSTATS_COLOR", CPAIR_WINSTATS, 7, 0},
-    {"BORDERS_COLOR", CPAIR_BORDERS, 8, 0},
-    {"HIMENUS_COLOR", CPAIR_HIMENUS, 15, 0},
-    {"MENU_COLOR", CPAIR_MENU, 7, 0},
-    {"DIALOG_COLOR", CPAIR_DIALOG, 7, 0},
-    {"HELP_COLOR", CPAIR_HELP, 7, 0},
-    {"HST_COLOR", CPAIR_HST, 7, 0},
-    {"HIHST_COLOR", CPAIR_HIHST, 0, 3},
-    {"WINHST_COLOR", CPAIR_WINHST, 7, 0},
-    {"HIGLOBAL_COLOR", CPAIR_HIGLOBAL, 15, 3},
-    {"GLOBAL_COLOR", CPAIR_GLOBAL, 3, 0},
-    {"INFO_COLOR", CPAIR_INFO, 15, 4},
-    {"WARN_COLOR", CPAIR_WARN, 11, 0},
-    {"ERR_COLOR", CPAIR_ERR, 15, 1},
-    {"DISABLED_COLOR", CPAIR_DISABLED, 8, 0}};
+UIColor ui_colors[] = {{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0},
+                       {"static_text", UI_ROLE_STATIC_TEXT, 7, 0},
+                       {"keybind", UI_ROLE_KEYBIND, 15, 0},
+                       {"help", UI_ROLE_HELP, 7, 0},
+                       {"picker", UI_ROLE_PICKER, 7, 0},
+                       {"selection", UI_ROLE_SELECTION, 0, 3},
+                       {"box_lines", UI_ROLE_BOX_LINES, 8, 0},
+                       {"tree_lines", UI_ROLE_TREE_LINES, 7, 0},
+                       {"margin", UI_ROLE_MARGIN, 7, 0},
+                       {"dialog", UI_ROLE_DIALOG, 7, 0},
+                       {"info", UI_ROLE_INFO, 15, 4},
+                       {"warning", UI_ROLE_WARNING, 11, 0},
+                       {"error", UI_ROLE_ERROR, 15, 1},
+                       {"search_hit", UI_ROLE_SEARCH_HIT, 15, 3},
+                       {"disabled", UI_ROLE_DISABLED, 8, 0}};
 
 int NUM_UI_COLORS = sizeof(ui_colors) / sizeof(ui_colors[0]);
+
+typedef struct {
+  const char *name;
+  int role_id;
+} LegacyColorAlias;
+
+static const LegacyColorAlias legacy_color_aliases[] = {
+    {"DIR_COLOR", UI_ROLE_DYNAMIC_TEXT},
+    {"WINDIR_COLOR", UI_ROLE_DYNAMIC_TEXT},
+    {"FILE_COLOR", UI_ROLE_DYNAMIC_TEXT},
+    {"WINFILE_COLOR", UI_ROLE_DYNAMIC_TEXT},
+    {"STATS_COLOR", UI_ROLE_DYNAMIC_TEXT},
+    {"WINSTATS_COLOR", UI_ROLE_DYNAMIC_TEXT},
+    {"MENU_COLOR", UI_ROLE_STATIC_TEXT},
+    {"HIMENUS_COLOR", UI_ROLE_KEYBIND},
+    {"HELP_COLOR", UI_ROLE_HELP},
+    {"HST_COLOR", UI_ROLE_PICKER},
+    {"WINHST_COLOR", UI_ROLE_PICKER},
+    {"HIDIR_COLOR", UI_ROLE_SELECTION},
+    {"HIFILE_COLOR", UI_ROLE_SELECTION},
+    {"HIHST_COLOR", UI_ROLE_SELECTION},
+    {"BORDERS_COLOR", UI_ROLE_BOX_LINES},
+    {"TREE_LINES_COLOR", UI_ROLE_TREE_LINES},
+    {"MARGIN_COLOR", UI_ROLE_MARGIN},
+    {"DIALOG_COLOR", UI_ROLE_DIALOG},
+    {"INFO_COLOR", UI_ROLE_INFO},
+    {"WARN_COLOR", UI_ROLE_WARNING},
+    {"ERR_COLOR", UI_ROLE_ERROR},
+    {"WINERR_COLOR", UI_ROLE_ERROR},
+    {"GLOBAL_COLOR", UI_ROLE_SEARCH_HIT},
+    {"HIGLOBAL_COLOR", UI_ROLE_SEARCH_HIT},
+    {"DISABLED_COLOR", UI_ROLE_DISABLED},
+    {NULL, 0}};
 
 struct _ui_color_snapshot {
   int count;
@@ -228,16 +251,22 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
 
 void UpdateUIColor(const char *name, int fg, int bg) {
   int i;
-  const char *resolved_name = name;
 
-  /* Migration-only alias for legacy profiles; the runtime error role is ERR. */
-  if (strcasecmp(name, "WINERR_COLOR") == 0)
-    resolved_name = "ERR_COLOR";
+  if (name == NULL)
+    return;
 
   for (i = 0; i < NUM_UI_COLORS; i++) {
-    if (strcasecmp(resolved_name, ui_colors[i].name) == 0) {
+    if (strcasecmp(name, ui_colors[i].name) == 0) {
       ui_colors[i].fg = fg;
       ui_colors[i].bg = bg;
+      return;
+    }
+  }
+
+  for (i = 0; legacy_color_aliases[i].name != NULL; i++) {
+    if (strcasecmp(name, legacy_color_aliases[i].name) == 0) {
+      UpdateUIColor(ui_colors[legacy_color_aliases[i].role_id - 1].name, fg,
+                    bg);
       return;
     }
   }

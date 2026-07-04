@@ -111,6 +111,35 @@ def test_render_surfaces_consume_semantic_role_aliases():
     assert offenders == []
 
 
+def test_startup_initializes_loaded_theme_before_recreating_windows():
+    source = _read("src/core/init.c")
+    load_done = source.index('DEBUG_LOG("Init: LoadTheme done")')
+    reinit_done = source.index('DEBUG_LOG("Init: ReinitColorPairs done")')
+    recreate_after_theme = source.index(
+        'DEBUG_LOG("Init: ReCreateWindows after theme done")'
+    )
+
+    assert load_done < reinit_done < recreate_after_theme
+    assert "CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
+        source[load_done:recreate_after_theme]
+    )
+    assert "werase(stdscr);" in source[load_done:recreate_after_theme]
+
+
+def test_semantic_roles_are_canonical_runtime_color_model():
+    defs_source = _read("include/ytnova_defs.h")
+    color_source = _read("src/ui/color.c")
+    theme_source = _read("src/cmd/theme.c")
+
+    assert "UI_ROLE_DYNAMIC_TEXT = 1" in defs_source
+    assert "UI_ROLE_DYNAMIC_TEXT = CPAIR_FILE" not in defs_source
+    assert "enum UI_COLOR_PAIRS" not in defs_source
+    assert '{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0}' in color_source
+    assert '{"FILE_COLOR", UI_ROLE_DYNAMIC_TEXT}' in color_source
+    assert "ApplySemanticRole(ctx, roles[i].name, fg, bg)" in theme_source
+    assert "ApplyMigrationRoleShim(ctx, roles[i].name, fg, bg)" not in theme_source
+
+
 def test_volume_menu_uses_required_theme_command_strip():
     source = _read("src/ui/volume_menu.c")
 
@@ -133,11 +162,11 @@ def test_help_surfaces_use_help_role():
     display_source = _read("src/ui/display.c")
     compare_source = _read("src/ui/compare_request.c")
 
-    assert "CPAIR_HELP" in defs_source
-    assert "UI_ROLE_HELP = CPAIR_HELP" in defs_source
-    assert "UI_ROLE_KEYBIND = CPAIR_HIMENUS" in defs_source
-    assert '{"HELP_COLOR", CPAIR_HELP, 7, 0},' in color_source
-    assert '{"help", {"HELP_COLOR", NULL}},' in theme_source
+    assert "UI_ROLE_HELP" in defs_source
+    assert "CPAIR_HELP" not in defs_source
+    assert "UI_ROLE_KEYBIND" in defs_source
+    assert '{"help", UI_ROLE_HELP, 7, 0}' in color_source
+    assert '"help"' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_HELP)" in init_source
     assert "lo_color = UI_ROLE_HELP;" in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0," in display_source
@@ -189,14 +218,14 @@ def test_tree_lines_and_margin_use_dedicated_theme_roles():
     theme_source = _read("src/cmd/theme.c")
     dir_source = _read("src/ui/render_dir.c")
 
-    assert "CPAIR_TREE_LINES" in defs_source
-    assert "CPAIR_MARGIN" in defs_source
-    assert "UI_ROLE_TREE_LINES = CPAIR_TREE_LINES" in defs_source
-    assert "UI_ROLE_MARGIN = CPAIR_MARGIN" in defs_source
-    assert '{"TREE_LINES_COLOR", CPAIR_TREE_LINES, 7, 0},' in color_source
-    assert '{"MARGIN_COLOR", CPAIR_MARGIN, 7, 0},' in color_source
-    assert '{"tree_lines", {"TREE_LINES_COLOR", NULL}},' in theme_source
-    assert '{"margin", {"MARGIN_COLOR", NULL}},' in theme_source
+    assert "UI_ROLE_TREE_LINES" in defs_source
+    assert "UI_ROLE_MARGIN" in defs_source
+    assert "CPAIR_TREE_LINES" not in defs_source
+    assert "CPAIR_MARGIN" not in defs_source
+    assert '{"tree_lines", UI_ROLE_TREE_LINES, 7, 0}' in color_source
+    assert '{"margin", UI_ROLE_MARGIN, 7, 0}' in color_source
+    assert '"tree_lines"' in theme_source
+    assert '"margin"' in theme_source
     assert "margin_color = UI_ROLE_MARGIN;" in dir_source
     assert "tree_line_color = UI_ROLE_TREE_LINES;" in dir_source
     assert "wattrset(win, margin_attr);" in dir_source
@@ -209,16 +238,17 @@ def test_disabled_role_projects_to_runtime_pair():
     color_source = _read("src/ui/color.c")
     theme_source = _read("src/cmd/theme.c")
 
-    assert "CPAIR_DISABLED" in defs_source
-    assert '{"DISABLED_COLOR", CPAIR_DISABLED, 8, 0}' in color_source
-    assert '{"disabled", {"DISABLED_COLOR", NULL}},' in theme_source
+    assert "UI_ROLE_DISABLED" in defs_source
+    assert "CPAIR_DISABLED" not in defs_source
+    assert '{"disabled", UI_ROLE_DISABLED, 8, 0}' in color_source
+    assert '"disabled"' in theme_source
 
 
 def test_header_path_uses_dynamic_text_role():
     defs_source = _read("include/ytnova_defs.h")
     display_source = _read("src/ui/display.c")
 
-    assert "UI_ROLE_STATIC_TEXT = CPAIR_MENU" in defs_source
+    assert "UI_ROLE_STATIC_TEXT" in defs_source
     assert "DisplayHeaderPath" in display_source
     assert "WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
         display_source
@@ -255,13 +285,9 @@ def test_stats_rendering_splits_static_dynamic_and_border_roles():
     assert "COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in stats_source
     assert "COLOR_PAIR(UI_ROLE_BOX_LINES)" in stats_source
     assert "COLOR_PAIR(color)" not in stats_source
-    assert '{"static_text", {"MENU_COLOR", NULL}},' in theme_source
-    assert '{"box_lines", {"BORDERS_COLOR", NULL}},' in theme_source
-    assert (
-        '"DIR_COLOR", "WINDIR_COLOR", "FILE_COLOR", "WINFILE_COLOR"'
-        in theme_source
-    )
-    assert '"STATS_COLOR", "WINSTATS_COLOR", NULL' in theme_source
+    assert '"static_text"' in theme_source
+    assert '"box_lines"' in theme_source
+    assert "ApplySemanticRole(ctx, roles[i].name, fg, bg)" in theme_source
 
 
 def test_viewer_frame_uses_border_role_not_directory_fill_role():
@@ -318,7 +344,8 @@ def test_theme_docs_capture_role_routing_invariants():
         "F2, history, completion, and volume selection surfaces use the `picker` role"
         in spec_source
     )
-    assert "`WINERR_COLOR` is a migration-only alias for `ERR_COLOR`" in spec_source
+    assert "CPAIR_" not in spec_source
+    assert "WINERR_COLOR" not in spec_source
     assert "Set a window background once per refresh path" in arch_source
     assert "stats titles and fixed labels use `static_text`" in arch_source
     assert "changing stats values use `dynamic_text`" in arch_source
@@ -329,6 +356,7 @@ def test_theme_docs_capture_role_routing_invariants():
     assert "Preview/search-hit highlighting uses `search_hit`" in spec_source
     assert "Frame/Fill Separation" in arch_source
     assert "search-hit spans use `search_hit`" in arch_source
+    assert "startup and F10 reload commit paths" in arch_source
 
 
 def test_theme_editor_uses_preferred_path_with_legacy_fallback():
@@ -377,10 +405,18 @@ def test_f10_surface_uses_required_command_strip_and_enter_default():
 
 def test_reload_failures_use_status_line_without_success_message():
     source = _read("src/ui/ui_edit_config.c")
+    error_source = _read("src/ui/error.c")
 
     assert "UI_ShowStatusLineError" in source
     assert "Reload failed: can't read config" in source
+    assert "Reload failed: malformed config" in source
     assert "Reload failed: can't load theme" in source
+    assert "ValidateProfileFile(ctx, profile_path)" in source
+    assert "ValidateProfileFile(ctx, profile_path)" in source[
+        : source.index("ctx->core_init_ops.read_profile(ctx, profile_path)")
+    ]
+    assert "PrintMenuOptions(ctx->ctx_menu_window, 2, 0, ctx->status_line_error_text" not in error_source
+    assert "ctx->status_line_error_text, UI_ROLE_ERROR" in error_source
     assert "UIColorSnapshot_Create" in source
     assert "UIColorSnapshot_Restore" in source
     assert "Reloaded" not in source

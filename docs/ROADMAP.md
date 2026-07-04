@@ -1064,7 +1064,7 @@ Ordering policy (for all editors, including AI editors):
     *   `search_hit = black on yellow`
     *   `disabled = grey on blue`
 *   **Implementation Direction:**
-    *   Audit existing color options, including whether `WINERR_COLOR` and `ERR_COLOR` are duplicates or whether one is unused.
+    *   Audit existing color options for duplicate severity aliases or unused compatibility entries.
     *   Audit `src/ui/color.c` and all window background/border drawing paths for reversed color-pair use, unintended `A_REVERSE`, foreground-only styling, and stale background attributes.
     *   Replace ad-hoc foreground-only coloring with complete role resolution where each rendered style resolves to a foreground and background.
     *   Ensure `cyan,blue` renders cyan glyphs on blue background, never blue glyphs on cyan background.
@@ -1076,7 +1076,7 @@ Ordering policy (for all editors, including AI editors):
     *   Replace misleading menu/keybinding strings with token-aware rendering. The required F2 footer wording is `(L)og  (<)/(>) Cycle`; key tokens `L`, `<`, and `>` use `keybind`, while translated/descriptive text uses the surrounding role.
     *   Volume-menu keybindings must use the same integrated keybinding grammar as the rest of the UI; do not use detached labels such as `D Delete`. The volume-menu command strip is exactly: `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`.
     *   Prepare for Task 61 by storing menu/help entries as structured command labels plus key tokens, not as one translated display string. Example: command `COPY` has label `Copy` and key token `C`, allowing English `(C)opy`; a German keymap/locale can use label `Kopieren` and key token `K`, allowing `(K)opieren`, without translators editing raw punctuation to expose the shortcut.
-    *   Audit `WINERR_COLOR` versus `ERR_COLOR`. If `WINERR_COLOR` is leftover cruft, map it only through a temporary migration path and remove it from the final user-facing theme model.
+    *   Map any leftover severity color aliases only through temporary migration paths and keep them out of the final user-facing theme model.
     *   Set window background once per refresh path and clear/redraw safely; avoid background changes inside per-row rendering loops.
     *   Keep file-type color application as a distinct optional layer after base theme role resolution.
 *   **Theme Set:**
@@ -1107,8 +1107,8 @@ Ordering policy (for all editors, including AI editors):
     *   Theme implementation proves foreground/background pair correctness.
     *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
     *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
-    *   Temporary legacy color compatibility shims are documented as migration-only and are not allowed to define the final user-facing model.
-*   - [x] **Status:** Complete in local `task-60` work; pending maintainer-directed push/PR/CI gate.
+    *   Legacy profile `[COLORS]` / `[FILE_COLORS]` parsing is not a runtime theme path; theme files are authoritative for semantic roles and file-type palettes.
+*   - [x] **Status:** Complete in local `task-60` work after legacy profile color parsing remediation; pending maintainer-directed push/PR/CI gate.
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.

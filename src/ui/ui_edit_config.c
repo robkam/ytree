@@ -239,6 +239,7 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
 
 static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
+  int profile_validation;
 #ifdef COLOR_SUPPORT
   UIColorSnapshot *color_snapshot;
 #endif
@@ -255,6 +256,20 @@ static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
 
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
       access(profile_path, F_OK) == 0) {
+    profile_validation = ValidateProfileFile(ctx, profile_path);
+    if (profile_validation != 0) {
+      ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+#ifdef COLOR_SUPPORT
+      UIColorSnapshot_Restore(color_snapshot);
+      UIColorSnapshot_Free(color_snapshot);
+#endif
+      ProfileRuntimeSnapshot_Free(profile_snapshot);
+      ctx->bypass_small_window = original_bypass_small_window;
+      UI_ShowStatusLineError(ctx, profile_validation < 0
+                                      ? "Reload failed: can't read config"
+                                      : "Reload failed: malformed config");
+      return -1;
+    }
     if (ctx->core_init_ops.read_profile(ctx, profile_path) == 0) {
       if (!AppStateCommitSmallWindowBypass(
               ctx,

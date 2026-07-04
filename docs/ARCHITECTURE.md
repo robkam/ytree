@@ -98,7 +98,7 @@ Exactly **three** global variables exist in the codebase. Each has a specific te
 
 | Variable | Type | File | Justification |
 |---|---|---|---|
-| `ui_colors[]` | `UIColor[]` | `src/ui/color.c` | Color palette table — written once during config parsing at startup, read-only thereafter. Shared across all UI code as immutable configuration. |
+| `ui_colors[]` | `UIColor[]` | `src/ui/color.c` | Color palette table — mutated only by startup and F10 reload commit paths after strict config/theme validation. Failed reloads restore the previous working palette before reporting status. |
 | `NUM_UI_COLORS` | `int` | `src/ui/color.c` | Derived from `sizeof(ui_colors)` — effectively a compile-time constant. |
 | `ytnova_shutdown_flag` | `volatile sig_atomic_t` | `src/core/main.c` | Set by the `SIGTERM`/`SIGINT` signal handler. POSIX signal handlers cannot receive context pointers; an atomic global flag is the mandated pattern for signal-to-mainloop communication. |
 

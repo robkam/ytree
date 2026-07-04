@@ -357,7 +357,6 @@ Routing contract:
 *   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role.
 *   Tree status-marker columns use `margin`; tree guide glyphs use `tree_lines`; tree directory names and attributes use `dynamic_text`. File-type palette rules do not style directory tree rows.
 *   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
-*   `WINERR_COLOR` is a migration-only alias for `ERR_COLOR`; it is not part of the semantic theme model.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
 
 Current modal/dialog audit:
@@ -367,7 +366,7 @@ Current modal/dialog audit:
 | `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `info` |
 | `src/ui/error.c` `UI_Warning` | Severity `warning` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `warning` |
 | `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `error` |
-| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `help` (`CPAIR_HELP`) |
+| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `help` |
 | `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `picker` |
 | `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `dialog` |
 | `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `picker` |

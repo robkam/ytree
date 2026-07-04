@@ -26,9 +26,9 @@ def test_dialog_color_key_is_defined_in_runtime_palette():
     defs_source = _read_source("include/ytnova_defs.h")
     color_source = _read_source("src/ui/color.c")
 
-    assert "CPAIR_DIALOG" in defs_source
-    assert "CPAIR_MENU,\n  CPAIR_DIALOG,\n  CPAIR_HELP," in defs_source
-    assert '{"DIALOG_COLOR", CPAIR_DIALOG, 7, 0},' in color_source
+    assert "UI_ROLE_DIALOG" in defs_source
+    assert "CPAIR_DIALOG" not in defs_source
+    assert '{"dialog", UI_ROLE_DIALOG, 7, 0}' in color_source
     assert "CPAIR_WINERR" not in defs_source
 
 
@@ -64,10 +64,10 @@ def test_winerr_color_is_migration_only_alias():
     assert "WINERR_COLOR" not in template_source
     assert "CPAIR_WINERR" not in color_source
     assert '"WINERR_COLOR"' in color_source
-    assert '{"error", {"ERR_COLOR", NULL}},' in theme_source
-    assert '{"disabled", {"DISABLED_COLOR", NULL}},' in theme_source
-    assert "migration_role_shims" in theme_source
-    assert "ApplyMigrationRoleShim" in theme_source
+    assert '"error"' in theme_source
+    assert '"disabled"' in theme_source
+    assert "legacy_color_aliases" in color_source
+    assert "ApplyMigrationRoleShim" not in theme_source
     assert "ctx->ctx_error_window, COLOR_PAIR(UI_ROLE_ERROR)" in init_source
     assert "CPAIR_WINERR" not in error_source
 
@@ -140,8 +140,8 @@ def test_file_type_palette_special_selectors_are_link_and_exec_only():
 
     assert 'strcasecmp(selector, "LINK")' in theme_source
     assert 'strcasecmp(selector, "EXEC")' in theme_source
-    assert 'strcasecmp(selector, "LINK")' in profile_source
-    assert 'strcasecmp(selector, "EXEC")' in profile_source
+    assert 'strcasecmp(selector, "LINK")' not in profile_source
+    assert 'strcasecmp(selector, "EXEC")' not in profile_source
     assert 'strcasecmp(selector, "DIR")' not in theme_source
     assert 'strcasecmp(selector, "DIR")' not in profile_source
     assert 'strcmp(rule->pattern, "LINK")' in color_source

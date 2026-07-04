@@ -37,38 +37,11 @@ typedef struct _theme_palette_line {
   struct _theme_palette_line *next;
 } ThemePaletteLine;
 
-typedef struct {
-  const char *role;
-  const char *legacy_names[8];
-} ThemeMigrationRoleShim;
-
 static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "selection",
     "dialog",      "picker",    "help",        "info",
     "warning",     "error",     "search_hit",  "disabled"};
-
-/* Migration-only bridge: theme files expose semantic roles while current
-   render paths still consume legacy color-pair names. */
-static const ThemeMigrationRoleShim migration_role_shims[] = {
-    {"box_lines", {"BORDERS_COLOR", NULL}},
-    {"tree_lines", {"TREE_LINES_COLOR", NULL}},
-    {"margin", {"MARGIN_COLOR", NULL}},
-    {"static_text", {"MENU_COLOR", NULL}},
-    {"dynamic_text",
-     {"DIR_COLOR", "WINDIR_COLOR", "FILE_COLOR", "WINFILE_COLOR",
-      "STATS_COLOR", "WINSTATS_COLOR", NULL}},
-    {"keybind", {"HIMENUS_COLOR", NULL}},
-    {"selection", {"HIDIR_COLOR", "HIFILE_COLOR", "HIHST_COLOR", NULL}},
-    {"dialog", {"DIALOG_COLOR", NULL}},
-    {"help", {"HELP_COLOR", NULL}},
-    {"picker", {"HST_COLOR", "WINHST_COLOR", NULL}},
-    {"info", {"INFO_COLOR", NULL}},
-    {"warning", {"WARN_COLOR", NULL}},
-    {"error", {"ERR_COLOR", NULL}},
-    {"search_hit", {"GLOBAL_COLOR", "HIGLOBAL_COLOR", NULL}},
-    {"disabled", {"DISABLED_COLOR", NULL}},
-    {NULL, {NULL}}};
 
 static char *TrimInPlace(char *text);
 static BOOL SplitAssignment(char *line, char **name, char **value);
@@ -83,8 +56,8 @@ static BOOL ParseThemeStyle(ViewContext *ctx, ThemeRoleValue *roles,
                             int *bg);
 static int ThemeBackground(ViewContext *ctx, ThemeRoleValue *roles);
 static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles);
-static void ApplyMigrationRoleShim(ViewContext *ctx, const char *role, int fg,
-                                   int bg);
+static void ApplySemanticRole(ViewContext *ctx, const char *role, int fg,
+                              int bg);
 static BOOL BuildFileColorPattern(const char *selector, char *pattern,
                                   size_t pattern_size);
 static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
@@ -248,27 +221,16 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
       continue;
 
     if (ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
-      ApplyMigrationRoleShim(ctx, roles[i].name, fg, bg);
+      ApplySemanticRole(ctx, roles[i].name, fg, bg);
   }
 }
 
-static void ApplyMigrationRoleShim(ViewContext *ctx, const char *role, int fg,
-                                   int bg) {
-  int i;
-  int j;
-
+static void ApplySemanticRole(ViewContext *ctx, const char *role, int fg,
+                              int bg) {
   if (ctx == NULL || role == NULL || ctx->hook_update_ui_color == NULL)
     return;
 
-  for (i = 0; migration_role_shims[i].role != NULL; ++i) {
-    if (strcmp(migration_role_shims[i].role, role) != 0)
-      continue;
-
-    for (j = 0; migration_role_shims[i].legacy_names[j] != NULL; ++j)
-      ctx->hook_update_ui_color(migration_role_shims[i].legacy_names[j], fg,
-                                bg);
-    return;
-  }
+  ctx->hook_update_ui_color(role, fg, bg);
 }
 
 static BOOL BuildFileColorPattern(const char *selector, char *pattern,
@@ -284,7 +246,7 @@ static BOOL BuildFileColorPattern(const char *selector, char *pattern,
   } else if (strcasecmp(selector, "EXEC") == 0) {
     written = snprintf(pattern, pattern_size, "%s", "EXEC");
   } else if (strchr(selector, '*') != NULL || strchr(selector, '?') != NULL) {
-    written = snprintf(pattern, pattern_size, "%s", selector);
+    return FALSE;
   } else {
     written = snprintf(pattern, pattern_size, "*.%s", selector);
   }

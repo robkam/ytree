@@ -1047,6 +1047,14 @@ int Init(ViewContext *ctx, const char *configuration_file,
   }
   DEBUG_LOG("Init: LoadTheme done");
 
+  if (ctx->core_init_ops.reinit_color_pairs != NULL)
+    ctx->core_init_ops.reinit_color_pairs(ctx);
+  DEBUG_LOG("Init: ReinitColorPairs done");
+  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  werase(stdscr);
+  ReCreateWindows(ctx);
+  DEBUG_LOG("Init: ReCreateWindows after theme done");
+
   if (history_file != NULL) {
     DEBUG_LOG("Init: Reading history %s", history_file);
     if (ctx->core_init_ops.read_history != NULL)
@@ -1059,10 +1067,6 @@ int Init(ViewContext *ctx, const char *configuration_file,
       ctx->core_init_ops.read_history(ctx, buffer);
   }
   DEBUG_LOG("Init: ReadHistory done");
-
-  if (ctx->core_init_ops.reinit_color_pairs != NULL)
-    ctx->core_init_ops.reinit_color_pairs(ctx);
-  DEBUG_LOG("Init: ReinitColorPairs done");
 
   /* Initial Mode Setup for both panels */
   int initial_mode = strtol(CoreInitGetProfileValue(ctx, "FILEMODE"), NULL, 0);

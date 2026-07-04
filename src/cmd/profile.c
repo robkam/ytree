@@ -16,8 +16,6 @@
 #define FILECMD_SECTION 5
 #define DIRMAP_SECTION 6
 #define DIRCMD_SECTION 7
-#define COLORS_SECTION 8
-#define FILE_COLORS_SECTION 9
 
 typedef struct {
   char *name;
@@ -94,11 +92,8 @@ static Profile profile[] = {
 static int Compare(const void *s1, const void *s2);
 static int ChCode(const char *s);
 static char *TrimInPlace(char *text);
-static void AddProfileFileColorRule(ViewContext *ctx, const char *pattern,
-                                    int fg, int bg);
-static void AddCompactFileColorRules(ViewContext *ctx, char *value);
-static BOOL BuildFileColorPattern(const char *selector, char *pattern,
-                                  size_t pattern_size);
+static int ProfileSectionFromHeader(const char *name);
+static BOOL ParseProfileAssignment(char *line, char **name, char **value);
 static Viewer *CloneViewerList(const Viewer *head);
 static Dirmenu *CloneDirmenuList(const Dirmenu *head);
 static Filemenu *CloneFilemenuList(const Filemenu *head);
@@ -339,6 +334,71 @@ void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot) {
   free(snapshot);
 }
 
+int ValidateProfileFile(ViewContext *ctx, const char *filename) {
+  FILE *f;
+  char buffer[1024];
+  int section = NO_SECTION;
+  BOOL invalid = FALSE;
+  BOOL read_failed;
+
+  BindProfileRuntimeData(ctx);
+
+  if (filename == NULL)
+    return -1;
+
+  f = fopen(filename, "r");
+  if (f == NULL)
+    return -1;
+
+  while (fgets(buffer, sizeof(buffer), f) != NULL) {
+    char *comment;
+    char *line;
+    char *name;
+    char *value;
+
+    comment = strchr(buffer, '#');
+    if (comment != NULL)
+      *comment = '\0';
+
+    line = TrimInPlace(buffer);
+    if (line == NULL || *line == '\0')
+      continue;
+
+    if (*line == '[') {
+      section = ProfileSectionFromHeader(line);
+      if (section == -1) {
+        invalid = TRUE;
+        break;
+      }
+      continue;
+    }
+
+    if (section == NO_SECTION ||
+        !ParseProfileAssignment(line, &name, &value)) {
+      invalid = TRUE;
+      break;
+    }
+
+    if (section == GLOBAL_SECTION) {
+      Profile key;
+
+      key.name = name;
+      if (ctx == NULL || bsearch(&key, (Profile *)ctx->profile_data,
+                                 PROFILE_ENTRIES, sizeof(Profile),
+                                 Compare) == NULL) {
+        invalid = TRUE;
+        break;
+      }
+    }
+  }
+
+  read_failed = ferror(f) ? TRUE : FALSE;
+  fclose(f);
+  if (read_failed)
+    return -1;
+  return invalid ? 1 : 0;
+}
+
 int ReadProfile(ViewContext *ctx, const char *filename) {
   int result = -1;
   char buffer[1024], *old;
@@ -405,10 +465,6 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         section = DIRMAP_SECTION;
       else if (!strcmp(name, "[DIRCMD]"))
         section = DIRCMD_SECTION;
-      else if (!strcmp(name, "[COLORS]"))
-        section = COLORS_SECTION;
-      else if (!strcmp(name, "[FILE_COLORS]"))
-        section = FILE_COLORS_SECTION;
       else
         section = NO_SECTION;
 
@@ -442,28 +498,6 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
           if (p->value)
             free(p->value);
           p->value = xstrdup(value);
-        }
-      }
-    } else if (section == COLORS_SECTION) {
-      if (value) {
-        int fg = -1, bg = -1;
-        if (ctx->hook_parse_color) {
-          ctx->hook_parse_color(value, &fg, &bg);
-        }
-        if (fg != -1 && bg != -1 && ctx->hook_update_ui_color) {
-          ctx->hook_update_ui_color(name, fg, bg);
-        }
-      }
-    } else if (section == FILE_COLORS_SECTION) {
-      if (value) {
-        int fg = -1, bg = -1;
-        if (strchr(value, ':') != NULL) {
-          AddCompactFileColorRules(ctx, value);
-        } else {
-          if (ctx->hook_parse_color) {
-            ctx->hook_parse_color(value, &fg, &bg);
-          }
-          AddProfileFileColorRule(ctx, name, fg, bg);
         }
       }
     } else if (section == MENU_SECTION) {
@@ -668,72 +702,56 @@ static char *TrimInPlace(char *text) {
   return text;
 }
 
-static void AddProfileFileColorRule(ViewContext *ctx, const char *pattern,
-                                    int fg, int bg) {
-  if (fg == -1 || ctx == NULL || ctx->hook_add_file_color_rule == NULL)
-    return;
-
-  ctx->hook_add_file_color_rule(ctx, pattern, fg, bg);
+static int ProfileSectionFromHeader(const char *name) {
+  if (!strcmp(name, "[GLOBAL]"))
+    return GLOBAL_SECTION;
+  if (!strcmp(name, "[VIEWER]"))
+    return VIEWER_SECTION;
+  if (!strcmp(name, "[MENU]"))
+    return MENU_SECTION;
+  if (!strcmp(name, "[FILEMAP]"))
+    return FILEMAP_SECTION;
+  if (!strcmp(name, "[FILECMD]"))
+    return FILECMD_SECTION;
+  if (!strcmp(name, "[DIRMAP]"))
+    return DIRMAP_SECTION;
+  if (!strcmp(name, "[DIRCMD]"))
+    return DIRCMD_SECTION;
+  return -1;
 }
 
-static BOOL BuildFileColorPattern(const char *selector, char *pattern,
-                                  size_t pattern_size) {
-  int written;
+static BOOL ParseProfileAssignment(char *line, char **name, char **value) {
+  char *cptr;
 
-  if (selector == NULL || pattern == NULL || pattern_size == 0 ||
-      *selector == '\0')
+  if (line == NULL || name == NULL || value == NULL)
     return FALSE;
 
-  if (strcasecmp(selector, "LINK") == 0) {
-    written = snprintf(pattern, pattern_size, "%s", "LINK");
-  } else if (strcasecmp(selector, "EXEC") == 0) {
-    written = snprintf(pattern, pattern_size, "%s", "EXEC");
-  } else if (strchr(selector, '*') != NULL || strchr(selector, '?') != NULL) {
-    written = snprintf(pattern, pattern_size, "%s", selector);
+  *name = line;
+  for (cptr = *name; *cptr && !isspace((unsigned char)*cptr) && *cptr != '=';
+       cptr++)
+    ;
+  if (cptr == *name)
+    return FALSE;
+
+  *value = cptr;
+  if (**value == '=') {
+    *(*value)++ = '\0';
+  } else if (**value != '\0') {
+    *(*value)++ = '\0';
+    while (**value && isspace((unsigned char)**value))
+      ++*value;
+    if (**value == '=')
+      *(*value)++ = '\0';
+    else
+      *value = NULL;
   } else {
-    written = snprintf(pattern, pattern_size, "*.%s", selector);
+    *value = NULL;
   }
-
-  return written >= 0 && (size_t)written < pattern_size;
-}
-
-static void AddCompactFileColorRules(ViewContext *ctx, char *value) {
-  char *colon;
-  char *style;
-  char *selectors;
-  char *saveptr;
-  char *selector;
-  int fg = -1;
-  int bg = -1;
-
-  if (ctx == NULL || value == NULL || ctx->hook_parse_color == NULL)
-    return;
-
-  colon = strchr(value, ':');
-  if (colon == NULL)
-    return;
-
-  *colon = '\0';
-  style = TrimInPlace(value);
-  selectors = TrimInPlace(colon + 1);
-  if (style == NULL || selectors == NULL || *style == '\0' ||
-      *selectors == '\0')
-    return;
-
-  ctx->hook_parse_color(style, &fg, &bg);
-  if (fg == -1)
-    return;
-
-  selector = strtok_r(selectors, ",", &saveptr);
-  while (selector != NULL) {
-    char pattern[FILE_SPEC_LENGTH + 1];
-    char *trimmed = TrimInPlace(selector);
-
-    if (BuildFileColorPattern(trimmed, pattern, sizeof(pattern)))
-      AddProfileFileColorRule(ctx, pattern, fg, bg);
-
-    selector = strtok_r(NULL, ",", &saveptr);
-  }
+  if (*value == NULL)
+    return FALSE;
+  while (**value && isspace((unsigned char)**value))
+    ++*value;
+  return TRUE;
 }
 
 static int Compare(const void *s1, const void *s2) {

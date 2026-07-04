@@ -147,6 +147,7 @@ extern char *GetUserFileAction(const ViewContext *ctx, int chkey,
                                int *pchremap);
 extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
+extern int ValidateProfileFile(ViewContext *ctx, const char *filename);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
 extern int ReadThemeFile(ViewContext *ctx, const char *filename,

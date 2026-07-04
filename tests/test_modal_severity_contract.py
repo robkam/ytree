@@ -8,9 +8,9 @@ def test_modal_message_severity_routes_info_warn_error_pairs():
     assert "static short ModalSeverityColorPair(" in error_source, (
         "Modal rendering must route severity through one centralized color-tier mapper."
     )
-    assert "CPAIR_INFO" in error_source, "Info-tier modal color must be wired."
-    assert "CPAIR_WARN" in error_source, "Warning-tier modal color must be wired."
-    assert "CPAIR_ERR" in error_source, "Error-tier modal color must be wired."
+    assert "UI_ROLE_INFO" in error_source, "Info-tier modal color must be wired."
+    assert "UI_ROLE_WARNING" in error_source, "Warning-tier modal color must be wired."
+    assert "UI_ROLE_ERROR" in error_source, "Error-tier modal color must be wired."
 
     ui_message_block = _extract_function_block(error_source, "int UI_Message(")
     ui_warning_block = _extract_function_block(error_source, "int UI_Warning(")
