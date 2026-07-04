@@ -276,5 +276,7 @@ def test_reload_failures_use_status_line_without_success_message():
     assert "UI_ShowStatusLineError" in source
     assert "Reload failed: can't read config" in source
     assert "Reload failed: can't load theme" in source
+    assert "UIColorSnapshot_Create" in source
+    assert "UIColorSnapshot_Restore" in source
     assert "Reloaded" not in source
     assert "reload successful" not in source.lower()

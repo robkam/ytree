@@ -163,6 +163,14 @@ def test_manpage_documents_user_visible_theme_contract():
 
     for source in (man_source, usage_source):
         assert "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
+        assert (
+            "By default this creates `~/.config/ytnova/ytnova.conf`"
+            in source
+        )
+        assert (
+            "instead of the default `~/.config/ytnova/ytnova.conf`" in source
+        )
+        assert "View file with the pager defined in the main config" in source
         assert "~/.config/ytnova/ytnova.conf" in source
         assert "~/.config/ytnova/themes.conf" in source
         assert "~/.ytnova.themes" in source

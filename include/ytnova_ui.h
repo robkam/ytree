@@ -71,6 +71,10 @@ extern void SuspendClock(ViewContext *ctx);
 
 /* color.c */
 #ifdef COLOR_SUPPORT
+typedef struct _ui_color_snapshot UIColorSnapshot;
+extern UIColorSnapshot *UIColorSnapshot_Create(void);
+extern void UIColorSnapshot_Restore(UIColorSnapshot *snapshot);
+extern void UIColorSnapshot_Free(UIColorSnapshot *snapshot);
 extern void StartColors(ViewContext *ctx);
 extern void ReinitColorPairs(ViewContext *ctx);
 extern void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c);

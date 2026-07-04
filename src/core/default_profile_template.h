@@ -2,8 +2,8 @@
 static const char default_profile_template[] =
     "###############################################\n"
     "# YtreeNova Defaults\n"
-    "# Modify this file and copy it to the hidden\n"
-    "# file called .ytnova placed in your home directory.\n"
+    "# Modify this file and copy it to ~/.config/ytnova/ytnova.conf.\n"
+    "# The legacy ~/.ytnova path is loaded only as a fallback.\n"
     "# Or run: ytnova --init\n"
     "# You may also invoke it explicitly with the\n"
     "# \"-p <profile-filename> command line argument.\n"

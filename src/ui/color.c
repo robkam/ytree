@@ -37,6 +37,12 @@ UIColor ui_colors[] = {
 
 int NUM_UI_COLORS = sizeof(ui_colors) / sizeof(ui_colors[0]);
 
+struct _ui_color_snapshot {
+  int count;
+  int *fg;
+  int *bg;
+};
+
 typedef struct {
   const char *name;
   int value;
@@ -122,6 +128,45 @@ static int UIColorBackground(int pair_id) {
   }
 
   return COLOR_BLACK;
+}
+
+UIColorSnapshot *UIColorSnapshot_Create(void) {
+  int i;
+  UIColorSnapshot *snapshot = xmalloc(sizeof(*snapshot));
+
+  snapshot->count = NUM_UI_COLORS;
+  snapshot->fg = xmalloc(sizeof(snapshot->fg[0]) * snapshot->count);
+  snapshot->bg = xmalloc(sizeof(snapshot->bg[0]) * snapshot->count);
+
+  for (i = 0; i < snapshot->count; ++i) {
+    snapshot->fg[i] = ui_colors[i].fg;
+    snapshot->bg[i] = ui_colors[i].bg;
+  }
+
+  return snapshot;
+}
+
+void UIColorSnapshot_Restore(UIColorSnapshot *snapshot) {
+  int i;
+  int count;
+
+  if (snapshot == NULL)
+    return;
+
+  count = snapshot->count < NUM_UI_COLORS ? snapshot->count : NUM_UI_COLORS;
+  for (i = 0; i < count; ++i) {
+    ui_colors[i].fg = snapshot->fg[i];
+    ui_colors[i].bg = snapshot->bg[i];
+  }
+}
+
+void UIColorSnapshot_Free(UIColorSnapshot *snapshot) {
+  if (snapshot == NULL)
+    return;
+
+  free(snapshot->fg);
+  free(snapshot->bg);
+  free(snapshot);
 }
 
 void ParseColorString(const char *color_str, int *fg, int *bg) {

@@ -622,6 +622,144 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
 
 
+def test_invalid_theme_load_keeps_previous_runtime_state(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    incomplete_theme = tmp_path / "incomplete.conf"
+    invalid_theme = tmp_path / "invalid.conf"
+    driver = tmp_path / "theme_atomic_failure_driver.c"
+    binary = tmp_path / "theme_atomic_failure_driver"
+
+    incomplete_theme.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+
+[file-types sample]
+archives = red: zip
+""",
+        encoding="utf-8",
+    )
+    invalid_theme.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = not-a-color
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types sample]
+archives = red: zip
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+static int color_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  (void)name;
+  (void)fg;
+  (void)bg;
+  ++color_count;
+}
+
+static int expect_previous_state(ViewContext *ctx, const char *path) {
+  FileColorRule *rule;
+
+  color_count = 0;
+  if (ReadThemeFile(ctx, path, "sample") == 0) {
+    fprintf(stderr, "%s unexpectedly loaded\n", path);
+    return 1;
+  }
+  if (color_count != 0) {
+    fprintf(stderr, "%s changed %d colors\n", path, color_count);
+    return 1;
+  }
+
+  rule = (FileColorRule *)ctx->file_color_rules_head;
+  if (rule == NULL || strcmp(rule->pattern, "*.old") != 0 ||
+      rule->fg != COLOR_GREEN || rule->bg != COLOR_BLACK || rule->next != NULL) {
+    fprintf(stderr, "%s did not preserve previous file palette\n", path);
+    return 1;
+  }
+
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 3)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+  AddFileColorRule(&ctx, "*.old", COLOR_GREEN, COLOR_BLACK);
+
+  if (expect_previous_state(&ctx, argv[1]) != 0)
+    return 1;
+  if (expect_previous_state(&ctx, argv[2]) != 0)
+    return 1;
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run(
+        [str(binary), str(incomplete_theme), str(invalid_theme)],
+        cwd=repo_root,
+        check=True,
+    )
+
+
 def test_profile_runtime_snapshot_restores_values_and_palette(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     original = tmp_path / "original.conf"

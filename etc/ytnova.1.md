@@ -19,8 +19,8 @@ If no command line arguments are provided, the current directory will be logged.
 *   **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
 *   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
 *   **-h** *history_file*: Use *history_file* instead of the default `~/.ytnova-hst`.
-*   **--init**: Create a starter profile file and exit. By default this creates `~/.ytnova` only if it does not already exist. Use `-p` to target a different file.
-*   **-p** *config_file*: Use *config_file* instead of the default `~/.ytnova`.
+*   **--init**: Create a starter profile file and exit. By default this creates `~/.config/ytnova/ytnova.conf` only if it does not already exist. Use `-p` to target a different file.
+*   **-p** *config_file*: Use *config_file* instead of the default `~/.config/ytnova/ytnova.conf`.
 *   **-v**, **-V**, **--version**: Print ytnova version information and exit.
 *   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
 
@@ -167,7 +167,7 @@ Active when the file window is focused.
     for this action.)*
 *   **^U**: Untag all displayed files. *(With `VI_KEYS=1`, `^U` is page-up
     navigation and uppercase `U` becomes Untag All.)*
-*   **V** (View): View file with the pager defined in `~/.ytnova` (default: less).
+*   **V** (View): View file with the pager defined in the main config (default: less).
 *   **^V**: **View Tagged**. View all tagged files sequentially.
 *   **W** (Write): Export the selected file to a command or file using a formatting dialog (Raw, Framed, Page Break).
 *   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.

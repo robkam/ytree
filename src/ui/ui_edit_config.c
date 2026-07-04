@@ -244,12 +244,18 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
 
 static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
+#ifdef COLOR_SUPPORT
+  UIColorSnapshot *color_snapshot;
+#endif
   BOOL original_bypass_small_window;
 
   if (ctx == NULL)
     return -1;
 
   profile_snapshot = ProfileRuntimeSnapshot_Create(ctx);
+#ifdef COLOR_SUPPORT
+  color_snapshot = UIColorSnapshot_Create();
+#endif
   original_bypass_small_window = ctx->bypass_small_window;
 
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
@@ -259,6 +265,10 @@ static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
               ctx,
               ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP")))) {
         ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+#ifdef COLOR_SUPPORT
+        UIColorSnapshot_Restore(color_snapshot);
+        UIColorSnapshot_Free(color_snapshot);
+#endif
         ProfileRuntimeSnapshot_Free(profile_snapshot);
         ctx->bypass_small_window = original_bypass_small_window;
         UI_ShowStatusLineError(ctx, "Reload failed: can't apply config");
@@ -266,6 +276,10 @@ static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
       }
     } else {
       ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+#ifdef COLOR_SUPPORT
+      UIColorSnapshot_Restore(color_snapshot);
+      UIColorSnapshot_Free(color_snapshot);
+#endif
       ProfileRuntimeSnapshot_Free(profile_snapshot);
       ctx->bypass_small_window = original_bypass_small_window;
       UI_ShowStatusLineError(ctx, "Reload failed: can't read config");
@@ -276,6 +290,10 @@ static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
   if (ctx->core_init_ops.load_theme != NULL &&
       ctx->core_init_ops.load_theme(ctx) != 0) {
     ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+#ifdef COLOR_SUPPORT
+    UIColorSnapshot_Restore(color_snapshot);
+    UIColorSnapshot_Free(color_snapshot);
+#endif
     ProfileRuntimeSnapshot_Free(profile_snapshot);
     ctx->bypass_small_window = original_bypass_small_window;
     UI_ShowStatusLineError(ctx, "Reload failed: can't load theme");
@@ -283,6 +301,9 @@ static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
   }
   if (ctx->core_init_ops.reinit_color_pairs != NULL)
     ctx->core_init_ops.reinit_color_pairs(ctx);
+#ifdef COLOR_SUPPORT
+  UIColorSnapshot_Free(color_snapshot);
+#endif
   ProfileRuntimeSnapshot_Free(profile_snapshot);
   return 0;
 }

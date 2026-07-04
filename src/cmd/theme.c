@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 
 #define THEME_STYLE_LENGTH 128
 #define THEME_ROLE_COUNT 16
@@ -22,6 +23,11 @@ typedef struct {
   char value[THEME_STYLE_LENGTH];
   BOOL is_set;
 } ThemeRoleValue;
+
+typedef struct _theme_palette_line {
+  char value[2048];
+  struct _theme_palette_line *next;
+} ThemePaletteLine;
 
 typedef struct {
   const char *role;
@@ -73,7 +79,17 @@ static void ApplyMigrationRoleShim(ViewContext *ctx, const char *role, int fg,
                                    int bg);
 static BOOL BuildFileColorPattern(const char *selector, char *pattern,
                                   size_t pattern_size);
-static void AddCompactFileColorRules(ViewContext *ctx, char *value);
+static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
+                                       ViewContext *target_ctx);
+static ThemePaletteLine *AppendThemePaletteLine(ThemePaletteLine **head,
+                                                ThemePaletteLine **tail,
+                                                const char *value);
+static void FreeThemePaletteLines(ThemePaletteLine *head);
+static BOOL ValidateThemeRoles(ViewContext *ctx, ThemeRoleValue *roles);
+static BOOL ValidateThemePaletteLines(ViewContext *ctx,
+                                      ThemePaletteLine *head);
+static BOOL StageThemePaletteLines(ViewContext *ctx, ThemePaletteLine *head,
+                                   ViewContext *target_ctx);
 static void FreeThemeFileColorRules(FileColorRule *rule);
 static int TryConfiguredThemePath(ViewContext *ctx, char *path,
                                   size_t path_size, const char *home,
@@ -268,7 +284,8 @@ static BOOL BuildFileColorPattern(const char *selector, char *pattern,
   return written >= 0 && (size_t)written < pattern_size;
 }
 
-static void AddCompactFileColorRules(ViewContext *ctx, char *value) {
+static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
+                                       ViewContext *target_ctx) {
   char *colon;
   char *style;
   char *selectors;
@@ -276,36 +293,142 @@ static void AddCompactFileColorRules(ViewContext *ctx, char *value) {
   char *selector;
   int fg = -1;
   int bg = -1;
+  BOOL added = FALSE;
 
-  if (ctx == NULL || value == NULL || ctx->hook_parse_color == NULL ||
-      ctx->hook_add_file_color_rule == NULL)
-    return;
+  if (ctx == NULL || value == NULL || ctx->hook_parse_color == NULL)
+    return FALSE;
+  if (target_ctx != NULL && target_ctx->hook_add_file_color_rule == NULL)
+    return FALSE;
 
   colon = strchr(value, ':');
   if (colon == NULL)
-    return;
+    return FALSE;
 
   *colon = '\0';
   style = TrimInPlace(value);
   selectors = TrimInPlace(colon + 1);
   if (style == NULL || selectors == NULL || *style == '\0' ||
       *selectors == '\0')
-    return;
+    return FALSE;
 
   ctx->hook_parse_color(style, &fg, &bg);
   if (fg == -1)
-    return;
+    return FALSE;
 
   selector = strtok_r(selectors, ",", &saveptr);
   while (selector != NULL) {
     char pattern[FILE_SPEC_LENGTH + 1];
     char *trimmed = TrimInPlace(selector);
 
-    if (BuildFileColorPattern(trimmed, pattern, sizeof(pattern)))
-      ctx->hook_add_file_color_rule(ctx, pattern, fg, bg);
+    if (!BuildFileColorPattern(trimmed, pattern, sizeof(pattern)))
+      return FALSE;
+    if (target_ctx != NULL)
+      target_ctx->hook_add_file_color_rule(target_ctx, pattern, fg, bg);
+    added = TRUE;
 
     selector = strtok_r(NULL, ",", &saveptr);
   }
+
+  return added;
+}
+
+static ThemePaletteLine *AppendThemePaletteLine(ThemePaletteLine **head,
+                                                ThemePaletteLine **tail,
+                                                const char *value) {
+  ThemePaletteLine *line;
+
+  if (head == NULL || tail == NULL || value == NULL)
+    return NULL;
+
+  line = xmalloc(sizeof(*line));
+  snprintf(line->value, sizeof(line->value), "%s", value);
+  line->next = NULL;
+
+  if (*head == NULL) {
+    *head = line;
+  } else {
+    (*tail)->next = line;
+  }
+  *tail = line;
+
+  return line;
+}
+
+static void FreeThemePaletteLines(ThemePaletteLine *head) {
+  while (head != NULL) {
+    ThemePaletteLine *next = head->next;
+    free(head);
+    head = next;
+  }
+}
+
+static BOOL ValidateThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
+  ThemeRoleValue *background_role;
+  int i;
+  int background;
+  int background_fg = -1;
+  int background_bg = -1;
+
+  if (ctx == NULL || roles == NULL)
+    return FALSE;
+
+  for (i = 0; i < THEME_ROLE_COUNT; ++i) {
+    if (!roles[i].is_set)
+      return FALSE;
+  }
+
+  if (ctx->hook_parse_color == NULL)
+    return FALSE;
+  background_role = FindRole(roles, "background");
+  if (background_role == NULL)
+    return FALSE;
+  ctx->hook_parse_color(background_role->value, &background_fg, &background_bg);
+  if (background_fg == -1)
+    return FALSE;
+
+  background = ThemeBackground(ctx, roles);
+
+  for (i = 0; i < THEME_ROLE_COUNT; ++i) {
+    int fg;
+    int bg;
+
+    if (strcmp(roles[i].name, "background") == 0)
+      continue;
+    if (!ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+static BOOL ValidateThemePaletteLines(ViewContext *ctx,
+                                      ThemePaletteLine *head) {
+  ThemePaletteLine *line;
+
+  for (line = head; line != NULL; line = line->next) {
+    char value[sizeof(line->value)];
+
+    snprintf(value, sizeof(value), "%s", line->value);
+    if (!ParseCompactFileColorRules(ctx, value, NULL))
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+static BOOL StageThemePaletteLines(ViewContext *ctx, ThemePaletteLine *head,
+                                   ViewContext *target_ctx) {
+  ThemePaletteLine *line;
+
+  for (line = head; line != NULL; line = line->next) {
+    char value[sizeof(line->value)];
+
+    snprintf(value, sizeof(value), "%s", line->value);
+    if (!ParseCompactFileColorRules(ctx, value, target_ctx))
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
 static void FreeThemeFileColorRules(FileColorRule *rule) {
@@ -324,9 +447,15 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
   char buffer[2048];
   ThemeRoleValue roles[THEME_ROLE_COUNT];
   ThemeSection section = THEME_SECTION_NONE;
+  ThemePaletteLine *palette_head = NULL;
+  ThemePaletteLine *palette_tail = NULL;
+  ViewContext staging_ctx;
+#ifdef COLOR_SUPPORT
+  UIColorSnapshot *color_snapshot;
+#endif
   FileColorRule *old_file_rules;
   BOOL found_theme = FALSE;
-  BOOL roles_applied = FALSE;
+  BOOL invalid_theme = FALSE;
   int i;
 
   if (ctx == NULL || filename == NULL || theme_name == NULL || *theme_name == '\0')
@@ -335,9 +464,6 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
   fp = fopen(filename, "r");
   if (fp == NULL)
     return -1;
-
-  old_file_rules = (FileColorRule *)ctx->file_color_rules_head;
-  ctx->file_color_rules_head = NULL;
 
   memset(roles, 0, sizeof(roles));
   for (i = 0; i < THEME_ROLE_COUNT; ++i)
@@ -360,11 +486,6 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
     if (*line == '[') {
       ThemeSection new_section = ParseSection(line, theme_name);
 
-      if (found_theme && !roles_applied && section == THEME_SECTION_ROLES &&
-          new_section != THEME_SECTION_ROLES) {
-        ApplyThemeRoles(ctx, roles);
-        roles_applied = TRUE;
-      }
       section = new_section;
       if (section == THEME_SECTION_ROLES)
         found_theme = TRUE;
@@ -374,32 +495,63 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
     if (section == THEME_SECTION_ROLES) {
       ThemeRoleValue *role;
 
-      if (!SplitAssignment(line, &name, &value))
-        continue;
+      if (!SplitAssignment(line, &name, &value)) {
+        invalid_theme = TRUE;
+        break;
+      }
       role = FindRole(roles, name);
-      if (role == NULL)
-        continue;
+      if (role == NULL) {
+        invalid_theme = TRUE;
+        break;
+      }
       snprintf(role->value, sizeof(role->value), "%s", value);
       role->is_set = TRUE;
     } else if (section == THEME_SECTION_FILE_TYPES) {
-      if (!SplitAssignment(line, &name, &value))
-        continue;
+      if (!SplitAssignment(line, &name, &value)) {
+        invalid_theme = TRUE;
+        break;
+      }
       (void)name;
-      AddCompactFileColorRules(ctx, value);
+      if (AppendThemePaletteLine(&palette_head, &palette_tail, value) == NULL) {
+        invalid_theme = TRUE;
+        break;
+      }
     }
   }
 
   fclose(fp);
 
-  if (!found_theme) {
-    FreeThemeFileColorRules((FileColorRule *)ctx->file_color_rules_head);
-    ctx->file_color_rules_head = old_file_rules;
+  if (invalid_theme || !found_theme || !ValidateThemeRoles(ctx, roles) ||
+      !ValidateThemePaletteLines(ctx, palette_head)) {
+    FreeThemePaletteLines(palette_head);
     return -1;
   }
 
-  if (!roles_applied)
-    ApplyThemeRoles(ctx, roles);
+  staging_ctx = *ctx;
+  staging_ctx.file_color_rules_head = NULL;
+  old_file_rules = (FileColorRule *)ctx->file_color_rules_head;
+#ifdef COLOR_SUPPORT
+  color_snapshot = UIColorSnapshot_Create();
+#endif
+
+  ApplyThemeRoles(ctx, roles);
+  if (!StageThemePaletteLines(ctx, palette_head, &staging_ctx)) {
+    ctx->file_color_rules_head = old_file_rules;
+#ifdef COLOR_SUPPORT
+    UIColorSnapshot_Restore(color_snapshot);
+    UIColorSnapshot_Free(color_snapshot);
+#endif
+    FreeThemeFileColorRules((FileColorRule *)staging_ctx.file_color_rules_head);
+    FreeThemePaletteLines(palette_head);
+    return -1;
+  }
+
+  ctx->file_color_rules_head = staging_ctx.file_color_rules_head;
   FreeThemeFileColorRules(old_file_rules);
+#ifdef COLOR_SUPPORT
+  UIColorSnapshot_Free(color_snapshot);
+#endif
+  FreeThemePaletteLines(palette_head);
   return 0;
 }
 
