@@ -129,8 +129,8 @@ static void SetupTaggedViewWindow(ViewContext *ctx) {
   leaveok(ctx->viewer.view, FALSE);
 
 #ifdef COLOR_SUPPORT
-  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR));
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS));
+  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES));
 #endif
 }
 
@@ -168,9 +168,9 @@ static void DrawTaggedViewHeader(ViewContext *ctx, const char *display_path,
            total_count, display_path ? display_path : "");
   available = (COLS > 7) ? (COLS - 7) : 1;
 
-  Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, ctx->layout.header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, ctx->layout.header_y, 6,
-        CutPathname(clipped_header, header_buf, available), CPAIR_FILE);
+        CutPathname(clipped_header, header_buf, available), UI_ROLE_DYNAMIC_TEXT);
 
   PrintOptions(stdscr, ctx->layout.message_y, 0,
                "(Q)uit  (Space/PgDn) next page/file  (PgUp) prev page");

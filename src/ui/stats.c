@@ -205,7 +205,7 @@ static void FormatShortSize(char *buf, size_t size, long long val) {
 
 static void SetStatsBaseColor(ViewContext *ctx) {
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_WINSTATS));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif
@@ -213,7 +213,7 @@ static void SetStatsBaseColor(ViewContext *ctx) {
 
 static void SetStatsStaticColor(ViewContext *ctx) {
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_BOLD);
 #endif
@@ -221,7 +221,7 @@ static void SetStatsStaticColor(ViewContext *ctx) {
 
 static void SetStatsDynamicColor(ViewContext *ctx) {
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_STATS));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif
@@ -229,7 +229,7 @@ static void SetStatsDynamicColor(ViewContext *ctx) {
 
 static void SetStatsBorderColor(ViewContext *ctx) {
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif

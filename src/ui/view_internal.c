@@ -38,7 +38,7 @@ static struct stat fdstat;
 #define CURSOR_POSX ((ctx->viewer.inhex) ? (C_POSX / 2) : cursor_pos_x)
 #define CANTX(x) ((ctx->viewer.inhex) ? (x * 2) : x)
 #define THECOLOR                                                               \
-  ((ctx->viewer.inedit) ? COLOR_PAIR(CPAIR_STATS) : COLOR_PAIR(CPAIR_DIR))
+  ((ctx->viewer.inedit) ? COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT) : COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT))
 
 static void hex_edit(ViewContext *ctx, char *file_path,
                      const ViewerGeometry *geom);
@@ -129,7 +129,7 @@ static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
     waddch(win, line[i] | THECOLOR);
   for (int i = 0; i < ctx->viewer.bytes; i++)
     isprint(buf[i]) ? waddch(win, buf[i] | THECOLOR)
-                    : waddch(win, ACS_BLOCK | COLOR_PAIR(CPAIR_HIDIR));
+                    : waddch(win, ACS_BLOCK | COLOR_PAIR(UI_ROLE_SELECTION));
   return;
 }
 
@@ -204,9 +204,9 @@ static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
 
   doupdate();
 
-  Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, geom->header_y, 6,
-        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_FILE);
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT);
   PrintOptions(stdscr, geom->message_y, 0,
                "(Edit file in hexadecimal mode)");
   wclrtoeol(stdscr);
@@ -235,9 +235,9 @@ static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
   }
   doupdate();
 
-  Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, geom->header_y, 6,
-        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_FILE);
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT);
   PrintOptions(stdscr, geom->message_y, 0,
                "View file in hexadecimal mode");
   wclrtoeol(stdscr);
@@ -284,13 +284,13 @@ static void SetupViewWindow(ViewContext *ctx, const char *file_path,
   clearok(ctx->viewer.view, TRUE);
   leaveok(ctx->viewer.view, FALSE);
   /*    werase(ctx->viewer.view);*/
-  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR));
+  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   wclear(ctx->viewer.view);
   for (i = 0; i < ctx->viewer.wlines - 1; i++) {
     wmove(ctx->viewer.view, i, 0);
     wclrtoeol(ctx->viewer.view);
   }
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS));
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES));
   Change2View(ctx, geom, file_path);
   box(ctx->viewer.border, 0, 0);
   RefreshWindow(ctx->viewer.border);

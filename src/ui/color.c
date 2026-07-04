@@ -249,7 +249,7 @@ void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg, int bg) {
 
   new_rule->pattern = xstrdup(pattern);
   new_rule->fg = fg;
-  new_rule->bg = (bg == -1) ? UIColorBackground(CPAIR_FILE) : bg;
+  new_rule->bg = (bg == -1) ? UIColorBackground(UI_ROLE_DYNAMIC_TEXT) : bg;
   new_rule->pair_id = 0;
   new_rule->next = NULL;
 
@@ -284,7 +284,7 @@ void ReinitColorPairs(ViewContext *ctx) {
       if (next_pair_id < COLOR_PAIRS) {
         rule->pair_id = next_pair_id++;
       } else {
-        rule->pair_id = CPAIR_FILE; /* Fallback */
+        rule->pair_id = UI_ROLE_DYNAMIC_TEXT;
       }
     }
     init_pair(rule->pair_id, NormalizeColorIndex(rule->fg, COLORS),
@@ -307,7 +307,7 @@ int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
   FileColorRule *rule;
 
   if (!fe_ptr)
-    return CPAIR_FILE;
+    return UI_ROLE_DYNAMIC_TEXT;
 
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
     if (S_ISLNK(fe_ptr->stat_struct.st_mode) &&
@@ -331,7 +331,7 @@ int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
     }
   }
 
-  return CPAIR_FILE; /* Default */
+  return UI_ROLE_DYNAMIC_TEXT; /* Default */
 }
 
 void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c) {
@@ -339,8 +339,7 @@ void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c) {
     wbkgdset(w, c);
   } else {
     c &= ~A_BOLD;
-    if (c == COLOR_PAIR(CPAIR_HIDIR) || c == COLOR_PAIR(CPAIR_HIFILE) ||
-        c == COLOR_PAIR(CPAIR_HIMENUS) || c == COLOR_PAIR(CPAIR_HIHST)) {
+    if (c == COLOR_PAIR(UI_ROLE_SELECTION) || c == COLOR_PAIR(UI_ROLE_KEYBIND)) {
 
       wattrset(w, A_REVERSE);
     } else {

@@ -609,8 +609,8 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
     return;
 
 #ifdef COLOR_SUPPORT
-  lo_color = CPAIR_MENU;
-  hi_color = CPAIR_HIMENUS;
+  lo_color = UI_ROLE_STATIC_TEXT;
+  hi_color = UI_ROLE_KEYBIND;
 #else
   lo_color = A_NORMAL;
   hi_color = A_BOLD;

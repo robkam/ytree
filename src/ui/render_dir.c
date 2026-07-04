@@ -84,15 +84,15 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   DirEntry *de_ptr;
 
   if (win == ctx->ctx_f2_window) {
-    color = CPAIR_HST;
-    highlight_color = CPAIR_HIHST;
-    margin_color = CPAIR_HST;
-    tree_line_color = CPAIR_HST;
+    color = UI_ROLE_PICKER;
+    highlight_color = UI_ROLE_SELECTION;
+    margin_color = UI_ROLE_PICKER;
+    tree_line_color = UI_ROLE_PICKER;
   } else {
-    color = CPAIR_DIR;
-    highlight_color = CPAIR_HIDIR;
-    margin_color = CPAIR_MARGIN;
-    tree_line_color = CPAIR_TREE_LINES;
+    color = UI_ROLE_DYNAMIC_TEXT;
+    highlight_color = UI_ROLE_SELECTION;
+    margin_color = UI_ROLE_MARGIN;
+    tree_line_color = UI_ROLE_TREE_LINES;
   }
 
   /* Build the tree graph string (e.g., "| 6- ") */
@@ -345,9 +345,9 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
 #ifdef COLOR_SUPPORT
   if (win == ctx->ctx_f2_window) {
-    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));
+    WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));
   } else {
-    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINDIR));
+    WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   }
 #endif
   werase(win);

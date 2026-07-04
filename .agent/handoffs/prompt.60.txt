@@ -6,18 +6,20 @@ Current branch and HEAD:
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Margin inheritance.
-  - Added focused regression coverage for a theme that omits `margin` while defining `dynamic_text`.
-  - Theme loading now defaults omitted `margin` to `dynamic_text` before strict validation and application.
-  - All other required semantic roles remain strictly required; invalid/incomplete themes still fail atomically.
+- Semantic role migration completion for Task 60 render surfaces.
+  - Added missing internal semantic role aliases for `tree_lines`, `margin`, and `search_hit`.
+  - Updated color-supported render/setup surfaces to consume `UI_ROLE_*` aliases instead of legacy `CPAIR_*` names.
+  - Kept legacy color-key names isolated to the migration/projection layer (`src/cmd/theme.c`, `src/ui/color.c`, and enum alias definitions).
+  - Updated Task 60 contract tests to assert semantic role consumption and prevent renderer fallback to legacy pair names.
 
-Prior local subunit in this continuation:
+Prior local subunits in this continuation:
 - Strict user theme catalog failure handling: unreadable preferred theme catalogs fail closed instead of falling through to fallback catalogs.
+- Margin inheritance: omitted `margin` defaults to `dynamic_text` while other roles remain strictly validated.
 
 Focused validation for this checkpoint:
-- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_theme_margin_defaults_to_dynamic_text_when_omitted -q` -> failed because `ReadThemeFile` rejected the theme without `margin`.
-- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_theme_margin_defaults_to_dynamic_text_when_omitted tests/test_color_parser_runtime.py::test_theme_file_loader_maps_roles_and_palette_rules tests/test_color_parser_runtime.py::test_failed_theme_load_keeps_previous_file_palette -q` -> 3 passed.
-- `make` -> passed.
+- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> failed because `UI_ROLE_TREE_LINES`/`UI_ROLE_MARGIN` aliases and renderer usage were missing.
+- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py::test_theme_palette_omitted_background_inherits_theme_filename_background tests/test_color_parser_runtime.py::test_theme_file_loader_maps_roles_and_palette_rules -q` -> 35 passed.
+- `make` -> passed (`Nothing to be done for 'all'` after the prior successful build).
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -28,9 +30,9 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Semantic role migration completion: add missing semantic aliases needed by renderers and move Task 60 render contract tests/surfaces away from direct legacy pair names except migration/projection input.
+- None for the current listed code-auditor findings after this checkpoint is committed. If the maintainer asks to continue broader Task 60 work, run a fresh focused audit against docs/ROADMAP.md Task 60 acceptance criteria.
 
 Known blockers or risks:
 - No active blocker.
-- Remaining current auditor findings after this subunit: semantic role migration completion and keeping this checkpoint fresh as subsequent commits land.
+- Current listed code-auditor findings addressed locally: strict unreadable catalog failure handling, margin inheritance, semantic role migration, and refreshed recovery handoff.
 - Before any maintainer-requested push, fetch origin and rebase `task-60` onto latest `origin/main`, then rerun focused validation after a clean rebase.

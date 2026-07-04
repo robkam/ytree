@@ -284,8 +284,8 @@ void DisplayHeaderPath(ViewContext *ctx, const char *path) {
   DEBUG_LOG("DisplayHeaderPath: path='%s' cut='%s' avail=%d", path,
             display_buffer, available_width);
 
-  WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));
-  wattrset(ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));
+  WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  wattrset(ctx->ctx_path_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   werase(ctx->ctx_path_window);
   mvwaddstr(ctx->ctx_path_window, 0, 0, display_buffer);
   wnoutrefresh(ctx->ctx_path_window);
@@ -307,7 +307,7 @@ void DisplayMenu(ViewContext *ctx) {
    * GetPath(dir_entry) */
 
   /* --- NATIVE ACS BORDERS --- */
-  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  wattron(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES) | A_ALTCHARSET);
 
   /* Outer Box Frame (Data Area) */
   mvwhline(ctx->ctx_border_window, 1, 0, ACS_HLINE, L_BORDER_FOR_DISPLAY);
@@ -349,7 +349,7 @@ void SwitchToSmallFileWindow(ViewContext *ctx) {
 
   werase(ctx->ctx_file_window);
   int separator_width = COLS - ctx->layout.stats_width - 1;
-  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  wattron(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES) | A_ALTCHARSET);
   mvwhline(ctx->ctx_border_window, separator_y, 1, ACS_HLINE,
            separator_width - 1);
   mvwaddch(ctx->ctx_border_window, separator_y, 0, ACS_LTEE);
@@ -382,7 +382,7 @@ void SwitchToBigFileWindow(ViewContext *ctx) {
   whline(ctx->ctx_border_window, ' ', separator_width + 1);
 
   /* Draw vertical borders at left and right edges of dir window */
-  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  wattron(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES) | A_ALTCHARSET);
   mvwaddch(ctx->ctx_border_window, separator_y, ctx->layout.dir_win_x - 1,
            ACS_VLINE);
   mvwaddch(ctx->ctx_border_window, separator_y,
@@ -404,7 +404,7 @@ void UnmapF2Window(ViewContext *ctx) {
   int separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
   werase(ctx->ctx_f2_window);
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES));
   if (ctx->ctx_file_window == ctx->ctx_big_file_window) {
     mvwaddch(ctx->ctx_border_window, separator_y, ctx->layout.dir_win_x - 1,
              '|');
@@ -646,7 +646,7 @@ static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big,
   wmove(ctx->ctx_border_window, separator_y, 0);
   whline(ctx->ctx_border_window, ' ', data_right_x + 1);
 
-  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  wattron(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES) | A_ALTCHARSET);
 
   mvwaddch(ctx->ctx_border_window, separator_y, 0,
            left_big ? ACS_VLINE : ACS_LTEE);

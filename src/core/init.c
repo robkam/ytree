@@ -597,7 +597,7 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(primary->pan_dir_window, TRUE);
 
   leaveok(primary->pan_dir_window, TRUE);
-  CoreInitWbkgdSet(ctx, primary->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
+  CoreInitWbkgdSet(ctx, primary->pan_dir_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
   primary->pan_small_file_window =
       Subwin(stdscr, primary->small_file_h, primary->small_file_w,
@@ -605,7 +605,7 @@ void ReCreateWindows(ViewContext *ctx) {
   keypad(primary->pan_small_file_window, TRUE);
 
   leaveok(primary->pan_small_file_window, TRUE);
-  CoreInitWbkgdSet(ctx, primary->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
+  CoreInitWbkgdSet(ctx, primary->pan_small_file_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
   primary->pan_big_file_window =
       Subwin(stdscr, primary->big_file_h, primary->big_file_w,
@@ -613,7 +613,7 @@ void ReCreateWindows(ViewContext *ctx) {
   keypad(primary->pan_big_file_window, TRUE);
 
   leaveok(primary->pan_big_file_window, TRUE);
-  CoreInitWbkgdSet(ctx, primary->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
+  CoreInitWbkgdSet(ctx, primary->pan_big_file_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
   if (!AppStateSetPanelFileWindowHandle(ctx, primary, primary_big_mode))
     return;
@@ -628,7 +628,7 @@ void ReCreateWindows(ViewContext *ctx) {
     scrollok(ctx->right->pan_dir_window, TRUE);
 
     leaveok(ctx->right->pan_dir_window, TRUE);
-    CoreInitWbkgdSet(ctx, ctx->right->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
+    CoreInitWbkgdSet(ctx, ctx->right->pan_dir_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
     ctx->right->pan_small_file_window =
         Subwin(stdscr, ctx->right->small_file_h, ctx->right->small_file_w,
@@ -636,7 +636,7 @@ void ReCreateWindows(ViewContext *ctx) {
     keypad(ctx->right->pan_small_file_window, TRUE);
 
     leaveok(ctx->right->pan_small_file_window, TRUE);
-    CoreInitWbkgdSet(ctx, ctx->right->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
+    CoreInitWbkgdSet(ctx, ctx->right->pan_small_file_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
     ctx->right->pan_big_file_window =
         Subwin(stdscr, ctx->right->big_file_h, ctx->right->big_file_w,
@@ -644,7 +644,7 @@ void ReCreateWindows(ViewContext *ctx) {
     keypad(ctx->right->pan_big_file_window, TRUE);
 
     leaveok(ctx->right->pan_big_file_window, TRUE);
-    CoreInitWbkgdSet(ctx, ctx->right->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
+    CoreInitWbkgdSet(ctx, ctx->right->pan_big_file_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
     if (!AppStateSetPanelFileWindowHandle(ctx, ctx->right, right_is_big))
       return;
@@ -664,7 +664,7 @@ void ReCreateWindows(ViewContext *ctx) {
       keypad(ctx->ctx_preview_window, TRUE);
 
       leaveok(ctx->ctx_preview_window, TRUE);
-      CoreInitWbkgdSet(ctx, ctx->ctx_preview_window, COLOR_PAIR(CPAIR_WINFILE));
+      CoreInitWbkgdSet(ctx, ctx->ctx_preview_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
     }
   }
 
@@ -722,7 +722,7 @@ void ReCreateWindows(ViewContext *ctx) {
     }
   }
   if (ctx->ctx_border_window) {
-    CoreInitWbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
+    CoreInitWbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES));
 
     leaveok(ctx->ctx_border_window, TRUE);
 
@@ -760,7 +760,7 @@ void ReCreateWindows(ViewContext *ctx) {
       return;
     }
   }
-  CoreInitWbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_ERR));
+  CoreInitWbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(UI_ROLE_ERROR));
 
   leaveok(ctx->ctx_error_window, TRUE);
 
@@ -786,7 +786,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   scrollok(ctx->ctx_time_window, FALSE);
   leaveok(ctx->ctx_time_window, TRUE);
-  CoreInitWbkgdSet(ctx, ctx->ctx_time_window, COLOR_PAIR(CPAIR_FILE));
+  CoreInitWbkgdSet(ctx, ctx->ctx_time_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   /* Keep clock redraws in the normal wnoutrefresh/doupdate pipeline.
    * Immediate refresh causes visible blinking during rapid navigation.
    */
@@ -815,7 +815,7 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(ctx->ctx_history_window, TRUE);
 
   leaveok(ctx->ctx_history_window, TRUE);
-  CoreInitWbkgdSet(ctx, ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
+  CoreInitWbkgdSet(ctx, ctx->ctx_history_window, COLOR_PAIR(UI_ROLE_PICKER));
 
   if (!AppStateSetMatchesWindowHandle(ctx, ctx->ctx_history_window))
     return;
@@ -837,7 +837,7 @@ void ReCreateWindows(ViewContext *ctx) {
     }
   }
   if (ctx->ctx_menu_window) {
-    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_HELP));
+    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_HELP));
 
     leaveok(ctx->ctx_menu_window, TRUE);
   }
@@ -864,7 +864,7 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(ctx->ctx_f2_window, FALSE);
 
   leaveok(ctx->ctx_f2_window, TRUE);
-  CoreInitWbkgdSet(ctx, ctx->ctx_f2_window, COLOR_PAIR(CPAIR_WINHST));
+  CoreInitWbkgdSet(ctx, ctx->ctx_f2_window, COLOR_PAIR(UI_ROLE_PICKER));
   DEBUG_LOG("EXIT ReCreateWindows");
 }
 
@@ -972,7 +972,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   leaveok(stdscr, FALSE);
   curs_set(0);
 
-  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(CPAIR_WINDIR));
+  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
   ReCreateWindows(ctx);
   DEBUG_LOG("Init: ReCreateWindows done");

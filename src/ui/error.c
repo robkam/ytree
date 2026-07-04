@@ -45,7 +45,7 @@ void UI_RenderStatusLineError(ViewContext *ctx) {
   wmove(ctx->ctx_menu_window, 2, 0);
   wclrtoeol(ctx->ctx_menu_window);
   PrintMenuOptions(ctx->ctx_menu_window, 2, 0, ctx->status_line_error_text,
-                   CPAIR_MENU, CPAIR_ERR);
+                   UI_ROLE_STATIC_TEXT, UI_ROLE_ERROR);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -208,12 +208,12 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
 static short ModalSeverityColorPair(ModalSeverity severity) {
   switch (severity) {
     case MODAL_SEVERITY_INFO:
-      return CPAIR_INFO;
+      return UI_ROLE_INFO;
     case MODAL_SEVERITY_WARNING:
-      return CPAIR_WARN;
+      return UI_ROLE_WARNING;
     case MODAL_SEVERITY_ERROR:
     default:
-      return CPAIR_ERR;
+      return UI_ROLE_ERROR;
   }
 }
 

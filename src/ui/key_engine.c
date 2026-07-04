@@ -246,7 +246,7 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
   leaveok(ctx->ctx_border_window, FALSE);
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
   PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
-                   CPAIR_MENU, CPAIR_HIMENUS);
+                   UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
@@ -284,7 +284,7 @@ int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
   leaveok(ctx->ctx_border_window, FALSE);
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
   Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
-        CPAIR_MENU);
+        UI_ROLE_STATIC_TEXT);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
@@ -324,7 +324,7 @@ int InputChoiceCommandStrip(ViewContext *ctx,
   leaveok(ctx->ctx_border_window, FALSE);
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
   UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
-                        commands, command_count, CPAIR_MENU, CPAIR_HIMENUS);
+                        commands, command_count, UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {

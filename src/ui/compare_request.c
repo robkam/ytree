@@ -26,7 +26,7 @@ static void ClearComparePromptArea(ViewContext *ctx) {
     return;
 
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif
@@ -50,16 +50,16 @@ static void DrawComparePrompt(ViewContext *ctx, const char *prompt) {
 
   ClearComparePromptArea(ctx);
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
   PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
-                   (char *)prompt, CPAIR_MENU, CPAIR_HIMENUS);
+                   (char *)prompt, UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   PrintMenuOptions(ctx->ctx_border_window, ctx->layout.status_y, 1,
-                   "COMMANDS  (F1) context help  (Esc) cancel", CPAIR_MENU,
-                   CPAIR_HIMENUS);
+                   "COMMANDS  (F1) context help  (Esc) cancel", UI_ROLE_STATIC_TEXT,
+                   UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
 }
@@ -159,7 +159,7 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
 
   UI_Dialog_Push(win, UI_TIER_MODAL);
   keypad(win, TRUE);
-  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_HELP));
+  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));
   curs_set(0);
 
   while (1) {
@@ -172,8 +172,8 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
     for (i = 0; i < 3; i++) {
       mvwprintw(win, 2 + i, 2, "%.*s", width - 4, help_lines[i]);
     }
-    PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, CPAIR_HELP,
-                     CPAIR_HIMENUS);
+    PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, UI_ROLE_HELP,
+                     UI_ROLE_KEYBIND);
     wrefresh(win);
 
     ch = WGetch(ctx, win);

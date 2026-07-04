@@ -263,7 +263,7 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
   is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
   is_active_panel = !(ctx->is_split_screen && panel != ctx->active);
   inactive_highlight_attr = A_BOLD | A_UNDERLINE;
-  highlight_color_pair = CPAIR_HIFILE;
+  highlight_color_pair = UI_ROLE_SELECTION;
 
   if (ctx->fixed_col_width > 0) {
     pos_x = x * (ctx->fixed_col_width + 1);
@@ -740,7 +740,7 @@ void DisplayFiles(ViewContext *ctx, YtreeNovaPanel *panel, const DirEntry *de_pt
   height = getmaxy(win);
 
 #ifdef COLOR_SUPPORT
-  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINFILE));
+  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #endif
   werase(win);
 

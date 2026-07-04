@@ -40,7 +40,7 @@ void ClockHandler(ViewContext *ctx, int sig) {
       return;
 
 #ifdef COLOR_SUPPORT
-    wattrset(ctx->ctx_time_window, COLOR_PAIR(CPAIR_FILE));
+    wattrset(ctx->ctx_time_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #endif
 
     /* Draw in-place and clear the remainder. */

@@ -93,6 +93,24 @@ def test_color_supported_roles_do_not_add_bold_attributes():
     assert offenders == []
 
 
+def test_render_surfaces_consume_semantic_role_aliases():
+    legacy_pair = re.compile(
+        r"CPAIR_(TREE_LINES|MARGIN|HIGLOBAL|GLOBAL|FILE|WINFILE|DIR|WINDIR|"
+        r"MENU|STATS|WINSTATS|BORDERS|HST|HIHST|WINHST|HELP|HIMENUS|"
+        r"ERR|WARN|INFO|DIALOG|DISABLED)"
+    )
+    offenders = []
+
+    for path in _source_paths("src/ui", "src/core"):
+        if path.name == "color.c":
+            continue
+        source = path.read_text(encoding="utf-8")
+        if legacy_pair.search(source):
+            offenders.append(str(path))
+
+    assert offenders == []
+
+
 def test_volume_menu_uses_required_theme_command_strip():
     source = _read("src/ui/volume_menu.c")
 
@@ -120,7 +138,7 @@ def test_help_surfaces_use_help_role():
     assert "UI_ROLE_KEYBIND = CPAIR_HIMENUS" in defs_source
     assert '{"HELP_COLOR", CPAIR_HELP, 7, 0},' in color_source
     assert '{"help", {"HELP_COLOR", NULL}},' in theme_source
-    assert "ctx->ctx_menu_window, COLOR_PAIR(CPAIR_HELP)" in init_source
+    assert "ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_HELP)" in init_source
     assert "lo_color = UI_ROLE_HELP;" in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0," in display_source
     assert "dir_help[ctx->view_mode][i]," in display_source
@@ -129,7 +147,7 @@ def test_help_surfaces_use_help_role():
     assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' in display_source
-    assert "COLOR_PAIR(CPAIR_HELP)" in compare_source
+    assert "COLOR_PAIR(UI_ROLE_HELP)" in compare_source
 
 
 def test_picker_surfaces_use_picker_and_selection_roles():
@@ -140,25 +158,25 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     assert "WbkgdSet(ctx, ctx->ctx_matches_window, COLOR_PAIR(color));" not in (
         completion_source
     )
-    assert "ctx->ctx_matches_window, COLOR_PAIR(CPAIR_WINHST)" in completion_source
-    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));" in volume_source
-    assert "COLOR_PAIR(CPAIR_HIHST)" in volume_source
+    assert "ctx->ctx_matches_window, COLOR_PAIR(UI_ROLE_PICKER)" in completion_source
+    assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_source
+    assert "COLOR_PAIR(UI_ROLE_SELECTION)" in volume_source
     assert "COLOR_PAIR(CPAIR_HST) | A_BOLD" not in volume_source
     assert "win == ctx->ctx_f2_window" in render_dir_source
-    assert "color = CPAIR_HST;" in render_dir_source
+    assert "color = UI_ROLE_PICKER;" in render_dir_source
 
 
 def test_active_file_and_tree_selection_use_selection_role_pairs():
     dir_source = _read("src/ui/render_dir.c")
     file_source = _read("src/ui/render_file.c")
 
-    assert "highlight_color = CPAIR_HIDIR;" in dir_source
-    assert "highlight_color = CPAIR_HIHST;" in dir_source
+    assert "highlight_color = UI_ROLE_SELECTION;" in dir_source
+    assert "highlight_color = UI_ROLE_SELECTION;" in dir_source
     assert "COLOR_PAIR(highlight_color)" in dir_source
     assert "inactive_full_line_attr = (hilight && ctx->highlight_full_line && !is_active)" in dir_source
     assert "wattron(win, A_BOLD | A_UNDERLINE);" in dir_source
 
-    assert "highlight_color_pair = CPAIR_HIFILE;" in file_source
+    assert "highlight_color_pair = UI_ROLE_SELECTION;" in file_source
     assert "COLOR_PAIR(highlight_color_pair)" in file_source
     assert "inactive_highlight_attr = A_BOLD | A_UNDERLINE;" in file_source
     assert "if (hilight && !is_active_panel)" in file_source
@@ -173,12 +191,14 @@ def test_tree_lines_and_margin_use_dedicated_theme_roles():
 
     assert "CPAIR_TREE_LINES" in defs_source
     assert "CPAIR_MARGIN" in defs_source
+    assert "UI_ROLE_TREE_LINES = CPAIR_TREE_LINES" in defs_source
+    assert "UI_ROLE_MARGIN = CPAIR_MARGIN" in defs_source
     assert '{"TREE_LINES_COLOR", CPAIR_TREE_LINES, 7, 0},' in color_source
     assert '{"MARGIN_COLOR", CPAIR_MARGIN, 7, 0},' in color_source
     assert '{"tree_lines", {"TREE_LINES_COLOR", NULL}},' in theme_source
     assert '{"margin", {"MARGIN_COLOR", NULL}},' in theme_source
-    assert "margin_color = CPAIR_MARGIN;" in dir_source
-    assert "tree_line_color = CPAIR_TREE_LINES;" in dir_source
+    assert "margin_color = UI_ROLE_MARGIN;" in dir_source
+    assert "tree_line_color = UI_ROLE_TREE_LINES;" in dir_source
     assert "wattrset(win, margin_attr);" in dir_source
     assert "wattrset(win, tree_line_attr);" in dir_source
     assert "GetFileTypeColor" not in dir_source
@@ -200,13 +220,13 @@ def test_header_path_uses_dynamic_text_role():
 
     assert "UI_ROLE_STATIC_TEXT = CPAIR_MENU" in defs_source
     assert "DisplayHeaderPath" in display_source
-    assert "WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));" in (
+    assert "WbkgdSet(ctx, ctx->ctx_path_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
         display_source
     )
-    assert "wattrset(ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));" in (
+    assert "wattrset(ctx->ctx_path_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
         display_source
     )
-    assert "COLOR_PAIR(CPAIR_MENU) | A_BOLD" not in display_source
+    assert "COLOR_PAIR(UI_ROLE_STATIC_TEXT) | A_BOLD" not in display_source
     assert "COLOR_PAIR(UI_ROLE_STATIC_TEXT)" in display_source
 
 
@@ -215,13 +235,13 @@ def test_clock_uses_dynamic_text_role():
     clock_source = _read("src/core/clock.c")
 
     assert (
-        "ctx->ctx_time_window, COLOR_PAIR(CPAIR_FILE)" in init_source
+        "ctx->ctx_time_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in init_source
     )
     assert "COLOR_PAIR(CPAIR_WINDIR | A_BOLD)" not in init_source
-    assert "wattrset(ctx->ctx_time_window, COLOR_PAIR(CPAIR_FILE));" in (
+    assert "wattrset(ctx->ctx_time_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
         clock_source
     )
-    assert "COLOR_PAIR(CPAIR_MENU)" not in clock_source
+    assert "COLOR_PAIR(UI_ROLE_STATIC_TEXT)" not in clock_source
 
 
 def test_stats_rendering_splits_static_dynamic_and_border_roles():
@@ -231,9 +251,9 @@ def test_stats_rendering_splits_static_dynamic_and_border_roles():
     assert "static void SetStatsStaticColor" in stats_source
     assert "static void SetStatsDynamicColor" in stats_source
     assert "static void SetStatsBorderColor" in stats_source
-    assert "COLOR_PAIR(CPAIR_MENU)" in stats_source
-    assert "COLOR_PAIR(CPAIR_STATS)" in stats_source
-    assert "COLOR_PAIR(CPAIR_BORDERS)" in stats_source
+    assert "COLOR_PAIR(UI_ROLE_STATIC_TEXT)" in stats_source
+    assert "COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in stats_source
+    assert "COLOR_PAIR(UI_ROLE_BOX_LINES)" in stats_source
     assert "COLOR_PAIR(color)" not in stats_source
     assert '{"static_text", {"MENU_COLOR", NULL}},' in theme_source
     assert '{"box_lines", {"BORDERS_COLOR", NULL}},' in theme_source
@@ -248,26 +268,26 @@ def test_viewer_frame_uses_border_role_not_directory_fill_role():
     internal_source = _read("src/ui/view_internal.c")
     tagged_source = _read("src/ui/tagged_view.c")
 
-    assert "ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR)" in internal_source
-    assert "ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR)" in tagged_source
-    assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in internal_source
-    assert "ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS)" in tagged_source
+    assert "ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in internal_source
+    assert "ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in tagged_source
+    assert "ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES)" in internal_source
+    assert "ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES)" in tagged_source
 
 
 def test_viewer_file_headers_use_dynamic_text_role():
     internal_source = _read("src/ui/view_internal.c")
     tagged_source = _read("src/ui/tagged_view.c")
 
-    assert 'Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);' in (
+    assert 'Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);' in (
         internal_source
     )
-    assert "CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_FILE" in (
+    assert "CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT" in (
         internal_source
     )
-    assert 'Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);' in (
+    assert 'Print(stdscr, ctx->layout.header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);' in (
         tagged_source
     )
-    assert "CutPathname(clipped_header, header_buf, available), CPAIR_FILE" in (
+    assert "CutPathname(clipped_header, header_buf, available), UI_ROLE_DYNAMIC_TEXT" in (
         tagged_source
     )
 
@@ -275,10 +295,10 @@ def test_viewer_file_headers_use_dynamic_text_role():
 def test_preview_content_resets_search_hit_to_base_role_pair():
     preview_source = _read("src/ui/view_preview.c")
 
-    assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINFILE));" in preview_source
-    assert "wattrset(win, COLOR_PAIR(CPAIR_FILE));" in preview_source
-    assert "wattrset(win, COLOR_PAIR(CPAIR_HIGLOBAL));" in preview_source
-    assert "wattroff(win, COLOR_PAIR(CPAIR_HIGLOBAL));" not in preview_source
+    assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in preview_source
+    assert "wattrset(win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in preview_source
+    assert "wattrset(win, COLOR_PAIR(UI_ROLE_SEARCH_HIT));" in preview_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_SEARCH_HIT));" not in preview_source
 
 
 def test_modal_prompt_keeps_severity_role_pair():

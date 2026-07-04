@@ -91,8 +91,8 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   do {
     UI_RenderCommandStrip(
         ctx->ctx_f2_window, win_height - 1, 2, f2_command_strip,
-        sizeof(f2_command_strip) / sizeof(f2_command_strip[0]), CPAIR_HST,
-        CPAIR_HIMENUS);
+        sizeof(f2_command_strip) / sizeof(f2_command_strip[0]), UI_ROLE_PICKER,
+        UI_ROLE_KEYBIND);
 
     RefreshWindow(ctx->ctx_f2_window);
     doupdate();

@@ -68,7 +68,7 @@ def test_winerr_color_is_migration_only_alias():
     assert '{"disabled", {"DISABLED_COLOR", NULL}},' in theme_source
     assert "migration_role_shims" in theme_source
     assert "ApplyMigrationRoleShim" in theme_source
-    assert "ctx->ctx_error_window, COLOR_PAIR(CPAIR_ERR)" in init_source
+    assert "ctx->ctx_error_window, COLOR_PAIR(UI_ROLE_ERROR)" in init_source
     assert "CPAIR_WINERR" not in error_source
 
 

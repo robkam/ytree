@@ -236,7 +236,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     UI_Dialog_Push(win, UI_TIER_MODAL);
 
     keypad(win, TRUE);
-    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));
+    WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));
     curs_set(0); /* Hide cursor */
 
     /* 3. Input Loop */
@@ -248,7 +248,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
           win, win_height - 2, (win_width - prompt_width) / 2,
           volume_command_strip,
           sizeof(volume_command_strip) / sizeof(volume_command_strip[0]),
-          CPAIR_HST, CPAIR_HIMENUS);
+          UI_ROLE_PICKER, UI_ROLE_KEYBIND);
 
       /* Drawing loop using scroll_offset and visible_lines */
       for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */
@@ -262,13 +262,13 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
         if (actual_idx == selected_index) {
 #ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(CPAIR_HIHST));
+          wattron(win, COLOR_PAIR(UI_ROLE_SELECTION));
 #else
           wattron(win, A_REVERSE);
 #endif
         } else if (actual_idx == current_volume_index) {
 #ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(CPAIR_HST));
+          wattron(win, COLOR_PAIR(UI_ROLE_PICKER));
 #else
           wattron(win, A_BOLD);
 #endif
@@ -294,13 +294,13 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         if (actual_idx == current_volume_index &&
             actual_idx != selected_index) {
 #ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(CPAIR_HST));
+          wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));
 #else
           wattroff(win, A_BOLD);
 #endif
         } else if (actual_idx == selected_index) {
 #ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(CPAIR_HIHST));
+          wattroff(win, COLOR_PAIR(UI_ROLE_SELECTION));
 #else
           wattroff(win, A_REVERSE);
 #endif
