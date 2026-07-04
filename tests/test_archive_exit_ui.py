@@ -73,6 +73,98 @@ def _has_tree_row_for_dir(screen_rows, dir_name):
     return False
 
 
+def _cell_style_for_text(tui, needle, *, exclude_substrings=()):
+    screen_rows = tui.get_screen_dump()
+
+    for y, line in enumerate(screen_rows):
+        if needle not in line:
+            continue
+        if any(excluded in line for excluded in exclude_substrings):
+            continue
+        x = line.index(needle)
+        cell = tui.screen.buffer[y][x]
+        return cell.fg, cell.bg, cell.bold, cell.reverse
+
+    raise AssertionError(
+        f"Could not find screen cell for {needle!r}.\nScreen:\n{_screen_text(tui)}"
+    )
+
+
+def _wait_for_style_change(
+    tui, needle, before_style, *, exclude_substrings=(), timeout=2.0
+):
+    deadline = time.time() + timeout
+    current_style = before_style
+
+    while time.time() < deadline:
+        current_style = _cell_style_for_text(
+            tui, needle, exclude_substrings=exclude_substrings
+        )
+        if current_style != before_style:
+            return current_style
+        time.sleep(0.1)
+
+    return current_style
+
+
+def _write_test_theme_catalog(root):
+    theme_dir = root / ".config" / "ytnova"
+    theme_dir.mkdir(parents=True)
+    (theme_dir / "themes.conf").write_text(
+        """
+[theme classic-blue]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[theme bash-black]
+background = black
+box_lines = grey on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = +white on black
+keybind = +white on black
+selection = black on yellow
+dialog = white on black
+picker = black on yellow
+help = white on black
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on black
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_theme_switch_editor(root):
+    editor = root / "switch_theme_editor.sh"
+    editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        "sed -i 's/^THEME=.*/THEME=bash-black/' \"$f\"\n",
+        encoding="utf-8",
+    )
+    editor.chmod(0o755)
+    return editor
+
+
 def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     """At archive root: first LEFT collapses children, second LEFT is a no-op."""
     root = tmp_path / "archive_exit_root"
@@ -856,7 +948,8 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         tui.send_keystroke(Keys.ENTER, wait=0.5)  # back to dir
 
         # Edit config via F10 and let the configured editor switch value to 1.
-        tui.send_keystroke("\x1b[21~", wait=0.9)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
         assert "SMALLWINDOWSKIP=1" in (root / ".ytnova").read_text(
             encoding="utf-8"
         ), "Config edit flow did not update SMALLWINDOWSKIP in profile file."
@@ -874,6 +967,101 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
             "Directory footer should be restored after returning with "
             "SMALLWINDOWSKIP=1.\n"
             f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f10_reload_repaints_theme_from_tree_focus(tmp_path, ytnova_binary):
+    root = tmp_path / "f10_reload_tree_repaint"
+    root.mkdir()
+    _write_test_theme_catalog(root)
+    editor = _write_theme_switch_editor(root)
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    profile_path = root / ".ytnova"
+    profile_path.write_text(
+        "[GLOBAL]\n"
+        "THEME=classic-blue\n"
+        "SMALLWINDOWSKIP=1\n"
+        f"EDITOR={editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        before_style = _cell_style_for_text(
+            tui,
+            "target",
+            exclude_substrings=("Path:", "CURRENT DIR", "CURRENT FILE"),
+        )
+
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        after_style = _wait_for_style_change(
+            tui,
+            "target",
+            before_style,
+            exclude_substrings=("Path:", "CURRENT DIR", "CURRENT FILE"),
+        )
+        assert after_style != before_style, (
+            "F10 reload from tree focus must repaint the active tree row after "
+            "theme changes.\n"
+            f"Before={before_style} After={after_style}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
+    root = tmp_path / "f10_reload_file_repaint"
+    root.mkdir()
+    _write_test_theme_catalog(root)
+    editor = _write_theme_switch_editor(root)
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    profile_path = root / ".ytnova"
+    profile_path.write_text(
+        "[GLOBAL]\n"
+        "THEME=classic-blue\n"
+        "SMALLWINDOWSKIP=1\n"
+        f"EDITOR={editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        before_style = _cell_style_for_text(
+            tui,
+            "file0.txt",
+            exclude_substrings=("Path:", "CURRENT FILE"),
+        )
+
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        after_style = _wait_for_style_change(
+            tui,
+            "file0.txt",
+            before_style,
+            exclude_substrings=("Path:", "CURRENT FILE"),
+        )
+        assert after_style != before_style, (
+            "F10 reload from file focus must repaint the active file row after "
+            "theme changes.\n"
+            f"Before={before_style} After={after_style}\n\nScreen:\n{_screen_text(tui)}"
         )
     finally:
         tui.quit()

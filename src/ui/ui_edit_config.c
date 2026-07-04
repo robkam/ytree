@@ -387,7 +387,8 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
   return themes_path[0] ? 0 : -1;
 }
 
-static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
+static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
+                                const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
   int profile_validation;
 #ifdef COLOR_SUPPORT
@@ -461,6 +462,7 @@ static int ReloadConfigAndTheme(ViewContext *ctx, const char *profile_path) {
   }
   if (ctx->core_init_ops.reinit_color_pairs != NULL)
     ctx->core_init_ops.reinit_color_pairs(ctx);
+  RefreshView(ctx, dir_entry);
 #ifdef COLOR_SUPPORT
   UIColorSnapshot_Free(color_snapshot);
 #endif
@@ -485,7 +487,7 @@ static void EditConfigProfile(ViewContext *ctx, DirEntry *dir_entry,
     }
   }
 
-  ReloadConfigAndTheme(ctx, profile_path);
+  ReloadConfigAndTheme(ctx, dir_entry, profile_path);
 }
 
 static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry) {
@@ -510,7 +512,7 @@ static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry) {
     }
   }
 
-  ReloadConfigAndTheme(ctx, NULL);
+  ReloadConfigAndTheme(ctx, dir_entry, NULL);
 }
 
 void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
@@ -533,7 +535,7 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
     EditThemesFile(ctx, dir_entry);
     break;
   case 'R':
-    ReloadConfigAndTheme(ctx, profile_path);
+    ReloadConfigAndTheme(ctx, dir_entry, profile_path);
     break;
   case 'Q':
   case ESC:

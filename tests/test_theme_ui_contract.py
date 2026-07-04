@@ -430,3 +430,33 @@ def test_reload_failures_use_status_line_without_success_message():
     assert "UIColorSnapshot_Restore" in source
     assert "Reloaded" not in source
     assert "reload successful" not in source.lower()
+
+
+def test_f10_reload_owns_canonical_repaint_for_tree_and_file_focus():
+    reload_source = _read("src/ui/ui_edit_config.c")
+    tree_source = _read("src/ui/ctrl_dir.c")
+    file_source = _read("src/ui/ctrl_file_ops.c")
+
+    assert (
+        "static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,"
+        in reload_source
+    )
+    assert "RefreshView(ctx, dir_entry);" in reload_source[
+        reload_source.index("ctx->core_init_ops.reinit_color_pairs(ctx);") :
+    ]
+
+    tree_case = tree_source[
+        tree_source.index("case ACTION_EDIT_CONFIG:") : tree_source.index(
+            "case ACTION_TOGGLE_STATS:"
+        )
+    ]
+    assert "UI_OpenConfigProfile(ctx, dir_entry);" in tree_case
+    assert "RefreshView(ctx, dir_entry);" not in tree_case
+
+    file_case = file_source[
+        file_source.index("case ACTION_EDIT_CONFIG:") : file_source.index(
+            "case ACTION_RESIZE:"
+        )
+    ]
+    assert "UI_OpenConfigProfile(ctx, dir_entry);" in file_case
+    assert "RefreshView(ctx, dir_entry);" not in file_case
