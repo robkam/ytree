@@ -145,6 +145,156 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   return 0;
 }
 
+static FILE *OpenDefaultThemesFile(void) {
+  FILE *fp;
+
+  fp = fopen(PACKAGED_THEME_PATH, "r");
+  if (fp != NULL)
+    return fp;
+  return fopen("etc/ytnova.themes", "r");
+}
+
+static int FileMatchesDefaultThemes(const char *path) {
+  FILE *actual;
+  FILE *expected;
+  int matches = 1;
+
+  actual = fopen(path, "r");
+  if (actual == NULL)
+    return -1;
+  expected = OpenDefaultThemesFile();
+  if (expected == NULL) {
+    fclose(actual);
+    return -1;
+  }
+
+  for (;;) {
+    unsigned char actual_buf[4096];
+    unsigned char expected_buf[4096];
+    size_t actual_len;
+    size_t expected_len;
+
+    actual_len = fread(actual_buf, 1, sizeof(actual_buf), actual);
+    expected_len = fread(expected_buf, 1, sizeof(expected_buf), expected);
+    if (actual_len != expected_len ||
+        (actual_len != 0 &&
+         memcmp(actual_buf, expected_buf, actual_len) != 0)) {
+      matches = 0;
+      break;
+    }
+    if (actual_len == 0)
+      break;
+  }
+
+  if (ferror(actual) || ferror(expected))
+    matches = -1;
+  fclose(expected);
+  fclose(actual);
+  return matches;
+}
+
+static int WasThemesBufferSaved(const char *path, const struct stat *before) {
+  struct stat after;
+  int template_match;
+
+  if (stat(path, &after) != 0)
+    return 0;
+
+  if (after.st_ino == before->st_ino && after.st_size == before->st_size &&
+      after.st_mtime == before->st_mtime && after.st_ctime == before->st_ctime)
+    return 0;
+
+  template_match = FileMatchesDefaultThemes(path);
+  if (template_match < 0)
+    return 1;
+  return template_match == 0;
+}
+
+static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
+                                        const char *themes_path) {
+  char temp_path[PATH_LENGTH + 1];
+  unsigned char buffer[4096];
+  FILE *themes_fp;
+  int fd;
+  struct stat temp_before_edit;
+  int written;
+
+  written = snprintf(temp_path, sizeof(temp_path), "%s.tmp.XXXXXX",
+                     themes_path);
+  if (written < 0 || written >= (int)sizeof(temp_path)) {
+    MESSAGE(ctx, "Can't stage default themes for \"%s\"", themes_path);
+    return -1;
+  }
+  if (!strstr(temp_path, "XXXXXX")) {
+    MESSAGE(ctx, "Can't stage default themes for \"%s\"", themes_path);
+    return -1;
+  }
+
+  themes_fp = OpenDefaultThemesFile();
+  if (themes_fp == NULL) {
+    MESSAGE(ctx, "Can't read default themes for \"%s\"*%s", themes_path,
+            strerror(errno));
+    return -1;
+  }
+
+  fd = mkstemp(temp_path);
+  if (fd == -1) {
+    int saved_errno = errno;
+    fclose(themes_fp);
+    MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
+            strerror(saved_errno));
+    return -1;
+  }
+
+  while (!ferror(themes_fp)) {
+    size_t read_len = fread(buffer, 1, sizeof(buffer), themes_fp);
+
+    if (read_len > 0 && WriteAll(fd, (const char *)buffer, read_len) != 0) {
+      int saved_errno = errno;
+      close(fd);
+      fclose(themes_fp);
+      unlink(temp_path);
+      MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
+              strerror(saved_errno));
+      return -1;
+    }
+    if (read_len < sizeof(buffer))
+      break;
+  }
+
+  if (ferror(themes_fp) || fstat(fd, &temp_before_edit) != 0) {
+    int saved_errno = errno;
+    close(fd);
+    fclose(themes_fp);
+    unlink(temp_path);
+    MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
+            strerror(saved_errno));
+    return -1;
+  }
+  fclose(themes_fp);
+  close(fd);
+
+  if (Edit(ctx, dir_entry, temp_path) != 0) {
+    unlink(temp_path);
+    return -1;
+  }
+
+  if (!WasThemesBufferSaved(temp_path, &temp_before_edit)) {
+    unlink(temp_path);
+    return 0;
+  }
+
+  if (link(temp_path, themes_path) != 0) {
+    int saved_errno = errno;
+    unlink(temp_path);
+    MESSAGE(ctx, "Can't save \"%s\"*%s", themes_path, strerror(saved_errno));
+    return -1;
+  }
+  unlink(temp_path);
+
+  return 0;
+}
+
 static int EnsureConfigHomeDirectory(const char *home) {
   char config_dir[PATH_LENGTH + 1];
   char ytnova_dir[PATH_LENGTH + 1];
@@ -340,15 +490,24 @@ static void EditConfigProfile(ViewContext *ctx, DirEntry *dir_entry,
 
 static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry) {
   char themes_path[PATH_LENGTH + 1];
+  int themes_exists;
 
   if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
     MESSAGE(ctx, "Can't resolve themes file path");
     return;
   }
 
-  if (Edit(ctx, dir_entry, themes_path) != 0) {
-    MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
-    return;
+  themes_exists = (access(themes_path, F_OK) == 0);
+  if (themes_exists) {
+    if (Edit(ctx, dir_entry, themes_path) != 0) {
+      MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
+      return;
+    }
+  } else {
+    if (EditMissingThemesFromDefault(ctx, dir_entry, themes_path) != 0) {
+      MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
+      return;
+    }
   }
 
   ReloadConfigAndTheme(ctx, NULL);

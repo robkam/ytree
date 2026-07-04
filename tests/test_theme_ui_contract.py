@@ -135,7 +135,9 @@ def test_semantic_roles_are_canonical_runtime_color_model():
     assert "UI_ROLE_DYNAMIC_TEXT = CPAIR_FILE" not in defs_source
     assert "enum UI_COLOR_PAIRS" not in defs_source
     assert '{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0}' in color_source
-    assert '{"FILE_COLOR", UI_ROLE_DYNAMIC_TEXT}' in color_source
+    assert "LegacyColorAlias" not in color_source
+    assert "legacy_color_aliases" not in color_source
+    assert '"FILE_COLOR"' not in color_source
     assert "ApplySemanticRole(ctx, roles[i].name, fg, bg)" in theme_source
     assert "ApplyMigrationRoleShim(ctx, roles[i].name, fg, bg)" not in theme_source
 
@@ -375,6 +377,9 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert "access(legacy_path, F_OK) == 0" in source
     assert "THEME_CONFIG_HOME_PATH" in source
     assert "THEME_FILENAME" in source
+    assert "EditMissingThemesFromDefault(ctx, dir_entry, themes_path)" in source
+    assert "PACKAGED_THEME_PATH" in source
+    assert "link(temp_path, themes_path)" in source
 
 
 def test_f10_surface_uses_required_command_strip_and_enter_default():
