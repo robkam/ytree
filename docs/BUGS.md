@@ -363,13 +363,13 @@ Ordering policy (for all editors, including AI editors):
     *   Separate border/box-line roles from title text and content text.
     *   Ensure color configuration comments describe actual behavior until the role-based theme system replaces the legacy keys.
     *   Align with `ROADMAP` Task 60 by introducing semantic roles instead of preserving misleading legacy pair names as the long-term model.
-*   **Task-60 branch resolution notes**:
+*   **Resolution**:
     *   Public configuration now selects a semantic theme, while role definitions and file-type palettes live in `etc/ytnova.themes` or user theme catalogs.
     *   Compatibility color keys remain accepted only through private migration shims and are not part of the semantic model.
     *   Stats labels/titles, dynamic values, borders, tree guides/margins, picker/help surfaces, severity dialogs, preview search hits, header paths, viewer paths, and the clock have dedicated semantic-role routing.
     *   Runtime color-pair vocabulary is semantic; legacy color keys are accepted only by private migration shims.
 *   **Related**: `ROADMAP` Task 60 (role-based theme system and restrained default palette).
-*   **Status**: Resolved in local role-based theme work; pending maintainer-directed push/PR/CI gate.
+*   **Status**: Resolved.
 
 ### **BUG-26: Recursive Scan Interrupt Responsiveness**
 *   **Description**: Interrupting a recursive expansion (`*`) via `ESC` is supported but requires multiple keypresses (Prompt Y/N).

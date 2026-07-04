@@ -99,7 +99,7 @@ static BOOL ParseColorToken(const char *token, int color_limit, int *color) {
   if (!bright) {
     errno = 0;
     val = strtol(name, &endptr, 10);
-    if (errno == 0 && endptr != name && *endptr == '\0' && val >= -1 &&
+    if (errno == 0 && endptr != name && *endptr == '\0' && val >= 0 &&
         val <= 255) {
       *color = NormalizeColorIndex((int)val, color_limit);
       return TRUE;

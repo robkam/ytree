@@ -179,6 +179,8 @@ def test_help_surfaces_use_help_role():
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' in display_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in compare_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
 
 
 def test_picker_surfaces_use_picker_and_selection_roles():
@@ -191,6 +193,8 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     )
     assert "ctx->ctx_matches_window, COLOR_PAIR(UI_ROLE_PICKER)" in completion_source
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_source
     assert "COLOR_PAIR(UI_ROLE_SELECTION)" in volume_source
     assert "COLOR_PAIR(CPAIR_HST) | A_BOLD" not in volume_source
     assert "win == ctx->ctx_f2_window" in render_dir_source

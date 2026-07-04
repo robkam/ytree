@@ -1108,7 +1108,7 @@ Ordering policy (for all editors, including AI editors):
     *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
     *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
     *   Legacy profile `[COLORS]` / `[FILE_COLORS]` parsing is not a runtime theme path; theme files are authoritative for semantic roles and file-type palettes.
-*   - [x] **Status:** Complete in local `task-60` work after legacy profile color parsing remediation; pending maintainer-directed push/PR/CI gate.
+*   - [x] **Status:** Complete.
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.

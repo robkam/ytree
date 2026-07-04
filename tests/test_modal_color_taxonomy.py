@@ -24,6 +24,8 @@ def test_compare_help_popup_uses_help_palette():
     )
 
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));" in popup_block
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
     assert (
         "PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, UI_ROLE_HELP,"
         in popup_block
@@ -48,6 +50,8 @@ def test_prompt_uses_dialog_and_volume_uses_picker_palette():
         volume_source, "int SelectLoadedVolume(ViewContext *ctx, int *return_key)"
     )
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_block
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_block
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_block
     assert "UI_RenderCommandStrip" in volume_block
     assert "COLOR_PAIR(UI_ROLE_SELECTION)" in volume_block
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in volume_block

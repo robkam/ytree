@@ -166,7 +166,13 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
     int ch;
 
     werase(win);
+#ifdef COLOR_SUPPORT
+    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
     box(win, 0, 0);
+#ifdef COLOR_SUPPORT
+    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
     mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength(title)) / 2), "%s",
               title);
     for (i = 0; i < 3; i++) {
