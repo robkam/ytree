@@ -2,18 +2,18 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress strict color parsing commit: 9b3353f fix(theme): limit file palette special selectors.
+- HEAD before the in-progress command-strip role styling commit: 501ee0c fix(theme): reject invalid color backgrounds.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Strict theme/file-palette color parsing
+- Command-strip role styling cleanup
   - Commit: pending local commit at this checkpoint update.
-  - Added strict color parsing that rejects unknown color tokens instead of silently ignoring them.
-  - Explicit `on` now requires a following valid background color; invalid background tokens fail closed.
-  - Theme role validation and compact file-palette validation consume the strict parser before mutating runtime colors/palette state.
-  - Existing lenient parse entry point remains available for compatibility callers, but theme loading uses fail-closed validation.
+  - Command-strip key spans now use only the configured `keybind` color pair under color support, without adding unconditional `A_BOLD`.
+  - No-color fallback still uses `A_BOLD` so monochrome terminals retain key emphasis.
 
 Prior local subunits in this continuation:
+- Strict theme/file-palette color parsing
+  - Commit: 501ee0c fix(theme): reject invalid color backgrounds
 - File-type palette special selector cleanup
   - Commit: 9b3353f fix(theme): limit file palette special selectors
 - Startup theme failure handling remediation
@@ -30,10 +30,9 @@ Prior local subunits in this continuation:
   - Commit: 38b498c fix(theme): reject invalid user catalogs
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state -q` -> 1 failed because `error = white on not-a-color` still loaded.
-- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state -q` -> 1 passed; now also covers invalid compact file-palette background tokens.
-- `make clean && make` -> passed with existing warnings.
-- `git diff --check` -> exit 0.
+- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_command_strip_key_role_controls_color_styling -q` -> 1 failed because command-strip keys still used `COLOR_PAIR(hcolor) | A_BOLD`.
+- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_command_strip_key_role_controls_color_styling tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_volume_menu_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_f10_surface_uses_required_command_strip_and_enter_default -q` -> 4 passed.
+- `make` -> passed with existing warnings.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -45,7 +44,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Role rendering cleanup: remove hard-coded color-path styling overrides such as unconditional `A_BOLD` from semantic role rendering paths so configured roles control appearance under color support.
+- Continue role rendering cleanup: inspect remaining color-supported render paths that combine semantic role pairs with hard-coded attributes, starting with modal/header/help paths that still add `A_BOLD` to role pairs.
 
 Known blockers or risks:
 - No active blocker.

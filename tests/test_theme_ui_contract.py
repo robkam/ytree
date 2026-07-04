@@ -66,6 +66,13 @@ def test_f2_footer_uses_required_theme_command_strip():
     assert '"[ (L)og (< >) Cycle ]"' not in source
 
 
+def test_command_strip_key_role_controls_color_styling():
+    source = _read("src/ui/display_utils.c")
+
+    assert "key_attr = COLOR_PAIR(hcolor);" in source
+    assert "key_attr = COLOR_PAIR(hcolor) | A_BOLD;" not in source
+
+
 def test_volume_menu_uses_required_theme_command_strip():
     source = _read("src/ui/volume_menu.c")
 

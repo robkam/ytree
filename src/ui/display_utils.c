@@ -911,7 +911,7 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
 
 #ifdef COLOR_SUPPORT
   normal_attr = COLOR_PAIR(ncolor);
-  key_attr = COLOR_PAIR(hcolor) | A_BOLD;
+  key_attr = COLOR_PAIR(hcolor);
 #else
   normal_attr = A_NORMAL;
   key_attr = A_BOLD;
