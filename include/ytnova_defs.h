@@ -215,6 +215,9 @@ typedef struct _ViewContext ViewContext;
 #define PROFILE_FILENAME ".ytnova"
 #define THEME_CONFIG_HOME_PATH ".config/ytnova/themes.conf"
 #define THEME_FILENAME ".ytnova.themes"
+#ifndef PACKAGED_THEME_PATH
+#define PACKAGED_THEME_PATH "/usr/local/share/ytnova/ytnova.themes"
+#endif
 #define HISTORY_FILENAME ".ytnova-hst"
 #define CLOCK_INTERVAL 1
 #define DEFAULT_FILE_SPEC "*"

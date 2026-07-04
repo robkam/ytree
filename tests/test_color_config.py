@@ -132,6 +132,12 @@ def test_packaged_theme_catalog_uses_compact_file_palettes():
         assert "*." not in section
         assert ":" in section
 
+    classic = _theme_section(source, "file-types classic-blue")
+    assert "archives =" not in classic
+    assert "scripts =" not in classic
+    assert "media =" not in classic
+    assert "documents =" not in classic
+
 
 def test_file_type_palette_special_selectors_are_link_and_exec_only():
     theme_source = _read_source("src/cmd/theme.c")

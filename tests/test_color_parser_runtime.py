@@ -244,6 +244,92 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(profile)], cwd=repo_root, check=True)
 
 
+def test_profile_validation_matches_startup_for_legacy_and_unknown_sections(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    profile = tmp_path / "legacy_sections.conf"
+    driver = tmp_path / "profile_validation_driver.c"
+    binary = tmp_path / "profile_validation_driver"
+
+    profile.write_text(
+        """
+[GLOBAL]
+THEME=classic-blue
+
+[COLORS]
+DIALOG_COLOR = white on blue
+
+[FILE_COLORS]
+archives = red: tar,tgz,zip
+
+[UNKNOWN]
+IGNORED = value
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+
+  if (ValidateProfileFile(&ctx, argv[1]) != 0) {
+    fprintf(stderr, "profile validation rejected startup-compatible sections\n");
+    return 1;
+  }
+  if (ReadProfile(&ctx, argv[1]) != 0) {
+    fprintf(stderr, "ReadProfile failed\n");
+    return 1;
+  }
+  if (strcmp(GetProfileValue(&ctx, "THEME"), "classic-blue") != 0) {
+    fprintf(stderr, "global profile value was not applied\n");
+    return 1;
+  }
+
+  FreeProfileRuntimeData(&ctx);
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/profile.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(profile)], cwd=repo_root, check=True)
+
+
 def test_theme_file_loader_maps_roles_and_palette_rules(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     theme_file = tmp_path / "themes.conf"
@@ -1085,6 +1171,102 @@ int main(int argc, char **argv) {
         check=True,
     )
     subprocess.run([str(binary), str(home)], cwd=repo_root, check=True)
+
+
+def test_packaged_theme_fallback_uses_installed_catalog_path(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "home"
+    installed_dir = tmp_path / "installed" / "share" / "ytnova"
+    installed_theme = installed_dir / "ytnova.themes"
+    driver = tmp_path / "theme_installed_fallback_driver.c"
+    binary = tmp_path / "theme_installed_fallback_driver"
+
+    home.mkdir()
+    installed_dir.mkdir(parents=True)
+    installed_theme.write_text(
+        (repo_root / "etc" / "ytnova.themes").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int color_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static char *configured_theme(const ViewContext *ctx, const char *name) {
+  (void)ctx;
+  if (strcmp(name, "THEME") == 0)
+    return "classic-blue";
+  return NULL;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  (void)name;
+  (void)fg;
+  (void)bg;
+  ++color_count;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+  if (setenv("HOME", argv[1], 1) != 0)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+  ctx.core_init_ops.get_profile_value = configured_theme;
+
+  if (LoadConfiguredTheme(&ctx) != 0) {
+    fprintf(stderr, "packaged theme was not loaded from installed path\n");
+    return 1;
+  }
+  if (color_count == 0) {
+    fprintf(stderr, "installed packaged theme did not apply colors\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            f'-DPACKAGED_THEME_PATH="{installed_theme}"',
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
 def test_unreadable_user_theme_catalog_blocks_packaged_fallback(tmp_path):

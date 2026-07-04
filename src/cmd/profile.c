@@ -366,15 +366,15 @@ int ValidateProfileFile(ViewContext *ctx, const char *filename) {
 
     if (*line == '[') {
       section = ProfileSectionFromHeader(line);
-      if (section == -1) {
-        invalid = TRUE;
-        break;
-      }
+      if (section == -1)
+        section = NO_SECTION;
       continue;
     }
 
-    if (section == NO_SECTION ||
-        !ParseProfileAssignment(line, &name, &value)) {
+    if (section == NO_SECTION)
+      continue;
+
+    if (!ParseProfileAssignment(line, &name, &value)) {
       invalid = TRUE;
       break;
     }

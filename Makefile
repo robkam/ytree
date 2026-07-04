@@ -36,10 +36,13 @@ DESTDIR     ?=
 BINDIR      = $(PREFIX)/bin
 MANDIR      = $(PREFIX)/share/man
 MAN1DIR     = $(MANDIR)/man1
+DATADIR     = $(PREFIX)/share
+YTNOVA_DATADIR = $(DATADIR)/ytnova
 
 # For compatibility with old variable names
 BINDEST     = $(DESTDIR)$(BINDIR)
 MANDEST     = $(DESTDIR)$(MAN1DIR)
+DATADEST    = $(DESTDIR)$(YTNOVA_DATADIR)
 
 # -------------------------------------------------------------------------
 # Compile Options
@@ -69,6 +72,7 @@ WARNINGS    = -Wall -Wextra -Wno-unused-parameter
 # -DVERSION, -DVERSIONDATE: Version info from Makefile variables
 PROJECT_CPPFLAGS = -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
                    -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
+                   -DPACKAGED_THEME_PATH='"$(YTNOVA_DATADIR)/ytnova.themes"' \
                    $(COLOR) $(CLOCK) $(READLINE) \
                    -I$(INC_DIR) -MMD -MP
 PROJECT_CFLAGS   = $(WARNINGS) $(ADD_CFLAGS)
@@ -211,15 +215,20 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	gzip -9c $(MANPAGE) > $(MANPAGE).gz
 	install -m 644 $(MANPAGE).gz $(MANDEST)/$(MAIN).1.gz
 	rm -f $(MANPAGE).gz
+	install -d -m 755 $(DATADEST)
+	install -m 644 etc/ytnova.themes $(DATADEST)/ytnova.themes
 	@echo "Installation complete."
 	@echo "Binary: $(BINDEST)/$(MAIN)"
 	@echo "Manual: $(MANDEST)/$(MAIN).1.gz"
+	@echo "Themes: $(DATADEST)/ytnova.themes"
 
 # Uninstall all installed files
 uninstall:
 	@echo "Uninstalling ytnova from $(PREFIX)..."
 	rm -f $(BINDEST)/$(MAIN)
 	rm -f $(MANDEST)/$(MAIN).1.gz
+	rm -f $(DATADEST)/ytnova.themes
+	-rmdir $(DATADEST) 2>/dev/null || true
 	-rmdir $(MANDEST) 2>/dev/null || true
 	-rmdir $(MANDIR) 2>/dev/null || true
 	-rmdir $(BINDEST) 2>/dev/null || true

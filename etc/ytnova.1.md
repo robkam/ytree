@@ -289,7 +289,7 @@ rules live in theme files, not in the main config.
 
 Theme catalogs are plain text. ytnova loads user themes from
 `~/.config/ytnova/themes.conf`, falls back to legacy `~/.ytnova.themes`, and then
-uses the packaged `etc/ytnova.themes` catalog. The packaged catalog includes
+uses the installed packaged theme catalog. The packaged catalog includes
 `classic-blue` and `bash-black`.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,

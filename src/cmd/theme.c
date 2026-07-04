@@ -609,6 +609,9 @@ int LoadConfiguredTheme(ViewContext *ctx) {
   if (result == -2)
     return -1;
 
+  if (access(PACKAGED_THEME_PATH, F_OK) == 0)
+    return ReadThemeFile(ctx, PACKAGED_THEME_PATH, theme_name);
+
   return ReadThemeFile(ctx, "etc/ytnova.themes", theme_name);
 }
 
