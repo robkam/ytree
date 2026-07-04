@@ -382,7 +382,7 @@ Themes are plain-text user-editable files separate from the main configuration. 
 *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
 *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
 *   Built-in theme names include `classic-blue` and `bash-black`.
-*   User-facing theme files use semantic role names only. Legacy color-key names are migration-only compatibility input and are not the public theme model.
+*   User-facing theme files use semantic role names only.
 
 ### 7.2 Semantic Roles
 Required roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `help`, `info`, `warning`, `error`, `search_hit`, and `disabled`.

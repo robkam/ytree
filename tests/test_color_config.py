@@ -248,8 +248,6 @@ def test_architecture_documents_theme_boundaries():
         "role definitions and file-type palettes live in separate theme files"
         in arch_source
     )
-    assert "Legacy color-key parsing is migration-only compatibility input" in (
-        arch_source
-    )
+    assert "Legacy color-key parsing" not in arch_source
     assert "File-Type Palette Boundary" in arch_source
     assert "must not style directory tree rows" in arch_source
