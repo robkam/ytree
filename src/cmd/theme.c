@@ -478,6 +478,15 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
   memset(roles, 0, sizeof(roles));
   for (i = 0; i < THEME_ROLE_COUNT; ++i)
     snprintf(roles[i].name, sizeof(roles[i].name), "%s", required_roles[i]);
+  {
+    ThemeRoleValue *margin_role = FindRole(roles, "margin");
+
+    if (margin_role != NULL) {
+      snprintf(margin_role->value, sizeof(margin_role->value), "%s",
+               "dynamic_text");
+      margin_role->is_set = TRUE;
+    }
+  }
 
   while (fgets(buffer, sizeof(buffer), fp) != NULL) {
     char *comment;

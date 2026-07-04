@@ -6,14 +6,17 @@ Current branch and HEAD:
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Strict user theme catalog failure handling.
-  - Added focused regression coverage for a preferred `~/.config/ytnova/themes.conf` path that exists but cannot be read as a theme catalog.
-  - Theme catalog open/read failures now fail closed instead of falling through to legacy or packaged fallback catalogs; only a missing file remains fallback-eligible at open time.
-  - Existing invalid-catalog blocking and valid-catalog-missing-theme fallback behavior remains covered.
+- Margin inheritance.
+  - Added focused regression coverage for a theme that omits `margin` while defining `dynamic_text`.
+  - Theme loading now defaults omitted `margin` to `dynamic_text` before strict validation and application.
+  - All other required semantic roles remain strictly required; invalid/incomplete themes still fail atomically.
+
+Prior local subunit in this continuation:
+- Strict user theme catalog failure handling: unreadable preferred theme catalogs fail closed instead of falling through to fallback catalogs.
 
 Focused validation for this checkpoint:
-- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_unreadable_user_theme_catalog_blocks_packaged_fallback -q` -> failed because the unreadable preferred catalog fell through to the packaged catalog.
-- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_unreadable_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback -q` -> 3 passed.
+- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_theme_margin_defaults_to_dynamic_text_when_omitted -q` -> failed because `ReadThemeFile` rejected the theme without `margin`.
+- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_theme_margin_defaults_to_dynamic_text_when_omitted tests/test_color_parser_runtime.py::test_theme_file_loader_maps_roles_and_palette_rules tests/test_color_parser_runtime.py::test_failed_theme_load_keeps_previous_file_palette -q` -> 3 passed.
 - `make` -> passed.
 
 Local notes:
@@ -25,9 +28,9 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Margin inheritance: allow `margin` to inherit `dynamic_text` when omitted while preserving strict validation for other roles.
+- Semantic role migration completion: add missing semantic aliases needed by renderers and move Task 60 render contract tests/surfaces away from direct legacy pair names except migration/projection input.
 
 Known blockers or risks:
 - No active blocker.
-- Remaining current auditor findings after this subunit: margin inheritance, semantic role migration completion, and keeping this checkpoint fresh as subsequent commits land.
+- Remaining current auditor findings after this subunit: semantic role migration completion and keeping this checkpoint fresh as subsequent commits land.
 - Before any maintainer-requested push, fetch origin and rebase `task-60` onto latest `origin/main`, then rerun focused validation after a clean rebase.

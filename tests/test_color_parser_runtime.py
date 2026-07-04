@@ -442,6 +442,126 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
 
 
+def test_theme_margin_defaults_to_dynamic_text_when_omitted(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_margin_default_driver.c"
+    binary = tmp_path / "theme_margin_default_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+  char name[32];
+  int fg;
+  int bg;
+} CapturedColor;
+
+static CapturedColor colors[32];
+static int color_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  if (color_count >= 32)
+    return;
+  snprintf(colors[color_count].name, sizeof(colors[color_count].name), "%s",
+           name);
+  colors[color_count].fg = fg;
+  colors[color_count].bg = bg;
+  ++color_count;
+}
+
+static int expect_color(const char *name, int fg, int bg) {
+  int i;
+
+  for (i = 0; i < color_count; ++i) {
+    if (strcmp(colors[i].name, name) == 0 && colors[i].fg == fg &&
+        colors[i].bg == bg)
+      return 0;
+  }
+
+  fprintf(stderr, "missing color %s %d,%d\n", name, fg, bg);
+  return 1;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+  if (expect_color("MARGIN_COLOR", 15, COLOR_BLUE) != 0)
+    return 1;
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
 def test_theme_palette_omitted_background_inherits_theme_filename_background(
     tmp_path,
 ):
