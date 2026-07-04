@@ -2,16 +2,19 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress picker role styling commit: fcdd797 fix(ui): expose semantic role aliases.
+- HEAD after the color-path bold cleanup commit: 1f10c60 fix(ui): remove color bold overlays.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Picker role styling cleanup
-  - Commit: pending local commit at this checkpoint update.
-  - Volume picker current-item rendering now uses the picker role color pair under color support without adding unconditional `A_BOLD`.
-  - No-color fallback emphasis remains for monochrome terminals.
+- Remaining color-path bold cleanup
+  - Commit: 1f10c60 fix(ui): remove color bold overlays.
+  - Added a source contract test preventing `COLOR_PAIR(...) | A_BOLD` and `WbkgdSet(...A_BOLD...)` in color-supported UI/core render paths.
+  - Removed remaining color-path bold overlays from startup background, animation, and viewer border setup so configured role pairs control color-supported styling.
+  - No-color and explicitly non-color fallback attributes remain out of scope for this color-path guard.
 
 Prior local subunits in this continuation:
+- Picker role styling cleanup
+  - Commit: 26986e5 fix(ui): let picker roles control styling
 - Semantic role alias consumption
   - Commit: fcdd797 fix(ui): expose semantic role aliases
 - Display helper role styling cleanup
@@ -40,8 +43,8 @@ Prior local subunits in this continuation:
   - Commit: 38b498c fix(theme): reject invalid user catalogs
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_picker_surfaces_use_picker_and_selection_roles -q` -> 1 failed because volume picker current-item rendering still used `COLOR_PAIR(CPAIR_HST) | A_BOLD`.
-- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_picker_surfaces_use_picker_and_selection_roles tests/test_theme_ui_contract.py::test_volume_menu_uses_required_theme_command_strip -q` -> 2 passed.
+- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_color_supported_roles_do_not_add_bold_attributes -q` -> 1 failed with remaining color-path bold offenders.
+- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_color_supported_roles_do_not_add_bold_attributes tests/test_theme_ui_contract.py::test_viewer_frame_uses_border_role_not_directory_fill_role tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> 3 passed.
 - `make` -> passed.
 
 Local notes:
@@ -54,8 +57,9 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Inspect remaining hard-coded color-path attributes (`git grep` currently showed startup/viewer/animation border cases) and decide whether they are semantic-role styling offenders or no-color/special-effect paths that need separate follow-up.
+- None for the listed current code-auditor findings; they are closed in local `task-60` state. Await maintainer direction for broader Task 60 audit, push/PR/CI, or additional Task 60 scope.
 
 Known blockers or risks:
 - No active blocker.
+- Focused post-commit inspection: `git grep -n "COLOR_PAIR(.*) | A_BOLD\|WbkgdSet(.*A_BOLD" -- src/ui/*.c src/core/*.c || true` produced no offenders; targeted parser/style pytest checks passed.
 - Before any maintainer-requested push, fetch origin and rebase `task-60` onto latest `origin/main`, then rerun focused validation after a clean rebase.

@@ -130,7 +130,7 @@ static void SetupTaggedViewWindow(ViewContext *ctx) {
 
 #ifdef COLOR_SUPPORT
   WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR));
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS) | A_BOLD);
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_BORDERS));
 #endif
 }
 

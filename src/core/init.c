@@ -972,7 +972,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   leaveok(stdscr, FALSE);
   curs_set(0);
 
-  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
+  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(CPAIR_WINDIR));
 
   ReCreateWindows(ctx);
   DEBUG_LOG("Init: ReCreateWindows done");

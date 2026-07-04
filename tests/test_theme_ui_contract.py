@@ -6,6 +6,13 @@ def _read(path):
     return Path(path).read_text(encoding="utf-8")
 
 
+def _source_paths(*roots):
+    paths = []
+    for root in roots:
+        paths.extend(Path(root).glob("*.c"))
+    return paths
+
+
 def _command_strip_commands(source, array_name):
     array = re.search(
         rf"static const UICommandStripCommand {array_name}\[\] = \{{(?P<body>.*?)\}};",
@@ -72,6 +79,18 @@ def test_command_strip_key_role_controls_color_styling():
     assert "key_attr = COLOR_PAIR(hcolor);" in source
     assert "key_attr = COLOR_PAIR(hcolor) | A_BOLD;" not in source
     assert "COLOR_PAIR(color) | A_BOLD" not in source
+
+
+def test_color_supported_roles_do_not_add_bold_attributes():
+    offenders = []
+    for path in _source_paths("src/ui", "src/core"):
+        source = path.read_text(encoding="utf-8")
+        if re.search(r"COLOR_PAIR\([^\n]*\) \| A_BOLD", source):
+            offenders.append(str(path))
+        if re.search(r"WbkgdSet\([^\n]*A_BOLD", source):
+            offenders.append(str(path))
+
+    assert offenders == []
 
 
 def test_volume_menu_uses_required_theme_command_strip():
