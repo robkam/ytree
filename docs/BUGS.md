@@ -345,8 +345,8 @@ Ordering policy (for all editors, including AI editors):
 *   **Status**: Confirmed.
 
 ### **BUG-25: Color Configuration Roles Are Misrouted Across Unrelated UI Surfaces**
-*   **Description**: Current color-pair names and rendering usage do not map cleanly to visible UI roles. Changing one color key can affect unrelated surfaces, while some documented keys appear unused or hard to observe.
-*   **Manual findings (2026-06-25)**:
+*   **Description**: Legacy color-pair names and rendering usage did not map cleanly to visible UI roles. Changing one color key could affect unrelated surfaces, while some documented keys appeared unused or hard to observe.
+*   **Historical manual findings (2026-06-25)**:
     *   Stats panel dynamic values are rendered with the same color as nearby static labels in several places, so values such as paths, filesystem names, counts, sizes, attributes, owners, and timestamps cannot be made white independently of labels.
     *   Stats section titles (`FILTER`, `VOLUME`, `VOLUME STATS`, `CURRENT DIR`/`CURRENT FILE`, `ATTRIBUTES`) are inconsistently treated as border text versus ordinary text.
     *   `WINDIR_COLOR` appears to affect the current filter value, static+dynamic text in volume stats, and current-dir totals/matches/tags text.
@@ -363,8 +363,13 @@ Ordering policy (for all editors, including AI editors):
     *   Separate border/box-line roles from title text and content text.
     *   Ensure color configuration comments describe actual behavior until the role-based theme system replaces the legacy keys.
     *   Align with `ROADMAP` Task 60 by introducing semantic roles instead of preserving misleading legacy pair names as the long-term model.
+*   **Task-60 branch resolution notes**:
+    *   Public configuration now selects a semantic theme, while role definitions and file-type palettes live in `etc/ytnova.themes` or user theme catalogs.
+    *   Legacy color keys remain accepted only through migration shims; `WINERR_COLOR` is a migration-only alias for `ERR_COLOR`.
+    *   Stats labels/titles, dynamic values, borders, tree guides/margins, picker/help surfaces, severity dialogs, preview search hits, header paths, viewer paths, and the clock have dedicated semantic-role routing.
+    *   The remaining legacy `CPAIR_*` names are internal projection handles until the staged renderer migration can remove the compatibility bridge entirely.
 *   **Related**: `ROADMAP` Task 60 (role-based theme system and restrained default palette).
-*   **Status**: Confirmed.
+*   **Status**: In progress on the role-based theme branch; keep open until Task 60 closes.
 
 ### **BUG-26: Recursive Scan Interrupt Responsiveness**
 *   **Description**: Interrupting a recursive expansion (`*`) via `ESC` is supported but requires multiple keypresses (Prompt Y/N).
