@@ -71,6 +71,29 @@ Review rule:
 
 ## Comprehensive ytnova-Specific Smell Checklist
 
+### 0) Conceptual Integrity and Architecture Conformance
+
+- Treat the codebase as one integrated product, not a pile of locally correct patches.
+- Check whether the implementation still conforms to the intended architecture, not just whether each edited file works in isolation.
+- Look for architectural drift when the code no longer matches the documented design, and architectural erosion when the implementation violates architectural constraints.
+- Look for shotgun surgery when one logical change forces scattered edits across many files.
+- Look for duplicate or parallel implementations that survive after a refactor, migration, or feature replacement.
+- Look for sibling features that implement the same concept with divergent semantics, naming, ordering, polarity, or ownership.
+- Look for half-migrated replacements where old code remains reachable, inert, or only partially retired.
+
+Audit questions:
+- Is there exactly one authoritative implementation for each durable behavior?
+- Does the implementation still conform to the intended architecture and documented invariants?
+- Are any surviving alternatives intentionally transitional, or are they accidental leftovers?
+- Do similar code paths still express the same concept in the same way?
+- Would a maintainer understand the system as a coherent whole, or as stitched-together fragments?
+
+Required response when this smell is found:
+- Name the surviving duplicate, drift, or erosion point.
+- State whether it is dead, transitional, or still user-reachable.
+- Explain the architectural or conceptual-integrity breakage it causes.
+- Recommend the single durable owner or consolidation path.
+
 ### 1) Architecture and Module Boundaries
 
 - Logic for non-controller concerns placed in `src/ui/ctrl_*.c` instead of dedicated modules.
@@ -98,7 +121,14 @@ Review rule:
 - Missing validation at boundary points (user input, filesystem responses, command arguments).
 - Retries or recovery branches that hide deterministic failures.
 
-### 4) UI/TUI Flow and Interaction Economy
+### 4) Performance and Event-Loop Determinism
+
+- Performance regressions in interactive flows, especially input latency, redraw lag, and avoidable blocking.
+- Event-loop nondeterminism that changes user-visible behavior under resize, watcher, or bursty input conditions.
+- Signal-safety violations that introduce complex logic, I/O, or ncurses calls into signal handlers.
+- Blocking work on the main loop when a non-blocking or deferred path is already the established architecture.
+
+### 5) UI/TUI Flow and Interaction Economy
 
 - Common path requires more than one submenu before result.
 - Prompt chains that can be collapsed into one prompt with defaults/toggles.
@@ -107,7 +137,7 @@ Review rule:
 - Redraw/update behavior that causes flicker or stale panel state.
 - UX confirmation friction on non-destructive common-path operations.
 
-### 5) API, Data Shape, and Logic Clarity
+### 6) API, Data Shape, and Logic Clarity
 
 - Long parameter lists suggesting data clumps.
 - Flag-heavy function signatures (`bool do_x, bool do_y`) indicating mixed responsibilities.
@@ -116,7 +146,7 @@ Review rule:
 - Message-chain style calls that expose internal object structure.
 - Magic numbers/strings hiding domain meaning.
 
-### 6) Complexity and Readability
+### 7) Complexity and Readability
 
 - Functions with multiple abstraction levels mixed together.
 - Functions with deep conditional nesting or high branching complexity.
@@ -125,7 +155,7 @@ Review rule:
 - Wrong abstraction smell: generic helper gains branch flags per new callsite.
 - Dead code, unreachable branches, or stale fallback logic.
 
-### 7) Tests, QA Signals, and Regression Risk
+### 8) Tests, QA Signals, and Regression Risk
 
 - Missing regression tests for bugfixes.
 - Tests added only after fix, without fail-first proof.
@@ -134,7 +164,7 @@ Review rule:
 - Local suppressions/skips/xfails used to bypass root-cause remediation.
 - Changed behavior without corresponding spec/test updates.
 
-### 8) Documentation and Comment Hygiene
+### 9) Documentation and Comment Hygiene
 
 - Stale comments that no longer match behavior.
 - Change-diary comments in source files.

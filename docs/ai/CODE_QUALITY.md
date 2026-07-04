@@ -11,6 +11,21 @@ This doc is for AI-assisted sessions (architect/developer/code-auditor) when pro
 
 It is not runtime code and not read by the compiler; it guides how AI work is requested and executed.
 
+## Canonical Audit Frame
+
+The code-quality skill checks for the canonical failure modes behind “looks fine locally, but not as a whole”:
+
+- conceptual integrity
+- architectural drift
+- architectural erosion
+- architecture conformance failures
+- shotgun surgery
+- duplicate or parallel implementations
+- performance regressions in interactive flows
+- event-loop nondeterminism and signal-safety violations
+
+When invoking `code-quality`, ask it to verify that the implementation still forms one coherent system rather than a set of independently edited fragments.
+
 ## Canonical Blueprint Location
 
 This file is a concise prompt/entry guide.
@@ -36,6 +51,13 @@ Before code edits, enforce:
 - root-cause QA remediation (no bypass/suppressions)
 - UX economy gate for interactive flows
 - focused validation during iteration
+- conceptual integrity check
+- architecture conformance check
+- drift/erosion check
+- shotgun-surgery check
+- duplicate/parallel implementation check
+- performance regression check
+- event-loop determinism / signal-safety check
 Then report/implement only approved P0-P1 issues.
 ```
 
