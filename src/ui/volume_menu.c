@@ -268,7 +268,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 #endif
         } else if (actual_idx == current_volume_index) {
 #ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(CPAIR_HST) | A_BOLD);
+          wattron(win, COLOR_PAIR(CPAIR_HST));
 #else
           wattron(win, A_BOLD);
 #endif
@@ -294,7 +294,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         if (actual_idx == current_volume_index &&
             actual_idx != selected_index) {
 #ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(CPAIR_HST) | A_BOLD);
+          wattroff(win, COLOR_PAIR(CPAIR_HST));
 #else
           wattroff(win, A_BOLD);
 #endif

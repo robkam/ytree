@@ -124,6 +124,7 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     assert "ctx->ctx_matches_window, COLOR_PAIR(CPAIR_WINHST)" in completion_source
     assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));" in volume_source
     assert "COLOR_PAIR(CPAIR_HIHST)" in volume_source
+    assert "COLOR_PAIR(CPAIR_HST) | A_BOLD" not in volume_source
     assert "win == ctx->ctx_f2_window" in render_dir_source
     assert "color = CPAIR_HST;" in render_dir_source
 
