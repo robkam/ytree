@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the color-role tracker documentation subunit.
+- This checkpoint is committed with the local roadmap completion subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -115,23 +115,28 @@ Completed local subunits toward Task 60:
 - Color-role tracker documentation
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - BUGS now marks the old color misrouting findings as historical, records current role-routing resolution notes, and keeps the item open until the role-based theme work closes.
+- Local roadmap completion state
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - ROADMAP marks the role-based theme work complete in local `task-60` state, and BUGS marks the color-role tracker resolved locally pending maintainer-directed push/PR/CI gate.
 
 Focused validation for latest local subunit:
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_config_paths.py tests/test_cli_version_flags.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py tests/test_f2_vols.py -q` -> 46 passed.
+- `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest has been run with `python3 -m pytest` from repo root.
 - Task-local recovery/prompt artifacts are included with the local subunit commit when changed.
 - Not pushed; no PR/CI actions taken.
-- Task 60 remains open.
+- Task 60 is complete in local `task-60` work; no push/PR/CI action has been taken.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the color-role tracker documentation commit.
+- None intended after the local roadmap completion commit.
 
 Next recommended Task 60 subunit:
-- Run the final focused Task 60 validation sweep, then update the roadmap status only if every acceptance criterion is satisfied.
+- None for local Task 60 implementation. Await maintainer direction for any push/PR/CI/rebase cycle.
 
 Known blockers or risks:
 - No active blocker.
-- Legacy color-pair shim remains migration-only by design until remaining render paths no longer consume legacy pair IDs.
-- Internal `TREE_LINES_COLOR`/`MARGIN_COLOR` pair names are migration-projection handles, not user-facing theme keys.
+- Before any maintainer-requested push, fetch origin and rebase `task-60` onto latest `origin/main`, then rerun focused validation after a clean rebase.
+- No push, PR, CI polling, ready marking, or merge has been performed.

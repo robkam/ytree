@@ -1108,7 +1108,7 @@ Ordering policy (for all editors, including AI editors):
     *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
     *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
     *   Temporary legacy color compatibility shims are documented as migration-only and are not allowed to define the final user-facing model.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete in local `task-60` work; pending maintainer-directed push/PR/CI gate.
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.

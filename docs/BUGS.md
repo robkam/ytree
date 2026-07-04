@@ -369,7 +369,7 @@ Ordering policy (for all editors, including AI editors):
     *   Stats labels/titles, dynamic values, borders, tree guides/margins, picker/help surfaces, severity dialogs, preview search hits, header paths, viewer paths, and the clock have dedicated semantic-role routing.
     *   The remaining legacy `CPAIR_*` names are internal projection handles until the staged renderer migration can remove the compatibility bridge entirely.
 *   **Related**: `ROADMAP` Task 60 (role-based theme system and restrained default palette).
-*   **Status**: In progress on the role-based theme branch; keep open until Task 60 closes.
+*   **Status**: Resolved in local role-based theme work; pending maintainer-directed push/PR/CI gate.
 
 ### **BUG-26: Recursive Scan Interrupt Responsiveness**
 *   **Description**: Interrupting a recursive expansion (`*`) via `ESC` is supported but requires multiple keypresses (Prompt Y/N).
