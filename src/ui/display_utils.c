@@ -536,7 +536,7 @@ void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color) {
       ch = ACS_BLOCK;
 
 #ifdef COLOR_SUPPORT
-    wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    wattrset(win, COLOR_PAIR(color));
 #endif /* COLOR_SUPPORT */
     waddch(win, ch);
 #ifdef COLOR_SUPPORT
@@ -586,7 +586,7 @@ void Print(WINDOW *win, int y, int x, char *str, int color) {
     ch = PRINT((int)*str);
 
 #ifdef COLOR_SUPPORT
-    wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    wattrset(win, COLOR_PAIR(color));
 #endif /* COLOR_SUPPORT */
     waddch(win, ch);
 #ifdef COLOR_SUPPORT
@@ -679,7 +679,7 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
 
 #ifdef COLOR_SUPPORT
     if (color == hi_color)
-      wattrset(win, COLOR_PAIR(color) | A_BOLD);
+      wattrset(win, COLOR_PAIR(color));
     else
       wattrset(win, COLOR_PAIR(color));
 #else
@@ -744,7 +744,7 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
     }
 #ifdef COLOR_SUPPORT
     if (color == hi_color)
-      wattrset(win, COLOR_PAIR(color) | A_BOLD);
+      wattrset(win, COLOR_PAIR(color));
     else
       wattrset(win, COLOR_PAIR(color));
 #else

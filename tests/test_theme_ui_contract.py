@@ -71,6 +71,7 @@ def test_command_strip_key_role_controls_color_styling():
 
     assert "key_attr = COLOR_PAIR(hcolor);" in source
     assert "key_attr = COLOR_PAIR(hcolor) | A_BOLD;" not in source
+    assert "COLOR_PAIR(color) | A_BOLD" not in source
 
 
 def test_volume_menu_uses_required_theme_command_strip():
