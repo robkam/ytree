@@ -8,6 +8,7 @@
 #include "config.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
+#include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
 #define THEME_ROLE_COUNT 16
@@ -568,14 +569,17 @@ static int TryConfiguredThemePath(ViewContext *ctx, char *path,
                      suffix);
   if (written < 0 || (size_t)written >= path_size)
     return -1;
+  if (access(path, F_OK) != 0)
+    return -1;
 
-  return ReadThemeFile(ctx, path, theme_name);
+  return (ReadThemeFile(ctx, path, theme_name) == 0) ? 0 : -2;
 }
 
 int LoadConfiguredTheme(ViewContext *ctx) {
   const char *theme_name;
   const char *home;
   char path[PATH_LENGTH + 1];
+  int result;
 
   if (ctx == NULL)
     return -1;
@@ -588,12 +592,19 @@ int LoadConfiguredTheme(ViewContext *ctx) {
   }
 
   home = getenv("HOME");
-  if (TryConfiguredThemePath(ctx, path, sizeof(path), home,
-                             THEME_CONFIG_HOME_PATH, theme_name) == 0)
+  result = TryConfiguredThemePath(ctx, path, sizeof(path), home,
+                                  THEME_CONFIG_HOME_PATH, theme_name);
+  if (result == 0)
     return 0;
-  if (TryConfiguredThemePath(ctx, path, sizeof(path), home, THEME_FILENAME,
-                             theme_name) == 0)
+  if (result == -2)
+    return -1;
+
+  result = TryConfiguredThemePath(ctx, path, sizeof(path), home, THEME_FILENAME,
+                                  theme_name);
+  if (result == 0)
     return 0;
+  if (result == -2)
+    return -1;
 
   return ReadThemeFile(ctx, "etc/ytnova.themes", theme_name);
 }

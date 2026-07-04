@@ -6,21 +6,18 @@ Current branch and HEAD:
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Atomic theme reload and preferred-path contract remediation
+- Invalid user theme catalog fallback blocking
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
-  - Theme file loading now validates every required semantic role and rejects unknown/malformed role entries, invalid role styles, and malformed file-type palette rules before mutating runtime theme state.
-  - Theme file-type palette loading stages rules and swaps them only after validation succeeds; failed theme loads leave previous file palette and color-role state intact.
-  - F10 reload snapshots UI color state alongside profile/menu/viewer/file-palette state and restores it on config apply/read failures or theme-load failures; successful reload remains silent and repaint-only.
-  - Packaged config/docs now present `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf` as preferred paths, with legacy `~/.ytnova` and `~/.ytnova.themes` only as fallbacks.
+  - Configured user theme catalogs now distinguish missing paths from existing invalid catalogs: missing preferred/legacy files still fall through to the next catalog, but an existing invalid/incomplete preferred or legacy catalog fails reload/load instead of silently falling through to packaged defaults.
+  - The new regression proves an incomplete preferred `~/.config/ytnova/themes.conf` fails without changing previous color updates or file palette state.
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state tests/test_theme_ui_contract.py::test_reload_failures_use_status_line_without_success_message tests/test_color_config.py::test_manpage_documents_user_visible_theme_contract -q` -> 3 failed as expected.
-- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state tests/test_theme_ui_contract.py::test_reload_failures_use_status_line_without_success_message tests/test_color_config.py::test_manpage_documents_user_visible_theme_contract -q` -> 3 passed.
-- `make docs` -> passed; regenerated `docs/USAGE.md` from `etc/ytnova.1.md`.
+- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback -q` -> failed because the invalid user theme fell through to the packaged catalog.
+- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state -q` -> 2 passed.
 - `make clean && make` -> passed with existing warnings.
-- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_config_paths.py tests/test_cli_version_flags.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py tests/test_f2_vols.py -q` -> 47 passed.
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_config_paths.py tests/test_cli_version_flags.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py tests/test_f2_vols.py tests/test_compare_actions.py -q` -> 75 passed.
 - `git diff --check` -> exit 0.
-- Final local audit search/read: semantic inspection of `ReadThemeFile` and `ReloadConfigAndTheme`, plus preferred-path legacy-default search over config/manpage/usage/template sources -> no new remediation changes required.
+- Post-fix semantic inspection of `ReadThemeFile` and `LoadConfiguredTheme` confirms invalid existing user catalogs fail before fallback and failed reads preserve staged runtime state.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -28,10 +25,10 @@ Local notes:
 - No remote actions have been taken.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the local subunit commit.
+- Runtime helper-message wording updates remain dirty for the next local subunit and are intentionally not part of this theme-loader commit.
 
 Next recommended Task 60 subunit:
-- No further local remediation is currently selected for the three current auditor findings. Await maintainer direction for any push/PR/CI/rebase cycle or for a broader Task 60 audit.
+- Commit the remaining legacy config-path user-facing message cleanup, then re-audit the three current findings again.
 
 Known blockers or risks:
 - No active blocker.
