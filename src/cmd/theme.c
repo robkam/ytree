@@ -49,6 +49,8 @@ static BOOL SectionMatches(const char *line, const char *prefix,
                            const char *theme_name);
 static ThemeSection ParseSection(const char *line, const char *theme_name);
 static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name);
+static BOOL CopyThemeValueStrict(char *dest, size_t dest_size,
+                                 const char *value);
 static const char *ResolveRoleStyle(ThemeRoleValue *roles, const char *value,
                                     int depth);
 static BOOL ParseThemeStyle(ViewContext *ctx, ThemeRoleValue *roles,
@@ -157,6 +159,21 @@ static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name) {
   return NULL;
 }
 
+static BOOL CopyThemeValueStrict(char *dest, size_t dest_size,
+                                 const char *value) {
+  size_t len;
+
+  if (dest == NULL || dest_size == 0 || value == NULL)
+    return FALSE;
+
+  len = strlen(value);
+  if (len >= dest_size)
+    return FALSE;
+
+  memcpy(dest, value, len + 1);
+  return TRUE;
+}
+
 static const char *ResolveRoleStyle(ThemeRoleValue *roles, const char *value,
                                     int depth) {
   ThemeRoleValue *role;
@@ -180,6 +197,12 @@ static BOOL ParseThemeStyle(ViewContext *ctx, ThemeRoleValue *roles,
     return FALSE;
 
   style = ResolveRoleStyle(roles, value, 0);
+#ifndef COLOR_SUPPORT
+  (void)background;
+  *fg = -1;
+  *bg = -1;
+  return style != NULL && *style != '\0';
+#else
   *fg = -1;
   *bg = -1;
   if (!ParseColorStringStrict(style, fg, bg))
@@ -189,6 +212,7 @@ static BOOL ParseThemeStyle(ViewContext *ctx, ThemeRoleValue *roles,
   if (*bg == -1)
     *bg = background;
   return TRUE;
+#endif
 }
 
 static int ThemeBackground(ViewContext *ctx, ThemeRoleValue *roles) {
@@ -201,10 +225,17 @@ static int ThemeBackground(ViewContext *ctx, ThemeRoleValue *roles) {
     return COLOR_BLACK;
 
   (void)ParseColorStringStrict(background_role->value, &fg, &bg);
+  if (bg != -1)
+    return bg;
   return (fg == -1) ? COLOR_BLACK : fg;
 }
 
 static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
+#ifndef COLOR_SUPPORT
+  (void)ctx;
+  (void)roles;
+  return;
+#else
   int i;
   int background;
 
@@ -223,6 +254,7 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
     if (ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
       ApplySemanticRole(ctx, roles[i].name, fg, bg);
   }
+#endif
 }
 
 static void ApplySemanticRole(ViewContext *ctx, const char *role, int fg,
@@ -261,8 +293,10 @@ static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
   char *selectors;
   char *saveptr;
   char *selector;
+#ifdef COLOR_SUPPORT
   int fg = -1;
   int bg = -1;
+#endif
   BOOL added = FALSE;
 
   if (ctx == NULL || value == NULL)
@@ -281,8 +315,10 @@ static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
       *selectors == '\0')
     return FALSE;
 
+#ifdef COLOR_SUPPORT
   if (!ParseColorStringStrict(style, &fg, &bg) || fg == -1)
     return FALSE;
+#endif
 
   selector = strtok_r(selectors, ",", &saveptr);
   while (selector != NULL) {
@@ -291,8 +327,12 @@ static BOOL ParseCompactFileColorRules(ViewContext *ctx, char *value,
 
     if (!BuildFileColorPattern(trimmed, pattern, sizeof(pattern)))
       return FALSE;
+#ifdef COLOR_SUPPORT
     if (target_ctx != NULL)
       target_ctx->hook_add_file_color_rule(target_ctx, pattern, fg, bg);
+#else
+    (void)target_ctx;
+#endif
     added = TRUE;
 
     selector = strtok_r(NULL, ",", &saveptr);
@@ -310,7 +350,10 @@ static ThemePaletteLine *AppendThemePaletteLine(ThemePaletteLine **head,
     return NULL;
 
   line = xmalloc(sizeof(*line));
-  snprintf(line->value, sizeof(line->value), "%s", value);
+  if (!CopyThemeValueStrict(line->value, sizeof(line->value), value)) {
+    free(line);
+    return NULL;
+  }
   line->next = NULL;
 
   if (*head == NULL) {
@@ -334,9 +377,11 @@ static void FreeThemePaletteLines(ThemePaletteLine *head) {
 static BOOL ValidateThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
   ThemeRoleValue *background_role;
   int i;
+#ifdef COLOR_SUPPORT
   int background;
   int background_fg = -1;
   int background_bg = -1;
+#endif
 
   if (ctx == NULL || roles == NULL)
     return FALSE;
@@ -349,6 +394,10 @@ static BOOL ValidateThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
   background_role = FindRole(roles, "background");
   if (background_role == NULL)
     return FALSE;
+#ifndef COLOR_SUPPORT
+  (void)ctx;
+  return TRUE;
+#else
   if (!ParseColorStringStrict(background_role->value, &background_fg,
                               &background_bg))
     return FALSE;
@@ -368,6 +417,7 @@ static BOOL ValidateThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
   }
 
   return TRUE;
+#endif
 }
 
 static BOOL ValidateThemePaletteLines(ViewContext *ctx,
@@ -485,7 +535,10 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
         invalid_theme = TRUE;
         break;
       }
-      snprintf(role->value, sizeof(role->value), "%s", value);
+      if (!CopyThemeValueStrict(role->value, sizeof(role->value), value)) {
+        invalid_theme = TRUE;
+        break;
+      }
       role->is_set = TRUE;
     } else if (section == THEME_SECTION_FILE_TYPES) {
       if (!SplitAssignment(line, &name, &value)) {
@@ -519,20 +572,20 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
     return THEME_LOAD_INVALID;
   }
 
+#ifndef COLOR_SUPPORT
+  FreeThemePaletteLines(palette_head);
+  return THEME_LOAD_OK;
+#else
   staging_ctx = *ctx;
   staging_ctx.file_color_rules_head = NULL;
   old_file_rules = (FileColorRule *)ctx->file_color_rules_head;
-#ifdef COLOR_SUPPORT
   color_snapshot = UIColorSnapshot_Create();
-#endif
 
   ApplyThemeRoles(ctx, roles);
   if (!StageThemePaletteLines(ctx, palette_head, &staging_ctx)) {
     ctx->file_color_rules_head = old_file_rules;
-#ifdef COLOR_SUPPORT
     UIColorSnapshot_Restore(color_snapshot);
     UIColorSnapshot_Free(color_snapshot);
-#endif
     FreeThemeFileColorRules((FileColorRule *)staging_ctx.file_color_rules_head);
     FreeThemePaletteLines(palette_head);
     return THEME_LOAD_INVALID;
@@ -540,11 +593,10 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
 
   ctx->file_color_rules_head = staging_ctx.file_color_rules_head;
   FreeThemeFileColorRules(old_file_rules);
-#ifdef COLOR_SUPPORT
   UIColorSnapshot_Free(color_snapshot);
-#endif
   FreeThemePaletteLines(palette_head);
   return THEME_LOAD_OK;
+#endif
 }
 
 int ReadThemeFile(ViewContext *ctx, const char *filename,

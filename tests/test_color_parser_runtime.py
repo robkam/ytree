@@ -840,6 +840,318 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
 
 
+def test_theme_loader_skips_color_application_in_no_color_build(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_no_color_driver.c"
+    binary = tmp_path / "theme_no_color_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = white on blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[file-types sample]
+archives = red: zip
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+static int color_count;
+static int file_rule_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  (void)name;
+  (void)fg;
+  (void)bg;
+  ++color_count;
+}
+
+static void capture_file_color_rule(ViewContext *ctx, const char *pattern,
+                                    int fg, int bg) {
+  (void)ctx;
+  (void)pattern;
+  (void)fg;
+  (void)bg;
+  ++file_rule_count;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  FileColorRule existing_rule;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  memset(&existing_rule, 0, sizeof(existing_rule));
+  existing_rule.pattern = "*.old";
+  existing_rule.fg = COLOR_GREEN;
+  existing_rule.bg = COLOR_BLACK;
+  ctx.file_color_rules_head = &existing_rule;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = capture_file_color_rule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed without COLOR_SUPPORT\n");
+    return 1;
+  }
+  if (color_count != 0 || file_rule_count != 0) {
+    fprintf(stderr, "no-color theme load mutated color state: %d/%d\n",
+            color_count, file_rule_count);
+    return 1;
+  }
+  if (ctx.file_color_rules_head != &existing_rule) {
+    fprintf(stderr, "no-color theme load replaced file palette\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_theme_background_role_prefers_explicit_background_color(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_explicit_background_driver.c"
+    binary = tmp_path / "theme_explicit_background_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = white on blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white
+keybind = +white
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white
+info = +white
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+
+[file-types sample]
+archives = red: zip
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+extern UIColor ui_colors[];
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  FileColorRule *rule;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+  if (ui_colors[0].bg != COLOR_BLUE) {
+    fprintf(stderr, "dynamic_text inherited %d instead of %d\n",
+            ui_colors[0].bg, COLOR_BLUE);
+    return 1;
+  }
+
+  rule = (FileColorRule *)ctx.file_color_rules_head;
+  if (rule == NULL || strcmp(rule->pattern, "*.zip") != 0 ||
+      rule->bg != COLOR_BLUE) {
+    fprintf(stderr, "file rule inherited %d instead of %d\n",
+            rule == NULL ? -1 : rule->bg, COLOR_BLUE);
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_theme_loader_rejects_overlong_role_values(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_overlong_role_driver.c"
+    binary = tmp_path / "theme_overlong_role_driver"
+
+    theme_file.write_text(
+        f"""
+[theme sample]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = {'white' + (' ' * 200) + 'on blue'}
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") == 0) {
+    fprintf(stderr, "overlong theme role unexpectedly loaded\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
 def test_failed_theme_load_keeps_previous_file_palette(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     theme_file = tmp_path / "themes.conf"
