@@ -2,20 +2,20 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress command-strip commit: 862e8d0ca16c5e349a7cc56fb0be0e5afa0b18d0.
+- HEAD before the in-progress catalog-fallback commit: c337411348a999dc5d45347fa9e4720878f68a39.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Command-strip label/token model remediation
+- Theme catalog fallback semantics remediation
   - Commit: pending local commit at this checkpoint update.
-  - F2, F10, and volume command strips now use `UICommandStripCommand` descriptors with full labels and separate primary/secondary key tokens.
-  - Command punctuation and key styling are rendered by `UI_RenderCommandStrip` instead of being stored as split label fragments.
-  - User-visible command strip text remains exactly:
-    - F2: `(L)og  (<)/(>) Cycle`
-    - F10: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`
-    - Volume menu: `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`
+  - Theme loading now distinguishes `THEME_LOAD_NOT_FOUND` from invalid/malformed theme data internally.
+  - A valid preferred or legacy user theme catalog that lacks the requested theme now falls through to later catalogs, including packaged `etc/ytnova.themes`.
+  - A matching malformed/incomplete theme still fails closed and blocks fallback to packaged defaults.
 
 Prior local subunits in this continuation:
+- Command-strip label/token model remediation
+  - Commit: c337411 fix(ui): model command strip labels separately
+  - F2, F10, and volume command strips now use `UICommandStripCommand` descriptors with full labels and separate primary/secondary key tokens; punctuation and key styling are rendered separately.
 - User-facing helper guidance path cleanup
   - Commit: 862e8d0 fix(config): avoid legacy helper guidance
   - Compare/file-diff helper diagnostics now tell users to update the main config instead of naming legacy `~/.ytnova` as the place to configure helper commands.
@@ -27,8 +27,8 @@ Prior local subunits in this continuation:
   - Existing invalid preferred/legacy user theme catalogs now fail reload/load instead of silently falling through to packaged defaults.
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_f10_surface_uses_required_command_strip_and_enter_default tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_volume_menu_uses_required_theme_command_strip -q` -> 3 failed because the old `UICommandStripPart` fragment arrays were still present.
-- GREEN after implementation: same focused pytest command -> 3 passed.
+- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback -q` -> 1 failed because the valid user catalog without `classic-blue` blocked packaged fallback.
+- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback -q` -> 2 passed.
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
 
@@ -42,7 +42,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Theme catalog fallback semantics: distinguish theme-not-found in a valid catalog from malformed matching themes/catalogs so a valid user catalog lacking the requested theme can fall through to packaged themes.
+- Startup theme loading: make initialization check theme load failure and fail closed with a clear startup diagnostic, or explicitly use a known-good packaged fallback with diagnostics if that is already the established startup contract.
 
 Known blockers or risks:
 - No active blocker.
