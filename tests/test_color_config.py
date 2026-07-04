@@ -139,6 +139,16 @@ def test_packaged_theme_catalog_uses_compact_file_palettes():
     assert "documents =" not in classic
 
 
+def test_file_color_pair_exhaustion_cannot_reuse_semantic_roles():
+    defs_source = _read_source("include/ytnova_defs.h")
+    color_source = _read_source("src/ui/color.c")
+
+    assert "FILE_COLOR_PAIR_UNASSIGNED = 0" in defs_source
+    assert "rule->pair_id = UI_ROLE_DYNAMIC_TEXT" not in color_source
+    assert "rule->pair_id = UI_ROLE_" not in color_source
+    assert "if (rule->pair_id == FILE_COLOR_PAIR_UNASSIGNED)" in color_source
+
+
 def test_file_type_palette_special_selectors_are_link_and_exec_only():
     theme_source = _read_source("src/cmd/theme.c")
     profile_source = _read_source("src/cmd/profile.c")

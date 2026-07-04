@@ -54,10 +54,10 @@ search_hit = black on yellow
 disabled = grey on black
 
 [file-types bash-black]
-archives = red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img
-scripts = +cyan: sh,bash,zsh,py,pl,rb,lua,awk,sed
-code = green: c,h,cc,cpp,hpp,rs,go,java,js,ts,css,html,xml,json,yaml,yml,toml
-media = magenta: jpg,jpeg,gif,bmp,png,tif,tiff,svg,webp,ico,avi,mpg,mpeg,mp4,mkv,mov,wmv,flv,webm,mp3,wav,flac,ogg,m4a,aac,wma,mid
-documents = white: pdf,epub,mobi,doc,docx,xls,xlsx,ppt,pptx,odt,ods,odp,odg,odf,odb,txt,rtf,md
+archives = red: tar,tgz,zip,gz,rar,7z,iso
+scripts = +cyan: sh,bash,py,pl,rb
+code = green: c,h,cpp,rs,go,java,js,ts
+media = magenta: jpg,png,gif,mp4,mp3,wav
+documents = white: pdf,txt,md,doc,docx
 links = cyan: LINK
 executables = green: EXEC

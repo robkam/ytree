@@ -279,7 +279,7 @@ void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg, int bg) {
   new_rule->pattern = xstrdup(pattern);
   new_rule->fg = fg;
   new_rule->bg = (bg == -1) ? UIColorBackground(UI_ROLE_DYNAMIC_TEXT) : bg;
-  new_rule->pair_id = 0;
+  new_rule->pair_id = FILE_COLOR_PAIR_UNASSIGNED;
   new_rule->next = NULL;
 
   if (ctx->file_color_rules_head == NULL) {
@@ -309,13 +309,15 @@ void ReinitColorPairs(ViewContext *ctx) {
 
   /* Initialize file type colors */
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
-    if (rule->pair_id == 0) {
+    if (rule->pair_id == FILE_COLOR_PAIR_UNASSIGNED) {
       if (next_pair_id < COLOR_PAIRS) {
         rule->pair_id = next_pair_id++;
       } else {
-        rule->pair_id = UI_ROLE_DYNAMIC_TEXT;
+        continue;
       }
     }
+    if (rule->pair_id < F_COLOR_PAIR_BASE || rule->pair_id >= COLOR_PAIRS)
+      continue;
     init_pair(rule->pair_id, NormalizeColorIndex(rule->fg, COLORS),
               NormalizeColorIndex(rule->bg, COLORS));
   }
@@ -332,6 +334,13 @@ void StartColors(ViewContext *ctx) {
   ReinitColorPairs(ctx);
 }
 
+static int FileColorPairOrDefault(const FileColorRule *rule) {
+  if (rule == NULL || rule->pair_id < F_COLOR_PAIR_BASE ||
+      rule->pair_id >= COLOR_PAIRS)
+    return UI_ROLE_DYNAMIC_TEXT;
+  return rule->pair_id;
+}
+
 int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
   FileColorRule *rule;
 
@@ -341,11 +350,11 @@ int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
     if (S_ISLNK(fe_ptr->stat_struct.st_mode) &&
         strcmp(rule->pattern, "LINK") == 0) {
-      return rule->pair_id;
+      return FileColorPairOrDefault(rule);
     }
     if ((fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) &&
         strcmp(rule->pattern, "EXEC") == 0) {
-      return rule->pair_id;
+      return FileColorPairOrDefault(rule);
     }
 
     /* Check for wildcard extension match */
@@ -355,7 +364,7 @@ int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
       int ext_len = strlen(ext);
       if (name_len > ext_len &&
           strcasecmp(fe_ptr->name + name_len - ext_len, ext) == 0) {
-        return rule->pair_id;
+        return FileColorPairOrDefault(rule);
       }
     }
   }

@@ -271,6 +271,7 @@ typedef struct _ViewContext ViewContext;
 /* Enums */
 
 typedef enum {
+  FILE_COLOR_PAIR_UNASSIGNED = 0,
   UI_ROLE_DYNAMIC_TEXT = 1,
   UI_ROLE_STATIC_TEXT,
   UI_ROLE_KEYBIND,

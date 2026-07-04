@@ -89,6 +89,15 @@ extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
 #define StartColors(ctx) ;
 #define ReinitColorPairs(ctx) ;
 #define WbkgdSet(ctx, a, b) ;
+#define ParseColorString(color_str, fg, bg)                                 \
+  ((void)(color_str), (void)(fg), (void)(bg))
+#define ParseColorStringStrict(color_str, fg, bg)                           \
+  ((void)(color_str), (void)(fg), (void)(bg), FALSE)
+#define UpdateUIColor(name, fg, bg) ((void)(name), (void)(fg), (void)(bg))
+#define AddFileColorRule(ctx, pattern, fg, bg)                               \
+  ((void)(ctx), (void)(pattern), (void)(fg), (void)(bg))
+#define GetFileTypeColor(ctx, fe_ptr)                                        \
+  ((void)(ctx), (void)(fe_ptr), UI_ROLE_DYNAMIC_TEXT)
 #endif
 
 /* dirwin.c */
