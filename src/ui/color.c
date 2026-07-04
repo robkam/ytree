@@ -286,11 +286,6 @@ int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
     return CPAIR_FILE;
 
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
-    /* Check special keywords first */
-    if (S_ISDIR(fe_ptr->stat_struct.st_mode) &&
-        strcmp(rule->pattern, "DIR") == 0) {
-      return rule->pair_id;
-    }
     if (S_ISLNK(fe_ptr->stat_struct.st_mode) &&
         strcmp(rule->pattern, "LINK") == 0) {
       return rule->pair_id;

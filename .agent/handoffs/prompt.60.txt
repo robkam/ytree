@@ -2,16 +2,20 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress startup-theme-failure commit: a4c45ba7e80cd6b85acda7900fd7e9507f263774.
+- HEAD before the in-progress selector-cleanup commit: ec918355dc03cefac53dba81cbe55718faa1449a.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Startup theme failure handling remediation
+- File-type palette special selector cleanup
   - Commit: pending local commit at this checkpoint update.
-  - Startup now checks `core_init_ops.load_theme(ctx)` and fails closed with `LoadTheme failed*ABORT` through the existing startup notice/abort path when theme loading fails.
-  - Startup no longer silently continues with legacy defaults after a theme load failure.
+  - Semantic theme file palette parsing no longer treats `DIR` as a special selector; only `LINK` and `EXEC` remain special selector tokens.
+  - Legacy compact `[FILE_COLORS]` parsing also no longer maps `DIR` to a special runtime pattern.
+  - Runtime file-type color matching no longer has a directory-special rule branch, preserving the contract that directory tree rows use theme roles, not file-type palette rules.
 
 Prior local subunits in this continuation:
+- Startup theme failure handling remediation
+  - Commit: ec91835 fix(theme): abort startup on theme load failure
+  - Startup checks theme load failure and fails closed with `LoadTheme failed*ABORT` through the existing startup notice/abort path.
 - Theme catalog fallback semantics remediation
   - Commit: a4c45ba fix(theme): allow packaged fallback for missing user themes
   - Valid user catalogs that lack the requested theme fall through to later catalogs, while matching malformed/incomplete themes still fail closed.
@@ -26,10 +30,11 @@ Prior local subunits in this continuation:
   - Commit: 38b498c fix(theme): reject invalid user catalogs
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_color_config.py::test_startup_fails_closed_on_theme_load_failure -q` -> 1 failed because startup did not check/report theme load failure.
-- GREEN after implementation: same focused pytest command -> 1 passed.
+- RED before implementation: `python3 -m pytest tests/test_color_config.py::test_file_type_palette_special_selectors_are_link_and_exec_only -q` -> 1 failed because theme/profile palette parsing still special-cased `DIR`.
+- GREEN after implementation: `python3 -m pytest tests/test_color_config.py::test_file_type_palette_special_selectors_are_link_and_exec_only tests/test_color_config.py::test_packaged_theme_catalog_uses_compact_file_palettes tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> 3 passed.
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
+- Post-fix semantic search found no `strcasecmp(selector, "DIR")` or `strcmp(rule->pattern, "DIR")` in `src/cmd/theme.c`, `src/cmd/profile.c`, or `src/ui/color.c`.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -41,7 +46,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Special selector cleanup: remove `DIR` from the semantic file-type palette path so only `LINK` and `EXEC` are special selectors there; directory tree rows must remain styled by theme roles.
+- None for the four current code-auditor findings; after this commit they are closed in local `task-60` state. Await maintainer direction for broader Task 60 audit, push/PR/CI, or additional Task 60 scope.
 
 Known blockers or risks:
 - No active blocker.

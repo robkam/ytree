@@ -133,6 +133,22 @@ def test_packaged_theme_catalog_uses_compact_file_palettes():
         assert ":" in section
 
 
+def test_file_type_palette_special_selectors_are_link_and_exec_only():
+    theme_source = _read_source("src/cmd/theme.c")
+    profile_source = _read_source("src/cmd/profile.c")
+    color_source = _read_source("src/ui/color.c")
+
+    assert 'strcasecmp(selector, "LINK")' in theme_source
+    assert 'strcasecmp(selector, "EXEC")' in theme_source
+    assert 'strcasecmp(selector, "LINK")' in profile_source
+    assert 'strcasecmp(selector, "EXEC")' in profile_source
+    assert 'strcasecmp(selector, "DIR")' not in theme_source
+    assert 'strcasecmp(selector, "DIR")' not in profile_source
+    assert 'strcmp(rule->pattern, "LINK")' in color_source
+    assert 'strcmp(rule->pattern, "EXEC")' in color_source
+    assert 'strcmp(rule->pattern, "DIR")' not in color_source
+
+
 def test_spec_documents_user_visible_theme_contract():
     spec_source = _read_source("docs/SPECIFICATION.md")
 

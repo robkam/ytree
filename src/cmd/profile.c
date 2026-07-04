@@ -688,8 +688,6 @@ static BOOL BuildFileColorPattern(const char *selector, char *pattern,
     written = snprintf(pattern, pattern_size, "%s", "LINK");
   } else if (strcasecmp(selector, "EXEC") == 0) {
     written = snprintf(pattern, pattern_size, "%s", "EXEC");
-  } else if (strcasecmp(selector, "DIR") == 0) {
-    written = snprintf(pattern, pattern_size, "%s", "DIR");
   } else if (strchr(selector, '*') != NULL || strchr(selector, '?') != NULL) {
     written = snprintf(pattern, pattern_size, "%s", selector);
   } else {
