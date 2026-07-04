@@ -235,7 +235,7 @@ static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
            ERROR_WINDOW_WIDTH - 1, ACS_RTEE);
   wattroff(ctx->ctx_error_window, A_ALTCHARSET);
 
-  wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair) | A_BOLD);
+  wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));
   MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, prompt);
   PrintErrorLine(ctx, 1, header);
   wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));

@@ -255,9 +255,9 @@ def test_preview_content_resets_search_hit_to_base_role_pair():
 def test_modal_prompt_keeps_severity_role_pair():
     error_source = _read("src/ui/error.c")
 
-    assert "COLOR_PAIR(color_pair) | A_BOLD" in error_source
-    assert "A_REVERSE | A_BLINK" not in error_source
     assert "wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));" in error_source
+    assert "COLOR_PAIR(color_pair) | A_BOLD" not in error_source
+    assert "A_REVERSE | A_BLINK" not in error_source
 
 
 def test_theme_docs_capture_role_routing_invariants():
