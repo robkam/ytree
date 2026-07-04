@@ -80,6 +80,118 @@ int main(void) {
     subprocess.run([str(binary)], cwd=repo_root, check=True)
 
 
+def test_update_ui_color_ignores_legacy_aliases(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    driver = tmp_path / "color_alias_driver.c"
+    binary = tmp_path / "color_alias_driver"
+
+    driver.write_text(
+        r'''
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+extern UIColor ui_colors[];
+extern int NUM_UI_COLORS;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static UIColor *find_color(const char *name) {
+  int i;
+
+  for (i = 0; i < NUM_UI_COLORS; ++i) {
+    if (strcmp(ui_colors[i].name, name) == 0)
+      return &ui_colors[i];
+  }
+  return NULL;
+}
+
+static int expect_unchanged(const char *name, int fg, int bg) {
+  UIColor *entry = find_color(name);
+
+  if (entry == NULL || entry->fg != fg || entry->bg != bg) {
+    fprintf(stderr, "%s changed through a legacy alias\n", name);
+    return 1;
+  }
+  return 0;
+}
+
+int main(void) {
+  UIColor *dynamic_text = find_color("dynamic_text");
+  UIColor *dialog = find_color("dialog");
+  UIColor *warning = find_color("warning");
+  UIColor *search_hit = find_color("search_hit");
+  int dynamic_fg;
+  int dynamic_bg;
+  int dialog_fg;
+  int dialog_bg;
+  int warning_fg;
+  int warning_bg;
+  int search_fg;
+  int search_bg;
+
+  if (dynamic_text == NULL || dialog == NULL || warning == NULL ||
+      search_hit == NULL)
+    return 1;
+
+  dynamic_fg = dynamic_text->fg;
+  dynamic_bg = dynamic_text->bg;
+  dialog_fg = dialog->fg;
+  dialog_bg = dialog->bg;
+  warning_fg = warning->fg;
+  warning_bg = warning->bg;
+  search_fg = search_hit->fg;
+  search_bg = search_hit->bg;
+
+  UpdateUIColor("DIR_COLOR", COLOR_RED, COLOR_BLUE);
+  UpdateUIColor("FILE_COLOR", COLOR_RED, COLOR_BLUE);
+  UpdateUIColor("DIALOG_COLOR", COLOR_RED, COLOR_BLUE);
+  UpdateUIColor("WARN_COLOR", COLOR_RED, COLOR_BLUE);
+  UpdateUIColor("GLOBAL_COLOR", COLOR_RED, COLOR_BLUE);
+
+  if (expect_unchanged("dynamic_text", dynamic_fg, dynamic_bg) != 0 ||
+      expect_unchanged("dialog", dialog_fg, dialog_bg) != 0 ||
+      expect_unchanged("warning", warning_fg, warning_bg) != 0 ||
+      expect_unchanged("search_hit", search_fg, search_bg) != 0)
+    return 1;
+
+  UpdateUIColor("dynamic_text", COLOR_RED, COLOR_BLUE);
+  if (dynamic_text->fg != COLOR_RED || dynamic_text->bg != COLOR_BLUE) {
+    fprintf(stderr, "canonical color role was not updated\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary)], cwd=repo_root, check=True)
+
+
 def test_file_color_rules_preserve_profile_order(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     driver = tmp_path / "file_color_order_driver.c"
@@ -254,6 +366,7 @@ def test_profile_validation_matches_startup_for_legacy_and_unknown_sections(tmp_
         """
 [GLOBAL]
 THEME=classic-blue
+IGNORED_GLOBAL=value
 
 [COLORS]
 DIALOG_COLOR = white on blue

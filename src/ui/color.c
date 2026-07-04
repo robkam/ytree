@@ -27,39 +27,6 @@ UIColor ui_colors[] = {{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0},
 
 int NUM_UI_COLORS = sizeof(ui_colors) / sizeof(ui_colors[0]);
 
-typedef struct {
-  const char *name;
-  int role_id;
-} LegacyColorAlias;
-
-static const LegacyColorAlias legacy_color_aliases[] = {
-    {"DIR_COLOR", UI_ROLE_DYNAMIC_TEXT},
-    {"WINDIR_COLOR", UI_ROLE_DYNAMIC_TEXT},
-    {"FILE_COLOR", UI_ROLE_DYNAMIC_TEXT},
-    {"WINFILE_COLOR", UI_ROLE_DYNAMIC_TEXT},
-    {"STATS_COLOR", UI_ROLE_DYNAMIC_TEXT},
-    {"WINSTATS_COLOR", UI_ROLE_DYNAMIC_TEXT},
-    {"MENU_COLOR", UI_ROLE_STATIC_TEXT},
-    {"HIMENUS_COLOR", UI_ROLE_KEYBIND},
-    {"HELP_COLOR", UI_ROLE_HELP},
-    {"HST_COLOR", UI_ROLE_PICKER},
-    {"WINHST_COLOR", UI_ROLE_PICKER},
-    {"HIDIR_COLOR", UI_ROLE_SELECTION},
-    {"HIFILE_COLOR", UI_ROLE_SELECTION},
-    {"HIHST_COLOR", UI_ROLE_SELECTION},
-    {"BORDERS_COLOR", UI_ROLE_BOX_LINES},
-    {"TREE_LINES_COLOR", UI_ROLE_TREE_LINES},
-    {"MARGIN_COLOR", UI_ROLE_MARGIN},
-    {"DIALOG_COLOR", UI_ROLE_DIALOG},
-    {"INFO_COLOR", UI_ROLE_INFO},
-    {"WARN_COLOR", UI_ROLE_WARNING},
-    {"ERR_COLOR", UI_ROLE_ERROR},
-    {"WINERR_COLOR", UI_ROLE_ERROR},
-    {"GLOBAL_COLOR", UI_ROLE_SEARCH_HIT},
-    {"HIGLOBAL_COLOR", UI_ROLE_SEARCH_HIT},
-    {"DISABLED_COLOR", UI_ROLE_DISABLED},
-    {NULL, 0}};
-
 struct _ui_color_snapshot {
   int count;
   int *fg;
@@ -259,14 +226,6 @@ void UpdateUIColor(const char *name, int fg, int bg) {
     if (strcasecmp(name, ui_colors[i].name) == 0) {
       ui_colors[i].fg = fg;
       ui_colors[i].bg = bg;
-      return;
-    }
-  }
-
-  for (i = 0; legacy_color_aliases[i].name != NULL; i++) {
-    if (strcasecmp(name, legacy_color_aliases[i].name) == 0) {
-      UpdateUIColor(ui_colors[legacy_color_aliases[i].role_id - 1].name, fg,
-                    bg);
       return;
     }
   }

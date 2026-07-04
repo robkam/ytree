@@ -52,7 +52,7 @@ def test_packaged_config_delegates_theme_details_to_theme_catalog():
     assert "semantic theme catalog" in changes_source
 
 
-def test_winerr_color_is_migration_only_alias():
+def test_winerr_color_is_not_runtime_alias():
     conf_source = _read_source("etc/ytnova.conf")
     template_source = _read_source("src/core/default_profile_template.h")
     color_source = _read_source("src/ui/color.c")
@@ -63,10 +63,10 @@ def test_winerr_color_is_migration_only_alias():
     assert "WINERR_COLOR" not in conf_source
     assert "WINERR_COLOR" not in template_source
     assert "CPAIR_WINERR" not in color_source
-    assert '"WINERR_COLOR"' in color_source
+    assert '"WINERR_COLOR"' not in color_source
     assert '"error"' in theme_source
     assert '"disabled"' in theme_source
-    assert "legacy_color_aliases" in color_source
+    assert "legacy_color_aliases" not in color_source
     assert "ApplyMigrationRoleShim" not in theme_source
     assert "ctx->ctx_error_window, COLOR_PAIR(UI_ROLE_ERROR)" in init_source
     assert "CPAIR_WINERR" not in error_source

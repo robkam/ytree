@@ -379,17 +379,7 @@ int ValidateProfileFile(ViewContext *ctx, const char *filename) {
       break;
     }
 
-    if (section == GLOBAL_SECTION) {
-      Profile key;
-
-      key.name = name;
-      if (ctx == NULL || bsearch(&key, (Profile *)ctx->profile_data,
-                                 PROFILE_ENTRIES, sizeof(Profile),
-                                 Compare) == NULL) {
-        invalid = TRUE;
-        break;
-      }
-    }
+    (void)name;
   }
 
   read_failed = ferror(f) ? TRUE : FALSE;
