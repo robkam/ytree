@@ -193,7 +193,7 @@ The formal child regions are:
 *   **Modal/command subregions:** transient prompts, menus, confirmations, external command completion, and operation results. Owner: `ViewContext`, with writes to panel or volume state only through an allowed transition commit.
 *   **Render projection region:** dirty surfaces, layout geometry, and ncurses window handles. Owner: `ViewContext`; this region may project state but must not select new authoritative identities.
 
-Every transition record must declare its category, source state, event, guard, allowed and blocked results, target state, owner, write set, generation effect, side effects, render invalidation, migration boundary status, and follow-up notes. The machine-readable registry in `docs/appstate_transition_matrix.json` is the source for this metadata until runtime transition objects exist. Required categories include keybinding, menu action, modal action, refresh/rebuild, volume operation, terminal signal/resize, filesystem mutation result, command completion, rebuild/rebind callback, and render reflow.
+Every transition record must declare its category, source state, event, guard, allowed and blocked results, target state, owner, write set, generation effect, side effects, render invalidation, migration boundary status, and follow-up notes. The machine-readable registry in `etc/appstate/appstate_transition_matrix.json` is the source for this metadata until runtime transition objects exist. Required categories include keybinding, menu action, modal action, refresh/rebuild, volume operation, terminal signal/resize, filesystem mutation result, command completion, rebuild/rebind callback, and render reflow.
 
 Transition execution follows this statechart contract:
 1.  Capture the current `AppState` region snapshots needed by the event.
@@ -213,7 +213,7 @@ Generation metadata is part of transition correctness:
 
 Rendering is projection only. Render/reflow paths may compute temporary row positions and clipped viewports from settled `AppState`, but those temporary values are discarded after drawing. A renderer must not choose a new tree/file selection, overwrite a saved viewport, or synthesize focus shape from visible rows. If projection cannot be computed safely, rendering must degrade or skip while leaving authoritative state intact.
 
-Compatibility shims are temporary migration debt, not alternate authority. Each shim must be recorded in `docs/appstate_compat_shims.json` with an owner, legacy authority path, read permission, write permission, invariant checks, removal trigger, target transition, follow-up task, and QA enforcement. Shim writes are allowed only when synchronizing from the future authoritative owner during a transition commit; shim reads must not outrank stable path keys, generation checks, or panel-local state.
+Compatibility shims are temporary migration debt, not alternate authority. Each shim must be recorded in `etc/appstate/appstate_compat_shims.json` with an owner, legacy authority path, read permission, write permission, invariant checks, removal trigger, target transition, follow-up task, and QA enforcement. Shim writes are allowed only when synchronizing from the future authoritative owner during a transition commit; shim reads must not outrank stable path keys, generation checks, or panel-local state.
 
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.

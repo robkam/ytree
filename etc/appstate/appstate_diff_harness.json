@@ -114,7 +114,7 @@
       "failure_mode": "A changed owner field outside the registered write set is rejected as an undeclared AppState mutation.",
       "enforcement_status": "covered_by_runtime_registry",
       "migration_notes": [
-        "Runtime migration should derive concrete field comparisons from docs/appstate_transition_matrix.json declared_write_set records."
+        "Runtime migration should derive concrete field comparisons from etc/appstate/appstate_transition_matrix.json declared_write_set records."
       ]
     },
     {

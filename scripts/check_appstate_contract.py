@@ -10,16 +10,17 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_TRANSITIONS = REPO_ROOT / "docs" / "appstate_transition_matrix.json"
-DEFAULT_SHIMS = REPO_ROOT / "docs" / "appstate_compat_shims.json"
-DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
-DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
-DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
-DEFAULT_DISPATCH_SURFACES = REPO_ROOT / "docs" / "appstate_dispatch_surfaces.json"
-DEFAULT_INVARIANTS = REPO_ROOT / "docs" / "appstate_invariants.json"
-DEFAULT_GENERATION_DOMAINS = REPO_ROOT / "docs" / "appstate_generation_domains.json"
-DEFAULT_DIFF_HARNESS = REPO_ROOT / "docs" / "appstate_diff_harness.json"
-DEFAULT_TRANSITION_SEQUENCES = REPO_ROOT / "docs" / "appstate_transition_sequences.json"
+APPSTATE_REGISTRY_DIR = REPO_ROOT / "etc" / "appstate"
+DEFAULT_TRANSITIONS = APPSTATE_REGISTRY_DIR / "appstate_transition_matrix.json"
+DEFAULT_SHIMS = APPSTATE_REGISTRY_DIR / "appstate_compat_shims.json"
+DEFAULT_ACTION_COVERAGE = APPSTATE_REGISTRY_DIR / "appstate_action_coverage.json"
+DEFAULT_EVENT_COVERAGE = APPSTATE_REGISTRY_DIR / "appstate_event_coverage.json"
+DEFAULT_OWNER_FIELDS = APPSTATE_REGISTRY_DIR / "appstate_owner_fields.json"
+DEFAULT_DISPATCH_SURFACES = APPSTATE_REGISTRY_DIR / "appstate_dispatch_surfaces.json"
+DEFAULT_INVARIANTS = APPSTATE_REGISTRY_DIR / "appstate_invariants.json"
+DEFAULT_GENERATION_DOMAINS = APPSTATE_REGISTRY_DIR / "appstate_generation_domains.json"
+DEFAULT_DIFF_HARNESS = APPSTATE_REGISTRY_DIR / "appstate_diff_harness.json"
+DEFAULT_TRANSITION_SEQUENCES = APPSTATE_REGISTRY_DIR / "appstate_transition_sequences.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytnova_defs.h"
 DEFAULT_ACTION_RUNTIME = REPO_ROOT / "src" / "core" / "appstate_actions.c"
 

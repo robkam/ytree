@@ -13,7 +13,7 @@ Local recovery state:
 - Use /home/rob/ytreenova/.agent/handoffs/prompt.1.txt as the live checkpoint if it is current.
 - If that checkpoint is stale or incomplete, reconstruct from local files in /home/rob/ytreenova/.agent/handoffs.
 - The handoff files are tracked recovery context; keep `/home/rob/ytreenova/.agent/handoffs/prompt.1.txt` current and include it in the same branch push as the subunit it describes.
-- Use docs/appstate*.json to identify remaining AppState registry/runtime boundary work.
+- Use etc/appstate/appstate*.json to identify remaining AppState registry/runtime boundary work.
 - Use git and GitHub to discover the current branch, current PR, merged PRs, and stale branches.
 - Do not rely on PR numbers, branch names, run IDs, or details from older chats.
 
@@ -55,7 +55,7 @@ What to do now:
    - If checks are green, mark ready if needed, merge when allowed, clean up stale remote/local branch state, update .agent/handoffs/prompt.1.txt, then continue according to the autonomous continuation policy unless a superseding stop condition applies.
    - If checks failed, inspect only the failure-relevant log tail/summary. Fix only clearly repo-side, in-scope failures. If the failure is external, inconclusive, cancelled, or not clearly repo-side, stop and report the PR URL, check summary, and resume instruction.
 3. If there is no active PR:
-   - Select the next small coherent AppState batch from docs/appstate*.json and the current handoff context.
+   - Select the next small coherent AppState batch from etc/appstate/appstate*.json and the current handoff context.
    - Implement it through the repo’s developer/auditor/PR workflow.
    - Run focused local validation only.
    - Push a draft PR.

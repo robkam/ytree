@@ -929,7 +929,7 @@ static const char *const kAppStateDiffHarnessGenerationDomainIds1[] = {
 };
 
 static const char *const kAppStateDiffHarnessMigrationNotes1[] = {
-  "Runtime migration should derive concrete field comparisons from docs/appstate_transition_matrix.json declared_write_set records.",
+  "Runtime migration should derive concrete field comparisons from etc/appstate/appstate_transition_matrix.json declared_write_set records.",
 };
 
 static const char *const kAppStateDiffHarnessSnapshotPhases2[] = {

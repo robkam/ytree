@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+APPSTATE_REGISTRY_DIR = REPO_ROOT / "etc" / "appstate"
 GUARD_PATH = REPO_ROOT / "scripts" / "check_appstate_contract.py"
 GUARD_SPEC = importlib.util.spec_from_file_location("check_appstate_contract", GUARD_PATH)
 assert GUARD_SPEC is not None and GUARD_SPEC.loader is not None
@@ -39,6 +40,38 @@ REQUIRED_INVARIANT_CATEGORIES = sorted(guard.REQUIRED_INVARIANT_CATEGORIES)
 REQUIRED_GENERATION_DOMAIN_CATEGORIES = sorted(
     guard.REQUIRED_GENERATION_DOMAIN_CATEGORIES
 )
+
+
+def test_appstate_registries_use_canonical_etc_location() -> None:
+    expected = {
+        "appstate_action_coverage.json",
+        "appstate_compat_shims.json",
+        "appstate_diff_harness.json",
+        "appstate_dispatch_surfaces.json",
+        "appstate_event_coverage.json",
+        "appstate_generation_domains.json",
+        "appstate_invariants.json",
+        "appstate_owner_fields.json",
+        "appstate_transition_matrix.json",
+        "appstate_transition_sequences.json",
+    }
+
+    assert {
+        path.name for path in APPSTATE_REGISTRY_DIR.glob("appstate*.json")
+    } == expected
+    assert not list((REPO_ROOT / "docs").glob("appstate*.json"))
+    assert guard.DEFAULT_TRANSITIONS.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_SHIMS.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_ACTION_COVERAGE.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_EVENT_COVERAGE.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_OWNER_FIELDS.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_DISPATCH_SURFACES.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_INVARIANTS.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_GENERATION_DOMAINS.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_DIFF_HARNESS.parent == APPSTATE_REGISTRY_DIR
+    assert guard.DEFAULT_TRANSITION_SEQUENCES.parent == APPSTATE_REGISTRY_DIR
+
+
 REQUIRED_DIFF_HARNESS_CATEGORIES = sorted(guard.REQUIRED_DIFF_HARNESS_CATEGORIES)
 REQUIRED_SEQUENCE_FLOWS = sorted(guard.REQUIRED_SEQUENCE_FLOWS)
 FIXTURE_ACTIONS = [
@@ -2152,7 +2185,7 @@ def test_runtime_backed_registry_notes_reject_stale_non_runtime_wording(
 
 def test_current_generation_domain_docs_keep_projection_transitions_out_of_advances() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        (APPSTATE_REGISTRY_DIR / "appstate_generation_domains.json").read_text(encoding="utf-8")
     )["generation_domains"]
     projection_domain = next(
         record
@@ -2183,7 +2216,7 @@ def test_guard_accepts_invariant_registry_cli_override(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_invariants.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_invariants.json").read_text(encoding="utf-8"),
+        (repo_root / "etc" / "appstate" / "appstate_invariants.json").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
 
@@ -2207,7 +2240,7 @@ def test_guard_accepts_generation_domain_registry_cli_override(tmp_path: Path) -
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_generation_domains.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_generation_domains.json").read_text(
+        (repo_root / "etc" / "appstate" / "appstate_generation_domains.json").read_text(
             encoding="utf-8"
         ),
         encoding="utf-8",
@@ -2233,7 +2266,7 @@ def test_guard_accepts_diff_harness_registry_cli_override(tmp_path: Path) -> Non
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_diff_harness.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_diff_harness.json").read_text(
+        (repo_root / "etc" / "appstate" / "appstate_diff_harness.json").read_text(
             encoding="utf-8"
         ),
         encoding="utf-8",
@@ -2259,7 +2292,7 @@ def test_guard_accepts_transition_sequence_registry_cli_override(tmp_path: Path)
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_transition_sequences.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_transition_sequences.json").read_text(
+        (repo_root / "etc" / "appstate" / "appstate_transition_sequences.json").read_text(
             encoding="utf-8"
         ),
         encoding="utf-8",
@@ -5941,7 +5974,7 @@ def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
         assert "vol->saved_tree_generation" not in source
         assert "vol->saved_tree_volume_generation" not in source
 
-    shims = Path("docs/appstate_compat_shims.json").read_text(encoding="utf-8")
+    shims = (APPSTATE_REGISTRY_DIR / "appstate_compat_shims.json").read_text(encoding="utf-8")
     assert "shim.volume-saved-tree-index" not in shims
 
 
@@ -5955,7 +5988,7 @@ def test_visibility_session_mirror_is_retired() -> None:
     for runtime_path in runtime_paths:
         assert "ctx->hide_dot_files" not in runtime_path.read_text(encoding="utf-8")
 
-    shims = Path("docs/appstate_compat_shims.json").read_text(encoding="utf-8")
+    shims = (APPSTATE_REGISTRY_DIR / "appstate_compat_shims.json").read_text(encoding="utf-8")
     runtime_registry = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
     architecture = Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8")
 
@@ -6544,7 +6577,7 @@ def test_directory_display_mode_commits_through_appstate_helper() -> None:
     render_dir = Path("src/ui/render_dir.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        (APPSTATE_REGISTRY_DIR / "appstate_owner_fields.json").read_text(encoding="utf-8")
     )["owner_fields"]
     assert any(record["field"] == "ctx.dir_mode" for record in owner_fields)
     assert "BOOL AppStateCommitDirectoryDisplayMode(" in header
@@ -7080,7 +7113,7 @@ def test_panel_file_display_state_commits_through_appstate_helper() -> None:
     render_file = Path("src/ui/render_file.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        (APPSTATE_REGISTRY_DIR / "appstate_owner_fields.json").read_text(encoding="utf-8")
     )["owner_fields"]
     assert any(
         record["field"] == "panel.file_display_state" for record in owner_fields
@@ -7125,7 +7158,7 @@ def test_panel_file_rendering_metrics_commit_through_appstate_helper() -> None:
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        (APPSTATE_REGISTRY_DIR / "appstate_owner_fields.json").read_text(encoding="utf-8")
     )["owner_fields"]
     display_state = next(
         record
@@ -7169,7 +7202,7 @@ def test_panel_file_sort_order_commits_through_appstate_helper() -> None:
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        (APPSTATE_REGISTRY_DIR / "appstate_owner_fields.json").read_text(encoding="utf-8")
     )["owner_fields"]
     display_state = next(
         record
@@ -7250,7 +7283,7 @@ def test_refresh_mode_commits_through_appstate_helper() -> None:
     init_source = Path("src/core/init.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        (APPSTATE_REGISTRY_DIR / "appstate_owner_fields.json").read_text(encoding="utf-8")
     )["owner_fields"]
     assert any(record["field"] == "ctx.refresh_mode" for record in owner_fields)
     assert "BOOL AppStateCommitRefreshMode(" in header
