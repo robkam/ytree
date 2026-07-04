@@ -104,6 +104,8 @@ def test_help_surfaces_use_help_role():
     assert "dir_help[ctx->view_mode][i]," in display_source
     assert "file_help[ctx->view_mode][i]," in display_source
     assert "CPAIR_HELP, CPAIR_HIMENUS" in display_source
+    assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
+    assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' in display_source
     assert "COLOR_PAIR(CPAIR_HELP)" in compare_source
 
@@ -179,6 +181,7 @@ def test_header_path_uses_dynamic_text_role():
     assert "wattrset(ctx->ctx_path_window, COLOR_PAIR(CPAIR_FILE));" in (
         display_source
     )
+    assert "COLOR_PAIR(CPAIR_MENU) | A_BOLD" not in display_source
 
 
 def test_clock_uses_dynamic_text_role():

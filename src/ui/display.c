@@ -210,10 +210,7 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
     }
 
 #ifdef COLOR_SUPPORT
-    if (color == hi_color)
-      wattrset(win, COLOR_PAIR(color) | A_BOLD);
-    else
-      wattrset(win, COLOR_PAIR(color));
+    wattrset(win, COLOR_PAIR(color));
 #else
     wattrset(win, color);
 #endif
@@ -224,7 +221,7 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
 
 static void PrintNavLine(WINDOW *win, int y, const char *str) {
 #ifdef COLOR_SUPPORT
-  wattrset(win, COLOR_PAIR(CPAIR_HELP) | A_BOLD);
+  wattrset(win, COLOR_PAIR(CPAIR_HELP));
 #else
   wattrset(win, A_BOLD);
 #endif
@@ -302,7 +299,7 @@ void DisplayMenu(ViewContext *ctx) {
   werase(ctx->ctx_border_window);
 
   /* Draw Header Label */
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
   mvwaddstr(ctx->ctx_border_window, 0, 0, "Path: ");
   wattrset(ctx->ctx_border_window, A_NORMAL);
 
