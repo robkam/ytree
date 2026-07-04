@@ -2,33 +2,32 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD before the in-progress catalog-fallback commit: c337411348a999dc5d45347fa9e4720878f68a39.
+- HEAD before the in-progress startup-theme-failure commit: a4c45ba7e80cd6b85acda7900fd7e9507f263774.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Theme catalog fallback semantics remediation
+- Startup theme failure handling remediation
   - Commit: pending local commit at this checkpoint update.
-  - Theme loading now distinguishes `THEME_LOAD_NOT_FOUND` from invalid/malformed theme data internally.
-  - A valid preferred or legacy user theme catalog that lacks the requested theme now falls through to later catalogs, including packaged `etc/ytnova.themes`.
-  - A matching malformed/incomplete theme still fails closed and blocks fallback to packaged defaults.
+  - Startup now checks `core_init_ops.load_theme(ctx)` and fails closed with `LoadTheme failed*ABORT` through the existing startup notice/abort path when theme loading fails.
+  - Startup no longer silently continues with legacy defaults after a theme load failure.
 
 Prior local subunits in this continuation:
+- Theme catalog fallback semantics remediation
+  - Commit: a4c45ba fix(theme): allow packaged fallback for missing user themes
+  - Valid user catalogs that lack the requested theme fall through to later catalogs, while matching malformed/incomplete themes still fail closed.
 - Command-strip label/token model remediation
   - Commit: c337411 fix(ui): model command strip labels separately
   - F2, F10, and volume command strips now use `UICommandStripCommand` descriptors with full labels and separate primary/secondary key tokens; punctuation and key styling are rendered separately.
 - User-facing helper guidance path cleanup
   - Commit: 862e8d0 fix(config): avoid legacy helper guidance
-  - Compare/file-diff helper diagnostics now tell users to update the main config instead of naming legacy `~/.ytnova` as the place to configure helper commands.
 - Atomic theme reload and preferred-path remediation
   - Commit: b4e3106 fix(theme): keep reload state atomic
-  - Theme file loading validates required roles/palette rules before mutation, F10 reload snapshots/restores UI color state on failure, and docs/config present XDG preferred paths first.
 - Invalid user theme catalog fallback blocking
   - Commit: 38b498c fix(theme): reject invalid user catalogs
-  - Existing invalid preferred/legacy user theme catalogs now fail reload/load instead of silently falling through to packaged defaults.
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback -q` -> 1 failed because the valid user catalog without `classic-blue` blocked packaged fallback.
-- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback -q` -> 2 passed.
+- RED before implementation: `python3 -m pytest tests/test_color_config.py::test_startup_fails_closed_on_theme_load_failure -q` -> 1 failed because startup did not check/report theme load failure.
+- GREEN after implementation: same focused pytest command -> 1 passed.
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
 
@@ -42,7 +41,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Startup theme loading: make initialization check theme load failure and fail closed with a clear startup diagnostic, or explicitly use a known-good packaged fallback with diagnostics if that is already the established startup contract.
+- Special selector cleanup: remove `DIR` from the semantic file-type palette path so only `LINK` and `EXEC` are special selectors there; directory tree rows must remain styled by theme roles.
 
 Known blockers or risks:
 - No active blocker.

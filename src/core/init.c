@@ -1040,8 +1040,11 @@ int Init(ViewContext *ctx, const char *configuration_file,
   }
   DEBUG_LOG("Init: ReadProfile done");
 
-  if (ctx->core_init_ops.load_theme != NULL)
-    ctx->core_init_ops.load_theme(ctx);
+  if (ctx->core_init_ops.load_theme != NULL &&
+      ctx->core_init_ops.load_theme(ctx) != 0) {
+    CoreInitUINotice(ctx, "LoadTheme failed*ABORT");
+    exit(1);
+  }
   DEBUG_LOG("Init: LoadTheme done");
 
   if (history_file != NULL) {

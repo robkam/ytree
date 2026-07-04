@@ -1,3 +1,5 @@
+import re
+
 from helpers_source import read_repo_source as _read_source
 
 THEME_ROLES = {
@@ -189,6 +191,21 @@ def test_compare_helper_messages_do_not_prefer_legacy_profile_path():
 
         assert "in ~/.ytnova" not in source
         assert "in the main config" in source
+
+
+def test_startup_fails_closed_on_theme_load_failure():
+    init_source = _read_source("src/core/init.c")
+
+    assert "LoadTheme failed*ABORT" in init_source
+    assert re.search(
+        r"if \(ctx->core_init_ops\.load_theme != NULL &&\s*"
+        r"ctx->core_init_ops\.load_theme\(ctx\) != 0\) \{\s*"
+        r"CoreInitUINotice\(ctx, \"LoadTheme failed\*ABORT\"\);\s*"
+        r"exit\(1\);\s*"
+        r"\}",
+        init_source,
+    )
+    assert "ctx->core_init_ops.load_theme(ctx);\n  DEBUG_LOG" not in init_source
 
 
 def test_architecture_documents_theme_boundaries():
