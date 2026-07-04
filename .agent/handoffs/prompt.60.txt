@@ -124,9 +124,16 @@ Focused validation for latest local subunit:
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
 
+Focused validation after Task 60 artifact audit correction:
+- `git status --short --branch` -> clean on `task-60` before this checkpoint edit.
+- `git ls-files '.agent/handoffs/prompt.60.txt' 'TASK 60 PROMPT.md' 'docs/ROADMAP.md' 'docs/SPECIFICATION.md' 'docs/ARCHITECTURE.md' 'docs/USAGE.md' 'etc/ytnova.themes'` -> the tracked Task 60 recovery, prompt, roadmap, docs, and theme artifacts are the intended live sources; no obsolete Task 60-only generated, recovery, or registry files were identified for removal or relocation.
+- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_config_paths.py tests/test_cli_version_flags.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py tests/test_f2_vols.py -q` -> 46 passed.
+- `make clean && make` -> passed with existing warnings.
+
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest has been run with `python3 -m pytest` from repo root.
 - Task-local recovery/prompt artifacts are included with the local subunit commit when changed.
+- Task 60 artifact audit found the tracked Task 60 recovery/prompt artifacts (`.agent/handoffs/prompt.60.txt`, `TASK 60 PROMPT.md`) and theme-specific artifacts (`etc/ytnova.themes`, focused theme tests); no obsolete Task 60-only generated/recovery/registry files were identified for removal or relocation.
 - Not pushed; no PR/CI actions taken.
 - Task 60 is complete in local `task-60` work; no push/PR/CI action has been taken.
 
