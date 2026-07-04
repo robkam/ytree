@@ -6,18 +6,28 @@ Current branch and HEAD:
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Invalid user theme catalog fallback blocking
+- User-facing helper guidance path cleanup
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
-  - Configured user theme catalogs now distinguish missing paths from existing invalid catalogs: missing preferred/legacy files still fall through to the next catalog, but an existing invalid/incomplete preferred or legacy catalog fails reload/load instead of silently falling through to packaged defaults.
-  - The new regression proves an incomplete preferred `~/.config/ytnova/themes.conf` fails without changing previous color updates or file palette state.
+  - Compare/file-diff helper error messages now tell users to update the main config instead of naming legacy `~/.ytnova` as the place to configure helper commands.
+  - A source-level regression checks that the active helper diagnostics no longer prefer the legacy profile path.
+
+Prior local subunits in this continuation:
+- Atomic theme reload and preferred-path remediation
+  - Commit: b4e3106 fix(theme): keep reload state atomic
+  - Theme file loading validates required roles/palette rules before mutation, F10 reload snapshots/restores UI color state on failure, and docs/config present XDG preferred paths first.
+- Invalid user theme catalog fallback blocking
+  - Commit: 38b498c fix(theme): reject invalid user catalogs
+  - Existing invalid preferred/legacy user theme catalogs now fail reload/load instead of silently falling through to packaged defaults.
 
 Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback -q` -> failed because the invalid user theme fell through to the packaged catalog.
-- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_theme_load_keeps_previous_runtime_state -q` -> 2 passed.
+- `python3 -m pytest tests/test_color_config.py::test_compare_helper_messages_do_not_prefer_legacy_profile_path -q` -> 1 passed.
+- `git diff --check` -> exit 0.
+- Re-audit search over active source/docs/config for legacy-default/preferred wording found only a historical `docs/CHANGES.md` changelog entry; no current helper/config/default guidance remains pointing users at legacy `~/.ytnova` as preferred/default.
+- Post-commit semantic re-audit of `ReloadConfigAndTheme`, `ReadThemeFile`, and `LoadConfiguredTheme` confirms the three current auditor findings are closed in local `task-60` state: failed reload restores profile/theme color state, invalid/incomplete themes fail atomically, and current docs/config/helper guidance prefers XDG paths with legacy paths only as fallback.
+
+Broader focused validation already run after the adjacent theme-loader fix:
 - `make clean && make` -> passed with existing warnings.
 - `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_config_paths.py tests/test_cli_version_flags.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py tests/test_f2_vols.py tests/test_compare_actions.py -q` -> 75 passed.
-- `git diff --check` -> exit 0.
-- Post-fix semantic inspection of `ReadThemeFile` and `LoadConfiguredTheme` confirms invalid existing user catalogs fail before fallback and failed reads preserve staged runtime state.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -25,10 +35,10 @@ Local notes:
 - No remote actions have been taken.
 
 Untracked or dirty files intentionally left behind:
-- Runtime helper-message wording updates remain dirty for the next local subunit and are intentionally not part of this theme-loader commit.
+- None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- Commit the remaining legacy config-path user-facing message cleanup, then re-audit the three current findings again.
+- None for the three current auditor findings; they are closed in local `task-60` state. Await maintainer direction for any broader Task 60 audit or push/PR/CI/rebase cycle.
 
 Known blockers or risks:
 - No active blocker.

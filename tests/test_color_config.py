@@ -183,6 +183,14 @@ def test_manpage_documents_user_visible_theme_contract():
         assert "bright black" not in source.lower()
 
 
+def test_compare_helper_messages_do_not_prefer_legacy_profile_path():
+    for path in ("src/ui/file_compare.c", "src/ui/dir_compare.c"):
+        source = _read_source(path)
+
+        assert "in ~/.ytnova" not in source
+        assert "in the main config" in source
+
+
 def test_architecture_documents_theme_boundaries():
     arch_source = _read_source("docs/ARCHITECTURE.md")
 
