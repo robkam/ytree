@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the theme editor legacy fallback subunit.
+- This checkpoint is committed with the preferred profile initialization subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -109,12 +109,14 @@ Completed local subunits toward Task 60:
 - Theme editor legacy fallback path handling
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - Shared theme path constants now cover preferred and legacy theme catalogs, theme loading uses those constants, and F10 theme editing falls back to an existing legacy `~/.ytnova.themes` when no preferred user theme file exists.
+- Preferred profile initialization path handling
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - `ytnova --init` now creates `~/.config/ytnova/ytnova.conf` by default, creates the preferred parent directories as needed, leaves legacy `~/.ytnova` untouched, and preserves explicit `-p` target behavior.
 
 Focused validation for latest local subunit:
-- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k theme_editor` -> failed before implementation.
-- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k theme_editor` -> 1 passed.
-- `python3 -m pytest tests/test_theme_ui_contract.py` -> 18 passed.
-- `make clean && make` -> passed with existing warnings.
+- Red: `python3 -m pytest tests/test_cli_version_flags.py -q` -> failed before implementation because `--init` still created legacy `~/.ytnova`.
+- Green: `make clean && make` -> passed with existing warnings.
+- Green: `python3 -m pytest tests/test_cli_version_flags.py tests/test_theme_config_paths.py -q` -> 5 passed.
 - `git diff --check` -> exit 0.
 
 Local notes:
@@ -124,10 +126,10 @@ Local notes:
 - Task 60 remains open.
 
 Untracked or dirty files intentionally left behind:
-- None intended after the public theme contract documentation commit.
+- None intended after the preferred profile initialization commit.
 
 Next recommended Task 60 subunit:
-- Continue acceptance-criteria coverage review for remaining raw reverse-video/no-color fallback paths and any remaining foreground-only styling in interactive surfaces.
+- Continue acceptance-criteria coverage review for remaining raw reverse-video/no-color fallback paths, foreground-only styling, and any stale color-misrouting tracker notes.
 
 Known blockers or risks:
 - No active blocker.

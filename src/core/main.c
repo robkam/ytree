@@ -2246,10 +2246,40 @@ static int GetDefaultProfilePath(char *path, size_t path_size) {
     return -1;
 
   written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_FILENAME);
+                     PROFILE_CONFIG_HOME_PATH);
   if (written < 0 || (size_t)written >= path_size) {
     return -1;
   }
+  return 0;
+}
+
+static int EnsureDefaultProfileDirectory(void) {
+  const char *home = getenv("HOME");
+  char path[PATH_LENGTH + 1];
+  struct stat st;
+  int written;
+
+  if (!home || !*home)
+    return -1;
+
+  written = snprintf(path, sizeof(path), "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                     PROFILE_CONFIG_HOME_PARENT);
+  if (written < 0 || (size_t)written >= sizeof(path))
+    return -1;
+  if (mkdir(path, S_IRWXU) != 0) {
+    if (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
+      return -1;
+  }
+
+  written = snprintf(path, sizeof(path), "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                     PROFILE_CONFIG_HOME_DIR);
+  if (written < 0 || (size_t)written >= sizeof(path))
+    return -1;
+  if (mkdir(path, S_IRWXU) != 0) {
+    if (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
+      return -1;
+  }
+
   return 0;
 }
 
@@ -2416,6 +2446,11 @@ int main(int argc, char **argv) {
         fprintf(
             stderr,
             "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
+        exit(1);
+      }
+      if (EnsureDefaultProfileDirectory() != 0) {
+        fprintf(stderr,
+                "Cannot create target profile directory under HOME.\n");
         exit(1);
       }
       init_path = init_path_buffer;
