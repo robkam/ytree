@@ -215,30 +215,29 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
   themes_path[0] = '\0';
   home = getenv("HOME");
   if (home && *home) {
-    char config_dir[PATH_LENGTH + 1];
-    char ytnova_dir[PATH_LENGTH + 1];
+    char legacy_path[PATH_LENGTH + 1];
     int written;
 
-    written = snprintf(config_dir, sizeof(config_dir), "%s/.config", home);
-    if (written < 0 || written >= (int)sizeof(config_dir))
-      return -1;
-    if (mkdir(config_dir, S_IRWXU) != 0 && errno != EEXIST)
-      return -1;
-
-    written = snprintf(ytnova_dir, sizeof(ytnova_dir), "%s/ytnova", config_dir);
-    if (written < 0 || written >= (int)sizeof(ytnova_dir))
-      return -1;
-    if (mkdir(ytnova_dir, S_IRWXU) != 0 && errno != EEXIST)
-      return -1;
-
-    written =
-        snprintf(themes_path, themes_path_size, "%s/themes.conf", ytnova_dir);
+    written = snprintf(themes_path, themes_path_size, "%s/%s", home,
+                       THEME_CONFIG_HOME_PATH);
     if (written < 0 || written >= (int)themes_path_size)
       themes_path[0] = '\0';
+
+    written =
+        snprintf(legacy_path, sizeof(legacy_path), "%s/%s", home,
+                 THEME_FILENAME);
+    if (written >= 0 && written < (int)sizeof(legacy_path) &&
+        themes_path[0] != '\0' && access(themes_path, F_OK) != 0 &&
+        access(legacy_path, F_OK) == 0) {
+      (void)snprintf(themes_path, themes_path_size, "%s", legacy_path);
+    } else if (themes_path[0] != '\0' &&
+               EnsureConfigHomeDirectory(home) != 0) {
+      themes_path[0] = '\0';
+    }
   }
 
   if (!themes_path[0])
-    (void)snprintf(themes_path, themes_path_size, "%s", ".ytnova.themes");
+    (void)snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);
 
   return themes_path[0] ? 0 : -1;
 }

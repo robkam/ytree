@@ -232,6 +232,24 @@ def test_theme_docs_capture_role_routing_invariants():
     assert "search-hit spans use `search_hit`" in arch_source
 
 
+def test_theme_editor_uses_preferred_path_with_legacy_fallback():
+    defs_source = _read("include/ytnova_defs.h")
+    source = _read("src/ui/ui_edit_config.c")
+    theme_source = _read("src/cmd/theme.c")
+
+    assert '#define THEME_CONFIG_HOME_PATH ".config/ytnova/themes.conf"' in (
+        defs_source
+    )
+    assert '#define THEME_FILENAME ".ytnova.themes"' in defs_source
+    assert "THEME_CONFIG_HOME_PATH" in theme_source
+    assert "THEME_FILENAME" in theme_source
+    assert "char legacy_path[PATH_LENGTH + 1];" in source
+    assert "access(themes_path, F_OK) != 0" in source
+    assert "access(legacy_path, F_OK) == 0" in source
+    assert "THEME_CONFIG_HOME_PATH" in source
+    assert "THEME_FILENAME" in source
+
+
 def test_f10_surface_uses_required_command_strip_and_enter_default():
     source = _read("src/ui/ui_edit_config.c")
     key_source = _read("src/ui/key_engine.c")

@@ -4,7 +4,7 @@ Current branch and HEAD:
 - Branch: task-60
 - HEAD: current checkpoint commit; use `git log -1` for the exact hash.
 - Last rebase onto origin/main completed without conflicts in prior local work; no push/PR/CI actions taken.
-- This checkpoint is committed with the viewer header dynamic role subunit.
+- This checkpoint is committed with the theme editor legacy fallback subunit.
 
 Completed local subunits toward Task 60:
 - Compact file-type palette parsing
@@ -106,11 +106,14 @@ Completed local subunits toward Task 60:
 - Viewer header dynamic role rendering
   - Commit: this checkpoint commit; use `git log -1` for the exact hash.
   - Internal and tagged viewer file headers now keep the static `File:` label on static text and render path/dynamic filename text through the dynamic text role.
+- Theme editor legacy fallback path handling
+  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
+  - Shared theme path constants now cover preferred and legacy theme catalogs, theme loading uses those constants, and F10 theme editing falls back to an existing legacy `~/.ytnova.themes` when no preferred user theme file exists.
 
 Focused validation for latest local subunit:
-- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k viewer_file_headers` -> failed before implementation.
-- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k viewer_file_headers` -> 1 passed.
-- `python3 -m pytest tests/test_theme_ui_contract.py` -> 17 passed.
+- Red: `python3 -m pytest tests/test_theme_ui_contract.py -k theme_editor` -> failed before implementation.
+- Green: `python3 -m pytest tests/test_theme_ui_contract.py -k theme_editor` -> 1 passed.
+- `python3 -m pytest tests/test_theme_ui_contract.py` -> 18 passed.
 - `make clean && make` -> passed with existing warnings.
 - `git diff --check` -> exit 0.
 

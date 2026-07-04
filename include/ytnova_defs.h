@@ -213,6 +213,8 @@ typedef struct _ViewContext ViewContext;
 #define PROFILE_CONFIG_HOME_PARENT ".config"
 #define PROFILE_CONFIG_HOME_DIR ".config/ytnova"
 #define PROFILE_FILENAME ".ytnova"
+#define THEME_CONFIG_HOME_PATH ".config/ytnova/themes.conf"
+#define THEME_FILENAME ".ytnova.themes"
 #define HISTORY_FILENAME ".ytnova-hst"
 #define CLOCK_INTERVAL 1
 #define DEFAULT_FILE_SPEC "*"

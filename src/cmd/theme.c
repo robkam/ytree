@@ -437,9 +437,9 @@ int LoadConfiguredTheme(ViewContext *ctx) {
 
   home = getenv("HOME");
   if (TryConfiguredThemePath(ctx, path, sizeof(path), home,
-                             ".config/ytnova/themes.conf", theme_name) == 0)
+                             THEME_CONFIG_HOME_PATH, theme_name) == 0)
     return 0;
-  if (TryConfiguredThemePath(ctx, path, sizeof(path), home, ".ytnova.themes",
+  if (TryConfiguredThemePath(ctx, path, sizeof(path), home, THEME_FILENAME,
                              theme_name) == 0)
     return 0;
 
