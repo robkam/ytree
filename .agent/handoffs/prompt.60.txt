@@ -5,21 +5,26 @@ Current branch and HEAD:
 - HEAD: the local commit containing this checkpoint; verify with `git log -1 --oneline`.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
-Completed local subunit toward Task 60:
-- Semantic role migration completion for Task 60 render surfaces.
-  - Added missing internal semantic role aliases for `tree_lines`, `margin`, and `search_hit`.
-  - Updated color-supported render/setup surfaces to consume `UI_ROLE_*` aliases instead of legacy `CPAIR_*` names.
-  - Kept legacy color-key names isolated to the migration/projection layer (`src/cmd/theme.c`, `src/ui/color.c`, and enum alias definitions).
-  - Updated Task 60 contract tests to assert semantic role consumption and prevent renderer fallback to legacy pair names.
+Current code-auditor findings status:
+- Closed locally: unreadable preferred theme catalogs now fail closed instead of falling through to fallback catalogs.
+- Closed locally: omitted `margin` inherits `dynamic_text`; other semantic roles remain strictly validated.
+- Closed locally: Task 60 render/setup surfaces consume `UI_ROLE_*` semantic aliases instead of legacy `CPAIR_*` pair names; legacy color-key names are isolated to migration/projection (`src/cmd/theme.c`, `src/ui/color.c`, and alias definitions).
+- Closed locally: this recovery checkpoint has been refreshed for the current branch state.
 
-Prior local subunits in this continuation:
-- Strict user theme catalog failure handling: unreadable preferred theme catalogs fail closed instead of falling through to fallback catalogs.
-- Margin inheritance: omitted `margin` defaults to `dynamic_text` while other roles remain strictly validated.
+Local commits from this continuation:
+- `05d126b fix(theme): fail closed on unreadable catalogs`
+- `1d85270 fix(theme): inherit omitted margin styling`
+- `0526b6b fix(ui): route render colors through semantic roles`
+- Handoff refresh commit contains this checkpoint.
 
-Focused validation for this checkpoint:
-- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> failed because `UI_ROLE_TREE_LINES`/`UI_ROLE_MARGIN` aliases and renderer usage were missing.
-- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py::test_theme_palette_omitted_background_inherits_theme_filename_background tests/test_color_parser_runtime.py::test_theme_file_loader_maps_roles_and_palette_rules -q` -> 35 passed.
-- `make` -> passed (`Nothing to be done for 'all'` after the prior successful build).
+Focused validation evidence:
+- Strict catalog handling RED: `python3 -m pytest tests/test_color_parser_runtime.py::test_unreadable_user_theme_catalog_blocks_packaged_fallback -q` -> failed before implementation because an unreadable preferred catalog fell through to packaged fallback.
+- Strict catalog handling GREEN: `python3 -m pytest tests/test_color_parser_runtime.py::test_unreadable_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback -q` -> 3 passed.
+- Margin inheritance RED: `python3 -m pytest tests/test_color_parser_runtime.py::test_theme_margin_defaults_to_dynamic_text_when_omitted -q` -> failed before implementation because `ReadThemeFile` rejected the omitted margin.
+- Margin inheritance GREEN: `python3 -m pytest tests/test_color_parser_runtime.py::test_theme_margin_defaults_to_dynamic_text_when_omitted tests/test_color_parser_runtime.py::test_theme_file_loader_maps_roles_and_palette_rules tests/test_color_parser_runtime.py::test_failed_theme_load_keeps_previous_file_palette -q` -> 3 passed.
+- Semantic role migration RED: `python3 -m pytest tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> failed before implementation because semantic aliases/renderer usage were missing.
+- Semantic role migration GREEN: `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py::test_theme_palette_omitted_background_inherits_theme_filename_background tests/test_color_parser_runtime.py::test_theme_file_loader_maps_roles_and_palette_rules -q` -> 35 passed.
+- Build validation: `make` -> passed after code changes; final rerun reported `Nothing to be done for 'all'`.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
@@ -27,12 +32,12 @@ Local notes:
 - No remote actions have been taken.
 
 Untracked or dirty files intentionally left behind:
-- None intended after this local subunit commit.
+- None intended after this checkpoint commit.
 
 Next recommended Task 60 subunit:
-- None for the current listed code-auditor findings after this checkpoint is committed. If the maintainer asks to continue broader Task 60 work, run a fresh focused audit against docs/ROADMAP.md Task 60 acceptance criteria.
+- None for the current listed code-auditor findings. If the maintainer asks to continue broader Task 60 work, run a fresh focused audit against docs/ROADMAP.md Task 60 acceptance criteria before selecting another subunit.
 
 Known blockers or risks:
 - No active blocker.
-- Current listed code-auditor findings addressed locally: strict unreadable catalog failure handling, margin inheritance, semantic role migration, and refreshed recovery handoff.
+- Local `make qa-all` was not run; per repo policy it is optional unless maintainer-requested or extra local confidence is needed.
 - Before any maintainer-requested push, fetch origin and rebase `task-60` onto latest `origin/main`, then rerun focused validation after a clean rebase.
