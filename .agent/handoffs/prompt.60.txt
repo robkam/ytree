@@ -2,64 +2,32 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD after the color-path bold cleanup commit: 1f10c60 fix(ui): remove color bold overlays.
+- HEAD: the local commit containing this checkpoint; verify with `git log -1 --oneline`.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- Remaining color-path bold cleanup
-  - Commit: 1f10c60 fix(ui): remove color bold overlays.
-  - Added a source contract test preventing `COLOR_PAIR(...) | A_BOLD` and `WbkgdSet(...A_BOLD...)` in color-supported UI/core render paths.
-  - Removed remaining color-path bold overlays from startup background, animation, and viewer border setup so configured role pairs control color-supported styling.
-  - No-color and explicitly non-color fallback attributes remain out of scope for this color-path guard.
+- Strict user theme catalog failure handling.
+  - Added focused regression coverage for a preferred `~/.config/ytnova/themes.conf` path that exists but cannot be read as a theme catalog.
+  - Theme catalog open/read failures now fail closed instead of falling through to legacy or packaged fallback catalogs; only a missing file remains fallback-eligible at open time.
+  - Existing invalid-catalog blocking and valid-catalog-missing-theme fallback behavior remains covered.
 
-Prior local subunits in this continuation:
-- Picker role styling cleanup
-  - Commit: 26986e5 fix(ui): let picker roles control styling
-- Semantic role alias consumption
-  - Commit: fcdd797 fix(ui): expose semantic role aliases
-- Display helper role styling cleanup
-  - Commit: 13e3f45 fix(ui): let display helper roles control styling
-- Help/header role styling cleanup
-  - Commit: d39d40a fix(ui): let help roles control styling
-- Modal severity role styling cleanup
-  - Commit: 45d4213 fix(ui): let modal roles control styling
-- Command-strip role styling cleanup
-  - Commit: 4a92ca3 fix(ui): let command key roles control styling
-- Strict theme/file-palette color parsing
-  - Commit: 501ee0c fix(theme): reject invalid color backgrounds
-- File-type palette special selector cleanup
-  - Commit: 9b3353f fix(theme): limit file palette special selectors
-- Startup theme failure handling remediation
-  - Commit: ec91835 fix(theme): abort startup on theme load failure
-- Theme catalog fallback semantics remediation
-  - Commit: a4c45ba fix(theme): allow packaged fallback for missing user themes
-- Command-strip label/token model remediation
-  - Commit: c337411 fix(ui): model command strip labels separately
-- User-facing helper guidance path cleanup
-  - Commit: 862e8d0 fix(config): avoid legacy helper guidance
-- Atomic theme reload and preferred-path remediation
-  - Commit: b4e3106 fix(theme): keep reload state atomic
-- Invalid user theme catalog fallback blocking
-  - Commit: 38b498c fix(theme): reject invalid user catalogs
-
-Focused validation for this subunit:
-- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_color_supported_roles_do_not_add_bold_attributes -q` -> 1 failed with remaining color-path bold offenders.
-- GREEN after implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_color_supported_roles_do_not_add_bold_attributes tests/test_theme_ui_contract.py::test_viewer_frame_uses_border_role_not_directory_fill_role tests/test_theme_ui_contract.py::test_tree_lines_and_margin_use_dedicated_theme_roles -q` -> 3 passed.
+Focused validation for this checkpoint:
+- RED before implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_unreadable_user_theme_catalog_blocks_packaged_fallback -q` -> failed because the unreadable preferred catalog fell through to the packaged catalog.
+- GREEN after implementation: `python3 -m pytest tests/test_color_parser_runtime.py::test_unreadable_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_invalid_user_theme_catalog_blocks_packaged_fallback tests/test_color_parser_runtime.py::test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback -q` -> 3 passed.
 - `make` -> passed.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
-- Pytest host-permission escalation could not be requested because the environment approval policy is `Never`; commands ran under the provided unrestricted local profile.
-- Task-local recovery/prompt artifacts are included with the local subunit commit when changed.
+- Host-permission escalation could not be requested because the environment approval policy is `Never`; commands ran under the provided unrestricted local profile.
 - No remote actions have been taken.
 
 Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- None for the listed current code-auditor findings; they are closed in local `task-60` state. Await maintainer direction for broader Task 60 audit, push/PR/CI, or additional Task 60 scope.
+- Margin inheritance: allow `margin` to inherit `dynamic_text` when omitted while preserving strict validation for other roles.
 
 Known blockers or risks:
 - No active blocker.
-- Focused post-commit inspection: `git grep -n "COLOR_PAIR(.*) | A_BOLD\|WbkgdSet(.*A_BOLD" -- src/ui/*.c src/core/*.c || true` produced no offenders; targeted parser/style pytest checks passed.
+- Remaining current auditor findings after this subunit: margin inheritance, semantic role migration completion, and keeping this checkpoint fresh as subsequent commits land.
 - Before any maintainer-requested push, fetch origin and rebase `task-60` onto latest `origin/main`, then rerun focused validation after a clean rebase.

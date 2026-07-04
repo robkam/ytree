@@ -8,6 +8,7 @@
 #include "config.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
+#include <errno.h>
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
@@ -463,6 +464,7 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
   FileColorRule *old_file_rules;
   BOOL found_theme = FALSE;
   BOOL invalid_theme = FALSE;
+  BOOL read_failed;
   int i;
 
   if (ctx == NULL || filename == NULL || theme_name == NULL ||
@@ -471,7 +473,7 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
 
   fp = fopen(filename, "r");
   if (fp == NULL)
-    return THEME_LOAD_NOT_FOUND;
+    return (errno == ENOENT) ? THEME_LOAD_NOT_FOUND : THEME_LOAD_INVALID;
 
   memset(roles, 0, sizeof(roles));
   for (i = 0; i < THEME_ROLE_COUNT; ++i)
@@ -527,7 +529,13 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
     }
   }
 
+  read_failed = ferror(fp) ? TRUE : FALSE;
   fclose(fp);
+
+  if (read_failed) {
+    FreeThemePaletteLines(palette_head);
+    return THEME_LOAD_INVALID;
+  }
 
   if (!found_theme) {
     FreeThemePaletteLines(palette_head);
