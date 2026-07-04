@@ -6,22 +6,62 @@ def _read(path):
     return Path(path).read_text(encoding="utf-8")
 
 
-def _command_strip_text(source, array_name):
+def _command_strip_commands(source, array_name):
     array = re.search(
-        rf"static const UICommandStripPart {array_name}\[\] = \{{(?P<body>.*?)\}};",
+        rf"static const UICommandStripCommand {array_name}\[\] = \{{(?P<body>.*?)\}};",
         source,
         re.S,
     )
     assert array, f"missing command strip array {array_name}"
-    return "".join(
-        re.findall(r'\{UI_COMMAND_(?:PUNCT|LABEL|KEY), "([^"]*)"\}', array.group("body"))
+    return re.findall(
+        r'\{UI_COMMAND_LAYOUT_([A-Z_]+), "([^"]*)", "([^"]*)", (NULL|"([^"]*)")\}',
+        array.group("body"),
     )
+
+
+def _command_strip_text(source, array_name):
+    rendered = []
+    for layout, label, primary_key, secondary_value, secondary_key in (
+        _command_strip_commands(source, array_name)
+    ):
+        if rendered:
+            rendered.append("  ")
+        secondary_key = None if secondary_value == "NULL" else secondary_key
+        if layout == "MNEMONIC":
+            rendered.extend(["(", primary_key, ")", label[1:]])
+        elif layout == "KEY_PREFIX":
+            rendered.extend(["(", primary_key])
+            if secondary_key is not None:
+                rendered.extend([")/(", secondary_key])
+            rendered.extend([") ", label])
+        elif layout == "ALT_MNEMONIC":
+            rendered.extend(["(", primary_key, ")/(", secondary_key, ")", label[1:]])
+        elif layout == "LABEL_FIRST":
+            rendered.extend([label, " (", primary_key])
+            if secondary_key is not None:
+                rendered.extend([")/(", secondary_key])
+            rendered.append(")")
+        else:
+            raise AssertionError(f"unknown command strip layout {layout}")
+    return "".join(rendered)
+
+
+def _assert_command_strip_uses_full_label_model(source, array_name, labels):
+    assert f"static const UICommandStripCommand {array_name}[]" in source
+    assert "UICommandStripPart" not in source
+    assert "UI_COMMAND_LABEL" not in source
+    assert "UI_COMMAND_PUNCT" not in source
+    for label in labels:
+        assert f'"{label}"' in source
 
 
 def test_f2_footer_uses_required_theme_command_strip():
     source = _read("src/ui/f2_picker.c")
 
     assert _command_strip_text(source, "f2_command_strip") == "(L)og  (<)/(>) Cycle"
+    _assert_command_strip_uses_full_label_model(
+        source, "f2_command_strip", ("Log", "Cycle")
+    )
     assert "UI_RenderCommandStrip" in source
     assert '"[ (L)og (< >) Cycle ]"' not in source
 
@@ -32,6 +72,9 @@ def test_volume_menu_uses_required_theme_command_strip():
     assert (
         _command_strip_text(source, "volume_command_strip")
         == "Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete"
+    )
+    _assert_command_strip_uses_full_label_model(
+        source, "volume_command_strip", ("Select", "Switch", "Quit", "Delete")
     )
     assert "UI_RenderCommandStrip" in source
     assert "Use UP/DOWN to select" not in source
@@ -259,9 +302,15 @@ def test_f10_surface_uses_required_command_strip_and_enter_default():
         _command_strip_text(source, "config_command_strip")
         == "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"
     )
+    _assert_command_strip_uses_full_label_model(
+        source, "config_command_strip", ("Config", "Themes", "Reload", "Quit")
+    )
     assert "InputChoiceCommandStrip" in source
     assert "InputChoiceCommandStrip" in key_source
     assert "InputChoiceCommandStrip" in header_source
+    assert "UICommandStripPart" not in header_source
+    assert "UI_COMMAND_LABEL" not in header_source
+    assert "UI_COMMAND_PUNCT" not in header_source
     assert '"(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"' not in source
     assert 'case CR:' in source
     assert 'case LF:' in source

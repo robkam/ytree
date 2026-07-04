@@ -12,17 +12,11 @@
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
-static const UICommandStripPart volume_command_strip[] = {
-    {UI_COMMAND_LABEL, "Select"}, {UI_COMMAND_PUNCT, " ("},
-    {UI_COMMAND_KEY, "Up"},       {UI_COMMAND_PUNCT, ")/("},
-    {UI_COMMAND_KEY, "Down"},     {UI_COMMAND_PUNCT, ")  "},
-    {UI_COMMAND_LABEL, "Switch"}, {UI_COMMAND_PUNCT, " ("},
-    {UI_COMMAND_KEY, "Enter"},    {UI_COMMAND_PUNCT, ")  ("},
-    {UI_COMMAND_KEY, "Esc"},      {UI_COMMAND_PUNCT, ")/("},
-    {UI_COMMAND_KEY, "Q"},        {UI_COMMAND_PUNCT, ")"},
-    {UI_COMMAND_LABEL, "uit"},    {UI_COMMAND_PUNCT, "  ("},
-    {UI_COMMAND_KEY, "D"},        {UI_COMMAND_PUNCT, ")"},
-    {UI_COMMAND_LABEL, "elete"}};
+static const UICommandStripCommand volume_command_strip[] = {
+    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Select", "Up", "Down"},
+    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Switch", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL}};
 
 static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
   int disp_begin_pos;

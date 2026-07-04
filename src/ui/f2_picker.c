@@ -12,13 +12,9 @@
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
 
-static const UICommandStripPart f2_command_strip[] = {
-    {UI_COMMAND_PUNCT, "("},   {UI_COMMAND_KEY, "L"},
-    {UI_COMMAND_PUNCT, ")"},   {UI_COMMAND_LABEL, "og"},
-    {UI_COMMAND_PUNCT, "  ("},
-    {UI_COMMAND_KEY, "<"},     {UI_COMMAND_PUNCT, ")/("},
-    {UI_COMMAND_KEY, ">"},     {UI_COMMAND_PUNCT, ") "},
-    {UI_COMMAND_LABEL, "Cycle"}};
+static const UICommandStripCommand f2_command_strip[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cycle", "<", ">"}};
 
 int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */

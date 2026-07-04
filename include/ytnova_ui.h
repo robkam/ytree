@@ -193,19 +193,23 @@ extern void PrintMenuOptions(WINDOW *, int, int, char *, int, int);
 extern void PrintOptions(WINDOW *, int, int, char *);
 extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
 typedef enum {
-  UI_COMMAND_PUNCT,
-  UI_COMMAND_LABEL,
-  UI_COMMAND_KEY
-} UICommandPartKind;
+  UI_COMMAND_LAYOUT_MNEMONIC,
+  UI_COMMAND_LAYOUT_KEY_PREFIX,
+  UI_COMMAND_LAYOUT_ALT_MNEMONIC,
+  UI_COMMAND_LAYOUT_LABEL_FIRST
+} UICommandStripLayout;
 typedef struct {
-  UICommandPartKind kind;
-  const char *text;
-} UICommandStripPart;
-extern int UI_CommandStripVisualLength(const UICommandStripPart *parts,
-                                       size_t part_count);
+  UICommandStripLayout layout;
+  const char *label;
+  const char *primary_key;
+  const char *secondary_key;
+} UICommandStripCommand;
+extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
+                                       size_t command_count);
 extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
-                                  const UICommandStripPart *parts,
-                                  size_t part_count, int ncolor, int hcolor);
+                                  const UICommandStripCommand *commands,
+                                  size_t command_count, int ncolor,
+                                  int hcolor);
 extern int WAddStr(WINDOW *win, char *str);
 extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 
@@ -287,8 +291,8 @@ extern int InputChoice(ViewContext *ctx, const char *msg, const char *term);
 extern int InputChoiceLiteral(ViewContext *ctx, const char *msg,
                               const char *term);
 extern int InputChoiceCommandStrip(ViewContext *ctx,
-                                   const UICommandStripPart *parts,
-                                   size_t part_count, const char *term);
+                                   const UICommandStripCommand *commands,
+                                   size_t command_count, const char *term);
 extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
                           const char *dst_path, int *mode_flags);
 

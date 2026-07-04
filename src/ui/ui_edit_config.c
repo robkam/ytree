@@ -22,16 +22,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static const UICommandStripPart config_command_strip[] = {
-    {UI_COMMAND_PUNCT, "("},     {UI_COMMAND_KEY, "C"},
-    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "onfig"},
-    {UI_COMMAND_PUNCT, "  ("},   {UI_COMMAND_KEY, "T"},
-    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "hemes"},
-    {UI_COMMAND_PUNCT, "  ("},   {UI_COMMAND_KEY, "R"},
-    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "eload"},
-    {UI_COMMAND_PUNCT, "  ("},   {UI_COMMAND_KEY, "Esc"},
-    {UI_COMMAND_PUNCT, ")/("},   {UI_COMMAND_KEY, "Q"},
-    {UI_COMMAND_PUNCT, ")"},     {UI_COMMAND_LABEL, "uit"}};
+static const UICommandStripCommand config_command_strip[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Config", "C", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Themes", "T", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Reload", "R", NULL},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"}};
 
 static int WriteAll(int fd, const char *buf, size_t len) {
   size_t written_total = 0;

@@ -755,57 +755,173 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
   }
 }
 
-int UI_CommandStripVisualLength(const UICommandStripPart *parts,
-                                size_t part_count) {
+static const char *CommandStripLabelTail(const char *label) {
+  if (label == NULL || *label == '\0')
+    return "";
+  return label + 1;
+}
+
+static int CommandStripTextLength(const char *text) {
+  if (text == NULL)
+    return 0;
+  return StrVisualLength((char *)text);
+}
+
+static void CommandStripAddLength(int *len, const char *text) {
+  if (len != NULL)
+    *len += CommandStripTextLength(text);
+}
+
+static void CommandStripMeasureCommand(int *len,
+                                       const UICommandStripCommand *command) {
+  if (len == NULL || command == NULL)
+    return;
+
+  switch (command->layout) {
+  case UI_COMMAND_LAYOUT_MNEMONIC:
+    CommandStripAddLength(len, "(");
+    CommandStripAddLength(len, command->primary_key);
+    CommandStripAddLength(len, ")");
+    CommandStripAddLength(len, CommandStripLabelTail(command->label));
+    break;
+  case UI_COMMAND_LAYOUT_KEY_PREFIX:
+    CommandStripAddLength(len, "(");
+    CommandStripAddLength(len, command->primary_key);
+    if (command->secondary_key != NULL) {
+      CommandStripAddLength(len, ")/(");
+      CommandStripAddLength(len, command->secondary_key);
+    }
+    CommandStripAddLength(len, ") ");
+    CommandStripAddLength(len, command->label);
+    break;
+  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+    CommandStripAddLength(len, "(");
+    CommandStripAddLength(len, command->primary_key);
+    CommandStripAddLength(len, ")/(");
+    CommandStripAddLength(len, command->secondary_key);
+    CommandStripAddLength(len, ")");
+    CommandStripAddLength(len, CommandStripLabelTail(command->label));
+    break;
+  case UI_COMMAND_LAYOUT_LABEL_FIRST:
+    CommandStripAddLength(len, command->label);
+    CommandStripAddLength(len, " (");
+    CommandStripAddLength(len, command->primary_key);
+    if (command->secondary_key != NULL) {
+      CommandStripAddLength(len, ")/(");
+      CommandStripAddLength(len, command->secondary_key);
+    }
+    CommandStripAddLength(len, ")");
+    break;
+  }
+}
+
+int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
+                                size_t command_count) {
   size_t i;
   int len = 0;
 
-  if (parts == NULL)
+  if (commands == NULL)
     return 0;
 
-  for (i = 0; i < part_count; ++i) {
-    if (parts[i].text != NULL)
-      len += StrVisualLength(parts[i].text);
+  for (i = 0; i < command_count; ++i) {
+    if (i > 0)
+      CommandStripAddLength(&len, "  ");
+    CommandStripMeasureCommand(&len, &commands[i]);
   }
 
   return len;
 }
 
+static void CommandStripRenderText(WINDOW *win, int y, int *x, int max_x,
+                                   const char *text, int attr) {
+  if (win == NULL || x == NULL || text == NULL)
+    return;
+
+  wattrset(win, attr);
+  for (; *text && *x < max_x; ++text) {
+    int raw = (unsigned char)*text;
+    chtype ch = raw < 32 ? ACS_BLOCK : (chtype)raw;
+
+    mvwaddch(win, y, (*x)++, ch);
+  }
+}
+
+static void CommandStripRenderCommand(WINDOW *win, int y, int *x, int max_x,
+                                      const UICommandStripCommand *command,
+                                      int normal_attr, int key_attr) {
+  if (command == NULL)
+    return;
+
+  switch (command->layout) {
+  case UI_COMMAND_LAYOUT_MNEMONIC:
+    CommandStripRenderText(win, y, x, max_x, "(", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, command->primary_key, key_attr);
+    CommandStripRenderText(win, y, x, max_x, ")", normal_attr);
+    CommandStripRenderText(win, y, x, max_x,
+                           CommandStripLabelTail(command->label), normal_attr);
+    break;
+  case UI_COMMAND_LAYOUT_KEY_PREFIX:
+    CommandStripRenderText(win, y, x, max_x, "(", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, command->primary_key, key_attr);
+    if (command->secondary_key != NULL) {
+      CommandStripRenderText(win, y, x, max_x, ")/(", normal_attr);
+      CommandStripRenderText(win, y, x, max_x, command->secondary_key,
+                             key_attr);
+    }
+    CommandStripRenderText(win, y, x, max_x, ") ", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, command->label, normal_attr);
+    break;
+  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+    CommandStripRenderText(win, y, x, max_x, "(", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, command->primary_key, key_attr);
+    CommandStripRenderText(win, y, x, max_x, ")/(", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, command->secondary_key, key_attr);
+    CommandStripRenderText(win, y, x, max_x, ")", normal_attr);
+    CommandStripRenderText(win, y, x, max_x,
+                           CommandStripLabelTail(command->label), normal_attr);
+    break;
+  case UI_COMMAND_LAYOUT_LABEL_FIRST:
+    CommandStripRenderText(win, y, x, max_x, command->label, normal_attr);
+    CommandStripRenderText(win, y, x, max_x, " (", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, command->primary_key, key_attr);
+    if (command->secondary_key != NULL) {
+      CommandStripRenderText(win, y, x, max_x, ")/(", normal_attr);
+      CommandStripRenderText(win, y, x, max_x, command->secondary_key,
+                             key_attr);
+    }
+    CommandStripRenderText(win, y, x, max_x, ")", normal_attr);
+    break;
+  }
+}
+
 void UI_RenderCommandStrip(WINDOW *win, int y, int x,
-                           const UICommandStripPart *parts, size_t part_count,
-                           int ncolor, int hcolor) {
+                           const UICommandStripCommand *commands,
+                           size_t command_count, int ncolor, int hcolor) {
   size_t i;
   int max_x;
+  int normal_attr;
+  int key_attr;
 
-  if (win == NULL || parts == NULL || x < 0 || y < 0)
+  if (win == NULL || commands == NULL || x < 0 || y < 0)
     return;
 
   max_x = getmaxx(win);
   if (max_x <= 0 || x >= max_x)
     return;
 
-  for (i = 0; i < part_count && x < max_x; ++i) {
-    const char *text = parts[i].text;
-    int attr;
-
-    if (text == NULL)
-      continue;
-
 #ifdef COLOR_SUPPORT
-    attr = COLOR_PAIR(parts[i].kind == UI_COMMAND_KEY ? hcolor : ncolor);
-    if (parts[i].kind == UI_COMMAND_KEY)
-      attr |= A_BOLD;
+  normal_attr = COLOR_PAIR(ncolor);
+  key_attr = COLOR_PAIR(hcolor) | A_BOLD;
 #else
-    attr = parts[i].kind == UI_COMMAND_KEY ? A_BOLD : A_NORMAL;
+  normal_attr = A_NORMAL;
+  key_attr = A_BOLD;
 #endif
 
-    wattrset(win, attr);
-    for (; *text && x < max_x; ++text) {
-      int raw = (unsigned char)*text;
-      chtype ch = raw < 32 ? ACS_BLOCK : (chtype)raw;
-
-      mvwaddch(win, y, x++, ch);
-    }
+  for (i = 0; i < command_count && x < max_x; ++i) {
+    if (i > 0)
+      CommandStripRenderText(win, y, &x, max_x, "  ", normal_attr);
+    CommandStripRenderCommand(win, y, &x, max_x, &commands[i], normal_attr,
+                              key_attr);
   }
 
   wattrset(win, 0);

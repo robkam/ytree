@@ -2,16 +2,23 @@ Task 60 live checkpoint — /home/rob/nova60 branch task-60
 
 Current branch and HEAD:
 - Branch: task-60
-- HEAD: this checkpoint commit; use `git log -1` for the exact hash after local commit creation.
+- HEAD before the in-progress command-strip commit: 862e8d0ca16c5e349a7cc56fb0be0e5afa0b18d0.
 - Work is local-only; no push, PR, CI polling, ready marking, or merge has been performed.
 
 Completed local subunit toward Task 60:
-- User-facing helper guidance path cleanup
-  - Commit: this checkpoint commit; use `git log -1` for the exact hash.
-  - Compare/file-diff helper error messages now tell users to update the main config instead of naming legacy `~/.ytnova` as the place to configure helper commands.
-  - A source-level regression checks that the active helper diagnostics no longer prefer the legacy profile path.
+- Command-strip label/token model remediation
+  - Commit: pending local commit at this checkpoint update.
+  - F2, F10, and volume command strips now use `UICommandStripCommand` descriptors with full labels and separate primary/secondary key tokens.
+  - Command punctuation and key styling are rendered by `UI_RenderCommandStrip` instead of being stored as split label fragments.
+  - User-visible command strip text remains exactly:
+    - F2: `(L)og  (<)/(>) Cycle`
+    - F10: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`
+    - Volume menu: `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`
 
 Prior local subunits in this continuation:
+- User-facing helper guidance path cleanup
+  - Commit: 862e8d0 fix(config): avoid legacy helper guidance
+  - Compare/file-diff helper diagnostics now tell users to update the main config instead of naming legacy `~/.ytnova` as the place to configure helper commands.
 - Atomic theme reload and preferred-path remediation
   - Commit: b4e3106 fix(theme): keep reload state atomic
   - Theme file loading validates required roles/palette rules before mutation, F10 reload snapshots/restores UI color state on failure, and docs/config present XDG preferred paths first.
@@ -20,17 +27,14 @@ Prior local subunits in this continuation:
   - Existing invalid preferred/legacy user theme catalogs now fail reload/load instead of silently falling through to packaged defaults.
 
 Focused validation for this subunit:
-- `python3 -m pytest tests/test_color_config.py::test_compare_helper_messages_do_not_prefer_legacy_profile_path -q` -> 1 passed.
-- `git diff --check` -> exit 0.
-- Re-audit search over active source/docs/config for legacy-default/preferred wording found only a historical `docs/CHANGES.md` changelog entry; no current helper/config/default guidance remains pointing users at legacy `~/.ytnova` as preferred/default.
-- Post-commit semantic re-audit of `ReloadConfigAndTheme`, `ReadThemeFile`, and `LoadConfiguredTheme` confirms the three current auditor findings are closed in local `task-60` state: failed reload restores profile/theme color state, invalid/incomplete themes fail atomically, and current docs/config/helper guidance prefers XDG paths with legacy paths only as fallback.
-
-Broader focused validation already run after the adjacent theme-loader fix:
+- RED before implementation: `python3 -m pytest tests/test_theme_ui_contract.py::test_f10_surface_uses_required_command_strip_and_enter_default tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_volume_menu_uses_required_theme_command_strip -q` -> 3 failed because the old `UICommandStripPart` fragment arrays were still present.
+- GREEN after implementation: same focused pytest command -> 3 passed.
 - `make clean && make` -> passed with existing warnings.
-- `python3 -m pytest tests/test_theme_ui_contract.py tests/test_color_config.py tests/test_color_parser_runtime.py tests/test_theme_config_paths.py tests/test_cli_version_flags.py tests/test_modal_color_taxonomy.py tests/test_modal_severity_contract.py tests/test_f2_vols.py tests/test_compare_actions.py -q` -> 75 passed.
+- `git diff --check` -> exit 0.
 
 Local notes:
 - No `.venv` exists in /home/rob/nova60, so focused pytest was run with `python3 -m pytest` from repo root.
+- Pytest host-permission escalation could not be requested because the environment approval policy is `Never`; commands ran under the provided unrestricted local profile.
 - Task-local recovery/prompt artifacts are included with the local subunit commit when changed.
 - No remote actions have been taken.
 
@@ -38,7 +42,7 @@ Untracked or dirty files intentionally left behind:
 - None intended after this local subunit commit.
 
 Next recommended Task 60 subunit:
-- None for the three current auditor findings; they are closed in local `task-60` state. Await maintainer direction for any broader Task 60 audit or push/PR/CI/rebase cycle.
+- Theme catalog fallback semantics: distinguish theme-not-found in a valid catalog from malformed matching themes/catalogs so a valid user catalog lacking the requested theme can fall through to packaged themes.
 
 Known blockers or risks:
 - No active blocker.
