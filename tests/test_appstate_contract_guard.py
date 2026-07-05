@@ -6001,6 +6001,21 @@ def test_visibility_session_mirror_is_retired() -> None:
     assert "ctx->hide_dot_files" not in architecture
 
 
+def test_appstate_contract_docs_share_active_registry_reference() -> None:
+    specification = Path("docs/SPECIFICATION.md").read_text(encoding="utf-8")
+    architecture = Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8")
+    registry_root = "registry/appstate/"
+    retired_registry_phrase = "docs/appstate_compat_shims.json"
+    retired_contract_phrase = "companion contract registry for active compatibility shims"
+
+    assert registry_root in architecture
+    assert registry_root in specification
+    assert retired_registry_phrase not in architecture
+    assert retired_contract_phrase not in architecture
+    assert retired_registry_phrase not in specification
+    assert retired_contract_phrase not in specification
+
+
 def test_visibility_projection_reads_panel_state_not_session_mirror() -> None:
     stats = Path("src/ui/stats.c").read_text(encoding="utf-8")
     pipe = Path("src/cmd/pipe.c").read_text(encoding="utf-8")

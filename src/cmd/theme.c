@@ -826,10 +826,6 @@ int LoadConfiguredTheme(ViewContext *ctx) {
   if (result == -1)
     user_catalog_found = 1;
 
-  result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
-  if (result == 0)
-    return 0;
-
   if (!user_catalog_found && ResolveSeedThemePath(path, sizeof(path), home) == 0 &&
       SeedConfiguredThemePath(path) == 0) {
     result = ReadThemeFile(ctx, path, theme_name);

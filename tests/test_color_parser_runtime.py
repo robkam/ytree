@@ -1630,13 +1630,37 @@ int main(int argc, char **argv) {
 def test_packaged_theme_fallback_uses_installed_catalog_path(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
+    preferred_dir = home / ".config" / "ytnova"
     installed_dir = tmp_path / "installed" / "share" / "ytnova"
     installed_theme = installed_dir / "ytnova.themes"
     driver = tmp_path / "theme_installed_fallback_driver.c"
     binary = tmp_path / "theme_installed_fallback_driver"
 
     home.mkdir()
+    preferred_dir.mkdir(parents=True)
     installed_dir.mkdir(parents=True)
+    (preferred_dir / "themes.conf").write_text(
+        """
+[theme spare]
+background = black
+box_lines = white on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = white on black
+keybind = +white on black
+selection = black on white
+dialog = white on black
+picker = black on white
+help = white on black
+info = white on black
+warning = black on yellow
+error = white on red
+search_hit = black on yellow
+disabled = grey on black
+""",
+        encoding="utf-8",
+    )
     installed_theme.write_text(
         """
 [theme classic-blue]
@@ -2188,7 +2212,134 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
-def test_seeded_theme_miss_retries_installed_packaged_catalog(tmp_path):
+def test_missing_user_theme_catalog_seeds_before_packaged_catalog(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "home"
+    installed_dir = tmp_path / "installed" / "share" / "ytnova"
+    installed_theme = installed_dir / "ytnova.themes"
+    seeded_theme = home / ".config" / "ytnova" / "themes.conf"
+    driver = tmp_path / "theme_seed_before_packaged_driver.c"
+    binary = tmp_path / "theme_seed_before_packaged_driver"
+
+    home.mkdir()
+    installed_dir.mkdir(parents=True)
+    installed_theme.write_text(
+        """
+[theme classic-blue]
+background = black
+box_lines = red on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = white on black
+keybind = +white on black
+selection = black on white
+dialog = white on black
+picker = black on white
+help = white on black
+info = white on black
+warning = black on yellow
+error = white on red
+search_hit = black on yellow
+disabled = grey on black
+""",
+        encoding="utf-8",
+    )
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+static int box_lines_fg = -1;
+static int box_lines_bg = -1;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static char *configured_theme(const ViewContext *ctx, const char *name) {
+  (void)ctx;
+  if (strcmp(name, "THEME") == 0)
+    return "classic-blue";
+  return NULL;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  if (strcmp(name, "box_lines") == 0) {
+    box_lines_fg = fg;
+    box_lines_bg = bg;
+  }
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  char seeded_path[PATH_LENGTH + 1];
+
+  if (argc != 2)
+    return 1;
+  if (setenv("HOME", argv[1], 1) != 0)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+  ctx.core_init_ops.get_profile_value = configured_theme;
+
+  if (LoadConfiguredTheme(&ctx) != 0) {
+    fprintf(stderr, "missing user theme catalog was not loaded\n");
+    return 1;
+  }
+  if (box_lines_fg != COLOR_CYAN || box_lines_bg != COLOR_BLUE) {
+    fprintf(stderr, "packaged catalog outranked seeded compiled defaults\n");
+    return 1;
+  }
+  if (snprintf(seeded_path, sizeof(seeded_path), "%s/.config/ytnova/themes.conf",
+               argv[1]) < 0 ||
+      strlen(argv[1]) + strlen("/.config/ytnova/themes.conf") >=
+          sizeof(seeded_path))
+    return 1;
+  if (access(seeded_path, F_OK) != 0) {
+    fprintf(stderr, "seeded theme file was not created before packaged fallback\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            f'-DPACKAGED_THEME_PATH="{installed_theme}"',
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
+
+
+def test_seeded_theme_miss_uses_installed_packaged_catalog(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
     installed_dir = tmp_path / "installed" / "share" / "ytnova"
@@ -2224,7 +2375,6 @@ disabled = grey on black
         r'''
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -2232,9 +2382,6 @@ disabled = grey on black
 
 static int box_lines_fg = -1;
 static int box_lines_bg = -1;
-static int packaged_access_calls;
-
-int __real_access(const char *pathname, int mode);
 
 int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   (void)ctx;
@@ -2247,15 +2394,6 @@ static char *configured_theme(const ViewContext *ctx, const char *name) {
   if (strcmp(name, "THEME") == 0)
     return "packaged-only";
   return NULL;
-}
-
-int __wrap_access(const char *pathname, int mode) {
-  if (strcmp(pathname, PACKAGED_THEME_PATH) == 0 && packaged_access_calls++ == 0) {
-    errno = ENOENT;
-    return -1;
-  }
-
-  return __real_access(pathname, mode);
 }
 
 static void capture_update_color(const char *name, int fg, int bg) {
@@ -2280,11 +2418,11 @@ int main(int argc, char **argv) {
   ctx.core_init_ops.get_profile_value = configured_theme;
 
   if (LoadConfiguredTheme(&ctx) != 0) {
-    fprintf(stderr, "seed miss did not retry the installed packaged catalog\n");
+    fprintf(stderr, "seed miss did not use the installed packaged catalog\n");
     return 1;
   }
   if (box_lines_fg != COLOR_RED || box_lines_bg != COLOR_BLACK) {
-    fprintf(stderr, "installed packaged retry did not apply packaged-only colors\n");
+    fprintf(stderr, "installed packaged fallback did not apply packaged-only colors\n");
     return 1;
   }
 
@@ -2305,7 +2443,6 @@ int main(int argc, char **argv) {
             "src/cmd/theme.c",
             "src/ui/color.c",
             "src/util/memory_utils.c",
-            "-Wl,--wrap=access",
             "-lncursesw",
             "-ltinfo",
             "-o",
