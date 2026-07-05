@@ -1141,7 +1141,7 @@ def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_bi
     )
     noop_editor.chmod(0o755)
 
-    profile_path = root / ".ytnova"
+    profile_path = root / ".config" / "ytnova" / "ytnova.conf"
     assert not profile_path.exists()
 
     tui = YtreeNovaTUI(
@@ -1153,20 +1153,21 @@ def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_bi
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
-        tui.send_keystroke("\x1b[21~", wait=0.9)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
 
         for _ in range(20):
             if editor_capture.exists():
                 break
             time.sleep(0.1)
         assert editor_capture.exists(), (
-            "F10 on missing ~/.ytnova must open an editable default profile buffer."
+            "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
         assert "[GLOBAL]" in editor_capture.read_text(encoding="utf-8"), (
             "Default profile buffer should include [GLOBAL] section header."
         )
         assert not profile_path.exists(), (
-            "Exiting config edit without save must not create ~/.ytnova."
+            "Exiting the F10 -> Enter config edit without save must not create a profile."
         )
     finally:
         tui.quit()
@@ -1191,7 +1192,7 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
     )
     save_editor.chmod(0o755)
 
-    profile_path = root / ".ytnova"
+    profile_path = root / ".config" / "ytnova" / "ytnova.conf"
     assert not profile_path.exists()
 
     tui = YtreeNovaTUI(
@@ -1203,18 +1204,19 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
-        tui.send_keystroke("\x1b[21~", wait=0.9)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
 
         for _ in range(20):
             if editor_capture.exists():
                 break
             time.sleep(0.1)
         assert editor_capture.exists(), (
-            "F10 on missing ~/.ytnova must open an editable default profile buffer."
+            "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
-        assert profile_path.exists(), "Saving config edit must create ~/.ytnova."
+        assert profile_path.exists(), "Saving the F10 -> Enter config edit must create a profile."
         assert "SMALLWINDOWSKIP=1" in profile_path.read_text(encoding="utf-8"), (
-            "Saved missing-profile edit must persist into ~/.ytnova."
+            "Saved F10 -> Enter missing-profile edit must persist into the profile."
         )
     finally:
         tui.quit()
