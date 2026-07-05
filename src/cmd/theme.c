@@ -89,6 +89,8 @@ static int ResolveSeedThemePath(char *path, size_t path_size,
 static int SeedConfiguredThemePath(const char *path);
 static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
                                                 const char *theme_name);
+static int TryThemeCatalogFile(ViewContext *ctx, const char *path,
+                               const char *theme_name);
 static int TryConfiguredThemePath(ViewContext *ctx, char *path,
                                   size_t path_size, const char *home,
                                   const char *suffix,
@@ -755,20 +757,12 @@ static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
   return status;
 }
 
-static int TryConfiguredThemePath(ViewContext *ctx, char *path,
-                                  size_t path_size, const char *home,
-                                  const char *suffix,
-                                  const char *theme_name) {
-  int written;
+static int TryThemeCatalogFile(ViewContext *ctx, const char *path,
+                               const char *theme_name) {
   ThemeLoadStatus status;
 
-  if (home == NULL || *home == '\0')
-    return -1;
-
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     suffix);
-  if (written < 0 || (size_t)written >= path_size)
-    return -1;
+  if (path == NULL || *path == '\0')
+    return 1;
   if (access(path, F_OK) != 0)
     return 1;
 
@@ -778,6 +772,22 @@ static int TryConfiguredThemePath(ViewContext *ctx, char *path,
   if (status == THEME_LOAD_NOT_FOUND)
     return -1;
   return -2;
+}
+
+static int TryConfiguredThemePath(ViewContext *ctx, char *path,
+                                  size_t path_size, const char *home,
+                                  const char *suffix,
+                                  const char *theme_name) {
+  int written;
+
+  if (home == NULL || *home == '\0')
+    return -1;
+
+  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                     suffix);
+  if (written < 0 || (size_t)written >= path_size)
+    return -1;
+  return TryThemeCatalogFile(ctx, path, theme_name);
 }
 
 int LoadConfiguredTheme(ViewContext *ctx) {
@@ -815,6 +825,12 @@ int LoadConfiguredTheme(ViewContext *ctx) {
     return -1;
   if (result == -1)
     user_catalog_found = 1;
+
+  result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
+  if (result == 0)
+    return 0;
+  if (result == -2)
+    return -1;
 
   if (!user_catalog_found && ResolveSeedThemePath(path, sizeof(path), home) == 0 &&
       SeedConfiguredThemePath(path) == 0)

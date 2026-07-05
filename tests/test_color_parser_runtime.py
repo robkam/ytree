@@ -1638,7 +1638,25 @@ def test_packaged_theme_fallback_uses_installed_catalog_path(tmp_path):
     home.mkdir()
     installed_dir.mkdir(parents=True)
     installed_theme.write_text(
-        (repo_root / "etc" / "ytnova.themes").read_text(encoding="utf-8"),
+        """
+[theme classic-blue]
+background = black
+box_lines = red on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = white on black
+keybind = +white on black
+selection = black on white
+dialog = white on black
+picker = black on white
+help = white on black
+info = white on black
+warning = black on yellow
+error = white on red
+search_hit = black on yellow
+disabled = grey on black
+""",
         encoding="utf-8",
     )
     driver.write_text(
@@ -1650,7 +1668,8 @@ def test_packaged_theme_fallback_uses_installed_catalog_path(tmp_path):
 #include <stdlib.h>
 #include <string.h>
 
-static int color_count;
+static int box_lines_fg = -1;
+static int box_lines_bg = -1;
 
 int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   (void)ctx;
@@ -1666,10 +1685,10 @@ static char *configured_theme(const ViewContext *ctx, const char *name) {
 }
 
 static void capture_update_color(const char *name, int fg, int bg) {
-  (void)name;
-  (void)fg;
-  (void)bg;
-  ++color_count;
+  if (strcmp(name, "box_lines") == 0) {
+    box_lines_fg = fg;
+    box_lines_bg = bg;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -1690,8 +1709,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "packaged theme was not loaded from installed path\n");
     return 1;
   }
-  if (color_count == 0) {
-    fprintf(stderr, "installed packaged theme did not apply colors\n");
+  if (box_lines_fg != COLOR_RED || box_lines_bg != COLOR_BLACK) {
+    fprintf(stderr, "installed packaged theme did not override compiled defaults\n");
     return 1;
   }
 
@@ -1953,6 +1972,7 @@ int main(int argc, char **argv) {
 def test_missing_user_theme_catalog_is_seeded_from_compiled_default(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
+    missing_packaged = tmp_path / "missing" / "ytnova.themes"
     seeded_theme = home / ".config" / "ytnova" / "themes.conf"
     driver = tmp_path / "theme_seeded_default_driver.c"
     binary = tmp_path / "theme_seeded_default_driver"
@@ -2051,6 +2071,7 @@ int main(int argc, char **argv) {
             "cc",
             "-D_GNU_SOURCE",
             "-DCOLOR_SUPPORT",
+            f'-DPACKAGED_THEME_PATH="{missing_packaged}"',
             "-Iinclude",
             str(driver),
             "src/cmd/theme.c",
