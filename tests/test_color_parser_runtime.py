@@ -1742,6 +1742,106 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
+def test_invalid_packaged_theme_catalog_falls_back_to_compiled_default(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "home"
+    installed_dir = tmp_path / "installed" / "share" / "ytnova"
+    installed_theme = installed_dir / "ytnova.themes"
+    driver = tmp_path / "theme_invalid_packaged_fallback_driver.c"
+    binary = tmp_path / "theme_invalid_packaged_fallback_driver"
+
+    home.mkdir()
+    installed_dir.mkdir(parents=True)
+    installed_theme.write_text(
+        """
+[theme classic-blue]
+background = not-a-color
+""",
+        encoding="utf-8",
+    )
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int box_lines_fg = -1;
+static int box_lines_bg = -1;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static char *configured_theme(const ViewContext *ctx, const char *name) {
+  (void)ctx;
+  if (strcmp(name, "THEME") == 0)
+    return "classic-blue";
+  return NULL;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  if (strcmp(name, "box_lines") == 0) {
+    box_lines_fg = fg;
+    box_lines_bg = bg;
+  }
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+  if (setenv("HOME", argv[1], 1) != 0)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+  ctx.core_init_ops.get_profile_value = configured_theme;
+
+  if (LoadConfiguredTheme(&ctx) != 0) {
+    fprintf(stderr, "invalid packaged theme blocked compiled fallback\n");
+    return 1;
+  }
+  if (box_lines_fg != COLOR_CYAN || box_lines_bg != COLOR_BLUE) {
+    fprintf(stderr, "compiled fallback did not restore default box_lines\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            f'-DPACKAGED_THEME_PATH="{installed_theme}"',
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
+
+
 def test_unreadable_user_theme_catalog_blocks_packaged_fallback(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
