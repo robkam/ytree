@@ -831,8 +831,15 @@ int LoadConfiguredTheme(ViewContext *ctx) {
     return 0;
 
   if (!user_catalog_found && ResolveSeedThemePath(path, sizeof(path), home) == 0 &&
-      SeedConfiguredThemePath(path) == 0)
-    return ReadThemeFile(ctx, path, theme_name);
+      SeedConfiguredThemePath(path) == 0) {
+    result = ReadThemeFile(ctx, path, theme_name);
+    if (result == 0)
+      return 0;
+  }
+
+  result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
+  if (result == 0)
+    return 0;
 
   return ReadCompiledThemeCatalog(ctx, theme_name) == THEME_LOAD_OK ? 0 : -1;
 }
