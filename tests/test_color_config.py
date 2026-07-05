@@ -126,17 +126,24 @@ def test_packaged_theme_catalog_uses_compact_file_palettes():
 
     for section_name in ("file-types classic-blue", "file-types bash-black"):
         section = _theme_section(source, section_name)
-        assert "LINK" in section
-        assert "EXEC" in section
         assert "\nDIR" not in section
         assert "*." not in section
-        assert ":" in section
+    assert ":" not in _theme_section(source, "file-types classic-blue")
 
     classic = _theme_section(source, "file-types classic-blue")
     assert "archives =" not in classic
     assert "scripts =" not in classic
     assert "media =" not in classic
     assert "documents =" not in classic
+    assert "links =" not in classic
+    assert "executables =" not in classic
+
+    bash_black = _theme_section(source, "file-types bash-black")
+    assert "LINK" in bash_black
+    assert "EXEC" in bash_black
+    assert ":" in bash_black
+    assert "links = cyan: LINK" in bash_black
+    assert "executables = green: EXEC" in bash_black
 
 
 def test_file_color_pair_exhaustion_cannot_reuse_semantic_roles():

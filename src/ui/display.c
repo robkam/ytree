@@ -395,8 +395,6 @@ void SwitchToBigFileWindow(ViewContext *ctx) {
 
 void MapF2Window(ViewContext *ctx) {
   werase(ctx->ctx_f2_window);
-  box(ctx->ctx_f2_window, 0, 0);
-  RefreshWindow(ctx->ctx_f2_window);
 }
 
 void UnmapF2Window(ViewContext *ctx) {

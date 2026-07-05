@@ -338,9 +338,6 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
     }
   }
 
-  if (!themes_path[0])
-    (void)snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);
-
   return themes_path[0] ? 0 : -1;
 }
 

@@ -32,8 +32,6 @@ search_hit = black on yellow
 disabled = grey on blue
 
 [file-types classic-blue]
-links = cyan: LINK
-executables = green: EXEC
 
 [theme bash-black]
 background = black

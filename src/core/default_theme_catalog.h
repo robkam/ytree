@@ -33,8 +33,6 @@ static const char default_theme_catalog[] =
     "disabled = grey on blue\n"
     "\n"
     "[file-types classic-blue]\n"
-    "links = cyan: LINK\n"
-    "executables = green: EXEC\n"
     "\n"
     "[theme bash-black]\n"
     "background = black\n"

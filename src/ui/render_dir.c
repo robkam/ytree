@@ -353,7 +353,13 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   werase(win);
 
   if (win == ctx->ctx_f2_window) {
+#ifdef COLOR_SUPPORT
+    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
     box(win, 0, 0);
+#ifdef COLOR_SUPPORT
+    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
   }
 
   panel = ResolveDirRenderPanel(ctx, vol, win);

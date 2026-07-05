@@ -187,6 +187,7 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     completion_source = _read("src/ui/completion_dialog.c")
     volume_source = _read("src/ui/volume_menu.c")
     render_dir_source = _read("src/ui/render_dir.c")
+    display_source = _read("src/ui/display.c")
 
     assert "WbkgdSet(ctx, ctx->ctx_matches_window, COLOR_PAIR(color));" not in (
         completion_source
@@ -199,6 +200,9 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     assert "COLOR_PAIR(CPAIR_HST) | A_BOLD" not in volume_source
     assert "win == ctx->ctx_f2_window" in render_dir_source
     assert "color = UI_ROLE_PICKER;" in render_dir_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in render_dir_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in render_dir_source
+    assert "box(ctx->ctx_f2_window, 0, 0);" not in display_source
 
 
 def test_active_file_and_tree_selection_use_selection_role_pairs():
@@ -382,6 +386,8 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert "access(legacy_path, F_OK) == 0" in source
     assert "THEME_CONFIG_HOME_PATH" in source
     assert "THEME_FILENAME" in source
+    assert 'snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);' not in source
+    assert "Can't resolve themes file path" in source
     assert "EditMissingThemesFromDefault(ctx, dir_entry, themes_path)" in source
     assert "default_theme_catalog" in source
     assert "link(temp_path, themes_path)" in source
