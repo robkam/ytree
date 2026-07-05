@@ -37,8 +37,7 @@ static struct stat fdstat;
 #define C_POSX (((cursor_pos_x % 2) != 1) ? cursor_pos_x : (cursor_pos_x - 1))
 #define CURSOR_POSX ((ctx->viewer.inhex) ? (C_POSX / 2) : cursor_pos_x)
 #define CANTX(x) ((ctx->viewer.inhex) ? (x * 2) : x)
-#define THECOLOR                                                               \
-  ((ctx->viewer.inedit) ? COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT) : COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT))
+#define THECOLOR COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)
 
 static void hex_edit(ViewContext *ctx, char *file_path,
                      const ViewerGeometry *geom);

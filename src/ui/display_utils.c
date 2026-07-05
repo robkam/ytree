@@ -678,10 +678,7 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
     }
 
 #ifdef COLOR_SUPPORT
-    if (color == hi_color)
-      wattrset(win, COLOR_PAIR(color));
-    else
-      wattrset(win, COLOR_PAIR(color));
+    wattrset(win, COLOR_PAIR(color));
 #else
     wattrset(win, color);
 #endif
@@ -743,10 +740,7 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
       break;
     }
 #ifdef COLOR_SUPPORT
-    if (color == hi_color)
-      wattrset(win, COLOR_PAIR(color));
-    else
-      wattrset(win, COLOR_PAIR(color));
+    wattrset(win, COLOR_PAIR(color));
 #else
     wattrset(win, color);
 #endif
