@@ -722,7 +722,8 @@ void ReCreateWindows(ViewContext *ctx) {
     }
   }
   if (ctx->ctx_border_window) {
-    CoreInitWbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES));
+    CoreInitWbkgdSet(ctx, ctx->ctx_border_window,
+                     COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 
     leaveok(ctx->ctx_border_window, TRUE);
 

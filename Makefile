@@ -79,6 +79,9 @@ PROJECT_CFLAGS   = $(WARNINGS) $(ADD_CFLAGS)
 PROJECT_LDFLAGS  =
 PROJECT_LDLIBS   = -lncursesw -ltinfo -lreadline -larchive -lm
 PROJECT_OPTFLAGS ?= -O2
+THEME_CATALOG_SRC = etc/ytnova.themes
+THEME_CATALOG_HDR = src/core/default_theme_catalog.h
+THEME_CATALOG_SCRIPT = scripts/generate_theme_catalog.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
@@ -427,7 +430,15 @@ qa-appstate-contract:
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
 
-qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config
+qa-theme-catalog:
+	$(PYTHON) $(THEME_CATALOG_SCRIPT) --source $(THEME_CATALOG_SRC) \
+		--header $(THEME_CATALOG_HDR) --check
+
+theme-catalog:
+	$(PYTHON) $(THEME_CATALOG_SCRIPT) --source $(THEME_CATALOG_SRC) \
+		--header $(THEME_CATALOG_HDR) --write
+
+qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 
