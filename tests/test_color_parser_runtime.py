@@ -1812,7 +1812,7 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(home)], cwd=repo_root, check=True)
 
 
-def test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback(tmp_path):
+def test_valid_user_theme_catalog_missing_theme_allows_compiled_fallback(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
     preferred_dir = home / ".config" / "ytnova"
@@ -1821,7 +1821,25 @@ def test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback(tmp_pat
     preferred_dir.mkdir(parents=True)
     installed_dir.mkdir(parents=True)
     installed_theme.write_text(
-        (repo_root / "etc" / "ytnova.themes").read_text(encoding="utf-8"),
+        """
+[theme spare]
+background = black
+box_lines = white on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = white on black
+keybind = +white on black
+selection = black on white
+dialog = white on black
+picker = black on white
+help = white on black
+info = white on black
+warning = black on yellow
+error = white on red
+search_hit = black on yellow
+disabled = grey on black
+""",
         encoding="utf-8",
     )
     (preferred_dir / "themes.conf").write_text(
@@ -1896,11 +1914,11 @@ int main(int argc, char **argv) {
   AddFileColorRule(&ctx, "*.old", COLOR_GREEN, COLOR_BLACK);
 
   if (LoadConfiguredTheme(&ctx) != 0) {
-    fprintf(stderr, "valid user catalog without requested theme blocked packaged fallback\n");
+    fprintf(stderr, "valid user catalog without requested theme blocked compiled fallback\n");
     return 1;
   }
   if (color_count == 0) {
-    fprintf(stderr, "packaged fallback did not apply colors\n");
+    fprintf(stderr, "compiled fallback did not apply colors\n");
     return 1;
   }
 

@@ -165,6 +165,22 @@ def _write_theme_switch_editor(root):
     return editor
 
 
+def _write_smallwindowskip_toggle_editor(root):
+    editor = root / "toggle_smallwindowskip.sh"
+    editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        "if grep -q '^SMALLWINDOWSKIP=' \"$f\"; then\n"
+        "  sed -i 's/^SMALLWINDOWSKIP=.*/SMALLWINDOWSKIP=1/' \"$f\"\n"
+        "else\n"
+        "  printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    editor.chmod(0o755)
+    return editor
+
+
 def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     """At archive root: first LEFT collapses children, second LEFT is a no-op."""
     root = tmp_path / "archive_exit_root"
@@ -911,18 +927,7 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
 
-    toggle_editor = root / "toggle_smallwindowskip.sh"
-    toggle_editor.write_text(
-        "#!/bin/sh\n"
-        "f=\"$1\"\n"
-        "if grep -q '^SMALLWINDOWSKIP=' \"$f\"; then\n"
-        "  sed -i 's/^SMALLWINDOWSKIP=.*/SMALLWINDOWSKIP=1/' \"$f\"\n"
-        "else\n"
-        "  printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
-        "fi\n",
-        encoding="utf-8",
-    )
-    toggle_editor.chmod(0o755)
+    toggle_editor = _write_smallwindowskip_toggle_editor(root)
 
     (root / ".ytnova").write_text(
         "[GLOBAL]\n"
@@ -966,6 +971,57 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         assert "tree" in footer_after, (
             "Directory footer should be restored after returning with "
             "SMALLWINDOWSKIP=1.\n"
+            f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_smallwindowskip_config_edit_uses_startup_selected_profile_path(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "smallwindowskip_custom_profile"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    toggle_editor = _write_smallwindowskip_toggle_editor(root)
+    custom_profile = root / "custom.conf"
+    custom_profile.write_text(
+        "[GLOBAL]\n"
+        "SMALLWINDOWSKIP=0\n"
+        f"EDITOR={toggle_editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        args=["-p", str(custom_profile)],
+    )
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        assert "SMALLWINDOWSKIP=1" in custom_profile.read_text(encoding="utf-8"), (
+            "F10 config edit must target the startup-selected -p profile path.\n"
+            f"Profile contents:\n{custom_profile.read_text(encoding='utf-8')}"
+        )
+        assert not (root / ".ytnova").exists(), (
+            "F10 config edit must not fall back to ~/.ytnova when startup used -p."
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        footer_after = _footer_text(tui).lower()
+        footer_after_lines = [line.strip().lower() for line in _footer_lines(tui)]
+        assert footer_after_lines and footer_after_lines[0].startswith("dir"), (
+            "Reload after editing the startup-selected profile must apply "
+            "SMALLWINDOWSKIP in-session.\n"
             f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
         )
     finally:

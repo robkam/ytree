@@ -393,6 +393,7 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert "link(temp_path, themes_path)" in source
     assert "ResolveSeedThemePath" in theme_source
     assert "SeedConfiguredThemePath" in theme_source
+    assert "ReadCompiledThemeCatalog" in theme_source
     assert '"etc/ytnova.themes"' not in theme_source
     assert '"etc/ytnova.themes"' not in source
     assert "[theme classic-blue]" in default_theme_source
@@ -453,9 +454,13 @@ def test_f10_reload_owns_canonical_repaint_for_tree_and_file_focus():
         "static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,"
         in reload_source
     )
-    assert "RefreshView(ctx, dir_entry);" in reload_source[
+    reload_tail = reload_source[
         reload_source.index("ctx->core_init_ops.reinit_color_pairs(ctx);") :
     ]
+    assert "ctx->core_init_ops.wbkgd_set(ctx, stdscr," in reload_tail
+    assert "werase(stdscr);" in reload_tail
+    assert "ReCreateWindows(ctx);" in reload_tail
+    assert "RefreshView(ctx, dir_entry);" in reload_tail
 
     tree_case = tree_source[
         tree_source.index("case ACTION_EDIT_CONFIG:") : tree_source.index(

@@ -948,6 +948,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   setlocale(LC_ALL, "");
 
   ctx->user_umask = umask(0);
+  ctx->configuration_file_path[0] = '\0';
   setenv("ESCDELAY", "25", 1);
   ctx->curses_screen = newterm(NULL, stdout, stdin);
   if (ctx->curses_screen == NULL) {
@@ -1003,6 +1004,9 @@ int Init(ViewContext *ctx, const char *configuration_file,
   DEBUG_LOG("Init: ReadPasswdEntries done");
 
   if (configuration_file != NULL) {
+    (void)snprintf(ctx->configuration_file_path,
+                   sizeof(ctx->configuration_file_path), "%s",
+                   configuration_file);
     DEBUG_LOG("Init: Reading profile %s", configuration_file);
     if (ctx->core_init_ops.read_profile != NULL)
       ctx->core_init_ops.read_profile(ctx, configuration_file);
@@ -1013,12 +1017,18 @@ int Init(ViewContext *ctx, const char *configuration_file,
     DEBUG_LOG("Init: Reading profile %s", buffer);
     if (ctx->core_init_ops.read_profile != NULL)
       read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+    if (read_profile_result == 0)
+      (void)snprintf(ctx->configuration_file_path,
+                     sizeof(ctx->configuration_file_path), "%s", buffer);
     if (read_profile_result != 0) {
       snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
                PROFILE_FILENAME);
       DEBUG_LOG("Init: Reading legacy profile %s", buffer);
       if (ctx->core_init_ops.read_profile != NULL)
         read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+      if (read_profile_result == 0)
+        (void)snprintf(ctx->configuration_file_path,
+                       sizeof(ctx->configuration_file_path), "%s", buffer);
     }
     if (read_profile_result != 0) {
       const char *editor_env = getenv("EDITOR");

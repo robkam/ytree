@@ -77,6 +77,8 @@ static BOOL ValidateThemePaletteLines(ViewContext *ctx,
 static BOOL StageThemePaletteLines(ViewContext *ctx, ThemePaletteLine *head,
                                    ViewContext *target_ctx);
 static void FreeThemeFileColorRules(FileColorRule *rule);
+static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
+                                               const char *theme_name);
 static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
                                              const char *filename,
                                              const char *theme_name);
@@ -85,6 +87,8 @@ static int EnsureThemeConfigHomeDirectory(const char *home);
 static int ResolveSeedThemePath(char *path, size_t path_size,
                                 const char *home);
 static int SeedConfiguredThemePath(const char *path);
+static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
+                                                const char *theme_name);
 static int TryConfiguredThemePath(ViewContext *ctx, char *path,
                                   size_t path_size, const char *home,
                                   const char *suffix,
@@ -468,10 +472,8 @@ static void FreeThemeFileColorRules(FileColorRule *rule) {
   }
 }
 
-static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
-                                             const char *filename,
-                                             const char *theme_name) {
-  FILE *fp;
+static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
+                                               const char *theme_name) {
   char buffer[2048];
   ThemeRoleValue roles[THEME_ROLE_COUNT];
   ThemeSection section = THEME_SECTION_NONE;
@@ -487,13 +489,8 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
   BOOL read_failed;
   int i;
 
-  if (ctx == NULL || filename == NULL || theme_name == NULL ||
-      *theme_name == '\0')
+  if (ctx == NULL || fp == NULL || theme_name == NULL || *theme_name == '\0')
     return THEME_LOAD_INVALID;
-
-  fp = fopen(filename, "r");
-  if (fp == NULL)
-    return (errno == ENOENT) ? THEME_LOAD_NOT_FOUND : THEME_LOAD_INVALID;
 
   memset(roles, 0, sizeof(roles));
   for (i = 0; i < THEME_ROLE_COUNT; ++i)
@@ -562,8 +559,6 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
   }
 
   read_failed = ferror(fp) ? TRUE : FALSE;
-  fclose(fp);
-
   if (read_failed) {
     FreeThemePaletteLines(palette_head);
     return THEME_LOAD_INVALID;
@@ -605,6 +600,25 @@ static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
   FreeThemePaletteLines(palette_head);
   return THEME_LOAD_OK;
 #endif
+}
+
+static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
+                                             const char *filename,
+                                             const char *theme_name) {
+  FILE *fp;
+  ThemeLoadStatus status;
+
+  if (ctx == NULL || filename == NULL || theme_name == NULL ||
+      *theme_name == '\0')
+    return THEME_LOAD_INVALID;
+
+  fp = fopen(filename, "r");
+  if (fp == NULL)
+    return (errno == ENOENT) ? THEME_LOAD_NOT_FOUND : THEME_LOAD_INVALID;
+
+  status = ReadThemeStreamInternal(ctx, fp, theme_name);
+  fclose(fp);
+  return status;
 }
 
 int ReadThemeFile(ViewContext *ctx, const char *filename,
@@ -716,6 +730,31 @@ static int SeedConfiguredThemePath(const char *path) {
   return 0;
 }
 
+static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
+                                                const char *theme_name) {
+  FILE *fp;
+  size_t default_len;
+  ThemeLoadStatus status;
+
+  if (ctx == NULL || theme_name == NULL || *theme_name == '\0')
+    return THEME_LOAD_INVALID;
+
+  fp = tmpfile();
+  if (fp == NULL)
+    return THEME_LOAD_INVALID;
+
+  default_len = strlen(default_theme_catalog);
+  if (fwrite(default_theme_catalog, 1, default_len, fp) != default_len) {
+    fclose(fp);
+    return THEME_LOAD_INVALID;
+  }
+  rewind(fp);
+
+  status = ReadThemeStreamInternal(ctx, fp, theme_name);
+  fclose(fp);
+  return status;
+}
+
 static int TryConfiguredThemePath(ViewContext *ctx, char *path,
                                   size_t path_size, const char *home,
                                   const char *suffix,
@@ -781,10 +820,7 @@ int LoadConfiguredTheme(ViewContext *ctx) {
       SeedConfiguredThemePath(path) == 0)
     return ReadThemeFile(ctx, path, theme_name);
 
-  if (access(PACKAGED_THEME_PATH, F_OK) == 0)
-    return ReadThemeFile(ctx, PACKAGED_THEME_PATH, theme_name);
-
-  return -1;
+  return ReadCompiledThemeCatalog(ctx, theme_name) == THEME_LOAD_OK ? 0 : -1;
 }
 
 static int CoreInit_LoadTheme(ViewContext *ctx) {

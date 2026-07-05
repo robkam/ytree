@@ -276,13 +276,19 @@ static int EnsureConfigHomeDirectory(const char *home) {
   return 0;
 }
 
-static void ResolveProfilePath(char *profile_path, size_t profile_path_size) {
+static void ResolveProfilePath(const ViewContext *ctx, char *profile_path,
+                               size_t profile_path_size) {
   const char *home;
 
   if (profile_path == NULL || profile_path_size == 0)
     return;
 
   profile_path[0] = '\0';
+  if (ctx != NULL && ctx->configuration_file_path[0] != '\0') {
+    (void)snprintf(profile_path, profile_path_size, "%s",
+                   ctx->configuration_file_path);
+    return;
+  }
   home = getenv("HOME");
   if (home && *home) {
     int written;
@@ -416,6 +422,13 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
   }
   if (ctx->core_init_ops.reinit_color_pairs != NULL)
     ctx->core_init_ops.reinit_color_pairs(ctx);
+  if (stdscr != NULL) {
+    if (ctx->core_init_ops.wbkgd_set != NULL)
+      ctx->core_init_ops.wbkgd_set(ctx, stdscr,
+                                   COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+    werase(stdscr);
+  }
+  ReCreateWindows(ctx);
   RefreshView(ctx, dir_entry);
 #ifdef COLOR_SUPPORT
   UIColorSnapshot_Free(color_snapshot);
@@ -473,7 +486,7 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   char profile_path[PATH_LENGTH + 1];
   int term;
 
-  ResolveProfilePath(profile_path, sizeof(profile_path));
+  ResolveProfilePath(ctx, profile_path, sizeof(profile_path));
   term = InputChoiceCommandStrip(
       ctx, config_command_strip,
       sizeof(config_command_strip) / sizeof(config_command_strip[0]),
