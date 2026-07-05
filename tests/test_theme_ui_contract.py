@@ -369,6 +369,7 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     defs_source = _read("include/ytnova_defs.h")
     source = _read("src/ui/ui_edit_config.c")
     theme_source = _read("src/cmd/theme.c")
+    default_theme_source = _read("src/core/default_theme_catalog.h")
 
     assert '#define THEME_CONFIG_HOME_PATH ".config/ytnova/themes.conf"' in (
         defs_source
@@ -382,8 +383,13 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert "THEME_CONFIG_HOME_PATH" in source
     assert "THEME_FILENAME" in source
     assert "EditMissingThemesFromDefault(ctx, dir_entry, themes_path)" in source
-    assert "PACKAGED_THEME_PATH" in source
+    assert "default_theme_catalog" in source
     assert "link(temp_path, themes_path)" in source
+    assert "ResolveSeedThemePath" in theme_source
+    assert "SeedConfiguredThemePath" in theme_source
+    assert '"etc/ytnova.themes"' not in theme_source
+    assert '"etc/ytnova.themes"' not in source
+    assert "[theme classic-blue]" in default_theme_source
 
 
 def test_f10_surface_uses_required_command_strip_and_enter_default():

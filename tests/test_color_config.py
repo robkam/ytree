@@ -181,6 +181,11 @@ def test_spec_documents_user_visible_theme_contract():
         "Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`"
         in spec_source
     )
+    assert "runtime binaries must not consult `etc/` directly" in spec_source
+    assert (
+        "runtime seeds `~/.config/ytnova/themes.conf` from compiled-in default theme data before loading it"
+        in spec_source
+    )
     assert (
         "Required roles are `background`, `box_lines`, `tree_lines`, `margin`"
         in spec_source
@@ -208,6 +213,7 @@ def test_manpage_documents_user_visible_theme_contract():
         assert "~/.config/ytnova/ytnova.conf" in source
         assert "~/.config/ytnova/themes.conf" in source
         assert "~/.ytnova.themes" in source
+        assert "compiled-in defaults" in source
         assert "classic-blue" in source
         assert "bash-black" in source
         assert "`grey`/`gray`" in source

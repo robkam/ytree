@@ -1035,9 +1035,10 @@ Ordering policy (for all editors, including AI editors):
         *   `black on yellow`
         *   `+white on red`
     *   Move larger theme definitions out of the main config. The main config selects the active theme; the theme file defines named themes and each theme's file-type palette.
-    *   Packaged defaults are `etc/ytnova.conf` and `etc/ytnova.themes`.
+    *   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
     *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
     *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
+    *   If the user theme catalog is missing, runtime seeds `~/.config/ytnova/themes.conf` from compiled-in default theme data before loading it.
     *   The theme file may contain an unlimited number of named themes. Used theme definitions are uncommented; unused bundled or user themes can be prefixed with `#` to comment them out.
     *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
 *   **F10 Config Surface and Reload Direction:**
@@ -1099,7 +1100,7 @@ Ordering policy (for all editors, including AI editors):
     *   File-type colors do not bleed assumptions from one theme into another theme.
     *   `grey`/`gray`, `+grey`/`+gray`, and `+color` bright-prefix parsing are documented and tested.
     *   User-facing theme/config examples use `grey`/`gray`, never `bright black`.
-    *   Theme files use the agreed paths (`etc/ytnova.themes`, XDG `themes.conf`, and legacy `~/.ytnova.themes`).
+    *   Runtime theme lookup uses XDG `themes.conf` first, then legacy `~/.ytnova.themes`; missing user theme catalogs are seeded from compiled-in default theme data instead of consulting `etc/ytnova.themes`.
     *   F2 shows `(L)og  (<)/(>) Cycle` with only key tokens styled as keybindings.
     *   F10 exposes `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`; reload is not exposed as a global/main-UI key.
     *   The volume menu shows `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete` with only key tokens styled as keybindings.

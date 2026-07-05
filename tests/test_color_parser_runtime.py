@@ -1816,7 +1816,14 @@ def test_valid_user_theme_catalog_missing_theme_allows_packaged_fallback(tmp_pat
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
     preferred_dir = home / ".config" / "ytnova"
+    installed_dir = tmp_path / "installed" / "share" / "ytnova"
+    installed_theme = installed_dir / "ytnova.themes"
     preferred_dir.mkdir(parents=True)
+    installed_dir.mkdir(parents=True)
+    installed_theme.write_text(
+        (repo_root / "etc" / "ytnova.themes").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
     (preferred_dir / "themes.conf").write_text(
         """
 [theme spare]
@@ -1908,6 +1915,7 @@ int main(int argc, char **argv) {
             "cc",
             "-D_GNU_SOURCE",
             "-DCOLOR_SUPPORT",
+            f'-DPACKAGED_THEME_PATH="{installed_theme}"',
             "-Iinclude",
             str(driver),
             "src/cmd/theme.c",
@@ -1921,7 +1929,124 @@ int main(int argc, char **argv) {
         cwd=repo_root,
         check=True,
     )
-    subprocess.run([str(binary), str(home)], cwd=repo_root, check=True)
+    subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
+
+
+def test_missing_user_theme_catalog_is_seeded_from_compiled_default(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "home"
+    seeded_theme = home / ".config" / "ytnova" / "themes.conf"
+    driver = tmp_path / "theme_seeded_default_driver.c"
+    binary = tmp_path / "theme_seeded_default_driver"
+
+    home.mkdir()
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+static int color_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static char *configured_theme(const ViewContext *ctx, const char *name) {
+  (void)ctx;
+  if (strcmp(name, "THEME") == 0)
+    return "classic-blue";
+  return NULL;
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  (void)name;
+  (void)fg;
+  (void)bg;
+  ++color_count;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+  char seeded_path[PATH_LENGTH + 1];
+  FILE *fp;
+  char buffer[4096];
+  size_t bytes_read;
+
+  if (argc != 2)
+    return 1;
+  if (setenv("HOME", argv[1], 1) != 0)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+  ctx.core_init_ops.get_profile_value = configured_theme;
+
+  if (LoadConfiguredTheme(&ctx) != 0) {
+    fprintf(stderr, "missing user theme catalog was not seeded and loaded\n");
+    return 1;
+  }
+  if (color_count == 0) {
+    fprintf(stderr, "seeded theme did not apply colors\n");
+    return 1;
+  }
+
+  if (snprintf(seeded_path, sizeof(seeded_path), "%s/.config/ytnova/themes.conf",
+               argv[1]) < 0 ||
+      strlen(argv[1]) + strlen("/.config/ytnova/themes.conf") >=
+          sizeof(seeded_path))
+    return 1;
+  if (access(seeded_path, F_OK) != 0) {
+    fprintf(stderr, "seeded theme file was not created\n");
+    return 1;
+  }
+
+  fp = fopen(seeded_path, "r");
+  if (fp == NULL) {
+    fprintf(stderr, "seeded theme file is unreadable\n");
+    return 1;
+  }
+  bytes_read = fread(buffer, 1, sizeof(buffer) - 1, fp);
+  fclose(fp);
+  buffer[bytes_read] = '\0';
+  if (strstr(buffer, "[theme classic-blue]") == NULL) {
+    fprintf(stderr, "seeded theme file does not contain compiled defaults\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
 def test_profile_runtime_snapshot_restores_values_and_palette(tmp_path):

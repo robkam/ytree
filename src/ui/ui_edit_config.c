@@ -11,6 +11,7 @@
 
 #define NO_YTNOVA_MACROS
 #include "../core/default_profile_template.h"
+#include "../core/default_theme_catalog.h"
 #include "ytnova_appstate_layout.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
@@ -145,50 +146,31 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   return 0;
 }
 
-static FILE *OpenDefaultThemesFile(void) {
-  FILE *fp;
-
-  fp = fopen(PACKAGED_THEME_PATH, "r");
-  if (fp != NULL)
-    return fp;
-  return fopen("etc/ytnova.themes", "r");
-}
-
 static int FileMatchesDefaultThemes(const char *path) {
   FILE *actual;
-  FILE *expected;
-  int matches = 1;
+  size_t expected_len;
+  char *buffer;
+  size_t bytes_read;
+  int matches = 0;
 
   actual = fopen(path, "r");
   if (actual == NULL)
     return -1;
-  expected = OpenDefaultThemesFile();
-  if (expected == NULL) {
+
+  expected_len = strlen(default_theme_catalog);
+  buffer = (char *)malloc(expected_len + 1);
+  if (buffer == NULL) {
     fclose(actual);
     return -1;
   }
 
-  for (;;) {
-    unsigned char actual_buf[4096];
-    unsigned char expected_buf[4096];
-    size_t actual_len;
-    size_t expected_len;
-
-    actual_len = fread(actual_buf, 1, sizeof(actual_buf), actual);
-    expected_len = fread(expected_buf, 1, sizeof(expected_buf), expected);
-    if (actual_len != expected_len ||
-        (actual_len != 0 &&
-         memcmp(actual_buf, expected_buf, actual_len) != 0)) {
-      matches = 0;
-      break;
-    }
-    if (actual_len == 0)
-      break;
+  bytes_read = fread(buffer, 1, expected_len + 1, actual);
+  if (!ferror(actual) && bytes_read == expected_len &&
+      memcmp(buffer, default_theme_catalog, expected_len) == 0) {
+    matches = 1;
   }
 
-  if (ferror(actual) || ferror(expected))
-    matches = -1;
-  fclose(expected);
+  free(buffer);
   fclose(actual);
   return matches;
 }
@@ -213,9 +195,8 @@ static int WasThemesBufferSaved(const char *path, const struct stat *before) {
 static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
                                         const char *themes_path) {
   char temp_path[PATH_LENGTH + 1];
-  unsigned char buffer[4096];
-  FILE *themes_fp;
   int fd;
+  size_t template_len;
   struct stat temp_before_edit;
   int written;
 
@@ -230,48 +211,24 @@ static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
     return -1;
   }
 
-  themes_fp = OpenDefaultThemesFile();
-  if (themes_fp == NULL) {
-    MESSAGE(ctx, "Can't read default themes for \"%s\"*%s", themes_path,
+  fd = mkstemp(temp_path);
+  if (fd == -1) {
+    MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
             strerror(errno));
     return -1;
   }
 
-  fd = mkstemp(temp_path);
-  if (fd == -1) {
+  template_len = strlen(default_theme_catalog);
+  if (WriteAll(fd, default_theme_catalog, template_len) != 0 ||
+      fstat(fd, &temp_before_edit) != 0) {
     int saved_errno = errno;
-    fclose(themes_fp);
-    MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
-            strerror(saved_errno));
-    return -1;
-  }
 
-  while (!ferror(themes_fp)) {
-    size_t read_len = fread(buffer, 1, sizeof(buffer), themes_fp);
-
-    if (read_len > 0 && WriteAll(fd, (const char *)buffer, read_len) != 0) {
-      int saved_errno = errno;
-      close(fd);
-      fclose(themes_fp);
-      unlink(temp_path);
-      MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
-              strerror(saved_errno));
-      return -1;
-    }
-    if (read_len < sizeof(buffer))
-      break;
-  }
-
-  if (ferror(themes_fp) || fstat(fd, &temp_before_edit) != 0) {
-    int saved_errno = errno;
     close(fd);
-    fclose(themes_fp);
     unlink(temp_path);
     MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
             strerror(saved_errno));
     return -1;
   }
-  fclose(themes_fp);
   close(fd);
 
   if (Edit(ctx, dir_entry, temp_path) != 0) {
