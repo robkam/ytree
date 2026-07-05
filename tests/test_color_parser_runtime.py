@@ -2027,6 +2027,10 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   return 0;
 }
 
+FILE *__wrap_tmpfile(void) { return NULL; }
+
+FILE *__wrap_tmpfile64(void) { return NULL; }
+
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
@@ -2082,6 +2086,8 @@ int main(int argc, char **argv) {
             "src/cmd/theme.c",
             "src/ui/color.c",
             "src/util/memory_utils.c",
+            "-Wl,--wrap=tmpfile",
+            "-Wl,--wrap=tmpfile64",
             "-lncursesw",
             "-ltinfo",
             "-o",

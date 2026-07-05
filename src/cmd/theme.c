@@ -40,6 +40,11 @@ typedef struct _theme_palette_line {
   struct _theme_palette_line *next;
 } ThemePaletteLine;
 
+typedef struct {
+  FILE *fp;
+  const char *text;
+} ThemeLineSource;
+
 static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "selection",
@@ -77,6 +82,12 @@ static BOOL ValidateThemePaletteLines(ViewContext *ctx,
 static BOOL StageThemePaletteLines(ViewContext *ctx, ThemePaletteLine *head,
                                    ViewContext *target_ctx);
 static void FreeThemeFileColorRules(FileColorRule *rule);
+static char *ReadThemeLine(ThemeLineSource *source, char *buffer,
+                           size_t buffer_size);
+static BOOL ThemeLineSourceFailed(ThemeLineSource *source);
+static ThemeLoadStatus ReadThemeLineSourceInternal(ViewContext *ctx,
+                                                   ThemeLineSource *source,
+                                                   const char *theme_name);
 static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
                                                const char *theme_name);
 static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
@@ -474,8 +485,42 @@ static void FreeThemeFileColorRules(FileColorRule *rule) {
   }
 }
 
-static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
-                                               const char *theme_name) {
+static char *ReadThemeLine(ThemeLineSource *source, char *buffer,
+                           size_t buffer_size) {
+  const char *cursor;
+  size_t length = 0;
+
+  if (source == NULL || buffer == NULL || buffer_size == 0)
+    return NULL;
+  if (source->fp != NULL)
+    return fgets(buffer, (int)buffer_size, source->fp);
+  if (source->text == NULL || *source->text == '\0')
+    return NULL;
+
+  cursor = source->text;
+  while (cursor[length] != '\0' && cursor[length] != '\n' &&
+         length + 1 < buffer_size) {
+    buffer[length] = cursor[length];
+    ++length;
+  }
+  if (cursor[length] == '\n' && length + 1 < buffer_size) {
+    buffer[length] = cursor[length];
+    ++length;
+  }
+  buffer[length] = '\0';
+  source->text = cursor + length;
+  return buffer;
+}
+
+static BOOL ThemeLineSourceFailed(ThemeLineSource *source) {
+  if (source == NULL || source->fp == NULL)
+    return FALSE;
+  return ferror(source->fp) ? TRUE : FALSE;
+}
+
+static ThemeLoadStatus ReadThemeLineSourceInternal(ViewContext *ctx,
+                                                   ThemeLineSource *source,
+                                                   const char *theme_name) {
   char buffer[2048];
   ThemeRoleValue roles[THEME_ROLE_COUNT];
   ThemeSection section = THEME_SECTION_NONE;
@@ -491,7 +536,8 @@ static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
   BOOL read_failed;
   int i;
 
-  if (ctx == NULL || fp == NULL || theme_name == NULL || *theme_name == '\0')
+  if (ctx == NULL || source == NULL || theme_name == NULL ||
+      *theme_name == '\0')
     return THEME_LOAD_INVALID;
 
   memset(roles, 0, sizeof(roles));
@@ -507,7 +553,7 @@ static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
     }
   }
 
-  while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+  while (ReadThemeLine(source, buffer, sizeof(buffer)) != NULL) {
     char *comment;
     char *line;
     char *name;
@@ -560,7 +606,7 @@ static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
     }
   }
 
-  read_failed = ferror(fp) ? TRUE : FALSE;
+  read_failed = ThemeLineSourceFailed(source);
   if (read_failed) {
     FreeThemePaletteLines(palette_head);
     return THEME_LOAD_INVALID;
@@ -602,6 +648,18 @@ static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
   FreeThemePaletteLines(palette_head);
   return THEME_LOAD_OK;
 #endif
+}
+
+static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
+                                               const char *theme_name) {
+  ThemeLineSource source;
+
+  if (fp == NULL)
+    return THEME_LOAD_INVALID;
+
+  source.fp = fp;
+  source.text = NULL;
+  return ReadThemeLineSourceInternal(ctx, &source, theme_name);
 }
 
 static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
@@ -734,27 +792,14 @@ static int SeedConfiguredThemePath(const char *path) {
 
 static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
                                                 const char *theme_name) {
-  FILE *fp;
-  size_t default_len;
-  ThemeLoadStatus status;
+  ThemeLineSource source;
 
   if (ctx == NULL || theme_name == NULL || *theme_name == '\0')
     return THEME_LOAD_INVALID;
 
-  fp = tmpfile();
-  if (fp == NULL)
-    return THEME_LOAD_INVALID;
-
-  default_len = strlen(default_theme_catalog);
-  if (fwrite(default_theme_catalog, 1, default_len, fp) != default_len) {
-    fclose(fp);
-    return THEME_LOAD_INVALID;
-  }
-  rewind(fp);
-
-  status = ReadThemeStreamInternal(ctx, fp, theme_name);
-  fclose(fp);
-  return status;
+  source.fp = NULL;
+  source.text = default_theme_catalog;
+  return ReadThemeLineSourceInternal(ctx, &source, theme_name);
 }
 
 static int TryThemeCatalogFile(ViewContext *ctx, const char *path,
