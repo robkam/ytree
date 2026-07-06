@@ -9747,6 +9747,28 @@ def test_active_panel_focus_decisions_project_from_helper() -> None:
     assert "ctx->active->saved_focus" not in split_file_body
 
 
+def test_split_panel_switch_traces_project_from_helper() -> None:
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+
+    dir_start = split_transition.index("BOOL SplitTransition_HandleDirWindowAction(")
+    dir_body = split_transition[dir_start:]
+    assert "AppStateResolveActivePanelFocus(ctx)" in dir_body
+    assert (
+        'DEBUG_LOG("DirPanelAction:switch:post_toggle active_saved_focus=%d",'
+        in dir_body
+    )
+    assert (
+        "DEBUG_LOG(\"DirPanelAction:switch:post_toggle active_saved_focus=%d\",\n"
+        "                ctx->active->saved_focus);"
+    ) not in dir_body
+    assert (
+        "DEBUG_LOG(\"DirPanelAction:switch:post_toggle active_saved_focus=%d\",\n"
+        "              ctx->active->saved_focus);"
+    ) not in dir_body
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")
