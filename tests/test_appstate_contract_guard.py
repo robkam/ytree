@@ -9591,12 +9591,19 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     helper_validation = (
         'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'
     )
+    compat_helper_start = focus_helper.index("static BOOL CommitCompatibilityFocusedWindow(")
+    compat_helper_end = focus_helper.index(
+        "\nViewFocus AppStateResolveActivePanelFocus(", compat_helper_start
+    )
+    compat_helper_body = focus_helper[compat_helper_start:compat_helper_end]
+    assert "ctx->focused_window = focus;" in compat_helper_body
+
     commit_start = focus_helper.index("BOOL AppStateCommitPanelFocus(")
     commit_end = focus_helper.index("\nBOOL AppStateCommitPanelFileShape(", commit_start)
     commit_body = focus_helper[commit_start:commit_end]
     assert helper_validation in commit_body
     assert commit_body.index(helper_validation) < commit_body.index(
-        "ctx->focused_window ="
+        "CommitCompatibilityFocusedWindow"
     )
 
     refresh_start = display.index("void RefreshView(")
@@ -9626,12 +9633,17 @@ def test_render_footer_focus_reads_project_from_panel_state() -> None:
         "\nBOOL AppStateCommitVolumeFocusMirror(", helper_start
     )
     helper_body = focus_source[helper_start:helper_end]
+    compat_helper_start = focus_source.index(
+        "static ViewFocus ResolveCompatibilityFocusedWindow("
+    )
+    compat_helper_end = focus_source.index(
+        "\nstatic BOOL CommitCompatibilityFocusedWindow(", compat_helper_start
+    )
+    compat_helper_body = focus_source[compat_helper_start:compat_helper_end]
 
     assert "ctx->active->saved_focus" in helper_body
-    assert "ctx->focused_window" in helper_body
-    assert helper_body.index("ctx->active->saved_focus") < helper_body.index(
-        "ctx->focused_window"
-    )
+    assert "return ResolveCompatibilityFocusedWindow(ctx);" in helper_body
+    assert "ctx->focused_window" in compat_helper_body
 
     for source in [display, error, file_list]:
         assert 'include "ytnova_appstate_focus.h"' in source
@@ -9776,6 +9788,24 @@ def test_focus_mirror_projects_through_helper() -> None:
     mirror_body = focus_source[mirror_start:]
     assert "AppStateResolveActivePanelFocus(ctx)" in mirror_body
     assert "ctx->active->saved_focus" not in mirror_body
+
+
+def test_focused_window_compatibility_stays_in_appstate_focus_helpers() -> None:
+    focus_source = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+    other_sources = [
+        path
+        for path in Path("src").rglob("*.c")
+        if path.as_posix() != "src/ui/appstate_focus.c"
+    ]
+
+    assert "static ViewFocus ResolveCompatibilityFocusedWindow(" in focus_source
+    assert "static BOOL CommitCompatibilityFocusedWindow(" in focus_source
+    assert "return ResolveCompatibilityFocusedWindow(ctx);" in focus_source
+    assert "if (!CommitCompatibilityFocusedWindow(ctx, panel, focus))" in focus_source
+
+    for path in other_sources:
+        source = path.read_text(encoding="utf-8")
+        assert "ctx->focused_window" not in source, path.as_posix()
 
 
 def test_split_file_focus_commits_use_appstate_helper() -> None:
