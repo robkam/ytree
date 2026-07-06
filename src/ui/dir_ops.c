@@ -116,6 +116,7 @@ static void DebugLogPanelState(const char *label, const YtreeNovaPanel *panel) {
 
 static void DebugLogSplitState(const char *label, const ViewContext *ctx) {
   const char *active_side = "?";
+  int focused = -1;
 
   if (!ctx) {
     DEBUG_LOG("SPLIT[%s] <null>", label ? label : "?");
@@ -126,9 +127,10 @@ static void DebugLogSplitState(const char *label, const ViewContext *ctx) {
     active_side = "LEFT";
   else if (ctx->active == ctx->right)
     active_side = "RIGHT";
+  focused = (int)AppStateResolveActivePanelFocus(ctx);
 
   DEBUG_LOG("SPLIT[%s] is_split=%d active=%s focused=%d", label ? label : "?",
-            ctx->is_split_screen, active_side, ctx->focused_window);
+            ctx->is_split_screen, active_side, focused);
   DebugLogPanelState("LEFT", ctx->left);
   DebugLogPanelState("RIGHT", ctx->right);
 }

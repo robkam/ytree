@@ -4,27 +4,25 @@ Date: 2026-07-06
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-key-dispatch-focus-projection
-Active PR: https://github.com/robkam/ytreenova/pull/359 (draft)
+Current branch: appstate-focus-debug-projection
+Active PR: https://github.com/robkam/ytreenova/pull/360 (draft)
 Supersession state: no active stop or pause condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/358 merged at `214b2cc` after green checks.
-- Local `main` and `origin/main` were at `214b2cc` before this branch.
+- PR https://github.com/robkam/ytreenova/pull/359 merged at `d58942b` after green checks.
+- Local `main` and `origin/main` were at `d58942b` before this branch.
 - Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
 
 Current AppState batch:
-- Routes key-dispatch focus decisions in `src/ui/key_engine.c` through `AppStateResolveActivePanelFocus()` instead of direct `ctx->focused_window` reads.
-- Routes file stats-panel focus reads in `src/ui/ctrl_file.c` through the same projection helper so file-versus-directory stats decisions follow panel-local focus state.
-- Extends `tests/test_appstate_contract_guard.py` to require key-dispatch and stats-panel focus reads to use the AppState active-focus projection helper.
-- Bundles the pre-existing tracked `.codex/config.toml` and `docs/ai/WORKFLOW.md` edits into this branch per maintainer instruction.
+- Routes remaining split/directory focus debug reads in `src/ui/dir_ops.c`, `src/ui/split_transition.c`, and `src/ui/panel_anchor.c` through `AppStateResolveActivePanelFocus()` instead of direct `ctx->focused_window` reads.
+- Extends `tests/test_appstate_contract_guard.py` to require those focus debug traces to stay on the AppState active-focus projection helper.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k key_and_stats_focus_reads_project_from_panel_state` failed because `src/ui/key_engine.c` lacked the projection helper include/routing and `src/ui/ctrl_file.c` still read `ctx->focused_window` directly.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'key_and_stats_focus_reads_project_from_panel_state or preview_modal_state_routes_through_appstate_helper or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper or render_footer_focus_reads_project_from_panel_state'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k focus_debug_traces_project_from_panel_state` failed because the debug helpers still logged `ctx->focused_window` directly.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'focus_debug_traces_project_from_panel_state or key_and_stats_focus_reads_project_from_panel_state or preview_modal_state_routes_through_appstate_helper or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper or render_footer_focus_reads_project_from_panel_state'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make clean && make` passed with existing warnings.
 - `git diff --check`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/359 starting from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/360 starting from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.

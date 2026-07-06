@@ -852,6 +852,7 @@ void DebugLogDirLoopState(const char *label, const ViewContext *ctx,
                           int unput_char) {
   char dir_path[PATH_LENGTH + 1];
   const char *active_side = "?";
+  int focused = -1;
 
   dir_path[0] = '\0';
   if (dir_entry) {
@@ -863,12 +864,13 @@ void DebugLogDirLoopState(const char *label, const ViewContext *ctx,
       active_side = "LEFT";
     else if (ctx->active == ctx->right)
       active_side = "RIGHT";
+    focused = (int)AppStateResolveActivePanelFocus(ctx);
   }
 
   DEBUG_LOG("DirLoop[%s] ch=%d action=%d unput=%d active=%s focus=%d "
             "left(d=%d c=%d sf=%d fc=%d) right(d=%d c=%d sf=%d fc=%d) dir='%s'",
             label ? label : "?", ch, (int)action, unput_char, active_side,
-            ctx ? (int)ctx->focused_window : -1,
+            focused,
             (ctx && ctx->left) ? ctx->left->disp_begin_pos : -1,
             (ctx && ctx->left) ? ctx->left->cursor_pos : -1,
             (ctx && ctx->left) ? ctx->left->start_file : -1,
