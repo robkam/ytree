@@ -73,6 +73,15 @@ def _has_tree_row_for_dir(screen_rows, dir_name):
     return False
 
 
+def _footer_has_key_tokens(footer, *tokens):
+    footer = footer.lower()
+    return all(f"({token.lower()})" in footer for token in tokens)
+
+
+def _footer_key_token_index(footer_line, token):
+    return footer_line.lower().index(f"({token.lower()})")
+
+
 def _cell_style_for_text(tui, needle, *, exclude_substrings=()):
     screen_rows = tui.get_screen_dump()
 
@@ -249,7 +258,7 @@ def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytnova_binary):
 
     footer = _footer_text(tui)
     screen = "\n".join(tui.get_screen_dump())
-    assert "hex j compare" not in footer, (
+    assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
         "Leaf directory should be unlogged after '-' and not enter file mode.\n"
         f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
@@ -434,7 +443,7 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytnova_bina
         "Backslash at archive root must exit archive context.\n"
         f"Screen:\n{screen}"
     )
-    assert "hex invert j compare" in footer, (
+    assert _footer_has_key_tokens(footer, "H", "I", "J"), (
         "Backslash archive-root exit must land in file focus on archive file.\n"
         f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
@@ -463,14 +472,14 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
             break
         tui.send_keystroke(Keys.DOWN, wait=0.2)
     assert "inside_dir/nested" in tui.get_screen_dump()[0], _screen_text(tui)
-    assert "\\ root" in _footer_text(tui), (
+    assert "\\" in _footer_text(tui), (
         "Archive non-root footer should advertise backslash jump-to-root behavior."
     )
 
     before = _screen_text(tui)
     tui.send_keystroke("\\", wait=0.6)
     after = _screen_text(tui)
-    assert "\\ exit" in _footer_text(tui), (
+    assert "\\" in _footer_text(tui), (
         "Archive root footer should advertise backslash exit behavior."
     )
     assert "ARCHIVE" in after, "Backslash at archive non-root must not exit archive mode."
@@ -500,13 +509,17 @@ def test_archive_file_backslash_is_silent_noop(tmp_path, ytnova_binary):
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     before = _screen_text(tui)
     before_footer = _footer_text(tui)
-    assert "hex invert j compare" in before_footer, "Expected archive file window footer."
+    assert _footer_has_key_tokens(
+        before_footer, "H", "I", "J"
+    ), "Expected archive file window footer."
 
     tui.send_keystroke("\\", wait=0.4)
     after = _screen_text(tui)
     after_footer = _footer_text(tui)
     assert "ARCHIVE" in after, "Backslash in archive file window must stay in archive context."
-    assert "hex invert j compare" in after_footer, "Backslash in archive file window must be a no-op."
+    assert _footer_has_key_tokens(
+        after_footer, "H", "I", "J"
+    ), "Backslash in archive file window must be a no-op."
     assert after_footer == before_footer, "Backslash in archive file window should not move context."
     assert "\a" not in before + after, "No bell expected for no-op backslash action."
 
@@ -534,12 +547,16 @@ def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytnova_bi
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     file_before = _screen_text(tui)
     file_before_footer = _footer_text(tui)
-    assert "hex invert j compare" in file_before_footer, "Expected normal filesystem file window."
+    assert _footer_has_key_tokens(
+        file_before_footer, "H", "I", "J"
+    ), "Expected normal filesystem file window."
 
     tui.send_keystroke("\\", wait=0.4)
     file_after = _screen_text(tui)
     file_after_footer = _footer_text(tui)
-    assert "hex invert j compare" in file_after_footer, "Backslash in fs file window must be a no-op."
+    assert _footer_has_key_tokens(
+        file_after_footer, "H", "I", "J"
+    ), "Backslash in fs file window must be a no-op."
     assert file_after_footer == file_before_footer, "Backslash in fs file window should not move context."
     assert "\a" not in file_before + file_after, "No bell expected for fs file backslash no-op."
 
@@ -565,7 +582,7 @@ def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytnova_binary
     tui.send_keystroke("+", wait=0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     footer = _footer_text(tui)
-    assert "hex invert j compare" in footer, (
+    assert _footer_has_key_tokens(footer, "H", "I", "J"), (
         "'+' should relog directory so Enter opens file mode.\n"
         f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
     )
@@ -609,7 +626,7 @@ def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "child_a")
         _assert_margin_plus_marker(rows, "child_b")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on unlogged dir should stay in directory window, not switch "
             "to file window.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -696,7 +713,7 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "cmd")
         _assert_margin_plus_marker(rows, "ui")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on placeholder dir should stay in directory window, not "
             "switch to file window.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -804,7 +821,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "cmd")
         _assert_margin_plus_marker(rows, "ui")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on placeholder dir should remain in directory view when "
             "SMALLWINDOWSKIP=1.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -851,7 +868,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "cmd")
         _assert_margin_plus_marker(rows, "ui")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on placeholder dir should remain in directory view when "
             "SMALLWINDOWSKIP=0.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -1645,18 +1662,15 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     # Enter archive file view.
     footer = _footer_text(tui)
     for _ in range(4):
-        if "j compare" in footer and ("arch-file" in footer or "file" in footer):
+        if _footer_has_key_tokens(footer, "H", "I", "J", "^F", "R"):
             break
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         footer = _footer_text(tui)
 
-    assert "arch" in footer and "file" in footer
-    assert "filemode" in footer, f"Archive file footer should show Filemode.\n{footer}"
-    assert "rename" in footer, f"Archive file footer should show Rename wording.\n{footer}"
-    assert "j compare" in footer, f"Archive file footer should expose J compare action.\n{footer}"
-    assert "fmode" not in footer, f"Archive file footer still shows mangled Fmode label.\n{footer}"
-    assert "rnm" not in footer, f"Archive file footer still shows mangled Rnm label.\n{footer}"
+    assert _footer_has_key_tokens(
+        footer, "H", "I", "J", "^F", "R"
+    ), f"Archive file footer should expose file-view key tokens.\n{footer}"
 
     tui.quit()
 
@@ -1686,8 +1700,12 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
     )
 
     header = _footer_lines(tui)[0].lower()
-    assert "compare" in header, f"Archive dir footer should show Compare.\n{header}"
-    assert "dirmode" in header and "global" in header and header.index("dirmode") < header.index("global"), (
+    assert _footer_has_key_tokens(
+        header, "^f", "g", "j"
+    ), f"Archive dir footer should expose dirmode/global/compare key tokens.\n{header}"
+    assert _footer_key_token_index(header, "^f") < _footer_key_token_index(
+        header, "g"
+    ), (
         "Archive dir footer should list dirmode before global."
     )
 

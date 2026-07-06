@@ -39,6 +39,19 @@ static struct stat fdstat;
 #define CANTX(x) ((ctx->viewer.inhex) ? (x * 2) : x)
 #define THECOLOR COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)
 
+static const UICommandStripCommand view_edit_prompt_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "change edit mode", "<TAB>", NULL}};
+static const UICommandStripCommand view_readonly_prompt_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Edit hex", "E", NULL}};
+static const UICommandStripCommand view_navigation_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "NEXT", "RIGHT"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "of line", "HOME", "END"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "line", "DOWN", "UP"}};
+
 static void hex_edit(ViewContext *ctx, char *file_path,
                      const ViewerGeometry *geom);
 static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
@@ -206,15 +219,18 @@ static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
   Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, geom->header_y, 6,
         CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT);
-  PrintOptions(stdscr, geom->message_y, 0,
-               "(Edit file in hexadecimal mode)");
+  Print(stdscr, geom->message_y, 0, "(Edit file in hexadecimal mode)",
+        UI_ROLE_STATIC_TEXT);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->prompt_y, 0,
-               "(Q)uit   (^L) redraw  (<TAB>) change edit mode");
+  UI_RenderCommandStrip(
+      stdscr, geom->prompt_y, 0, view_edit_prompt_commands,
+      sizeof(view_edit_prompt_commands) / sizeof(view_edit_prompt_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->status_y, 0,
-               "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   "
-               "(DOWN)-(UP) line");
+  UI_RenderCommandStrip(
+      stdscr, geom->status_y, 0, view_navigation_commands,
+      sizeof(view_navigation_commands) / sizeof(view_navigation_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
   free(str);
   wnoutrefresh(stdscr);
@@ -237,15 +253,19 @@ static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
   Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, geom->header_y, 6,
         CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT);
-  PrintOptions(stdscr, geom->message_y, 0,
-               "View file in hexadecimal mode");
+  Print(stdscr, geom->message_y, 0, "View file in hexadecimal mode",
+        UI_ROLE_STATIC_TEXT);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->prompt_y, 0,
-               "(Q)uit   (^L) redraw  (E)dit hex");
+  UI_RenderCommandStrip(
+      stdscr, geom->prompt_y, 0, view_readonly_prompt_commands,
+      sizeof(view_readonly_prompt_commands) /
+          sizeof(view_readonly_prompt_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->status_y, 0,
-               "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   "
-               "(DOWN)-(UP) line");
+  UI_RenderCommandStrip(
+      stdscr, geom->status_y, 0, view_navigation_commands,
+      sizeof(view_navigation_commands) / sizeof(view_navigation_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
   free(str);
   wnoutrefresh(stdscr);

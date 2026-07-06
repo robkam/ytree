@@ -19,7 +19,7 @@ If no command line arguments are provided, the current directory will be logged.
 *   **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
 *   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
 *   **-h** *history_file*: Use *history_file* instead of the default `~/.ytnova-hst`.
-*   **--init**: Create missing starter profile and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf` only if they do not already exist. Use `-p` to target a different profile file.
+*   **--init**: Create missing starter profile and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. Use `-p` to target a different profile file.
 *   **-p** *config_file*: Use *config_file* instead of the default `~/.config/ytnova/ytnova.conf`.
 *   **-v**, **-V**, **--version**: Print ytnova version information and exit.
 *   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
@@ -276,7 +276,8 @@ These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
 # CONFIGURATION
 
 ytnova reads its main configuration from `~/.config/ytnova/ytnova.conf` by
-default. The legacy fallback path is `~/.ytnova`. Passing `-p` *config_file*
+default. The home-directory fallback path is `~/.ytnova` when the XDG target
+cannot be used. Passing `-p` *config_file*
 uses that explicit main config path instead.
 
 Use `ytnova --init` to create the preferred main config when it is missing.
@@ -288,7 +289,8 @@ semantic theme with `THEME=classic-blue`; role definitions and file-type palette
 rules live in theme files, not in the main config.
 
 Theme catalogs are plain text. ytnova loads user themes from
-`~/.config/ytnova/themes.conf`, falls back to legacy `~/.ytnova.themes`, then
+`~/.config/ytnova/themes.conf`, falls back to `~/.ytnova.themes` only when the
+XDG target cannot be used, then
 uses the installed packaged catalog or compiled-in defaults without creating a
 user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 The bundled defaults include `classic-blue` and `bash-black`.

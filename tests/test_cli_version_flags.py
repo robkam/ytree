@@ -63,3 +63,21 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     assert not (home / ".config" / "ytnova" / "ytnova.conf").exists()
     assert "Created profile:" in result.stdout
     assert "THEME=classic-blue" in profile.read_text(encoding="utf-8")
+
+
+def test_init_falls_back_to_home_targets_when_xdg_dir_is_unavailable(
+    ytnova_binary, tmp_path
+):
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".config").write_text("blocked\n", encoding="utf-8")
+
+    profile = home / ".ytnova"
+    themes = home / ".ytnova.themes"
+
+    result = _run_cmd(ytnova_binary, ["--init"], home=home)
+    assert result.returncode == 0
+    assert profile.exists()
+    assert themes.exists()
+    assert "Created profile:" in result.stdout
+    assert "Created themes:" in result.stdout

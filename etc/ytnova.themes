@@ -1,7 +1,8 @@
 # YtreeNova semantic themes.
 #
 # Copy this file to ~/.config/ytnova/themes.conf for user-specific themes.
-# The legacy fallback path is ~/.ytnova.themes.
+# The home-directory fallback path is ~/.ytnova.themes when the XDG target
+# cannot be used.
 #
 # Role syntax:
 #   foreground

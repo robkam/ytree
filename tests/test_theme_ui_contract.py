@@ -227,17 +227,64 @@ def test_help_surfaces_use_help_role():
     assert '{"help", UI_ROLE_HELP, 7, 0}' in color_source
     assert '"help"' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_HELP)" in init_source
-    assert "lo_color = UI_ROLE_HELP;" in display_source
-    assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0," in display_source
-    assert "dir_help[ctx->view_mode][i]," in display_source
-    assert "file_help[ctx->view_mode][i]," in display_source
-    assert "UI_ROLE_HELP, UI_ROLE_KEYBIND" in display_source
+    assert "UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width," in display_source
+    assert "static const UICommandStripCommand dir_help_disk_mode_0_commands[]" in (
+        display_source
+    )
+    assert "static const UICommandStripCommand file_help_disk_mode_0_commands[]" in (
+        display_source
+    )
+    assert "static const UICommandStripCommand history_help_commands[]" in display_source
+    assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, dir_help" not in display_source
+    assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, file_help" not in display_source
+    assert 'GetProfileValue)(ctx, "DIR1")' not in display_source
+    assert 'GetProfileValue)(ctx, "DIR2")' not in display_source
+    assert 'GetProfileValue)(ctx, "FILE1")' not in display_source
+    assert 'GetProfileValue)(ctx, "FILE2")' not in display_source
     assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
-    assert '(char *)"History   (P)in/unpin' in display_source
+    assert '(char *)"History   (P)in/unpin' not in display_source
+    assert "Updated:" not in display_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in compare_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
+
+
+def test_task_sixty_touched_surfaces_use_structured_command_strips():
+    compare_source = _read("src/ui/compare_request.c")
+    display_source = _read("src/ui/display.c")
+    input_line_source = _read("src/ui/input_line.c")
+    tagged_source = _read("src/ui/tagged_view.c")
+    internal_view_source = _read("src/ui/view_internal.c")
+
+    assert "static const HelpCommandStrip dir_help_nav_builtin[]" in display_source
+    assert "static const HelpCommandStrip file_help_nav_builtin[]" in display_source
+    assert "static const UICommandStripCommand compare_status_commands[]" in compare_source
+    assert "static const UICommandStripCommand compare_basis_commands[]" in compare_source
+    assert "static const UICommandStripCommand compare_tag_result_commands[]" in compare_source
+    assert "static const UICommandStripCommand compare_scope_commands[]" in compare_source
+    assert "static const UICommandStripCommand compare_external_scope_commands[]" in compare_source
+    assert "static const UICommandStripCommand compare_help_close_commands[]" in compare_source
+    assert "static const UICommandStripCommand read_string_path_hint_commands[]" in input_line_source
+    assert "static const UICommandStripCommand read_string_history_hint_commands[]" in input_line_source
+    assert "UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, prompt_x," in compare_source
+    assert "UI_RenderCommandStrip(" in tagged_source
+    assert "tagged_view_message_commands" in tagged_source
+    assert "tagged_view_prompt_commands" in tagged_source
+    assert "view_edit_prompt_commands" in internal_view_source
+    assert "view_readonly_prompt_commands" in internal_view_source
+    assert "view_navigation_commands" in internal_view_source
+    assert "DisplayBuiltInHelpLine(ctx, 2, nav_strip);" in display_source
+    assert "PrintMenuOptions(ctx->ctx_border_window, ctx->layout.status_y, 1," not in compare_source
+    assert '"Tree  (F1) help' not in display_source
+    assert '"Dir   (F1) help' not in display_source
+    assert '"(F1)/(Esc) close help"' not in compare_source
+    assert '"(F2) browse  (Up) history  (Enter) OK  (Esc) cancel"' not in input_line_source
+    assert '"(Up) history  (Enter) OK  (Esc) cancel"' not in input_line_source
+    assert "PrintOptions(stdscr, ctx->layout.message_y, 0," not in tagged_source
+    assert "PrintOptions(stdscr, ctx->layout.prompt_y, 0," not in tagged_source
+    assert "PrintOptions(stdscr, geom->prompt_y, 0," not in internal_view_source
+    assert "PrintOptions(stdscr, geom->status_y, 0," not in internal_view_source
 
 
 def test_picker_surfaces_use_picker_and_selection_roles():
@@ -450,7 +497,7 @@ def test_theme_docs_capture_role_routing_invariants():
     assert "startup and F10 reload commit paths" in arch_source
 
 
-def test_theme_editor_uses_preferred_path_with_legacy_fallback():
+def test_theme_editor_prefers_xdg_and_uses_home_fallback_only_when_needed():
     defs_source = _read("include/ytnova_defs.h")
     source = _read("src/ui/ui_edit_config.c")
     theme_source = _read("src/cmd/theme.c")
@@ -462,12 +509,10 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert '#define THEME_FILENAME ".ytnova.themes"' in defs_source
     assert "THEME_CONFIG_HOME_PATH" in theme_source
     assert "THEME_FILENAME" in theme_source
-    assert "char legacy_path[PATH_LENGTH + 1];" in source
-    assert "access(themes_path, F_OK) != 0" in source
-    assert "access(legacy_path, F_OK) == 0" in source
+    assert "EnsureConfigHomeDirectory(home) == 0" in source
     assert "THEME_CONFIG_HOME_PATH" in source
     assert "THEME_FILENAME" in source
-    assert 'snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);' not in source
+    assert 'snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);' in source
     assert "Can't resolve themes file path" in source
     assert "EnsureConfigStarterFiles(ctx, profile_path, themes_path)" in source
     assert "default_theme_catalog" in source
@@ -479,6 +524,17 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert '"etc/ytnova.themes"' not in theme_source
     assert '"etc/ytnova.themes"' not in source
     assert "[theme classic-blue]" in default_theme_source
+
+
+def test_f10_config_and_reload_do_not_require_theme_path_resolution():
+    source = _read("src/ui/ui_edit_config.c")
+    ui_open = source[source.index("void UI_OpenConfigProfile(") :]
+    pre_switch = ui_open[: ui_open.index("switch (term) {")]
+    theme_case = ui_open[ui_open.index("case 'T':") : ui_open.index("case 'R':")]
+
+    assert "ResolveThemesPath(themes_path, sizeof(themes_path))" not in pre_switch
+    assert "ResolveThemesPath(themes_path, sizeof(themes_path))" in theme_case
+    assert 'MESSAGE(ctx, "Can\'t resolve themes file path")' in theme_case
 
 
 def test_f10_surface_uses_required_command_strip_and_enter_default():

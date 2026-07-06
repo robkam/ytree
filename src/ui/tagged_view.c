@@ -16,6 +16,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+static const UICommandStripCommand tagged_view_message_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "next page/file", "Space", "PgDn"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "prev page", "PgUp", NULL}};
+static const UICommandStripCommand tagged_view_prompt_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Next file", "N", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Prev file (wrap)", "P", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "line", "Up", "Down"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "of line", "Home", "End"}};
+
 static BOOL CopyBoundedStringChecked(char *dst, size_t dst_size,
                                      const char *src) {
   int written;
@@ -172,11 +182,16 @@ static void DrawTaggedViewHeader(ViewContext *ctx, const char *display_path,
   Print(stdscr, ctx->layout.header_y, 6,
         CutPathname(clipped_header, header_buf, available), UI_ROLE_DYNAMIC_TEXT);
 
-  PrintOptions(stdscr, ctx->layout.message_y, 0,
-               "(Q)uit  (Space/PgDn) next page/file  (PgUp) prev page");
-  PrintOptions(stdscr, ctx->layout.prompt_y, 0,
-               "(N)ext file  (P)rev file (wrap)  (Up/Down) line  (Home/End)");
-  PrintOptions(stdscr, ctx->layout.status_y, 0, "View tagged files");
+  UI_RenderCommandStrip(
+      stdscr, ctx->layout.message_y, 0, tagged_view_message_commands,
+      sizeof(tagged_view_message_commands) / sizeof(tagged_view_message_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  UI_RenderCommandStrip(
+      stdscr, ctx->layout.prompt_y, 0, tagged_view_prompt_commands,
+      sizeof(tagged_view_prompt_commands) / sizeof(tagged_view_prompt_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  Print(stdscr, ctx->layout.status_y, 0, "View tagged files",
+        UI_ROLE_STATIC_TEXT);
 
 #ifdef COLOR_SUPPORT
   wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));

@@ -2239,6 +2239,8 @@ static void SigIntHandler(int sig) {
   ytnova_shutdown_flag = 1;
 }
 
+static int EnsureDefaultProfileDirectory(void);
+
 static int GetDefaultProfilePath(char *path, size_t path_size) {
   const char *home = getenv("HOME");
   int written;
@@ -2246,11 +2248,17 @@ static int GetDefaultProfilePath(char *path, size_t path_size) {
   if (!path || path_size == 0 || !home || !*home)
     return -1;
 
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_CONFIG_HOME_PATH);
-  if (written < 0 || (size_t)written >= path_size) {
-    return -1;
+  if (EnsureDefaultProfileDirectory() == 0) {
+    written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                       PROFILE_CONFIG_HOME_PATH);
+    if (written >= 0 && (size_t)written < path_size)
+      return 0;
   }
+
+  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                     PROFILE_FILENAME);
+  if (written < 0 || (size_t)written >= path_size)
+    return -1;
   return 0;
 }
 
@@ -2261,11 +2269,17 @@ static int GetDefaultThemePath(char *path, size_t path_size) {
   if (!path || path_size == 0 || !home || !*home)
     return -1;
 
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     THEME_CONFIG_HOME_PATH);
-  if (written < 0 || (size_t)written >= path_size) {
-    return -1;
+  if (EnsureDefaultProfileDirectory() == 0) {
+    written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                       THEME_CONFIG_HOME_PATH);
+    if (written >= 0 && (size_t)written < path_size)
+      return 0;
   }
+
+  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                     THEME_FILENAME);
+  if (written < 0 || (size_t)written >= path_size)
+    return -1;
   return 0;
 }
 
@@ -2463,10 +2477,6 @@ int main(int argc, char **argv) {
                             sizeof(init_theme_path_buffer)) != 0) {
       fprintf(stderr,
               "Cannot resolve target themes path. Set HOME before --init.\n");
-      exit(1);
-    }
-    if (EnsureDefaultProfileDirectory() != 0) {
-      fprintf(stderr, "Cannot create target config directory under HOME.\n");
       exit(1);
     }
 

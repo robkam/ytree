@@ -26,10 +26,8 @@ def test_compare_help_popup_uses_help_palette():
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));" in popup_block
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
-    assert (
-        "PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, UI_ROLE_HELP,"
-        in popup_block
-    )
+    assert "UI_RenderCommandStrip(win, height - 2, 2, compare_help_close_commands," in popup_block
+    assert "UI_ROLE_HELP, UI_ROLE_KEYBIND);" in popup_block
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in popup_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in popup_block
 
@@ -41,7 +39,8 @@ def test_prompt_uses_dialog_and_volume_uses_picker_palette():
         "static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,",
     )
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DIALOG));" in input_block
-    assert "PrintMenuOptions(win, hints_row, 1, (char *)hints, UI_ROLE_DIALOG," in input_block
+    assert "UI_RenderCommandStrip(win, hints_row, 1, hints, hint_count," in input_block
+    assert "UI_ROLE_DIALOG, UI_ROLE_KEYBIND);" in input_block
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in input_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in input_block
 

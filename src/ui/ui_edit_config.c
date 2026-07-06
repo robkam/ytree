@@ -119,6 +119,11 @@ static int EnsureConfigStarterFiles(ViewContext *ctx, const char *profile_path,
   return 0;
 }
 
+static int EnsureConfigStarterFile(ViewContext *ctx, const char *profile_path) {
+  int result = WriteStarterFile(ctx, profile_path, default_profile_template, "config");
+  return result < 0 ? -1 : 0;
+}
+
 static int ApplyRefreshMode(ViewContext *ctx, DirEntry *dir_entry,
                             int refresh_mode) {
   int old_refresh_mode;
@@ -245,26 +250,25 @@ static void ResolveProfilePath(const ViewContext *ctx, char *profile_path,
   home = getenv("HOME");
   if (home && *home) {
     int written;
-    char legacy_path[PATH_LENGTH + 1];
+
+    if (EnsureConfigHomeDirectory(home) == 0) {
+      written = snprintf(profile_path, profile_path_size, "%s/%s", home,
+                         PROFILE_CONFIG_HOME_PATH);
+      if (written >= 0 && written < (int)profile_path_size)
+        return;
+    }
 
     written = snprintf(profile_path, profile_path_size, "%s/%s", home,
-                       PROFILE_CONFIG_HOME_PATH);
+                       PROFILE_FILENAME);
+    if (written >= 0 && written < (int)profile_path_size)
+      return;
+  }
+  if (!profile_path[0]) {
+    int written =
+        snprintf(profile_path, profile_path_size, "%s", PROFILE_FILENAME);
     if (written < 0 || written >= (int)profile_path_size)
       profile_path[0] = '\0';
-
-    written =
-        snprintf(legacy_path, sizeof(legacy_path), "%s/%s", home,
-                 PROFILE_FILENAME);
-    if (written >= 0 && written < (int)sizeof(legacy_path) &&
-        profile_path[0] != '\0' && access(profile_path, F_OK) != 0 &&
-        access(legacy_path, F_OK) == 0) {
-      (void)snprintf(profile_path, profile_path_size, "%s", legacy_path);
-    } else if (profile_path[0] != '\0') {
-      (void)EnsureConfigHomeDirectory(home);
-    }
   }
-  if (!profile_path[0])
-    (void)snprintf(profile_path, profile_path_size, "%s", PROFILE_FILENAME);
 }
 
 static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
@@ -276,28 +280,28 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
   themes_path[0] = '\0';
   home = getenv("HOME");
   if (home && *home) {
-    char legacy_path[PATH_LENGTH + 1];
     int written;
 
-    written = snprintf(themes_path, themes_path_size, "%s/%s", home,
-                       THEME_CONFIG_HOME_PATH);
-    if (written < 0 || written >= (int)themes_path_size)
-      themes_path[0] = '\0';
-
-    written =
-        snprintf(legacy_path, sizeof(legacy_path), "%s/%s", home,
-                 THEME_FILENAME);
-    if (written >= 0 && written < (int)sizeof(legacy_path) &&
-        themes_path[0] != '\0' && access(themes_path, F_OK) != 0 &&
-        access(legacy_path, F_OK) == 0) {
-      (void)snprintf(themes_path, themes_path_size, "%s", legacy_path);
-    } else if (themes_path[0] != '\0' &&
-               EnsureConfigHomeDirectory(home) != 0) {
-      themes_path[0] = '\0';
+    if (EnsureConfigHomeDirectory(home) == 0) {
+      written = snprintf(themes_path, themes_path_size, "%s/%s", home,
+                         THEME_CONFIG_HOME_PATH);
+      if (written >= 0 && written < (int)themes_path_size)
+        return 0;
     }
+
+    written = snprintf(themes_path, themes_path_size, "%s/%s", home,
+                       THEME_FILENAME);
+    if (written >= 0 && written < (int)themes_path_size)
+      return 0;
   }
 
-  return themes_path[0] ? 0 : -1;
+  {
+    int written = snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);
+
+    if (written >= 0 && written < (int)themes_path_size)
+      return 0;
+  }
+  return -1;
 }
 
 static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
@@ -417,14 +421,9 @@ static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry,
 
 void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   char profile_path[PATH_LENGTH + 1];
-  char themes_path[PATH_LENGTH + 1];
   int term;
 
   ResolveProfilePath(ctx, profile_path, sizeof(profile_path));
-  if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
-    MESSAGE(ctx, "Can't resolve themes file path");
-    return;
-  }
 
   term = InputChoiceCommandStrip(
       ctx, config_command_strip,
@@ -435,14 +434,22 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   case CR:
   case LF:
   case 'C':
-    if (EnsureConfigStarterFiles(ctx, profile_path, themes_path) != 0)
+    if (EnsureConfigStarterFile(ctx, profile_path) != 0)
       break;
     EditConfigProfile(ctx, dir_entry, profile_path);
     break;
   case 'T':
+    {
+      char themes_path[PATH_LENGTH + 1];
+
+      if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
+        MESSAGE(ctx, "Can't resolve themes file path");
+        break;
+      }
     if (EnsureConfigStarterFiles(ctx, profile_path, themes_path) != 0)
       break;
     EditThemesFile(ctx, dir_entry, themes_path);
+    }
     break;
   case 'R':
     ReloadConfigAndTheme(ctx, dir_entry, profile_path);

@@ -245,7 +245,7 @@ Compatibility shims are retired from the current AppState contract. Any legacy m
 
 ## 6. Visual and Rendering Standards
 *   **Terminal Integrity:** UI updates are staged using `wnoutrefresh()` and committed atomically via `doupdate()` to prevent visual artifacts.
-*   **Theme Configuration Boundary:** Runtime theme selection is read from the main profile, but role definitions and file-type palettes live in separate theme files. Packaged defaults are `etc/ytnova.conf` and `etc/ytnova.themes`; user discovery prefers XDG paths and then legacy fallbacks.
+*   **Theme Configuration Boundary:** Runtime theme selection is read from the main profile, but role definitions and file-type palettes live in separate theme files. Packaged defaults are `etc/ytnova.conf` and `etc/ytnova.themes`; user discovery prefers XDG paths and falls back to home-directory dotfiles only when the XDG targets cannot be used.
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) are used only for horizontal boundary lines. Vertical separators must remain clean.
 *   **Tree State Rendering Contract:** Unlogged state is rendered in the dedicated tree status-margin column; directory names do not carry a `+` suffix, while `/` may still be shown when the directory has subdirectories.
 *   **Micro-Consistency:** Mode flags must be synchronized with the layout before any redraw.

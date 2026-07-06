@@ -312,7 +312,9 @@ extern int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel,
                          int history_type);
 extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
-                                 int history_type, const char *hints_override,
+                                 int history_type,
+                                 const UICommandStripCommand *hints_override,
+                                 size_t hints_override_count,
                                  int (*help_callback)(ViewContext *, void *),
                                  void *help_data);
 

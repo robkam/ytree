@@ -380,7 +380,7 @@ Themes are plain-text user-editable files separate from the main configuration. 
 ### 7.1 Theme Files and Discovery
 *   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
 *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
-*   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
+*   Home-directory fallback user paths are `~/.ytnova` and `~/.ytnova.themes` when the XDG target paths cannot be used.
 *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
 *   Built-in theme names include `classic-blue` and `bash-black`.
 *   User-facing theme files use semantic role names only.
