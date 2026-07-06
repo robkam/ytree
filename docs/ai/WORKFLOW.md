@@ -170,16 +170,13 @@ Principle: keep team-shared defaults in repo config and keep user-specific paths
 
 ##### 3.1.0.2 Periodic Codex/AI Tooling Refresh (Recommended)
 
-If you use the Codex/AI workflow, run this checklist periodically from the repository root:
+If you use the Codex/AI workflow, run this update checklist periodically from the repository root:
 
 ```bash
-# Tether (pull + reinstall)
-./scripts/tether-update.sh
-
 # uvx-managed tools: force fresh resolve + latest
 uvx --refresh codex-lb@latest --help
 uvx --refresh --from git+https://github.com/oraios/serena@main serena --help
-uvx --refresh jcodemunch-mcp@latest --help
+uvx --refresh --from git+https://github.com/jgravelle/jcodemunch-mcp.git jcodemunch-mcp --help
 
 # GitHub MCP Docker image (only if you use that MCP server)
 docker pull ghcr.io/github/github-mcp-server:latest
@@ -189,7 +186,7 @@ make mcp-doctor
 # If drift/missing config is reported:
 make mcp-doctor FIX=1
 
-# Optional: refresh pinned helper-script requirements
+cd ~/ytreenova
 source .venv/bin/activate
 pip-compile --upgrade -o scripts/requirements.txt scripts/requirements.in
 ```

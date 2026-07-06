@@ -8,6 +8,7 @@
 
 #include "watcher.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_render.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
@@ -409,8 +410,9 @@ static const DirEntry *GetActiveFileDirEntry(const ViewContext *ctx) {
 
 static BOOL IsGlobalAllVolumesFileView(const ViewContext *ctx) {
   const DirEntry *file_dir_entry = GetActiveFileDirEntry(ctx);
+  ViewFocus active_focus = AppStateResolveActivePanelFocus(ctx);
 
-  if (!ctx || ctx->focused_window != FOCUS_FILE || !file_dir_entry)
+  if (!ctx || active_focus != FOCUS_FILE || !file_dir_entry)
     return FALSE;
 
   return (file_dir_entry->global_flag && file_dir_entry->global_all_volumes)
@@ -426,6 +428,7 @@ int NormalizeViKey(const ViewContext *ctx, int ch) {
 
 YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   BOOL vi_keys_enabled = IsViKeysEnabled(ctx);
+  ViewFocus active_focus = AppStateResolveActivePanelFocus(ctx);
   if (!AppStateValidatedDispatchSurface("surface.key-decode-input-dispatch"))
     return ACTION_NONE;
 
@@ -492,7 +495,7 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
     /* In vi-key mode, Ctrl-U is reserved for page-up navigation.
      * Use uppercase U as the file-window "untag all" command key.
      */
-    if (vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
+    if (vi_keys_enabled && ctx && active_focus == FOCUS_FILE)
       return AppStateValidatedKeyAction(ACTION_UNTAG_ALL);
     return AppStateValidatedKeyAction(ACTION_UNTAG);
   case 0x14: /* Ctrl+T */
@@ -538,7 +541,7 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
     /* In vi-key mode, Ctrl-D is reserved for page-down navigation.
      * Use uppercase D as the file-window "delete tagged" command key.
      */
-    if (vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
+    if (vi_keys_enabled && ctx && active_focus == FOCUS_FILE)
       return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_D);
     return AppStateValidatedKeyAction(ACTION_CMD_D);
   case KEY_DC:
@@ -646,17 +649,17 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
 
   case 'j':
     if (!vi_keys_enabled && ctx) {
-      if (ctx->focused_window == FOCUS_TREE)
+      if (active_focus == FOCUS_TREE)
         return AppStateValidatedKeyAction(ACTION_COMPARE_DIR);
-      if (ctx->focused_window == FOCUS_FILE)
+      if (active_focus == FOCUS_FILE)
         return AppStateValidatedKeyAction(ACTION_COMPARE_FILE);
     }
     return AppStateValidatedKeyAction(ACTION_NONE);
   case 'J':
     if (ctx) {
-      if (ctx->focused_window == FOCUS_TREE)
+      if (active_focus == FOCUS_TREE)
         return AppStateValidatedKeyAction(ACTION_COMPARE_DIR);
-      if (ctx->focused_window == FOCUS_FILE)
+      if (active_focus == FOCUS_FILE)
         return AppStateValidatedKeyAction(ACTION_COMPARE_FILE);
     }
     return AppStateValidatedKeyAction(ACTION_NONE);

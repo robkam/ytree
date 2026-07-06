@@ -9638,6 +9638,29 @@ def test_render_footer_focus_reads_project_from_panel_state() -> None:
         assert "ctx->focused_window" not in source
 
 
+def test_key_and_stats_focus_reads_project_from_panel_state() -> None:
+    key_engine = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_focus.h"' in key_engine
+    assert "AppStateResolveActivePanelFocus(ctx)" in key_engine
+    key_action_start = key_engine.index("YtreeNovaAction GetKeyAction(")
+    key_action_end = key_engine.index("\nint WGetch(", key_action_start)
+    key_action_body = key_engine[key_action_start:key_action_end]
+    assert "ViewFocus active_focus = AppStateResolveActivePanelFocus(ctx);" in (
+        key_action_body
+    )
+    assert "ctx->focused_window" not in key_action_body
+
+    stats_start = ctrl_file.index("void UpdateStatsPanel(")
+    stats_end = ctrl_file.index("\nint ChangeFileOwner(", stats_start)
+    stats_body = ctrl_file[stats_start:stats_end]
+    assert "ViewFocus active_focus;" in stats_body
+    assert "active_focus = AppStateResolveActivePanelFocus(ctx);" in stats_body
+    assert "active_focus == FOCUS_FILE" in stats_body
+    assert "ctx->focused_window" not in stats_body
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")
