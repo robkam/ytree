@@ -9574,7 +9574,8 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert focus_validation in file_body
     assert not re.search(r"\bctx->focused_window\s*=[^=]", ctrl_file)
     assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in file_body
-    assert "if (ctx->active->saved_focus != FOCUS_FILE) {" in file_body
+    assert "if (AppStateResolveActivePanelFocus(ctx) != FOCUS_FILE) {" in file_body
+    assert "ctx->active->saved_focus != FOCUS_FILE" not in file_body
     assert "if (ctx->focused_window != FOCUS_FILE) {" not in file_body
 
     assert not re.search(r"\bctx->focused_window\s*=[^=]", dir_ops)
@@ -9697,6 +9698,53 @@ def test_focus_debug_traces_project_from_panel_state() -> None:
     panel_trace_body = panel_anchor[panel_trace_start:]
     assert "AppStateResolveActivePanelFocus(ctx)" in panel_trace_body
     assert "ctx->focused_window" not in panel_trace_body
+
+
+def test_active_panel_focus_decisions_project_from_helper() -> None:
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    display = Path("src/ui/display.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+
+    for source in [ctrl_dir, ctrl_file, dir_ops, display, split_transition]:
+        assert 'include "ytnova_appstate_focus.h"' in source
+
+    dir_start = ctrl_dir.index("extern int HandleDirWindow(")
+    dir_body = ctrl_dir[dir_start:]
+    assert "AppStateResolveActivePanelFocus(ctx)" in dir_body
+    assert "ctx->active->saved_focus" not in dir_body
+
+    file_start = ctrl_file.index("int HandleFileWindow(")
+    file_body = ctrl_file[file_start:]
+    assert "AppStateResolveActivePanelFocus(ctx)" in file_body
+    assert "ctx->active->saved_focus" not in file_body
+
+    switch_start = dir_ops.index("HandleDirWindowEnterAction(")
+    switch_end = dir_ops.index(
+        "\nDirWindowDispatchResult\nHandleDirWindowVolumeAction(", switch_start
+    )
+    switch_body = dir_ops[switch_start:switch_end]
+    assert "AppStateResolveActivePanelFocus(ctx)" in switch_body
+    assert "ctx->active->saved_focus" not in switch_body
+
+    mode_start = display.index("static BOOL IsActivePanelBigFileMode(")
+    mode_end = display.index("\nstatic BOOL IsPanelSavedBigFileMode(", mode_start)
+    mode_body = display[mode_start:mode_end]
+    assert "AppStateResolveActivePanelFocus(ctx)" in mode_body
+    assert "ctx->active->saved_focus" not in mode_body
+
+    split_file_start = split_transition.index(
+        "BOOL SplitTransition_HandleFileWindowAction("
+    )
+    split_dir_start = split_transition.index(
+        "\nBOOL SplitTransition_HandleDirWindowAction(", split_file_start
+    )
+    split_file_body = split_transition[split_file_start:split_dir_start]
+    assert "AppStateResolveActivePanelFocus(ctx)" in split_file_body
+    assert "ctx->active->saved_focus" not in split_file_body
 
 
 def test_split_file_focus_commits_use_appstate_helper() -> None:

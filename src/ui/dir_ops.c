@@ -1779,7 +1779,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
   *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
-  if (ctx->active->saved_focus == FOCUS_FILE &&
+  if (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE &&
       ctx->active->file_selection_dir_path[0] != '\0') {
     RestorePanelAnchorPath(ctx->active->vol, ctx->active,
                            ctx->active->file_selection_dir_path);
