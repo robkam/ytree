@@ -4,23 +4,23 @@ Date: 2026-07-06
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-render-focus-projection-helper
-Active PR: https://github.com/robkam/ytreenova/pull/357 (draft)
+Current branch: appstate-layout-focus-projection-helper
+Active PR: https://github.com/robkam/ytreenova/pull/358 (draft)
 Supersession state: no active stop or pause condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/354 merged before this continuation resumed.
-- Local `main` and `origin/main` were at `64c3328` before this branch.
+- PR https://github.com/robkam/ytreenova/pull/357 merged at `e1fed12` after green checks.
+- Local `main` and `origin/main` were at `e1fed12` before this branch.
 - Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
 
 Current AppState batch:
-- Adds `AppStateResolveActivePanelFocus()` in `src/ui/appstate_focus.c` and `include/ytnova_appstate_focus.h` so render/footer call sites prefer panel-local `saved_focus` before the legacy `ctx->focused_window` mirror.
-- Routes render/footer focus reads in `src/ui/display.c`, `src/ui/error.c`, and `src/ui/file_list.c` through the projection helper to narrow direct session-mirror reads inside projection-only paths.
-- Extends `tests/test_appstate_contract_guard.py` to lock the new projection helper contract and keep render/footer paths free of raw `ctx->focused_window` reads.
+- Routes preview-return focus capture in `src/ui/ctrl_file_ops.c` and `src/ui/dir_ops.c` through `AppStateResolveActivePanelFocus()` instead of the legacy `ctx->focused_window` mirror.
+- Routes split-layout preserved-focus handoffs in `src/ui/split_transition.c` through the same projection helper so panel-state focus stays authoritative during split open/close routing.
+- Extends `tests/test_appstate_contract_guard.py` to require preview and split layout focus reads to use the AppState active-focus projection helper.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k render_footer_focus_reads_project_from_panel_state` failed because the helper declaration/implementation and render/footer call-site routing did not exist.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'render_footer_focus_reads_project_from_panel_state or compatibility_shim_boundaries_fail_closed_before_legacy_writes or refresh_view_render_reflow_projection_fails_closed_before_render_work'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'preview_modal_state_routes_through_appstate_helper or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper'` failed because preview-return and split preserved-focus reads still referenced `ctx->focused_window` directly.
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'preview_modal_state_routes_through_appstate_helper or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper or render_footer_focus_reads_project_from_panel_state'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make clean && make` passed with existing warnings.
 - `git diff --check`
@@ -29,4 +29,4 @@ Local notes:
 - Pre-existing unrelated working-tree changes remain in `.codex/config.toml` and `docs/ai/WORKFLOW.md`; this batch did not modify them.
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/357 starting from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/358 starting from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.

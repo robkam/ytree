@@ -279,7 +279,7 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
 
     {
       BOOL closing_split = ctx->is_split_screen;
-      ViewFocus preserved_focus = ctx->focused_window;
+      ViewFocus preserved_focus = AppStateResolveActivePanelFocus(ctx);
       BOOL donate_active_state =
           closing_split && ctx->active == ctx->right && ctx->left &&
           ctx->right && preserved_focus == FOCUS_FILE;
@@ -499,7 +499,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
           ctx->right ? ctx->right->panel_generation : 0U;
       char left_file_selection_name[PATH_LENGTH + 1];
       char left_file_selection_dir_path[PATH_LENGTH + 1];
-      ViewFocus preserved_focus = ctx->focused_window;
+      ViewFocus preserved_focus = AppStateResolveActivePanelFocus(ctx);
 
       left_file_selection_name[0] = '\0';
       left_file_selection_dir_path[0] = '\0';
@@ -692,7 +692,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         return TRUE;
       }
       *need_dsp_help_ptr = TRUE;
-      if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
+      if (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE && *dir_entry_ptr &&
           PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
         *unput_char_ptr = CR;
       }
@@ -766,7 +766,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       return TRUE;
     }
     *need_dsp_help_ptr = TRUE;
-    if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
+    if (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE && *dir_entry_ptr &&
         PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
       *unput_char_ptr = CR;
     }

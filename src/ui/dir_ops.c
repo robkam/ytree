@@ -1573,7 +1573,8 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeNovaAction action,
   case ACTION_VIEW_PREVIEW: {
     const YtreeNovaPanel *saved_panel = ctx->active;
 
-    if (!AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window))
+    if (!AppStateCommitPreviewReturn(ctx, ctx->active,
+                                     AppStateResolveActivePanelFocus(ctx)))
       return DIR_WINDOW_DISPATCH_RETURN_ESC;
     if (!AppStateCommitPreviewMode(ctx, TRUE))
       return DIR_WINDOW_DISPATCH_RETURN_ESC;

@@ -283,7 +283,8 @@ BOOL handle_file_window_preview_action(
   switch (action) {
   case ACTION_VIEW_PREVIEW:
     if (!ctx->preview_mode) {
-      if (!AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window))
+      if (!AppStateCommitPreviewReturn(ctx, ctx->active,
+                                       AppStateResolveActivePanelFocus(ctx)))
         return FALSE;
     }
 
