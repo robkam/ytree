@@ -111,7 +111,7 @@ def test_render_surfaces_consume_semantic_role_aliases():
     assert offenders == []
 
 
-def test_startup_initializes_loaded_theme_before_recreating_windows():
+def test_startup_recreates_windows_once_after_theme_load():
     source = _read("src/core/init.c")
     load_done = source.index('DEBUG_LOG("Init: LoadTheme done")')
     reinit_done = source.index('DEBUG_LOG("Init: ReinitColorPairs done")')
@@ -119,6 +119,7 @@ def test_startup_initializes_loaded_theme_before_recreating_windows():
         'DEBUG_LOG("Init: ReCreateWindows after theme done")'
     )
 
+    assert source.count("ReCreateWindows(ctx);") == 1
     assert load_done < reinit_done < recreate_after_theme
     assert "CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
         source[load_done:recreate_after_theme]

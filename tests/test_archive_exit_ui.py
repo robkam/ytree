@@ -1123,23 +1123,23 @@ def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
         tui.quit()
 
 
-def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_binary):
-    root = tmp_path / "missing_profile_f10_no_save"
+def test_missing_profile_f10_unchanged_edit_creates_profile(tmp_path, ytnova_binary):
+    root = tmp_path / "missing_profile_f10_unchanged_edit"
     root.mkdir()
     target = root / "target"
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
 
     editor_capture = root / "f10_default_buffer_snapshot.txt"
-    noop_editor = root / "noop_profile_editor.sh"
-    noop_editor.write_text(
+    unchanged_editor = root / "unchanged_profile_editor.sh"
+    unchanged_editor.write_text(
         "#!/bin/sh\n"
         "f=\"$1\"\n"
         f"cp \"$f\" \"{editor_capture}\"\n"
         "exit 0\n",
         encoding="utf-8",
     )
-    noop_editor.chmod(0o755)
+    unchanged_editor.chmod(0o755)
 
     profile_path = root / ".config" / "ytnova" / "ytnova.conf"
     assert not profile_path.exists()
@@ -1147,7 +1147,7 @@ def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_bi
     tui = YtreeNovaTUI(
         executable=ytnova_binary,
         cwd=str(root),
-        env_extra={"EDITOR": str(noop_editor)},
+        env_extra={"EDITOR": str(unchanged_editor)},
     )
     time.sleep(0.8)
 
@@ -1166,8 +1166,70 @@ def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_bi
         assert "[GLOBAL]" in editor_capture.read_text(encoding="utf-8"), (
             "Default profile buffer should include [GLOBAL] section header."
         )
-        assert not profile_path.exists(), (
-            "Exiting the F10 -> Enter config edit without save must not create a profile."
+        assert profile_path.exists(), (
+            "A successful F10 -> Enter edit of a missing profile must keep the starter profile."
+        )
+        assert profile_path.read_text(encoding="utf-8") == editor_capture.read_text(
+            encoding="utf-8"
+        ), (
+            "An unchanged missing-profile edit must persist the starter profile verbatim."
+        )
+    finally:
+        tui.quit()
+
+
+def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_binary):
+    root = tmp_path / "missing_themes_f10_unchanged_edit"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    editor_capture = root / "f10_default_themes_snapshot.txt"
+    unchanged_editor = root / "unchanged_themes_editor.sh"
+    unchanged_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    unchanged_editor.chmod(0o755)
+
+    themes_path = root / ".config" / "ytnova" / "themes.conf"
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(unchanged_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        themes_path.unlink(missing_ok=True)
+        assert not themes_path.exists()
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        for _ in range(20):
+            if editor_capture.exists():
+                break
+            time.sleep(0.1)
+        assert editor_capture.exists(), (
+            "F10 -> Themes on a missing themes file must open an editable default themes buffer."
+        )
+        assert "[theme classic-blue]" in editor_capture.read_text(encoding="utf-8"), (
+            "Default themes buffer should include the compiled starter catalog."
+        )
+        assert themes_path.exists(), (
+            "A successful F10 -> Themes edit of a missing file must keep the starter themes file."
+        )
+        assert themes_path.read_text(encoding="utf-8") == editor_capture.read_text(
+            encoding="utf-8"
+        ), (
+            "An unchanged missing-themes edit must persist the starter themes catalog verbatim."
         )
     finally:
         tui.quit()

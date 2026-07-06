@@ -18,7 +18,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -39,35 +38,6 @@ static int WriteAll(int fd, const char *buf, size_t len) {
     written_total += (size_t)written_now;
   }
   return 0;
-}
-
-static int FileMatchesText(const char *path, const char *expected_text) {
-  FILE *fp;
-  size_t expected_len;
-  char *buffer;
-  size_t bytes_read;
-  int matches = 0;
-
-  fp = fopen(path, "r");
-  if (!fp)
-    return -1;
-
-  expected_len = strlen(expected_text);
-  buffer = (char *)malloc(expected_len + 1);
-  if (!buffer) {
-    fclose(fp);
-    return -1;
-  }
-
-  bytes_read = fread(buffer, 1, expected_len + 1, fp);
-  if (!ferror(fp) && bytes_read == expected_len &&
-      memcmp(buffer, expected_text, expected_len) == 0) {
-    matches = 1;
-  }
-
-  free(buffer);
-  fclose(fp);
-  return matches;
 }
 
 static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
@@ -111,11 +81,6 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
     return -1;
   }
 
-  if (FileMatchesText(temp_path, default_profile_template) == 1) {
-    unlink(temp_path);
-    return 0;
-  }
-
   if (rename(temp_path, profile_path) != 0) {
     int saved_errno = errno;
     unlink(temp_path);
@@ -124,19 +89,6 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   return 0;
-}
-
-static int FileMatchesDefaultThemes(const char *path) {
-  return FileMatchesText(path, default_theme_catalog);
-}
-
-static int WasThemesBufferSaved(const char *path) {
-  int template_match;
-
-  template_match = FileMatchesDefaultThemes(path);
-  if (template_match < 0)
-    return 1;
-  return template_match == 0;
 }
 
 static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
@@ -179,11 +131,6 @@ static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   if (Edit(ctx, dir_entry, temp_path) != 0) {
     unlink(temp_path);
     return -1;
-  }
-
-  if (!WasThemesBufferSaved(temp_path)) {
-    unlink(temp_path);
-    return 0;
   }
 
   if (link(temp_path, themes_path) != 0) {
