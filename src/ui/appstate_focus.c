@@ -71,5 +71,6 @@ BOOL AppStateCommitVolumeFocusMirror(struct Volume *volume, ViewFocus focus) {
 BOOL AppStateMirrorActivePanelFocus(ViewContext *ctx) {
   if (!ctx || !ctx->active)
     return FALSE;
-  return AppStateCommitPanelFocus(ctx, ctx->active, ctx->active->saved_focus);
+  return AppStateCommitPanelFocus(ctx, ctx->active,
+                                  AppStateResolveActivePanelFocus(ctx));
 }
