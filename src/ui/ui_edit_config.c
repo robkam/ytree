@@ -13,8 +13,12 @@
 #include "../core/default_profile_template.h"
 #include "../core/default_theme_catalog.h"
 #include "ytnova_appstate_layout.h"
+#include "ytnova_appstate_session.h"
+#include "ytnova_appstate_visibility.h"
 #include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include "ytnova_ui.h"
+#include "watcher.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -26,6 +30,22 @@ static const UICommandStripCommand config_command_strip[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Themes", "T", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Reload", "R", NULL},
     {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"}};
+
+typedef struct {
+  const char *path;
+  const char *contents;
+  const char *label;
+  BOOL created;
+} ConfigStarterFile;
+
+typedef struct {
+  BOOL bypass_small_window;
+  BOOL highlight_full_line;
+  BOOL left_hide_dot_files;
+  BOOL right_hide_dot_files;
+  int animation_method;
+  int refresh_mode;
+} ReloadableProfileState;
 
 static int WriteAll(int fd, const char *buf, size_t len) {
   size_t written_total = 0;
@@ -40,108 +60,149 @@ static int WriteAll(int fd, const char *buf, size_t len) {
   return 0;
 }
 
-static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
-                                         const char *profile_path) {
-  char temp_path[PATH_LENGTH + 1];
+static int WriteStarterFile(ViewContext *ctx, const char *path,
+                            const char *contents, const char *label) {
   int fd;
   size_t template_len;
-  int written;
+  int write_status;
+  int write_errno;
+  int close_status;
 
-  written = snprintf(temp_path, sizeof(temp_path), "%s.tmp.XXXXXX",
-                     profile_path);
-  if (written < 0 || written >= (int)sizeof(temp_path)) {
-    MESSAGE(ctx, "Can't stage default config for \"%s\"", profile_path);
+  if (path == NULL || *path == '\0' || contents == NULL || label == NULL)
     return -1;
-  }
-  if (!strstr(temp_path, "XXXXXX")) {
-    MESSAGE(ctx, "Can't stage default config for \"%s\"", profile_path);
-    return -1;
-  }
 
-  fd = mkstemp(temp_path);
+  fd = open(path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
   if (fd == -1) {
-    MESSAGE(ctx, "Can't stage default config for \"%s\"*%s", profile_path,
+    if (errno == EEXIST)
+      return 0;
+    MESSAGE(ctx, "Can't create default %s \"%s\"*%s", label, path,
             strerror(errno));
     return -1;
   }
 
-  template_len = strlen(default_profile_template);
-  if (WriteAll(fd, default_profile_template, template_len) != 0) {
-    int saved_errno = errno;
-    close(fd);
-    unlink(temp_path);
-    MESSAGE(ctx, "Can't stage default config for \"%s\"*%s", profile_path,
+  template_len = strlen(contents);
+  write_status = WriteAll(fd, contents, template_len);
+  write_errno = errno;
+  close_status = close(fd);
+  if (write_status != 0 || close_status != 0) {
+    int saved_errno = (write_status != 0) ? write_errno : errno;
+    unlink(path);
+    MESSAGE(ctx, "Can't create default %s \"%s\"*%s", label, path,
             strerror(saved_errno));
     return -1;
   }
-  close(fd);
 
-  if (Edit(ctx, dir_entry, temp_path) != 0) {
-    unlink(temp_path);
-    return -1;
+  return 1;
+}
+
+static int EnsureConfigStarterFiles(ViewContext *ctx, const char *profile_path,
+                                    const char *themes_path) {
+  ConfigStarterFile starter_files[] = {
+      {profile_path, default_profile_template, "config", FALSE},
+      {themes_path, default_theme_catalog, "themes", FALSE}};
+  size_t i;
+
+  for (i = 0; i < sizeof(starter_files) / sizeof(starter_files[0]); ++i) {
+    int result = WriteStarterFile(ctx, starter_files[i].path,
+                                  starter_files[i].contents,
+                                  starter_files[i].label);
+    if (result < 0) {
+      while (i > 0) {
+        --i;
+        if (starter_files[i].created)
+          unlink(starter_files[i].path);
+      }
+      return -1;
+    }
+    starter_files[i].created = result > 0 ? TRUE : FALSE;
   }
+  return 0;
+}
 
-  if (rename(temp_path, profile_path) != 0) {
-    int saved_errno = errno;
-    unlink(temp_path);
-    MESSAGE(ctx, "Can't save \"%s\"*%s", profile_path, strerror(saved_errno));
+static int ApplyRefreshMode(ViewContext *ctx, DirEntry *dir_entry,
+                            int refresh_mode) {
+  int old_refresh_mode;
+
+  if (ctx == NULL)
     return -1;
+
+  old_refresh_mode = ctx->refresh_mode;
+  if (!AppStateCommitRefreshMode(ctx, refresh_mode))
+    return -1;
+
+  if ((old_refresh_mode & REFRESH_WATCHER) &&
+      !(refresh_mode & REFRESH_WATCHER)) {
+    if (ctx->core_quit_ops.close_watcher != NULL)
+      ctx->core_quit_ops.close_watcher(ctx);
+  } else if (!(old_refresh_mode & REFRESH_WATCHER) &&
+             (refresh_mode & REFRESH_WATCHER)) {
+    if (ctx->core_storage_ops.watcher_init != NULL)
+      ctx->core_storage_ops.watcher_init(ctx);
+    if (dir_entry != NULL) {
+      char watcher_path[PATH_LENGTH + 1];
+
+      GetPath(dir_entry, watcher_path);
+      Watcher_SetDir(ctx, watcher_path);
+    }
   }
 
   return 0;
 }
 
-static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
-                                        const char *themes_path) {
-  char temp_path[PATH_LENGTH + 1];
-  int fd;
-  size_t template_len;
-  int written;
+static int ApplyPanelVisibilityFilterIfAvailable(YtreeNovaPanel *panel,
+                                                 BOOL hide_dot_files) {
+  if (panel == NULL)
+    return 0;
+  if (panel->vol == NULL)
+    return AppStateSeedPanelVisibilityFilter(panel, hide_dot_files) ? 0 : -1;
+  return AppStateCommitPanelVisibilityFilter(panel, hide_dot_files) ? 0 : -1;
+}
 
-  written = snprintf(temp_path, sizeof(temp_path), "%s.tmp.XXXXXX",
-                     themes_path);
-  if (written < 0 || written >= (int)sizeof(temp_path)) {
-    MESSAGE(ctx, "Can't stage default themes for \"%s\"", themes_path);
-    return -1;
-  }
-  if (!strstr(temp_path, "XXXXXX")) {
-    MESSAGE(ctx, "Can't stage default themes for \"%s\"", themes_path);
-    return -1;
-  }
+static int ApplyReloadableProfileSettings(ViewContext *ctx,
+                                          DirEntry *dir_entry) {
+  BOOL hide_dot_files;
 
-  fd = mkstemp(temp_path);
-  if (fd == -1) {
-    MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
-            strerror(errno));
+  if (ctx == NULL)
     return -1;
-  }
 
-  template_len = strlen(default_theme_catalog);
-  if (WriteAll(fd, default_theme_catalog, template_len) != 0) {
-    int saved_errno = errno;
-
-    close(fd);
-    unlink(temp_path);
-    MESSAGE(ctx, "Can't stage default themes for \"%s\"*%s", themes_path,
-            strerror(saved_errno));
+  if (!AppStateCommitSmallWindowBypass(
+          ctx, ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP"))))
     return -1;
-  }
-  close(fd);
-
-  if (Edit(ctx, dir_entry, temp_path) != 0) {
-    unlink(temp_path);
+  if (!AppStateCommitFullLineHighlight(
+          ctx,
+          (strtol(GetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0)) ? TRUE
+                                                                         : FALSE))
     return -1;
-  }
 
-  if (link(temp_path, themes_path) != 0) {
-    int saved_errno = errno;
-    unlink(temp_path);
-    MESSAGE(ctx, "Can't save \"%s\"*%s", themes_path, strerror(saved_errno));
+  hide_dot_files =
+      (strtol(GetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0)) ? TRUE : FALSE;
+  if (ApplyPanelVisibilityFilterIfAvailable(ctx->left, hide_dot_files) != 0 ||
+      ApplyPanelVisibilityFilterIfAvailable(ctx->right, hide_dot_files) != 0)
     return -1;
-  }
-  unlink(temp_path);
+
+  ctx->animation_method = strtol(GetProfileValue(ctx, "ANIMATION"), NULL, 0);
+  if (ApplyRefreshMode(
+          ctx, dir_entry,
+          strtol(GetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0)) != 0)
+    return -1;
 
   return 0;
+}
+
+static void RestoreReloadableProfileState(
+    ViewContext *ctx, DirEntry *dir_entry,
+    const ReloadableProfileState *runtime_state) {
+  if (ctx == NULL || runtime_state == NULL)
+    return;
+
+  (void)AppStateCommitSmallWindowBypass(ctx, runtime_state->bypass_small_window);
+  (void)AppStateCommitFullLineHighlight(ctx, runtime_state->highlight_full_line);
+  (void)ApplyPanelVisibilityFilterIfAvailable(ctx->left,
+                                              runtime_state->left_hide_dot_files);
+  (void)ApplyPanelVisibilityFilterIfAvailable(ctx->right,
+                                              runtime_state->right_hide_dot_files);
+  ctx->animation_method = runtime_state->animation_method;
+  (void)ApplyRefreshMode(ctx, dir_entry, runtime_state->refresh_mode);
 }
 
 static int EnsureConfigHomeDirectory(const char *home) {
@@ -242,11 +303,11 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
 static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
                                 const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
+  ReloadableProfileState runtime_state;
   int profile_validation;
 #ifdef COLOR_SUPPORT
   UIColorSnapshot *color_snapshot;
 #endif
-  BOOL original_bypass_small_window;
 
   if (ctx == NULL)
     return -1;
@@ -255,46 +316,51 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
 #ifdef COLOR_SUPPORT
   color_snapshot = UIColorSnapshot_Create();
 #endif
-  original_bypass_small_window = ctx->bypass_small_window;
+  runtime_state.bypass_small_window = ctx->bypass_small_window;
+  runtime_state.highlight_full_line = ctx->highlight_full_line;
+  runtime_state.left_hide_dot_files =
+      ctx->left != NULL ? ctx->left->hide_dot_files : FALSE;
+  runtime_state.right_hide_dot_files =
+      ctx->right != NULL ? ctx->right->hide_dot_files : FALSE;
+  runtime_state.animation_method = ctx->animation_method;
+  runtime_state.refresh_mode = ctx->refresh_mode;
 
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
       access(profile_path, F_OK) == 0) {
     profile_validation = ValidateProfileFile(ctx, profile_path);
     if (profile_validation != 0) {
       ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+      RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
 #ifdef COLOR_SUPPORT
       UIColorSnapshot_Restore(color_snapshot);
       UIColorSnapshot_Free(color_snapshot);
 #endif
       ProfileRuntimeSnapshot_Free(profile_snapshot);
-      ctx->bypass_small_window = original_bypass_small_window;
       UI_ShowStatusLineError(ctx, profile_validation < 0
                                       ? "Reload failed: can't read config"
                                       : "Reload failed: malformed config");
       return -1;
     }
     if (ctx->core_init_ops.read_profile(ctx, profile_path) == 0) {
-      if (!AppStateCommitSmallWindowBypass(
-              ctx,
-              ParseSmallWindowSkipValue(GetProfileValue(ctx, "SMALLWINDOWSKIP")))) {
+      if (ApplyReloadableProfileSettings(ctx, dir_entry) != 0) {
         ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+        RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
 #ifdef COLOR_SUPPORT
         UIColorSnapshot_Restore(color_snapshot);
         UIColorSnapshot_Free(color_snapshot);
 #endif
         ProfileRuntimeSnapshot_Free(profile_snapshot);
-        ctx->bypass_small_window = original_bypass_small_window;
         UI_ShowStatusLineError(ctx, "Reload failed: can't apply config");
         return -1;
       }
     } else {
       ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+      RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
 #ifdef COLOR_SUPPORT
       UIColorSnapshot_Restore(color_snapshot);
       UIColorSnapshot_Free(color_snapshot);
 #endif
       ProfileRuntimeSnapshot_Free(profile_snapshot);
-      ctx->bypass_small_window = original_bypass_small_window;
       UI_ShowStatusLineError(ctx, "Reload failed: can't read config");
       return -1;
     }
@@ -303,12 +369,12 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
   if (ctx->core_init_ops.load_theme != NULL &&
       ctx->core_init_ops.load_theme(ctx) != 0) {
     ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+    RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
 #ifdef COLOR_SUPPORT
     UIColorSnapshot_Restore(color_snapshot);
     UIColorSnapshot_Free(color_snapshot);
 #endif
     ProfileRuntimeSnapshot_Free(profile_snapshot);
-    ctx->bypass_small_window = original_bypass_small_window;
     UI_ShowStatusLineError(ctx, "Reload failed: can't load theme");
     return -1;
   }
@@ -331,44 +397,19 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
 
 static void EditConfigProfile(ViewContext *ctx, DirEntry *dir_entry,
                               char *profile_path) {
-  int profile_exists;
-
-  profile_exists = (access(profile_path, F_OK) == 0);
-  if (profile_exists) {
-    if (Edit(ctx, dir_entry, profile_path) != 0) {
-      MESSAGE(ctx, "Can't edit \"%s\"", profile_path);
-      return;
-    }
-  } else {
-    if (EditMissingProfileFromDefault(ctx, dir_entry, profile_path) != 0) {
-      MESSAGE(ctx, "Can't edit \"%s\"", profile_path);
-      return;
-    }
+  if (Edit(ctx, dir_entry, profile_path) != 0) {
+    MESSAGE(ctx, "Can't edit \"%s\"", profile_path);
+    return;
   }
 
   ReloadConfigAndTheme(ctx, dir_entry, profile_path);
 }
 
-static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry) {
-  char themes_path[PATH_LENGTH + 1];
-  int themes_exists;
-
-  if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
-    MESSAGE(ctx, "Can't resolve themes file path");
+static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry,
+                           char *themes_path) {
+  if (Edit(ctx, dir_entry, themes_path) != 0) {
+    MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
     return;
-  }
-
-  themes_exists = (access(themes_path, F_OK) == 0);
-  if (themes_exists) {
-    if (Edit(ctx, dir_entry, themes_path) != 0) {
-      MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
-      return;
-    }
-  } else {
-    if (EditMissingThemesFromDefault(ctx, dir_entry, themes_path) != 0) {
-      MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
-      return;
-    }
   }
 
   ReloadConfigAndTheme(ctx, dir_entry, NULL);
@@ -376,9 +417,15 @@ static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry) {
 
 void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   char profile_path[PATH_LENGTH + 1];
+  char themes_path[PATH_LENGTH + 1];
   int term;
 
   ResolveProfilePath(ctx, profile_path, sizeof(profile_path));
+  if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
+    MESSAGE(ctx, "Can't resolve themes file path");
+    return;
+  }
+
   term = InputChoiceCommandStrip(
       ctx, config_command_strip,
       sizeof(config_command_strip) / sizeof(config_command_strip[0]),
@@ -388,10 +435,14 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   case CR:
   case LF:
   case 'C':
+    if (EnsureConfigStarterFiles(ctx, profile_path, themes_path) != 0)
+      break;
     EditConfigProfile(ctx, dir_entry, profile_path);
     break;
   case 'T':
-    EditThemesFile(ctx, dir_entry);
+    if (EnsureConfigStarterFiles(ctx, profile_path, themes_path) != 0)
+      break;
+    EditThemesFile(ctx, dir_entry, themes_path);
     break;
   case 'R':
     ReloadConfigAndTheme(ctx, dir_entry, profile_path);

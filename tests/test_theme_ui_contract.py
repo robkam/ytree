@@ -159,17 +159,28 @@ def test_startup_defers_normal_window_creation_to_themed_helper():
     )
 
 
-def test_missing_theme_edit_detection_falls_back_to_catalog_content():
+def test_f10_bootstrap_defers_starter_files_until_explicit_edit_choice():
     source = _read("src/ui/ui_edit_config.c")
-    helper_start = source.index("static int WasThemesBufferSaved(")
-    helper_end = source.index("static int EditMissingThemesFromDefault(")
+    helper_start = source.index("static int EnsureConfigStarterFiles(")
+    helper_end = source.index("static int ReloadConfigAndTheme(")
     helper_body = source[helper_start:helper_end]
+    ui_open = source[source.index("void UI_OpenConfigProfile(") :]
 
-    assert "template_match = FileMatchesDefaultThemes(path);" in helper_body
+    assert "ConfigStarterFile starter_files[] = {" in helper_body
+    assert "default_profile_template" in helper_body
+    assert "default_theme_catalog" in helper_body
+    assert "int result = WriteStarterFile(ctx, starter_files[i].path" in helper_body
+    assert "starter_files[i].contents" in helper_body
     assert (
-        "if (after.st_ino == before->st_ino && after.st_size == before->st_size &&"
-        not in helper_body
+        "for (i = 0; i < sizeof(starter_files) / sizeof(starter_files[0]); ++i)"
+        in helper_body
     )
+    assert "mkstemp" not in helper_body
+    assert "link(temp_path" not in helper_body
+    assert ui_open.index("InputChoiceCommandStrip") < ui_open.index("case 'C':")
+    assert "EnsureConfigStarterFiles(ctx, profile_path, themes_path)" not in ui_open[
+        : ui_open.index("switch (term) {")
+    ]
 
 
 def test_semantic_roles_are_canonical_runtime_color_model():
@@ -458,9 +469,10 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert "THEME_FILENAME" in source
     assert 'snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);' not in source
     assert "Can't resolve themes file path" in source
-    assert "EditMissingThemesFromDefault(ctx, dir_entry, themes_path)" in source
+    assert "EnsureConfigStarterFiles(ctx, profile_path, themes_path)" in source
     assert "default_theme_catalog" in source
-    assert "link(temp_path, themes_path)" in source
+    assert "WriteStarterFile" in source
+    assert "link(temp_path, themes_path)" not in source
     assert "ResolveSeedThemePath" not in theme_source
     assert "SeedConfiguredThemePath" not in theme_source
     assert "ReadCompiledThemeCatalog" in theme_source
@@ -547,3 +559,27 @@ def test_f10_reload_owns_canonical_repaint_for_tree_and_file_focus():
     ]
     assert "UI_OpenConfigProfile(ctx, dir_entry);" in file_case
     assert "RefreshView(ctx, dir_entry);" not in file_case
+
+
+def test_f10_reload_reapplies_runtime_profile_settings():
+    source = _read("src/ui/ui_edit_config.c")
+    filter_start = source.index("static int ApplyPanelVisibilityFilterIfAvailable(")
+    helper_start = source.index("static int ApplyReloadableProfileSettings(")
+    helper_end = source.index("static void RestoreReloadableProfileState(", helper_start)
+    filter_body = source[filter_start:helper_start]
+    helper_body = source[helper_start:helper_end]
+    reload_start = source.index("static int ReloadConfigAndTheme(")
+    reload_end = source.index("static void EditConfigProfile(", reload_start)
+    reload_body = source[reload_start:reload_end]
+
+    assert "ApplyReloadableProfileSettings(ctx, dir_entry)" in reload_body
+    assert "if (panel == NULL)" in filter_body
+    assert "if (panel->vol == NULL)" in filter_body
+    assert "AppStateSeedPanelVisibilityFilter(panel, hide_dot_files)" in filter_body
+    assert "AppStateCommitPanelVisibilityFilter(panel, hide_dot_files)" in filter_body
+    assert "AppStateCommitSmallWindowBypass(" in helper_body
+    assert "AppStateCommitFullLineHighlight(" in helper_body
+    assert "ApplyPanelVisibilityFilterIfAvailable(ctx->left" in helper_body
+    assert "ApplyPanelVisibilityFilterIfAvailable(ctx->right" in helper_body
+    assert 'ctx->animation_method =' in helper_body
+    assert "AppStateCommitRefreshMode(" in helper_body or "ApplyRefreshMode(" in helper_body
