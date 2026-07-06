@@ -81,14 +81,16 @@ static YtreeNovaAction FilterPreviewAction(YtreeNovaAction action) {
 void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry,
                       const Statistic *s) {
   FileEntry *fe_ptr = NULL;
+  ViewFocus active_focus;
   BOOL show_file_stats = FALSE;
 
   /* Safety checks */
   if (!ctx || !dir_entry || !s || !ctx->active)
     return;
+  active_focus = AppStateResolveActivePanelFocus(ctx);
 
   /* Check if we're in file window with files available */
-  if (ctx->focused_window == FOCUS_FILE && ctx->active->file_entry_list &&
+  if (active_focus == FOCUS_FILE && ctx->active->file_entry_list &&
       ctx->active->file_count > 0) {
     int file_index = dir_entry->start_file + dir_entry->cursor_pos;
     if (file_index >= 0 && (unsigned int)file_index < ctx->active->file_count) {
