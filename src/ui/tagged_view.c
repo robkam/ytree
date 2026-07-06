@@ -130,7 +130,7 @@ static void SetupTaggedViewWindow(ViewContext *ctx) {
 
 #ifdef COLOR_SUPPORT
   WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES));
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #endif
 }
 
@@ -178,7 +178,13 @@ static void DrawTaggedViewHeader(ViewContext *ctx, const char *display_path,
                "(N)ext file  (P)rev file (wrap)  (Up/Down) line  (Home/End)");
   PrintOptions(stdscr, ctx->layout.status_y, 0, "View tagged files");
 
+#ifdef COLOR_SUPPORT
+  wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   box(ctx->viewer.border, 0, 0);
+#ifdef COLOR_SUPPORT
+  wattroff(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   wnoutrefresh(stdscr);
   wnoutrefresh(ctx->viewer.border);
 }

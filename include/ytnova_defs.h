@@ -291,6 +291,8 @@ typedef enum {
   F_COLOR_PAIR_BASE = 32
 } UISemanticRolePair;
 
+#define UI_VIEWER_FRAME_PAIR NUM_UI_COLOR_PAIRS
+
 enum HistoryType {
   HST_GENERAL = 0,
   HST_LOG,

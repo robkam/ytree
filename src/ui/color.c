@@ -120,6 +120,17 @@ static int UIColorBackground(int pair_id) {
   return COLOR_BLACK;
 }
 
+static int UIColorForeground(int pair_id) {
+  int i;
+
+  for (i = 0; i < NUM_UI_COLORS; i++) {
+    if (ui_colors[i].id == pair_id)
+      return ui_colors[i].fg;
+  }
+
+  return COLOR_WHITE;
+}
+
 UIColorSnapshot *UIColorSnapshot_Create(void) {
   int i;
   UIColorSnapshot *snapshot = xmalloc(sizeof(*snapshot));
@@ -265,6 +276,9 @@ void ReinitColorPairs(ViewContext *ctx) {
     init_pair(ui_colors[i].id, NormalizeColorIndex(ui_colors[i].fg, COLORS),
               NormalizeColorIndex(ui_colors[i].bg, COLORS));
   }
+  init_pair(UI_VIEWER_FRAME_PAIR,
+            NormalizeColorIndex(UIColorForeground(UI_ROLE_BOX_LINES), COLORS),
+            NormalizeColorIndex(UIColorBackground(UI_ROLE_DYNAMIC_TEXT), COLORS));
 
   /* Initialize file type colors */
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {

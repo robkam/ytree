@@ -300,14 +300,38 @@ def test_stats_rendering_splits_static_dynamic_and_border_roles():
     assert "ApplySemanticRole(ctx, roles[i].name, fg, bg)" in theme_source
 
 
-def test_viewer_frame_uses_border_role_not_directory_fill_role():
+def test_viewer_frame_uses_box_lines_only_for_frame_glyphs():
+    defs_source = _read("include/ytnova_defs.h")
+    color_source = _read("src/ui/color.c")
     internal_source = _read("src/ui/view_internal.c")
     tagged_source = _read("src/ui/tagged_view.c")
 
+    assert "#define UI_VIEWER_FRAME_PAIR NUM_UI_COLOR_PAIRS" in defs_source
     assert "ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in internal_source
     assert "ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in tagged_source
-    assert "ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES)" in internal_source
-    assert "ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES)" in tagged_source
+    assert "ctx->viewer.border, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in internal_source
+    assert "ctx->viewer.border, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)" in tagged_source
+    assert "UIColorForeground(UI_ROLE_BOX_LINES)" in color_source
+    assert "UIColorBackground(UI_ROLE_DYNAMIC_TEXT)" in color_source
+    assert "init_pair(UI_VIEWER_FRAME_PAIR," in color_source
+    assert "wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));" in (
+        internal_source
+    )
+    assert "wattroff(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));" in (
+        internal_source
+    )
+    assert "wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));" in (
+        tagged_source
+    )
+    assert "wattroff(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));" in (
+        tagged_source
+    )
+    assert "wattron(ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES));" not in (
+        internal_source
+    )
+    assert "wattron(ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES));" not in (
+        tagged_source
+    )
 
 
 def test_viewer_file_headers_use_dynamic_text_role():

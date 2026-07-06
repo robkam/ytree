@@ -289,9 +289,15 @@ static void SetupViewWindow(ViewContext *ctx, const char *file_path,
     wmove(ctx->viewer.view, i, 0);
     wclrtoeol(ctx->viewer.view);
   }
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_BOX_LINES));
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   Change2View(ctx, geom, file_path);
+#ifdef COLOR_SUPPORT
+  wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   box(ctx->viewer.border, 0, 0);
+#ifdef COLOR_SUPPORT
+  wattroff(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   RefreshWindow(ctx->viewer.border);
   RefreshWindow(ctx->viewer.view);
   ctx->viewer.bytes = (ctx->viewer.wcols - 13) / 4;
