@@ -10,6 +10,17 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
 
+ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx) {
+  if (ctx && ctx->active &&
+      (ctx->active->saved_focus == FOCUS_TREE ||
+       ctx->active->saved_focus == FOCUS_FILE))
+    return ctx->active->saved_focus;
+  if (ctx && (ctx->focused_window == FOCUS_TREE ||
+              ctx->focused_window == FOCUS_FILE))
+    return ctx->focused_window;
+  return FOCUS_TREE;
+}
+
 BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
                               ViewFocus focus) {
   if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))

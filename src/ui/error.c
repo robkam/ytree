@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_appstate_message.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_ui.h"
 
 #include <stdarg.h>
@@ -82,7 +83,7 @@ void UI_ClearStatusLineError(ViewContext *ctx) {
   } else {
     if (ctx->active)
       dir_entry = GetPanelDirEntry(ctx->active);
-    if (ctx->focused_window == FOCUS_TREE)
+    if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE)
       DisplayDirHelp(ctx, dir_entry);
     else
       DisplayFileHelp(ctx, dir_entry);

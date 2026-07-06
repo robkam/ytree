@@ -11,6 +11,7 @@
 #include "../../include/ytnova_panel_anchor.h"
 #include "../../include/ytnova_ui.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_window.h"
 #include <assert.h>
@@ -590,7 +591,8 @@ void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
 
     if (panel->pan_file_window) {
       if (panel->saved_focus != FOCUS_FILE && ctx &&
-          ctx->focused_window == FOCUS_FILE && panel->file_count == 0) {
+          AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE &&
+          panel->file_count == 0) {
         werase(panel->pan_file_window);
         wnoutrefresh(panel->pan_file_window);
       } else {
@@ -733,10 +735,10 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   {
     char path[PATH_LENGTH + 1];
     DirEntry *path_dir = dir_entry;
+    ViewFocus active_focus = AppStateResolveActivePanelFocus(ctx);
 
-    if (!ctx->preview_mode && dir_entry && ctx->focused_window == FOCUS_FILE &&
-        ctx->active && ctx->active->file_entry_list &&
-        ctx->active->file_count > 0) {
+    if (!ctx->preview_mode && dir_entry && active_focus == FOCUS_FILE &&
+        ctx->active && ctx->active->file_entry_list && ctx->active->file_count > 0) {
       int idx = dir_entry->start_file + dir_entry->cursor_pos;
       if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
         FileEntry *fe = ctx->active->file_entry_list[idx].file;
@@ -784,7 +786,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
       DrawSplitSeparatorRow(ctx, left_big_mode, right_big_mode);
 
       if (!active_big_mode && ctx->active->pan_dir_window) {
-        BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
+        BOOL tree_highlight = (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE);
         DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
                     ctx->active->disp_begin_pos,
                     GetPanelVisibleSelectionIndex(ctx->active),
@@ -800,7 +802,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
       } else {
         SwitchToSmallFileWindow(ctx);
         if (ctx->active && ctx->active->pan_dir_window) {
-          BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
+          BOOL tree_highlight = (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE);
           DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
                       ctx->active->disp_begin_pos,
                       GetPanelVisibleSelectionIndex(ctx->active),
@@ -816,7 +818,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   if (ctx->preview_mode) {
     DisplayPreviewHelp(ctx);
   } else {
-    if (ctx->focused_window == FOCUS_TREE) {
+    if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE) {
       DisplayDirHelp(ctx, dir_entry);
     } else {
       DisplayFileHelp(ctx, dir_entry);
