@@ -632,45 +632,50 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     }
   }
 
-  if (!dir_entry->log_flag) {
-    if (ctx->active && ctx->active->saved_focus == FOCUS_FILE) {
-      int file_start = dir_entry->start_file;
-      int file_cursor = dir_entry->cursor_pos;
+  {
+    BOOL active_focus_is_file =
+        (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE);
 
-      if (ctx->active->file_dir_entry == dir_entry) {
-        file_start = ctx->active->start_file;
-        file_cursor = ctx->active->file_cursor_pos;
+    if (!dir_entry->log_flag) {
+      if (ctx->active && active_focus_is_file) {
+        int file_start = dir_entry->start_file;
+        int file_cursor = dir_entry->cursor_pos;
+
+        if (ctx->active->file_dir_entry == dir_entry) {
+          file_start = ctx->active->start_file;
+          file_cursor = ctx->active->file_cursor_pos;
+        }
+        if (file_start < 0)
+          file_start = 0;
+        if (file_cursor < 0 && dir_entry->total_files > 0)
+          file_cursor = 0;
+
+        if (!AppStateCommitDirEntryFileViewport(dir_entry, file_start,
+                                                file_cursor))
+          return ESC;
+        if (!AppStateCommitPanelFileAnchor(ctx->active, dir_entry))
+          return ESC;
+        (void)AppStateCommitPanelFileViewport(ctx->active,
+                                              dir_entry->start_file,
+                                              dir_entry->cursor_pos);
+        BuildFileEntryList(ctx, ctx->active);
+      } else {
+        if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
+          return ESC;
       }
-      if (file_start < 0)
-        file_start = 0;
-      if (file_cursor < 0 && dir_entry->total_files > 0)
-        file_cursor = 0;
-
-      if (!AppStateCommitDirEntryFileViewport(dir_entry, file_start,
-                                              file_cursor))
-        return ESC;
-      if (!AppStateCommitPanelFileAnchor(ctx->active, dir_entry))
-        return ESC;
-      (void)AppStateCommitPanelFileViewport(ctx->active, dir_entry->start_file,
-                                            dir_entry->cursor_pos);
-      BuildFileEntryList(ctx, ctx->active);
-    } else {
-      if (!AppStateCommitDirEntryFileViewport(dir_entry, 0, -1))
-        return ESC;
     }
-  }
+    RefreshView(ctx, dir_entry);
 
-  RefreshView(ctx, dir_entry);
-
-  if (dir_entry->log_flag) {
-    if ((dir_entry->global_flag) || (dir_entry->tagged_flag)) {
-      unput_char = 'S';
-    } else {
+    if (dir_entry->log_flag) {
+      if ((dir_entry->global_flag) || (dir_entry->tagged_flag)) {
+        unput_char = 'S';
+      } else {
+        unput_char = CR;
+      }
+    } else if (ctx->active && active_focus_is_file &&
+               ctx->active->file_count > 0 && dir_entry->total_files > 0) {
       unput_char = CR;
     }
-  } else if (ctx->active && ctx->active->saved_focus == FOCUS_FILE &&
-             ctx->active->file_count > 0 && dir_entry->total_files > 0) {
-    unput_char = CR;
   }
   do {
     /* Detect Global Volume Change (Split Brain Fix) */

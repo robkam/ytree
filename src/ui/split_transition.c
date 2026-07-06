@@ -582,7 +582,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
         if (preserve_left_file_state && !donate_active_state &&
             !AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE))
           return FALSE;
-        if (ctx->active->saved_focus == FOCUS_FILE) {
+        if (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE) {
           if (ctx->active->file_selection_dir_path[0] != '\0') {
             /*
              * Re-anchor the surviving panel to its saved file-selection path

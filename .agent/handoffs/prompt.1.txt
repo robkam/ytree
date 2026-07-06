@@ -4,25 +4,27 @@ Date: 2026-07-06
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-focus-debug-projection
-Active PR: https://github.com/robkam/ytreenova/pull/360 (draft)
+Current branch: appstate-active-focus-projection
+Active PR: https://github.com/robkam/ytreenova/pull/361 (draft)
 Supersession state: no active stop or pause condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/359 merged at `d58942b` after green checks.
-- Local `main` and `origin/main` were at `d58942b` before this branch.
-- Local branch `task-60` is still attached to worktree `/home/rob/nova60` and was not deleted.
+- PR https://github.com/robkam/ytreenova/pull/360 merged at `d63bd73` after green checks.
+- Local `main` and `origin/main` were cleaned up after the merge.
+- Remote stale AppState focus branches were pruned during post-merge cleanup.
 
 Current AppState batch:
-- Routes remaining split/directory focus debug reads in `src/ui/dir_ops.c`, `src/ui/split_transition.c`, and `src/ui/panel_anchor.c` through `AppStateResolveActivePanelFocus()` instead of direct `ctx->focused_window` reads.
-- Extends `tests/test_appstate_contract_guard.py` to require those focus debug traces to stay on the AppState active-focus projection helper.
+- Routes remaining active-panel focus decisions in `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/dir_ops.c`, `src/ui/display.c`, and `src/ui/split_transition.c` through `AppStateResolveActivePanelFocus()` instead of reading `ctx->active->saved_focus` directly.
+- Extends `tests/test_appstate_contract_guard.py` to keep those active-panel focus decisions on the projection helper.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k focus_debug_traces_project_from_panel_state` failed because the debug helpers still logged `ctx->focused_window` directly.
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'focus_debug_traces_project_from_panel_state or key_and_stats_focus_reads_project_from_panel_state or preview_modal_state_routes_through_appstate_helper or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper or render_footer_focus_reads_project_from_panel_state'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k active_panel_focus_decisions_project_from_helper`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'active_panel_focus_decisions_project_from_helper or focus_debug_traces_project_from_panel_state or key_and_stats_focus_reads_project_from_panel_state or preview_modal_state_routes_through_appstate_helper or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper or render_footer_focus_reads_project_from_panel_state'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- `make clean && make` passed with existing warnings.
+- `make clean && make`
+- CI repair: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'compatibility_shim_boundaries_fail_closed_before_legacy_writes or active_panel_focus_decisions_project_from_helper'`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'compatibility_shim_boundaries_fail_closed_before_legacy_writes or active_panel_focus_decisions_project_from_helper or focus_debug_traces_project_from_panel_state or key_and_stats_focus_reads_project_from_panel_state or split_file_focus_commits_use_appstate_helper or split_directory_focus_commits_use_appstate_helper or render_footer_focus_reads_project_from_panel_state'`
 - `git diff --check`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/360 starting from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/361 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.

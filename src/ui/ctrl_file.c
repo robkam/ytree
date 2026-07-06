@@ -706,7 +706,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     }
 
     if (switched_panel && ctx->active != owner_panel) {
-      if (ctx->active->saved_focus != FOCUS_FILE) {
+      if (AppStateResolveActivePanelFocus(ctx) != FOCUS_FILE) {
         switched_to_tree_panel = TRUE;
         action = ACTION_ESCAPE;
         goto file_window_done;
