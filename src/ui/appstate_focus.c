@@ -10,15 +10,31 @@
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
 
+static ViewFocus ResolveCompatibilityFocusedWindow(const ViewContext *ctx) {
+  if (ctx && (ctx->focused_window == FOCUS_TREE ||
+              ctx->focused_window == FOCUS_FILE))
+    return ctx->focused_window;
+  return FOCUS_TREE;
+}
+
+static BOOL CommitCompatibilityFocusedWindow(ViewContext *ctx,
+                                             const YtreeNovaPanel *panel,
+                                             ViewFocus focus) {
+  if (!ctx || !panel)
+    return FALSE;
+  if (ctx->active != panel)
+    return TRUE;
+
+  ctx->focused_window = focus;
+  return TRUE;
+}
+
 ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx) {
   if (ctx && ctx->active &&
       (ctx->active->saved_focus == FOCUS_TREE ||
        ctx->active->saved_focus == FOCUS_FILE))
     return ctx->active->saved_focus;
-  if (ctx && (ctx->focused_window == FOCUS_TREE ||
-              ctx->focused_window == FOCUS_FILE))
-    return ctx->focused_window;
-  return FOCUS_TREE;
+  return ResolveCompatibilityFocusedWindow(ctx);
 }
 
 BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
@@ -31,8 +47,8 @@ BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
     return FALSE;
 
   panel->saved_focus = focus;
-  if (ctx->active == panel)
-    ctx->focused_window = focus;
+  if (!CommitCompatibilityFocusedWindow(ctx, panel, focus))
+    return FALSE;
   return TRUE;
 }
 
