@@ -869,6 +869,14 @@ void ReCreateWindows(ViewContext *ctx) {
   DEBUG_LOG("EXIT ReCreateWindows");
 }
 
+static void CoreInitCreateThemedStartupWindows(ViewContext *ctx) {
+  /* Pre-theme notices fall back to stderr until the final themed windows exist.
+   */
+  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  werase(stdscr);
+  ReCreateWindows(ctx);
+}
+
 void ShutdownCurses(ViewContext *ctx) {
   SCREEN *screen = (ctx != NULL) ? ctx->curses_screen : NULL;
 
@@ -1053,9 +1061,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   if (ctx->core_init_ops.reinit_color_pairs != NULL)
     ctx->core_init_ops.reinit_color_pairs(ctx);
   DEBUG_LOG("Init: ReinitColorPairs done");
-  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
-  werase(stdscr);
-  ReCreateWindows(ctx);
+  CoreInitCreateThemedStartupWindows(ctx);
   DEBUG_LOG("Init: ReCreateWindows after theme done");
 
   if (history_file != NULL) {

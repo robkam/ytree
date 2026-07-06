@@ -121,10 +121,10 @@ def test_startup_recreates_windows_once_after_theme_load():
 
     assert source.count("ReCreateWindows(ctx);") == 1
     assert load_done < reinit_done < recreate_after_theme
-    assert "CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in (
+    assert "CoreInitCreateThemedStartupWindows(ctx);" in (
         source[load_done:recreate_after_theme]
     )
-    assert "werase(stdscr);" in source[load_done:recreate_after_theme]
+    assert "static void CoreInitCreateThemedStartupWindows(ViewContext *ctx) {" in source
 
 
 def test_startup_only_recreates_windows_after_theme_load():
@@ -132,9 +132,30 @@ def test_startup_only_recreates_windows_after_theme_load():
     init_start = source.index("int Init(ViewContext *ctx, const char *configuration_file,")
     init_body = source[init_start:]
 
-    assert init_body.count("ReCreateWindows(ctx);") == 1
+    assert init_body.count("CoreInitCreateThemedStartupWindows(ctx);") == 1
     assert init_body.index('DEBUG_LOG("Init: LoadTheme done")') < init_body.index(
-        "ReCreateWindows(ctx);"
+        "CoreInitCreateThemedStartupWindows(ctx);"
+    )
+
+
+def test_startup_defers_normal_window_creation_to_themed_helper():
+    source = _read("src/core/init.c")
+    helper_start = source.index(
+        "static void CoreInitCreateThemedStartupWindows(ViewContext *ctx) {"
+    )
+    helper_end = source.index("\nvoid ShutdownCurses(", helper_start)
+    helper_body = source[helper_start:helper_end]
+
+    assert "CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));" in helper_body
+    assert "werase(stdscr);" in helper_body
+    assert "ReCreateWindows(ctx);" in helper_body
+
+    init_start = source.index("int Init(ViewContext *ctx, const char *configuration_file,")
+    init_body = source[init_start:]
+
+    assert init_body.count("CoreInitCreateThemedStartupWindows(ctx);") == 1
+    assert init_body.index('DEBUG_LOG("Init: LoadTheme done")') < init_body.index(
+        "CoreInitCreateThemedStartupWindows(ctx);"
     )
 
 
