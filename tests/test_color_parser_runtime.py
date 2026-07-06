@@ -2099,11 +2099,10 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
-def test_missing_user_theme_catalog_is_seeded_from_compiled_default(tmp_path):
+def test_missing_user_theme_catalog_uses_compiled_default_without_creating_file(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
     missing_packaged = tmp_path / "missing" / "ytnova.themes"
-    seeded_theme = home / ".config" / "ytnova" / "themes.conf"
     driver = tmp_path / "theme_seeded_default_driver.c"
     binary = tmp_path / "theme_seeded_default_driver"
 
@@ -2143,9 +2142,6 @@ static void capture_update_color(const char *name, int fg, int bg) {
 int main(int argc, char **argv) {
   ViewContext ctx;
   char seeded_path[PATH_LENGTH + 1];
-  FILE *fp;
-  char buffer[4096];
-  size_t bytes_read;
 
   if (argc != 2)
     return 1;
@@ -2159,11 +2155,11 @@ int main(int argc, char **argv) {
   ctx.core_init_ops.get_profile_value = configured_theme;
 
   if (LoadConfiguredTheme(&ctx) != 0) {
-    fprintf(stderr, "missing user theme catalog was not seeded and loaded\n");
+    fprintf(stderr, "missing user theme catalog did not load compiled defaults\n");
     return 1;
   }
   if (color_count == 0) {
-    fprintf(stderr, "seeded theme did not apply colors\n");
+    fprintf(stderr, "compiled default theme did not apply colors\n");
     return 1;
   }
 
@@ -2172,21 +2168,8 @@ int main(int argc, char **argv) {
       strlen(argv[1]) + strlen("/.config/ytnova/themes.conf") >=
           sizeof(seeded_path))
     return 1;
-  if (access(seeded_path, F_OK) != 0) {
-    fprintf(stderr, "seeded theme file was not created\n");
-    return 1;
-  }
-
-  fp = fopen(seeded_path, "r");
-  if (fp == NULL) {
-    fprintf(stderr, "seeded theme file is unreadable\n");
-    return 1;
-  }
-  bytes_read = fread(buffer, 1, sizeof(buffer) - 1, fp);
-  fclose(fp);
-  buffer[bytes_read] = '\0';
-  if (strstr(buffer, "[theme classic-blue]") == NULL) {
-    fprintf(stderr, "seeded theme file does not contain compiled defaults\n");
+  if (access(seeded_path, F_OK) == 0) {
+    fprintf(stderr, "startup created a user theme file\n");
     return 1;
   }
 
@@ -2218,12 +2201,11 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
-def test_missing_user_theme_catalog_seeds_before_packaged_catalog(tmp_path):
+def test_missing_user_theme_catalog_uses_packaged_catalog_without_creating_file(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
     installed_dir = tmp_path / "installed" / "share" / "ytnova"
     installed_theme = installed_dir / "ytnova.themes"
-    seeded_theme = home / ".config" / "ytnova" / "themes.conf"
     driver = tmp_path / "theme_seed_before_packaged_driver.c"
     binary = tmp_path / "theme_seed_before_packaged_driver"
 
@@ -2303,8 +2285,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "missing user theme catalog was not loaded\n");
     return 1;
   }
-  if (box_lines_fg != COLOR_CYAN || box_lines_bg != COLOR_BLUE) {
-    fprintf(stderr, "packaged catalog outranked seeded compiled defaults\n");
+  if (box_lines_fg != COLOR_RED || box_lines_bg != COLOR_BLACK) {
+    fprintf(stderr, "packaged catalog was not loaded before compiled defaults\n");
     return 1;
   }
   if (snprintf(seeded_path, sizeof(seeded_path), "%s/.config/ytnova/themes.conf",
@@ -2312,8 +2294,8 @@ int main(int argc, char **argv) {
       strlen(argv[1]) + strlen("/.config/ytnova/themes.conf") >=
           sizeof(seeded_path))
     return 1;
-  if (access(seeded_path, F_OK) != 0) {
-    fprintf(stderr, "seeded theme file was not created before packaged fallback\n");
+  if (access(seeded_path, F_OK) == 0) {
+    fprintf(stderr, "startup created a user theme file before packaged fallback\n");
     return 1;
   }
 

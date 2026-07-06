@@ -391,8 +391,8 @@ def test_theme_editor_uses_preferred_path_with_legacy_fallback():
     assert "EditMissingThemesFromDefault(ctx, dir_entry, themes_path)" in source
     assert "default_theme_catalog" in source
     assert "link(temp_path, themes_path)" in source
-    assert "ResolveSeedThemePath" in theme_source
-    assert "SeedConfiguredThemePath" in theme_source
+    assert "ResolveSeedThemePath" not in theme_source
+    assert "SeedConfiguredThemePath" not in theme_source
     assert "ReadCompiledThemeCatalog" in theme_source
     assert '"etc/ytnova.themes"' not in theme_source
     assert '"etc/ytnova.themes"' not in source

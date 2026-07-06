@@ -190,7 +190,7 @@ def test_spec_documents_user_visible_theme_contract():
     )
     assert "runtime binaries must not consult `etc/` directly" in spec_source
     assert (
-        "runtime seeds `~/.config/ytnova/themes.conf` from compiled-in default theme data before loading it"
+        "runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`"
         in spec_source
     )
     assert (
@@ -210,7 +210,7 @@ def test_manpage_documents_user_visible_theme_contract():
     for source in (man_source, usage_source):
         assert "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
         assert (
-            "By default this creates `~/.config/ytnova/ytnova.conf`"
+            "By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`"
             in source
         )
         assert (

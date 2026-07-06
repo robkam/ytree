@@ -802,7 +802,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 60: Baseline Security Debt Audit and Classification**
+#### **Task 90: Baseline Security Debt Audit and Classification**
 *   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
 *   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
 *   - [ ] **Status:** Not Started.
@@ -1038,7 +1038,7 @@ Ordering policy (for all editors, including AI editors):
     *   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
     *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
     *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
-    *   If the user theme catalog is missing, runtime seeds `~/.config/ytnova/themes.conf` from compiled-in default theme data before loading it.
+    *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
     *   The theme file may contain an unlimited number of named themes. Used theme definitions are uncommented; unused bundled or user themes can be prefixed with `#` to comment them out.
     *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
 *   **F10 Config Surface and Reload Direction:**
@@ -1100,7 +1100,7 @@ Ordering policy (for all editors, including AI editors):
     *   File-type colors do not bleed assumptions from one theme into another theme.
     *   `grey`/`gray`, `+grey`/`+gray`, and `+color` bright-prefix parsing are documented and tested.
     *   User-facing theme/config examples use `grey`/`gray`, never `bright black`.
-    *   Runtime theme lookup uses XDG `themes.conf` first, then legacy `~/.ytnova.themes`; missing user theme catalogs are seeded from compiled-in default theme data instead of consulting `etc/ytnova.themes`.
+    *   Runtime theme lookup uses XDG `themes.conf` first, then legacy `~/.ytnova.themes`; missing user theme catalogs are satisfied from packaged/compiled defaults without creating a user file, only --init / explicit edit flows create starter files.
     *   F2 shows `(L)og  (<)/(>) Cycle` with only key tokens styled as keybindings.
     *   F10 exposes `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`; reload is not exposed as a global/main-UI key.
     *   The volume menu shows `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete` with only key tokens styled as keybindings.

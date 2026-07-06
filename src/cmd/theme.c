@@ -10,8 +10,6 @@
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
@@ -93,11 +91,6 @@ static ThemeLoadStatus ReadThemeStreamInternal(ViewContext *ctx, FILE *fp,
 static ThemeLoadStatus ReadThemeFileInternal(ViewContext *ctx,
                                              const char *filename,
                                              const char *theme_name);
-static int ThemeWriteAll(int fd, const char *buf, size_t len);
-static int EnsureThemeConfigHomeDirectory(const char *home);
-static int ResolveSeedThemePath(char *path, size_t path_size,
-                                const char *home);
-static int SeedConfiguredThemePath(const char *path);
 static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
                                                 const char *theme_name);
 static int TryThemeCatalogFile(ViewContext *ctx, const char *path,
@@ -687,109 +680,6 @@ int ReadThemeFile(ViewContext *ctx, const char *filename,
                                                                           : -1;
 }
 
-static int ThemeWriteAll(int fd, const char *buf, size_t len) {
-  size_t written_total = 0;
-
-  while (written_total < len) {
-    ssize_t written_now = write(fd, buf + written_total, len - written_total);
-
-    if (written_now <= 0)
-      return -1;
-    written_total += (size_t)written_now;
-  }
-
-  return 0;
-}
-
-static int EnsureThemeConfigHomeDirectory(const char *home) {
-  char config_dir[PATH_LENGTH + 1];
-  char ytnova_dir[PATH_LENGTH + 1];
-  int written;
-
-  if (home == NULL || *home == '\0')
-    return -1;
-
-  written = snprintf(config_dir, sizeof(config_dir), "%s/%s", home,
-                     PROFILE_CONFIG_HOME_PARENT);
-  if (written < 0 || written >= (int)sizeof(config_dir))
-    return -1;
-  if (mkdir(config_dir, S_IRWXU) != 0 && errno != EEXIST)
-    return -1;
-
-  written = snprintf(ytnova_dir, sizeof(ytnova_dir), "%s/%s", home,
-                     PROFILE_CONFIG_HOME_DIR);
-  if (written < 0 || written >= (int)sizeof(ytnova_dir))
-    return -1;
-  if (mkdir(ytnova_dir, S_IRWXU) != 0 && errno != EEXIST)
-    return -1;
-
-  return 0;
-}
-
-static int ResolveSeedThemePath(char *path, size_t path_size,
-                                const char *home) {
-  char legacy_path[PATH_LENGTH + 1];
-  int written;
-
-  if (path == NULL || path_size == 0 || home == NULL || *home == '\0')
-    return -1;
-
-  written = snprintf(path, path_size, "%s/%s", home, THEME_CONFIG_HOME_PATH);
-  if (written < 0 || written >= (int)path_size)
-    return -1;
-
-  written =
-      snprintf(legacy_path, sizeof(legacy_path), "%s/%s", home, THEME_FILENAME);
-  if (written < 0 || written >= (int)sizeof(legacy_path))
-    return -1;
-  if (access(path, F_OK) != 0 && access(legacy_path, F_OK) == 0) {
-    (void)snprintf(path, path_size, "%s", legacy_path);
-    return 0;
-  }
-
-  if (EnsureThemeConfigHomeDirectory(home) == 0)
-    return 0;
-
-  (void)snprintf(path, path_size, "%s", legacy_path);
-  return 0;
-}
-
-static int SeedConfiguredThemePath(const char *path) {
-  size_t default_len;
-  int fd;
-  int close_result;
-
-  if (path == NULL || *path == '\0')
-    return -1;
-
-  fd = open(path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-  if (fd == -1) {
-    if (errno == EEXIST)
-      return 0;
-    return -1;
-  }
-
-  default_len = strlen(default_theme_catalog);
-  if (ThemeWriteAll(fd, default_theme_catalog, default_len) != 0) {
-    int saved_errno = errno;
-
-    close(fd);
-    unlink(path);
-    errno = saved_errno;
-    return -1;
-  }
-  close_result = close(fd);
-  if (close_result != 0) {
-    int saved_errno = errno;
-
-    unlink(path);
-    errno = saved_errno;
-    return -1;
-  }
-
-  return 0;
-}
-
 static ThemeLoadStatus ReadCompiledThemeCatalog(ViewContext *ctx,
                                                 const char *theme_name) {
   ThemeLineSource source;
@@ -840,7 +730,6 @@ int LoadConfiguredTheme(ViewContext *ctx) {
   const char *home;
   char path[PATH_LENGTH + 1];
   int result;
-  int user_catalog_found = 0;
 
   if (ctx == NULL)
     return -1;
@@ -859,8 +748,6 @@ int LoadConfiguredTheme(ViewContext *ctx) {
     return 0;
   if (result == -2)
     return -1;
-  if (result == -1)
-    user_catalog_found = 1;
 
   result = TryConfiguredThemePath(ctx, path, sizeof(path), home, THEME_FILENAME,
                                   theme_name);
@@ -868,15 +755,6 @@ int LoadConfiguredTheme(ViewContext *ctx) {
     return 0;
   if (result == -2)
     return -1;
-  if (result == -1)
-    user_catalog_found = 1;
-
-  if (!user_catalog_found && ResolveSeedThemePath(path, sizeof(path), home) == 0 &&
-      SeedConfiguredThemePath(path) == 0) {
-    result = ReadThemeFile(ctx, path, theme_name);
-    if (result == 0)
-      return 0;
-  }
 
   result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
   if (result == 0)

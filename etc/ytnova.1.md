@@ -19,7 +19,7 @@ If no command line arguments are provided, the current directory will be logged.
 *   **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
 *   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
 *   **-h** *history_file*: Use *history_file* instead of the default `~/.ytnova-hst`.
-*   **--init**: Create a starter profile file and exit. By default this creates `~/.config/ytnova/ytnova.conf` only if it does not already exist. Use `-p` to target a different file.
+*   **--init**: Create missing starter profile and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf` only if they do not already exist. Use `-p` to target a different profile file.
 *   **-p** *config_file*: Use *config_file* instead of the default `~/.config/ytnova/ytnova.conf`.
 *   **-v**, **-V**, **--version**: Print ytnova version information and exit.
 *   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
@@ -288,11 +288,10 @@ semantic theme with `THEME=classic-blue`; role definitions and file-type palette
 rules live in theme files, not in the main config.
 
 Theme catalogs are plain text. ytnova loads user themes from
-`~/.config/ytnova/themes.conf`, falls back to legacy `~/.ytnova.themes`, and
-seeds `~/.config/ytnova/themes.conf` from compiled-in defaults when no user
-theme catalog exists. Only the installed packaged theme catalog is consulted
-after an existing user catalog omits the requested theme. The bundled defaults
-include `classic-blue` and `bash-black`.
+`~/.config/ytnova/themes.conf`, falls back to legacy `~/.ytnova.themes`, then
+uses the installed packaged catalog or compiled-in defaults without creating a
+user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
+The bundled defaults include `classic-blue` and `bash-black`.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `selection`, `dialog`, `picker`, `help`, `warning`, `error`, and `search_hit`.
