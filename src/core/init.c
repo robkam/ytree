@@ -974,18 +974,10 @@ int Init(ViewContext *ctx, const char *configuration_file,
   leaveok(stdscr, FALSE);
   curs_set(0);
 
-  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
-
-  ReCreateWindows(ctx);
-  DEBUG_LOG("Init: ReCreateWindows done");
-
   /* Use the simpler constant value */
   if (baudrate() >= QUICK_BAUD_RATE)
     typeahead(-1);
   DEBUG_LOG("Init: typeahead done");
-
-  if (!AppStateSetPanelFileWindowHandle(ctx, ctx->active, FALSE))
-    return -1;
 
   DEBUG_LOG("Init: Calling ReadGroupEntries");
   if (ctx->core_init_ops.read_group_entries != NULL &&

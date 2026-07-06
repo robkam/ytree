@@ -82,6 +82,9 @@ PROJECT_OPTFLAGS ?= -O2
 THEME_CATALOG_SRC = etc/ytnova.themes
 THEME_CATALOG_HDR = src/core/default_theme_catalog.h
 THEME_CATALOG_SCRIPT = scripts/generate_theme_catalog.py
+PROFILE_TEMPLATE_SRC = etc/ytnova.conf
+PROFILE_TEMPLATE_HDR = src/core/default_profile_template.h
+PROFILE_TEMPLATE_SCRIPT = scripts/generate_default_profile_template.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
@@ -168,9 +171,9 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-code-quality qa-all \
+	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-code-quality qa-all \
 	ci-baseline mcp-doctor py-requirements \
-	qa-all-log qa-deep
+	qa-all-log qa-deep theme-catalog profile-template
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -438,7 +441,15 @@ theme-catalog:
 	$(PYTHON) $(THEME_CATALOG_SCRIPT) --source $(THEME_CATALOG_SRC) \
 		--header $(THEME_CATALOG_HDR) --write
 
-qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog
+qa-profile-template:
+	$(PYTHON) $(PROFILE_TEMPLATE_SCRIPT) --source $(PROFILE_TEMPLATE_SRC) \
+		--header $(PROFILE_TEMPLATE_HDR) --check
+
+profile-template:
+	$(PYTHON) $(PROFILE_TEMPLATE_SCRIPT) --source $(PROFILE_TEMPLATE_SRC) \
+		--header $(PROFILE_TEMPLATE_HDR) --write
+
+qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 

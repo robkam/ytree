@@ -126,6 +126,30 @@ def test_startup_initializes_loaded_theme_before_recreating_windows():
     assert "werase(stdscr);" in source[load_done:recreate_after_theme]
 
 
+def test_startup_only_recreates_windows_after_theme_load():
+    source = _read("src/core/init.c")
+    init_start = source.index("int Init(ViewContext *ctx, const char *configuration_file,")
+    init_body = source[init_start:]
+
+    assert init_body.count("ReCreateWindows(ctx);") == 1
+    assert init_body.index('DEBUG_LOG("Init: LoadTheme done")') < init_body.index(
+        "ReCreateWindows(ctx);"
+    )
+
+
+def test_missing_theme_edit_detection_falls_back_to_catalog_content():
+    source = _read("src/ui/ui_edit_config.c")
+    helper_start = source.index("static int WasThemesBufferSaved(")
+    helper_end = source.index("static int EditMissingThemesFromDefault(")
+    helper_body = source[helper_start:helper_end]
+
+    assert "template_match = FileMatchesDefaultThemes(path);" in helper_body
+    assert (
+        "if (after.st_ino == before->st_ino && after.st_size == before->st_size &&"
+        not in helper_body
+    )
+
+
 def test_semantic_roles_are_canonical_runtime_color_model():
     defs_source = _read("include/ytnova_defs.h")
     color_source = _read("src/ui/color.c")

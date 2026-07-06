@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 static const UICommandStripCommand config_command_strip[] = {
@@ -42,7 +41,7 @@ static int WriteAll(int fd, const char *buf, size_t len) {
   return 0;
 }
 
-static int FileMatchesDefaultProfileTemplate(const char *path) {
+static int FileMatchesText(const char *path, const char *expected_text) {
   FILE *fp;
   size_t expected_len;
   char *buffer;
@@ -53,7 +52,7 @@ static int FileMatchesDefaultProfileTemplate(const char *path) {
   if (!fp)
     return -1;
 
-  expected_len = strlen(default_profile_template);
+  expected_len = strlen(expected_text);
   buffer = (char *)malloc(expected_len + 1);
   if (!buffer) {
     fclose(fp);
@@ -62,7 +61,7 @@ static int FileMatchesDefaultProfileTemplate(const char *path) {
 
   bytes_read = fread(buffer, 1, expected_len + 1, fp);
   if (!ferror(fp) && bytes_read == expected_len &&
-      memcmp(buffer, default_profile_template, expected_len) == 0) {
+      memcmp(buffer, expected_text, expected_len) == 0) {
     matches = 1;
   }
 
@@ -71,29 +70,11 @@ static int FileMatchesDefaultProfileTemplate(const char *path) {
   return matches;
 }
 
-static int WasConfigBufferSaved(const char *path, const struct stat *before) {
-  struct stat after;
-  int template_match;
-
-  if (stat(path, &after) != 0)
-    return 0;
-
-  if (after.st_ino != before->st_ino || after.st_size != before->st_size ||
-      after.st_mtime != before->st_mtime || after.st_ctime != before->st_ctime)
-    return 1;
-
-  template_match = FileMatchesDefaultProfileTemplate(path);
-  if (template_match < 0)
-    return 1;
-  return template_match == 0;
-}
-
 static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
                                          const char *profile_path) {
   char temp_path[PATH_LENGTH + 1];
   int fd;
   size_t template_len;
-  struct stat temp_before_edit;
   int written;
 
   written = snprintf(temp_path, sizeof(temp_path), "%s.tmp.XXXXXX",
@@ -115,8 +96,7 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   template_len = strlen(default_profile_template);
-  if (WriteAll(fd, default_profile_template, template_len) != 0 ||
-      fstat(fd, &temp_before_edit) != 0) {
+  if (WriteAll(fd, default_profile_template, template_len) != 0) {
     int saved_errno = errno;
     close(fd);
     unlink(temp_path);
@@ -131,7 +111,7 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
     return -1;
   }
 
-  if (!WasConfigBufferSaved(temp_path, &temp_before_edit)) {
+  if (FileMatchesText(temp_path, default_profile_template) == 1) {
     unlink(temp_path);
     return 0;
   }
@@ -147,44 +127,11 @@ static int EditMissingProfileFromDefault(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 static int FileMatchesDefaultThemes(const char *path) {
-  FILE *actual;
-  size_t expected_len;
-  char *buffer;
-  size_t bytes_read;
-  int matches = 0;
-
-  actual = fopen(path, "r");
-  if (actual == NULL)
-    return -1;
-
-  expected_len = strlen(default_theme_catalog);
-  buffer = (char *)malloc(expected_len + 1);
-  if (buffer == NULL) {
-    fclose(actual);
-    return -1;
-  }
-
-  bytes_read = fread(buffer, 1, expected_len + 1, actual);
-  if (!ferror(actual) && bytes_read == expected_len &&
-      memcmp(buffer, default_theme_catalog, expected_len) == 0) {
-    matches = 1;
-  }
-
-  free(buffer);
-  fclose(actual);
-  return matches;
+  return FileMatchesText(path, default_theme_catalog);
 }
 
-static int WasThemesBufferSaved(const char *path, const struct stat *before) {
-  struct stat after;
+static int WasThemesBufferSaved(const char *path) {
   int template_match;
-
-  if (stat(path, &after) != 0)
-    return 0;
-
-  if (after.st_ino == before->st_ino && after.st_size == before->st_size &&
-      after.st_mtime == before->st_mtime && after.st_ctime == before->st_ctime)
-    return 0;
 
   template_match = FileMatchesDefaultThemes(path);
   if (template_match < 0)
@@ -197,7 +144,6 @@ static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   char temp_path[PATH_LENGTH + 1];
   int fd;
   size_t template_len;
-  struct stat temp_before_edit;
   int written;
 
   written = snprintf(temp_path, sizeof(temp_path), "%s.tmp.XXXXXX",
@@ -219,8 +165,7 @@ static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   template_len = strlen(default_theme_catalog);
-  if (WriteAll(fd, default_theme_catalog, template_len) != 0 ||
-      fstat(fd, &temp_before_edit) != 0) {
+  if (WriteAll(fd, default_theme_catalog, template_len) != 0) {
     int saved_errno = errno;
 
     close(fd);
@@ -236,7 +181,7 @@ static int EditMissingThemesFromDefault(ViewContext *ctx, DirEntry *dir_entry,
     return -1;
   }
 
-  if (!WasThemesBufferSaved(temp_path, &temp_before_edit)) {
+  if (!WasThemesBufferSaved(temp_path)) {
     unlink(temp_path);
     return 0;
   }

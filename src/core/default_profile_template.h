@@ -93,9 +93,8 @@ static const char default_profile_template[] =
     "TAGGEDVIEWER=internal\n"
     "\n"
     "# THEME checks ~/.config/ytnova/themes.conf first, then ~/.ytnova.themes.\n"
-    "# Missing user catalogs are seeded from compiled-in defaults; if an existing\n"
-    "# catalog lacks the theme, or seeding/loading fails, the installed packaged\n"
-    "# catalog is the fallback.\n"
+    "# Missing user theme catalogs are satisfied from packaged/compiled defaults without\n"
+    "# creating a user file, only --init / explicit F10 edit flows create starter files.\n"
     "THEME=classic-blue\n"
     "\n"
     "#############################\n"
@@ -180,4 +179,5 @@ static const char default_profile_template[] =
     "# <g>  in file window mode does \"gcc -O -c <filename>\"\n"
     "# g=gcc -O -c\n"
     "# <w>  in file window mode does \"wc <filename> | less\"\n"
-    "# w=wc %s | less\n";
+    "# w=wc %s | less\n"
+    ;
