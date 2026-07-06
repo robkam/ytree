@@ -7297,12 +7297,18 @@ def test_preview_modal_state_routes_through_appstate_helper() -> None:
 
     assert "AppStateCommitPreviewMode(ctx, FALSE)" in init_source
     assert "AppStateCommitPreviewMode(ctx, FALSE)" in ctrl_dir
-    assert "AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window)" in (
-        ctrl_file_ops
+    assert 'include "ytnova_appstate_focus.h"' in ctrl_file_ops
+    assert re.search(
+        r"AppStateCommitPreviewReturn\(\s*ctx,\s*ctx->active,\s*"
+        r"AppStateResolveActivePanelFocus\(ctx\)\s*\)",
+        ctrl_file_ops,
     )
     assert "AppStateCommitPreviewMode(ctx, !ctx->preview_mode)" in ctrl_file_ops
-    assert "AppStateCommitPreviewReturn(ctx, ctx->active, ctx->focused_window)" in (
-        dir_ops
+    assert 'include "ytnova_appstate_focus.h"' in dir_ops
+    assert re.search(
+        r"AppStateCommitPreviewReturn\(\s*ctx,\s*ctx->active,\s*"
+        r"AppStateResolveActivePanelFocus\(ctx\)\s*\)",
+        dir_ops,
     )
     assert "AppStateCommitPreviewEntryFocus(ctx, FOCUS_TREE)" in dir_ops
 
@@ -9640,6 +9646,8 @@ def test_split_file_focus_commits_use_appstate_helper() -> None:
 
     assert 'include "ytnova_appstate_focus.h"' in source
     assert not re.search(r"\bctx->focused_window\s*=[^=]", body)
+    assert "ViewFocus preserved_focus = AppStateResolveActivePanelFocus(ctx);" in body
+    assert "ctx->focused_window" not in body
     assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in body
     assert "AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus)" in body
     assert "AppStateMirrorActivePanelFocus(ctx)" in body
@@ -9652,6 +9660,8 @@ def test_split_directory_focus_commits_use_appstate_helper() -> None:
 
     assert 'include "ytnova_appstate_focus.h"' in source
     assert not re.search(r"\bctx->focused_window\s*=[^=]", body)
+    assert "ViewFocus preserved_focus = AppStateResolveActivePanelFocus(ctx);" in body
+    assert "ctx->focused_window" not in body
     assert "AppStateCommitPanelFocus(ctx, ctx->active, preserved_focus)" in body
     assert body.count("AppStateMirrorActivePanelFocus(ctx)") >= 2
 
