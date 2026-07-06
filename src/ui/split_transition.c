@@ -638,7 +638,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       *s_ptr = &ctx->active->vol->vol_stats;
       PanelTags_ApplyToTree(ctx, ctx->active);
       DEBUG_LOG("DirPanelAction:switch:post_toggle active_saved_focus=%d",
-                ctx->active->saved_focus);
+                AppStateResolveActivePanelFocus(ctx));
 
       if (ctx->active->vol->total_dirs > 0) {
         if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
@@ -713,7 +713,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
     *s_ptr = &ctx->active->vol->vol_stats;
     PanelTags_ApplyToTree(ctx, ctx->active);
     DEBUG_LOG("DirPanelAction:switch:post_toggle active_saved_focus=%d",
-              ctx->active->saved_focus);
+              AppStateResolveActivePanelFocus(ctx));
 
     if (ctx->active->vol->total_dirs > 0) {
       if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
