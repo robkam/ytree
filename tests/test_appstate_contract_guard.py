@@ -9769,6 +9769,15 @@ def test_split_panel_switch_traces_project_from_helper() -> None:
     ) not in dir_body
 
 
+def test_focus_mirror_projects_through_helper() -> None:
+    focus_source = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+
+    mirror_start = focus_source.index("BOOL AppStateMirrorActivePanelFocus(")
+    mirror_body = focus_source[mirror_start:]
+    assert "AppStateResolveActivePanelFocus(ctx)" in mirror_body
+    assert "ctx->active->saved_focus" not in mirror_body
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")

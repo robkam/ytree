@@ -4,25 +4,25 @@ Date: 2026-07-06
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-split-focus-trace-projection
-Active PR: https://github.com/robkam/ytreenova/pull/362 (draft)
+Current branch: appstate-focus-mirror-projection
+Active PR: https://github.com/robkam/ytreenova/pull/363 (draft)
 Supersession state: no active stop or pause condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/361 merged at `cbebf61` after green checks.
-- Local `main` and `origin/main` are aligned at `cbebf61` before this branch.
+- PR https://github.com/robkam/ytreenova/pull/362 merged at `a0e68d2` after green checks.
+- Local `main` and `origin/main` are aligned at `a0e68d2` before this branch.
 - The prior topic branch was deleted on merge and pruned locally/remotely.
 
 Current AppState batch:
-- Routes split-panel post-toggle active-focus traces in `src/ui/split_transition.c` through `AppStateResolveActivePanelFocus()` instead of logging `ctx->active->saved_focus` directly.
-- Extends `tests/test_appstate_contract_guard.py` to keep those split-panel trace reads on the projection helper.
+- Routes `AppStateMirrorActivePanelFocus()` in `src/ui/appstate_focus.c` through `AppStateResolveActivePanelFocus()` so compatibility mirror writes reuse the same active-focus projection helper.
+- Extends `tests/test_appstate_contract_guard.py` to keep the focus mirror path on the projection helper.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k split_panel_switch_traces_project_from_helper`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'split_panel_switch_traces_project_from_helper or focus_debug_traces_project_from_panel_state or active_panel_focus_decisions_project_from_helper or compatibility_shim_boundaries_fail_closed_before_legacy_writes'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k focus_mirror_projects_through_helper`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'focus_mirror_projects_through_helper or split_panel_switch_traces_project_from_helper or active_panel_focus_decisions_project_from_helper or compatibility_shim_boundaries_fail_closed_before_legacy_writes'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make`
 - `git diff --check`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/362 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/363 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
