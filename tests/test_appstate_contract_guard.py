@@ -9661,6 +9661,44 @@ def test_key_and_stats_focus_reads_project_from_panel_state() -> None:
     assert "ctx->focused_window" not in stats_body
 
 
+def test_focus_debug_traces_project_from_panel_state() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(
+        encoding="utf-8"
+    )
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+    dir_debug_start = dir_ops.index("static void DebugLogSplitState(")
+    dir_debug_end = dir_ops.index("\nvoid HandlePlus(", dir_debug_start)
+    dir_debug_body = dir_ops[dir_debug_start:dir_debug_end]
+    assert "AppStateResolveActivePanelFocus(ctx)" in dir_debug_body
+    assert "ctx->focused_window" not in dir_debug_body
+
+    split_file_debug_start = split_transition.index(
+        "static void SplitTransitionDebugLogFileState("
+    )
+    split_dir_debug_start = split_transition.index(
+        "\nstatic void SplitTransitionDebugLogDirState(", split_file_debug_start
+    )
+    split_dir_debug_end = split_transition.index(
+        "\nstatic BOOL PanelHasVisibleFiles(", split_dir_debug_start
+    )
+    split_file_debug_body = split_transition[
+        split_file_debug_start:split_dir_debug_start
+    ]
+    split_dir_debug_body = split_transition[
+        split_dir_debug_start:split_dir_debug_end
+    ]
+    for body in [split_file_debug_body, split_dir_debug_body]:
+        assert "AppStateResolveActivePanelFocus(ctx)" in body
+        assert "ctx->focused_window" not in body
+
+    panel_trace_start = panel_anchor.index("void DebugLogDirLoopState(")
+    panel_trace_body = panel_anchor[panel_trace_start:]
+    assert "AppStateResolveActivePanelFocus(ctx)" in panel_trace_body
+    assert "ctx->focused_window" not in panel_trace_body
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")

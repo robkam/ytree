@@ -199,18 +199,19 @@ static void SplitTransitionDebugLogFilePanelState(const char *label,
 static void SplitTransitionDebugLogFileState(const char *label,
                                              const ViewContext *ctx) {
   const char *active_side = "?";
+  int focused = -1;
 
   if (ctx && ctx->active) {
     if (ctx->active == ctx->left)
       active_side = "LEFT";
     else if (ctx->active == ctx->right)
       active_side = "RIGHT";
+    focused = (int)AppStateResolveActivePanelFocus(ctx);
   }
 
   DEBUG_LOG("FILE_SPLIT[%s] is_split=%d active=%s focused=%d",
             label ? label : "?",
-            ctx ? (int)ctx->is_split_screen : -1, active_side,
-            ctx ? (int)ctx->focused_window : -1);
+            ctx ? (int)ctx->is_split_screen : -1, active_side, focused);
   if (ctx) {
     SplitTransitionDebugLogFilePanelState("LEFT", ctx->left);
     SplitTransitionDebugLogFilePanelState("RIGHT", ctx->right);
@@ -220,17 +221,18 @@ static void SplitTransitionDebugLogFileState(const char *label,
 static void SplitTransitionDebugLogDirState(const char *label,
                                             const ViewContext *ctx) {
   const char *active_side = "?";
+  int focused = -1;
 
   if (ctx && ctx->active) {
     if (ctx->active == ctx->left)
       active_side = "LEFT";
     else if (ctx->active == ctx->right)
       active_side = "RIGHT";
+    focused = (int)AppStateResolveActivePanelFocus(ctx);
   }
 
   DEBUG_LOG("SPLIT[%s] is_split=%d active=%s focused=%d", label ? label : "?",
-            ctx ? (int)ctx->is_split_screen : -1, active_side,
-            ctx ? (int)ctx->focused_window : -1);
+            ctx ? (int)ctx->is_split_screen : -1, active_side, focused);
 }
 
 static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreeNovaPanel *panel,
