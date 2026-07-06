@@ -9584,8 +9584,11 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     helper_validation = (
         'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'
     )
-    assert helper_validation in focus_helper
-    assert focus_helper.index(helper_validation) < focus_helper.index(
+    commit_start = focus_helper.index("BOOL AppStateCommitPanelFocus(")
+    commit_end = focus_helper.index("\nBOOL AppStateCommitPanelFileShape(", commit_start)
+    commit_body = focus_helper[commit_start:commit_end]
+    assert helper_validation in commit_body
+    assert commit_body.index(helper_validation) < commit_body.index(
         "ctx->focused_window ="
     )
 
@@ -9597,6 +9600,36 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
     assert render_validation in refresh_body
     assert refresh_body.index(render_validation) < refresh_body.index("Layout_Recalculate(")
     assert refresh_body.index(render_validation) < refresh_body.index("DisplayTree(")
+
+
+def test_render_footer_focus_reads_project_from_panel_state() -> None:
+    header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
+    focus_source = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+    display = Path("src/ui/display.c").read_text(encoding="utf-8")
+    error = Path("src/ui/error.c").read_text(encoding="utf-8")
+    file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
+
+    assert (
+        "ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx);"
+        in header
+    )
+
+    helper_start = focus_source.index("ViewFocus AppStateResolveActivePanelFocus(")
+    helper_end = focus_source.index(
+        "\nBOOL AppStateCommitVolumeFocusMirror(", helper_start
+    )
+    helper_body = focus_source[helper_start:helper_end]
+
+    assert "ctx->active->saved_focus" in helper_body
+    assert "ctx->focused_window" in helper_body
+    assert helper_body.index("ctx->active->saved_focus") < helper_body.index(
+        "ctx->focused_window"
+    )
+
+    for source in [display, error, file_list]:
+        assert 'include "ytnova_appstate_focus.h"' in source
+        assert "AppStateResolveActivePanelFocus(ctx)" in source
+        assert "ctx->focused_window" not in source
 
 
 def test_split_file_focus_commits_use_appstate_helper() -> None:

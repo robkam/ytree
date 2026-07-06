@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "sort.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
@@ -239,7 +240,7 @@ void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
   (void)AppStateCommitPanelFileViewport(panel, render_start, render_cursor);
 
   highlight_idx = -1;
-  if (ctx->focused_window == FOCUS_FILE)
+  if (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE)
     highlight_idx = render_start + render_cursor;
 
   DisplayFiles(ctx, panel, dir_entry, render_start, highlight_idx, 0,

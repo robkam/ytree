@@ -10,6 +10,7 @@
 
 #include "ytnova_defs.h"
 
+ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx);
 BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
                               ViewFocus focus);
 BOOL AppStateCommitPanelFileShape(YtreeNovaPanel *panel, BOOL big_file_view);
