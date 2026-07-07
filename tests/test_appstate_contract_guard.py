@@ -9837,6 +9837,43 @@ def test_focused_window_shim_registry_matches_helper_boundary() -> None:
     assert '"src/ui/split_transition.c"' not in array_body
 
 
+def test_focused_window_shim_metadata_describes_helper_only_boundary() -> None:
+    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
+        encoding="utf-8"
+    )
+    action_registry = Path("src/core/appstate_actions.c").read_text(
+        encoding="utf-8"
+    )
+
+    owner = "AppState focus compatibility carrier"
+    read_permission = (
+        "Allowed only inside AppState focus compatibility helpers while "
+        "panel-local focus_shape authority migration remains incomplete."
+    )
+    write_permission = (
+        "Write only from AppState focus compatibility helpers after the "
+        "active panel focus_shape has been updated."
+    )
+    removal_trigger = (
+        "AppState focus helpers no longer need a "
+        "ViewContext.focused_window compatibility fallback."
+    )
+    follow_up_task = (
+        "Remove the focused-window compatibility carrier once panel-local "
+        "focus commits fully cover active-focus recovery."
+    )
+
+    for text in [
+        owner,
+        read_permission,
+        write_permission,
+        removal_trigger,
+        follow_up_task,
+    ]:
+        assert text in shim_registry
+        assert text in action_registry
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")
