@@ -9889,6 +9889,43 @@ def test_render_row_projection_uses_display_helpers() -> None:
     assert "render_start + render_cursor" not in render_body
 
 
+def test_render_row_shim_metadata_describes_helper_boundary() -> None:
+    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
+        encoding="utf-8"
+    )
+    action_registry = Path("src/core/appstate_actions.c").read_text(
+        encoding="utf-8"
+    )
+
+    owner = "Display render projection helpers"
+    read_permission = (
+        "Allowed only inside display render projection helpers or "
+        "bounds-correction code after identity restore has run."
+    )
+    write_permission = (
+        "Never write authoritative selection from display render projection "
+        "helper calculations."
+    )
+    removal_trigger = (
+        "Display render projection helpers accept explicit projection inputs "
+        "and no longer inspect restore authority fields directly."
+    )
+    follow_up_task = (
+        "Remove render-derived row compatibility helpers once render callers "
+        "carry explicit projection state."
+    )
+
+    for text in [
+        owner,
+        read_permission,
+        write_permission,
+        removal_trigger,
+        follow_up_task,
+    ]:
+        assert text in shim_registry
+        assert text in action_registry
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")

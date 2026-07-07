@@ -6307,12 +6307,12 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
     "AppState focus helpers no longer need a ViewContext.focused_window compatibility fallback.",
     "transition.keybinding.navigate-tree",
     "Remove the focused-window compatibility carrier once panel-local focus commits fully cover active-focus recovery.",
-   "check_appstate_contract.py validates shim coverage and links it to an existing transition id."},
+  "check_appstate_contract.py validates shim coverage and links it to an existing transition id."},
   {"shim-render-derived-row-position",
-   "Render projection temporary",
+   "Display render projection helpers",
    "disp_begin_pos + cursor_pos render-derived lookup",
-   "Allowed only inside render projection or bounds-correction code after identity restore has run.",
-   "Never write authoritative selection from this calculation.",
+   "Allowed only inside display render projection helpers or bounds-correction code after identity restore has run.",
+   "Never write authoritative selection from display render projection helper calculations.",
    "read_only_projection",
    kAppStateCompatibilityShimInvariantChecks2,
    sizeof(kAppStateCompatibilityShimInvariantChecks2) /
@@ -6329,9 +6329,9 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
     kAppStateCompatibilityShimSourceBoundaryRefs2,
     sizeof(kAppStateCompatibilityShimSourceBoundaryRefs2) /
         sizeof(kAppStateCompatibilityShimSourceBoundaryRefs2[0]),
-    "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
-    "transition.render-reflow.project-state",
-    "Audit render/reflow call sites for projection-only behavior during runtime migration.",
+   "Display render projection helpers accept explicit projection inputs and no longer inspect restore authority fields directly.",
+   "transition.render-reflow.project-state",
+   "Remove render-derived row compatibility helpers once render callers carry explicit projection state.",
    "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage."},
 };
 
