@@ -582,7 +582,7 @@ def _transition_sequence(
         "category": category,
         "flow": flow,
         "description": "fixture transition sequence",
-        "coverage_status": "runtime_backed",
+        "coverage_status": "covered_by_runtime_registry",
         "steps": steps or [_sequence_step()],
     }
 
@@ -740,7 +740,7 @@ def _owner_field(field: str = "field") -> dict[str, object]:
         "canonical_owner": "YtreeNovaPanel(fixture)",
         "runtime_carrier": "YtreeNovaPanel fixture carrier",
         "mutation_rule": "Fixture transitions may mutate only declared fields.",
-        "migration_status": "runtime_backed",
+        "migration_status": "covered_by_runtime_registry",
         "invariant_checks": ["invariant.inactive_panel_frozen"],
     }
 

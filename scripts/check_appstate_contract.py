@@ -329,12 +329,11 @@ VALID_ENFORCEMENT_STATUSES = {
     "documented_foundation_only",
     "covered_by_runtime_registry",
 }
-VALID_MIGRATION_STATUSES = {
-    "runtime_backed",
+VALID_RUNTIME_REGISTRY_STATUSES = {
+    "covered_by_runtime_registry",
 }
-VALID_SEQUENCE_COVERAGE_STATUSES = {
-    "runtime_backed",
-}
+VALID_MIGRATION_STATUSES = VALID_RUNTIME_REGISTRY_STATUSES
+VALID_SEQUENCE_COVERAGE_STATUSES = VALID_RUNTIME_REGISTRY_STATUSES
 DISPATCH_LIST_FIELDS = {"migration_notes", "transition_sequence_refs"}
 INVARIANT_LIST_FIELDS = {
     "protected_fields",

@@ -9,7 +9,7 @@
       "canonical_owner": "ViewContext.session routing",
       "runtime_carrier": "ViewContext.active",
       "mutation_rule": "May change only during an allowed panel-routing or volume/menu transition commit.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.inactive-panel-frozen",
         "invariant.shared-state-panel-local-isolation"
@@ -21,7 +21,7 @@
       "canonical_owner": "ViewContext.command_region",
       "runtime_carrier": "ViewContext command state fields",
       "mutation_rule": "May change only through command start/completion/cancel transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.blocked-transition-determinism",
         "invariant.shared-state-panel-local-isolation"
@@ -33,7 +33,7 @@
       "canonical_owner": "ViewContext.refresh_policy",
       "runtime_carrier": "ViewContext.refresh_mode",
       "mutation_rule": "May change only through initialization or profile refresh policy commits before refresh dispatch observes it.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.blocked-transition-determinism",
         "invariant.shared-state-panel-local-isolation"
@@ -45,7 +45,7 @@
       "canonical_owner": "ViewContext.view_mode",
       "runtime_carrier": "ViewContext.view_mode",
       "mutation_rule": "May change only through allowed volume restore, log, or mode transition commits.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.blocked-transition-determinism",
         "invariant.shared-state-panel-local-isolation"
@@ -57,7 +57,7 @@
       "canonical_owner": "ViewContext.directory_display_mode",
       "runtime_carrier": "ViewContext.dir_mode",
       "mutation_rule": "May change only through directory display mode commits that validate supported presentation modes.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.blocked-transition-determinism",
         "invariant.shared-state-panel-local-isolation"
@@ -69,7 +69,7 @@
       "canonical_owner": "ViewContext.message_region",
       "runtime_carrier": "ViewContext message/footer state fields",
       "mutation_rule": "May change only through transitions that declare user-visible outcome or constraint messaging.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.blocked-transition-determinism",
         "invariant.render-projection-read-only"
@@ -81,7 +81,7 @@
       "canonical_owner": "ViewContext.modal_region",
       "runtime_carrier": "ViewContext modal/dialog state fields",
       "mutation_rule": "May change only when entering, completing, or dismissing a registered modal transition.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.panel-local-focus-restore",
         "invariant.blocked-transition-determinism"
@@ -93,7 +93,7 @@
       "canonical_owner": "ViewContext.transition_queue",
       "runtime_carrier": "ViewContext pending transition marker",
       "mutation_rule": "May be queued only by transitions that declare a deterministic follow-up boundary.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.blocked-transition-determinism",
         "invariant.stale-snapshot-fail-closed"
@@ -105,7 +105,7 @@
       "canonical_owner": "ViewContext.volume_registry",
       "runtime_carrier": "ViewContext.volumes_head",
       "mutation_rule": "May change only through volume lifecycle transitions that validate panel bindings.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.shared-state-panel-local-isolation",
         "invariant.viewport-identity-rebind"
@@ -117,7 +117,7 @@
       "canonical_owner": "ViewContext.layout_region",
       "runtime_carrier": "ViewContext layout geometry fields",
       "mutation_rule": "May change only during resize/reflow transitions executed in the main loop.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.viewport-identity-rebind"
@@ -129,7 +129,7 @@
       "canonical_owner": "ViewContext.render_region",
       "runtime_carrier": "ViewContext render invalidation fields",
       "mutation_rule": "May change only when a transition marks or clears declared projection surfaces.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.blocked-transition-determinism"
@@ -141,7 +141,7 @@
       "canonical_owner": "ViewContext ncurses window/layout handles",
       "runtime_carrier": "ViewContext window handle fields",
       "mutation_rule": "May change only during main-loop layout/reflow or render projection setup.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.panel-local-focus-restore"
@@ -153,7 +153,7 @@
       "canonical_owner": "YtreeNovaPanel.file identity owner",
       "runtime_carrier": "YtreeNovaPanel file selection identity fields",
       "mutation_rule": "May change only for the targeted panel through navigation, restore, or rebind transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.viewport-identity-rebind",
         "invariant.inactive-panel-frozen"
@@ -165,7 +165,7 @@
       "canonical_owner": "YtreeNovaPanel.file display projection state",
       "runtime_carrier": "YtreeNovaPanel.file_mode, max_column, max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len, and reverse_sort",
       "mutation_rule": "May change only through file display mode, render metric, or sort-order commits that validate supported presentation modes, derived column bounds, cached file rendering widths, and file ordering projection.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.inactive-panel-frozen",
         "invariant.shared-state-panel-local-isolation"
@@ -177,7 +177,7 @@
       "canonical_owner": "YtreeNovaPanel.file viewport owner",
       "runtime_carrier": "YtreeNovaPanel file viewport fields",
       "mutation_rule": "May change only for the targeted panel when navigation, bounds correction, or reflow declares it.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.viewport-identity-rebind",
         "invariant.render-projection-read-only"
@@ -189,7 +189,7 @@
       "canonical_owner": "YtreeNovaPanel.focus owner",
       "runtime_carrier": "YtreeNovaPanel focus/window-shape fields",
       "mutation_rule": "May change only during allowed focus, modal restore, split, or file/tree transition commits.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.panel-local-focus-restore",
         "invariant.shared-state-panel-local-isolation"
@@ -201,7 +201,7 @@
       "canonical_owner": "YtreeNovaPanel.generation owner",
       "runtime_carrier": "YtreeNovaPanel panel generation field",
       "mutation_rule": "May increment only when panel-local restore authority changes.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.stale-snapshot-fail-closed"
@@ -213,7 +213,7 @@
       "canonical_owner": "YtreeNovaPanel.restore snapshot owner",
       "runtime_carrier": "YtreeNovaPanel restore snapshot fields",
       "mutation_rule": "May change only through snapshot capture, rebind, fallback, or volume-binding transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.viewport-identity-rebind",
         "invariant.stale-snapshot-fail-closed"
@@ -225,7 +225,7 @@
       "canonical_owner": "YtreeNovaPanel.tree cursor owner",
       "runtime_carrier": "YtreeNovaPanel tree cursor field",
       "mutation_rule": "May change only for the targeted panel during tree navigation or rebind/fallback transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.hidden-entry-visible-navigation",
         "invariant.inactive-panel-frozen"
@@ -237,7 +237,7 @@
       "canonical_owner": "YtreeNovaPanel.tree selection owner",
       "runtime_carrier": "YtreeNovaPanel tree selection identity fields",
       "mutation_rule": "May change only through tree navigation, restore, or topology rebind transitions for the targeted panel.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.viewport-identity-rebind",
         "invariant.stale-snapshot-fail-closed"
@@ -249,7 +249,7 @@
       "canonical_owner": "YtreeNovaPanel.tree viewport owner",
       "runtime_carrier": "YtreeNovaPanel tree viewport fields",
       "mutation_rule": "May change only when navigation, bounds correction, resize, or rebind declares viewport mutation.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.hidden-entry-visible-navigation",
         "invariant.render-projection-read-only"
@@ -261,7 +261,7 @@
       "canonical_owner": "YtreeNovaPanel.volume binding owner",
       "runtime_carrier": "YtreeNovaPanel volume binding fields",
       "mutation_rule": "May change only through volume selection, cycle, release, or restore transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.stale-snapshot-fail-closed",
         "invariant.shared-state-panel-local-isolation"
@@ -273,7 +273,7 @@
       "canonical_owner": "Volume.topology owner",
       "runtime_carrier": "Volume directory tree fields",
       "mutation_rule": "May change only through logging, rebuild, refresh, release, or completed filesystem mutation transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.shared-state-panel-local-isolation",
         "invariant.stale-snapshot-fail-closed"
@@ -285,7 +285,7 @@
       "canonical_owner": "Volume.logged topology owner",
       "runtime_carrier": "Volume logged/unlogged directory state",
       "mutation_rule": "May change only through explicit log, relog, release, collapse, refresh, or rebuild transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.shared-state-panel-local-isolation",
         "invariant.viewport-identity-rebind"
@@ -297,7 +297,7 @@
       "canonical_owner": "Volume.payload cache owner",
       "runtime_carrier": "Volume file payload/statistics cache fields",
       "mutation_rule": "May change only through payload load, refresh, archive, or completed filesystem mutation transitions.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.shared-state-panel-local-isolation",
         "invariant.blocked-transition-determinism"
@@ -309,7 +309,7 @@
       "canonical_owner": "Volume.generation owner",
       "runtime_carrier": "Volume topology/payload generation field",
       "mutation_rule": "May increment only when shared topology, payload identity, logged state, or namespace mapping changes.",
-      "migration_status": "runtime_backed",
+      "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.stale-snapshot-fail-closed"
