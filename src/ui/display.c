@@ -471,6 +471,46 @@ static DirEntry *ResolvePanelFileAnchorForRender(ViewContext *ctx,
   return ResolvePanelFileAnchor(panel);
 }
 
+static void ClampRenderFileViewport(const YtreeNovaPanel *panel,
+                                    int *render_start_ptr,
+                                    int *render_cursor_ptr) {
+  int render_start;
+  int render_cursor;
+
+  if (!panel || !render_start_ptr || !render_cursor_ptr)
+    return;
+
+  render_start = *render_start_ptr;
+  render_cursor = *render_cursor_ptr;
+  if (panel->file_count > 0) {
+    if (render_start < 0)
+      render_start = 0;
+    if ((unsigned int)render_start >= panel->file_count)
+      render_start = (int)panel->file_count - 1;
+    if (render_cursor < 0)
+      render_cursor = 0;
+    if ((unsigned int)(render_start + render_cursor) >= panel->file_count) {
+      render_cursor = (int)panel->file_count - 1 - render_start;
+      if (render_cursor < 0)
+        render_cursor = 0;
+    }
+  } else {
+    render_start = 0;
+    render_cursor = 0;
+  }
+
+  *render_start_ptr = render_start;
+  *render_cursor_ptr = render_cursor;
+}
+
+static int ResolveRenderFileHighlight(const YtreeNovaPanel *panel,
+                                      int render_start, int render_cursor) {
+  if (!panel || panel->saved_focus != FOCUS_FILE || panel->file_count == 0)
+    return -1;
+
+  return render_start + render_cursor;
+}
+
 void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
   if (!panel || !panel->vol || !panel->pan_dir_window)
     return;
@@ -548,33 +588,20 @@ void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
       render_start = panel->start_file;
       render_cursor = panel->file_cursor_pos;
     }
-    if (panel->file_count > 0) {
-      if (render_start < 0)
-        render_start = 0;
-      if ((unsigned int)render_start >= panel->file_count)
-        render_start = (int)panel->file_count - 1;
-      if (render_cursor < 0)
-        render_cursor = 0;
-      if ((unsigned int)(render_start + render_cursor) >= panel->file_count) {
-        render_cursor = (int)panel->file_count - 1 - render_start;
-        if (render_cursor < 0)
-          render_cursor = 0;
-      }
-    } else {
-      render_start = 0;
-      render_cursor = 0;
-    }
+    ClampRenderFileViewport(panel, &render_start, &render_cursor);
 
     if (IsPanelSavedBigFileMode(panel) && panel->pan_big_file_window) {
       DEBUG_LOG("RenderInactivePanel:file path='%s' start=%d cursor=%d count=%u",
                 panel->file_selection_dir_path[0] ? panel->file_selection_dir_path
-                                                   : "<none>",
+                                                  : "<none>",
                 render_start, render_cursor, panel->file_count);
       if (panel->pan_dir_window) {
         werase(panel->pan_dir_window);
         wnoutrefresh(panel->pan_dir_window);
       }
-      DisplayFiles(ctx, panel, de, render_start, render_start + render_cursor,
+      DisplayFiles(ctx, panel, de, render_start,
+                   ResolveRenderFileHighlight(panel, render_start,
+                                              render_cursor),
                    0, panel->pan_big_file_window);
       wnoutrefresh(panel->pan_big_file_window);
       return;
@@ -596,9 +623,8 @@ void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
         werase(panel->pan_file_window);
         wnoutrefresh(panel->pan_file_window);
       } else {
-        int file_hilight = -1;
-        if (panel->saved_focus == FOCUS_FILE && panel->file_count > 0)
-          file_hilight = render_start + render_cursor;
+        int file_hilight =
+            ResolveRenderFileHighlight(panel, render_start, render_cursor);
         DisplayFiles(ctx, panel, de, render_start, file_hilight, 0,
                      panel->pan_file_window);
         wnoutrefresh(panel->pan_file_window);

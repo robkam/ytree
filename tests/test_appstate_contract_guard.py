@@ -9874,6 +9874,21 @@ def test_focused_window_shim_metadata_describes_helper_only_boundary() -> None:
         assert text in action_registry
 
 
+def test_render_row_projection_uses_display_helpers() -> None:
+    display = Path("src/ui/display.c").read_text(encoding="utf-8")
+
+    assert "static void ClampRenderFileViewport(" in display
+    assert "static int ResolveRenderFileHighlight(" in display
+
+    render_start = display.index("void RenderInactivePanel(")
+    render_end = display.index("\nstatic BOOL IsActivePanelBigFileMode(", render_start)
+    render_body = display[render_start:render_end]
+
+    assert "ClampRenderFileViewport(panel, &render_start, &render_cursor);" in render_body
+    assert "ResolveRenderFileHighlight(panel, render_start, render_cursor)" in render_body
+    assert "render_start + render_cursor" not in render_body
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")
