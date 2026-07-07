@@ -618,7 +618,7 @@ CopyPanelVolumeFileState(const PanelVolumeFileState *src) {
   return head;
 }
 
-BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
+BOOL DonatePanelState(const ViewContext *ctx, YtreeNovaPanel *dst,
                       const YtreeNovaPanel *src) {
   char file_dir_path[PATH_LENGTH + 1];
   BOOL dst_saved_big_file_view;

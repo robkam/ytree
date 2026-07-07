@@ -2790,30 +2790,15 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
    kAppStateDispatchSurfaceMigrationNotes12,
    sizeof(kAppStateDispatchSurfaceMigrationNotes12) / sizeof(kAppStateDispatchSurfaceMigrationNotes12[0])},
 };
-static const char *const kAppStateCompatibilityShimInvariantChecks1[] = {
-  "invariant.panel-local-focus-restore",
-  "invariant.inactive-panel-frozen",
-};
-
 static const char *const kAppStateCompatibilityShimInvariantChecks2[] = {
   "invariant.render-projection-read-only",
   "invariant.blocked-transition-determinism",
-};
-
-static const char *const kAppStateCompatibilityShimOwnerFieldRefs1[] = {
-  "panel.focus_shape",
-  "panel.panel_generation",
 };
 
 static const char *const kAppStateCompatibilityShimOwnerFieldRefs2[] = {
   "panel.tree_cursor_pos",
   "panel.tree_viewport_origin",
   "panel.file_viewport_origin",
-};
-
-static const char *const kAppStateCompatibilityShimGenerationDomainRefs1[] = {
-  "generation.panel.local-authority",
-  "shape.panel.focus",
 };
 
 static const char *const kAppStateCompatibilityShimGenerationDomainRefs2[] = {
@@ -2823,18 +2808,10 @@ static const char *const kAppStateCompatibilityShimGenerationDomainRefs2[] = {
   "reflow.layout.projection",
 };
 
-static const char *const kAppStateCompatibilityShimDiffHarnessRefs1[] = {
-  "harness.declared-write-set-diff",
-};
-
 static const char *const kAppStateCompatibilityShimDiffHarnessRefs2[] = {
   "harness.render-projection-read-only-diff",
   "harness.generation-mismatch-check",
   "harness.blocked-transition-no-unrelated-mutation",
-};
-
-static const char *const kAppStateCompatibilityShimSourceBoundaryRefs1[] = {
-  "src/ui/appstate_focus.c",
 };
 
 static const char *const kAppStateCompatibilityShimSourceBoundaryRefs2[] = {
@@ -6283,31 +6260,6 @@ static const AppStateActionCoverageMetadata
 };
 
 static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
-  {"shim.focused-window-session-flag",
-   "AppState focus compatibility carrier",
-   "ViewContext.focused_window",
-   "Allowed only inside AppState focus compatibility helpers while panel-local focus_shape authority migration remains incomplete.",
-   "Write only from AppState focus compatibility helpers after the active panel focus_shape has been updated.",
-   "write_capable",
-   kAppStateCompatibilityShimInvariantChecks1,
-   sizeof(kAppStateCompatibilityShimInvariantChecks1) /
-       sizeof(kAppStateCompatibilityShimInvariantChecks1[0]),
-   kAppStateCompatibilityShimOwnerFieldRefs1,
-   sizeof(kAppStateCompatibilityShimOwnerFieldRefs1) /
-       sizeof(kAppStateCompatibilityShimOwnerFieldRefs1[0]),
-   kAppStateCompatibilityShimGenerationDomainRefs1,
-    sizeof(kAppStateCompatibilityShimGenerationDomainRefs1) /
-        sizeof(kAppStateCompatibilityShimGenerationDomainRefs1[0]),
-    kAppStateCompatibilityShimDiffHarnessRefs1,
-    sizeof(kAppStateCompatibilityShimDiffHarnessRefs1) /
-        sizeof(kAppStateCompatibilityShimDiffHarnessRefs1[0]),
-    kAppStateCompatibilityShimSourceBoundaryRefs1,
-    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs1) /
-        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs1[0]),
-    "AppState focus helpers no longer need a ViewContext.focused_window compatibility fallback.",
-    "transition.keybinding.navigate-tree",
-    "Remove the focused-window compatibility carrier once panel-local focus commits fully cover active-focus recovery.",
-  "check_appstate_contract.py validates shim coverage and links it to an existing transition id."},
   {"shim-render-derived-row-position",
    "AppState render projection helpers",
    "disp_begin_pos + cursor_pos render-derived lookup",

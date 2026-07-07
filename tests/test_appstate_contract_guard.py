@@ -5362,7 +5362,7 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
   (void)panel;
   (void)dir_entry;
 }
-BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst,
+BOOL DonatePanelState(const ViewContext *ctx, YtreeNovaPanel *dst,
                       const YtreeNovaPanel *src) {
   (void)ctx;
   (void)dst;
@@ -5439,7 +5439,6 @@ static void seed_context(ViewContext *ctx, YtreeNovaPanel *left,
   ctx->left = left;
   ctx->right = right;
   ctx->active = left;
-  ctx->focused_window = FOCUS_TREE;
 }
 
 static int expect_file_split_rejected(void) {
@@ -9554,12 +9553,9 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
 
     assert "shim.viewcontext-hide-dot-files" not in dir_ops
 
-    focus_validation = (
-        'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'
-    )
     dir_start = ctrl_dir.index("HandleDirWindow(")
     dir_body = ctrl_dir[dir_start:]
-    assert focus_validation in dir_body
+    assert 'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")' not in dir_body
     assert not re.search(r"\bctx->focused_window\s*=[^=]", ctrl_dir)
     assert "AppStateMirrorActivePanelFocus(ctx)" in dir_body
 
@@ -9571,7 +9567,7 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
 
     file_start = ctrl_file.index("int HandleFileWindow(")
     file_body = ctrl_file[file_start:]
-    assert focus_validation in file_body
+    assert 'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")' not in file_body
     assert not re.search(r"\bctx->focused_window\s*=[^=]", ctrl_file)
     assert "AppStateCommitPanelFocus(ctx, ctx->active, FOCUS_FILE)" in file_body
     assert "if (AppStateResolveActivePanelFocus(ctx) != FOCUS_FILE) {" in file_body
@@ -9588,23 +9584,11 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
         in ctrl_file_ops
     )
 
-    helper_validation = (
-        'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'
-    )
-    compat_helper_start = focus_helper.index("static BOOL CommitCompatibilityFocusedWindow(")
-    compat_helper_end = focus_helper.index(
-        "\nViewFocus AppStateResolveActivePanelFocus(", compat_helper_start
-    )
-    compat_helper_body = focus_helper[compat_helper_start:compat_helper_end]
-    assert "ctx->focused_window = focus;" in compat_helper_body
-
     commit_start = focus_helper.index("BOOL AppStateCommitPanelFocus(")
     commit_end = focus_helper.index("\nBOOL AppStateCommitPanelFileShape(", commit_start)
     commit_body = focus_helper[commit_start:commit_end]
-    assert helper_validation in commit_body
-    assert commit_body.index(helper_validation) < commit_body.index(
-        "CommitCompatibilityFocusedWindow"
-    )
+    assert 'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")' not in commit_body
+    assert "CommitCompatibilityFocusedWindow" not in commit_body
 
     refresh_start = display.index("void RefreshView(")
     refresh_body = display[refresh_start:]
@@ -9617,6 +9601,7 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
 
 
 def test_render_footer_focus_reads_project_from_panel_state() -> None:
+    defs = Path("include/ytnova_defs.h").read_text(encoding="utf-8")
     header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
     focus_source = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
     display = Path("src/ui/display.c").read_text(encoding="utf-8")
@@ -9627,23 +9612,18 @@ def test_render_footer_focus_reads_project_from_panel_state() -> None:
         "ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx);"
         in header
     )
+    assert "ViewFocus focused_window;" not in defs
 
     helper_start = focus_source.index("ViewFocus AppStateResolveActivePanelFocus(")
     helper_end = focus_source.index(
         "\nBOOL AppStateCommitVolumeFocusMirror(", helper_start
     )
     helper_body = focus_source[helper_start:helper_end]
-    compat_helper_start = focus_source.index(
-        "static ViewFocus ResolveCompatibilityFocusedWindow("
-    )
-    compat_helper_end = focus_source.index(
-        "\nstatic BOOL CommitCompatibilityFocusedWindow(", compat_helper_start
-    )
-    compat_helper_body = focus_source[compat_helper_start:compat_helper_end]
 
     assert "ctx->active->saved_focus" in helper_body
-    assert "return ResolveCompatibilityFocusedWindow(ctx);" in helper_body
-    assert "ctx->focused_window" in compat_helper_body
+    assert "return FOCUS_TREE;" in helper_body
+    assert "ResolveCompatibilityFocusedWindow" not in focus_source
+    assert "ctx->focused_window" not in focus_source
 
     for source in [display, error, file_list]:
         assert 'include "ytnova_appstate_focus.h"' in source
@@ -9790,25 +9770,21 @@ def test_focus_mirror_projects_through_helper() -> None:
     assert "ctx->active->saved_focus" not in mirror_body
 
 
-def test_focused_window_compatibility_stays_in_appstate_focus_helpers() -> None:
+def test_focused_window_compatibility_carrier_is_removed() -> None:
     focus_source = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
-    other_sources = [
-        path
-        for path in Path("src").rglob("*.c")
-        if path.as_posix() != "src/ui/appstate_focus.c"
-    ]
+    defs = Path("include/ytnova_defs.h").read_text(encoding="utf-8")
 
-    assert "static ViewFocus ResolveCompatibilityFocusedWindow(" in focus_source
-    assert "static BOOL CommitCompatibilityFocusedWindow(" in focus_source
-    assert "return ResolveCompatibilityFocusedWindow(ctx);" in focus_source
-    assert "if (!CommitCompatibilityFocusedWindow(ctx, panel, focus))" in focus_source
+    assert "ResolveCompatibilityFocusedWindow" not in focus_source
+    assert "CommitCompatibilityFocusedWindow" not in focus_source
+    assert "ctx->focused_window" not in focus_source
+    assert "ViewFocus focused_window;" not in defs
 
-    for path in other_sources:
+    for path in Path("src").rglob("*.c"):
         source = path.read_text(encoding="utf-8")
         assert "ctx->focused_window" not in source, path.as_posix()
 
 
-def test_focused_window_shim_registry_matches_helper_boundary() -> None:
+def test_focused_window_shim_registry_removes_compatibility_carrier() -> None:
     shim_registry = Path("docs/appstate_compat_shims.json").read_text(
         encoding="utf-8"
     )
@@ -9816,62 +9792,41 @@ def test_focused_window_shim_registry_matches_helper_boundary() -> None:
         encoding="utf-8"
     )
 
-    assert '"source_boundary_refs": [' in shim_registry
-    assert '"src/ui/appstate_focus.c"' in shim_registry
-    assert '"src/ui/ctrl_file_ops.c"' not in shim_registry
-    assert '"src/ui/ctrl_file.c"' not in shim_registry
-    assert '"src/ui/ctrl_dir.c"' not in shim_registry
-    assert '"src/ui/dir_ops.c"' not in shim_registry
-    assert '"src/ui/split_transition.c"' not in shim_registry
+    assert "shim.focused-window-session-flag" not in shim_registry
+    assert "AppState focus compatibility carrier" not in shim_registry
+    assert "ViewContext.focused_window" not in shim_registry
+    assert "shim.focused-window-session-flag" not in action_registry
+    assert "AppState focus compatibility carrier" not in action_registry
+    assert "ViewContext.focused_window" not in action_registry
 
-    array_start = action_registry.index(
-        "static const char *const kAppStateCompatibilityShimSourceBoundaryRefs1[] = {"
+
+def test_focused_window_runtime_no_longer_validates_removed_shim() -> None:
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    focus_source = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+
+    removed_validation = (
+        'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")'
     )
-    array_end = action_registry.index("};", array_start)
-    array_body = action_registry[array_start:array_end]
-    assert '"src/ui/appstate_focus.c"' in array_body
-    assert '"src/ui/ctrl_file_ops.c"' not in array_body
-    assert '"src/ui/ctrl_file.c"' not in array_body
-    assert '"src/ui/ctrl_dir.c"' not in array_body
-    assert '"src/ui/dir_ops.c"' not in array_body
-    assert '"src/ui/split_transition.c"' not in array_body
+    for source in [ctrl_dir, ctrl_file, focus_source]:
+        assert removed_validation not in source
 
 
-def test_focused_window_shim_metadata_describes_helper_only_boundary() -> None:
+def test_focused_window_shim_metadata_is_removed() -> None:
     shim_registry = Path("docs/appstate_compat_shims.json").read_text(
         encoding="utf-8"
     )
     action_registry = Path("src/core/appstate_actions.c").read_text(
         encoding="utf-8"
-    )
-
-    owner = "AppState focus compatibility carrier"
-    read_permission = (
-        "Allowed only inside AppState focus compatibility helpers while "
-        "panel-local focus_shape authority migration remains incomplete."
-    )
-    write_permission = (
-        "Write only from AppState focus compatibility helpers after the "
-        "active panel focus_shape has been updated."
-    )
-    removal_trigger = (
-        "AppState focus helpers no longer need a "
-        "ViewContext.focused_window compatibility fallback."
-    )
-    follow_up_task = (
-        "Remove the focused-window compatibility carrier once panel-local "
-        "focus commits fully cover active-focus recovery."
     )
 
     for text in [
-        owner,
-        read_permission,
-        write_permission,
-        removal_trigger,
-        follow_up_task,
+        "AppState focus compatibility carrier",
+        "ViewContext.focused_window",
+        "AppState focus helpers no longer need a ViewContext.focused_window compatibility fallback.",
     ]:
-        assert text in shim_registry
-        assert text in action_registry
+        assert text not in shim_registry
+        assert text not in action_registry
 
 
 def test_render_row_projection_uses_shared_helpers() -> None:
@@ -10040,7 +9995,7 @@ def test_split_seeded_focus_commits_use_appstate_helper() -> None:
     donate_end = panel_anchor.index("\nDirEntry *FindDirByPathInTree(", donate_start)
     donate_body = panel_anchor[donate_start:donate_end]
     assert 'include "ytnova_appstate_focus.h"' in panel_anchor
-    assert "BOOL DonatePanelState(ViewContext *ctx, YtreeNovaPanel *dst" in panel_header
+    assert "BOOL DonatePanelState(const ViewContext *ctx, YtreeNovaPanel *dst" in panel_header
     assert "AppStateCommitPanelFocus(ctx, dst, src->saved_focus)" in donate_body
     assert "AppStateCommitPanelFocus(ctx, dst, FOCUS_FILE)" in donate_body
     assert "AppStateCommitPanelFocus(ctx, dst, FOCUS_TREE)" in donate_body
@@ -10168,10 +10123,7 @@ def test_dir_ops_restore_file_shape_commits_use_appstate_helper() -> None:
         helper_start,
     )
     helper_body = focus_helper[helper_start:helper_end]
-    assert (
-        'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")'
-        in helper_body
-    )
+    assert 'AppStateValidatedCompatibilityShim("shim.focused-window-session-flag")' not in helper_body
     assert "dir_entry->big_window = big_file_view ? TRUE : FALSE;" in helper_body
 
     restore_start = dir_ops.index("\nDirEntry *RestorePanelFileSelection(")
@@ -10596,40 +10548,40 @@ int main(void) {
     return 19;
 
   invalid_shim =
-      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
-  invalid_shim.write_capability = "read_only_projection";
-  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
+  invalid_shim.write_capability = "write_capable";
+  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
                                         &invalid_shim))
     return 20;
 
   invalid_shim =
-      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
   invalid_shim.invariant_checks = missing_invariant_refs;
   invalid_shim.invariant_check_count = 1;
-  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
                                         &invalid_shim))
     return 21;
 
   invalid_shim =
-      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
   invalid_shim.generation_domain_refs = missing_generation_domain_refs;
   invalid_shim.generation_domain_ref_count = 1;
-  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
                                         &invalid_shim))
     return 22;
 
   invalid_shim =
-      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
   invalid_shim.diff_harness_refs = missing_diff_harness_refs;
   invalid_shim.diff_harness_ref_count = 1;
-  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
                                         &invalid_shim))
     return 23;
 
   invalid_shim =
-      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
   invalid_shim.owner = "";
-  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
                                         &invalid_shim))
     return 24;
 

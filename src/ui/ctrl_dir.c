@@ -464,8 +464,6 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   if (!AppStateValidatedDispatchSurface("surface.directory-window-action-dispatch"))
     return ESC;
-  if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
-    return ESC;
 
   DirEntry *dir_entry, *de_ptr;
   int ch, unput_char;

@@ -4,28 +4,27 @@ Date: 2026-07-07
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-file-list-render-helpers
-Active PR: https://github.com/robkam/ytreenova/pull/369 (draft)
+Current branch: appstate-remove-focused-window-carrier
+Active PR: https://github.com/robkam/ytreenova/pull/370 (draft)
 Supersession state: no active stop or pause condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/368 merged at `ac22ce8` after green checks.
-- Local `main` and `origin/main` were aligned at `ac22ce8` before this branch.
+- PR https://github.com/robkam/ytreenova/pull/369 merged at `9b1bdd8` after green checks.
+- Local `main` and `origin/main` were aligned at `9b1bdd8` before this branch.
 - The prior topic branch was deleted on merge and pruned locally/remotely.
 
 Current AppState batch:
-- Moves render-row clamp/highlight compatibility math into shared AppState render helpers in `src/ui/appstate_render.c` and `include/ytnova_appstate_render.h`.
-- Routes both `src/ui/display.c` and `src/ui/file_list.c` through the shared render helpers so the render-row shim no longer has a display-local runtime boundary.
-- Updates `docs/appstate_compat_shims.json`, `src/core/appstate_actions.c`, and `tests/test_appstate_contract_guard.py` to describe and guard the shared helper boundary.
-- Refreshes the tracked Cline bridge files so the repo-local skill bridge wording matches the linked skill path.
+- Removes the obsolete `ViewContext.focused_window` compatibility carrier from `include/ytnova_defs.h` and `src/ui/appstate_focus.c` now that active-focus reads project from panel-local state.
+- Drops the focused-window shim from `docs/appstate_compat_shims.json`, `src/core/appstate_actions.c`, and `src/core/main.c` so the runtime registry no longer requires the removed carrier.
+- Removes no-longer-needed focused-window shim validation gates from `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c`.
+- Refreshes `docs/ARCHITECTURE.md` and `tests/test_appstate_contract_guard.py` to guard the carrier removal and keep the remaining render shim coverage intact.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'render_row_projection_uses_shared_helpers or render_row_shim_registry_matches_shared_helper_boundary or render_row_shim_metadata_describes_helper_boundary'`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'render_row_projection_uses_shared_helpers or render_row_shim_registry_matches_shared_helper_boundary or render_row_shim_metadata_describes_helper_boundary or focused_window_shim_metadata_describes_helper_only_boundary or focused_window_shim_registry_matches_helper_boundary or render_footer_focus_reads_project_from_panel_state'`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'render_row_projection_uses_shared_helpers or render_row_shim_registry_matches_shared_helper_boundary or render_row_shim_metadata_describes_helper_boundary or test_guard_fails_when_runtime_shim_validation_callsite_is_missing or test_guard_fails_when_runtime_shim_validation_moves_outside_source_boundary or focused_window_shim_metadata_describes_helper_only_boundary or focused_window_shim_registry_matches_helper_boundary or render_footer_focus_reads_project_from_panel_state'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'test_compatibility_shim_boundaries_fail_closed_before_legacy_writes or test_render_footer_focus_reads_project_from_panel_state or test_focused_window_compatibility_carrier_is_removed or test_focused_window_shim_registry_removes_compatibility_carrier or test_focused_window_runtime_no_longer_validates_removed_shim or test_focused_window_shim_metadata_is_removed'`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make`
 - `git diff --check`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/369 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/370 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
