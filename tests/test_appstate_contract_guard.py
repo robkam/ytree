@@ -95,6 +95,29 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+FIXTURE_REGISTRY_DOC_NAMES = {
+    "transitions": "appstate_transition_matrix.json",
+    "actions": "appstate_action_coverage.json",
+    "events": "appstate_event_coverage.json",
+    "owner_fields": "appstate_owner_fields.json",
+    "dispatch_surfaces": "appstate_dispatch_surfaces.json",
+    "invariants": "appstate_invariants.json",
+    "generation_domains": "appstate_generation_domains.json",
+    "diff_harness": "appstate_diff_harness.json",
+    "transition_sequences": "appstate_transition_sequences.json",
+}
+
+
+def _current_registry_doc_metadata(name: str) -> dict[str, str]:
+    doc = json.loads(
+        (Path("docs") / FIXTURE_REGISTRY_DOC_NAMES[name]).read_text(encoding="utf-8")
+    )
+    return {
+        "contract": str(doc["contract"]),
+        "notes": str(doc["notes"]),
+    }
+
+
 def _transition(category: str, transition_id: str | None = None) -> dict[str, object]:
     declared_write_set = ["field"]
     generation_effect = "generation"
@@ -748,42 +771,8 @@ def _write_fixture(
     runtime_transition_sequences: list[dict[str, object]] | None = None,
 ) -> tuple[Path, ...]:
     registry_docs = {
-        "transitions": {
-            "contract": "AppState transition matrix",
-            "notes": "Transition contract for the AppState matrix. Registered runtime transition metadata must stay aligned with these records.",
-        },
-        "actions": {
-            "contract": "AppState action coverage",
-            "notes": "Runtime-backed registry ensuring every YtreeNovaAction enum member has AppState transition metadata coverage. Registered rows must remain aligned with the C runtime metadata.",
-        },
-        "events": {
-            "contract": "AppState non-key UI-affecting event coverage",
-            "notes": "Runtime-backed registry for non-key UI-affecting AppState events. Event records map required event classes to the active AppState transition matrix.",
-        },
-        "owner_fields": {
-            "contract": "AppState owner-field registry",
-            "notes": "Runtime-backed registry for every declared_write_set field in the AppState transition, action, and event coverage registries. Registered rows must remain aligned with the C runtime metadata.",
-        },
-        "dispatch_surfaces": {
-            "contract": "AppState dispatch-surface registry",
-            "notes": "Runtime-backed registry for current UI-affecting dispatch surfaces. Registered rows must remain aligned with the C runtime metadata.",
-        },
-        "invariants": {
-            "contract": "AppState transition invariant registry",
-            "notes": "Runtime-backed invariant registry for AppState transition boundaries. Registered rows must remain aligned with the C runtime metadata and transition-sequence checks.",
-        },
-        "generation_domains": {
-            "contract": "AppState generation-domain registry",
-            "notes": "Runtime-backed registry for identity and generation domains used by stale snapshot, restore, and rebind invariants.",
-        },
-        "diff_harness": {
-            "contract": "AppState diff harness registry",
-            "notes": "Runtime-backed registry for before/after AppState snapshot and diff checks. Registered rows must remain aligned with the C runtime metadata.",
-        },
-        "transition_sequences": {
-            "contract": "AppState transition sequence coverage",
-            "notes": "Runtime-backed registry for scenario coverage over AppState transition sequences. Registered rows must remain aligned with the C runtime metadata.",
-        },
+        name: _current_registry_doc_metadata(name)
+        for name in FIXTURE_REGISTRY_DOC_NAMES
     }
     transitions_path = tmp_path / "transitions.json"
     action_coverage_path = tmp_path / "action_coverage.json"
@@ -2085,6 +2074,33 @@ def _runtime_backed_registry_target(
         "diff_harness": diff_harness_path,
         "transition_sequences": transition_sequences_path,
     }[target_name]
+
+
+@pytest.mark.parametrize(
+    ("target_name", "doc_name"),
+    [
+        ("transitions", "appstate_transition_matrix.json"),
+        ("action_coverage", "appstate_action_coverage.json"),
+        ("event_coverage", "appstate_event_coverage.json"),
+        ("owner_fields", "appstate_owner_fields.json"),
+        ("dispatch_surfaces", "appstate_dispatch_surfaces.json"),
+        ("invariants", "appstate_invariants.json"),
+        ("generation_domains", "appstate_generation_domains.json"),
+        ("diff_harness", "appstate_diff_harness.json"),
+        ("transition_sequences", "appstate_transition_sequences.json"),
+    ],
+)
+def test_fixture_registry_metadata_matches_current_docs(
+    tmp_path: Path, target_name: str, doc_name: str
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    fixture_doc = json.loads(
+        _runtime_backed_registry_target(paths, target_name).read_text(encoding="utf-8")
+    )
+    current_doc = json.loads((Path("docs") / doc_name).read_text(encoding="utf-8"))
+
+    assert fixture_doc["contract"] == current_doc["contract"]
+    assert fixture_doc["notes"] == current_doc["notes"]
 
 
 @pytest.mark.parametrize(
