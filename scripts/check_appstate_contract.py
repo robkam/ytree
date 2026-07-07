@@ -456,16 +456,26 @@ def _validate_runtime_backed_registry_notes(
 ) -> list[str]:
     if not runtime_records or not isinstance(doc, dict):
         return []
+    failures: list[str] = []
+    contract = doc.get("contract")
+    if not isinstance(contract, str) or not contract.strip():
+        failures.append(
+            f"{path}: runtime-backed registry contract must be a non-empty string"
+        )
     notes = doc.get("notes")
     if not isinstance(notes, str) or not notes.strip():
-        return []
+        failures.append(
+            f"{path}: runtime-backed registry notes must be a non-empty string"
+        )
+        return failures
     for pattern in STALE_RUNTIME_REGISTRY_NOTE_PATTERNS:
         if pattern.search(notes):
-            return [
+            failures.append(
                 f"{path}: runtime-backed registry notes must not describe the "
                 "registry as non-runtime, future-only, still migrating, or runtime-unchanged"
-            ]
-    return []
+            )
+            break
+    return failures
 
 
 def _validate_event_boundary_status(

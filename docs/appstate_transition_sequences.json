@@ -1161,5 +1161,7 @@
         }
       ]
     }
-  ]
+  ],
+  "contract": "AppState transition sequence coverage",
+  "notes": "Runtime-backed registry for scenario coverage over AppState transition sequences. Registered rows must remain aligned with the C runtime metadata."
 }

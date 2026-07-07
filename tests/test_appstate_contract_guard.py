@@ -747,6 +747,44 @@ def _write_fixture(
     runtime_diff_harness_checks: list[dict[str, object]] | None = None,
     runtime_transition_sequences: list[dict[str, object]] | None = None,
 ) -> tuple[Path, ...]:
+    registry_docs = {
+        "transitions": {
+            "contract": "AppState transition matrix",
+            "notes": "Transition contract for the AppState matrix. Registered runtime transition metadata must stay aligned with these records.",
+        },
+        "actions": {
+            "contract": "AppState action coverage",
+            "notes": "Runtime-backed registry ensuring every YtreeNovaAction enum member has AppState transition metadata coverage. Registered rows must remain aligned with the C runtime metadata.",
+        },
+        "events": {
+            "contract": "AppState non-key UI-affecting event coverage",
+            "notes": "Runtime-backed registry for non-key UI-affecting AppState events. Event records map required event classes to the active AppState transition matrix.",
+        },
+        "owner_fields": {
+            "contract": "AppState owner-field registry",
+            "notes": "Runtime-backed registry for every declared_write_set field in the AppState transition, action, and event coverage registries. Registered rows must remain aligned with the C runtime metadata.",
+        },
+        "dispatch_surfaces": {
+            "contract": "AppState dispatch-surface registry",
+            "notes": "Runtime-backed registry for current UI-affecting dispatch surfaces. Registered rows must remain aligned with the C runtime metadata.",
+        },
+        "invariants": {
+            "contract": "AppState transition invariant registry",
+            "notes": "Runtime-backed invariant registry for AppState transition boundaries. Registered rows must remain aligned with the C runtime metadata and transition-sequence checks.",
+        },
+        "generation_domains": {
+            "contract": "AppState generation-domain registry",
+            "notes": "Runtime-backed registry for identity and generation domains used by stale snapshot, restore, and rebind invariants.",
+        },
+        "diff_harness": {
+            "contract": "AppState diff harness registry",
+            "notes": "Runtime-backed registry for before/after AppState snapshot and diff checks. Registered rows must remain aligned with the C runtime metadata.",
+        },
+        "transition_sequences": {
+            "contract": "AppState transition sequence coverage",
+            "notes": "Runtime-backed registry for scenario coverage over AppState transition sequences. Registered rows must remain aligned with the C runtime metadata.",
+        },
+    }
     transitions_path = tmp_path / "transitions.json"
     action_coverage_path = tmp_path / "action_coverage.json"
     event_coverage_path = tmp_path / "event_coverage.json"
@@ -758,16 +796,35 @@ def _write_fixture(
     transition_sequences_path = tmp_path / "transition_sequences.json"
     actions_header_path = tmp_path / "ytnova_defs.h"
     action_runtime_path = tmp_path / "appstate_actions.c"
-    _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
+    _write(
+        transitions_path,
+        _jsonish(
+            {
+                "schema_version": 1,
+                "contract": registry_docs["transitions"]["contract"],
+                "notes": registry_docs["transitions"]["notes"],
+                "transitions": transitions,
+            }
+        ),
+    )
     _write(
         action_coverage_path,
-        _jsonish({"schema_version": 1, "actions": actions or _complete_actions()}),
+        _jsonish(
+            {
+                "schema_version": 1,
+                "contract": registry_docs["actions"]["contract"],
+                "notes": registry_docs["actions"]["notes"],
+                "actions": actions or _complete_actions(),
+            }
+        ),
     )
     _write(
         event_coverage_path,
         _jsonish(
             {
                 "schema_version": 1,
+                "contract": registry_docs["events"]["contract"],
+                "notes": registry_docs["events"]["notes"],
                 "required_event_classes": required_event_classes or REQUIRED_EVENT_CLASSES,
                 "events": events or _complete_events(),
             }
@@ -775,26 +832,44 @@ def _write_fixture(
     )
     _write(
         owner_fields_path,
-        _jsonish({"schema_version": 1, "owner_fields": owner_fields or _complete_owner_fields()}),
+        _jsonish(
+            {
+                "schema_version": 1,
+                "contract": registry_docs["owner_fields"]["contract"],
+                "notes": registry_docs["owner_fields"]["notes"],
+                "owner_fields": owner_fields or _complete_owner_fields(),
+            }
+        ),
     )
     _write(
         dispatch_surfaces_path,
         _jsonish(
             {
                 "schema_version": 1,
+                "contract": registry_docs["dispatch_surfaces"]["contract"],
+                "notes": registry_docs["dispatch_surfaces"]["notes"],
                 "dispatch_surfaces": dispatch_surfaces or _complete_dispatch_surfaces(),
             }
         ),
     )
     _write(
         invariants_path,
-        _jsonish({"schema_version": 1, "invariants": invariants or _complete_invariants()}),
+        _jsonish(
+            {
+                "schema_version": 1,
+                "contract": registry_docs["invariants"]["contract"],
+                "notes": registry_docs["invariants"]["notes"],
+                "invariants": invariants or _complete_invariants(),
+            }
+        ),
     )
     _write(
         generation_domains_path,
         _jsonish(
             {
                 "schema_version": 1,
+                "contract": registry_docs["generation_domains"]["contract"],
+                "notes": registry_docs["generation_domains"]["notes"],
                 "generation_domains": (
                     generation_domains or _complete_generation_domains()
                 ),
@@ -806,6 +881,8 @@ def _write_fixture(
         _jsonish(
             {
                 "schema_version": 1,
+                "contract": registry_docs["diff_harness"]["contract"],
+                "notes": registry_docs["diff_harness"]["notes"],
                 "diff_harness_checks": (
                     diff_harness_checks or _complete_diff_harness_checks()
                 ),
@@ -817,6 +894,8 @@ def _write_fixture(
         _jsonish(
             {
                 "schema_version": 1,
+                "contract": registry_docs["transition_sequences"]["contract"],
+                "notes": registry_docs["transition_sequences"]["notes"],
                 "scenarios": transition_sequences
                 or _complete_transition_sequences(),
             }
@@ -1979,6 +2058,35 @@ def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
     assert failures == []
 
 
+def _runtime_backed_registry_target(
+    paths: tuple[Path, ...], target_name: str
+) -> Path:
+    (
+        transitions_path,
+        action_coverage_path,
+        _actions_header_path,
+        event_coverage_path,
+        owner_fields_path,
+        dispatch_surfaces_path,
+        invariants_path,
+        generation_domains_path,
+        diff_harness_path,
+        transition_sequences_path,
+        _action_runtime_path,
+    ) = paths
+    return {
+        "transitions": transitions_path,
+        "action_coverage": action_coverage_path,
+        "event_coverage": event_coverage_path,
+        "owner_fields": owner_fields_path,
+        "dispatch_surfaces": dispatch_surfaces_path,
+        "invariants": invariants_path,
+        "generation_domains": generation_domains_path,
+        "diff_harness": diff_harness_path,
+        "transition_sequences": transition_sequences_path,
+    }[target_name]
+
+
 @pytest.mark.parametrize(
     ("target_name", "registry_name"),
     [
@@ -2009,30 +2117,7 @@ def test_runtime_backed_registry_notes_reject_stale_boundary_wording(
     tmp_path: Path, target_name: str, registry_name: str, notes_template: str
 ) -> None:
     paths = _write_fixture(tmp_path, transitions=_complete_transitions())
-    (
-        transitions_path,
-        action_coverage_path,
-        _actions_header_path,
-        event_coverage_path,
-        owner_fields_path,
-        dispatch_surfaces_path,
-        invariants_path,
-        generation_domains_path,
-        diff_harness_path,
-        transition_sequences_path,
-        _action_runtime_path,
-    ) = paths
-    target = {
-        "transitions": transitions_path,
-        "action_coverage": action_coverage_path,
-        "event_coverage": event_coverage_path,
-        "owner_fields": owner_fields_path,
-        "dispatch_surfaces": dispatch_surfaces_path,
-        "invariants": invariants_path,
-        "generation_domains": generation_domains_path,
-        "diff_harness": diff_harness_path,
-        "transition_sequences": transition_sequences_path,
-    }[target_name]
+    target = _runtime_backed_registry_target(paths, target_name)
     doc = json.loads(target.read_text(encoding="utf-8"))
     doc["notes"] = notes_template.format(registry_name=registry_name)
     target.write_text(json.dumps(doc, indent=2), encoding="utf-8")
@@ -2041,6 +2126,33 @@ def test_runtime_backed_registry_notes_reject_stale_boundary_wording(
 
     assert any(
         f"{target}: runtime-backed registry notes must not describe" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("target_name", "field"),
+    [
+        ("transitions", "contract"),
+        ("transitions", "notes"),
+        ("transition_sequences", "contract"),
+        ("transition_sequences", "notes"),
+    ],
+)
+def test_runtime_backed_registry_docs_require_contract_and_notes(
+    tmp_path: Path, target_name: str, field: str
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    target = _runtime_backed_registry_target(paths, target_name)
+    doc = json.loads(target.read_text(encoding="utf-8"))
+    doc.pop(field, None)
+    target.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+    failures = _validate(paths)
+
+    assert any(
+        f"{target}: runtime-backed registry {field} must be a non-empty string"
+        in failure
         for failure in failures
     )
 
