@@ -2128,6 +2128,14 @@ def _parse_runtime_shim_registry(
         re.S,
     )
     if match is None:
+        null_match = re.search(
+            r"static\s+const\s+AppStateCompatibilityShimMetadata\s+\*const\s+"
+            r"kAppStateCompatibilityShims\s*=\s*NULL\s*;",
+            source,
+            re.S,
+        )
+        if null_match is not None:
+            return [], failures
         return [], [f"{runtime_path}: failed to find runtime compatibility shim registry"]
 
     records: list[dict[str, Any]] = []
@@ -2218,9 +2226,6 @@ def _parse_runtime_shim_registry(
                 "qa_enforcement": row_match.group("qa_enforcement"),
             }
         )
-
-    if not records:
-        failures.append(f"{runtime_path}: runtime compatibility shim registry must not be empty")
     return records, failures
 
 
@@ -7655,8 +7660,8 @@ def validate_contract(
         shims = []
     else:
         shims = shims_doc.get("shims")
-        if not isinstance(shims, list) or not shims:
-            failures.append(f"{shims_path}: shims must be a non-empty list")
+        if not isinstance(shims, list):
+            failures.append(f"{shims_path}: shims must be a list")
             shims = []
 
     shim_ids: set[str] = set()

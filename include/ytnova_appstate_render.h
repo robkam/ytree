@@ -13,10 +13,10 @@
 BOOL AppStateCommitResizeRequest(ViewContext *ctx, BOOL resize_request);
 BOOL AppStateMarkResizeRequest(ViewContext *ctx);
 BOOL AppStateClearResizeRequest(ViewContext *ctx);
-void AppStateClampRenderFileViewport(const YtreeNovaPanel *panel,
+void AppStateClampRenderFileViewport(unsigned int file_count,
                                      int *render_start_ptr,
                                      int *render_cursor_ptr);
-int AppStateResolveRenderFileHighlight(const YtreeNovaPanel *panel,
+int AppStateResolveRenderFileHighlight(unsigned int file_count,
                                        int render_start, int render_cursor);
 
 #endif /* YTNOVA_APPSTATE_RENDER_H */

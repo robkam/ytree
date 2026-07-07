@@ -9592,12 +9592,8 @@ def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> Non
 
     refresh_start = display.index("void RefreshView(")
     refresh_body = display[refresh_start:]
-    render_validation = (
-        'if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))'
-    )
-    assert render_validation in refresh_body
-    assert refresh_body.index(render_validation) < refresh_body.index("Layout_Recalculate(")
-    assert refresh_body.index(render_validation) < refresh_body.index("DisplayTree(")
+    render_validation = 'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")'
+    assert render_validation not in refresh_body
 
 
 def test_render_footer_focus_reads_project_from_panel_state() -> None:
@@ -9834,32 +9830,39 @@ def test_render_row_projection_uses_shared_helpers() -> None:
     display = Path("src/ui/display.c").read_text(encoding="utf-8")
     file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
 
-    assert "void AppStateClampRenderFileViewport(" in render_helpers
-    assert "int AppStateResolveRenderFileHighlight(" in render_helpers
+    assert "void AppStateClampRenderFileViewport(unsigned int file_count," in (
+        render_helpers
+    )
+    assert "int AppStateResolveRenderFileHighlight(unsigned int file_count," in (
+        render_helpers
+    )
+    assert 'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")' not in render_helpers
 
     render_start = display.index("void RenderInactivePanel(")
     render_end = display.index("\nstatic BOOL IsActivePanelBigFileMode(", render_start)
     render_body = display[render_start:render_end]
 
     assert (
-        "AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);"
+        "AppStateClampRenderFileViewport(panel->file_count, &render_start,"
         in render_body
     )
-    assert "AppStateResolveRenderFileHighlight(panel, render_start" in render_body
+    assert "AppStateResolveRenderFileHighlight(panel->file_count, render_start" in (
+        render_body
+    )
     assert "render_start + render_cursor" not in render_body
 
     file_start = file_list.index("void DisplayFileWindow(")
     file_body = file_list[file_start:]
 
     assert (
-        "AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);"
+        "AppStateClampRenderFileViewport(panel->file_count, &render_start,"
         in file_body
     )
-    assert "AppStateResolveRenderFileHighlight(panel, render_start" in file_body
+    assert "AppStateResolveRenderFileHighlight(panel->file_count," in file_body
     assert "render_start + render_cursor" not in file_body
 
 
-def test_render_row_shim_registry_matches_shared_helper_boundary() -> None:
+def test_render_row_shim_registry_is_removed() -> None:
     shim_registry = Path("docs/appstate_compat_shims.json").read_text(
         encoding="utf-8"
     )
@@ -9867,56 +9870,26 @@ def test_render_row_shim_registry_matches_shared_helper_boundary() -> None:
         encoding="utf-8"
     )
 
-    assert '"source_boundary_refs": [' in shim_registry
-    assert '"src/ui/appstate_render.c"' in shim_registry
-    assert '"src/ui/display.c"' not in shim_registry
-    assert '"src/ui/file_list.c"' not in shim_registry
-
-    array_start = action_registry.index(
-        "static const char *const kAppStateCompatibilityShimSourceBoundaryRefs2[] = {"
-    )
-    array_end = action_registry.index("};", array_start)
-    array_body = action_registry[array_start:array_end]
-    assert '"src/ui/appstate_render.c"' in array_body
-    assert '"src/ui/display.c"' not in array_body
-    assert '"src/ui/file_list.c"' not in array_body
+    assert '"shims": []' in shim_registry
+    assert "shim-render-derived-row-position" not in shim_registry
+    assert "shim-render-derived-row-position" not in action_registry
 
 
-def test_render_row_shim_metadata_describes_helper_boundary() -> None:
+def test_render_row_shim_metadata_is_removed() -> None:
     shim_registry = Path("docs/appstate_compat_shims.json").read_text(
         encoding="utf-8"
     )
     action_registry = Path("src/core/appstate_actions.c").read_text(
         encoding="utf-8"
-    )
-
-    owner = "AppState render projection helpers"
-    read_permission = (
-        "Allowed only inside AppState render projection helpers or "
-        "bounds-correction code after identity restore has run."
-    )
-    write_permission = (
-        "Never write authoritative selection from AppState render projection "
-        "helper calculations."
-    )
-    removal_trigger = (
-        "AppState render projection helpers accept explicit projection inputs "
-        "and no longer inspect restore authority fields directly."
-    )
-    follow_up_task = (
-        "Remove render-derived row compatibility helpers once render callers "
-        "carry explicit projection state."
     )
 
     for text in [
-        owner,
-        read_permission,
-        write_permission,
-        removal_trigger,
-        follow_up_task,
+        "AppState render projection helpers",
+        "disp_begin_pos + cursor_pos render-derived lookup",
+        "Remove render-derived row compatibility helpers once render callers carry explicit projection state.",
     ]:
-        assert text in shim_registry
-        assert text in action_registry
+        assert text not in shim_registry
+        assert text not in action_registry
 
 
 def test_split_file_focus_commits_use_appstate_helper() -> None:
@@ -10463,15 +10436,8 @@ int main(void) {
   AppStateGenerationDomainMetadata invalid_generation_domain;
   AppStateDiffHarnessMetadata invalid_diff_harness;
   AppStateTransitionSequenceMetadata invalid_sequence;
-  AppStateCompatibilityShimMetadata invalid_shim;
   static const char *const missing_invariant_refs[] = {
       "invariant.__ytnova_missing__",
-  };
-  static const char *const missing_generation_domain_refs[] = {
-      "generation.__ytnova_missing__",
-  };
-  static const char *const missing_diff_harness_refs[] = {
-      "harness.__ytnova_missing__",
   };
 
   if (!AppStateValidatedTransition("transition.keybinding.navigate-tree"))
@@ -10486,7 +10452,7 @@ int main(void) {
     return 5;
   if (!AppStateValidatedTransitionSequence("sequence.split-toggle-f8"))
     return 6;
-  if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
+  if (AppStateCompatibilityShimCount() != 0)
     return 7;
 
   if (AppStateValidatedTransition(NULL))
@@ -10547,42 +10513,15 @@ int main(void) {
                                          &invalid_sequence))
     return 19;
 
-  invalid_shim =
-      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
-  invalid_shim.write_capability = "write_capable";
-  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
-                                        &invalid_shim))
+  if (AppStateCompatibilityShimCount() != 0)
     return 20;
-
-  invalid_shim =
-      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
-  invalid_shim.invariant_checks = missing_invariant_refs;
-  invalid_shim.invariant_check_count = 1;
-  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
-                                        &invalid_shim))
+  if (AppStateCompatibilityShimAt(0) != NULL)
     return 21;
-
-  invalid_shim =
-      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
-  invalid_shim.generation_domain_refs = missing_generation_domain_refs;
-  invalid_shim.generation_domain_ref_count = 1;
-  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
-                                        &invalid_shim))
+  if (AppStateCompatibilityShimLookup("shim-render-derived-row-position") != NULL)
     return 22;
-
-  invalid_shim =
-      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
-  invalid_shim.diff_harness_refs = missing_diff_harness_refs;
-  invalid_shim.diff_harness_ref_count = 1;
-  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
-                                        &invalid_shim))
+  if (AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
     return 23;
-
-  invalid_shim =
-      *AppStateCompatibilityShimLookup("shim-render-derived-row-position");
-  invalid_shim.owner = "";
-  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position",
-                                        &invalid_shim))
+  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position", NULL))
     return 24;
 
   return 0;
@@ -11866,87 +11805,16 @@ def test_guard_fails_when_runtime_event_validation_moves_outside_source_boundary
     )
 
 
-def test_guard_fails_when_runtime_shim_validation_callsite_is_missing(
-    tmp_path: Path,
-) -> None:
-    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
-    source_path = tmp_path / "src" / "ui" / "appstate_render.c"
-    original = source_path.read_text(encoding="utf-8")
-    mutated = original.replace(
-        'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")',
-        'AppStateValidatedCompatibilityShim("shim-render-derived-row-position-missing")',
-    )
-    assert mutated != original
-    source_path.write_text(mutated, encoding="utf-8")
+def test_render_projection_runtime_uses_no_compatibility_shim() -> None:
+    main_source = Path("src/core/main.c").read_text(encoding="utf-8")
+    display_source = Path("src/ui/display.c").read_text(encoding="utf-8")
+    render_source = Path("src/ui/appstate_render.c").read_text(encoding="utf-8")
 
-    failures = guard.validate_contract(
-        guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
-        guard.DEFAULT_ACTION_COVERAGE,
-        guard.DEFAULT_ACTION_HEADER,
-        guard.DEFAULT_EVENT_COVERAGE,
-        guard.DEFAULT_OWNER_FIELDS,
-        guard.DEFAULT_DISPATCH_SURFACES,
-        guard.DEFAULT_INVARIANTS,
-        guard.DEFAULT_GENERATION_DOMAINS,
-        guard.DEFAULT_DIFF_HARNESS,
-        guard.DEFAULT_TRANSITION_SEQUENCES,
-        guard.DEFAULT_ACTION_RUNTIME,
-        repository_root=tmp_path,
-    )
-
-    assert any(
-        "shim-render-derived-row-position" in failure
-        and "missing runtime validation callsite" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_validation_moves_outside_source_boundary(
-    tmp_path: Path,
-) -> None:
-    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
-    source_path = tmp_path / "src" / "ui" / "appstate_render.c"
-    original = source_path.read_text(encoding="utf-8")
-    mutated = original.replace(
-        'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")',
-        'AppStateValidatedCompatibilityShim("shim-render-derived-row-position-missing")',
-    )
-    assert mutated != original
-    source_path.write_text(mutated, encoding="utf-8")
-
-    unrelated_source_path = tmp_path / "src" / "core" / "main.c"
-    unrelated_original = unrelated_source_path.read_text(encoding="utf-8")
-    injected = unrelated_original.replace(
-        "int main(int argc, char **argv) {",
-        'int main(int argc, char **argv) {\n  (void)AppStateValidatedCompatibilityShim("shim-render-derived-row-position");',
-        1,
-    )
-    assert injected != unrelated_original
-    unrelated_source_path.write_text(injected, encoding="utf-8")
-
-    failures = guard.validate_contract(
-        guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
-        guard.DEFAULT_ACTION_COVERAGE,
-        guard.DEFAULT_ACTION_HEADER,
-        guard.DEFAULT_EVENT_COVERAGE,
-        guard.DEFAULT_OWNER_FIELDS,
-        guard.DEFAULT_DISPATCH_SURFACES,
-        guard.DEFAULT_INVARIANTS,
-        guard.DEFAULT_GENERATION_DOMAINS,
-        guard.DEFAULT_DIFF_HARNESS,
-        guard.DEFAULT_TRANSITION_SEQUENCES,
-        guard.DEFAULT_ACTION_RUNTIME,
-        repository_root=tmp_path,
-    )
-
-    assert any(
-        "shim-render-derived-row-position" in failure
-        and "src/ui/appstate_render.c" in failure
-        and "missing runtime validation callsite" in failure
-        for failure in failures
-    )
+    assert "static const char *const kAppStateRequiredShimIds[] = {" in main_source
+    assert "NULL," in main_source
+    assert "AppStateRequiredShimIdCount(void)" in main_source
+    assert 'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")' not in display_source
+    assert 'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")' not in render_source
 
 
 def test_guard_fails_on_malformed_dispatch_surface_entry_symbol_or_path(
@@ -17630,15 +17498,18 @@ def test_runtime_shim_startup_requires_documented_shim_ids() -> None:
         source,
         re.S,
     )
-
     assert shim_failures == []
     assert required_table is not None
-    table_ids, table_failures = guard._parse_string_initializer_array(
-        required_table.group("body"),
-        "kAppStateRequiredShimIds",
-    )
-    assert table_failures == []
-    assert set(table_ids) == required_ids
+    if required_ids:
+        table_ids, table_failures = guard._parse_string_initializer_array(
+            required_table.group("body"),
+            "kAppStateRequiredShimIds",
+        )
+        assert table_failures == []
+        assert set(table_ids) == required_ids
+    else:
+        assert "NULL" in required_table.group("body")
+        assert "AppStateRequiredShimIdCount(void)" in source
     assert re.search(
         r"AppStateCompatibilityShimLookup\(\s*"
         r"kAppStateRequiredShimIds\[index\]\s*\)",
