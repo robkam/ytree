@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState non-key UI-affecting event coverage",
-  "notes": "Runtime-backed registry for non-key UI-affecting AppState events. Event records link required event classes to the current transition matrix during migration.",
+  "notes": "Runtime-backed registry for non-key UI-affecting AppState events. Event records map required event classes to the active AppState transition matrix.",
   "required_event_classes": [
     "terminal_resize_signal",
     "refresh_rebuild",

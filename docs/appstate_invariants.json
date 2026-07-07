@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState transition invariant registry",
-  "notes": "Runtime-backed invariant registry for AppState transition boundaries. Registered rows must remain aligned with the C runtime metadata and future state-sequence enforcement.",
+  "notes": "Runtime-backed invariant registry for AppState transition boundaries. Registered rows must remain aligned with the C runtime metadata and transition-sequence checks.",
   "invariants": [
     {
       "invariant_id": "invariant.inactive-panel-frozen",

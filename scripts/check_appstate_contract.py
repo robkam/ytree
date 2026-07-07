@@ -27,6 +27,9 @@ STALE_RUNTIME_REGISTRY_NOTE_PATTERNS = (
     re.compile(r"\bfuture[- ]only\b", re.IGNORECASE),
     re.compile(r"\bfor future\b", re.IGNORECASE),
     re.compile(r"before AppState runtime migration", re.IGNORECASE),
+    re.compile(r"\bduring migration\b", re.IGNORECASE),
+    re.compile(r"\bfuture state-sequence enforcement\b", re.IGNORECASE),
+    re.compile(r"\bcontinues to migrate incrementally\b", re.IGNORECASE),
     re.compile(r"runtime behavior is unchanged", re.IGNORECASE),
 )
 
@@ -460,7 +463,7 @@ def _validate_runtime_backed_registry_notes(
         if pattern.search(notes):
             return [
                 f"{path}: runtime-backed registry notes must not describe the "
-                "registry as non-runtime, future-only, or runtime-unchanged"
+                "registry as non-runtime, future-only, still migrating, or runtime-unchanged"
             ]
     return []
 
