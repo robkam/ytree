@@ -972,7 +972,6 @@ typedef struct _ViewContext {
   BOOL clock_print_time;
   int fixed_col_width;
   int refresh_mode;
-  ViewFocus focused_window;
   ViewFocus preview_entry_focus;
   YtreeNovaPanel *preview_return_panel;
   ViewFocus preview_return_focus;

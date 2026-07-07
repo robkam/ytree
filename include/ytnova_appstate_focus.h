@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * ytnova_appstate_focus.h
- * Focus transition commits for AppState compatibility boundaries.
+ * Focus transition commits for AppState panel-local boundaries.
  *
  ***************************************************************************/
 
@@ -11,11 +11,11 @@
 #include "ytnova_defs.h"
 
 ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx);
-BOOL AppStateCommitPanelFocus(ViewContext *ctx, YtreeNovaPanel *panel,
+BOOL AppStateCommitPanelFocus(const ViewContext *ctx, YtreeNovaPanel *panel,
                               ViewFocus focus);
 BOOL AppStateCommitPanelFileShape(YtreeNovaPanel *panel, BOOL big_file_view);
 BOOL AppStateCommitDirEntryFileShape(DirEntry *dir_entry, BOOL big_file_view);
 BOOL AppStateCommitVolumeFocusMirror(struct Volume *volume, ViewFocus focus);
-BOOL AppStateMirrorActivePanelFocus(ViewContext *ctx);
+BOOL AppStateMirrorActivePanelFocus(const ViewContext *ctx);
 
 #endif /* YTNOVA_APPSTATE_FOCUS_H */
