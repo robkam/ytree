@@ -549,14 +549,15 @@ void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
       render_start = panel->start_file;
       render_cursor = panel->file_cursor_pos;
     }
-    AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);
+    AppStateClampRenderFileViewport(panel->file_count, &render_start,
+                                    &render_cursor);
 
     if (IsPanelSavedBigFileMode(panel) && panel->pan_big_file_window) {
       int file_hilight = -1;
 
       if (panel->saved_focus == FOCUS_FILE) {
         file_hilight =
-            AppStateResolveRenderFileHighlight(panel, render_start,
+            AppStateResolveRenderFileHighlight(panel->file_count, render_start,
                                                render_cursor);
       }
       DEBUG_LOG("RenderInactivePanel:file path='%s' start=%d cursor=%d count=%u",
@@ -593,7 +594,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
 
         if (panel->saved_focus == FOCUS_FILE) {
           file_hilight =
-              AppStateResolveRenderFileHighlight(panel, render_start,
+              AppStateResolveRenderFileHighlight(panel->file_count, render_start,
                                                  render_cursor);
         }
         DisplayFiles(ctx, panel, de, render_start, file_hilight, 0,
@@ -681,8 +682,6 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
     return;
   if (!AppStateValidatedEvent("event.render-reflow"))
-    return;
-  if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
     return;
 
   const Statistic *s = &ctx->active->vol->vol_stats;

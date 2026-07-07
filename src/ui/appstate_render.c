@@ -26,28 +26,26 @@ BOOL AppStateClearResizeRequest(ViewContext *ctx) {
   return AppStateCommitResizeRequest(ctx, FALSE);
 }
 
-void AppStateClampRenderFileViewport(const YtreeNovaPanel *panel,
+void AppStateClampRenderFileViewport(unsigned int file_count,
                                      int *render_start_ptr,
                                      int *render_cursor_ptr) {
   int render_start;
   int render_cursor;
 
-  if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
-    return;
-  if (!panel || !render_start_ptr || !render_cursor_ptr)
+  if (!render_start_ptr || !render_cursor_ptr)
     return;
 
   render_start = *render_start_ptr;
   render_cursor = *render_cursor_ptr;
-  if (panel->file_count > 0) {
+  if (file_count > 0) {
     if (render_start < 0)
       render_start = 0;
-    if ((unsigned int)render_start >= panel->file_count)
-      render_start = (int)panel->file_count - 1;
+    if ((unsigned int)render_start >= file_count)
+      render_start = (int)file_count - 1;
     if (render_cursor < 0)
       render_cursor = 0;
-    if ((unsigned int)(render_start + render_cursor) >= panel->file_count) {
-      render_cursor = (int)panel->file_count - 1 - render_start;
+    if ((unsigned int)(render_start + render_cursor) >= file_count) {
+      render_cursor = (int)file_count - 1 - render_start;
       if (render_cursor < 0)
         render_cursor = 0;
     }
@@ -60,11 +58,9 @@ void AppStateClampRenderFileViewport(const YtreeNovaPanel *panel,
   *render_cursor_ptr = render_cursor;
 }
 
-int AppStateResolveRenderFileHighlight(const YtreeNovaPanel *panel,
+int AppStateResolveRenderFileHighlight(unsigned int file_count,
                                        int render_start, int render_cursor) {
-  if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
-    return -1;
-  if (!panel || panel->file_count == 0)
+  if (file_count == 0)
     return -1;
 
   return render_start + render_cursor;

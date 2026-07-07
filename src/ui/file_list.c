@@ -218,7 +218,8 @@ void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
     int original_start = render_start;
     int original_cursor = render_cursor;
 
-    AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);
+    AppStateClampRenderFileViewport(panel->file_count, &render_start,
+                                    &render_cursor);
     if (original_start != render_start || original_cursor != render_cursor) {
       DEBUG_LOG("DisplayFileWindow:clamp start=%d->%d cursor=%d->%d count=%u",
                 original_start, render_start, original_cursor, render_cursor,
@@ -228,7 +229,8 @@ void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
 
   (void)AppStateCommitPanelFileViewport(panel, render_start, render_cursor);
 
-  highlight_idx = AppStateResolveRenderFileHighlight(panel, render_start,
+  highlight_idx = AppStateResolveRenderFileHighlight(panel->file_count,
+                                                     render_start,
                                                      render_cursor);
   if (AppStateResolveActivePanelFocus(ctx) != FOCUS_FILE)
     highlight_idx = -1;

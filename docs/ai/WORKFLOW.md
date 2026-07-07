@@ -211,7 +211,9 @@ make qa-fuzz
     *   atomic and independently verifiable,
     *   not fragmented into trivial micro-steps,
     *   executed one work item at a time.
-3.  Prompt/report artifacts used for handoff are workflow artifacts and MUST NOT be committed.
+3.  Handoff artifacts are split into:
+    *   tracked recovery checkpoint: keep `.agent/handoffs/prompt.1.txt` current and commit it with the active unit when the maintainer is using tracked recovery context,
+    *   transient prompt/report scratch artifacts: do not commit them unless the maintainer explicitly asks to preserve them.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 
@@ -297,7 +299,7 @@ make qa-fuzz
 2.  Integrate branch to `main` using fast-forward only.
 3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
 4.  Delete temporary feature branch locally and on remote after merge.
-5.  Verify workflow artifacts are not committed.
+5.  Verify only the intended tracked recovery checkpoint is committed; stale transient handoff artifacts must stay out of the change.
 6.  Manual mode is default: one-unit-at-a-time architect -> developer -> auditor handoff.
 
 #### 3.1.8 Practical Prompt-Template Finish Flow (Consecutive Role Order)
@@ -310,7 +312,7 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   Manually exercise the changed behavior.
 2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
 3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).
-    *   Required before final commit: remove stale handoff artifacts from `.agent/handoffs/` (for example `prompt.<id>.*.txt`, `report.<id>.*.txt`, and any consumed prompt/report files) unless the maintainer explicitly asks to keep them.
+    *   Required before final commit: keep `.agent/handoffs/prompt.1.txt` current when tracked recovery is in use, and remove or leave untracked stale transient handoff artifacts from `.agent/handoffs/` (for example consumed `prompt.<id>.*.txt` and `report.<id>.*.txt` files) unless the maintainer explicitly asks to keep them.
 4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
 6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.

@@ -2790,34 +2790,6 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
    kAppStateDispatchSurfaceMigrationNotes12,
    sizeof(kAppStateDispatchSurfaceMigrationNotes12) / sizeof(kAppStateDispatchSurfaceMigrationNotes12[0])},
 };
-static const char *const kAppStateCompatibilityShimInvariantChecks2[] = {
-  "invariant.render-projection-read-only",
-  "invariant.blocked-transition-determinism",
-};
-
-static const char *const kAppStateCompatibilityShimOwnerFieldRefs2[] = {
-  "panel.tree_cursor_pos",
-  "panel.tree_viewport_origin",
-  "panel.file_viewport_origin",
-};
-
-static const char *const kAppStateCompatibilityShimGenerationDomainRefs2[] = {
-  "generation.panel.local-authority",
-  "identity.directory.stable-key",
-  "identity.file.stable-key",
-  "reflow.layout.projection",
-};
-
-static const char *const kAppStateCompatibilityShimDiffHarnessRefs2[] = {
-  "harness.render-projection-read-only-diff",
-  "harness.generation-mismatch-check",
-  "harness.blocked-transition-no-unrelated-mutation",
-};
-
-static const char *const kAppStateCompatibilityShimSourceBoundaryRefs2[] = {
-    "src/ui/appstate_render.c",
-};
-
 static const char *const kAppStateInvariantProtectedFields0[] = {
   "ctx.active",
   "panel.volume_key",
@@ -6260,31 +6232,7 @@ static const AppStateActionCoverageMetadata
 };
 
 static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
-  {"shim-render-derived-row-position",
-   "AppState render projection helpers",
-   "disp_begin_pos + cursor_pos render-derived lookup",
-   "Allowed only inside AppState render projection helpers or bounds-correction code after identity restore has run.",
-   "Never write authoritative selection from AppState render projection helper calculations.",
-   "read_only_projection",
-   kAppStateCompatibilityShimInvariantChecks2,
-   sizeof(kAppStateCompatibilityShimInvariantChecks2) /
-       sizeof(kAppStateCompatibilityShimInvariantChecks2[0]),
-   kAppStateCompatibilityShimOwnerFieldRefs2,
-   sizeof(kAppStateCompatibilityShimOwnerFieldRefs2) /
-       sizeof(kAppStateCompatibilityShimOwnerFieldRefs2[0]),
-   kAppStateCompatibilityShimGenerationDomainRefs2,
-    sizeof(kAppStateCompatibilityShimGenerationDomainRefs2) /
-        sizeof(kAppStateCompatibilityShimGenerationDomainRefs2[0]),
-    kAppStateCompatibilityShimDiffHarnessRefs2,
-    sizeof(kAppStateCompatibilityShimDiffHarnessRefs2) /
-        sizeof(kAppStateCompatibilityShimDiffHarnessRefs2[0]),
-    kAppStateCompatibilityShimSourceBoundaryRefs2,
-    sizeof(kAppStateCompatibilityShimSourceBoundaryRefs2) /
-        sizeof(kAppStateCompatibilityShimSourceBoundaryRefs2[0]),
-   "AppState render projection helpers accept explicit projection inputs and no longer inspect restore authority fields directly.",
-   "transition.render-reflow.project-state",
-   "Remove render-derived row compatibility helpers once render callers carry explicit projection state.",
-   "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage."},
+    {0},
 };
 
 static int AppStateValidateActionCoverage(
@@ -6320,8 +6268,11 @@ size_t AppStateDispatchSurfaceCount(void) {
 }
 
 size_t AppStateCompatibilityShimCount(void) {
-  return sizeof(kAppStateCompatibilityShims) /
-         sizeof(kAppStateCompatibilityShims[0]);
+  size_t count = 0;
+
+  while (kAppStateCompatibilityShims[count].id != NULL)
+    count++;
+  return count;
 }
 
 size_t AppStateInvariantCount(void) {

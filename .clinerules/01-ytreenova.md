@@ -19,7 +19,7 @@ In Cline, treat those files as authoritative even when they mention Codex-specif
 
 ## Persona routing
 
-Choose the working role by user intent, then load the matching project skill through the `.cline/skills` bridge:
+Choose the working role by user intent, then load the matching project skill through `.cline/skills.cline`:
 
 - `architect` -> `architect-planning`
 - `developer` -> `developer-implementation`
@@ -51,6 +51,7 @@ Also load the matching project skill when the task calls for it:
 - Never have two active agents edit the same file at the same time.
 - Separate concurrent work by task, file set, or worktree.
 - For this repo, prefer the documented architect -> developer -> code_auditor loop over ad hoc parallel editing.
+- When the maintainer is using tracked recovery context, keep `.agent/handoffs/prompt.1.txt` current with the active unit and treat older prompt/report files as transient unless explicitly preserved.
 
 ## Validation and execution
 

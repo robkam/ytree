@@ -236,7 +236,7 @@ static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
 };
 
 static const char *const kAppStateRequiredShimIds[] = {
-  "shim-render-derived-row-position",
+  NULL,
 };
 
 static const char *const kAppStateRequiredInvariantIds[] = {
@@ -1668,10 +1668,17 @@ static int AppStateCompatibilityShimDiffHarnessCoversGenerationDomain(
   return 0;
 }
 
+static size_t AppStateRequiredShimIdCount(void) {
+  size_t count = 0;
+
+  while (kAppStateRequiredShimIds[count] != NULL)
+    count++;
+  return count;
+}
+
 static int AppStateCompatibilityShimsReady(void) {
   size_t index;
-  size_t required_shim_id_count =
-      sizeof(kAppStateRequiredShimIds) / sizeof(kAppStateRequiredShimIds[0]);
+  size_t required_shim_id_count = AppStateRequiredShimIdCount();
 
   if (AppStateCompatibilityShimCount() != required_shim_id_count)
     return 0;
