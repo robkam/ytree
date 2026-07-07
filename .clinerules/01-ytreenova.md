@@ -14,6 +14,7 @@ In Cline, treat those files as authoritative even when they mention Codex-specif
 
 - When repo guidance names Codex-only tools or surfaces, preserve the intent and use the closest Cline equivalent.
 - Use Cline MCP servers for `serena`, `jcodemunch`, and `github-mcp-server` when they are available.
+- For repo discovery and search, use `serena` and `jcodemunch` first. Do not start with shell search or generic file crawling when the semantic MCP tools are available.
 - If semantic MCP tools are unavailable, say so once and then fall back to Cline's built-in file/search tools.
 - Do not ignore repo policy just because the wording mentions Codex.
 

@@ -4,26 +4,23 @@ Date: 2026-07-07
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-normalize-runtime-registry-notes
-Active PR: https://github.com/robkam/ytreenova/pull/374
+Current branch: appstate-require-runtime-registry-doc-metadata
+Active PR: https://github.com/robkam/ytreenova/pull/376
 Supersession state: no active stop or pause condition.
 
 Current AppState batch:
-- Normalize remaining AppState registry/runtime boundary notes so the active contract no longer describes transition metadata as still migrating or future-only.
-- Update the AppState contract guard to reject stale migration wording across every runtime-backed registry note surface, including the transition matrix and sequence-backed registries.
-- Keep the repo AI config portable while allowing the `.codex/config.toml` instructions path to resolve correctly from the config directory.
+- Require every runtime-backed AppState registry document to declare top-level `contract` and `notes` metadata.
+- Fill the missing transition-sequence registry metadata in `docs/appstate_transition_sequences.json`.
+- Keep the contract-guard fixtures aligned with the runtime-backed registry metadata requirement.
 
 Local validation:
-- Red before fix: `python3 scripts/check_project_ai_config.py`
-- Red before fix: `source .venv/bin/activate && pytest tests/test_project_ai_config_guard.py -k 'current_repository_baseline_passes'`
-- `python3 -m py_compile scripts/check_project_ai_config.py tests/test_project_ai_config_guard.py`
-- `python3 scripts/check_project_ai_config.py`
-- `source .venv/bin/activate && pytest tests/test_project_ai_config_guard.py`
-- `make qa-code-quality`
-- Earlier in this branch: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_notes_reject_stale_boundary_wording'` (red before guard/docs fix, green after fix)
-- Earlier in this branch: `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`
-- Earlier in this branch: `python3 scripts/check_appstate_contract.py`
-- Earlier in this branch: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_notes_reject_stale_boundary_wording or current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures'`
+- Red: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_docs_require_contract_and_notes'`
+- `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`
+- `python3 scripts/check_appstate_contract.py`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_docs_require_contract_and_notes or runtime_backed_registry_notes_reject_stale_boundary_wording or current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures'`
+
+Local state to preserve:
+- `.clinerules/01-ytreenova.md` is modified locally and must ride in this next PR without being mentioned in durable commit or PR wording.
 
 Next action:
-- Stage the AI-config guard fix with the corrected `.codex/config.toml`, amend the branch commit, push with lease, then restart the 15-minute CI wait window for PR #374.
+- Wait 15 minutes from the latest push before the first compact CI status check for PR #376, then continue the merge loop if checks go green.
