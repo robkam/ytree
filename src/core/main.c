@@ -235,10 +235,6 @@ static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
   "surface.panel-anchor-rebind",
 };
 
-static const char *const kAppStateRequiredShimIds[] = {
-  NULL,
-};
-
 static const char *const kAppStateRequiredInvariantIds[] = {
   "invariant.inactive-panel-frozen",
   "invariant.render-projection-read-only",
@@ -357,6 +353,15 @@ AppStateActionCoverageIdLookup(const char *action_id) {
 
   return NULL;
 }
+
+static int
+AppStateInvariantRefsReady(const char *const *refs, size_t ref_count,
+                           const char *transition_id,
+                           const char *const *declared_write_set,
+                           size_t declared_write_set_count);
+static int
+AppStateGenerationDomainRefsReady(const char *const *refs, size_t ref_count,
+                                  const char *transition_id);
 
 static int AppStateFallbackPreconditionValid(const char *precondition) {
   if (precondition == NULL)
@@ -1477,342 +1482,6 @@ static int AppStateInvariantRegistryReady(void) {
   return 1;
 }
 
-static int AppStateCompatibilityShimWriteCapable(
-    const AppStateCompatibilityShimMetadata *metadata) {
-  return metadata != NULL && metadata->write_capability != NULL &&
-         strcmp(metadata->write_capability, "write_capable") == 0;
-}
-
-static int AppStateCompatibilityShimReadOnlyProjection(
-    const AppStateCompatibilityShimMetadata *metadata) {
-  return metadata != NULL && metadata->write_capability != NULL &&
-         strcmp(metadata->write_capability, "read_only_projection") == 0;
-}
-
-static int AppStateCompatibilityShimWriteCapabilityKnown(
-    const AppStateCompatibilityShimMetadata *metadata) {
-  if (metadata == NULL || !NonEmptyString(metadata->write_capability))
-    return 0;
-
-  return strcmp(metadata->write_capability, "write_capable") == 0 ||
-         strcmp(metadata->write_capability, "read_only_projection") == 0 ||
-         strcmp(metadata->write_capability, "no_write") == 0;
-}
-
-static int AppStateCompatibilityShimInvariantCoversTransition(
-    const AppStateCompatibilityShimMetadata *metadata) {
-  size_t invariant_index;
-
-  if (metadata == NULL || !NonEmptyString(metadata->target_transition) ||
-      !NonEmptyStringList(metadata->invariant_checks,
-                          metadata->invariant_check_count))
-    return 0;
-
-  for (invariant_index = 0; invariant_index < metadata->invariant_check_count;
-       invariant_index++) {
-    const AppStateInvariantMetadata *invariant =
-        AppStateInvariantLookup(metadata->invariant_checks[invariant_index]);
-
-    if (invariant == NULL || invariant->transition_ids == NULL)
-      return 0;
-    if (!StringListContains(invariant->transition_ids,
-                            invariant->transition_id_count,
-                            metadata->target_transition))
-      return 0;
-  }
-
-  return 1;
-}
-
-static int AppStateGenerationOwnerFieldRegistered(const char *owner_field) {
-  size_t domain_index;
-
-  if (!NonEmptyString(owner_field))
-    return 0;
-
-  for (domain_index = 0; domain_index < AppStateGenerationDomainCount();
-       domain_index++) {
-    const AppStateGenerationDomainMetadata *domain =
-        AppStateGenerationDomainAt(domain_index);
-
-    if (domain == NULL || !NonEmptyString(domain->generation_owner_field))
-      return 0;
-    if (strcmp(domain->generation_owner_field, owner_field) == 0)
-      return 1;
-  }
-
-  return 0;
-}
-
-static int AppStateCompatibilityShimGenerationDomainCoversOwnerField(
-    const AppStateCompatibilityShimMetadata *metadata,
-    const char *owner_field) {
-  size_t ref_index;
-
-  if (metadata == NULL || !NonEmptyString(owner_field) ||
-      metadata->generation_domain_refs == NULL)
-    return 0;
-
-  for (ref_index = 0; ref_index < metadata->generation_domain_ref_count;
-       ref_index++) {
-    const AppStateGenerationDomainMetadata *domain =
-        AppStateGenerationDomainLookup(
-            metadata->generation_domain_refs[ref_index]);
-
-    if (domain == NULL || !NonEmptyString(domain->generation_owner_field))
-      return 0;
-    if (strcmp(domain->generation_owner_field, owner_field) == 0)
-      return 1;
-  }
-
-  return 0;
-}
-
-static int AppStateCompatibilityShimDiffHarnessCoversTransition(
-    const AppStateCompatibilityShimMetadata *metadata) {
-  size_t ref_index;
-
-  if (metadata == NULL || !NonEmptyString(metadata->target_transition) ||
-      !NonEmptyStringList(metadata->diff_harness_refs,
-                          metadata->diff_harness_ref_count))
-    return 0;
-
-  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
-       ref_index++) {
-    const AppStateDiffHarnessMetadata *harness =
-        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
-
-    if (harness == NULL || harness->transition_ids == NULL)
-      return 0;
-    if (StringListContains(harness->transition_ids,
-                           harness->transition_id_count,
-                           metadata->target_transition))
-      return 1;
-  }
-
-  return 0;
-}
-
-static int AppStateCompatibilityShimDiffHarnessCoversOwnerField(
-    const AppStateCompatibilityShimMetadata *metadata,
-    const char *owner_field) {
-  size_t ref_index;
-
-  if (metadata == NULL || !NonEmptyString(owner_field) ||
-      !NonEmptyStringList(metadata->diff_harness_refs,
-                          metadata->diff_harness_ref_count))
-    return 0;
-
-  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
-       ref_index++) {
-    const AppStateDiffHarnessMetadata *harness =
-        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
-
-    if (harness == NULL || harness->owner_field_refs == NULL)
-      return 0;
-    if (StringListContains(harness->owner_field_refs,
-                           harness->owner_field_ref_count, owner_field))
-      return 1;
-  }
-
-  return 0;
-}
-
-static int AppStateCompatibilityShimDiffHarnessCoversInvariant(
-    const AppStateCompatibilityShimMetadata *metadata,
-    const char *invariant_id) {
-  size_t ref_index;
-
-  if (metadata == NULL || !NonEmptyString(invariant_id) ||
-      !NonEmptyStringList(metadata->diff_harness_refs,
-                          metadata->diff_harness_ref_count))
-    return 0;
-
-  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
-       ref_index++) {
-    const AppStateDiffHarnessMetadata *harness =
-        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
-
-    if (harness == NULL || harness->invariant_ids == NULL)
-      return 0;
-    if (StringListContains(harness->invariant_ids,
-                           harness->invariant_id_count, invariant_id))
-      return 1;
-  }
-
-  return 0;
-}
-
-static int AppStateCompatibilityShimDiffHarnessCoversGenerationDomain(
-    const AppStateCompatibilityShimMetadata *metadata,
-    const char *domain_id) {
-  size_t ref_index;
-
-  if (metadata == NULL || !NonEmptyString(domain_id) ||
-      !NonEmptyStringList(metadata->diff_harness_refs,
-                          metadata->diff_harness_ref_count))
-    return 0;
-
-  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
-       ref_index++) {
-    const AppStateDiffHarnessMetadata *harness =
-        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
-
-    if (harness == NULL || harness->generation_domain_ids == NULL)
-      return 0;
-    if (StringListContains(harness->generation_domain_ids,
-                           harness->generation_domain_id_count, domain_id))
-      return 1;
-  }
-
-  return 0;
-}
-
-static size_t AppStateRequiredShimIdCount(void) {
-  size_t count = 0;
-
-  while (kAppStateRequiredShimIds[count] != NULL)
-    count++;
-  return count;
-}
-
-static int AppStateCompatibilityShimsReady(void) {
-  size_t index;
-  size_t required_shim_id_count = AppStateRequiredShimIdCount();
-
-  if (AppStateCompatibilityShimCount() != required_shim_id_count)
-    return 0;
-
-  for (index = 0; index < AppStateCompatibilityShimCount(); index++) {
-    const AppStateCompatibilityShimMetadata *metadata =
-        AppStateCompatibilityShimAt(index);
-    size_t invariant_index;
-    size_t diff_index;
-    size_t generation_index;
-    size_t previous_index;
-    size_t ref_index;
-    const AppStateTransitionMetadata *transition;
-
-    if (metadata == NULL || !NonEmptyString(metadata->id) ||
-        !NonEmptyString(metadata->owner) ||
-        !NonEmptyString(metadata->old_authority_path) ||
-        !NonEmptyString(metadata->read_permission) ||
-        !NonEmptyString(metadata->write_permission) ||
-        !AppStateCompatibilityShimWriteCapabilityKnown(metadata) ||
-        metadata->invariant_checks == NULL ||
-        metadata->invariant_check_count == 0 ||
-        !NonEmptyStringList(metadata->owner_field_refs,
-                            metadata->owner_field_ref_count) ||
-        !NonEmptyStringList(metadata->generation_domain_refs,
-                            metadata->generation_domain_ref_count) ||
-        !NonEmptyStringList(metadata->diff_harness_refs,
-                            metadata->diff_harness_ref_count) ||
-        !NonEmptyStringList(metadata->source_boundary_refs,
-                            metadata->source_boundary_ref_count) ||
-        !NonEmptyString(metadata->removal_trigger) ||
-        !NonEmptyString(metadata->target_transition) ||
-        !NonEmptyString(metadata->follow_up_task) ||
-        !NonEmptyString(metadata->qa_enforcement))
-      return 0;
-    if (AppStateCompatibilityShimLookup(metadata->id) != metadata)
-      return 0;
-    if (AppStateTransitionLookup(metadata->target_transition) == NULL)
-      return 0;
-    transition = AppStateTransitionLookup(metadata->target_transition);
-
-    for (previous_index = 0; previous_index < index; previous_index++) {
-      const AppStateCompatibilityShimMetadata *previous =
-          AppStateCompatibilityShimAt(previous_index);
-
-      if (previous == NULL || strcmp(previous->id, metadata->id) == 0)
-        return 0;
-    }
-
-    for (invariant_index = 0;
-         invariant_index < metadata->invariant_check_count; invariant_index++) {
-      if (!NonEmptyString(metadata->invariant_checks[invariant_index]))
-        return 0;
-      if (AppStateInvariantLookup(metadata->invariant_checks[invariant_index]) ==
-          NULL)
-        return 0;
-      if (!AppStateCompatibilityShimDiffHarnessCoversInvariant(
-              metadata, metadata->invariant_checks[invariant_index]))
-        return 0;
-    }
-    for (diff_index = 0; diff_index < metadata->diff_harness_ref_count;
-         diff_index++) {
-      if (AppStateDiffHarnessLookup(metadata->diff_harness_refs[diff_index]) ==
-          NULL)
-        return 0;
-      if (StringListContains(metadata->diff_harness_refs, diff_index,
-                             metadata->diff_harness_refs[diff_index]))
-        return 0;
-    }
-    for (generation_index = 0;
-         generation_index < metadata->generation_domain_ref_count;
-         generation_index++) {
-      if (AppStateGenerationDomainLookup(
-              metadata->generation_domain_refs[generation_index]) == NULL)
-        return 0;
-      if (StringListContains(metadata->generation_domain_refs, generation_index,
-                             metadata->generation_domain_refs[generation_index]))
-        return 0;
-      if (!AppStateCompatibilityShimDiffHarnessCoversGenerationDomain(
-              metadata, metadata->generation_domain_refs[generation_index]))
-        return 0;
-    }
-    for (ref_index = 0; ref_index < metadata->owner_field_ref_count;
-         ref_index++) {
-      if (AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index]) ==
-          NULL)
-        return 0;
-      if (StringListContains(metadata->owner_field_refs, ref_index,
-                             metadata->owner_field_refs[ref_index]))
-        return 0;
-      if (AppStateCompatibilityShimWriteCapable(metadata) &&
-          !StringListContains(transition->declared_write_set,
-                              transition->declared_write_set_count,
-                              metadata->owner_field_refs[ref_index]))
-        return 0;
-      if (AppStateCompatibilityShimReadOnlyProjection(metadata) &&
-          StringListContains(transition->declared_write_set,
-                             transition->declared_write_set_count,
-                             metadata->owner_field_refs[ref_index]))
-        return 0;
-      if (AppStateCompatibilityShimWriteCapable(metadata) &&
-          AppStateGenerationOwnerFieldRegistered(
-              metadata->owner_field_refs[ref_index]) &&
-          !AppStateCompatibilityShimGenerationDomainCoversOwnerField(
-              metadata, metadata->owner_field_refs[ref_index]))
-        return 0;
-      if (!AppStateCompatibilityShimDiffHarnessCoversOwnerField(
-              metadata, metadata->owner_field_refs[ref_index]))
-        return 0;
-    }
-    if (!AppStateCompatibilityShimInvariantCoversTransition(metadata))
-      return 0;
-    if (!AppStateCompatibilityShimDiffHarnessCoversTransition(metadata))
-      return 0;
-  }
-
-  for (index = 0; index < required_shim_id_count; index++) {
-    if (AppStateCompatibilityShimLookup(kAppStateRequiredShimIds[index]) ==
-        NULL)
-      return 0;
-  }
-
-  if (AppStateCompatibilityShimAt(AppStateCompatibilityShimCount()) != NULL)
-    return 0;
-  if (AppStateCompatibilityShimLookup(NULL) != NULL)
-    return 0;
-  if (AppStateCompatibilityShimLookup("") != NULL)
-    return 0;
-  if (AppStateCompatibilityShimLookup("shim.__ytnova_unknown__") != NULL)
-    return 0;
-
-  return 1;
-}
-
 static int AppStateInvariantRefsReady(const char *const *refs, size_t ref_count,
                                       const char *transition_id,
                                       const char *const *declared_write_set,
@@ -1846,8 +1515,8 @@ static int AppStateInvariantRefsReady(const char *const *refs, size_t ref_count,
   }
 
   for (write_index = 0; write_index < declared_write_set_count; write_index++) {
-    if (!AppStateTransitionWriteHasInvariantCoverage(transition_id,
-                                                     declared_write_set[write_index]))
+    if (!AppStateTransitionWriteHasInvariantCoverage(
+            transition_id, declared_write_set[write_index]))
       return 0;
     for (ref_index = 0; ref_index < ref_count; ref_index++) {
       if (AppStateInvariantProtectsField(refs[ref_index],
@@ -2641,7 +2310,6 @@ int main(int argc, char **argv) {
       !AppStateGenerationDomainsReady() ||
       !AppStateDispatchSurfacesReady() ||
       !AppStateInvariantRegistryReady() ||
-      !AppStateCompatibilityShimsReady() ||
       !AppStateDiffHarnessRegistryReady() ||
       !AppStateTransitionSequencesReady() ||
       !AppStateActionCoverageReady() ||

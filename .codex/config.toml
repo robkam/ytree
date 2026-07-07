@@ -2,6 +2,8 @@ model = "gpt-5.4"
 model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
+# Repo-shared defaults only; keep user-specific auth/session state in the
+# user-local Codex config.
 model_instructions_file = ".ai/codex.md"
 
 [mcp_servers.serena]

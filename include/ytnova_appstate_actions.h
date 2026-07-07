@@ -106,29 +106,6 @@ typedef struct {
 } AppStateDispatchSurfaceMetadata;
 
 typedef struct {
-  const char *id;
-  const char *owner;
-  const char *old_authority_path;
-  const char *read_permission;
-  const char *write_permission;
-  const char *write_capability;
-  const char *const *invariant_checks;
-  size_t invariant_check_count;
-  const char *const *owner_field_refs;
-  size_t owner_field_ref_count;
-  const char *const *generation_domain_refs;
-  size_t generation_domain_ref_count;
-  const char *const *diff_harness_refs;
-  size_t diff_harness_ref_count;
-  const char *const *source_boundary_refs;
-  size_t source_boundary_ref_count;
-  const char *removal_trigger;
-  const char *target_transition;
-  const char *follow_up_task;
-  const char *qa_enforcement;
-} AppStateCompatibilityShimMetadata;
-
-typedef struct {
   const char *invariant_id;
   const char *category;
   const char *owner_region;
@@ -270,12 +247,6 @@ AppStateDispatchSurfaceLookup(const char *surface_id);
 int AppStateValidatedDispatchSurface(const char *surface_id);
 const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index);
 size_t AppStateDispatchSurfaceCount(void);
-const AppStateCompatibilityShimMetadata *
-AppStateCompatibilityShimLookup(const char *shim_id);
-int AppStateValidatedCompatibilityShim(const char *shim_id);
-const AppStateCompatibilityShimMetadata *
-AppStateCompatibilityShimAt(size_t index);
-size_t AppStateCompatibilityShimCount(void);
 const AppStateInvariantMetadata *
 AppStateInvariantLookup(const char *invariant_id);
 int AppStateValidatedInvariant(const char *invariant_id);

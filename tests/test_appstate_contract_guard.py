@@ -772,7 +772,6 @@ def _write_fixture(
     runtime_events: list[dict[str, object]] | None = None,
     runtime_transitions: list[dict[str, object]] | None = None,
     runtime_dispatch_surfaces: list[dict[str, object]] | None = None,
-    runtime_shims: list[dict[str, object]] | None = None,
     runtime_invariants: list[dict[str, object]] | None = None,
     runtime_owner_fields: list[dict[str, object]] | None = None,
     runtime_generation_domains: list[dict[str, object]] | None = None,
@@ -882,9 +881,6 @@ def _write_fixture(
                 if dispatch_surfaces is not None
                 else _complete_dispatch_surfaces()
             ),
-            runtime_shims
-            if runtime_shims is not None
-            else (shims if shims is not None else [_shim()]),
             runtime_invariants
             if runtime_invariants is not None
             else (invariants if invariants is not None else _complete_invariants()),
@@ -945,7 +941,6 @@ def _runtime_source(
     transitions: list[dict[str, object]],
     owner_fields: list[dict[str, object]],
     dispatch_surfaces: list[dict[str, object]],
-    shims: list[dict[str, object]],
     invariants: list[dict[str, object]],
     generation_domains: list[dict[str, object]],
     diff_harness_checks: list[dict[str, object]],
@@ -1318,95 +1313,6 @@ def _runtime_source(
             f"sizeof({sequence_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
-    shim_invariants = []
-    shim_owner_field_refs = []
-    shim_generation_domain_refs = []
-    shim_diff_harness_refs = []
-    shim_source_boundary_refs = []
-    shim_rows = []
-    for index, record in enumerate(shims):
-        invariant_checks = record.get("invariant_checks")
-        if not isinstance(invariant_checks, list):
-            invariant_checks = []
-        invariant_rows = "\n".join(
-            f'  "{check}",' for check in invariant_checks if isinstance(check, str)
-        )
-        shim_invariants.append(
-            "static const char *const kAppStateCompatibilityShimInvariantChecks"
-            f"{index}[] = {{\n{invariant_rows}\n}};\n"
-        )
-        owner_field_refs = record.get("owner_field_refs")
-        if not isinstance(owner_field_refs, list):
-            owner_field_refs = []
-        owner_ref_rows = "\n".join(
-            f'  "{field}",' for field in owner_field_refs if isinstance(field, str)
-        )
-        shim_owner_field_refs.append(
-            "static const char *const kAppStateCompatibilityShimOwnerFieldRefs"
-            f"{index}[] = {{\n{owner_ref_rows}\n}};\n"
-        )
-        generation_domain_refs = record.get("generation_domain_refs")
-        if not isinstance(generation_domain_refs, list):
-            generation_domain_refs = []
-        generation_ref_rows = "\n".join(
-            f'  "{domain_id}",'
-            for domain_id in generation_domain_refs
-            if isinstance(domain_id, str)
-        )
-        shim_generation_domain_refs.append(
-            "static const char *const kAppStateCompatibilityShimGenerationDomainRefs"
-            f"{index}[] = {{\n{generation_ref_rows}\n}};\n"
-        )
-        diff_harness_refs = record.get("diff_harness_refs")
-        if not isinstance(diff_harness_refs, list):
-            diff_harness_refs = []
-        diff_ref_rows = "\n".join(
-            f'  "{harness_id}",'
-            for harness_id in diff_harness_refs
-            if isinstance(harness_id, str)
-        )
-        shim_diff_harness_refs.append(
-            "static const char *const kAppStateCompatibilityShimDiffHarnessRefs"
-            f"{index}[] = {{\n{diff_ref_rows}\n}};\n"
-        )
-        source_boundary_refs = record.get("source_boundary_refs")
-        if not isinstance(source_boundary_refs, list):
-            source_boundary_refs = []
-        source_boundary_ref_rows = "\n".join(
-            f'  "{source_path}",'
-            for source_path in source_boundary_refs
-            if isinstance(source_path, str)
-        )
-        shim_source_boundary_refs.append(
-            "static const char *const kAppStateCompatibilityShimSourceBoundaryRefs"
-            f"{index}[] = {{\n{source_boundary_ref_rows}\n}};\n"
-        )
-        shim_rows.append(
-            f'  {{"{record.get("id", "")}", "{record.get("owner", "")}", '
-            f'"{record.get("old_authority_path", "")}", '
-            f'"{record.get("read_permission", "")}", '
-            f'"{record.get("write_permission", "")}", '
-            f'"{record.get("write_capability", "")}", '
-            f"kAppStateCompatibilityShimInvariantChecks{index}, "
-            f"sizeof(kAppStateCompatibilityShimInvariantChecks{index}) / "
-            f"sizeof(kAppStateCompatibilityShimInvariantChecks{index}[0]), "
-            f"kAppStateCompatibilityShimOwnerFieldRefs{index}, "
-            f"sizeof(kAppStateCompatibilityShimOwnerFieldRefs{index}) / "
-            f"sizeof(kAppStateCompatibilityShimOwnerFieldRefs{index}[0]), "
-            f"kAppStateCompatibilityShimGenerationDomainRefs{index}, "
-            f"sizeof(kAppStateCompatibilityShimGenerationDomainRefs{index}) / "
-            f"sizeof(kAppStateCompatibilityShimGenerationDomainRefs{index}[0]), "
-            f"kAppStateCompatibilityShimDiffHarnessRefs{index}, "
-            f"sizeof(kAppStateCompatibilityShimDiffHarnessRefs{index}) / "
-            f"sizeof(kAppStateCompatibilityShimDiffHarnessRefs{index}[0]), "
-            f"kAppStateCompatibilityShimSourceBoundaryRefs{index}, "
-            f"sizeof(kAppStateCompatibilityShimSourceBoundaryRefs{index}) / "
-            f"sizeof(kAppStateCompatibilityShimSourceBoundaryRefs{index}[0]), "
-            f'"{record.get("removal_trigger", "")}", '
-            f'"{record.get("target_transition", "")}", '
-            f'"{record.get("follow_up_task", "")}", '
-            f'"{record.get("qa_enforcement", "")}"}},'
-        )
     invariant_arrays = []
     invariant_rows = []
     invariant_list_fields = (
@@ -1717,11 +1623,6 @@ def _runtime_source(
         + "".join(event_coverage_arrays)
         + "".join(owner_field_arrays)
         + "".join(dispatch_surface_arrays)
-        + "".join(shim_invariants)
-        + "".join(shim_owner_field_refs)
-        + "".join(shim_generation_domain_refs)
-        + "".join(shim_diff_harness_refs)
-        + "".join(shim_source_boundary_refs)
         + "".join(invariant_arrays)
         + "".join(generation_domain_arrays)
         + "".join(diff_harness_arrays)
@@ -1734,10 +1635,6 @@ def _runtime_source(
         "static const AppStateDispatchSurfaceMetadata "
         "kAppStateDispatchSurfaces[] = {\n"
         + "\n".join(dispatch_surface_rows)
-        + "\n};\n"
-        "static const AppStateCompatibilityShimMetadata "
-        "kAppStateCompatibilityShims[] = {\n"
-        + "\n".join(shim_rows)
         + "\n};\n"
         "static const AppStateGenerationDomainMetadata "
         "kAppStateGenerationDomains[] = {\n"
@@ -5180,7 +5077,7 @@ int main(void) {
   if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
     return 8;
   if (!AppStateValidatedDispatchSurface("surface.watcher-live-refresh"))
-    return 15;
+    return 14;
   if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
     return 9;
   if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))
@@ -5192,9 +5089,9 @@ int main(void) {
   if (!AppStateValidatedDispatchSurface("surface.directory-window-action-dispatch"))
     return 13;
   if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
-    return 14;
+    return 13;
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
-    return 16;
+    return 15;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -5221,7 +5118,7 @@ int main(void) {
   blank_source_path.source_path = "";
   if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                       &blank_source_path))
-    return 17;
+    return 16;
 
   unknown_allowed_write =
       *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
@@ -5229,7 +5126,7 @@ int main(void) {
   unknown_allowed_write.allowed_direct_write_count = 1;
   if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                       &unknown_allowed_write))
-    return 18;
+    return 17;
 
   outside_allowed_write =
       *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
@@ -5237,7 +5134,7 @@ int main(void) {
   outside_allowed_write.allowed_direct_write_count = 1;
   if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                       &outside_allowed_write))
-    return 19;
+    return 18;
 
   missing_sequences =
       *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
@@ -5895,27 +5792,30 @@ def test_refresh_tree_safe_fails_closed_before_tree_refresh_work() -> None:
         assert event_return_idx < body.index(call, event_return_idx)
 
 
-def test_appstate_shim_lookup_fails_closed_through_runtime_metadata() -> None:
+def test_appstate_runtime_no_longer_exposes_shim_registry_support() -> None:
     header = Path("include/ytnova_appstate_actions.h").read_text(encoding="utf-8")
     source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
-    validation = "int AppStateValidatedCompatibilityShim(const char *shim_id)"
-    body_start = source.index("static int AppStateValidateCompatibilityShim(")
-    body_end = source.index("\nconst AppStateEventCoverageMetadata", body_start)
-    body = source[body_start:body_end]
+    startup = Path("src/core/main.c").read_text(encoding="utf-8")
+    guard_source = Path("scripts/check_appstate_contract.py").read_text(
+        encoding="utf-8"
+    )
 
-    assert validation in header
-    assert "static int AppStateValidateCompatibilityShim(" in source
-    assert "AppStateCompatibilityShimLookup(shim_id)" in body
-    assert "AppStateTransitionLookup(metadata->target_transition)" in body
-    assert "AppStateValidateTransition(metadata->target_transition, transition)" in body
-    assert "AppStateCompatibilityShimWriteCapabilityKnown(metadata)" in body
-    assert "AppStateCompatibilityShimInvariantRefsReady(metadata)" in body
-    assert "AppStateCompatibilityShimGenerationDomainRefsReady(metadata)" in body
-    assert "AppStateCompatibilityShimDiffHarnessRefsReady(metadata)" in body
-    assert "AppStateCompatibilityShimReadOnlyProjection(metadata)" in body
-    assert "AppStateTransitionFieldsRegistered(metadata->owner_field_refs" in body
-    assert "strcmp(metadata->id, shim_id)" in body
+    for removed in [
+        "AppStateCompatibilityShimMetadata",
+        "AppStateCompatibilityShimLookup(",
+        "AppStateCompatibilityShimAt(",
+        "AppStateCompatibilityShimCount(",
+        "AppStateValidatedCompatibilityShim(",
+        "AppStateValidateCompatibilityShim(",
+    ]:
+        assert removed not in header
+        assert removed not in source
 
+    assert "AppStateCompatibilityShimsReady(" not in startup
+    assert "kAppStateRequiredShimIds" not in startup
+    assert "_parse_runtime_shim_registry(" not in guard_source
+    assert "_validate_runtime_shim_registry(" not in guard_source
+    assert "_validate_runtime_shim_callsites(" not in guard_source
 
 def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
     volume_defs = Path("include/ytnova_defs.h").read_text(encoding="utf-8")
@@ -10452,21 +10352,19 @@ int main(void) {
     return 5;
   if (!AppStateValidatedTransitionSequence("sequence.split-toggle-f8"))
     return 6;
-  if (AppStateCompatibilityShimCount() != 0)
-    return 7;
 
   if (AppStateValidatedTransition(NULL))
-    return 8;
+    return 7;
   if (AppStateValidatedOwnerField(""))
-    return 9;
+    return 8;
   if (AppStateValidatedInvariant("invariant.__ytnova_missing__"))
-    return 10;
+    return 9;
   if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
-    return 11;
+    return 10;
   if (AppStateValidatedDiffHarness("harness.__ytnova_missing__"))
-    return 12;
+    return 11;
   if (AppStateValidatedTransitionSequence("sequence.__ytnova_missing__"))
-    return 13;
+    return 12;
 
   invalid_transition =
       *AppStateTransitionLookup("transition.keybinding.navigate-tree");
@@ -10512,17 +10410,6 @@ int main(void) {
   if (AppStateValidateTransitionSequence("sequence.split-toggle-f8",
                                          &invalid_sequence))
     return 19;
-
-  if (AppStateCompatibilityShimCount() != 0)
-    return 20;
-  if (AppStateCompatibilityShimAt(0) != NULL)
-    return 21;
-  if (AppStateCompatibilityShimLookup("shim-render-derived-row-position") != NULL)
-    return 22;
-  if (AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
-    return 23;
-  if (AppStateValidateCompatibilityShim("shim-render-derived-row-position", NULL))
-    return 24;
 
   return 0;
 }
@@ -11810,9 +11697,8 @@ def test_render_projection_runtime_uses_no_compatibility_shim() -> None:
     display_source = Path("src/ui/display.c").read_text(encoding="utf-8")
     render_source = Path("src/ui/appstate_render.c").read_text(encoding="utf-8")
 
-    assert "static const char *const kAppStateRequiredShimIds[] = {" in main_source
-    assert "NULL," in main_source
-    assert "AppStateRequiredShimIdCount(void)" in main_source
+    assert "AppStateCompatibilityShimsReady(" not in main_source
+    assert "kAppStateRequiredShimIds" not in main_source
     assert 'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")' not in display_source
     assert 'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")' not in render_source
 
@@ -13657,353 +13543,6 @@ def test_guard_allows_read_only_projection_shim_owner_field_outside_write_set(
     )
 
 
-def test_guard_fails_when_runtime_shim_metadata_drifts(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0]["owner"] = "different owner"
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "runtime owner does not match shim" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_owner_field_refs_drift(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(owner_field_refs=["panel.tree_selection_key"])]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "runtime owner_field_refs does not match shim" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_generation_domain_refs_drift(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [
-        _shim(generation_domain_refs=["domain.panel_generation", "domain.volume_generation"])
-    ]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "runtime generation_domain_refs does not match shim" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_diff_harness_refs_drift(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [
-        _shim(
-            diff_harness_refs=[
-                "harness.transition_before_after_snapshot",
-                "harness.declared_write_set_diff",
-            ]
-        )
-    ]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "runtime diff_harness_refs does not match shim" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_diff_harness_refs_are_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0].pop("diff_harness_refs")
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "diff_harness_refs must be non-empty" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_diff_harness_ref_is_unknown(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(diff_harness_refs=["harness.unknown"])]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "diff_harness_refs references unknown diff harness id" in failure
-        and "harness.unknown" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_diff_harness_ref_is_duplicated(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [
-        _shim(
-            diff_harness_refs=[
-                "harness.transition_before_after_snapshot",
-                "harness.transition_before_after_snapshot",
-            ]
-        )
-    ]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "duplicate diff_harness_refs[1]" in failure
-        and "harness.transition_before_after_snapshot" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_diff_harness_lacks_target_transition(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_diff_harness_checks = _complete_diff_harness_checks()
-    for harness in runtime_diff_harness_checks:
-        harness["transition_ids"] = ["transition.render_reflow"]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_diff_harness_checks=runtime_diff_harness_checks,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "diff_harness_refs must include at least one diff harness covering"
-        in failure
-        and "transition.keybinding" in failure
-        for failure in failures
-    )
-
-
-@pytest.mark.parametrize(
-    ("field", "replacement", "expected_ref"),
-    (
-        ("owner_field_refs", ["panel.tree_selection_key"], "field"),
-        (
-            "invariant_ids",
-            ["invariant.blocked_transition_determinism"],
-            "invariant.inactive_panel_frozen",
-        ),
-        ("generation_domain_ids", ["domain.volume_generation"], "domain.panel_generation"),
-    ),
-)
-def test_guard_fails_when_runtime_shim_diff_harness_union_lacks_declared_coverage(
-    tmp_path: Path,
-    field: str,
-    replacement: list[str],
-    expected_ref: str,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_diff_harness_checks = _complete_diff_harness_checks()
-    for harness in runtime_diff_harness_checks:
-        if harness["harness_id"] == "harness.transition_before_after_snapshot":
-            harness[field] = replacement
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_diff_harness_checks=runtime_diff_harness_checks,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "lacks referenced diff_harness_refs coverage" in failure
-        and expected_ref in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_generation_domain_refs_are_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0].pop("generation_domain_refs")
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "generation_domain_refs must be non-empty" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_generation_domain_ref_is_unknown(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(generation_domain_refs=["domain.unknown"])]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "generation_domain_refs does not match runtime generation domain registry"
-        in failure
-        and "domain.unknown" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_generation_domain_ref_is_duplicated(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [
-        _shim(
-            generation_domain_refs=[
-                "domain.panel_generation",
-                "domain.panel_generation",
-            ]
-        )
-    ]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "duplicate generation_domain_refs[1]" in failure
-        and "domain.panel_generation" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_generation_owner_ref_lacks_matching_domain(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    transitions[0]["declared_write_set"] = ["field", "panel.panel_generation"]
-    owner_fields = _complete_owner_fields() + [_owner_field("panel.panel_generation")]
-    generation_domains = _complete_generation_domains()
-    generation_domains[0]["generation_owner_field"] = "panel.panel_generation"
-    generation_domains[0]["identity_fields"] = ["panel.panel_generation"]
-    runtime_shims = [
-        _shim(
-            owner_field_refs=["panel.panel_generation"],
-            generation_domain_refs=["domain.volume_generation"],
-        )
-    ]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        owner_fields=owner_fields,
-        generation_domains=generation_domains,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "generation_domain_refs must include a domain whose "
-        "generation_owner_field is panel.panel_generation" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_owner_field_ref_is_unknown(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(owner_field_refs=["field.unknown"])]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "owner_field_refs does not match runtime owner field registry"
-        in failure
-        and "field.unknown" in failure
-        for failure in failures
-    )
-
-
 def test_guard_fails_when_read_only_projection_shim_owner_field_is_in_write_set(
     tmp_path: Path,
 ) -> None:
@@ -14023,345 +13562,6 @@ def test_guard_fails_when_read_only_projection_shim_owner_field_is_in_write_set(
         for failure in failures
     )
 
-
-def test_guard_fails_when_runtime_shim_write_capability_is_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0]["write_capability"] = ""
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "write_capability must be one of" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_write_capability_is_unknown(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0]["write_capability"] = "sometimes"
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "write_capability must be one of" in failure
-        and "sometimes" in failure
-        for failure in failures
-    )
-
-
-@pytest.mark.parametrize(
-    "write_permission",
-    (
-        "Do not write stale mirror directly; write only from transition commit after canonical state changes.",
-        "No write should happen before transition commit; write the compatibility mirror after canonical state changes.",
-        "Never write before canonical state changes; write during the transition commit.",
-        "Read-only before commit; write the compatibility mirror after canonical state changes.",
-    ),
-)
-def test_guard_runtime_treats_explicit_write_capability_as_authoritative_over_prose(
-    tmp_path: Path, write_permission: str
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(owner_field_refs=["panel.tree_selection_key"])]
-    runtime_shims[0]["write_permission"] = write_permission
-    runtime_shims[0]["write_capability"] = "write_capable"
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "owner_field_refs must be declared by target_transition write set"
-        in failure
-        and "panel.tree_selection_key" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_write_capable_shim_owner_field_is_outside_write_set(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(owner_field_refs=["panel.tree_selection_key"])]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "owner_field_refs must be declared by target_transition write set"
-        in failure
-        and "panel.tree_selection_key" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_read_only_projection_owner_field_is_in_write_set(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0]["write_permission"] = (
-        "Read-only projection for render calculations."
-    )
-    runtime_shims[0]["write_capability"] = "read_only_projection"
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "read_only_projection owner_field_refs must stay outside "
-        "target_transition write set" in failure
-        and "field" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_id_is_missing(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    second_shim = _shim()
-    second_shim["id"] = "shim.second"
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        shims=[_shim(), second_shim],
-        runtime_shims=[_shim()],
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime compatibility shim registry missing shim id" in failure
-        and "shim.second" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_id_is_extra(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    extra_shim = _shim()
-    extra_shim["id"] = "shim.extra"
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=[_shim(), extra_shim],
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[1]" in failure
-        and "id does not match a shim id" in failure
-        and "shim.extra" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_target_transition_drifts(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(target_transition="transition.render_reflow")]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "runtime target_transition does not match shim" in failure
-        and "transition.render_reflow" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_invariant_checks_do_not_cover_target_transition(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim(target_transition="transition.render_reflow")]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and (
-            "invariant_checks must include at least one invariant covering "
-            "target_transition transition.render_reflow"
-        )
-        in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_each_runtime_shim_invariant_check_lacks_generation_target_coverage(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0]["invariant_checks"] = [
-        "invariant.inactive_panel_frozen",
-        "invariant.render_projection_read_only",
-    ]
-    invariants = _complete_invariants()
-    for invariant in invariants:
-        if invariant["invariant_id"] == "invariant.render_projection_read_only":
-            invariant["transition_ids"] = ["transition.render_reflow"]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-        invariants=invariants,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "invariant_checks[1] must cover target_transition transition.keybinding"
-        in failure
-        and "invariant.render_projection_read_only" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_invariant_checks_are_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_shims = [_shim()]
-    runtime_shims[0]["invariant_checks"] = []
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_shims=runtime_shims,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "invariant_checks must be non-empty" in failure
-        for failure in failures
-    )
-
-
-def test_guard_preserves_runtime_shim_invariant_array_parse_failures(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    paths = _write_fixture(tmp_path, transitions=transitions)
-    runtime_path = paths[-1]
-    source = runtime_path.read_text(encoding="utf-8")
-    runtime_path.write_text(
-        source.replace(
-            'static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {\n'
-            '  "invariant.inactive_panel_frozen",',
-            "static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {\n"
-            "  NULL,",
-            1,
-        ),
-        encoding="utf-8",
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "kAppStateCompatibilityShimInvariantChecks0[0]" in failure
-        and "malformed string literal entry" in failure
-        and "NULL" in failure
-        for failure in failures
-    )
-
-
-def test_guard_preserves_runtime_shim_generation_domain_array_parse_failures(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    paths = _write_fixture(tmp_path, transitions=transitions)
-    runtime_path = paths[-1]
-    source = runtime_path.read_text(encoding="utf-8")
-    runtime_path.write_text(
-        source.replace(
-            'static const char *const kAppStateCompatibilityShimGenerationDomainRefs0[] = {\n'
-            '  "domain.panel_generation",',
-            "static const char *const kAppStateCompatibilityShimGenerationDomainRefs0[] = {\n"
-            "  NULL,",
-            1,
-        ),
-        encoding="utf-8",
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "kAppStateCompatibilityShimGenerationDomainRefs0[0]" in failure
-        and "malformed string literal entry" in failure
-        and "NULL" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_runtime_shim_target_transition_is_not_runtime_registered(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    runtime_transitions = [
-        record for record in transitions if record["id"] != "transition.keybinding"
-    ]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        runtime_transitions=runtime_transitions,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "runtime_shim[0]" in failure
-        and "target_transition does not match runtime transition registry" in failure
-        and "transition.keybinding" in failure
-        for failure in failures
-    )
 
 def test_guard_fails_when_runtime_invariant_metadata_drifts(tmp_path: Path) -> None:
     transitions = _complete_transitions()
@@ -17300,224 +16500,6 @@ def test_runtime_invariant_startup_requires_documented_invariant_ids() -> None:
     )
 
 
-def test_runtime_shim_startup_checks_fail_closed() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-
-    assert (
-        "AppStateCompatibilityShimAt(AppStateCompatibilityShimCount()) != NULL"
-        in source
-    )
-    assert (
-        'AppStateCompatibilityShimLookup("shim.__ytnova_unknown__") != NULL'
-        in source
-    )
-    assert "AppStateCompatibilityShimCount() != required_shim_id_count" in source
-    assert "previous_index < index" in source
-    assert "strcmp(previous->id, metadata->id) == 0" in source
-    assert "!AppStateCompatibilityShimsReady()" in source
-
-
-def test_runtime_shim_startup_validates_invariant_checks_against_registry() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-
-    assert re.search(
-        r"for \(invariant_index = 0;\s*"
-        r"invariant_index < metadata->invariant_check_count;\s*"
-        r"invariant_index\+\+\) \{\s*"
-        r"if \(!NonEmptyString\(metadata->invariant_checks\[invariant_index\]\)\)\s*"
-        r"return 0;\s*"
-        r"if \(AppStateInvariantLookup\("
-        r"metadata->invariant_checks\[invariant_index\]\)\s*==\s*NULL\)\s*"
-        r"return 0;",
-        source,
-        re.S,
-    )
-
-
-def test_runtime_shim_startup_requires_invariant_to_cover_target_transition() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    helper_start = source.index(
-        "static int AppStateCompatibilityShimInvariantCoversTransition("
-    )
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    helper_body = source[helper_start:ready_start]
-    ready_body = source[ready_start:action_start]
-
-    assert "metadata->target_transition" in helper_body
-    assert (
-        "AppStateInvariantLookup(metadata->invariant_checks[invariant_index])"
-        in helper_body
-    )
-    assert "invariant->transition_ids" in helper_body
-    assert "invariant->transition_id_count" in helper_body
-    assert "!StringListContains(invariant->transition_ids" in helper_body
-    assert "!AppStateCompatibilityShimInvariantCoversTransition(metadata)" in ready_body
-
-
-def test_runtime_shim_startup_requires_owner_field_refs() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    ready_body = source[ready_start:action_start]
-
-    assert "metadata->owner_field_refs" in ready_body
-    assert "metadata->owner_field_ref_count" in ready_body
-    assert "AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index])" in ready_body
-    assert re.search(
-        r"StringListContains\(metadata->owner_field_refs,\s*"
-        r"ref_index,\s*metadata->owner_field_refs\[ref_index\]\)",
-        ready_body,
-        re.S,
-    )
-
-
-def test_runtime_shim_startup_requires_generation_domain_refs() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    ready_body = source[ready_start:action_start]
-
-    assert "metadata->generation_domain_refs" in ready_body
-    assert "metadata->generation_domain_ref_count" in ready_body
-    assert "AppStateGenerationDomainLookup(" in ready_body
-    assert re.search(
-        r"StringListContains\(metadata->generation_domain_refs,\s*"
-        r"generation_index,\s*"
-        r"metadata->generation_domain_refs\[generation_index\]\)",
-        ready_body,
-        re.S,
-    )
-
-
-def test_runtime_shim_startup_requires_diff_harness_refs() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    ready_body = source[ready_start:action_start]
-
-    assert "metadata->diff_harness_refs" in ready_body
-    assert "metadata->diff_harness_ref_count" in ready_body
-    assert "AppStateDiffHarnessLookup(metadata->diff_harness_refs[diff_index])" in ready_body
-    assert re.search(
-        r"StringListContains\(metadata->diff_harness_refs,\s*"
-        r"diff_index,\s*metadata->diff_harness_refs\[diff_index\]\)",
-        ready_body,
-        re.S,
-    )
-
-
-def test_runtime_shim_startup_requires_diff_harness_union_coverage() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    helper_start = source.index(
-        "static int AppStateCompatibilityShimDiffHarnessCoversTransition("
-    )
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    helper_body = source[helper_start:ready_start]
-    ready_body = source[ready_start:action_start]
-
-    assert "AppStateCompatibilityShimDiffHarnessCoversOwnerField(" in helper_body
-    assert "AppStateCompatibilityShimDiffHarnessCoversInvariant(" in helper_body
-    assert (
-        "AppStateCompatibilityShimDiffHarnessCoversGenerationDomain("
-        in helper_body
-    )
-    assert "harness->transition_ids" in helper_body
-    assert "harness->owner_field_refs" in helper_body
-    assert "harness->invariant_ids" in helper_body
-    assert "harness->generation_domain_ids" in helper_body
-    assert "AppStateCompatibilityShimDiffHarnessCoversTransition(metadata)" in ready_body
-    assert "AppStateCompatibilityShimDiffHarnessCoversOwnerField(" in ready_body
-    assert "AppStateCompatibilityShimDiffHarnessCoversInvariant(" in ready_body
-    assert (
-        "AppStateCompatibilityShimDiffHarnessCoversGenerationDomain("
-        in ready_body
-    )
-
-
-def test_runtime_shim_startup_requires_generation_owner_refs_to_match_domains() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    owner_helper_start = source.index(
-        "static int AppStateGenerationOwnerFieldRegistered("
-    )
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    helper_body = source[owner_helper_start:ready_start]
-    ready_body = source[ready_start:action_start]
-
-    assert "AppStateGenerationDomainAt(domain_index)" in helper_body
-    assert "domain->generation_owner_field" in helper_body
-    assert "AppStateCompatibilityShimGenerationDomainCoversOwnerField(" in helper_body
-    assert "AppStateGenerationDomainLookup(" in helper_body
-    assert "metadata->generation_domain_refs[ref_index]" in helper_body
-    assert "AppStateGenerationOwnerFieldRegistered(" in ready_body
-    assert "AppStateCompatibilityShimGenerationDomainCoversOwnerField(" in ready_body
-
-
-def test_runtime_shim_startup_requires_write_refs_to_match_target_write_set() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    helper_start = source.index("static int AppStateCompatibilityShimWriteCapable(")
-    invariant_start = source.index(
-        "static int AppStateCompatibilityShimInvariantCoversTransition("
-    )
-    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
-    action_start = source.index("static int AppStateActionTransitionsReady(void)")
-    helper_body = source[helper_start:invariant_start]
-    ready_body = source[ready_start:action_start]
-
-    assert "metadata->write_capability" in helper_body
-    assert 'strcmp(metadata->write_capability, "write_capable") == 0' in helper_body
-    assert "strstr" not in helper_body
-    assert "write_permission" not in helper_body
-    assert "AppStateCompatibilityShimWriteCapabilityKnown(metadata)" in ready_body
-    assert '"read_only_projection"' in helper_body
-    assert '"no_write"' in helper_body
-    assert "const AppStateTransitionMetadata *transition" in ready_body
-    assert re.search(
-        r"AppStateCompatibilityShimWriteCapable\(metadata\).*?"
-        r"!StringListContains\(transition->declared_write_set,\s*"
-        r"transition->declared_write_set_count,\s*"
-        r"metadata->owner_field_refs\[ref_index\]\)",
-        ready_body,
-        re.S,
-    )
-
-
-def test_runtime_shim_startup_requires_documented_shim_ids() -> None:
-    source = Path("src/core/main.c").read_text(encoding="utf-8")
-    shim_doc, shim_failures = guard._load_json(guard.DEFAULT_SHIMS)
-    required_ids = guard._collect_string_ids(
-        shim_doc,
-        collection_key="shims",
-        id_field="id",
-    )
-    required_table = re.search(
-        r"static\s+const\s+char\s+\*const\s+"
-        r"kAppStateRequiredShimIds\[\]\s*=\s*\{(?P<body>.*?)\};",
-        source,
-        re.S,
-    )
-    assert shim_failures == []
-    assert required_table is not None
-    if required_ids:
-        table_ids, table_failures = guard._parse_string_initializer_array(
-            required_table.group("body"),
-            "kAppStateRequiredShimIds",
-        )
-        assert table_failures == []
-        assert set(table_ids) == required_ids
-    else:
-        assert "NULL" in required_table.group("body")
-        assert "AppStateRequiredShimIdCount(void)" in source
-    assert re.search(
-        r"AppStateCompatibilityShimLookup\(\s*"
-        r"kAppStateRequiredShimIds\[index\]\s*\)",
-        source,
-        re.S,
-    )
-
-
 def test_runtime_diff_harness_startup_checks_fail_closed() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
 
@@ -17773,8 +16755,7 @@ def test_appstate_dispatch_surface_accessor_fails_closed_on_invalid_metadata() -
         "const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index)"
     )
     next_accessor_start = source.index(
-        "const AppStateCompatibilityShimMetadata *\n"
-        "AppStateCompatibilityShimAt(size_t index)"
+        "const AppStateInvariantMetadata *AppStateInvariantAt(size_t index)"
     )
     accessor_body = source[accessor_start:next_accessor_start]
 
@@ -17782,27 +16763,6 @@ def test_appstate_dispatch_surface_accessor_fails_closed_on_invalid_metadata() -
     assert re.search(
         r"if \(!AppStateValidatedDispatchSurface\(\s*"
         r"kAppStateDispatchSurfaces\[index\]\.surface_id\s*"
-        r"\)\)\s*return NULL;",
-        accessor_body,
-        re.S,
-    )
-
-
-def test_appstate_shim_accessor_fails_closed_on_invalid_metadata() -> None:
-    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
-    accessor_start = source.index(
-        "const AppStateCompatibilityShimMetadata *\n"
-        "AppStateCompatibilityShimAt(size_t index)"
-    )
-    next_accessor_start = source.index(
-        "const AppStateInvariantMetadata *AppStateInvariantAt(size_t index)"
-    )
-    accessor_body = source[accessor_start:next_accessor_start]
-
-    assert "index >= AppStateCompatibilityShimCount()" in accessor_body
-    assert re.search(
-        r"if \(!AppStateValidatedCompatibilityShim\(\s*"
-        r"kAppStateCompatibilityShims\[index\]\.id\s*"
         r"\)\)\s*return NULL;",
         accessor_body,
         re.S,
@@ -17856,10 +16816,6 @@ def test_appstate_string_lookup_boundaries_fail_closed_on_invalid_registry_keys(
         "AppStateDispatchSurfaceLookup": (
             "kAppStateDispatchSurfaces[index].surface_id",
             "surface_id",
-        ),
-        "AppStateCompatibilityShimLookup": (
-            "kAppStateCompatibilityShims[index].id",
-            "shim_id",
         ),
         "AppStateInvariantLookup": (
             "kAppStateInvariants[index].invariant_id",
