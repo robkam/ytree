@@ -4,30 +4,21 @@ Date: 2026-07-07
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-remove-render-row-shim
-Active PR: https://github.com/robkam/ytreenova/pull/371 (draft)
+Current branch: appstate-remove-shim-runtime-support
+Active PR: https://github.com/robkam/ytreenova/pull/372
 Supersession state: no active stop or pause condition.
 
-Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/370 merged at `aef1b36` after green checks.
-- Local `main` and `origin/main` were aligned at `aef1b36` before this branch.
-- The prior topic branch was deleted on merge and pruned locally/remotely.
-
 Current AppState batch:
-- Removes the last render-row compatibility shim from `docs/appstate_compat_shims.json`, `src/core/appstate_actions.c`, and `src/core/main.c` so the AppState contract no longer carries an empty runtime shim boundary.
-- Narrows render projection helpers in `include/ytnova_appstate_render.h`, `src/ui/appstate_render.c`, `src/ui/display.c`, and `src/ui/file_list.c` to explicit `file_count` inputs instead of panel-derived shim validation.
-- Teaches `scripts/check_appstate_contract.py` and `tests/test_appstate_contract_guard.py` that the compatibility shim registry can now be empty while still validating the remaining registry/runtime boundaries.
-- Syncs the tracked AI workflow bridge files for portable local defaults and tracked recovery checkpoint handling.
+- Remove dead compatibility shim runtime support now that `docs/appstate_compat_shims.json` is empty and no runtime shim validation callsites remain.
+- Runtime/header removal is implemented in `include/ytnova_appstate_actions.h`, `src/core/appstate_actions.c`, and `src/core/main.c`.
+- The contract guard no longer parses or validates a runtime shim registry, and the matching tests/fixtures were trimmed in `scripts/check_appstate_contract.py` and `tests/test_appstate_contract_guard.py`.
+- The render reflow path no longer gates on shim validation in `src/ui/display.c`.
 
 Local validation:
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q`
-- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- `source .venv/bin/activate && pytest tests/test_project_ai_config_guard.py -q`
-- `python3 scripts/check_project_ai_config.py`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'test_render_projection_runtime_uses_no_compatibility_shim or test_runtime_shim_startup_requires_documented_shim_ids or test_runtime_registry_boundary_validation_requires_registered_metadata'`
-- `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src/core/appstate_actions.c src/core/main.c`
 - `make`
-- `git diff --check`
+- `python3 scripts/check_appstate_contract.py`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'shim or runtime_registry_boundary_validation_requires_registered_metadata or render_projection_runtime_uses_no_compatibility_shim'`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'test_runtime_generation_domain_ref_readiness_uses_coverage_transitions or shim or runtime_registry_boundary_validation_requires_registered_metadata or render_projection_runtime_uses_no_compatibility_shim'`
 
 Next action:
-- PR https://github.com/robkam/ytreenova/pull/371 failed the `Full local-equivalent QA gate (qa-all)` on `cppcheck` style findings caused by the zero-shim registry scaffolding. Amend the branch with the shim-count fix, push, then restart the CI wait rule from the new push time before checking status again.
+- Push the amended PR fix for the coverage guard helper-slice failure, restart the CI wait clock, then follow the CI wait rule until mergeable.

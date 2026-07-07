@@ -214,6 +214,7 @@ make qa-fuzz
 3.  Handoff artifacts are split into:
     *   tracked recovery checkpoint: keep `.agent/handoffs/prompt.1.txt` current and commit it with the active unit when the maintainer is using tracked recovery context,
     *   transient prompt/report scratch artifacts: do not commit them unless the maintainer explicitly asks to preserve them.
+4.  When tracked recovery context is active, refresh the committed checkpoint before the branch's first push and again after merge/cleanup so the next autonomous resume starts from current branch and PR state.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 

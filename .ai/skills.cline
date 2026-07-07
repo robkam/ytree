@@ -1,0 +1,4 @@
+Discovery stub for repo-local skills.
+
+Canonical skill procedures live under `.ai/skills/*/SKILL.md`.
+Load behavior and precedence are defined in `.ai/shared.md`.

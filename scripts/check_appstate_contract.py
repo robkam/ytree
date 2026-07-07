@@ -396,9 +396,6 @@ DISPATCH_SURFACE_CALLSITE_RE = re.compile(
     r'AppStateValidatedDispatchSurface\s*\(\s*"([^"]+)"\s*\)'
 )
 EVENT_CALLSITE_RE = re.compile(r'AppStateValidatedEvent\s*\(\s*"([^"]+)"\s*\)')
-SHIM_CALLSITE_RE = re.compile(
-    r'AppStateValidatedCompatibilityShim\s*\(\s*"([^"]+)"\s*\)'
-)
 KEY_ACTION_CALLSITE_RE = re.compile(r"\bAppStateValidatedKeyAction\s*\(")
 DECODED_ACTION_DISPATCH_SURFACE_CATEGORIES = {
     "key_decode_input_dispatch",
@@ -2033,202 +2030,6 @@ def _parse_runtime_transition_sequence_registry(
         )
     return records, failures
 
-def _parse_runtime_shim_registry(
-    runtime_path: Path,
-) -> tuple[list[dict[str, Any]], list[str]]:
-    try:
-        source = runtime_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return [], [f"{runtime_path}: failed to read: {exc}"]
-
-    invariant_tables: dict[str, list[str]] = {}
-    owner_ref_tables: dict[str, list[str]] = {}
-    generation_domain_ref_tables: dict[str, list[str]] = {}
-    diff_harness_ref_tables: dict[str, list[str]] = {}
-    source_boundary_ref_tables: dict[str, list[str]] = {}
-    failures: list[str] = []
-    invariant_re = re.compile(
-        r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateCompatibilityShimInvariantChecks[0-9]+)\[\]\s*=\s*\{"
-        r"(?P<body>.*?)\};",
-        re.S,
-    )
-    for invariant_match in invariant_re.finditer(source):
-        table_name = invariant_match.group(1)
-        values, array_failures = _parse_string_initializer_array(
-            invariant_match.group("body"),
-            table_name,
-        )
-        invariant_tables[table_name] = values
-        failures.extend(array_failures)
-
-    owner_ref_re = re.compile(
-        r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateCompatibilityShimOwnerFieldRefs[0-9]+)\[\]\s*=\s*\{"
-        r"(?P<body>.*?)\};",
-        re.S,
-    )
-    for owner_ref_match in owner_ref_re.finditer(source):
-        table_name = owner_ref_match.group(1)
-        values, array_failures = _parse_string_initializer_array(
-            owner_ref_match.group("body"),
-            table_name,
-        )
-        owner_ref_tables[table_name] = values
-        failures.extend(array_failures)
-
-    generation_domain_ref_re = re.compile(
-        r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateCompatibilityShimGenerationDomainRefs[0-9]+)\[\]\s*=\s*\{"
-        r"(?P<body>.*?)\};",
-        re.S,
-    )
-    for generation_domain_ref_match in generation_domain_ref_re.finditer(source):
-        table_name = generation_domain_ref_match.group(1)
-        values, array_failures = _parse_string_initializer_array(
-            generation_domain_ref_match.group("body"),
-            table_name,
-        )
-        generation_domain_ref_tables[table_name] = values
-        failures.extend(array_failures)
-
-    diff_harness_ref_re = re.compile(
-        r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateCompatibilityShimDiffHarnessRefs[0-9]+)\[\]\s*=\s*\{"
-        r"(?P<body>.*?)\};",
-        re.S,
-    )
-    for diff_harness_ref_match in diff_harness_ref_re.finditer(source):
-        table_name = diff_harness_ref_match.group(1)
-        values, array_failures = _parse_string_initializer_array(
-            diff_harness_ref_match.group("body"),
-            table_name,
-        )
-        diff_harness_ref_tables[table_name] = values
-        failures.extend(array_failures)
-
-    source_boundary_ref_re = re.compile(
-        r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateCompatibilityShimSourceBoundaryRefs[0-9]+)\[\]\s*=\s*\{"
-        r"(?P<body>.*?)\};",
-        re.S,
-    )
-    for source_boundary_ref_match in source_boundary_ref_re.finditer(source):
-        table_name = source_boundary_ref_match.group(1)
-        values, array_failures = _parse_string_initializer_array(
-            source_boundary_ref_match.group("body"),
-            table_name,
-        )
-        source_boundary_ref_tables[table_name] = values
-        failures.extend(array_failures)
-
-    match = re.search(
-        r"kAppStateCompatibilityShims\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
-        source,
-        re.S,
-    )
-    if match is None:
-        null_match = re.search(
-            r"static\s+const\s+AppStateCompatibilityShimMetadata\s+\*const\s+"
-            r"kAppStateCompatibilityShims\s*=\s*NULL\s*;",
-            source,
-            re.S,
-        )
-        if null_match is not None:
-            return [], failures
-        return [], [f"{runtime_path}: failed to find runtime compatibility shim registry"]
-
-    records: list[dict[str, Any]] = []
-    row_re = re.compile(
-        r"\{\s*\"(?P<id>[^\"]*)\"\s*,\s*\"(?P<owner>[^\"]*)\"\s*,"
-        r"\s*\"(?P<old_authority_path>[^\"]*)\"\s*,"
-        r"\s*\"(?P<read_permission>[^\"]*)\"\s*,"
-        r"\s*\"(?P<write_permission>[^\"]*)\"\s*,"
-        r"\s*\"(?P<write_capability>[^\"]*)\"\s*,"
-        r"\s*(?P<invariants>kAppStateCompatibilityShimInvariantChecks[0-9]+)\s*,"
-        r"\s*sizeof\((?P=invariants)\)\s*/"
-        r"\s*sizeof\((?P=invariants)\[0\]\)\s*,"
-        r"\s*(?P<owner_refs>kAppStateCompatibilityShimOwnerFieldRefs[0-9]+)\s*,"
-        r"\s*sizeof\((?P=owner_refs)\)\s*/"
-        r"\s*sizeof\((?P=owner_refs)\[0\]\)\s*,"
-        r"\s*(?P<generation_refs>kAppStateCompatibilityShimGenerationDomainRefs[0-9]+)\s*,"
-        r"\s*sizeof\((?P=generation_refs)\)\s*/"
-        r"\s*sizeof\((?P=generation_refs)\[0\]\)\s*,"
-        r"\s*(?P<diff_refs>kAppStateCompatibilityShimDiffHarnessRefs[0-9]+)\s*,"
-        r"\s*sizeof\((?P=diff_refs)\)\s*/"
-        r"\s*sizeof\((?P=diff_refs)\[0\]\)\s*,"
-        r"\s*(?P<source_boundary_refs>kAppStateCompatibilityShimSourceBoundaryRefs[0-9]+)\s*,"
-        r"\s*sizeof\((?P=source_boundary_refs)\)\s*/"
-        r"\s*sizeof\((?P=source_boundary_refs)\[0\]\)\s*,"
-        r"\s*\"(?P<removal_trigger>[^\"]*)\"\s*,"
-        r"\s*\"(?P<target_transition>[^\"]*)\"\s*,"
-        r"\s*\"(?P<follow_up_task>[^\"]*)\"\s*,"
-        r"\s*\"(?P<qa_enforcement>[^\"]*)\"\s*\}",
-        re.S,
-    )
-    for index, row_match in enumerate(row_re.finditer(match.group("body"))):
-        invariant_table_name = row_match.group("invariants")
-        invariant_checks = invariant_tables.get(invariant_table_name)
-        if invariant_checks is None:
-            failures.append(
-                f"runtime_shim[{index}]: unknown invariant-check table: {invariant_table_name}"
-            )
-            invariant_checks = []
-        owner_ref_table_name = row_match.group("owner_refs")
-        owner_field_refs = owner_ref_tables.get(owner_ref_table_name)
-        if owner_field_refs is None:
-            failures.append(
-                f"runtime_shim[{index}]: unknown owner-field-ref table: {owner_ref_table_name}"
-            )
-            owner_field_refs = []
-        generation_ref_table_name = row_match.group("generation_refs")
-        generation_domain_refs = generation_domain_ref_tables.get(
-            generation_ref_table_name
-        )
-        if generation_domain_refs is None:
-            failures.append(
-                f"runtime_shim[{index}]: unknown generation-domain-ref table: {generation_ref_table_name}"
-            )
-            generation_domain_refs = []
-        diff_ref_table_name = row_match.group("diff_refs")
-        diff_harness_refs = diff_harness_ref_tables.get(diff_ref_table_name)
-        if diff_harness_refs is None:
-            failures.append(
-                f"runtime_shim[{index}]: unknown diff-harness-ref table: {diff_ref_table_name}"
-            )
-            diff_harness_refs = []
-        source_boundary_ref_table_name = row_match.group("source_boundary_refs")
-        source_boundary_refs = source_boundary_ref_tables.get(
-            source_boundary_ref_table_name
-        )
-        if source_boundary_refs is None:
-            failures.append(
-                f"runtime_shim[{index}]: unknown source-boundary-ref table: "
-                f"{source_boundary_ref_table_name}"
-            )
-            source_boundary_refs = []
-        records.append(
-            {
-                "id": row_match.group("id"),
-                "owner": row_match.group("owner"),
-                "old_authority_path": row_match.group("old_authority_path"),
-                "read_permission": row_match.group("read_permission"),
-                "write_permission": row_match.group("write_permission"),
-                "write_capability": row_match.group("write_capability"),
-                "invariant_checks": invariant_checks,
-                "owner_field_refs": owner_field_refs,
-                "generation_domain_refs": generation_domain_refs,
-                "diff_harness_refs": diff_harness_refs,
-                "source_boundary_refs": source_boundary_refs,
-                "removal_trigger": row_match.group("removal_trigger"),
-                "target_transition": row_match.group("target_transition"),
-                "follow_up_task": row_match.group("follow_up_task"),
-                "qa_enforcement": row_match.group("qa_enforcement"),
-            }
-        )
-    return records, failures
-
-
 def _validate_runtime_action_lookup(
     *,
     runtime_records: list[dict[str, str]],
@@ -3476,162 +3277,6 @@ def _validate_runtime_diff_harness_registry(
     if missing_ids:
         failures.append(
             f"{runtime_path}: runtime diff harness registry missing harness id(s): "
-            + ", ".join(missing_ids)
-        )
-
-    return failures
-
-
-def _validate_runtime_shim_registry(
-    *,
-    runtime_records: list[dict[str, Any]],
-    runtime_path: Path,
-    shim_records: list[Any],
-    runtime_transition_ids: dict[str, dict[str, Any]],
-    runtime_owner_fields: set[str],
-    runtime_invariant_ids: set[str],
-    runtime_invariant_transition_ids: dict[str, set[str]],
-    runtime_generation_domain_owner_fields: dict[str, str],
-    runtime_diff_harness_ids: set[str],
-    runtime_diff_harness_transition_ids: dict[str, set[str]],
-    runtime_diff_harness_owner_field_refs: dict[str, set[str]],
-    runtime_diff_harness_invariant_ids: dict[str, set[str]],
-    runtime_diff_harness_generation_domain_ids: dict[str, set[str]],
-) -> list[str]:
-    failures: list[str] = []
-    expected_shims = {
-        record["id"]: record
-        for record in shim_records
-        if isinstance(record, dict)
-        and isinstance(record.get("id"), str)
-        and record["id"].strip()
-    }
-    expected_ids = set(expected_shims)
-    covered_ids: set[str] = set()
-
-    for index, record in enumerate(runtime_records):
-        label = f"runtime_shim[{index}]"
-        runtime_id = record["id"]
-        if runtime_id in covered_ids:
-            failures.append(f"{label}: duplicate runtime shim id: {runtime_id}")
-        covered_ids.add(runtime_id)
-
-        shim_record = expected_shims.get(runtime_id)
-        if shim_record is None:
-            failures.append(f"{label}: id does not match a shim id: {runtime_id}")
-        else:
-            for field in (
-                "owner",
-                "old_authority_path",
-                "read_permission",
-                "write_permission",
-                "write_capability",
-                "invariant_checks",
-                "owner_field_refs",
-                "generation_domain_refs",
-                "diff_harness_refs",
-                "source_boundary_refs",
-                "removal_trigger",
-                "target_transition",
-                "follow_up_task",
-                "qa_enforcement",
-            ):
-                if record.get(field) != shim_record.get(field):
-                    failures.append(
-                        f"{label}: runtime {field} does not match shim "
-                        f"{runtime_id}: {record.get(field)}"
-                    )
-
-        failures.extend(_validate_shim_write_capability(record, label))
-
-        invariant_checks = record.get("invariant_checks")
-        if not isinstance(invariant_checks, list) or not invariant_checks:
-            failures.append(f"{label}: invariant_checks must be non-empty")
-        else:
-            failures.extend(
-                _validate_invariant_check_refs(
-                    invariant_checks=invariant_checks,
-                    runtime_invariant_ids=runtime_invariant_ids,
-                    label=label,
-                )
-            )
-
-        target_transition = record.get("target_transition")
-        if (
-            isinstance(target_transition, str)
-            and target_transition.strip()
-            and target_transition not in runtime_transition_ids
-        ):
-            failures.append(
-                f"{label}: target_transition does not match runtime transition "
-                f"registry: {target_transition}"
-            )
-        failures.extend(
-            _validate_shim_owner_field_refs(
-                record=record,
-                registered_fields=runtime_owner_fields,
-                transition_ids=runtime_transition_ids,
-                label=label,
-                registry_label="runtime owner field registry",
-            )
-        )
-        failures.extend(
-            _validate_invariant_transition_alignment(
-                invariant_refs=invariant_checks,
-                transition_id=target_transition,
-                invariant_transition_ids=runtime_invariant_transition_ids,
-                label=label,
-                invariant_field="invariant_checks",
-                transition_field="target_transition",
-            )
-        )
-        failures.extend(
-            _validate_each_shim_invariant_covers_transition(
-                invariant_refs=invariant_checks,
-                transition_id=target_transition,
-                invariant_transition_ids=runtime_invariant_transition_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_shim_generation_domain_refs(
-                record=record,
-                generation_domain_owner_fields=runtime_generation_domain_owner_fields,
-                label=label,
-                registry_label="runtime generation domain registry",
-            )
-        )
-        failures.extend(
-            _validate_shim_diff_harness_refs(
-                refs=record.get("diff_harness_refs"),
-                diff_harness_ids=runtime_diff_harness_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_shim_diff_harness_transition_coverage(
-                diff_harness_refs=record.get("diff_harness_refs"),
-                transition_id=target_transition,
-                diff_harness_transition_ids=runtime_diff_harness_transition_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_shim_diff_harness_union_coverage(
-                record=record,
-                diff_harness_owner_field_refs=runtime_diff_harness_owner_field_refs,
-                diff_harness_invariant_ids=runtime_diff_harness_invariant_ids,
-                diff_harness_generation_domain_ids=(
-                    runtime_diff_harness_generation_domain_ids
-                ),
-                label=label,
-            )
-        )
-
-    missing_ids = sorted(expected_ids - covered_ids)
-    if missing_ids:
-        failures.append(
-            f"{runtime_path}: runtime compatibility shim registry missing shim id(s): "
             + ", ".join(missing_ids)
         )
 
@@ -4918,12 +4563,6 @@ def _runtime_dispatch_surface_callsites_by_id(
     )
 
 
-def _runtime_shim_callsites_by_id(
-    source_root: Path,
-) -> tuple[dict[str, set[str]], list[str]]:
-    return _runtime_validation_callsites_by_id(source_root, SHIM_CALLSITE_RE)
-
-
 def _validate_runtime_dispatch_surface_callsites(
     *,
     runtime_records: list[dict[str, Any]],
@@ -5084,61 +4723,6 @@ def _validate_runtime_event_callsites(
         if not event_found:
             failures.append(
                 f"{', '.join(source_paths)}: {event_id}: missing runtime validation callsite"
-            )
-    return failures
-
-
-def _validate_runtime_shim_callsites(
-    *,
-    runtime_records: list[dict[str, Any]],
-    repository_root: Path,
-    action_runtime_path: Path,
-) -> list[str]:
-    if (
-        action_runtime_path.parent.name != "core"
-        or action_runtime_path.parent.parent.name != "src"
-    ):
-        return []
-    failures: list[str] = []
-    for record in runtime_records:
-        if not isinstance(record, dict):
-            continue
-        shim_id = record.get("id")
-        source_boundary_refs = record.get("source_boundary_refs")
-        if not isinstance(shim_id, str) or not shim_id.strip():
-            continue
-        if not isinstance(source_boundary_refs, list):
-            continue
-
-        source_paths: list[str] = []
-        seen_paths: set[str] = set()
-        for source_path in source_boundary_refs:
-            if (
-                not isinstance(source_path, str)
-                or not source_path.strip()
-                or source_path in seen_paths
-            ):
-                continue
-            source_paths.append(source_path)
-            seen_paths.add(source_path)
-        if not source_paths:
-            continue
-
-        shim_found = False
-        for source_path in source_paths:
-            source_file = repository_root / source_path
-            callsite_ids, read_failures = _runtime_validation_callsite_ids_in_file(
-                source_file, SHIM_CALLSITE_RE
-            )
-            failures.extend(read_failures)
-            if read_failures:
-                continue
-            if shim_id in callsite_ids:
-                shim_found = True
-                break
-        if not shim_found:
-            failures.append(
-                f"{', '.join(source_paths)}: {shim_id}: missing runtime validation callsite"
             )
     return failures
 
@@ -7342,9 +6926,6 @@ def validate_contract(
     runtime_dispatch_surface_records, runtime_dispatch_surface_failures = (
         _parse_runtime_dispatch_surface_registry(action_runtime_path)
     )
-    runtime_shim_records, runtime_shim_failures = _parse_runtime_shim_registry(
-        action_runtime_path
-    )
     runtime_invariant_records, runtime_invariant_failures = (
         _parse_runtime_invariant_registry(action_runtime_path)
     )
@@ -7374,7 +6955,6 @@ def validate_contract(
     failures.extend(runtime_transition_failures)
     failures.extend(runtime_owner_field_failures)
     failures.extend(runtime_dispatch_surface_failures)
-    failures.extend(runtime_shim_failures)
     failures.extend(runtime_invariant_failures)
     failures.extend(runtime_generation_domain_failures)
     failures.extend(runtime_diff_harness_failures)
@@ -7384,7 +6964,6 @@ def validate_contract(
 
     for doc, path, runtime_records in (
         (transitions_doc, transitions_path, runtime_transition_records),
-        (shims_doc, shims_path, runtime_shim_records),
         (action_coverage_doc, action_coverage_path, runtime_action_coverage_records),
         (event_coverage_doc, event_coverage_path, runtime_event_coverage_records),
         (owner_fields_doc, owner_fields_path, runtime_owner_field_records),
@@ -7764,44 +7343,6 @@ def validate_contract(
                 repository_root=repository_root,
             )
         )
-    failures.extend(
-        _validate_runtime_shim_registry(
-            runtime_records=runtime_shim_records,
-            runtime_path=action_runtime_path,
-            shim_records=shims,
-            runtime_transition_ids={
-                record["id"]: record for record in runtime_transition_records
-            },
-            runtime_owner_fields={
-                record["field"] for record in runtime_owner_field_records
-            },
-            runtime_invariant_ids=runtime_invariant_ids,
-            runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
-                runtime_invariant_records
-            ),
-            runtime_generation_domain_owner_fields=runtime_generation_domain_owner_fields,
-            runtime_diff_harness_ids={
-                record["harness_id"] for record in runtime_diff_harness_records
-            },
-            runtime_diff_harness_transition_ids=runtime_diff_harness_transition_ids,
-            runtime_diff_harness_owner_field_refs=(
-                runtime_diff_harness_owner_field_refs_by_harness
-            ),
-            runtime_diff_harness_invariant_ids=(
-                runtime_diff_harness_invariant_ids_by_harness
-            ),
-            runtime_diff_harness_generation_domain_ids=(
-                runtime_diff_harness_generation_domain_ids_by_harness
-            ),
-        )
-    )
-    failures.extend(
-        _validate_runtime_shim_callsites(
-            runtime_records=runtime_shim_records,
-            repository_root=repository_root,
-            action_runtime_path=action_runtime_path,
-        )
-    )
 
     if not isinstance(action_coverage_doc, dict):
         failures.append(f"{action_coverage_path}: top-level value must be an object")
