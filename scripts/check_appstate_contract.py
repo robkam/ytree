@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the documented AppState transition and compatibility-shim registries."""
+"""Validate the documented AppState transition registries."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TRANSITIONS = REPO_ROOT / "docs" / "appstate_transition_matrix.json"
-DEFAULT_SHIMS = REPO_ROOT / "docs" / "appstate_compat_shims.json"
 DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
 DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
 DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
@@ -60,24 +59,6 @@ REQUIRED_TRANSITION_FIELDS = {
     "render_invalidation",
     "boundary_status",
     "notes_follow_up",
-}
-
-REQUIRED_SHIM_FIELDS = {
-    "id",
-    "owner",
-    "old_authority_path",
-    "read_permission",
-    "write_permission",
-    "write_capability",
-    "invariant_checks",
-    "owner_field_refs",
-    "generation_domain_refs",
-    "diff_harness_refs",
-    "source_boundary_refs",
-    "removal_trigger",
-    "target_transition",
-    "follow_up_task",
-    "qa_enforcement",
 }
 
 REQUIRED_ACTION_FIELDS = {
@@ -335,17 +316,6 @@ EVENT_LIST_FIELDS = LIST_FIELDS | {
     "generation_domain_refs",
     "diff_harness_refs",
     "invariant_refs",
-}
-SHIM_LIST_FIELDS = LIST_FIELDS | {
-    "owner_field_refs",
-    "generation_domain_refs",
-    "diff_harness_refs",
-    "source_boundary_refs",
-}
-VALID_SHIM_WRITE_CAPABILITIES = {
-    "write_capable",
-    "read_only_projection",
-    "no_write",
 }
 VALID_BOUNDARY_STATUSES = {
     "covered_by_transition_record",
@@ -3315,23 +3285,6 @@ def _validate_required_string_list(
     return failures
 
 
-def _validate_shim_write_capability(record: dict[str, Any], label: str) -> list[str]:
-    value = record.get("write_capability")
-    if isinstance(value, str) and value in VALID_SHIM_WRITE_CAPABILITIES:
-        return []
-
-    allowed = ", ".join(sorted(VALID_SHIM_WRITE_CAPABILITIES))
-    return [f"{label}: write_capability must be one of {allowed}: {value}"]
-
-
-def _shim_write_capable(write_capability: Any) -> bool:
-    return write_capability == "write_capable"
-
-
-def _shim_read_only_projection(write_capability: Any) -> bool:
-    return write_capability == "read_only_projection"
-
-
 def _validate_owner_field_ref_list(
     *,
     refs: Any,
@@ -3364,213 +3317,6 @@ def _validate_owner_field_ref_list(
             failures.append(
                 f"{label}: owner_field_refs does not match {registry_label}: {ref}"
             )
-
-    return failures
-
-
-def _validate_shim_owner_field_refs(
-    *,
-    record: dict[str, Any],
-    registered_fields: set[str],
-    transition_ids: dict[str, dict[str, Any]],
-    label: str,
-    registry_label: str,
-) -> list[str]:
-    failures = _validate_owner_field_ref_list(
-        refs=record.get("owner_field_refs"),
-        registered_fields=registered_fields,
-        label=label,
-        registry_label=registry_label,
-    )
-    if failures:
-        return failures
-
-    target_transition = record.get("target_transition")
-    transition = (
-        transition_ids.get(target_transition)
-        if isinstance(target_transition, str)
-        else None
-    )
-    if transition is None:
-        return failures
-
-    declared_write_set = transition.get("declared_write_set")
-    if not isinstance(declared_write_set, list):
-        return failures
-    declared_writes = {
-        field
-        for field in declared_write_set
-        if isinstance(field, str) and field.strip()
-    }
-    owner_refs = record.get("owner_field_refs")
-    assert isinstance(owner_refs, list)
-    write_capability = record.get("write_capability")
-    for owner_ref in owner_refs:
-        if _shim_write_capable(write_capability) and owner_ref not in declared_writes:
-            failures.append(
-                f"{label}: owner_field_refs must be declared by "
-                f"target_transition write set {target_transition}: {owner_ref}"
-            )
-        if (
-            _shim_read_only_projection(write_capability)
-            and owner_ref in declared_writes
-        ):
-            failures.append(
-                f"{label}: read_only_projection owner_field_refs must stay "
-                f"outside target_transition write set {target_transition}: "
-                f"{owner_ref}"
-            )
-
-    return failures
-
-
-def _validate_shim_generation_domain_refs(
-    *,
-    record: dict[str, Any],
-    generation_domain_owner_fields: dict[str, str],
-    label: str,
-    registry_label: str,
-) -> list[str]:
-    failures = _validate_list_field(
-        value=record.get("generation_domain_refs"),
-        label=label,
-        field="generation_domain_refs",
-    )
-    if failures:
-        return failures
-
-    generation_domain_refs = record.get("generation_domain_refs")
-    owner_field_refs = record.get("owner_field_refs")
-    assert isinstance(generation_domain_refs, list)
-    seen: set[str] = set()
-    covered_generation_owner_fields: set[str] = set()
-    for index, ref in enumerate(generation_domain_refs):
-        assert isinstance(ref, str)
-        if ref in seen:
-            failures.append(f"{label}: duplicate generation_domain_refs[{index}]: {ref}")
-        seen.add(ref)
-        generation_owner_field = generation_domain_owner_fields.get(ref)
-        if generation_owner_field is None:
-            failures.append(
-                f"{label}: generation_domain_refs does not match {registry_label}: {ref}"
-            )
-        else:
-            covered_generation_owner_fields.add(generation_owner_field)
-
-    if (
-        _shim_write_capable(record.get("write_capability"))
-        and isinstance(owner_field_refs, list)
-        and not failures
-    ):
-        known_generation_owner_fields = set(generation_domain_owner_fields.values())
-        for owner_ref in owner_field_refs:
-            if (
-                isinstance(owner_ref, str)
-                and owner_ref in known_generation_owner_fields
-                and owner_ref not in covered_generation_owner_fields
-            ):
-                failures.append(
-                    f"{label}: generation_domain_refs must include a domain "
-                    f"whose generation_owner_field is {owner_ref}"
-                )
-
-    return failures
-
-
-def _validate_shim_diff_harness_refs(
-    *,
-    refs: Any,
-    diff_harness_ids: set[str],
-    label: str,
-) -> list[str]:
-    failures = _validate_list_field(
-        value=refs,
-        label=label,
-        field="diff_harness_refs",
-    )
-    if failures:
-        return failures
-
-    seen: set[str] = set()
-    assert isinstance(refs, list)
-    for index, ref in enumerate(refs):
-        assert isinstance(ref, str)
-        if ref in seen:
-            failures.append(f"{label}: duplicate diff_harness_refs[{index}]: {ref}")
-        seen.add(ref)
-        if ref not in diff_harness_ids:
-            failures.append(
-                f"{label}: diff_harness_refs references unknown diff harness id: {ref}"
-            )
-
-    return failures
-
-
-def _validate_shim_diff_harness_transition_coverage(
-    *,
-    diff_harness_refs: Any,
-    transition_id: Any,
-    diff_harness_transition_ids: dict[str, set[str]],
-    label: str,
-) -> list[str]:
-    if not isinstance(transition_id, str) or not transition_id.strip():
-        return []
-    if not isinstance(diff_harness_refs, list):
-        return []
-
-    for harness_id in diff_harness_refs:
-        if not isinstance(harness_id, str) or not harness_id.strip():
-            continue
-        if transition_id in diff_harness_transition_ids.get(harness_id, set()):
-            return []
-
-    return [
-        f"{label}: diff_harness_refs must include at least one diff harness "
-        f"covering target_transition {transition_id}"
-    ]
-
-
-def _validate_shim_diff_harness_union_coverage(
-    *,
-    record: dict[str, Any],
-    diff_harness_owner_field_refs: dict[str, set[str]],
-    diff_harness_invariant_ids: dict[str, set[str]],
-    diff_harness_generation_domain_ids: dict[str, set[str]],
-    label: str,
-) -> list[str]:
-    diff_harness_refs = record.get("diff_harness_refs")
-    if not isinstance(diff_harness_refs, list):
-        return []
-
-    covered_owner_fields: set[str] = set()
-    covered_invariants: set[str] = set()
-    covered_generation_domains: set[str] = set()
-    for harness_id in diff_harness_refs:
-        if not isinstance(harness_id, str) or not harness_id.strip():
-            continue
-        covered_owner_fields.update(diff_harness_owner_field_refs.get(harness_id, set()))
-        covered_invariants.update(diff_harness_invariant_ids.get(harness_id, set()))
-        covered_generation_domains.update(
-            diff_harness_generation_domain_ids.get(harness_id, set())
-        )
-
-    failures: list[str] = []
-    for field_name, covered_refs in (
-        ("owner_field_refs", covered_owner_fields),
-        ("invariant_checks", covered_invariants),
-        ("generation_domain_refs", covered_generation_domains),
-    ):
-        refs = record.get(field_name)
-        if not isinstance(refs, list):
-            continue
-        for index, ref in enumerate(refs):
-            if not isinstance(ref, str) or not ref.strip():
-                continue
-            if ref not in covered_refs:
-                failures.append(
-                    f"{label}: {field_name}[{index}] lacks referenced "
-                    f"diff_harness_refs coverage: {ref}"
-                )
 
     return failures
 
@@ -3646,29 +3392,6 @@ def _validate_coverage_diff_harness_refs(
     return failures
 
 
-def _validate_each_shim_invariant_covers_transition(
-    *,
-    invariant_refs: Any,
-    transition_id: Any,
-    invariant_transition_ids: dict[str, set[str]],
-    label: str,
-) -> list[str]:
-    if not isinstance(transition_id, str) or not transition_id.strip():
-        return []
-    if not isinstance(invariant_refs, list):
-        return []
-
-    failures: list[str] = []
-    for index, invariant_ref in enumerate(invariant_refs):
-        if not isinstance(invariant_ref, str) or not invariant_ref.strip():
-            continue
-        if transition_id not in invariant_transition_ids.get(invariant_ref, set()):
-            failures.append(
-                f"{label}: invariant_checks[{index}] must cover "
-                f"target_transition {transition_id}: {invariant_ref}"
-            )
-
-    return failures
 
 
 def _validate_owner_fields(
@@ -6876,7 +6599,6 @@ def _validate_runtime_transition_sequence_registry(
 
 def validate_contract(
     transitions_path: Path,
-    shims_path: Path,
     action_coverage_path: Path,
     actions_header_path: Path,
     event_coverage_path: Path = DEFAULT_EVENT_COVERAGE,
@@ -6892,7 +6614,6 @@ def validate_contract(
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
-    shims_doc, shim_load_failures = _load_json(shims_path)
     action_coverage_doc, action_coverage_load_failures = _load_json(action_coverage_path)
     event_coverage_doc, event_coverage_load_failures = _load_json(event_coverage_path)
     owner_fields_doc, owner_fields_load_failures = _load_json(owner_fields_path)
@@ -6939,7 +6660,6 @@ def validate_contract(
         _parse_runtime_transition_sequence_registry(action_runtime_path)
     )
     failures.extend(transition_load_failures)
-    failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
     failures.extend(event_coverage_load_failures)
     failures.extend(owner_fields_load_failures)
@@ -7233,117 +6953,6 @@ def validate_contract(
             "generation_domain_ids",
         )
     )
-
-    if not isinstance(shims_doc, dict):
-        failures.append(f"{shims_path}: top-level value must be an object")
-        shims = []
-    else:
-        shims = shims_doc.get("shims")
-        if not isinstance(shims, list):
-            failures.append(f"{shims_path}: shims must be a list")
-            shims = []
-
-    shim_ids: set[str] = set()
-    for index, record in enumerate(shims):
-        label = f"shim[{index}]"
-        failures.extend(
-            _validate_required_fields(
-                record=record,
-                required_fields=REQUIRED_SHIM_FIELDS,
-                list_fields=SHIM_LIST_FIELDS,
-                label=label,
-            )
-        )
-        if not isinstance(record, dict):
-            continue
-        shim_id = record.get("id")
-        if isinstance(shim_id, str) and shim_id.strip():
-            if shim_id in shim_ids:
-                failures.append(f"{label}: duplicate id: {shim_id}")
-            shim_ids.add(shim_id)
-        target_transition = record.get("target_transition")
-        if isinstance(target_transition, str) and target_transition.strip():
-            if target_transition not in transition_ids:
-                failures.append(
-                    f"{label}: target_transition does not match a transition id: {target_transition}"
-                )
-        failures.extend(_validate_shim_write_capability(record, label))
-        failures.extend(
-            _validate_invariant_check_refs(
-                invariant_checks=record.get("invariant_checks"),
-                runtime_invariant_ids=runtime_invariant_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_invariant_transition_alignment(
-                invariant_refs=record.get("invariant_checks"),
-                transition_id=target_transition,
-                invariant_transition_ids=invariant_transition_ids,
-                label=label,
-                invariant_field="invariant_checks",
-                transition_field="target_transition",
-            )
-        )
-        failures.extend(
-            _validate_each_shim_invariant_covers_transition(
-                invariant_refs=record.get("invariant_checks"),
-                transition_id=target_transition,
-                invariant_transition_ids=invariant_transition_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_shim_owner_field_refs(
-                record=record,
-                registered_fields=registered_owner_fields,
-                transition_ids=transition_ids,
-                label=label,
-                registry_label="owner-field registry",
-            )
-        )
-        failures.extend(
-            _validate_shim_generation_domain_refs(
-                record=record,
-                generation_domain_owner_fields=generation_domain_owner_fields,
-                label=label,
-                registry_label="generation-domain registry",
-            )
-        )
-        failures.extend(
-            _validate_shim_diff_harness_refs(
-                refs=record.get("diff_harness_refs"),
-                diff_harness_ids=diff_harness_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_shim_diff_harness_transition_coverage(
-                diff_harness_refs=record.get("diff_harness_refs"),
-                transition_id=target_transition,
-                diff_harness_transition_ids=diff_harness_transition_ids,
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_shim_diff_harness_union_coverage(
-                record=record,
-                diff_harness_owner_field_refs=diff_harness_owner_field_refs_by_harness,
-                diff_harness_invariant_ids=diff_harness_invariant_ids_by_harness,
-                diff_harness_generation_domain_ids=(
-                    diff_harness_generation_domain_ids_by_harness
-                ),
-                label=label,
-            )
-        )
-        failures.extend(
-            _validate_source_boundary_refs(
-                record.get("source_boundary_refs"),
-                label=label,
-                repository_root=repository_root,
-            )
-        )
-
     if not isinstance(action_coverage_doc, dict):
         failures.append(f"{action_coverage_path}: top-level value must be an object")
         action_records = []
@@ -7358,7 +6967,6 @@ def validate_contract(
         dispatch_surface_records = dispatch_surfaces_doc["dispatch_surfaces"]
     else:
         dispatch_surface_records = []
-
     expected_actions = set(enum_actions)
     covered_actions: set[str] = set()
     action_coverage_by_action: dict[str, dict[str, Any]] = {}
@@ -7616,6 +7224,7 @@ def validate_contract(
             action_runtime_path=action_runtime_path,
         )
     )
+
     failures.extend(
         _validate_dispatch_surfaces(
             dispatch_surfaces_doc=dispatch_surfaces_doc,
@@ -7800,6 +7409,18 @@ def validate_contract(
         collection_key="actions",
         id_field="action",
     )
+    if isinstance(action_coverage_doc, dict) and isinstance(
+        action_coverage_doc.get("actions"), list
+    ):
+        action_coverage_by_action = {
+            record["action"]: record
+            for record in action_coverage_doc["actions"]
+            if isinstance(record, dict)
+            and isinstance(record.get("action"), str)
+            and record["action"].strip()
+        }
+    else:
+        action_coverage_by_action = {}
     event_ids = _collect_string_ids(
         event_coverage_doc,
         collection_key="events",
@@ -7888,7 +7509,6 @@ def validate_contract(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--transitions", type=Path, default=DEFAULT_TRANSITIONS)
-    parser.add_argument("--shims", type=Path, default=DEFAULT_SHIMS)
     parser.add_argument("--action-coverage", type=Path, default=DEFAULT_ACTION_COVERAGE)
     parser.add_argument("--event-coverage", type=Path, default=DEFAULT_EVENT_COVERAGE)
     parser.add_argument("--owner-fields", type=Path, default=DEFAULT_OWNER_FIELDS)
@@ -7909,7 +7529,6 @@ def main() -> int:
 
     failures = validate_contract(
         args.transitions,
-        args.shims,
         args.action_coverage,
         args.actions_header,
         args.event_coverage,

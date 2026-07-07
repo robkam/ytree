@@ -1,6 +1,0 @@
-{
-  "schema_version": 1,
-  "contract": "AppState compatibility shim registry",
-  "notes": "Compatibility shims document legacy authority paths that may remain during migration. They must be read/write classified and removed when the target transition boundary is live.",
-  "shims": []
-}

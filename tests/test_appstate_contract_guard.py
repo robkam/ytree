@@ -87,11 +87,6 @@ REQUIRED_LIST_FIELD_CASES = [
         "diff_harness_ids",
         "transition_sequence[0].step[0]",
     ),
-    ("shim", "invariant_checks", "shim[0]"),
-    ("shim", "owner_field_refs", "shim[0]"),
-    ("shim", "generation_domain_refs", "shim[0]"),
-    ("shim", "diff_harness_refs", "shim[0]"),
-    ("shim", "migration_notes", "shim[0]"),
 ]
 
 
@@ -125,31 +120,6 @@ def _transition(category: str, transition_id: str | None = None) -> dict[str, ob
     }
 
 
-def _shim(
-    target_transition: str = "transition.keybinding",
-    owner_field_refs: list[str] | None = None,
-    generation_domain_refs: list[str] | None = None,
-    diff_harness_refs: list[str] | None = None,
-    source_boundary_refs: list[str] | None = None,
-) -> dict[str, object]:
-    return {
-        "id": "shim.test",
-        "owner": "owner",
-        "old_authority_path": "legacy.path",
-        "read_permission": "read",
-        "write_permission": "write",
-        "write_capability": "write_capable",
-        "invariant_checks": ["invariant.inactive_panel_frozen"],
-        "owner_field_refs": owner_field_refs or ["field"],
-        "generation_domain_refs": generation_domain_refs or ["domain.panel_generation"],
-        "diff_harness_refs": diff_harness_refs
-        or ["harness.transition_before_after_snapshot"],
-        "source_boundary_refs": source_boundary_refs or ["src/ui/display.c"],
-        "removal_trigger": "trigger",
-        "target_transition": target_transition,
-        "follow_up_task": "task",
-        "qa_enforcement": "guard",
-    }
 
 
 def _action(
@@ -756,7 +726,6 @@ def _write_fixture(
     tmp_path: Path,
     *,
     transitions: list[dict[str, object]],
-    shims: list[dict[str, object]] | None = None,
     actions: list[dict[str, object]] | None = None,
     events: list[dict[str, object]] | None = None,
     owner_fields: list[dict[str, object]] | None = None,
@@ -777,9 +746,8 @@ def _write_fixture(
     runtime_generation_domains: list[dict[str, object]] | None = None,
     runtime_diff_harness_checks: list[dict[str, object]] | None = None,
     runtime_transition_sequences: list[dict[str, object]] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, ...]:
     transitions_path = tmp_path / "transitions.json"
-    shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
     event_coverage_path = tmp_path / "event_coverage.json"
     owner_fields_path = tmp_path / "owner_fields.json"
@@ -791,7 +759,6 @@ def _write_fixture(
     actions_header_path = tmp_path / "ytnova_defs.h"
     action_runtime_path = tmp_path / "appstate_actions.c"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
-    _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
     _write(
         action_coverage_path,
         _jsonish({"schema_version": 1, "actions": actions or _complete_actions()}),
@@ -909,7 +876,6 @@ def _write_fixture(
     )
     return (
         transitions_path,
-        shims_path,
         action_coverage_path,
         actions_header_path,
         event_coverage_path,
@@ -1941,16 +1907,15 @@ def _complete_owner_fields() -> list[dict[str, object]]:
 
 
 def _validate(
-    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path],
+    paths: tuple[Path, ...],
 ) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, ...]:
     transitions = _complete_transitions()
-    shims = [_shim()]
     actions = _complete_actions()
     events = _complete_events()
     owner_fields = _complete_owner_fields()
@@ -1969,8 +1934,6 @@ def _fixture_with_list_field_value(
         generation_domains[0][field] = value
     elif record_type == "transition":
         transitions[0][field] = value
-    elif record_type == "shim":
-        shims[0][field] = value
     elif record_type == "dispatch_surface":
         dispatch_surfaces[0][field] = value
     elif record_type == "invariant":
@@ -1984,7 +1947,6 @@ def _fixture_with_list_field_value(
     return _write_fixture(
         tmp_path,
         transitions=transitions,
-        shims=shims,
         actions=actions,
         events=events,
         owner_fields=owner_fields,
@@ -2018,20 +1980,39 @@ def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("path_index", "registry_name"),
+    ("target_name", "registry_name"),
     [
-        (2, "action coverage"),
-        (4, "event coverage"),
-        (5, "owner field"),
-        (6, "dispatch surface"),
-        (9, "diff harness"),
+        ("action_coverage", "action coverage"),
+        ("event_coverage", "event coverage"),
+        ("owner_fields", "owner field"),
+        ("dispatch_surfaces", "dispatch surface"),
+        ("diff_harness", "diff harness"),
     ],
 )
 def test_runtime_backed_registry_notes_reject_stale_non_runtime_wording(
-    tmp_path: Path, path_index: int, registry_name: str
+    tmp_path: Path, target_name: str, registry_name: str
 ) -> None:
     paths = _write_fixture(tmp_path, transitions=_complete_transitions())
-    target = paths[path_index]
+    (
+        _transitions_path,
+        action_coverage_path,
+        _actions_header_path,
+        event_coverage_path,
+        owner_fields_path,
+        dispatch_surfaces_path,
+        _invariants_path,
+        _generation_domains_path,
+        diff_harness_path,
+        _transition_sequences_path,
+        _action_runtime_path,
+    ) = paths
+    target = {
+        "action_coverage": action_coverage_path,
+        "event_coverage": event_coverage_path,
+        "owner_fields": owner_fields_path,
+        "dispatch_surfaces": dispatch_surfaces_path,
+        "diff_harness": diff_harness_path,
+    }[target_name]
     doc = json.loads(target.read_text(encoding="utf-8"))
     doc["notes"] = (
         f"Non-runtime registry for future-only {registry_name} coverage before "
@@ -5813,9 +5794,8 @@ def test_appstate_runtime_no_longer_exposes_shim_registry_support() -> None:
 
     assert "AppStateCompatibilityShimsReady(" not in startup
     assert "kAppStateRequiredShimIds" not in startup
-    assert "_parse_runtime_shim_registry(" not in guard_source
-    assert "_validate_runtime_shim_registry(" not in guard_source
-    assert "_validate_runtime_shim_callsites(" not in guard_source
+    assert "appstate_compat_shims.json" not in guard_source
+    assert "--shims" not in guard_source
 
 def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
     volume_defs = Path("include/ytnova_defs.h").read_text(encoding="utf-8")
@@ -5840,8 +5820,7 @@ def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
         assert "vol->saved_tree_generation" not in source
         assert "vol->saved_tree_volume_generation" not in source
 
-    shims = Path("docs/appstate_compat_shims.json").read_text(encoding="utf-8")
-    assert "shim.volume-saved-tree-index" not in shims
+    assert not Path("docs/appstate_compat_shims.json").exists()
 
 
 def test_visibility_session_mirror_is_retired() -> None:
@@ -5854,13 +5833,12 @@ def test_visibility_session_mirror_is_retired() -> None:
     for runtime_path in runtime_paths:
         assert "ctx->hide_dot_files" not in runtime_path.read_text(encoding="utf-8")
 
-    shims = Path("docs/appstate_compat_shims.json").read_text(encoding="utf-8")
     runtime_registry = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
     architecture = Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8")
 
-    assert "shim.viewcontext-hide-dot-files" not in shims
+    assert not Path("docs/appstate_compat_shims.json").exists()
     assert "shim.viewcontext-hide-dot-files" not in runtime_registry
-    assert "ViewContext.hide_dot_files" not in shims
+    assert "ViewContext.hide_dot_files" not in runtime_registry
     assert "ctx->hide_dot_files" not in architecture
 
 
@@ -9680,20 +9658,6 @@ def test_focused_window_compatibility_carrier_is_removed() -> None:
         assert "ctx->focused_window" not in source, path.as_posix()
 
 
-def test_focused_window_shim_registry_removes_compatibility_carrier() -> None:
-    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
-        encoding="utf-8"
-    )
-    action_registry = Path("src/core/appstate_actions.c").read_text(
-        encoding="utf-8"
-    )
-
-    assert "shim.focused-window-session-flag" not in shim_registry
-    assert "AppState focus compatibility carrier" not in shim_registry
-    assert "ViewContext.focused_window" not in shim_registry
-    assert "shim.focused-window-session-flag" not in action_registry
-    assert "AppState focus compatibility carrier" not in action_registry
-    assert "ViewContext.focused_window" not in action_registry
 
 
 def test_focused_window_runtime_no_longer_validates_removed_shim() -> None:
@@ -9708,21 +9672,6 @@ def test_focused_window_runtime_no_longer_validates_removed_shim() -> None:
         assert removed_validation not in source
 
 
-def test_focused_window_shim_metadata_is_removed() -> None:
-    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
-        encoding="utf-8"
-    )
-    action_registry = Path("src/core/appstate_actions.c").read_text(
-        encoding="utf-8"
-    )
-
-    for text in [
-        "AppState focus compatibility carrier",
-        "ViewContext.focused_window",
-        "AppState focus helpers no longer need a ViewContext.focused_window compatibility fallback.",
-    ]:
-        assert text not in shim_registry
-        assert text not in action_registry
 
 
 def test_render_row_projection_uses_shared_helpers() -> None:
@@ -9762,34 +9711,8 @@ def test_render_row_projection_uses_shared_helpers() -> None:
     assert "render_start + render_cursor" not in file_body
 
 
-def test_render_row_shim_registry_is_removed() -> None:
-    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
-        encoding="utf-8"
-    )
-    action_registry = Path("src/core/appstate_actions.c").read_text(
-        encoding="utf-8"
-    )
-
-    assert '"shims": []' in shim_registry
-    assert "shim-render-derived-row-position" not in shim_registry
-    assert "shim-render-derived-row-position" not in action_registry
 
 
-def test_render_row_shim_metadata_is_removed() -> None:
-    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
-        encoding="utf-8"
-    )
-    action_registry = Path("src/core/appstate_actions.c").read_text(
-        encoding="utf-8"
-    )
-
-    for text in [
-        "AppState render projection helpers",
-        "disp_begin_pos + cursor_pos render-derived lookup",
-        "Remove render-derived row compatibility helpers once render callers carry explicit projection state.",
-    ]:
-        assert text not in shim_registry
-        assert text not in action_registry
 
 
 def test_split_file_focus_commits_use_appstate_helper() -> None:
@@ -11451,7 +11374,6 @@ def test_guard_fails_when_runtime_action_validation_callsite_is_missing(
 
     failures = guard.validate_contract(
         guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
         guard.DEFAULT_ACTION_COVERAGE,
         guard.DEFAULT_ACTION_HEADER,
         guard.DEFAULT_EVENT_COVERAGE,
@@ -11500,7 +11422,6 @@ def test_guard_fails_when_runtime_action_validation_moves_outside_source_boundar
 
     failures = guard.validate_contract(
         guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
         guard.DEFAULT_ACTION_COVERAGE,
         guard.DEFAULT_ACTION_HEADER,
         guard.DEFAULT_EVENT_COVERAGE,
@@ -11538,7 +11459,6 @@ def test_guard_fails_when_runtime_dispatch_surface_validation_callsite_is_missin
 
     failures = guard.validate_contract(
         guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
         guard.DEFAULT_ACTION_COVERAGE,
         guard.DEFAULT_ACTION_HEADER,
         guard.DEFAULT_EVENT_COVERAGE,
@@ -11585,7 +11505,6 @@ def test_guard_fails_when_runtime_dispatch_surface_validation_moves_outside_sour
 
     failures = guard.validate_contract(
         guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
         guard.DEFAULT_ACTION_COVERAGE,
         guard.DEFAULT_ACTION_HEADER,
         guard.DEFAULT_EVENT_COVERAGE,
@@ -11623,7 +11542,6 @@ def test_guard_fails_when_runtime_event_validation_callsite_is_missing(
 
     failures = guard.validate_contract(
         guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
         guard.DEFAULT_ACTION_COVERAGE,
         guard.DEFAULT_ACTION_HEADER,
         guard.DEFAULT_EVENT_COVERAGE,
@@ -11670,7 +11588,6 @@ def test_guard_fails_when_runtime_event_validation_moves_outside_source_boundary
 
     failures = guard.validate_contract(
         guard.DEFAULT_TRANSITIONS,
-        guard.DEFAULT_SHIMS,
         guard.DEFAULT_ACTION_COVERAGE,
         guard.DEFAULT_ACTION_HEADER,
         guard.DEFAULT_EVENT_COVERAGE,
@@ -12853,72 +12770,12 @@ def test_guard_fails_when_event_coverage_maps_to_broad_transition_status(
     assert any("must use covered_by_transition_record" in failure for failure in failures)
 
 
-def test_guard_fails_when_required_shim_field_is_missing(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim.pop("removal_trigger")
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "missing required field" in failure and "removal_trigger" in failure
-        for failure in failures
-    )
 
 
-def test_guard_fails_when_required_shim_owner_field_refs_are_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim.pop("owner_field_refs")
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "missing required field" in failure
-        and "owner_field_refs" in failure
-        for failure in failures
-    )
 
 
-def test_guard_fails_when_required_shim_generation_domain_refs_are_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim.pop("generation_domain_refs")
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "missing required field" in failure
-        and "generation_domain_refs" in failure
-        for failure in failures
-    )
 
 
-def test_guard_fails_when_required_shim_diff_harness_refs_are_missing(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim.pop("diff_harness_refs")
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "missing required field" in failure
-        and "diff_harness_refs" in failure
-        for failure in failures
-    )
 
 
 def test_guard_fails_when_required_action_field_is_missing(tmp_path: Path) -> None:
@@ -12983,20 +12840,14 @@ def test_guard_fails_when_required_event_field_is_missing(tmp_path: Path) -> Non
     )
 
 
-def test_guard_fails_on_duplicate_transition_and_shim_ids(tmp_path: Path) -> None:
+def test_guard_fails_on_duplicate_transition_ids(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     transitions[1]["id"] = transitions[0]["id"]
-    duplicate_shim = _shim()
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        shims=[_shim(), duplicate_shim],
-    )
+    paths = _write_fixture(tmp_path, transitions=transitions)
 
     failures = _validate(paths)
 
     assert any("transition[1]" in failure and "duplicate id" in failure for failure in failures)
-    assert any("shim[1]" in failure and "duplicate id" in failure for failure in failures)
 
 
 def test_guard_fails_on_duplicate_action_records(tmp_path: Path) -> None:
@@ -13024,27 +12875,17 @@ def test_guard_fails_on_duplicate_event_ids(tmp_path: Path) -> None:
 def test_guard_fails_on_empty_required_list_fields(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     transitions[0]["declared_write_set"] = []
-    shim = _shim()
-    shim["invariant_checks"] = []
     actions = _complete_actions()
     actions[0]["declared_write_set"] = []
     events = _complete_events()
     events[0]["trigger_paths"] = []
-    paths = _write_fixture(
-        tmp_path, transitions=transitions, shims=[shim], actions=actions, events=events
-    )
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions, events=events)
 
     failures = _validate(paths)
 
     assert any(
         "transition[0]" in failure
         and "declared_write_set" in failure
-        and "must be non-empty" in failure
-        for failure in failures
-    )
-    assert any(
-        "shim[0]" in failure
-        and "invariant_checks" in failure
         and "must be non-empty" in failure
         for failure in failures
     )
@@ -13065,27 +12906,17 @@ def test_guard_fails_on_empty_required_list_fields(tmp_path: Path) -> None:
 def test_guard_fails_on_non_list_required_list_fields(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     transitions[0]["declared_write_set"] = "field"
-    shim = _shim()
-    shim["invariant_checks"] = "invariant"
     actions = _complete_actions()
     actions[0]["migration_notes"] = "note"
     events = _complete_events()
     events[0]["declared_write_set"] = "field"
-    paths = _write_fixture(
-        tmp_path, transitions=transitions, shims=[shim], actions=actions, events=events
-    )
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions, events=events)
 
     failures = _validate(paths)
 
     assert any(
         "transition[0]" in failure
         and "declared_write_set" in failure
-        and "must be a non-empty list" in failure
-        for failure in failures
-    )
-    assert any(
-        "shim[0]" in failure
-        and "invariant_checks" in failure
         and "must be a non-empty list" in failure
         for failure in failures
     )
@@ -13137,430 +12968,44 @@ def test_guard_fails_on_blank_required_list_elements(
     )
 
 
-def test_guard_fails_when_shim_targets_unknown_transition(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        shims=[_shim(target_transition="transition.missing")],
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "target_transition does not match a transition id" in failure
-        and "transition.missing" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_invariant_check_is_not_runtime_registered(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim["invariant_checks"] = ["invariant.not_runtime_registered"]
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "invariant_checks" in failure
-        and "runtime invariant registry" in failure
-        and "invariant.not_runtime_registered" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_invariant_checks_do_not_cover_target_transition(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(target_transition="transition.render_reflow")
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and (
-            "invariant_checks must include at least one invariant covering "
-            "target_transition transition.render_reflow"
-        )
-        in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_each_shim_invariant_check_lacks_generation_target_coverage(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim["invariant_checks"] = [
-        "invariant.inactive_panel_frozen",
-        "invariant.render_projection_read_only",
-    ]
-    invariants = _complete_invariants()
-    for invariant in invariants:
-        if invariant["invariant_id"] == "invariant.render_projection_read_only":
-            invariant["transition_ids"] = ["transition.render_reflow"]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        shims=[shim],
-        invariants=invariants,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "invariant_checks[1] must cover target_transition transition.keybinding"
-        in failure
-        and "invariant.render_projection_read_only" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_generation_domain_ref_is_unknown(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(generation_domain_refs=["domain.unknown"])
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "generation_domain_refs does not match generation-domain registry"
-        in failure
-        and "domain.unknown" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_generation_domain_ref_is_duplicated(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(
-        generation_domain_refs=["domain.panel_generation", "domain.panel_generation"]
-    )
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "duplicate generation_domain_refs[1]" in failure
-        and "domain.panel_generation" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_generation_owner_ref_lacks_matching_domain(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    transitions[0]["declared_write_set"] = ["field", "panel.panel_generation"]
-    owner_fields = _complete_owner_fields() + [_owner_field("panel.panel_generation")]
-    generation_domains = _complete_generation_domains()
-    generation_domains[0]["generation_owner_field"] = "panel.panel_generation"
-    generation_domains[0]["identity_fields"] = ["panel.panel_generation"]
-    shim = _shim(
-        owner_field_refs=["panel.panel_generation"],
-        generation_domain_refs=["domain.volume_generation"],
-    )
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        owner_fields=owner_fields,
-        generation_domains=generation_domains,
-        shims=[shim],
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "generation_domain_refs must include a domain whose "
-        "generation_owner_field is panel.panel_generation" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_owner_field_ref_is_unknown(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(owner_field_refs=["field.unknown"])
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "owner_field_refs does not match owner-field registry" in failure
-        and "field.unknown" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_owner_field_ref_is_duplicated(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(owner_field_refs=["field", "field"])
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "duplicate owner_field_refs[1]" in failure
-        and "field" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_diff_harness_ref_is_unknown(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(diff_harness_refs=["harness.unknown"])
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "diff_harness_refs references unknown diff harness id" in failure
-        and "harness.unknown" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_diff_harness_ref_is_duplicated(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(
-        diff_harness_refs=[
-            "harness.transition_before_after_snapshot",
-            "harness.transition_before_after_snapshot",
-        ]
-    )
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "duplicate diff_harness_refs[1]" in failure
-        and "harness.transition_before_after_snapshot" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_diff_harness_lacks_target_transition(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    diff_harness_checks = _complete_diff_harness_checks()
-    for harness in diff_harness_checks:
-        harness["transition_ids"] = ["transition.render_reflow"]
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        diff_harness_checks=diff_harness_checks,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "diff_harness_refs must include at least one diff harness covering"
-        in failure
-        and "transition.keybinding" in failure
-        for failure in failures
-    )
-
-
-@pytest.mark.parametrize(
-    ("field", "replacement", "expected_ref"),
-    (
-        ("owner_field_refs", ["panel.tree_selection_key"], "field"),
-        (
-            "invariant_ids",
-            ["invariant.blocked_transition_determinism"],
-            "invariant.inactive_panel_frozen",
-        ),
-        ("generation_domain_ids", ["domain.volume_generation"], "domain.panel_generation"),
-    ),
-)
-def test_guard_fails_when_shim_diff_harness_union_lacks_declared_coverage(
-    tmp_path: Path,
-    field: str,
-    replacement: list[str],
-    expected_ref: str,
-) -> None:
-    transitions = _complete_transitions()
-    diff_harness_checks = _complete_diff_harness_checks()
-    for harness in diff_harness_checks:
-        if harness["harness_id"] == "harness.transition_before_after_snapshot":
-            harness[field] = replacement
-    paths = _write_fixture(
-        tmp_path,
-        transitions=transitions,
-        diff_harness_checks=diff_harness_checks,
-    )
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "lacks referenced diff_harness_refs coverage" in failure
-        and expected_ref in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_write_capable_shim_owner_field_is_outside_write_set(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "owner_field_refs must be declared by target_transition write set"
-        in failure
-        and "panel.tree_selection_key" in failure
-        for failure in failures
-    )
-
-
-@pytest.mark.parametrize(
-    "write_permission",
-    (
-        "Do not write stale mirror directly; write only from transition commit after canonical state changes.",
-        "No write should happen before transition commit; write the compatibility mirror after canonical state changes.",
-        "Never write before canonical state changes; write during the transition commit.",
-        "Read-only before commit; write the compatibility mirror after canonical state changes.",
-    ),
-)
-def test_guard_treats_explicit_write_capability_as_authoritative_over_prose(
-    tmp_path: Path, write_permission: str
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
-    shim["write_permission"] = write_permission
-    shim["write_capability"] = "write_capable"
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "owner_field_refs must be declared by target_transition write set"
-        in failure
-        and "panel.tree_selection_key" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_write_capability_is_missing(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim.pop("write_capability")
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "write_capability" in failure
-        and "missing required field" in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_shim_write_capability_is_unknown(tmp_path: Path) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim["write_capability"] = "sometimes"
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "write_capability must be one of" in failure
-        and "sometimes" in failure
-        for failure in failures
-    )
-
-
-def test_guard_allows_no_write_shim_owner_field_outside_write_set(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
-    shim["write_permission"] = "Never write authoritative selection from this projection."
-    shim["write_capability"] = "no_write"
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert not any(
-        "shim[0]" in failure
-        and "owner_field_refs must be declared by target_transition write set"
-        in failure
-        for failure in failures
-    )
-
-
-def test_guard_allows_read_only_projection_shim_owner_field_outside_write_set(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
-    shim["write_permission"] = "Read-only projection for render calculations."
-    shim["write_capability"] = "read_only_projection"
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert not any(
-        "shim[0]" in failure
-        and "owner_field_refs must be declared by target_transition write set"
-        in failure
-        for failure in failures
-    )
-
-
-def test_guard_fails_when_read_only_projection_shim_owner_field_is_in_write_set(
-    tmp_path: Path,
-) -> None:
-    transitions = _complete_transitions()
-    shim = _shim()
-    shim["write_permission"] = "Read-only projection for render calculations."
-    shim["write_capability"] = "read_only_projection"
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
-
-    failures = _validate(paths)
-
-    assert any(
-        "shim[0]" in failure
-        and "read_only_projection owner_field_refs must stay outside "
-        "target_transition write set" in failure
-        and "field" in failure
-        for failure in failures
-    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def test_guard_fails_when_runtime_invariant_metadata_drifts(tmp_path: Path) -> None:

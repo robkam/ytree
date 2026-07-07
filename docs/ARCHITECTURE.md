@@ -213,7 +213,7 @@ Generation metadata is part of transition correctness:
 
 Rendering is projection only. Render/reflow paths may compute temporary row positions and clipped viewports from settled `AppState`, but those temporary values are discarded after drawing. A renderer must not choose a new tree/file selection, overwrite a saved viewport, or synthesize focus shape from visible rows. If projection cannot be computed safely, rendering must degrade or skip while leaving authoritative state intact.
 
-Compatibility shims are temporary migration debt, not alternate authority. Each shim must be recorded in `docs/appstate_compat_shims.json` with an owner, legacy authority path, read permission, write permission, invariant checks, removal trigger, target transition, follow-up task, and QA enforcement. Shim writes are allowed only when synchronizing from the future authoritative owner during a transition commit; shim reads must not outrank stable path keys, generation checks, or panel-local state.
+Compatibility shims are retired from the current AppState contract. Any legacy mirror or alternate authority path is a defect that must be removed rather than documented as an accepted AppState boundary.
 
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.
