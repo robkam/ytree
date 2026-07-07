@@ -6284,10 +6284,10 @@ static const AppStateActionCoverageMetadata
 
 static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
   {"shim.focused-window-session-flag",
-   "ViewContext session routing",
+   "AppState focus compatibility carrier",
    "ViewContext.focused_window",
-   "Allowed for layout routing and footer context selection while AppState focus_shape migration is incomplete.",
-   "Write only from transition commit after the active panel focus_shape has been updated.",
+   "Allowed only inside AppState focus compatibility helpers while panel-local focus_shape authority migration remains incomplete.",
+   "Write only from AppState focus compatibility helpers after the active panel focus_shape has been updated.",
    "write_capable",
    kAppStateCompatibilityShimInvariantChecks1,
    sizeof(kAppStateCompatibilityShimInvariantChecks1) /
@@ -6304,9 +6304,9 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
     kAppStateCompatibilityShimSourceBoundaryRefs1,
     sizeof(kAppStateCompatibilityShimSourceBoundaryRefs1) /
         sizeof(kAppStateCompatibilityShimSourceBoundaryRefs1[0]),
-    "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
+    "AppState focus helpers no longer need a ViewContext.focused_window compatibility fallback.",
     "transition.keybinding.navigate-tree",
-    "Move focus-shape authority from session mirrors into panel-local transition records.",
+    "Remove the focused-window compatibility carrier once panel-local focus commits fully cover active-focus recovery.",
    "check_appstate_contract.py validates shim coverage and links it to an existing transition id."},
   {"shim-render-derived-row-position",
    "Render projection temporary",

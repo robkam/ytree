@@ -5,18 +5,18 @@
   "shims": [
     {
       "id": "shim.focused-window-session-flag",
-      "owner": "ViewContext session routing",
+      "owner": "AppState focus compatibility carrier",
       "old_authority_path": "ViewContext.focused_window",
-      "read_permission": "Allowed for layout routing and footer context selection while AppState focus_shape migration is incomplete.",
-      "write_permission": "Write only from transition commit after the active panel focus_shape has been updated.",
+      "read_permission": "Allowed only inside AppState focus compatibility helpers while panel-local focus_shape authority migration remains incomplete.",
+      "write_permission": "Write only from AppState focus compatibility helpers after the active panel focus_shape has been updated.",
       "write_capability": "write_capable",
       "invariant_checks": [
         "invariant.panel-local-focus-restore",
         "invariant.inactive-panel-frozen"
       ],
-      "removal_trigger": "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
+      "removal_trigger": "AppState focus helpers no longer need a ViewContext.focused_window compatibility fallback.",
       "target_transition": "transition.keybinding.navigate-tree",
-      "follow_up_task": "Move focus-shape authority from session mirrors into panel-local transition records.",
+      "follow_up_task": "Remove the focused-window compatibility carrier once panel-local focus commits fully cover active-focus recovery.",
       "qa_enforcement": "check_appstate_contract.py validates shim coverage and links it to an existing transition id.",
       "owner_field_refs": [
         "panel.focus_shape",
