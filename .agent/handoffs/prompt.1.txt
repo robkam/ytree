@@ -4,26 +4,26 @@ Date: 2026-07-07
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-drop-empty-compat-shim-registry
-Active PR: https://github.com/robkam/ytreenova/pull/373
+Current branch: appstate-normalize-runtime-registry-notes
+Active PR: https://github.com/robkam/ytreenova/pull/374
 Supersession state: no active stop or pause condition.
 
 Current AppState batch:
-- Remove the now-empty AppState compatibility-shim registry from the formal contract guard surface.
-- Delete `docs/appstate_compat_shims.json`, drop the guard CLI/validation paths that still loaded shim metadata, and trim the matching contract-guard fixture/tests.
-- Update architecture/spec references so the current contract treats legacy alternate authority as a defect instead of a documented shim registry path.
-
-Current repair state:
-- PR #373 first went red on `Full coverage baseline gate` because `validate_contract(...)` stopped running action-coverage and event-coverage validation after the shim-registry removal edits.
-- After that repair, the rerun exposed one remaining stale guard test that still indexed the removed shim slot inside `_write_fixture(...)` path tuples.
-- The local fixes now restore the missing action/event coverage guard passes, keep shim-registry support removed, and make the runtime-backed notes test target named fixture paths instead of brittle tuple offsets.
+- Normalize remaining AppState registry/runtime boundary notes so the active contract no longer describes transition metadata as still migrating or future-only.
+- Update the AppState contract guard to reject stale migration wording across every runtime-backed registry note surface, including the transition matrix and sequence-backed registries.
+- Keep the repo AI config portable while allowing the `.codex/config.toml` instructions path to resolve correctly from the config directory.
 
 Local validation:
-- `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`
-- `python3 scripts/check_appstate_contract.py`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_action_lookup_mismatches_action_coverage or runtime_action_coverage_is_missing_enum_action or runtime_event_coverage_owner_does_not_match_transition or event_coverage_dispatch_surface_refs_are_invalid or coverage_diff_harness_refs_are_invalid'`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_notes_reject_stale_non_runtime_wording'`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures or appstate_runtime_no_longer_exposes_shim_registry_support or volume_tree_runtime_breadcrumb_fields_are_retired or visibility_session_mirror_is_retired or focused_window_runtime_no_longer_validates_removed_shim or render_row_projection_uses_shared_helpers or render_projection_runtime_uses_no_compatibility_shim or guard_fails_on_duplicate_transition_ids or guard_fails_on_empty_required_list_fields or guard_fails_on_non_list_required_list_fields or runtime_dispatch_surface_validation_callsite_is_missing or runtime_dispatch_surface_validation_moves_outside_source_boundary or runtime_event_validation_callsite_is_missing or runtime_event_validation_moves_outside_source_boundary or runtime_action_lookup_mismatches_action_coverage or runtime_action_coverage_is_missing_enum_action or runtime_event_coverage_owner_does_not_match_transition or event_coverage_dispatch_surface_refs_are_invalid or coverage_diff_harness_refs_are_invalid or runtime_backed_registry_notes_reject_stale_non_runtime_wording'`
+- Red before fix: `python3 scripts/check_project_ai_config.py`
+- Red before fix: `source .venv/bin/activate && pytest tests/test_project_ai_config_guard.py -k 'current_repository_baseline_passes'`
+- `python3 -m py_compile scripts/check_project_ai_config.py tests/test_project_ai_config_guard.py`
+- `python3 scripts/check_project_ai_config.py`
+- `source .venv/bin/activate && pytest tests/test_project_ai_config_guard.py`
+- `make qa-code-quality`
+- Earlier in this branch: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_notes_reject_stale_boundary_wording'` (red before guard/docs fix, green after fix)
+- Earlier in this branch: `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`
+- Earlier in this branch: `python3 scripts/check_appstate_contract.py`
+- Earlier in this branch: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_notes_reject_stale_boundary_wording or current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures'`
 
 Next action:
-- Stage the repaired guard/test/handoff state, amend the branch commit, push with lease, then restart the CI wait clock and wait 15 minutes before the first compact PR status check.
+- Stage the AI-config guard fix with the corrected `.codex/config.toml`, amend the branch commit, push with lease, then restart the 15-minute CI wait window for PR #374.

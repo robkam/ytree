@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "AppState transition matrix",
-  "notes": "Transition contract for the AppState matrix. Registered runtime transition metadata must stay aligned with these records while controller behavior continues to migrate incrementally.",
+  "notes": "Transition contract for the AppState matrix. Registered runtime transition metadata must stay aligned with these records.",
   "transitions": [
     {
       "id": "transition.keybinding.navigate-tree",

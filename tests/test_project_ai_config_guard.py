@@ -17,13 +17,18 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _write_config_fixture(tmp_path: Path, config_body: str) -> Path:
+    config = tmp_path / ".codex" / "config.toml"
+    _write(tmp_path / ".ai" / "codex.md", "# test instructions\n")
+    _write(config, textwrap.dedent(config_body))
+    return config
+
+
 def test_check_config_flags_nonportable_home_path(tmp_path: Path) -> None:
-    config = tmp_path / "config.toml"
-    _write(
-        config,
-        textwrap.dedent(
-            """\
-            model_instructions_file = ".ai/codex.md"
+    config = _write_config_fixture(
+        tmp_path,
+        """\
+            model_instructions_file = "../.ai/codex.md"
 
             [mcp_servers.serena]
             command = "uvx"
@@ -40,8 +45,7 @@ def test_check_config_flags_nonportable_home_path(tmp_path: Path) -> None:
             [mcp_servers.jcodemunch.env]
             UV_CACHE_DIR = "/tmp/codex-uv-cache"
             UV_TOOL_DIR = "/tmp/codex-uv-tools"
-            """
-        ),
+            """,
     )
 
     failures = guard.check_config(config)
@@ -49,11 +53,9 @@ def test_check_config_flags_nonportable_home_path(tmp_path: Path) -> None:
 
 
 def test_check_config_requires_model_instructions_file(tmp_path: Path) -> None:
-    config = tmp_path / "config.toml"
-    _write(
-        config,
-        textwrap.dedent(
-            """\
+    config = _write_config_fixture(
+        tmp_path,
+        """\
             [mcp_servers.serena]
             command = "uvx"
             args = ["serena", "start-mcp-server", "--context", "codex"]
@@ -69,8 +71,67 @@ def test_check_config_requires_model_instructions_file(tmp_path: Path) -> None:
             [mcp_servers.jcodemunch.env]
             UV_CACHE_DIR = "/tmp/codex-uv-cache"
             UV_TOOL_DIR = "/tmp/codex-uv-tools"
-            """
-        ),
+            """,
+    )
+
+    failures = guard.check_config(config)
+    assert any("model_instructions_file" in failure for failure in failures)
+
+
+def test_check_config_accepts_repo_relative_model_instructions_file(
+    tmp_path: Path,
+) -> None:
+    config = _write_config_fixture(
+        tmp_path,
+        """\
+            model_instructions_file = "../.ai/codex.md"
+
+            [mcp_servers.serena]
+            command = "uvx"
+            args = ["serena", "start-mcp-server", "--context", "codex"]
+
+            [mcp_servers.serena.env]
+            UV_CACHE_DIR = "/tmp/codex-uv-cache"
+            UV_TOOL_DIR = "/tmp/codex-uv-tools"
+
+            [mcp_servers.jcodemunch]
+            command = "uvx"
+            args = ["jcodemunch-mcp"]
+
+            [mcp_servers.jcodemunch.env]
+            UV_CACHE_DIR = "/tmp/codex-uv-cache"
+            UV_TOOL_DIR = "/tmp/codex-uv-tools"
+            """,
+    )
+
+    failures = guard.check_config(config)
+    assert not any("model_instructions_file" in failure for failure in failures)
+
+
+def test_check_config_rejects_wrong_relative_model_instructions_file(
+    tmp_path: Path,
+) -> None:
+    config = _write_config_fixture(
+        tmp_path,
+        """\
+            model_instructions_file = ".ai/codex.md"
+
+            [mcp_servers.serena]
+            command = "uvx"
+            args = ["serena", "start-mcp-server", "--context", "codex"]
+
+            [mcp_servers.serena.env]
+            UV_CACHE_DIR = "/tmp/codex-uv-cache"
+            UV_TOOL_DIR = "/tmp/codex-uv-tools"
+
+            [mcp_servers.jcodemunch]
+            command = "uvx"
+            args = ["jcodemunch-mcp"]
+
+            [mcp_servers.jcodemunch.env]
+            UV_CACHE_DIR = "/tmp/codex-uv-cache"
+            UV_TOOL_DIR = "/tmp/codex-uv-tools"
+            """,
     )
 
     failures = guard.check_config(config)
@@ -78,12 +139,10 @@ def test_check_config_requires_model_instructions_file(tmp_path: Path) -> None:
 
 
 def test_check_config_accepts_absolute_model_instructions_file(tmp_path: Path) -> None:
-    config = tmp_path / "config.toml"
-    _write(
-        config,
-        textwrap.dedent(
-            """\
-            model_instructions_file = "/home/rob/ytreenova/.ai/codex.md"
+    config = _write_config_fixture(
+        tmp_path,
+        f"""\
+            model_instructions_file = "{guard.MODEL_INSTRUCTIONS_PATH}"
 
             [mcp_servers.serena]
             command = "uvx"
@@ -100,8 +159,7 @@ def test_check_config_accepts_absolute_model_instructions_file(tmp_path: Path) -
             [mcp_servers.jcodemunch.env]
             UV_CACHE_DIR = "/tmp/codex-uv-cache"
             UV_TOOL_DIR = "/tmp/codex-uv-tools"
-            """
-        ),
+            """,
     )
 
     failures = guard.check_config(config)

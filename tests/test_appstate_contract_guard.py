@@ -1982,42 +1982,59 @@ def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("target_name", "registry_name"),
     [
+        ("transitions", "transition matrix"),
         ("action_coverage", "action coverage"),
         ("event_coverage", "event coverage"),
         ("owner_fields", "owner field"),
         ("dispatch_surfaces", "dispatch surface"),
+        ("invariants", "invariant"),
+        ("generation_domains", "generation domain"),
         ("diff_harness", "diff harness"),
+        ("transition_sequences", "transition sequence"),
     ],
 )
-def test_runtime_backed_registry_notes_reject_stale_non_runtime_wording(
-    tmp_path: Path, target_name: str, registry_name: str
+@pytest.mark.parametrize(
+    "notes_template",
+    [
+        "Non-runtime registry for future-only {registry_name} coverage before "
+        "AppState runtime migration. Runtime behavior is unchanged.",
+        "Runtime-backed registry for {registry_name} coverage during migration.",
+        "Runtime-backed registry for {registry_name} coverage and future "
+        "state-sequence enforcement.",
+        "Runtime-backed registry for {registry_name} coverage while controller "
+        "behavior continues to migrate incrementally.",
+    ],
+)
+def test_runtime_backed_registry_notes_reject_stale_boundary_wording(
+    tmp_path: Path, target_name: str, registry_name: str, notes_template: str
 ) -> None:
     paths = _write_fixture(tmp_path, transitions=_complete_transitions())
     (
-        _transitions_path,
+        transitions_path,
         action_coverage_path,
         _actions_header_path,
         event_coverage_path,
         owner_fields_path,
         dispatch_surfaces_path,
-        _invariants_path,
-        _generation_domains_path,
+        invariants_path,
+        generation_domains_path,
         diff_harness_path,
-        _transition_sequences_path,
+        transition_sequences_path,
         _action_runtime_path,
     ) = paths
     target = {
+        "transitions": transitions_path,
         "action_coverage": action_coverage_path,
         "event_coverage": event_coverage_path,
         "owner_fields": owner_fields_path,
         "dispatch_surfaces": dispatch_surfaces_path,
+        "invariants": invariants_path,
+        "generation_domains": generation_domains_path,
         "diff_harness": diff_harness_path,
+        "transition_sequences": transition_sequences_path,
     }[target_name]
     doc = json.loads(target.read_text(encoding="utf-8"))
-    doc["notes"] = (
-        f"Non-runtime registry for future-only {registry_name} coverage before "
-        "AppState runtime migration. Runtime behavior is unchanged."
-    )
+    doc["notes"] = notes_template.format(registry_name=registry_name)
     target.write_text(json.dumps(doc, indent=2), encoding="utf-8")
 
     failures = _validate(paths)
