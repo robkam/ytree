@@ -32,13 +32,6 @@ static const UICommandStripCommand config_command_strip[] = {
     {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"}};
 
 typedef struct {
-  const char *path;
-  const char *contents;
-  const char *label;
-  BOOL created;
-} ConfigStarterFile;
-
-typedef struct {
   BOOL bypass_small_window;
   BOOL highlight_full_line;
   BOOL left_hide_dot_files;
@@ -95,32 +88,15 @@ static int WriteStarterFile(ViewContext *ctx, const char *path,
   return 1;
 }
 
-static int EnsureConfigStarterFiles(ViewContext *ctx, const char *profile_path,
-                                    const char *themes_path) {
-  ConfigStarterFile starter_files[] = {
-      {profile_path, default_profile_template, "config", FALSE},
-      {themes_path, default_theme_catalog, "themes", FALSE}};
-  size_t i;
-
-  for (i = 0; i < sizeof(starter_files) / sizeof(starter_files[0]); ++i) {
-    int result = WriteStarterFile(ctx, starter_files[i].path,
-                                  starter_files[i].contents,
-                                  starter_files[i].label);
-    if (result < 0) {
-      while (i > 0) {
-        --i;
-        if (starter_files[i].created)
-          unlink(starter_files[i].path);
-      }
-      return -1;
-    }
-    starter_files[i].created = result > 0 ? TRUE : FALSE;
-  }
-  return 0;
+static int EnsureConfigStarterFile(ViewContext *ctx, const char *profile_path) {
+  int result =
+      WriteStarterFile(ctx, profile_path, default_profile_template, "config");
+  return result < 0 ? -1 : 0;
 }
 
-static int EnsureConfigStarterFile(ViewContext *ctx, const char *profile_path) {
-  int result = WriteStarterFile(ctx, profile_path, default_profile_template, "config");
+static int EnsureThemesStarterFile(ViewContext *ctx, const char *themes_path) {
+  int result =
+      WriteStarterFile(ctx, themes_path, default_theme_catalog, "themes");
   return result < 0 ? -1 : 0;
 }
 
@@ -271,7 +247,8 @@ static void ResolveProfilePath(const ViewContext *ctx, char *profile_path,
   }
 }
 
-static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
+static int ResolveThemesBootstrapPath(char *themes_path,
+                                      size_t themes_path_size) {
   const char *home;
 
   if (themes_path == NULL || themes_path_size == 0)
@@ -302,6 +279,24 @@ static int ResolveThemesPath(char *themes_path, size_t themes_path_size) {
       return 0;
   }
   return -1;
+}
+
+static int ResolveThemesPath(const ViewContext *ctx, char *themes_path,
+                             size_t themes_path_size) {
+  if (themes_path == NULL || themes_path_size == 0)
+    return -1;
+
+  if (ctx != NULL && ctx->theme_file_path[0] != '\0') {
+    int written = snprintf(themes_path, themes_path_size, "%s",
+                           ctx->theme_file_path);
+
+    if (written >= 0 && written < (int)themes_path_size)
+      return 0;
+    themes_path[0] = '\0';
+    return -1;
+  }
+
+  return ResolveThemesBootstrapPath(themes_path, themes_path_size);
 }
 
 static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
@@ -442,13 +437,13 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
     {
       char themes_path[PATH_LENGTH + 1];
 
-      if (ResolveThemesPath(themes_path, sizeof(themes_path)) != 0) {
+      if (ResolveThemesPath(ctx, themes_path, sizeof(themes_path)) != 0) {
         MESSAGE(ctx, "Can't resolve themes file path");
         break;
       }
-    if (EnsureConfigStarterFiles(ctx, profile_path, themes_path) != 0)
-      break;
-    EditThemesFile(ctx, dir_entry, themes_path);
+      if (EnsureThemesStarterFile(ctx, themes_path) != 0)
+        break;
+      EditThemesFile(ctx, dir_entry, themes_path);
     }
     break;
   case 'R':

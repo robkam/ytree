@@ -110,6 +110,7 @@ struct _profile_runtime_snapshot {
   Dirmenu *dirmenu_next;
   Filemenu *filemenu_next;
   FileColorRule *file_color_rules_head;
+  char theme_file_path[PATH_LENGTH + 1];
 };
 
 static void BindProfileRuntimeData(ViewContext *ctx) {
@@ -286,6 +287,8 @@ ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
   if (ctx != NULL) {
     snapshot->file_color_rules_head =
         CloneFileColorRules((const FileColorRule *)ctx->file_color_rules_head);
+    snprintf(snapshot->theme_file_path, sizeof(snapshot->theme_file_path), "%s",
+             ctx->theme_file_path);
   }
 
   return snapshot;
@@ -313,6 +316,8 @@ void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
     FreeProfileFileColorRules((FileColorRule *)ctx->file_color_rules_head);
     ctx->file_color_rules_head = snapshot->file_color_rules_head;
     snapshot->file_color_rules_head = NULL;
+    snprintf(ctx->theme_file_path, sizeof(ctx->theme_file_path), "%s",
+             snapshot->theme_file_path);
   }
   BindProfileRuntimeData(ctx);
 }

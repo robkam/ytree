@@ -143,6 +143,8 @@ static const UICommandStripCommand read_string_path_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+static const UICommandStripCommand read_string_help_hint_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL}};
 static const UICommandStripCommand read_string_history_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
@@ -255,8 +257,26 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
       field_width = COLS - prompt_len - 1;
 
       /* Hints */
-      UI_RenderCommandStrip(win, hints_row, 1, hints, hint_count,
-                            UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      if (help_callback != NULL) {
+        int hint_x = 1;
+
+        UI_RenderCommandStrip(
+            win, hints_row, hint_x, read_string_help_hint_commands,
+            sizeof(read_string_help_hint_commands) /
+                sizeof(read_string_help_hint_commands[0]),
+            UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+        hint_x += UI_CommandStripVisualLength(
+            read_string_help_hint_commands,
+            sizeof(read_string_help_hint_commands) /
+                sizeof(read_string_help_hint_commands[0]));
+        if (hints != NULL && hint_count > 0)
+          hint_x += 2;
+        UI_RenderCommandStrip(win, hints_row, hint_x, hints, hint_count,
+                              UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      } else {
+        UI_RenderCommandStrip(win, hints_row, 1, hints, hint_count,
+                              UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      }
 
       /* Handle Scrolling */
       if (p < scroll_offset) {

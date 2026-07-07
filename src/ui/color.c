@@ -70,7 +70,6 @@ static BOOL ParseColorToken(const char *token, int color_limit, int *color) {
   BOOL bright = FALSE;
   int i;
   char *endptr;
-  long val;
 
   if (!token || !*token || !color)
     return FALSE;
@@ -97,6 +96,8 @@ static BOOL ParseColorToken(const char *token, int color_limit, int *color) {
   }
 
   if (!bright) {
+    long val;
+
     errno = 0;
     val = strtol(name, &endptr, 10);
     if (errno == 0 && endptr != name && *endptr == '\0' && val >= 0 &&

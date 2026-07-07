@@ -54,8 +54,8 @@ static const UICommandStripCommand view_navigation_commands[] = {
 
 static void hex_edit(ViewContext *ctx, char *file_path,
                      const ViewerGeometry *geom);
-static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
-                         int r, long offset);
+static void printhexline(const ViewContext *ctx, WINDOW *win, char *line,
+                         char *buf, int r, long offset);
 static int append_bounded(char *dst, size_t dst_size, const char *src);
 static void update_line(ViewContext *ctx, WINDOW *win, long line);
 static void scroll_down(ViewContext *ctx, WINDOW *win);
@@ -97,8 +97,8 @@ static int append_bounded(char *dst, size_t dst_size, const char *src) {
   return 0;
 }
 
-static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
-                         int r, long offset) {
+static void printhexline(const ViewContext *ctx, WINDOW *win, char *line,
+                         char *buf, int r, long offset) {
   char aux[5];
   int line_overflow = 0;
 

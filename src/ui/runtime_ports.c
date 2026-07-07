@@ -56,6 +56,18 @@ static void CoreInit_ParseColorString(const char *color_str, int *fg, int *bg) {
 #endif
 }
 
+static BOOL CoreInit_ParseColorStringStrict(const char *color_str, int *fg,
+                                            int *bg) {
+#ifdef COLOR_SUPPORT
+  return ParseColorStringStrict(color_str, fg, bg);
+#else
+  (void)color_str;
+  (void)fg;
+  (void)bg;
+  return FALSE;
+#endif
+}
+
 static void CoreInit_UpdateUIColor(const char *name, int fg, int bg) {
 #ifdef COLOR_SUPPORT
   UpdateUIColor(name, fg, bg);
@@ -63,6 +75,30 @@ static void CoreInit_UpdateUIColor(const char *name, int fg, int bg) {
   (void)name;
   (void)fg;
   (void)bg;
+#endif
+}
+
+static void *CoreInit_CaptureUIColors(void) {
+#ifdef COLOR_SUPPORT
+  return UIColorSnapshot_Create();
+#else
+  return NULL;
+#endif
+}
+
+static void CoreInit_RestoreUIColors(void *snapshot) {
+#ifdef COLOR_SUPPORT
+  UIColorSnapshot_Restore((UIColorSnapshot *)snapshot);
+#else
+  (void)snapshot;
+#endif
+}
+
+static void CoreInit_FreeUIColors(void *snapshot) {
+#ifdef COLOR_SUPPORT
+  UIColorSnapshot_Free((UIColorSnapshot *)snapshot);
+#else
+  (void)snapshot;
 #endif
 }
 
@@ -164,7 +200,11 @@ void CoreInitOps_RegisterUIRuntime(CoreInitOps *ops) {
   ops->wbkgd_set = CoreInit_WbkgdSet;
   ops->ui_notice = CoreInit_UINotice;
   ops->parse_color_string = CoreInit_ParseColorString;
+  ops->parse_color_string_strict = CoreInit_ParseColorStringStrict;
   ops->update_ui_color = CoreInit_UpdateUIColor;
+  ops->capture_ui_colors = CoreInit_CaptureUIColors;
+  ops->restore_ui_colors = CoreInit_RestoreUIColors;
+  ops->free_ui_colors = CoreInit_FreeUIColors;
   ops->add_file_color_rule = CoreInit_AddFileColorRule;
   ops->bind_runtime_hooks = CoreInit_BindRuntimeHooks;
 }

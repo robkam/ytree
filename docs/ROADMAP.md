@@ -118,17 +118,17 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:** Smell baseline audit evidence exists, recurring smell checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unapproved new smell violations.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 6: Baseline Code-Smell Audit and Debt Register**
+#### **Task 5.1: Baseline Code-Smell Audit and Debt Register**
 *   **Goal:** Audit current codebase for structural smells and categorize debt with explicit remediation sequencing.
 *   **Deliverables:** baseline report covering hotspots, oversized controllers/functions, boundary exceptions, and tracked rationale for retained debt.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 7: Strengthen Smell-Prevention Guards**
+#### **Task 5.2: Strengthen Smell-Prevention Guards**
 *   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
 *   **Mechanism:** Tighten module-boundary/controller-growth policies and require explicit approval paths for exceptions.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 8: Smell Gate Evidence as Merge Prerequisite**
+#### **Task 5.3: Smell Gate Evidence as Merge Prerequisite**
 *   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
 *   **Mechanism:** Require successful smell checks in QA artifacts and block integration on unresolved unapproved violations.
 *   - [ ] **Status:** Not Started.
@@ -706,15 +706,6 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/help/manpage text are synchronized for the new sort option.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 49: Create Watcher Infrastructure (`watcher.c`)**
-*   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
-*   **Logic:**
-    *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
-    *   **Add Watch:** Implement `Watcher_SetDir(char *path)` which removes the previous watch (if any) and adds a new watch (`inotify_add_watch`) on the specified path for events: `IN_CREATE | IN_DELETE | IN_MOVE | IN_MODIFY | IN_ATTRIB`.
-    *   **Check:** Implement `Watcher_CheckEvents()` which reads from the file descriptor. If events are found, it returns `TRUE`, otherwise `FALSE`.
-    *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
-*   - [ ] **Status:** Not Started.
-
 ### **Task 46: Input Loop Determinism and Event Handling**
 *   **Goal:** Group event-priority policy and multiplexing implementation under one umbrella to reduce recurring input-loop regressions.
 
@@ -730,14 +721,23 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 #### **Task 46.2: Non-Blocking FD Multiplexing Implementation**
-*   **Task:** Implement/maintain non-blocking input multiplexing (`select`/`poll`) for keyboard + watcher FDs as the concrete mechanism under Task 50.
+*   **Task:** Implement/maintain non-blocking input multiplexing (`select`/`poll`) for keyboard + watcher FDs as the concrete mechanism under Task 46.
 *   **Scope Lock:** Mechanism-level implementation only.
 *   **Acceptance Criteria:**
-*   Multiplex loop behavior conforms to Task 50 event-priority contract.
+*   Multiplex loop behavior conforms to Task 46 event-priority contract.
 *   Regression coverage confirms no blocking/starvation under mixed input/event load.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 51: Implement Live Refresh Logic**
+#### **Task 46.3: Create Watcher Infrastructure (`watcher.c`)**
+*   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
+*   **Logic:**
+    *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
+    *   **Add Watch:** Implement `Watcher_SetDir(char *path)` which removes the previous watch (if any) and adds a new watch (`inotify_add_watch`) on the specified path for events: `IN_CREATE | IN_DELETE | IN_MOVE | IN_MODIFY | IN_ATTRIB`.
+    *   **Check:** Implement `Watcher_CheckEvents()` which reads from the file descriptor. If events are found, it returns `TRUE`, otherwise `FALSE`.
+    *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 46.4: Implement Live Refresh Logic**
 *   **Task:** Connect the `refresh_needed` flag to the main window logic.
 *   **Logic:**
     *   In `dirwin.c` (`HandleDirWindow`) and `filewin.c` (`HandleFileWindow`), inside the input loop:
@@ -750,7 +750,7 @@ Ordering policy (for all editors, including AI editors):
     *   *Note:* We must ensure the cursor stays on the same file if possible (by saving the filename before rescan and finding it after).
 *   - [ ] **Status:** Not Started.
 
-#### **Task 52: Update Watch Context on Navigation (Current-Directory Auto-Refresh Context)**
+#### **Task 46.5: Update Watch Context on Navigation (Current-Directory Auto-Refresh Context)**
 *   **Task:** Ensure the watcher always monitors the *current* directory so the file list the user is looking at stays fresh without a manual reload.
 *   **Logic:**
     *   In `dirwin.c`: Whenever the user moves the cursor to a new directory (UP/DOWN), update the watcher.
@@ -759,7 +759,7 @@ Ordering policy (for all editors, including AI editors):
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 53: Implement Directory Filtering (Non-Recursive)**
+#### **Task 46.6: Implement Directory Filtering (Non-Recursive)**
 *   **Description:** Extend Filter to support directory-pattern tokens identified by a trailing slash.
     *   `dir/` means include matching directories in the current tree view.
     *   `-dir/` means exclude matching directories in the current tree view.
@@ -783,12 +783,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   - [ ] **Status:** Not Started.
 
-#### **Task 57: Implement Archive Move (`M`) Support**
-*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
-*   - [ ] **Status:** Not Started.
-
 ### **Task 50: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 50.1: Implement Archive Move (`M`) Support**
+*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
 *   - [ ] **Status:** Not Started.
 
 ---
@@ -802,20 +802,20 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 90: Baseline Security Debt Audit and Classification**
+#### **Task 51.1: Baseline Security Debt Audit and Classification**
 *   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
 *   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 61: Runtime Execution Security Guardrail**
+#### **Task 51.2: Runtime Execution Security Guardrail**
 *   **Goal:** Group runtime execution security hardening and guard expansion under one umbrella with mandatory staged completion.
 
-##### **Task 61.1: Expand Security Guard Coverage to Block Reintroduction**
+##### **Task 51.2.1: Expand Security Guard Coverage to Block Reintroduction**
 *   **Goal:** Ensure banned/legacy security-sensitive APIs and patterns are explicitly rejected by automated guard scripts.
 *   **Mechanism:** Extend guard checks for legacy unsafe escaping/runtime paths and other approved denylisted APIs/patterns.
 *   - [ ] **Status:** Not Started.
 
-##### **Task 61.2: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)**
+##### **Task 51.2.2: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)**
 *   **Goal:** Make runtime command execution deterministic and secure by using one mandatory process-launch path in app runtime code.
 *   **Policy (mandatory):** Runtime launches **must** use `fork()` -> `execvp()` -> `waitpid()` only.
 *   **Non-Goal:** This task **must not** introduce `posix_spawn()`.
@@ -831,7 +831,7 @@ Ordering policy (for all editors, including AI editors):
     *   Child process **must** execute target via `execvp()`.
     *   Parent **must** reap child via `waitpid()` using an `EINTR`-safe wait loop.
     *   No new runtime `system()` or `popen()` usage is permitted.
-    *   Any temporary migration shim/wrapper **must** be removed before task closure (see Task 62).
+    *   Any temporary migration shim/wrapper **must** be removed before task closure (see Task 63).
 
 *   **Acceptance Criteria:**
     *   All runtime command-launch paths use the shared `fork`/`execvp`/`waitpid` implementation.
@@ -841,10 +841,10 @@ Ordering policy (for all editors, including AI editors):
         *   ytnova returns to interactive control after command completion,
         *   terminal/curses state is restored correctly after command return.
     *   QA guard fails CI if new runtime `system()`/`popen()` usage is introduced.
-    *   Shim cleanup is complete per Task 62.
+    *   Shim cleanup is complete per Task 63.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 62: Security Regression Gate in CI + Merge Workflow**
+#### **Task 51.3: Security Regression Gate in CI + Merge Workflow**
 *   **Goal:** Make security verification non-optional in routine change flow.
 *   **Mechanism:** Require security gate evidence for non-trivial PRs and keep merge blocked until gates pass.
 *   - [ ] **Status:** Not Started.
@@ -1046,6 +1046,7 @@ Ordering policy (for all editors, including AI editors):
     *   The command strip is exactly: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`.
     *   Common path remains `F10 -> Enter -> edit config`; direct expert paths are `F10 -> C`, `F10 -> T`, and `F10 -> R`.
     *   Reload is available only under `F10`; do not add a top-level/global reload key.
+    *   Policy: `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it.
     *   Successful reload silently repaints using the new config/theme. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
 *   **Default Palette Direction:**
     *   `background = blue`
@@ -1136,7 +1137,7 @@ Ordering policy (for all editors, including AI editors):
 ## **Phase 8: Final Polish (Post-Alpha, Pre-v1.0.0)**
 *This phase focuses on release polish. Security, module-boundary, and quality gates remain continuous from earlier phases and are not deferred to this phase.*
 
-### **Task 62: Remove Temporary Compatibility Shims (Global Cleanup Gate)**
+### **Task 63: Remove Temporary Compatibility Shims (Global Cleanup Gate)**
 *   **Goal:** Eliminate temporary compatibility shims introduced during staged migrations and prevent shim accumulation as permanent architecture debt.
 *   **Scope:** Applies to all migration tasks, including process-launch hardening and overlay/submode state unification.
 *   **Policy (mandatory):**
@@ -1149,12 +1150,12 @@ Ordering policy (for all editors, including AI editors):
     *   CI/QA gate fails if orphaned/expired shim markers exist.
 *   - [ ] **Status:** Not Started.
 
-### **Task 63: UI/UX Snappiness Polish (Targeted Optimization)**
+### **Task 64: UI/UX Snappiness Polish (Targeted Optimization)**
 *   **Goal:** Improve perceived responsiveness in high-frequency flows using profiling-driven optimizations.
 *   **Rationale:** Premature optimization is avoided; final polish applies targeted improvements where bottlenecks are measured.
 *   - [ ] **Status:** Not Started.
 
-### **Task 64: Source Comment Hygiene Pass**
+### **Task 65: Source Comment Hygiene Pass**
 *   **Goal:** Tidy comments for clarity and maintainability before v1.0.0.
 *   **Policy:** Keep comments for invariants and design rationale; remove redundant narration of obvious control flow.
 *   **Check:** Verify banner comments are only used where they add design/invariant context.
@@ -1165,12 +1166,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Excluded:** Do not modify third-party `uthash.h`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 65: Final Consistency Sweep (Style, Docs, UX Wording)**
+### **Task 66: Final Consistency Sweep (Style, Docs, UX Wording)**
 *   **Goal:** Run a final consistency pass across style-sensitive surfaces (code style guardrails, docs wording, and help/footer terminology).
 *   **Rationale:** Multi-contributor consistency is enforced continuously via guardrails and review; this task is a final convergence pass.
 *   - [ ] **Status:** Not Started.
 
-### **Task 66: Multi-Round Adversarial Security Review**
+### **Task 67: Multi-Round Adversarial Security Review**
 *   **Goal:** Perform a pre-v1.0.0 multi-round security review using adversarial and AppSec perspectives.
 *   **Examples:** Senior AppSec reviewer, penetration-tester mindset, and insider-knowledge threat modeling.
 *   **Rationale:** Final pre-release pressure test on top of continuous Phase 2 security gates.
@@ -1181,7 +1182,7 @@ Ordering policy (for all editors, including AI editors):
 ## **Beta: Stabilization and Performance**
 *This phase follows alpha delivery phases and precedes wishlist work. Place stabilization tasks here: bug fixes, regressions, reliability, and performance. Defer non-essential feature work to wishlist phases.*
 
-### **Task 67: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
+### **Task 68: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
 *   **Goal:** Make overlay/submode behavior deterministic by moving to one unified state model while preserving current user-visible behavior.
 *   **Why now (Beta):** Split/mode/node state is explicit and stable, but overlay/submode behavior is still distributed across flags/controller paths.
 *   **Precondition:** Current bug queue and planned current-delivery tasks are completed and green.
@@ -1204,7 +1205,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Post-migration Cleanup (mandatory):**
     *   Temporary compatibility shims **must** be removed once migration acceptance criteria are met.
     *   No compatibility shim may remain as permanent architecture.
-    *   Shim cleanup is mandatory per Task 62 before closure.
+    *   Shim cleanup is mandatory per Task 63 before closure.
 
 *   **Acceptance Criteria:**
     *   One authoritative overlay/submode state path exists in runtime logic.

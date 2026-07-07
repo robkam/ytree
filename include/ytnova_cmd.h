@@ -150,8 +150,13 @@ extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern int ValidateProfileFile(ViewContext *ctx, const char *filename);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
+#ifdef COLOR_SUPPORT
 extern int ReadThemeFile(ViewContext *ctx, const char *filename,
                          const char *theme_name);
+#else
+extern int ReadThemeFile(const ViewContext *ctx, const char *filename,
+                         const char *theme_name);
+#endif
 extern int LoadConfiguredTheme(ViewContext *ctx);
 
 /* history.c */

@@ -79,9 +79,9 @@ static const UICommandStripCommand dir_help_archive_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dirmode", "^F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dirmode (^F)", "^F", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Global (G)", "G", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare (J)", "J", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL}};
 static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
@@ -291,6 +291,27 @@ static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
                         strip->command_count, UI_ROLE_HELP, UI_ROLE_KEYBIND);
 }
 
+static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
+                                   const HelpCommandStrip *strip) {
+  int prefix_width;
+
+  if (ctx == NULL || ctx->ctx_border_window == NULL || strip == NULL ||
+      strip->prefix == NULL)
+    return;
+
+#ifdef COLOR_SUPPORT
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_HELP));
+#else
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+#endif
+  mvwaddstr(ctx->ctx_border_window, y, 0, strip->prefix);
+  wattrset(ctx->ctx_border_window, 0);
+
+  prefix_width = StrVisualLength((char *)strip->prefix);
+  UI_RenderCommandStrip(ctx->ctx_border_window, y, prefix_width, strip->commands,
+                        strip->command_count, UI_ROLE_HELP, UI_ROLE_KEYBIND);
+}
+
 void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   int i;
   const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
@@ -346,13 +367,13 @@ void DisplayHistoryHelp(ViewContext *ctx) {
 void DisplayPreviewHelp(ViewContext *ctx) {
   /*
    * Help Footer for Preview Mode (F7)
-   */
+  */
   wmove(ctx->ctx_border_window, Y_PROMPT(ctx), 0);
   wclrtoeol(ctx->ctx_border_window);
-  DisplayBuiltInHelpLine(ctx, Y_PROMPT(ctx), &preview_help_builtin[0]);
+  DisplayPreviewHelpLine(ctx, Y_PROMPT(ctx), &preview_help_builtin[0]);
   wmove(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0);
   wclrtoeol(ctx->ctx_border_window);
-  DisplayBuiltInHelpLine(ctx, Y_PROMPT(ctx) + 1, &preview_help_builtin[1]);
+  DisplayPreviewHelpLine(ctx, Y_PROMPT(ctx) + 1, &preview_help_builtin[1]);
 }
 
 void ClearHelp(ViewContext *ctx) {

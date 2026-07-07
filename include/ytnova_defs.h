@@ -881,7 +881,11 @@ typedef struct {
   void (*wbkgd_set)(const ViewContext *ctx, WINDOW *win, chtype c);
   int (*ui_notice)(ViewContext *ctx, const char *msg);
   void (*parse_color_string)(const char *color_str, int *fg, int *bg);
+  BOOL (*parse_color_string_strict)(const char *color_str, int *fg, int *bg);
   void (*update_ui_color)(const char *name, int fg, int bg);
+  void *(*capture_ui_colors)(void);
+  void (*restore_ui_colors)(void *snapshot);
+  void (*free_ui_colors)(void *snapshot);
   void (*add_file_color_rule)(ViewContext *ctx, const char *pattern, int fg,
                               int bg);
   void (*bind_runtime_hooks)(ViewContext *ctx);
@@ -1008,6 +1012,7 @@ typedef struct _ViewContext {
   char status_line_error_text[PATH_LENGTH + 1];
   char *initial_directory;
   char configuration_file_path[PATH_LENGTH + 1];
+  char theme_file_path[PATH_LENGTH + 1];
   char *confirm_quit;
   void *file_color_rules_head;
 

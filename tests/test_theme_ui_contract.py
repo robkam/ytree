@@ -161,26 +161,27 @@ def test_startup_defers_normal_window_creation_to_themed_helper():
 
 def test_f10_bootstrap_defers_starter_files_until_explicit_edit_choice():
     source = _read("src/ui/ui_edit_config.c")
-    helper_start = source.index("static int EnsureConfigStarterFiles(")
+    helper_start = source.index("static int EnsureConfigStarterFile(")
     helper_end = source.index("static int ReloadConfigAndTheme(")
     helper_body = source[helper_start:helper_end]
     ui_open = source[source.index("void UI_OpenConfigProfile(") :]
 
-    assert "ConfigStarterFile starter_files[] = {" in helper_body
+    assert "static int EnsureConfigStarterFile(" in helper_body
+    assert "static int EnsureThemesStarterFile(" in helper_body
     assert "default_profile_template" in helper_body
     assert "default_theme_catalog" in helper_body
-    assert "int result = WriteStarterFile(ctx, starter_files[i].path" in helper_body
-    assert "starter_files[i].contents" in helper_body
-    assert (
-        "for (i = 0; i < sizeof(starter_files) / sizeof(starter_files[0]); ++i)"
-        in helper_body
+    assert 'WriteStarterFile(ctx, profile_path, default_profile_template, "config")' in (
+        helper_body
+    )
+    assert 'WriteStarterFile(ctx, themes_path, default_theme_catalog, "themes")' in (
+        helper_body
     )
     assert "mkstemp" not in helper_body
     assert "link(temp_path" not in helper_body
     assert ui_open.index("InputChoiceCommandStrip") < ui_open.index("case 'C':")
-    assert "EnsureConfigStarterFiles(ctx, profile_path, themes_path)" not in ui_open[
-        : ui_open.index("switch (term) {")
-    ]
+    pre_switch = ui_open[: ui_open.index("switch (term) {")]
+    assert "EnsureConfigStarterFile" not in pre_switch
+    assert "EnsureThemesStarterFile" not in pre_switch
 
 
 def test_semantic_roles_are_canonical_runtime_color_model():
@@ -497,7 +498,7 @@ def test_theme_docs_capture_role_routing_invariants():
     assert "startup and F10 reload commit paths" in arch_source
 
 
-def test_theme_editor_prefers_xdg_and_uses_home_fallback_only_when_needed():
+def test_theme_editor_tracks_active_path_and_bootstraps_xdg_for_defaults():
     defs_source = _read("include/ytnova_defs.h")
     source = _read("src/ui/ui_edit_config.c")
     theme_source = _read("src/cmd/theme.c")
@@ -509,12 +510,17 @@ def test_theme_editor_prefers_xdg_and_uses_home_fallback_only_when_needed():
     assert '#define THEME_FILENAME ".ytnova.themes"' in defs_source
     assert "THEME_CONFIG_HOME_PATH" in theme_source
     assert "THEME_FILENAME" in theme_source
+    assert "char theme_file_path[PATH_LENGTH + 1];" in defs_source
+    assert "SetThemeFilePath(ctx, NULL);" in theme_source
+    assert "SetThemeFilePath(ctx, path);" in theme_source
     assert "EnsureConfigHomeDirectory(home) == 0" in source
     assert "THEME_CONFIG_HOME_PATH" in source
     assert "THEME_FILENAME" in source
+    assert "ctx->theme_file_path[0] != '\\0'" in source
     assert 'snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);' in source
     assert "Can't resolve themes file path" in source
-    assert "EnsureConfigStarterFiles(ctx, profile_path, themes_path)" in source
+    assert "EnsureThemesStarterFile(ctx, themes_path)" in source
+    assert "EnsureConfigStarterFiles" not in source
     assert "default_theme_catalog" in source
     assert "WriteStarterFile" in source
     assert "link(temp_path, themes_path)" not in source
@@ -532,8 +538,8 @@ def test_f10_config_and_reload_do_not_require_theme_path_resolution():
     pre_switch = ui_open[: ui_open.index("switch (term) {")]
     theme_case = ui_open[ui_open.index("case 'T':") : ui_open.index("case 'R':")]
 
-    assert "ResolveThemesPath(themes_path, sizeof(themes_path))" not in pre_switch
-    assert "ResolveThemesPath(themes_path, sizeof(themes_path))" in theme_case
+    assert "ResolveThemesPath(ctx, themes_path, sizeof(themes_path))" not in pre_switch
+    assert "ResolveThemesPath(ctx, themes_path, sizeof(themes_path))" in theme_case
     assert 'MESSAGE(ctx, "Can\'t resolve themes file path")' in theme_case
 
 

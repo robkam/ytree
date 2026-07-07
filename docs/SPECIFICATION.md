@@ -424,7 +424,7 @@ executables = green: EXEC
 Rules are first-match-wins. Selectors are extension names without `*.` by default; `LINK` and `EXEC` are special selectors. Directories in the tree use theme roles and are not styled by file-type palette rules. When a rule omits a background, it inherits the active filename/window background.
 
 ### 7.5 F10 Config Surface and Reload
-`F10` opens the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Reload is available only inside this surface. Successful reload silently repaints. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
+`F10` opens the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
 
 ---
 

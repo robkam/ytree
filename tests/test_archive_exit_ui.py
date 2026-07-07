@@ -1252,6 +1252,90 @@ def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_b
         tui.quit()
 
 
+def test_f10_themes_edits_active_home_dotfile_fallback(tmp_path, ytnova_binary):
+    root = tmp_path / "f10_themes_home_fallback"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    edited_path_capture = root / "edited_themes_path.txt"
+    editor_capture = root / "edited_themes_buffer.txt"
+    touch_editor = root / "touch_fallback_themes_editor.sh"
+    touch_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"printf '%s\\n' \"$f\" > \"{edited_path_capture}\"\n"
+        "printf '\\n# edited by f10 themes\\n' >> \"$f\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    touch_editor.chmod(0o755)
+
+    fallback_themes_path = root / ".ytnova.themes"
+    fallback_themes_path.write_text(
+        """
+[theme classic-blue]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    xdg_themes_path = root / ".config" / "ytnova" / "themes.conf"
+    xdg_themes_path.unlink(missing_ok=True)
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(touch_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        for _ in range(20):
+            if edited_path_capture.exists():
+                break
+            time.sleep(0.1)
+
+        assert edited_path_capture.exists(), "F10 -> Themes must invoke the editor."
+        assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
+            fallback_themes_path
+        ), (
+            "F10 -> Themes must edit the active home-dotfile fallback theme file, "
+            "not silently switch to XDG."
+        )
+        assert not xdg_themes_path.exists(), (
+            "Editing an active home-dotfile fallback themes file must not create "
+            "a parallel XDG themes authority."
+        )
+        assert "# edited by f10 themes" in fallback_themes_path.read_text(
+            encoding="utf-8"
+        ), "The active fallback themes file should receive the edit."
+        assert editor_capture.exists(), "The editor should capture the edited buffer."
+    finally:
+        tui.quit()
+
+
 def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
     root = tmp_path / "missing_profile_f10_save"
     root.mkdir()
