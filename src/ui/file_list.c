@@ -8,6 +8,7 @@
 #include "sort.h"
 #include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_render.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
@@ -213,23 +214,11 @@ void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
     render_start = dir_entry->start_file;
     render_cursor = dir_entry->cursor_pos;
   }
-  if (panel->file_count == 0) {
-    render_start = 0;
-    render_cursor = 0;
-  } else {
+  {
     int original_start = render_start;
     int original_cursor = render_cursor;
-    if (render_start < 0)
-      render_start = 0;
-    if ((unsigned int)render_start >= panel->file_count)
-      render_start = (int)panel->file_count - 1;
-    if (render_cursor < 0)
-      render_cursor = 0;
-    if ((unsigned int)(render_start + render_cursor) >= panel->file_count) {
-      render_cursor = (int)panel->file_count - 1 - render_start;
-      if (render_cursor < 0)
-        render_cursor = 0;
-    }
+
+    AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);
     if (original_start != render_start || original_cursor != render_cursor) {
       DEBUG_LOG("DisplayFileWindow:clamp start=%d->%d cursor=%d->%d count=%u",
                 original_start, render_start, original_cursor, render_cursor,
@@ -239,9 +228,10 @@ void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
 
   (void)AppStateCommitPanelFileViewport(panel, render_start, render_cursor);
 
-  highlight_idx = -1;
-  if (AppStateResolveActivePanelFocus(ctx) == FOCUS_FILE)
-    highlight_idx = render_start + render_cursor;
+  highlight_idx = AppStateResolveRenderFileHighlight(panel, render_start,
+                                                     render_cursor);
+  if (AppStateResolveActivePanelFocus(ctx) != FOCUS_FILE)
+    highlight_idx = -1;
 
   DisplayFiles(ctx, panel, dir_entry, render_start, highlight_idx, 0,
                panel->pan_file_window);
