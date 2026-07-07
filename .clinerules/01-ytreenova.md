@@ -19,7 +19,7 @@ In Cline, treat those files as authoritative even when they mention Codex-specif
 
 ## Persona routing
 
-Choose the working role by user intent, then load the matching project skill from `.cline/skills/`:
+Choose the working role by user intent, then load the matching project skill through the `.cline/skills` bridge:
 
 - `architect` -> `architect-planning`
 - `developer` -> `developer-implementation`

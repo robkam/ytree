@@ -9874,19 +9874,57 @@ def test_focused_window_shim_metadata_describes_helper_only_boundary() -> None:
         assert text in action_registry
 
 
-def test_render_row_projection_uses_display_helpers() -> None:
+def test_render_row_projection_uses_shared_helpers() -> None:
+    render_helpers = Path("src/ui/appstate_render.c").read_text(encoding="utf-8")
     display = Path("src/ui/display.c").read_text(encoding="utf-8")
+    file_list = Path("src/ui/file_list.c").read_text(encoding="utf-8")
 
-    assert "static void ClampRenderFileViewport(" in display
-    assert "static int ResolveRenderFileHighlight(" in display
+    assert "void AppStateClampRenderFileViewport(" in render_helpers
+    assert "int AppStateResolveRenderFileHighlight(" in render_helpers
 
     render_start = display.index("void RenderInactivePanel(")
     render_end = display.index("\nstatic BOOL IsActivePanelBigFileMode(", render_start)
     render_body = display[render_start:render_end]
 
-    assert "ClampRenderFileViewport(panel, &render_start, &render_cursor);" in render_body
-    assert "ResolveRenderFileHighlight(panel, render_start, render_cursor)" in render_body
+    assert (
+        "AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);"
+        in render_body
+    )
+    assert "AppStateResolveRenderFileHighlight(panel, render_start" in render_body
     assert "render_start + render_cursor" not in render_body
+
+    file_start = file_list.index("void DisplayFileWindow(")
+    file_body = file_list[file_start:]
+
+    assert (
+        "AppStateClampRenderFileViewport(panel, &render_start, &render_cursor);"
+        in file_body
+    )
+    assert "AppStateResolveRenderFileHighlight(panel, render_start" in file_body
+    assert "render_start + render_cursor" not in file_body
+
+
+def test_render_row_shim_registry_matches_shared_helper_boundary() -> None:
+    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
+        encoding="utf-8"
+    )
+    action_registry = Path("src/core/appstate_actions.c").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"source_boundary_refs": [' in shim_registry
+    assert '"src/ui/appstate_render.c"' in shim_registry
+    assert '"src/ui/display.c"' not in shim_registry
+    assert '"src/ui/file_list.c"' not in shim_registry
+
+    array_start = action_registry.index(
+        "static const char *const kAppStateCompatibilityShimSourceBoundaryRefs2[] = {"
+    )
+    array_end = action_registry.index("};", array_start)
+    array_body = action_registry[array_start:array_end]
+    assert '"src/ui/appstate_render.c"' in array_body
+    assert '"src/ui/display.c"' not in array_body
+    assert '"src/ui/file_list.c"' not in array_body
 
 
 def test_render_row_shim_metadata_describes_helper_boundary() -> None:
@@ -9897,17 +9935,17 @@ def test_render_row_shim_metadata_describes_helper_boundary() -> None:
         encoding="utf-8"
     )
 
-    owner = "Display render projection helpers"
+    owner = "AppState render projection helpers"
     read_permission = (
-        "Allowed only inside display render projection helpers or "
+        "Allowed only inside AppState render projection helpers or "
         "bounds-correction code after identity restore has run."
     )
     write_permission = (
-        "Never write authoritative selection from display render projection "
+        "Never write authoritative selection from AppState render projection "
         "helper calculations."
     )
     removal_trigger = (
-        "Display render projection helpers accept explicit projection inputs "
+        "AppState render projection helpers accept explicit projection inputs "
         "and no longer inspect restore authority fields directly."
     )
     follow_up_task = (
@@ -11880,12 +11918,11 @@ def test_guard_fails_when_runtime_shim_validation_callsite_is_missing(
     tmp_path: Path,
 ) -> None:
     shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
-    source_path = tmp_path / "src" / "ui" / "display.c"
+    source_path = tmp_path / "src" / "ui" / "appstate_render.c"
     original = source_path.read_text(encoding="utf-8")
     mutated = original.replace(
         'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")',
         'AppStateValidatedCompatibilityShim("shim-render-derived-row-position-missing")',
-        1,
     )
     assert mutated != original
     source_path.write_text(mutated, encoding="utf-8")
@@ -11917,12 +11954,11 @@ def test_guard_fails_when_runtime_shim_validation_moves_outside_source_boundary(
     tmp_path: Path,
 ) -> None:
     shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
-    source_path = tmp_path / "src" / "ui" / "display.c"
+    source_path = tmp_path / "src" / "ui" / "appstate_render.c"
     original = source_path.read_text(encoding="utf-8")
     mutated = original.replace(
         'AppStateValidatedCompatibilityShim("shim-render-derived-row-position")',
         'AppStateValidatedCompatibilityShim("shim-render-derived-row-position-missing")',
-        1,
     )
     assert mutated != original
     source_path.write_text(mutated, encoding="utf-8")
@@ -11955,7 +11991,7 @@ def test_guard_fails_when_runtime_shim_validation_moves_outside_source_boundary(
 
     assert any(
         "shim-render-derived-row-position" in failure
-        and "src/ui/display.c" in failure
+        and "src/ui/appstate_render.c" in failure
         and "missing runtime validation callsite" in failure
         for failure in failures
     )

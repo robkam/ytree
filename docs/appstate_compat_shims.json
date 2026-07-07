@@ -35,16 +35,16 @@
     },
     {
       "id": "shim-render-derived-row-position",
-      "owner": "Display render projection helpers",
+      "owner": "AppState render projection helpers",
       "old_authority_path": "disp_begin_pos + cursor_pos render-derived lookup",
-      "read_permission": "Allowed only inside display render projection helpers or bounds-correction code after identity restore has run.",
-      "write_permission": "Never write authoritative selection from display render projection helper calculations.",
+      "read_permission": "Allowed only inside AppState render projection helpers or bounds-correction code after identity restore has run.",
+      "write_permission": "Never write authoritative selection from AppState render projection helper calculations.",
       "write_capability": "read_only_projection",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.blocked-transition-determinism"
       ],
-      "removal_trigger": "Display render projection helpers accept explicit projection inputs and no longer inspect restore authority fields directly.",
+      "removal_trigger": "AppState render projection helpers accept explicit projection inputs and no longer inspect restore authority fields directly.",
       "target_transition": "transition.render-reflow.project-state",
       "follow_up_task": "Remove render-derived row compatibility helpers once render callers carry explicit projection state.",
       "qa_enforcement": "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage.",
@@ -65,7 +65,7 @@
         "harness.blocked-transition-no-unrelated-mutation"
       ],
       "source_boundary_refs": [
-        "src/ui/display.c"
+        "src/ui/appstate_render.c"
       ]
     }
   ]
