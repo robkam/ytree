@@ -4,23 +4,18 @@ Date: 2026-07-07
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-require-runtime-registry-doc-metadata
-Active PR: https://github.com/robkam/ytreenova/pull/376
+Current branch: appstate-sync-fixture-registry-metadata
+Active PR: https://github.com/robkam/ytreenova/pull/377
 Supersession state: no active stop or pause condition.
 
 Current AppState batch:
-- Require every runtime-backed AppState registry document to declare top-level `contract` and `notes` metadata.
-- Fill the missing transition-sequence registry metadata in `docs/appstate_transition_sequences.json`.
-- Keep the contract-guard fixtures aligned with the runtime-backed registry metadata requirement.
+- Keep the contract-guard fixture metadata aligned with the checked-in AppState registry docs.
+- Derive fixture `contract`/`notes` metadata from the current `docs/appstate*.json` files instead of duplicating divergent strings in the test helper.
+- Prove that runtime-backed fixture registries stay in sync with the current repository metadata surface.
 
 Local validation:
-- Red: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_docs_require_contract_and_notes'`
-- `python3 -m py_compile scripts/check_appstate_contract.py tests/test_appstate_contract_guard.py`
-- `python3 scripts/check_appstate_contract.py`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'runtime_backed_registry_docs_require_contract_and_notes or runtime_backed_registry_notes_reject_stale_boundary_wording or current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures'`
-
-Local state to preserve:
-- `.clinerules/01-ytreenova.md` is modified locally and must ride in this next PR without being mentioned in durable commit or PR wording.
+- Red: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'fixture_registry_metadata_matches_current_docs'`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'fixture_registry_metadata_matches_current_docs or runtime_backed_registry_docs_require_contract_and_notes or runtime_backed_registry_notes_reject_stale_boundary_wording or current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures'`
 
 Next action:
-- Wait 15 minutes from the latest push before the first compact CI status check for PR #376, then continue the merge loop if checks go green.
+- Wait 15 minutes from the latest push before the first compact CI status check for PR #377, then continue the merge loop if checks go green.
