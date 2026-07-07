@@ -9808,6 +9808,35 @@ def test_focused_window_compatibility_stays_in_appstate_focus_helpers() -> None:
         assert "ctx->focused_window" not in source, path.as_posix()
 
 
+def test_focused_window_shim_registry_matches_helper_boundary() -> None:
+    shim_registry = Path("docs/appstate_compat_shims.json").read_text(
+        encoding="utf-8"
+    )
+    action_registry = Path("src/core/appstate_actions.c").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"source_boundary_refs": [' in shim_registry
+    assert '"src/ui/appstate_focus.c"' in shim_registry
+    assert '"src/ui/ctrl_file_ops.c"' not in shim_registry
+    assert '"src/ui/ctrl_file.c"' not in shim_registry
+    assert '"src/ui/ctrl_dir.c"' not in shim_registry
+    assert '"src/ui/dir_ops.c"' not in shim_registry
+    assert '"src/ui/split_transition.c"' not in shim_registry
+
+    array_start = action_registry.index(
+        "static const char *const kAppStateCompatibilityShimSourceBoundaryRefs1[] = {"
+    )
+    array_end = action_registry.index("};", array_start)
+    array_body = action_registry[array_start:array_end]
+    assert '"src/ui/appstate_focus.c"' in array_body
+    assert '"src/ui/ctrl_file_ops.c"' not in array_body
+    assert '"src/ui/ctrl_file.c"' not in array_body
+    assert '"src/ui/ctrl_dir.c"' not in array_body
+    assert '"src/ui/dir_ops.c"' not in array_body
+    assert '"src/ui/split_transition.c"' not in array_body
+
+
 def test_split_file_focus_commits_use_appstate_helper() -> None:
     source = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
     start = source.index("BOOL SplitTransition_HandleFileWindowAction(")
