@@ -4,25 +4,25 @@ Date: 2026-07-07
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-render-row-projection-helper
-Active PR: https://github.com/robkam/ytreenova/pull/367 (draft)
+Current branch: appstate-render-shim-helper-contract
+Active PR: https://github.com/robkam/ytreenova/pull/368 (draft)
 Supersession state: no active stop or pause condition.
 
 Recently merged AppState batch:
-- PR https://github.com/robkam/ytreenova/pull/366 merged at `773444d` after green checks.
-- Local `main` and `origin/main` were aligned at `773444d` before this branch.
+- PR https://github.com/robkam/ytreenova/pull/367 merged at `c4cca50` after green checks.
+- Local `main` and `origin/main` were aligned at `c4cca50` before this branch.
 - The prior topic branch was deleted on merge and pruned locally/remotely.
 
 Current AppState batch:
-- Routes render-derived inactive-panel file viewport/highlight calculations in `src/ui/display.c` through dedicated display helpers instead of inline row-position math.
-- Extends `tests/test_appstate_contract_guard.py` to keep those render-derived row projections on helper functions.
+- Updates the render-derived row compatibility shim contract metadata in `docs/appstate_compat_shims.json` and `src/core/appstate_actions.c` to describe the helper-only display boundary now enforced by `src/ui/display.c`.
+- Extends `tests/test_appstate_contract_guard.py` to keep the render-row shim text aligned with the display helper boundary.
 
 Local validation:
-- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k render_row_projection_uses_display_helpers`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'render_row_projection_uses_display_helpers or focused_window_shim_metadata_describes_helper_only_boundary or focused_window_shim_registry_matches_helper_boundary or render_footer_focus_reads_project_from_panel_state'`
+- Red proof before implementation: `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k render_row_shim_metadata_describes_helper_boundary`
+- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -q -k 'render_row_shim_metadata_describes_helper_boundary or render_row_projection_uses_display_helpers or focused_window_shim_metadata_describes_helper_only_boundary or render_footer_focus_reads_project_from_panel_state'`
 - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
 - `make`
 - `git diff --check`
 
 Next action:
-- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/367 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
+- Follow the CI wait rule for PR https://github.com/robkam/ytreenova/pull/368 from the latest push that includes this checkpoint. If checks go green, mark ready when allowed, merge after branch protection/review requirements are satisfied, clean up branch state, update this checkpoint, then continue the next AppState batch unless superseded.
