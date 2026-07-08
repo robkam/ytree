@@ -1,21 +1,25 @@
 # ytreenova AppState continuation checkpoint
 
-Date: 2026-07-07
+Date: 2026-07-08
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-normalize-runtime-registry-status-labels
-Active PR: https://github.com/robkam/ytreenova/pull/378
+Current branch: appstate-focus-helper-boundary-validation
+Active PR: https://github.com/robkam/ytreenova/pull/379
 Supersession state: no active stop or pause condition.
 
 Current AppState batch:
-- Normalize the remaining runtime-registry status label mismatch across the AppState owner-field and transition-sequence registries.
-- Use `covered_by_runtime_registry` consistently in the docs, runtime metadata, contract guard, and fixture surface where those registries are already runtime-backed.
-- Keep the boundary-status versus runtime-registry-status split intact while removing the last `runtime_backed` status literals from active registry/runtime metadata.
+- Tighten the remaining owner-field/runtime boundary around panel focus-shape helpers identified from `docs/appstate_owner_fields.json` and `docs/appstate_generation_domains.json`.
+- Make `src/ui/appstate_focus.c` fail closed on `panel.focus_shape` writes unless the registered owner field and `shape.panel.focus` generation domain validate first.
+- Keep the batch scoped to the focus helper boundary plus its focused regression coverage.
 
 Local validation:
-- `python3 scripts/check_appstate_contract.py`
-- `source .venv/bin/activate && pytest tests/test_appstate_contract_guard.py -k 'fixture_registry_metadata_matches_current_docs or runtime_backed_registry_docs_require_contract_and_notes or runtime_backed_registry_notes_reject_stale_boundary_wording or current_repository_appstate_contract_passes or guard_passes_complete_temporary_fixtures'`
+- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'focus_shape_helpers_validate_owner_boundaries_before_writes'`
+- Green:
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'focus_shape_helpers_validate_owner_boundaries_before_writes or panel_file_shape_commits_use_appstate_helper or focus_restore_commits_use_appstate_helper'`
+  - `python3 scripts/check_appstate_contract.py`
+  - `make clean && make`
+  - `git diff --check`
 
 Next action:
-- Wait 15 minutes from the latest push before the first compact CI status check for PR #378, then continue the merge loop if checks go green.
+- Wait until after 2026-07-08 10:43 BST (09:43 UTC) for the first compact CI status check on PR 379, then continue the CI/merge loop from that PR state only.

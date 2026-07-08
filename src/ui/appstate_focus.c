@@ -7,6 +7,7 @@
 
 #define NO_YTNOVA_MACROS
 
+#include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_focus.h"
 
 ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx) {
@@ -19,6 +20,10 @@ ViewFocus AppStateResolveActivePanelFocus(const ViewContext *ctx) {
 
 BOOL AppStateCommitPanelFocus(const ViewContext *ctx, YtreeNovaPanel *panel,
                               ViewFocus focus) {
+  if (!AppStateValidatedGenerationDomain("shape.panel.focus"))
+    return FALSE;
+  if (!AppStateValidatedOwnerField("panel.focus_shape"))
+    return FALSE;
   if (!ctx || !panel)
     return FALSE;
   if (focus != FOCUS_TREE && focus != FOCUS_FILE)
@@ -29,6 +34,10 @@ BOOL AppStateCommitPanelFocus(const ViewContext *ctx, YtreeNovaPanel *panel,
 }
 
 BOOL AppStateCommitPanelFileShape(YtreeNovaPanel *panel, BOOL big_file_view) {
+  if (!AppStateValidatedGenerationDomain("shape.panel.focus"))
+    return FALSE;
+  if (!AppStateValidatedOwnerField("panel.focus_shape"))
+    return FALSE;
   if (!panel)
     return FALSE;
 
