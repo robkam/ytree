@@ -4,28 +4,22 @@ Date: 2026-07-08
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-panel-local-boundary-validation
-Active PR: https://github.com/robkam/ytreenova/pull/382
-Last merged PR: https://github.com/robkam/ytreenova/pull/381
-Supersession state: resumed by maintainer command; autonomous continuation active.
+Current branch: appstate-volume-shared-boundary-validation
+Active PR: draft https://github.com/robkam/ytreenova/pull/383
+Last merged PR: https://github.com/robkam/ytreenova/pull/382
+Supersession state: resumed by maintainer; no later stop/pause override.
 
 Current AppState batch:
-- Added a panel-local generation-domain fail-closed guard around the `src/ui/appstate_panel.c` helper boundary.
-- Panel generation, volume binding, restore snapshot, selection, anchor, and viewport helper commits now validate `generation.panel.local-authority` before mutating panel-local authority fields.
-- Focused contract regression coverage now asserts those helper writes stay behind the documented generation-domain gate.
+- Added the shared-volume generation-domain fail-closed guard around the `src/ui/appstate_volume.c` helper boundary.
+- Volume payload-cache, logged-state, subtree, generation-counter, and dir-entry-list helpers now validate `generation.volume.shared-authority` before mutating shared volume authority fields.
+- Focused contract regression coverage now asserts those helper writes stay behind the documented shared-volume generation-domain gate.
 
 Local validation evidence:
-- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'panel_local_helpers_validate_generation_domain_before_writes'`
+- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_helpers_validate_generation_domain_before_writes'`
 - Green:
-  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'panel_local_helpers_validate_generation_domain_before_writes or panel_generation_restores_route_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper or panel_tree_viewport_commits_route_through_appstate_helper or panel_volume_binding_commits_route_through_appstate_helper or panel_tree_selection_commits_route_through_appstate_helper or panel_anchor_viewport_generation_commits_through_appstate_helper or panel_volume_tree_viewport_snapshot_routes_through_appstate_helper or panel_volume_file_snapshot_routes_through_appstate_helper or panel_volume_file_state_list_routes_through_appstate_helper or panel_file_selection_commits_route_through_appstate_helper'`
-  - `python3 scripts/check_appstate_contract.py`
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_helpers_validate_generation_domain_before_writes or volume_generation_commits_route_through_appstate_helper or volume_dir_entry_list_cache_commits_route_through_appstate_helper or volume_logged_state_commits_route_through_appstate_helper or directory_payload_reset_commits_route_through_appstate_helper or directory_log_flag_commits_route_through_appstate_helper or directory_matching_payload_commits_route_through_appstate_helper or directory_tagged_payload_commits_route_through_appstate_helper'`
   - `make clean && make`
   - `git diff --check`
 
-PR state:
-- Draft PR opened: https://github.com/robkam/ytreenova/pull/382
-- CI wait window started: 2026-07-08 20:25:26 BST
-- First allowed CI status check: 2026-07-08 20:40:26 BST
-
 Next action:
-- Wait until the first allowed CI status check, then inspect only a compact pass/fail/running summary.
+- Wait for the draft PR CI run to age past the first 15-minute checkpoint, then inspect compact status summary and either fix red or continue the wait loop.

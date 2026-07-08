@@ -9219,6 +9219,90 @@ def test_volume_generation_commits_route_through_appstate_helper() -> None:
     assert dir_ops.count("AppStateCommitVolumeGeneration(") == 4
 
 
+def test_volume_helpers_validate_generation_domain_before_writes() -> None:
+    generation_domains = json.loads(
+        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+    )["generation_domains"]
+    assert any(
+        record["domain_id"] == "generation.volume.shared-authority"
+        for record in generation_domains
+    )
+
+    source = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")
+    validation = (
+        'AppStateValidatedGenerationDomain("generation.volume.shared-authority")'
+    )
+    signatures_and_writes = [
+        ("BOOL AppStateCommitDirEntryFileList(", ["dir_entry->file = file_list;"]),
+        (
+            "BOOL AppStateCommitDirEntryTotalPayload(",
+            [
+                "dir_entry->total_files = total_files;",
+                "dir_entry->total_bytes = total_bytes;",
+            ],
+        ),
+        (
+            "BOOL AppStateCommitDirEntryMatchingPayload(",
+            [
+                "dir_entry->matching_files = matching_files;",
+                "dir_entry->matching_bytes = matching_bytes;",
+            ],
+        ),
+        (
+            "BOOL AppStateCommitDirEntryTaggedPayload(",
+            [
+                "dir_entry->tagged_files = tagged_files;",
+                "dir_entry->tagged_bytes = tagged_bytes;",
+            ],
+        ),
+        (
+            "BOOL AppStateCommitDirEntryAccessDenied(",
+            ["dir_entry->access_denied = access_denied ? TRUE : FALSE;"],
+        ),
+        (
+            "BOOL AppStateResetDirEntryPayloadCache(",
+            ["dir_entry->file = NULL;", "dir_entry->log_flag = FALSE;"],
+        ),
+        (
+            "BOOL AppStateCommitDirEntryLogFlag(",
+            ["dir_entry->log_flag = log_flag ? TRUE : FALSE;"],
+        ),
+        (
+            "BOOL AppStateCommitDirEntryLoggedState(",
+            [
+                "dir_entry->not_scanned = not_scanned ? TRUE : FALSE;",
+                "dir_entry->unlogged_flag = unlogged_flag ? TRUE : FALSE;",
+            ],
+        ),
+        ("BOOL AppStateCommitDirEntrySubTree(", ["dir_entry->sub_tree = sub_tree;"]),
+        ("BOOL AppStateCommitVolumeGeneration(", ["volume->volume_generation++;"]),
+        (
+            "BOOL AppStateCommitVolumeDirEntryList(",
+            [
+                "volume->dir_entry_list = dir_entry_list;",
+                "volume->dir_entry_list_capacity = capacity;",
+                "volume->total_dirs = total_dirs;",
+            ],
+        ),
+        (
+            "BOOL AppStateReleaseVolumeDirEntryList(",
+            ["free(volume->dir_entry_list);", "volume->dir_entry_list = NULL;"],
+        ),
+    ]
+
+    for index, (signature, writes) in enumerate(signatures_and_writes):
+        start = source.index(signature)
+        if index + 1 < len(signatures_and_writes):
+            end = source.index(signatures_and_writes[index + 1][0], start + 1)
+        else:
+            end = len(source)
+        body = source[start:end]
+        assert validation in body
+        validation_idx = body.index(validation)
+        for write in writes:
+            assert validation_idx < body.index(write)
+
+
 def test_volume_dir_entry_list_cache_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_volume.c").read_text(encoding="utf-8")

@@ -11,6 +11,8 @@
 BOOL AppStateCommitDirEntryFileList(DirEntry *dir_entry, FileEntry *file_list) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!dir_entry)
     return FALSE;
 
@@ -22,6 +24,8 @@ BOOL AppStateCommitDirEntryTotalPayload(DirEntry *dir_entry,
                                         unsigned int total_files,
                                         long long total_bytes) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
     return FALSE;
   if (!dir_entry)
     return FALSE;
@@ -36,6 +40,8 @@ BOOL AppStateCommitDirEntryMatchingPayload(DirEntry *dir_entry,
                                            long long matching_bytes) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!dir_entry)
     return FALSE;
 
@@ -49,6 +55,8 @@ BOOL AppStateCommitDirEntryTaggedPayload(DirEntry *dir_entry,
                                          long long tagged_bytes) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!dir_entry)
     return FALSE;
 
@@ -61,6 +69,8 @@ BOOL AppStateCommitDirEntryAccessDenied(DirEntry *dir_entry,
                                         BOOL access_denied) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!dir_entry)
     return FALSE;
 
@@ -70,6 +80,8 @@ BOOL AppStateCommitDirEntryAccessDenied(DirEntry *dir_entry,
 
 BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
     return FALSE;
   if (!dir_entry)
     return FALSE;
@@ -89,6 +101,8 @@ BOOL AppStateResetDirEntryPayloadCache(DirEntry *dir_entry) {
 BOOL AppStateCommitDirEntryLogFlag(DirEntry *dir_entry, BOOL log_flag) {
   if (!AppStateValidatedOwnerField("volume.payload_cache"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!dir_entry)
     return FALSE;
 
@@ -99,6 +113,8 @@ BOOL AppStateCommitDirEntryLogFlag(DirEntry *dir_entry, BOOL log_flag) {
 BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
                                        BOOL unlogged_flag) {
   if (!AppStateValidatedOwnerField("volume.logged_state"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
     return FALSE;
   if (!dir_entry)
     return FALSE;
@@ -111,6 +127,8 @@ BOOL AppStateCommitDirEntryLoggedState(DirEntry *dir_entry, BOOL not_scanned,
 BOOL AppStateCommitDirEntrySubTree(DirEntry *dir_entry, DirEntry *sub_tree) {
   if (!AppStateValidatedOwnerField("volume.dir_tree"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!dir_entry)
     return FALSE;
 
@@ -120,6 +138,8 @@ BOOL AppStateCommitDirEntrySubTree(DirEntry *dir_entry, DirEntry *sub_tree) {
 
 BOOL AppStateCommitVolumeGeneration(struct Volume *volume) {
   if (!AppStateValidatedOwnerField("volume.volume_generation"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
     return FALSE;
   if (!volume)
     return FALSE;
@@ -133,6 +153,8 @@ BOOL AppStateCommitVolumeDirEntryList(struct Volume *volume,
                                       size_t capacity, int total_dirs) {
   if (!AppStateValidatedOwnerField("volume.dir_tree"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
+    return FALSE;
   if (!volume)
     return FALSE;
 
@@ -144,6 +166,8 @@ BOOL AppStateCommitVolumeDirEntryList(struct Volume *volume,
 
 BOOL AppStateReleaseVolumeDirEntryList(struct Volume *volume) {
   if (!AppStateValidatedOwnerField("volume.dir_tree"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("generation.volume.shared-authority"))
     return FALSE;
   if (!volume)
     return FALSE;
