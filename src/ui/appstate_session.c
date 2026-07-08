@@ -25,6 +25,8 @@ BOOL AppStateCommitActivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
 BOOL AppStateCommitGlobalSearchTerm(ViewContext *ctx, const char *term) {
   if (!AppStateValidatedOwnerField("ctx.command_state"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!ctx)
     return FALSE;
 

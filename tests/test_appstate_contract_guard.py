@@ -6633,6 +6633,44 @@ def test_status_line_message_commits_through_appstate_helper() -> None:
     assert not re.search(r"\bctx->status_line_error_pending\s*=[^=]", clear_body)
 
 
+def test_command_message_helpers_validate_generation_domain_before_writes() -> None:
+    generation_domains = json.loads(
+        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+    )["generation_domains"]
+    assert any(
+        record["domain_id"] == "target.modal-command.session"
+        for record in generation_domains
+    )
+
+    validation = 'AppStateValidatedGenerationDomain("target.modal-command.session")'
+
+    session_source = Path("src/ui/appstate_session.c").read_text(encoding="utf-8")
+    session_start = session_source.index("BOOL AppStateCommitGlobalSearchTerm(")
+    session_end = session_source.index("\nBOOL AppStateCommitRefreshMode(", session_start)
+    session_body = session_source[session_start:session_end]
+    assert validation in session_body
+    session_validation_idx = session_body.index(validation)
+    for write in [
+        "ctx->global_search_term[0] = '\\0';",
+        'ctx->global_search_term[sizeof(ctx->global_search_term) - 1] = \'\\0\';',
+    ]:
+        assert session_validation_idx < session_body.index(write)
+
+    message_source = Path("src/ui/appstate_message.c").read_text(encoding="utf-8")
+    commit_start = message_source.index("BOOL AppStateCommitStatusLineError(")
+    clear_start = message_source.index("\nBOOL AppStateClearStatusLineError(", commit_start)
+    commit_body = message_source[commit_start:clear_start]
+    clear_body = message_source[clear_start:]
+    assert validation in commit_body
+    assert validation in clear_body
+    assert commit_body.index(validation) < commit_body.index(
+        "ctx->status_line_error_pending = TRUE;"
+    )
+    assert clear_body.index(validation) < clear_body.index(
+        "ctx->status_line_error_pending = FALSE;"
+    )
+
+
 def test_volume_registry_commits_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_volume_registry.h").read_text(
         encoding="utf-8"

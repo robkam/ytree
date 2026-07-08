@@ -78,6 +78,7 @@ Wording rules:
 - Keep PR title style consistent across the AppState series; do not mix sentence-case descriptive titles with Conventional Commit Style titles.
 - Use real Markdown newlines and code-formatted validation commands in PR bodies; do not submit literal escaped `\n` text or shell commands as raw prose.
 - PR bodies: put red proof as a bullet under `## Validation`, not as a separate section.
+- PR bodies must omit repository template boilerplate or courtesy preambles.
 
 What you must do from now until completion of task 1, unless I tell you to pause:
 
