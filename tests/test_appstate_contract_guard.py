@@ -7551,6 +7551,94 @@ def test_panel_generation_restores_route_through_appstate_helper() -> None:
     assert "source_panel_generation" in split_body
 
 
+def test_panel_local_helpers_validate_generation_domain_before_writes() -> None:
+    source = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
+    validation = 'AppStateValidatedGenerationDomain("generation.panel.local-authority")'
+    signatures_and_writes = [
+        (
+            "BOOL AppStateCommitPanelGeneration(",
+            ["panel->panel_generation++;"],
+        ),
+        (
+            "BOOL AppStateRestorePanelGeneration(",
+            ["panel->panel_generation = panel_generation;"],
+        ),
+        (
+            "BOOL AppStateCommitPanelVolume(",
+            ["panel->vol = vol;", "panel->panel_generation++;"],
+        ),
+        (
+            "BOOL AppStateSetPanelVolumeFileStateList(",
+            ["panel->volume_file_state = volume_file_state;"],
+        ),
+        (
+            "BOOL AppStateCommitPanelFileSelection(",
+            [
+                "panel->file_selection_dir_path[0] = '\\0';",
+                "panel->file_selection_name[0] = '\\0';",
+                "panel->panel_generation++;",
+            ],
+        ),
+        (
+            "BOOL AppStateCommitPanelTreeSelection(",
+            ["panel->current_dir_entry = current_dir_entry;"],
+        ),
+        (
+            "BOOL AppStateCommitPanelTreeViewportTopPath(",
+            ["panel->tree_viewport_top_dir_path[slot][0] = '\\0';"],
+        ),
+        (
+            "BOOL AppStateCommitPanelTreeViewportTopPaths(",
+            ["memcpy(panel->tree_viewport_top_dir_path,"],
+        ),
+        (
+            "BOOL AppStateCommitPanelVolumeTreeViewportSnapshot(",
+            ["state->saved_tree_panel_generation = panel_generation;"],
+        ),
+        (
+            "BOOL AppStateCommitPanelVolumeFileSnapshot(",
+            [
+                "state->saved_file_start = start_file;",
+                "state->saved_panel_generation = panel_generation;",
+            ],
+        ),
+        (
+            "BOOL AppStateCommitDirEntryFileViewport(",
+            ["dir_entry->start_file = start_file;"],
+        ),
+        (
+            "BOOL AppStateCommitPanelFileViewport(",
+            [
+                "panel->start_file = start_file;",
+                "panel->file_cursor_pos = file_cursor_pos;",
+            ],
+        ),
+        (
+            "BOOL AppStateCommitPanelFileAnchor(",
+            ["panel->file_dir_entry = file_dir_entry;"],
+        ),
+        (
+            "BOOL AppStateCommitPanelTreeViewport(",
+            [
+                "panel->disp_begin_pos = disp_begin_pos;",
+                "panel->cursor_pos = cursor_pos;",
+            ],
+        ),
+    ]
+
+    for index, (signature, writes) in enumerate(signatures_and_writes):
+        start = source.index(signature)
+        if index + 1 < len(signatures_and_writes):
+            end = source.index(signatures_and_writes[index + 1][0], start + 1)
+        else:
+            end = len(source)
+        body = source[start:end]
+        assert validation in body
+        validation_idx = body.index(validation)
+        for write in writes:
+            assert validation_idx < body.index(write)
+
+
 def test_panel_file_viewport_commits_route_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_panel.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")

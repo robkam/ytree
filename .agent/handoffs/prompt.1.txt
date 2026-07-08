@@ -4,22 +4,28 @@ Date: 2026-07-08
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-modal-target-boundary-validation
-Active PR: https://github.com/robkam/ytreenova/pull/381
-Supersession state: no active stop or pause condition.
+Current branch: appstate-panel-local-boundary-validation
+Active PR: https://github.com/robkam/ytreenova/pull/382
+Last merged PR: https://github.com/robkam/ytreenova/pull/381
+Supersession state: resumed by maintainer command; autonomous continuation active.
 
 Current AppState batch:
-- Tighten the next modal-session runtime boundary identified from `docs/appstate_generation_domains.json` around `target.modal-command.session`.
-- Make `src/ui/appstate_modal.c` fail closed unless that generation domain validates before modal helper commits write preview, return-focus, or modal viewport session state.
-- Keep the batch scoped to the modal helper module plus its focused contract regression coverage.
+- Added a panel-local generation-domain fail-closed guard around the `src/ui/appstate_panel.c` helper boundary.
+- Panel generation, volume binding, restore snapshot, selection, anchor, and viewport helper commits now validate `generation.panel.local-authority` before mutating panel-local authority fields.
+- Focused contract regression coverage now asserts those helper writes stay behind the documented generation-domain gate.
 
-Local validation:
-- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'modal_target_helpers_validate_generation_domain_before_writes'`
+Local validation evidence:
+- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'panel_local_helpers_validate_generation_domain_before_writes'`
 - Green:
-  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'modal_target_helpers_validate_generation_domain_before_writes or preview_mode_routes_through_appstate_helper or history_viewport_routes_through_appstate_helper or completion_viewport_routes_through_appstate_helper'`
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'panel_local_helpers_validate_generation_domain_before_writes or panel_generation_restores_route_through_appstate_helper or panel_file_viewport_commits_route_through_appstate_helper or panel_tree_viewport_commits_route_through_appstate_helper or panel_volume_binding_commits_route_through_appstate_helper or panel_tree_selection_commits_route_through_appstate_helper or panel_anchor_viewport_generation_commits_through_appstate_helper or panel_volume_tree_viewport_snapshot_routes_through_appstate_helper or panel_volume_file_snapshot_routes_through_appstate_helper or panel_volume_file_state_list_routes_through_appstate_helper or panel_file_selection_commits_route_through_appstate_helper'`
   - `python3 scripts/check_appstate_contract.py`
   - `make clean && make`
   - `git diff --check`
 
+PR state:
+- Draft PR opened: https://github.com/robkam/ytreenova/pull/382
+- CI wait window started: 2026-07-08 20:25:26 BST
+- First allowed CI status check: 2026-07-08 20:40:26 BST
+
 Next action:
-- Wait until after 2026-07-08 19:41 BST (18:41 UTC) for the first compact CI status check on PR 381, then continue the CI/merge loop from that PR state only.
+- Wait until the first allowed CI status check, then inspect only a compact pass/fail/running summary.
