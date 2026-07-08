@@ -11,6 +11,8 @@
 BOOL AppStateRegisterVolume(ViewContext *ctx, struct Volume *volume) {
   if (!AppStateValidatedOwnerField("ctx.volumes_head"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("lifecycle.volume.registry"))
+    return FALSE;
   if (!ctx || !volume)
     return FALSE;
 
@@ -21,6 +23,8 @@ BOOL AppStateRegisterVolume(ViewContext *ctx, struct Volume *volume) {
 BOOL AppStateUnregisterVolume(ViewContext *ctx, struct Volume *volume) {
   if (!AppStateValidatedOwnerField("ctx.volumes_head"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("lifecycle.volume.registry"))
+    return FALSE;
   if (!ctx || !volume)
     return FALSE;
 
@@ -30,6 +34,8 @@ BOOL AppStateUnregisterVolume(ViewContext *ctx, struct Volume *volume) {
 
 BOOL AppStateClearVolumeRegistry(ViewContext *ctx) {
   if (!AppStateValidatedOwnerField("ctx.volumes_head"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("lifecycle.volume.registry"))
     return FALSE;
   if (!ctx)
     return FALSE;

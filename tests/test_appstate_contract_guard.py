@@ -6675,6 +6675,36 @@ def test_volume_registry_commits_through_appstate_helper() -> None:
     assert "ctx->volumes_head = NULL;" not in volume_source
 
 
+def test_volume_registry_helpers_validate_generation_domain_before_writes() -> None:
+    generation_domains = json.loads(
+        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+    )["generation_domains"]
+    assert any(
+        record["domain_id"] == "lifecycle.volume.registry"
+        for record in generation_domains
+    )
+
+    source = Path("src/core/appstate_volume_registry.c").read_text(encoding="utf-8")
+    validation = 'AppStateValidatedGenerationDomain("lifecycle.volume.registry")'
+    signatures_and_writes = [
+        ("BOOL AppStateRegisterVolume(", ["HASH_ADD_INT(ctx->volumes_head, id, volume);"]),
+        ("BOOL AppStateUnregisterVolume(", ["HASH_DEL(ctx->volumes_head, volume);"]),
+        ("BOOL AppStateClearVolumeRegistry(", ["ctx->volumes_head = NULL;"]),
+    ]
+
+    for index, (signature, writes) in enumerate(signatures_and_writes):
+        start = source.index(signature)
+        if index + 1 < len(signatures_and_writes):
+            end = source.index(signatures_and_writes[index + 1][0], start + 1)
+        else:
+            end = len(source)
+        body = source[start:end]
+        assert validation in body
+        validation_idx = body.index(validation)
+        for write in writes:
+            assert validation_idx < body.index(write)
+
+
 def test_active_window_handles_sync_through_appstate_helper() -> None:
     header = Path("include/ytnova_appstate_window.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_window.c").read_text(encoding="utf-8")
