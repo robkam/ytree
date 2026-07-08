@@ -12,6 +12,8 @@
 #include <string.h>
 
 BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.panel_generation"))
     return FALSE;
   if (!panel)
@@ -23,6 +25,8 @@ BOOL AppStateCommitPanelGeneration(YtreeNovaPanel *panel) {
 
 BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
                                     unsigned int panel_generation) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.panel_generation"))
     return FALSE;
   if (!panel)
@@ -33,6 +37,8 @@ BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
 }
 
 BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.volume_key"))
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.panel_generation"))
@@ -47,6 +53,8 @@ BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol) {
 
 BOOL AppStateSetPanelVolumeFileStateList(
     YtreeNovaPanel *panel, PanelVolumeFileState *volume_file_state) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
     return FALSE;
   if (!panel)
@@ -110,6 +118,8 @@ BOOL AppStateCommitPanelFileSortOrder(YtreeNovaPanel *panel,
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.file_selection_key"))
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.panel_generation"))
@@ -137,6 +147,8 @@ BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
 
 BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
                                       int current_dir_entry) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.tree_selection_key"))
     return FALSE;
   if (!panel)
@@ -148,6 +160,8 @@ BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
 
 BOOL AppStateCommitPanelTreeViewportTopPath(YtreeNovaPanel *panel, int slot,
                                             const char *top_path) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
     return FALSE;
   if (!panel || slot < 0 || slot >= 2)
@@ -165,6 +179,8 @@ BOOL AppStateCommitPanelTreeViewportTopPath(YtreeNovaPanel *panel, int slot,
 
 BOOL AppStateCommitPanelTreeViewportTopPaths(YtreeNovaPanel *panel,
                                              const YtreeNovaPanel *source) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
     return FALSE;
   if (!panel || !source)
@@ -180,6 +196,8 @@ BOOL AppStateCommitPanelVolumeTreeViewportSnapshot(
     unsigned int volume_generation, BOOL has_selected_dir_path,
     const char *selected_dir_path, BOOL has_top_dir_path,
     const char *top_dir_path) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
     return FALSE;
   if (!state)
@@ -211,6 +229,8 @@ BOOL AppStateCommitPanelVolumeFileSnapshot(
     unsigned int panel_generation, unsigned int volume_generation,
     ViewFocus focus, BOOL big_file_view, const char *file_dir_path,
     const char *file_selection_dir_path, const char *file_selection_name) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.restore_snapshot"))
     return FALSE;
   if (!state)
@@ -247,6 +267,8 @@ BOOL AppStateCommitPanelVolumeFileSnapshot(
 
 BOOL AppStateCommitDirEntryFileViewport(DirEntry *dir_entry, int start_file,
                                         int cursor_pos) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
     return FALSE;
   if (!dir_entry)
@@ -259,6 +281,8 @@ BOOL AppStateCommitDirEntryFileViewport(DirEntry *dir_entry, int start_file,
 
 BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
                                      int file_cursor_pos) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
     return FALSE;
   if (!panel)
@@ -271,6 +295,8 @@ BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
 
 BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,
                                    DirEntry *file_dir_entry) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
     return FALSE;
   if (!panel)
@@ -282,6 +308,8 @@ BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,
 
 BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
                                      int cursor_pos) {
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("panel.tree_viewport_origin"))
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.tree_cursor_pos"))
