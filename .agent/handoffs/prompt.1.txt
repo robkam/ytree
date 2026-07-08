@@ -4,22 +4,22 @@ Date: 2026-07-08
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-layout-projection-boundary-validation
-Active PR: https://github.com/robkam/ytreenova/pull/380
+Current branch: appstate-modal-target-boundary-validation
+Active PR: https://github.com/robkam/ytreenova/pull/381
 Supersession state: no active stop or pause condition.
 
 Current AppState batch:
-- Tighten the next projection-domain/runtime boundary identified from `docs/appstate_generation_domains.json` around `reflow.layout.projection`.
-- Make the layout, render-dirty, and window-handle AppState helper modules fail closed unless that generation domain validates before they write `ctx.layout`, `ctx.render_dirty_flags`, or `ctx.window_handles`.
-- Keep the batch scoped to `src/ui/appstate_layout.c`, `src/ui/appstate_render.c`, `src/ui/appstate_window.c`, and the focused contract regression coverage.
+- Tighten the next modal-session runtime boundary identified from `docs/appstate_generation_domains.json` around `target.modal-command.session`.
+- Make `src/ui/appstate_modal.c` fail closed unless that generation domain validates before modal helper commits write preview, return-focus, or modal viewport session state.
+- Keep the batch scoped to the modal helper module plus its focused contract regression coverage.
 
 Local validation:
-- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'layout_projection_helpers_validate_generation_domain_before_writes'`
+- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'modal_target_helpers_validate_generation_domain_before_writes'`
 - Green:
-  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'layout_projection_helpers_validate_generation_domain_before_writes or split_layout_commits_through_appstate_helper or active_window_handles_sync_through_appstate_helper or resize_dirty_flag_writes_route_through_appstate_helpers'`
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'modal_target_helpers_validate_generation_domain_before_writes or preview_mode_routes_through_appstate_helper or history_viewport_routes_through_appstate_helper or completion_viewport_routes_through_appstate_helper'`
   - `python3 scripts/check_appstate_contract.py`
   - `make clean && make`
   - `git diff --check`
 
 Next action:
-- Wait until after 2026-07-08 11:24 BST (10:24 UTC) for the first compact CI status check on PR 380, then continue the CI/merge loop from that PR state only.
+- Wait until after 2026-07-08 19:41 BST (18:41 UTC) for the first compact CI status check on PR 381, then continue the CI/merge loop from that PR state only.

@@ -3,6 +3,8 @@
 #include "ytnova_appstate_actions.h"
 
 BOOL AppStateCommitPreviewMode(ViewContext *ctx, BOOL preview_mode) {
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.modal_state"))
     return FALSE;
   if (!ctx)
@@ -14,6 +16,8 @@ BOOL AppStateCommitPreviewMode(ViewContext *ctx, BOOL preview_mode) {
 
 BOOL AppStateCommitPreviewReturn(ViewContext *ctx, YtreeNovaPanel *panel,
                                  ViewFocus focus) {
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.modal_state"))
     return FALSE;
   if (!ctx)
@@ -25,6 +29,8 @@ BOOL AppStateCommitPreviewReturn(ViewContext *ctx, YtreeNovaPanel *panel,
 }
 
 BOOL AppStateCommitPreviewEntryFocus(ViewContext *ctx, ViewFocus focus) {
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.modal_state"))
     return FALSE;
   if (!ctx)
@@ -36,6 +42,8 @@ BOOL AppStateCommitPreviewEntryFocus(ViewContext *ctx, ViewFocus focus) {
 
 BOOL AppStateCommitHistoryViewport(ViewContext *ctx, int disp_begin_pos,
                                    int cursor_pos) {
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.modal_state"))
     return FALSE;
   if (!ctx)
@@ -48,6 +56,8 @@ BOOL AppStateCommitHistoryViewport(ViewContext *ctx, int disp_begin_pos,
 
 BOOL AppStateCommitCompletionViewport(ViewContext *ctx, int disp_begin_pos,
                                       int cursor_pos) {
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.modal_state"))
     return FALSE;
   if (!ctx)
