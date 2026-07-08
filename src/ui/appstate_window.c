@@ -9,6 +9,8 @@
 #include "ytnova_appstate_window.h"
 
 BOOL AppStateSyncActiveWindowHandles(ViewContext *ctx) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx || !ctx->active)
@@ -23,6 +25,8 @@ BOOL AppStateSyncActiveWindowHandles(ViewContext *ctx) {
 
 BOOL AppStateSetPanelFileWindowHandle(ViewContext *ctx, YtreeNovaPanel *panel,
                                       BOOL big_file_window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx || !panel)
@@ -36,6 +40,8 @@ BOOL AppStateSetPanelFileWindowHandle(ViewContext *ctx, YtreeNovaPanel *panel,
 }
 
 BOOL AppStateSetPreviewWindowHandle(ViewContext *ctx, WINDOW *preview_window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -46,6 +52,8 @@ BOOL AppStateSetPreviewWindowHandle(ViewContext *ctx, WINDOW *preview_window) {
 }
 
 BOOL AppStateSetBorderWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -56,6 +64,8 @@ BOOL AppStateSetBorderWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetPathWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -66,6 +76,8 @@ BOOL AppStateSetPathWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetErrorWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -76,6 +88,8 @@ BOOL AppStateSetErrorWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetTimeWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -86,6 +100,8 @@ BOOL AppStateSetTimeWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetHistoryWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -96,6 +112,8 @@ BOOL AppStateSetHistoryWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetMatchesWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -106,6 +124,8 @@ BOOL AppStateSetMatchesWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetMenuWindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
@@ -116,6 +136,8 @@ BOOL AppStateSetMenuWindowHandle(ViewContext *ctx, WINDOW *window) {
 }
 
 BOOL AppStateSetF2WindowHandle(ViewContext *ctx, WINDOW *window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.window_handles"))
     return FALSE;
   if (!ctx)
