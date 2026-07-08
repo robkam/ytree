@@ -7452,6 +7452,35 @@ def test_completion_viewport_routes_through_appstate_helper() -> None:
     )
 
 
+def test_modal_target_helpers_validate_generation_domain_before_writes() -> None:
+    generation_domains = json.loads(
+        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+    )["generation_domains"]
+    assert any(
+        record["domain_id"] == "target.modal-command.session"
+        for record in generation_domains
+    )
+
+    helper = Path("src/ui/appstate_modal.c").read_text(encoding="utf-8")
+    domain_validation = (
+        'AppStateValidatedGenerationDomain("target.modal-command.session")'
+    )
+    writes = [
+        "ctx->preview_mode = preview_mode ? TRUE : FALSE;",
+        "ctx->preview_return_panel = panel;",
+        "ctx->preview_return_focus = focus;",
+        "ctx->preview_entry_focus = focus;",
+        "ctx->disp_begin_pos = disp_begin_pos;",
+        "ctx->cursor_pos = cursor_pos;",
+        "ctx->tab_disp_begin_pos = disp_begin_pos;",
+        "ctx->tab_cursor_pos = cursor_pos;",
+    ]
+
+    assert domain_validation in helper
+    for write in writes:
+        assert helper.index(domain_validation) < helper.index(write)
+
+
 def test_event_coverage_transition_sequence_arrays_are_referenced() -> None:
     source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
     array_names = set(
