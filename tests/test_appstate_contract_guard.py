@@ -10050,6 +10050,36 @@ def test_panel_file_shape_commits_use_appstate_helper() -> None:
     )
 
 
+def test_focus_shape_helpers_validate_owner_boundaries_before_writes() -> None:
+    focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_actions.h"' in focus_helper
+
+    focus_start = focus_helper.index("BOOL AppStateCommitPanelFocus(")
+    shape_start = focus_helper.index("\nBOOL AppStateCommitPanelFileShape(", focus_start)
+    focus_body = focus_helper[focus_start:shape_start]
+    focus_validation = 'AppStateValidatedOwnerField("panel.focus_shape")'
+    focus_domain_validation = 'AppStateValidatedGenerationDomain("shape.panel.focus")'
+    focus_write = "panel->saved_focus = focus;"
+    assert focus_validation in focus_body
+    assert focus_domain_validation in focus_body
+    assert focus_body.index(focus_validation) < focus_body.index(focus_write)
+    assert focus_body.index(focus_domain_validation) < focus_body.index(focus_write)
+
+    shape_end = focus_helper.index(
+        "\nBOOL AppStateCommitDirEntryFileShape(",
+        shape_start,
+    )
+    shape_body = focus_helper[shape_start:shape_end]
+    shape_validation = 'AppStateValidatedOwnerField("panel.focus_shape")'
+    shape_domain_validation = 'AppStateValidatedGenerationDomain("shape.panel.focus")'
+    shape_write = "panel->saved_big_file_view = big_file_view ? TRUE : FALSE;"
+    assert shape_validation in shape_body
+    assert shape_domain_validation in shape_body
+    assert shape_body.index(shape_validation) < shape_body.index(shape_write)
+    assert shape_body.index(shape_domain_validation) < shape_body.index(shape_write)
+
+
 def test_dir_ops_restore_file_shape_commits_use_appstate_helper() -> None:
     focus_header = Path("include/ytnova_appstate_focus.h").read_text(encoding="utf-8")
     focus_helper = Path("src/ui/appstate_focus.c").read_text(encoding="utf-8")
