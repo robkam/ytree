@@ -9,6 +9,8 @@
 #include "ytnova_appstate_render.h"
 
 BOOL AppStateCommitResizeRequest(ViewContext *ctx, BOOL resize_request) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.render_dirty_flags"))
     return FALSE;
   if (!ctx)

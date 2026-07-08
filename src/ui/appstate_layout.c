@@ -9,6 +9,8 @@
 #include "ytnova_appstate_layout.h"
 
 BOOL AppStateCommitSplitScreenLayout(ViewContext *ctx, BOOL is_split_screen) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!ctx)
@@ -20,6 +22,8 @@ BOOL AppStateCommitSplitScreenLayout(ViewContext *ctx, BOOL is_split_screen) {
 
 BOOL AppStateCommitTerminalGeometryCache(ViewContext *ctx, int terminal_lines,
                                          int terminal_cols) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!ctx)
@@ -32,6 +36,8 @@ BOOL AppStateCommitTerminalGeometryCache(ViewContext *ctx, int terminal_lines,
 
 BOOL AppStateCommitLayoutGeometry(ViewContext *ctx,
                                   const YtreeNovaLayout *layout) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!ctx || !layout)
@@ -43,6 +49,8 @@ BOOL AppStateCommitLayoutGeometry(ViewContext *ctx,
 
 BOOL AppStateCommitPanelWindowGeometry(
     YtreeNovaPanel *panel, const YtreeNovaPanelWindowGeometry *geometry) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!panel || !geometry)
@@ -64,6 +72,8 @@ BOOL AppStateCommitPanelWindowGeometry(
 }
 
 BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!ctx)
@@ -75,6 +85,8 @@ BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width) {
 
 BOOL AppStateCommitSmallWindowBypass(ViewContext *ctx,
                                      BOOL bypass_small_window) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!ctx)
@@ -86,6 +98,8 @@ BOOL AppStateCommitSmallWindowBypass(ViewContext *ctx,
 
 BOOL AppStateCommitFullLineHighlight(ViewContext *ctx,
                                      BOOL highlight_full_line) {
+  if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
+    return FALSE;
   if (!AppStateValidatedOwnerField("ctx.layout"))
     return FALSE;
   if (!ctx)

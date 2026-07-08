@@ -6820,6 +6820,55 @@ def test_auxiliary_window_handle_lifecycle_routes_through_appstate_helpers() -> 
     )
 
 
+def test_layout_projection_helpers_validate_generation_domain_before_writes() -> None:
+    generation_domains = json.loads(
+        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+    )["generation_domains"]
+    assert any(
+        record["domain_id"] == "reflow.layout.projection"
+        for record in generation_domains
+    )
+
+    domain_validation = 'AppStateValidatedGenerationDomain("reflow.layout.projection")'
+
+    layout_helper = Path("src/ui/appstate_layout.c").read_text(encoding="utf-8")
+    layout_assignments = [
+        "ctx->is_split_screen = is_split_screen ? TRUE : FALSE;",
+        "ctx->cached_lines = terminal_lines;",
+        "ctx->layout = *layout;",
+        "panel->dir_x = geometry->dir_x;",
+        "ctx->fixed_col_width = fixed_col_width;",
+        "ctx->bypass_small_window = bypass_small_window ? TRUE : FALSE;",
+        "ctx->highlight_full_line = highlight_full_line ? TRUE : FALSE;",
+    ]
+    assert domain_validation in layout_helper
+    for assignment in layout_assignments:
+        assert layout_helper.index(domain_validation) < layout_helper.index(assignment)
+
+    render_helper = Path("src/ui/appstate_render.c").read_text(encoding="utf-8")
+    render_assignment = "ctx->resize_request = resize_request ? TRUE : FALSE;"
+    assert domain_validation in render_helper
+    assert render_helper.index(domain_validation) < render_helper.index(render_assignment)
+
+    window_helper = Path("src/ui/appstate_window.c").read_text(encoding="utf-8")
+    window_assignments = [
+        "ctx->ctx_dir_window = ctx->active->pan_dir_window;",
+        "panel->pan_file_window = big_file_window ? panel->pan_big_file_window",
+        "ctx->ctx_preview_window = preview_window;",
+        "ctx->ctx_border_window = window;",
+        "ctx->ctx_path_window = window;",
+        "ctx->ctx_error_window = window;",
+        "ctx->ctx_time_window = window;",
+        "ctx->ctx_history_window = window;",
+        "ctx->ctx_matches_window = window;",
+        "ctx->ctx_menu_window = window;",
+        "ctx->ctx_f2_window = window;",
+    ]
+    assert domain_validation in window_helper
+    for assignment in window_assignments:
+        assert window_helper.index(domain_validation) < window_helper.index(assignment)
+
+
 def test_resize_dirty_flag_writes_route_through_appstate_helpers() -> None:
     header = Path("include/ytnova_appstate_render.h").read_text(encoding="utf-8")
     helper = Path("src/ui/appstate_render.c").read_text(encoding="utf-8")
