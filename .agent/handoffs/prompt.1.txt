@@ -4,25 +4,41 @@ Date: 2026-07-09
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-command-message-boundary-validation
-Active PR: draft https://github.com/robkam/ytreenova/pull/385
-Last merged PR: https://github.com/robkam/ytreenova/pull/384
+Current branch: appstate-transition-contract-closeout
+Active PR: draft https://github.com/robkam/ytreenova/pull/388
+Last merged PR: https://github.com/robkam/ytreenova/pull/387
 Supersession state: resumed by maintainer; no later stop/pause override.
 
 Current AppState batch:
-- Merged the volume-registry lifecycle fail-closed guard around the `src/core/appstate_volume_registry.c` helper boundary.
-- Registry add/remove/clear helpers now validate `lifecycle.volume.registry` before mutating `ctx.volumes_head`.
-- Focused contract regression coverage now asserts those registry writes stay behind the documented lifecycle generation-domain gate.
-- Next adjacent batch targets the command/message session boundary so global search term and status-line message helpers validate `target.modal-command.session` before mutating command/message session state.
+- Final closure audit for the Unified AppState Transition Machine + Projection Contract roadmap item.
+- Git/GitHub audit found no active PRs and confirmed the previous AppState boundary batches are already merged through PR 387.
+- docs/appstate*.json now show runtime/transition coverage across owner fields, transition matrix, action/event coverage, generation domains, invariants, diff harness checks, dispatch surfaces, and transition sequences.
+- Focused contract validation now passes on the current repository state, so this closeout batch only needs the roadmap/handoff source-of-truth updates and draft PR/CI loop.
 
-Merged validation evidence:
-- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_registry_helpers_validate_generation_domain_before_writes'`
-- Green:
-  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_registry or select_loaded_volume_validates_volume_surfaces_before_menu_work'`
-  - `make clean && make`
-  - `git diff --check`
-- PR CI: green before ready/merge
-- Merge commit: `8bdb16c2230ca6f7a055c5361f7171d453d80944`
+Closure family inventory:
+- docs/ROADMAP.md Task 1 status line: migrated in this batch; marked complete after the focused closure audit passed.
+- docs/appstate_owner_fields.json (26 owner fields): migrated; every entry is `covered_by_runtime_registry`.
+- docs/appstate_generation_domains.json (11 domains): migrated; every entry is `covered_by_runtime_registry`.
+- docs/appstate_invariants.json (8 invariants): migrated; every entry is `covered_by_runtime_registry`.
+- docs/appstate_diff_harness.json (5 harness checks): migrated; every entry is `covered_by_runtime_registry`.
+- docs/appstate_transition_matrix.json (12 transitions): migrated; every entry is `covered_by_transition_record`.
+- docs/appstate_action_coverage.json (85 actions): migrated; every entry is `covered_by_transition_record`.
+- docs/appstate_event_coverage.json (9 events): migrated; every entry is `covered_by_transition_record`.
+- docs/appstate_dispatch_surfaces.json (14 surfaces): migrated; every entry is `covered_by_transition_record`.
+- docs/appstate_transition_sequences.json (17 scenarios): migrated; every entry is `covered_by_runtime_registry`.
+- Runtime registry/accessor surfaces (`include/ytnova_appstate_actions.h`, `src/core/appstate_actions.c`, `src/core/main.c`): intentionally unchanged in this batch; audit shows startup/accessor validation already fails closed on invalid registry metadata and cross-links actions/events/sequences/harness coverage.
+- Runtime dispatch/helper boundary cluster (`src/ui/key_engine.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c`, `src/ui/display.c`, `src/ui/panel_anchor.c`, `src/ui/volume_menu.c`, `src/core/appstate_volume_registry.c`, `src/ui/appstate_*.c` helpers): intentionally unchanged in this batch; their documented boundary families were migrated in earlier merged PRs and no uncovered adjacent surface remains in the registries.
+- Contract enforcement/test surfaces (`scripts/check_appstate_contract.py`, `tests/test_appstate_contract_guard.py`): intentionally unchanged in this batch; focused validation passed without exposing a repo-side gap.
+- Legacy compatibility seam audit (render/projection authority): migrated; focused guard coverage asserts there is no remaining render compatibility shim path.
+
+Closure reconciliation:
+- No remaining AppState boundary family is currently unaccounted for in the roadmap-item registries.
+- No deferred/blocked item is currently identified; if CI disproves the closure audit, reopen the affected family instead of forcing roadmap completion.
+
+Validation evidence:
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'current_repository_appstate_contract_passes or render_projection_runtime_uses_no_compatibility_shim or runtime_generation_domain_startup_requires_projection_note_for_coverage_only or appstate_transition_accessor_fails_closed_on_invalid_metadata'`
+- `git diff --check`
 
 Next action:
-- Wait for the draft PR CI run to age past the first 15-minute checkpoint, then inspect compact status summary and either fix red or continue the wait loop.
+- Wait for PR 388 CI to age past the first 15-minute checkpoint, then inspect a compact pass/fail/running summary and either fix red or continue the wait loop.
