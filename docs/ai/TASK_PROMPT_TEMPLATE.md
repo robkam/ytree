@@ -3,7 +3,7 @@
 Maintainer instructions:
 - Delete the `Work item:` line that does not apply, then fill in the missing number on the line you keep.
 - Do not rewrite the rest unless you intentionally want custom behavior.
-- A future maintainer may have only this repository clone and its tracked/untracked handoff files. The AI must rely on repo state, git/GitHub state, and `.agent/handoffs/` rather than any external chat history.
+- A future maintainer may have only this repository clone. The AI must rely on repo state, git/GitHub state, and any currently-present transient relay files under `.agent/handoffs/`, not on external chat history.
 
 You are continuing ytreenova work as a stateless AI.
 
@@ -20,14 +20,18 @@ Startup requirements:
 - Follow all repo commit, branch, PR, QA, and handoff rules.
 
 Recovery and source of truth:
-- Use the current live tracked handoff checkpoint in `/home/rob/ytreenova/.agent/handoffs/` if one is designated by the repo's active workflow.
-- If it is stale or incomplete, reconstruct only from the minimum necessary files in /home/rob/ytreenova/.agent/handoffs.
-- Keep the live tracked handoff checkpoint current and include it in the same branch push as the work slice it describes.
+- Before starting the selected work item, inspect `.agent/handoffs/` for leftovers from any other task or bug.
+- If relay files for an unrelated completed work item remain and no active PR/branch still depends on them, delete them immediately before continuing. Do not let one work item inherit another work item's residue.
+- If relay files appear to belong to some other still-active work item, stop and report the conflict instead of mixing contexts.
+- If `/home/rob/ytreenova/.agent/handoffs/` is absent or empty, reconstruct from current repo state, git/GitHub state, and the selected tracker item alone.
+- If relevant relay files for this work item are present under `/home/rob/ytreenova/.agent/handoffs/`, use only the minimum necessary ones.
+- Create or update only the minimal relay files needed for the active work item.
+- Delete all consumed relay files for this work item after merge/cleanup or after a PASS audit closes it, so `.agent/handoffs/` returns to empty between work items.
 - Automatically derive the canonical source-of-truth docs, trackers, tests, codebase registry files, and directly relevant runtime surfaces from the selected `Work item:` line.
 - If either of these audit handoff files exists for the selected work item, read it automatically and treat it as part of the source of truth:
   - `/home/rob/ytreenova/.agent/handoffs/audit.current.txt` if it clearly names the same work item,
   - `/home/rob/ytreenova/.agent/handoffs/audit.task-<number>.txt` for roadmap tasks or `/home/rob/ytreenova/.agent/handoffs/audit.bug-<number>.txt` for bugs.
-- If an audit handoff exists and contains multiple defect families, you MUST group and prioritize them yourself. Choose the next highest-value coherent family automatically, record the chosen family plus deferred families in the live tracked handoff checkpoint, and ask the maintainer only if the split is genuinely ambiguous.
+- If an audit handoff exists and contains multiple defect families, you MUST group and prioritize them yourself. Choose the next highest-value coherent family automatically, record the chosen family plus deferred families in the active relay file if one is needed, and ask the maintainer only if the split is genuinely ambiguous.
 - Use git and GitHub to discover the current branch, active PR, merged PRs, and stale branches.
 - Do not rely on branch names, PR numbers, run IDs, or any external chat history.
 
@@ -77,8 +81,8 @@ Closure rules:
   - deferred/blocked with reason.
 - Silent omission is forbidden.
 - "Done for now" is not an allowed status.
-- If an item is left for later, the handoff must name the concrete split reason. If no valid split reason exists, include it in the current PR.
-- If the current work came from an audit handoff, the live tracked handoff checkpoint must also name:
+- If an item is left for later, the active relay file must name the concrete split reason. If no valid split reason exists, include it in the current PR.
+- If the current work came from an audit handoff, the active relay file must also name:
   - the audit-selected defect family being fixed now,
   - any remaining deferred defect families from the same audit,
   - why those deferred families are not being mixed into the current PR.
@@ -122,6 +126,9 @@ PR and wording rules:
 - Commit subjects and PR titles must describe durable outcomes only.
 - PR titles must use Conventional Commit style: `<type>(<scope>): <durable outcome>`.
 - Keep title style consistent across the series.
+- Durable prose in PR bodies, tracker updates, and handoff summaries must name either the selected work item's actual title or the concrete defect family/behavior being changed.
+- Do not write durable prose that says things like `Task <number>`, `Bug <number>`, `this PR`, `remaining audit family`, `next slice`, `next step`, or `until the rest lands`.
+- If you update a tracker/status line and need to explain why work remains open, say only `Status: In Progress.` plus a durable explanation based on the title or defect family; never explain it with temporary numbering or workflow jargon.
 - Use real Markdown newlines and code-formatted validation commands in PR bodies.
 - Put red proof as a bullet under `## Validation`.
 - Omit repository template boilerplate and courtesy preambles from PR bodies unless repo policy requires otherwise.
@@ -162,10 +169,11 @@ What to do now:
 1. Inspect current git/GitHub state.
 2. If there is an active PR:
    - Follow the CI wait rule.
-   - If checks are green when rechecked live, mark ready if needed, merge when allowed, clean up stale remote/local branch state, update the live tracked handoff checkpoint, then continue according to the continuation rule unless a superseding stop condition applies.
+   - If checks are green when rechecked live, mark ready if needed, merge when allowed, clean up stale remote/local branch state, delete or refresh any consumed relay files as required by the outcome, then continue according to the continuation rule unless a superseding stop condition applies.
    - If checks failed, inspect only the failure-relevant summary or log tail. Fix only clearly repo-side, in-scope failures.
    - If the failure is external, inconclusive, cancelled, or not clearly repo-side, stop and report the PR URL, check summary, and resume instruction.
 3. If there is no active PR:
+   - If the selected work item already reconciles cleanly in its source-of-truth tracker and the latest matching audit handoff is a PASS with no remaining credible work, delete any now-stale relay files for that work item, then stop and report completion instead of opening another branch or PR.
    - Select the next largest coherent in-scope work family from the current source-of-truth docs/trackers/codebase registries and handoff context.
    - If an audit handoff is present, choose the next highest-value coherent defect family from that audit automatically instead of asking the maintainer to triage the findings.
    - Build the explicit inventory first.
@@ -173,9 +181,9 @@ What to do now:
    - Run focused local validation only.
    - Reconcile the inventory before opening the PR.
    - Push a draft PR.
-   - Update the live tracked handoff checkpoint as the active recovery checkpoint, including the inventory and closure status.
+   - Update any active relay file needed for recovery, including the inventory and closure status.
    - Follow the CI wait rule.
-   - When CI is green when rechecked live, mark ready if needed, merge when allowed, clean up stale remote/local branch state, update the live tracked handoff checkpoint, then continue with the next largest coherent work family unless a superseding stop condition applies.
+   - When CI is green when rechecked live, mark ready if needed, merge when allowed, clean up stale remote/local branch state, delete or refresh relay files so `.agent/handoffs/` does not retain stale work-item residue, then continue with the next largest coherent work family unless a superseding stop condition applies.
 
 Reporting discipline:
 - Do not provide broad recaps unless asked.

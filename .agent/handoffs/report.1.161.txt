@@ -1,1 +1,0 @@
-Removed the empty old-platform guard block from src/ui/ctrl_file.c and verified git diff --check passes.
