@@ -24,6 +24,11 @@ jobs:
             const issue_number = pr.number;
             const { owner, repo } = context.repo;
 
+            if (!pr || pr.state !== "open" || pr.merged_at) {
+              core.info("Skipping freshness gate because the PR is already closed or merged.");
+              return;
+            }
+
             const baseSha = pr.base.sha;
             const headSha = pr.head.sha;
             const baseRef = pr.base.ref;
