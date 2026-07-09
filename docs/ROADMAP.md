@@ -72,7 +72,7 @@ Ordering policy (for all editors, including AI editors):
 *   Existing split/viewport fixes are either routed through the transition boundary or explicitly marked as compatibility shims with removal tasks.
 *   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated or cross-linked so existing restore/split contracts do not preserve a narrower `F8`/`Tab`-only transition model, stale task references, or conflicting ownership language.
 *   `make qa-all` / PR full-QA CI passes with the invariant test harness enabled.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Task 2: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
