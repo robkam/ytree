@@ -74,6 +74,17 @@ Hard rule:
 *   Test-only edits are allowed only when the test is demonstrably wrong against the Spec.
 *   If temporary suppression is the only safe short-term option, discuss with the maintainer first and get explicit approval with a rollback plan.
 
+### 1.6 Coverage Proof Gate (Mandatory)
+
+Non-trivial tasks, migrations, and bugfixes must carry explicit proof that the work is complete within its intended scope.
+
+Hard rule:
+
+*   Before implementation, build an explicit in-scope inventory of affected surfaces. Include relevant code paths, tests, docs/trackers, and compatibility seams that could otherwise be forgotten.
+*   For bugfixes, include the reproducer path plus adjacent failure surfaces that could share the same root cause.
+*   Before opening a PR or declaring completion, reconcile the inventory item by item as addressed, intentionally unchanged with reason, or deferred/blocked with reason.
+*   Do not treat one passing helper cluster or one green reproducer as sufficient proof. Completion requires a final sweep so no in-scope work remains unaccounted.
+
 ---
 
 ## 2. Shared Personas (The `.agent/rules/` directory)
@@ -211,11 +222,13 @@ make qa-fuzz
     *   atomic and independently verifiable,
     *   sized as the largest coherent adjacent boundary-family batch that shares the same risk class and validation path,
     *   not fragmented into helper-by-helper or guard-by-guard micro-steps inside one boundary family unless a materially different validation path or risk split requires it,
+    *   defined with an explicit coverage inventory for the in-scope files/symbols/tests/call paths before implementation starts,
     *   executed one work item at a time.
 3.  Handoff artifacts are split into:
     *   tracked recovery checkpoint: keep `.agent/handoffs/prompt.1.txt` current and commit it with the active unit when the maintainer is using tracked recovery context,
     *   transient prompt/report scratch artifacts: do not commit them unless the maintainer explicitly asks to preserve them.
 4.  When tracked recovery context is active, refresh the committed checkpoint before the branch's first push and again after merge/cleanup so the next autonomous resume starts from current branch and PR state.
+5.  The tracked checkpoint or unit handoff must record the current coverage inventory and its closure status whenever the mission spans multiple related surfaces or resumes across sessions.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 
@@ -228,6 +241,7 @@ make qa-fuzz
 2.  Architect emits exactly one runnable developer unit at a time.
 3.  Every unit definition must include:
     *   strict scope lock,
+    *   inventory seed covering the intended files/symbols/tests/call paths to reconcile before completion,
     *   acceptance criteria,
     *   verification commands,
     *   blocker conditions,
@@ -242,6 +256,8 @@ make qa-fuzz
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
     *   avoid full `make qa-all` during routine iteration unless maintainer explicitly requests it,
     *   rely on failing-check reruns + directly impacted targeted tests between implementation steps.
+3.  Before declaring the unit complete, developer MUST reconcile the unit inventory item by item and record any intentionally unchanged or deferred items with explicit reasons.
+4.  Developer MUST NOT treat a single passing helper cluster, call site, or reproducer as proof of completion when adjacent inventoried surfaces remain unresolved.
 5.  Worker MUST NOT mark unit complete while required checks are failing.
 6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
 7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
