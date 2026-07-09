@@ -106,11 +106,14 @@ FIXTURE_REGISTRY_DOC_NAMES = {
     "diff_harness": "appstate_diff_harness.json",
     "transition_sequences": "appstate_transition_sequences.json",
 }
+FIXTURE_REGISTRY_DIR = Path("registry") / "appstate"
 
 
 def _current_registry_doc_metadata(name: str) -> dict[str, str]:
     doc = json.loads(
-        (Path("docs") / FIXTURE_REGISTRY_DOC_NAMES[name]).read_text(encoding="utf-8")
+        (FIXTURE_REGISTRY_DIR / FIXTURE_REGISTRY_DOC_NAMES[name]).read_text(
+            encoding="utf-8"
+        )
     )
     return {
         "contract": str(doc["contract"]),
@@ -2097,7 +2100,9 @@ def test_fixture_registry_metadata_matches_current_docs(
     fixture_doc = json.loads(
         _runtime_backed_registry_target(paths, target_name).read_text(encoding="utf-8")
     )
-    current_doc = json.loads((Path("docs") / doc_name).read_text(encoding="utf-8"))
+    current_doc = json.loads(
+        (FIXTURE_REGISTRY_DIR / doc_name).read_text(encoding="utf-8")
+    )
 
     assert fixture_doc["contract"] == current_doc["contract"]
     assert fixture_doc["notes"] == current_doc["notes"]
@@ -2175,7 +2180,9 @@ def test_runtime_backed_registry_docs_require_contract_and_notes(
 
 def test_current_generation_domain_docs_keep_projection_transitions_out_of_advances() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        )
     )["generation_domains"]
     projection_domain = next(
         record
@@ -2206,7 +2213,9 @@ def test_guard_accepts_invariant_registry_cli_override(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_invariants.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_invariants.json").read_text(encoding="utf-8"),
+        (
+            repo_root / "registry" / "appstate" / "appstate_invariants.json"
+        ).read_text(encoding="utf-8"),
         encoding="utf-8",
     )
 
@@ -2230,7 +2239,7 @@ def test_guard_accepts_generation_domain_registry_cli_override(tmp_path: Path) -
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_generation_domains.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_generation_domains.json").read_text(
+        (repo_root / "registry" / "appstate" / "appstate_generation_domains.json").read_text(
             encoding="utf-8"
         ),
         encoding="utf-8",
@@ -2256,7 +2265,7 @@ def test_guard_accepts_diff_harness_registry_cli_override(tmp_path: Path) -> Non
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_diff_harness.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_diff_harness.json").read_text(
+        (repo_root / "registry" / "appstate" / "appstate_diff_harness.json").read_text(
             encoding="utf-8"
         ),
         encoding="utf-8",
@@ -2282,7 +2291,12 @@ def test_guard_accepts_transition_sequence_registry_cli_override(tmp_path: Path)
     repo_root = Path(__file__).resolve().parents[1]
     override_path = tmp_path / "appstate_transition_sequences.json"
     override_path.write_text(
-        (repo_root / "docs" / "appstate_transition_sequences.json").read_text(
+        (
+            repo_root
+            / "registry"
+            / "appstate"
+            / "appstate_transition_sequences.json"
+        ).read_text(
             encoding="utf-8"
         ),
         encoding="utf-8",
@@ -5965,7 +5979,7 @@ def test_volume_tree_runtime_breadcrumb_fields_are_retired() -> None:
         assert "vol->saved_tree_generation" not in source
         assert "vol->saved_tree_volume_generation" not in source
 
-    assert not Path("docs/appstate_compat_shims.json").exists()
+    assert not Path("registry/appstate/appstate_compat_shims.json").exists()
 
 
 def test_visibility_session_mirror_is_retired() -> None:
@@ -5981,7 +5995,7 @@ def test_visibility_session_mirror_is_retired() -> None:
     runtime_registry = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
     architecture = Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8")
 
-    assert not Path("docs/appstate_compat_shims.json").exists()
+    assert not Path("registry/appstate/appstate_compat_shims.json").exists()
     assert "shim.viewcontext-hide-dot-files" not in runtime_registry
     assert "ViewContext.hide_dot_files" not in runtime_registry
     assert "ctx->hide_dot_files" not in architecture
@@ -6566,7 +6580,9 @@ def test_directory_display_mode_commits_through_appstate_helper() -> None:
     render_dir = Path("src/ui/render_dir.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_owner_fields.json").read_text(
+            encoding="utf-8"
+        )
     )["owner_fields"]
     assert any(record["field"] == "ctx.dir_mode" for record in owner_fields)
     assert "BOOL AppStateCommitDirectoryDisplayMode(" in header
@@ -6635,7 +6651,9 @@ def test_status_line_message_commits_through_appstate_helper() -> None:
 
 def test_command_message_helpers_validate_generation_domain_before_writes() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        )
     )["generation_domains"]
     assert any(
         record["domain_id"] == "target.modal-command.session"
@@ -6715,7 +6733,9 @@ def test_volume_registry_commits_through_appstate_helper() -> None:
 
 def test_volume_registry_helpers_validate_generation_domain_before_writes() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        )
     )["generation_domains"]
     assert any(
         record["domain_id"] == "lifecycle.volume.registry"
@@ -6890,7 +6910,9 @@ def test_auxiliary_window_handle_lifecycle_routes_through_appstate_helpers() -> 
 
 def test_layout_projection_helpers_validate_generation_domain_before_writes() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        )
     )["generation_domains"]
     assert any(
         record["domain_id"] == "reflow.layout.projection"
@@ -7219,7 +7241,9 @@ def test_panel_file_display_state_commits_through_appstate_helper() -> None:
     render_file = Path("src/ui/render_file.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_owner_fields.json").read_text(
+            encoding="utf-8"
+        )
     )["owner_fields"]
     assert any(
         record["field"] == "panel.file_display_state" for record in owner_fields
@@ -7264,7 +7288,9 @@ def test_panel_file_rendering_metrics_commit_through_appstate_helper() -> None:
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_owner_fields.json").read_text(
+            encoding="utf-8"
+        )
     )["owner_fields"]
     display_state = next(
         record
@@ -7308,7 +7334,9 @@ def test_panel_file_sort_order_commits_through_appstate_helper() -> None:
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_owner_fields.json").read_text(
+            encoding="utf-8"
+        )
     )["owner_fields"]
     display_state = next(
         record
@@ -7389,7 +7417,9 @@ def test_refresh_mode_commits_through_appstate_helper() -> None:
     init_source = Path("src/core/init.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
-        Path("docs/appstate_owner_fields.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_owner_fields.json").read_text(
+            encoding="utf-8"
+        )
     )["owner_fields"]
     assert any(record["field"] == "ctx.refresh_mode" for record in owner_fields)
     assert "BOOL AppStateCommitRefreshMode(" in header
@@ -7522,7 +7552,9 @@ def test_completion_viewport_routes_through_appstate_helper() -> None:
 
 def test_modal_target_helpers_validate_generation_domain_before_writes() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        )
     )["generation_domains"]
     assert any(
         record["domain_id"] == "target.modal-command.session"
@@ -9289,7 +9321,9 @@ def test_volume_generation_commits_route_through_appstate_helper() -> None:
 
 def test_volume_helpers_validate_generation_domain_before_writes() -> None:
     generation_domains = json.loads(
-        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+        Path("registry/appstate/appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        )
     )["generation_domains"]
     assert any(
         record["domain_id"] == "generation.volume.shared-authority"

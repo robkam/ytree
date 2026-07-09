@@ -165,8 +165,9 @@ If procedural instructions appear in persona files, move them into skills and le
 ### 3.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
 
 Use this workflow when a tracked bug or task needs architect-supervised implementation.
-Prompt template:
-- **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**: one architect-led entrypoint. The architect decides whether the work is a single developer/auditor unit or must be split into atomic units. If the work likely creates a large PR, the architect must explain why it is large, why it should or should not be split, and what could break once before dispatching implementation, repeating only if scope materially changes.
+Prompt templates:
+- **[TASK_PROMPT_TEMPLATE.md](TASK_PROMPT_TEMPLATE.md)**: architect-led implementation entrypoint for one tracked task or bugfix. The maintainer edits only the applicable `Work item:` selector line, and the AI derives title/scope from that selector, auto-consumes matching audit handoffs if present, and drives coherent batching plus completion-proof coverage.
+- **[AUDIT_PROMPT_TEMPLATE.md](AUDIT_PROMPT_TEMPLATE.md)**: adversarial post-implementation audit entrypoint for one locked task or bugfix scope. The maintainer edits only the applicable `Audit target:` selector line, and the AI derives scope from that selector, writes the latest audit handoff files, and may return PASS when the work is already satisfactory.
 
 ##### 3.1.0.1 MCP Config Bootstrap (Recommended)
 
@@ -225,10 +226,14 @@ make qa-fuzz
     *   defined with an explicit coverage inventory for the in-scope files/symbols/tests/call paths before implementation starts,
     *   executed one work item at a time.
 3.  Handoff artifacts are split into:
-    *   tracked recovery checkpoint: keep `.agent/handoffs/prompt.1.txt` current and commit it with the active unit when the maintainer is using tracked recovery context,
+    *   tracked recovery checkpoint: keep the current designated live tracked handoff checkpoint in `.agent/handoffs/` current and commit it with the active unit when the maintainer is using tracked recovery context,
     *   transient prompt/report scratch artifacts: do not commit them unless the maintainer explicitly asks to preserve them.
-4.  When tracked recovery context is active, refresh the committed checkpoint before the branch's first push and again after merge/cleanup so the next autonomous resume starts from current branch and PR state.
+4.  When tracked recovery context is active, refresh the committed live tracked handoff checkpoint before the branch's first push and again after merge/cleanup so the next autonomous resume starts from current branch and PR state.
 5.  The tracked checkpoint or unit handoff must record the current coverage inventory and its closure status whenever the mission spans multiple related surfaces or resumes across sessions.
+6.  Reusable audit handoffs live under `.agent/handoffs/`:
+    *   `audit.current.txt`: latest audit verdict for the most recently audited work item,
+    *   `audit.task-<number>.txt` / `audit.bug-<number>.txt`: latest audit verdict for that specific roadmap task or bug.
+    *   When a task prompt resumes from a failed audit, the AI must read the matching audit handoff automatically and choose the next coherent defect family itself rather than requiring maintainer triage.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 
@@ -274,6 +279,7 @@ make qa-fuzz
     *   rerun commands only when evidence is incomplete, contradictory, or risk is high.
 3.  Correction/rework iterations are separate atomic units and must be re-audited.
 4.  Auditor output must include explicit pass/fail decision and severity-ranked risks.
+5.  Repeated audits of the same work item may return PASS if no credible in-scope defects remain; the auditor is not required to manufacture findings to justify another iteration.
 
 #### 3.1.6 Architect Validation, Commit, and Cleanup
 
@@ -300,25 +306,31 @@ make qa-fuzz
     *   Runtime event naming should prefer explicit completion semantics (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`) so maintainers can distinguish done-vs-next without prompt interpretation.
     *   Maintainer-facing status wording should be constrained to `active`, `completed`, or `blocked`; avoid ambiguous runtime labels (for example `awaiting instruction`) in relay updates.
 5.  Before merge to `main`, architect MUST ensure green PR full-QA CI evidence (`make qa-all` equivalent) for accepted branch state.
-6.  If accepted:
+6.  Actual merge-safety gate is mandatory:
+    *   immediately before ready conversion and immediately before merge, re-query the live PR state/checks for the current head SHA,
+    *   treat required checks as not green if any required check is red, pending, cancelled, missing, or rerunning,
+    *   require the branch freshness/up-to-date gate to be green at that moment when such a gate exists,
+    *   if the head SHA or required-check set changes after the last green observation, restart the wait cycle and do not merge yet.
+7.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
     *   PR title/summary and commit wording must describe concrete behavior/problem and must not rely on volatile tracker IDs alone,
     *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
-5.  If correction is needed for the same logical change set, amend and repush:
+8.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
     *   push with the branch rule above.
-6.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary `/tmp` files).
+9.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary `/tmp` files).
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
 1.  When preparing merge to `main`, require green PR full-QA CI gate (`make qa-all` equivalent).
-2.  Integrate branch to `main` using fast-forward only.
-3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
-4.  Delete temporary feature branch locally and on remote after merge.
-5.  Verify only the intended tracked recovery checkpoint is committed; stale transient handoff artifacts must stay out of the change.
-6.  Manual mode is default: one-unit-at-a-time architect -> developer -> auditor handoff.
+2.  Immediately before ready conversion and again immediately before merge, recheck live PR status on the current head SHA; if any required check is red, pending, cancelled, missing, rerunning, or freshness is no longer green, do not merge and restart the wait/remediation loop.
+3.  Integrate branch to `main` using fast-forward only.
+4.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
+5.  Delete temporary feature branch locally and on remote after merge.
+6.  Verify only the intended tracked recovery checkpoint is committed; stale transient handoff artifacts must stay out of the change.
+7.  Manual mode is default: one-unit-at-a-time architect -> developer -> auditor handoff.
 
 #### 3.1.8 Practical Prompt-Template Finish Flow (Consecutive Role Order)
 
@@ -330,7 +342,7 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   Manually exercise the changed behavior.
 2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
 3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).
-    *   Required before final commit: keep `.agent/handoffs/prompt.1.txt` current when tracked recovery is in use, and remove or leave untracked stale transient handoff artifacts from `.agent/handoffs/` (for example consumed `prompt.<id>.*.txt` and `report.<id>.*.txt` files) unless the maintainer explicitly asks to keep them.
+    *   Required before final commit: keep the designated live tracked handoff checkpoint current when tracked recovery is in use, and remove or leave untracked stale transient handoff artifacts from `.agent/handoffs/` (for example consumed `prompt.<id>.*.txt` and `report.<id>.*.txt` files) unless the maintainer explicitly asks to keep them.
 4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
 6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.
@@ -341,14 +353,15 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 9.  **Architect/AI + Maintainer (GitHub):** Monitor PR CI full gate proactively (for example `gh pr checks <pr-number> --watch`). Do not wait passively for a separate reminder when checks change state.
 10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
     *   Do not convert a draft PR to ready, request reviewers, or otherwise trigger another long PR gate unless the maintainer explicitly instructs it.
-11. **Maintainer (GitHub):** Merge PR to `main` after checks are green and review is satisfied.
-12. **Maintainer (GitHub):** Delete remote branch:
+11. **Architect/AI + Maintainer (GitHub):** If ready conversion, branch sync, or any other PR mutation restarts required checks, restart the wait loop and do not merge against stale earlier green results.
+12. **Maintainer (GitHub):** Merge PR to `main` only after checks are rechecked live as green on the current head SHA and review is satisfied. Never merge or close a PR while required checks are red, pending, cancelled, missing, rerunning, or freshness is stale.
+13. **Maintainer (GitHub):** Delete remote branch:
     *   `git push origin --delete <branch>`
-13. **Maintainer (local):** Sync local `main` to remote:
+14. **Maintainer (local):** Sync local `main` to remote:
     *   `git checkout main`
     *   `git fetch origin`
     *   `git pull --ff-only`
-14. **Maintainer (local):** Delete local feature branch:
+15. **Maintainer (local):** Delete local feature branch:
     *   `git branch -d <branch>` (use `-D` only when needed)
 
 ### GitHub Source Preference
