@@ -209,7 +209,8 @@ make qa-fuzz
 1.  This workflow is mandatory for non-trivial missions.
 2.  Work is executed as numbered work items that are:
     *   atomic and independently verifiable,
-    *   not fragmented into trivial micro-steps,
+    *   sized as the largest coherent adjacent boundary-family batch that shares the same risk class and validation path,
+    *   not fragmented into helper-by-helper or guard-by-guard micro-steps inside one boundary family unless a materially different validation path or risk split requires it,
     *   executed one work item at a time.
 3.  Handoff artifacts are split into:
     *   tracked recovery checkpoint: keep `.agent/handoffs/prompt.1.txt` current and commit it with the active unit when the maintainer is using tracked recovery context,
