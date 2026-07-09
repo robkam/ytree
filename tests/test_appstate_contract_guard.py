@@ -7037,9 +7037,13 @@ def test_file_selection_anchor_generation_commits_through_appstate_helper() -> N
 
 
 def test_panel_anchor_viewport_generation_commits_through_appstate_helper() -> None:
+    helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
 
     assert 'include "ytnova_appstate_panel.h"' in panel_anchor
+    helper_start = helper.index("BOOL AppStateCommitPanelTreeViewport(")
+    helper_body = helper[helper_start:]
+    assert "return AppStateCommitPanelGeneration(panel);" in helper_body
 
     position_start = panel_anchor.index("void PositionPanelAtIndex(")
     position_end = panel_anchor.index(
@@ -7054,8 +7058,16 @@ def test_panel_anchor_viewport_generation_commits_through_appstate_helper() -> N
 
     assert "panel->panel_generation++;" not in position_body
     assert "panel->panel_generation++;" not in restore_body
-    assert position_body.count("AppStateCommitPanelGeneration(panel)") == 1
-    assert restore_body.count("AppStateCommitPanelGeneration(panel)") == 1
+    assert (
+        position_body.count("AppStateCommitPanelTreeViewport(panel, begin, cursor)")
+        == 1
+    )
+    assert (
+        restore_body.count("AppStateCommitPanelTreeViewport(panel, begin, cursor)")
+        == 1
+    )
+    assert "AppStateCommitPanelGeneration(panel)" not in position_body
+    assert "AppStateCommitPanelGeneration(panel)" not in restore_body
 
 
 def test_panel_tree_viewport_top_paths_route_through_appstate_helper() -> None:
@@ -7654,10 +7666,11 @@ def test_panel_generation_restores_route_through_appstate_helper() -> None:
 def test_panel_local_helpers_validate_generation_domain_before_writes() -> None:
     source = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     validation = 'AppStateValidatedGenerationDomain("generation.panel.local-authority")'
+    generation_validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
     signatures_and_writes = [
         (
             "BOOL AppStateCommitPanelGeneration(",
-            ["panel->panel_generation++;"],
+            [generation_validation, "panel->panel_generation++;"],
         ),
         (
             "BOOL AppStateRestorePanelGeneration(",
@@ -7665,7 +7678,11 @@ def test_panel_local_helpers_validate_generation_domain_before_writes() -> None:
         ),
         (
             "BOOL AppStateCommitPanelVolume(",
-            ["panel->vol = vol;", "panel->panel_generation++;"],
+            [
+                generation_validation,
+                "panel->vol = vol;",
+                "return AppStateCommitPanelGeneration(panel);",
+            ],
         ),
         (
             "BOOL AppStateSetPanelVolumeFileStateList(",
@@ -7674,14 +7691,19 @@ def test_panel_local_helpers_validate_generation_domain_before_writes() -> None:
         (
             "BOOL AppStateCommitPanelFileSelection(",
             [
+                generation_validation,
                 "panel->file_selection_dir_path[0] = '\\0';",
                 "panel->file_selection_name[0] = '\\0';",
-                "panel->panel_generation++;",
+                "return AppStateCommitPanelGeneration(panel);",
             ],
         ),
         (
             "BOOL AppStateCommitPanelTreeSelection(",
-            ["panel->current_dir_entry = current_dir_entry;"],
+            [
+                generation_validation,
+                "panel->current_dir_entry = current_dir_entry;",
+                "return AppStateCommitPanelGeneration(panel);",
+            ],
         ),
         (
             "BOOL AppStateCommitPanelTreeViewportTopPath(",
@@ -7709,19 +7731,27 @@ def test_panel_local_helpers_validate_generation_domain_before_writes() -> None:
         (
             "BOOL AppStateCommitPanelFileViewport(",
             [
+                generation_validation,
                 "panel->start_file = start_file;",
                 "panel->file_cursor_pos = file_cursor_pos;",
+                "return AppStateCommitPanelGeneration(panel);",
             ],
         ),
         (
             "BOOL AppStateCommitPanelFileAnchor(",
-            ["panel->file_dir_entry = file_dir_entry;"],
+            [
+                generation_validation,
+                "panel->file_dir_entry = file_dir_entry;",
+                "return AppStateCommitPanelGeneration(panel);",
+            ],
         ),
         (
             "BOOL AppStateCommitPanelTreeViewport(",
             [
+                generation_validation,
                 "panel->disp_begin_pos = disp_begin_pos;",
                 "panel->cursor_pos = cursor_pos;",
+                "return AppStateCommitPanelGeneration(panel);",
             ],
         ),
     ]
@@ -8723,7 +8753,7 @@ def test_panel_file_selection_commits_route_through_appstate_helper() -> None:
         selection_name_write
     )
     assert helper_body.index(generation_validation) < helper_body.index(
-        "panel->panel_generation++;"
+        "return AppStateCommitPanelGeneration(panel);"
     )
 
     capture_start = ctrl_file_ops.index("void CapturePanelSelectionAnchor(")
@@ -9169,7 +9199,7 @@ def test_panel_volume_binding_commits_route_through_appstate_helper() -> None:
     volume_validation = 'AppStateValidatedOwnerField("panel.volume_key")'
     generation_validation = 'AppStateValidatedOwnerField("panel.panel_generation")'
     volume_write = "panel->vol = vol;"
-    generation_write = "panel->panel_generation++;"
+    generation_write = "return AppStateCommitPanelGeneration(panel);"
     assert volume_validation in helper_body
     assert generation_validation in helper_body
     assert volume_write in helper_body

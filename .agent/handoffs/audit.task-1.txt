@@ -1,0 +1,93 @@
+Locked audit target
+- Source: docs/ROADMAP.md Task 1
+- Title: Task 1: Unified AppState Transition Machine + Projection Contract
+- Acceptance target: one explicit AppState transition/ownership contract where UI-affecting actions/events route through registered transition boundaries, render is projection-only, generation-based restore fails closed, and the direct contract docs/tests/registries match the runtime.
+- Discoverable merged work set: the merged AppState-labelled history on main beginning at 4cf8a9a (`chore(appstate): establish transition contract registry`) and ending at 344be74 (`docs(appstate): close transition contract roadmap item (#388)`), with the live checkpoint `.agent/handoffs/prompt.1.txt` stating prior boundary batches were already merged through PR 387 and the closeout batch was PR 388.
+- Locked audit scope: the Task 1 registry metadata under `registry/appstate/`; the direct runtime/lookup/validation surfaces (`include/ytnova_appstate_*.h`, `src/core/appstate_actions.c`, `src/core/main.c`, `src/core/appstate_volume_registry.c`); the directly touched AppState helper and dispatch/restore files (`src/ui/appstate_*.c`, `src/ui/key_engine.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c`, `src/ui/display.c`, `src/ui/panel_anchor.c`, `src/ui/volume_menu.c`, `src/cmd/log.c`, `src/core/init.c`, `src/core/volume.c`, `src/ui/dir_nav.c`, `src/ui/file_nav.c`, `src/ui/file_list.c`, `src/ui/split_transition.c`); direct guard surfaces (`scripts/check_appstate_contract.py`, `tests/test_appstate_contract_guard.py`); direct contract docs (`docs/ARCHITECTURE.md`, `docs/SPECIFICATION.md`, `docs/ROADMAP.md`); and the live checkpoint ` .agent/handoffs/prompt.1.txt`.
+
+Audit inventory
+- Merged commit families inventoried:
+  - registry foundation and lookup/validation series from 4cf8a9a through the runtime-registry/accessor/coverage-status commits;
+  - dispatch/event boundary guard series (modal, command, render, watcher, filesystem, volume, panel-anchor, key decode);
+  - helper-routing migration series across focus, visibility, layout, viewport, selection, anchor, volume binding, payload, render projection, and split transitions;
+  - compatibility-shim retirement/runtime wording/closeout series through 344be74;
+  - direct guard/test/doc closeout for Task 1.
+- Directly affected runtime surfaces audited:
+  - registry/action/event/dispatch accessors and startup validation in `src/core/appstate_actions.c` and `src/core/main.c`;
+  - panel-local commit helpers in `src/ui/appstate_panel.c`, plus focus/layout/visibility/render/session/volume helpers;
+  - canonical restore and donation paths in `src/ui/panel_anchor.c`;
+  - representative dispatch/update callers in `src/ui/key_engine.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c`, `src/ui/dir_nav.c`, `src/ui/file_nav.c`, `src/ui/file_list.c`, `src/ui/volume_menu.c`, `src/ui/split_transition.c`, `src/cmd/log.c`, `src/core/init.c`, `src/core/volume.c`, `src/ui/display.c`.
+- Directly affected tests audited:
+  - `tests/test_appstate_contract_guard.py`
+  - focused runtime validation via `python3 scripts/check_appstate_contract.py`
+  - focused pytest selection covering current-repository contract pass, render projection no-shim path, generation-domain projection note check, and transition accessor fail-closed behavior.
+- Directly affected docs/spec surfaces audited:
+  - `docs/ROADMAP.md` Task 1 contract and acceptance text
+  - `docs/ARCHITECTURE.md` AppState transition/generation rules
+  - `docs/SPECIFICATION.md` canonical panel restore and generation rules
+  - `.agent/handoffs/prompt.1.txt` closeout checkpoint
+- Compatibility/replacement/transitional seams audited:
+  - retired compatibility-shim path claims in docs/tests/runtime lookup;
+  - old direct field-write paths versus `AppStateCommit*` helper routing;
+  - snapshot generation checks in `src/ui/panel_anchor.c` and `src/cmd/log.c`;
+  - render/projection read-only claim versus `src/ui/display.c`/`src/ui/appstate_render.c`.
+
+Findings
+
+1) Severity: high
+   Confidence: high
+   Defect family: panel-generation invalidation contract is still broken for several authoritative panel-local commits
+   File:line: `src/ui/appstate_panel.c:148-158`, `src/ui/appstate_panel.c:282-323`, `docs/ARCHITECTURE.md:208-212`, `docs/SPECIFICATION.md:273-278`, `src/ui/panel_anchor.c:495-499`, `src/cmd/log.c:145-147`, representative call sites `src/ui/dir_nav.c:24-28`, `src/ui/file_nav.c:58-59`, `src/ui/volume_menu.c:43`, guard coverage gap `tests/test_appstate_contract_guard.py:7683-7725`, `tests/test_appstate_contract_guard.py:8868-8920`, `tests/test_appstate_contract_guard.py:9113-9119`
+   Evidence: Task 1’s contract says `panel_generation` must advance when panel-local selection or viewport state changes, and restore paths in `panel_anchor.c` / `log.c` rely on saved-vs-current generation matches to decide whether snapshots are still valid. But `AppStateCommitPanelTreeSelection`, `AppStateCommitPanelTreeViewport`, `AppStateCommitPanelFileViewport`, and `AppStateCommitPanelFileAnchor` only write the mutable fields and return; they never increment `panel->panel_generation`, and common navigation/normalization callers invoke those helpers without any compensating `AppStateCommitPanelGeneration(...)`. The focused guard suite passes because it checks helper routing and field writes, not that these mutations advance generation.
+   Impact: stale tree/file snapshots can remain falsely “current” after selection/viewport/anchor changes, so restore/rebind can accept outdated panel-local state instead of forcing the fail-closed re-resolution promised by Task 1. That directly undercuts the roadmap acceptance claim that stale snapshots fail closed through deterministic fallback, so the task is not safely complete.
+   Concrete fix: make the authoritative panel-local commit helpers that change restore-relevant state advance `panel_generation` themselves (or route them through a single wrapper that does), audit any restore-copy paths that intentionally preserve generations and convert those to explicit restore helpers, then add regression tests that prove tree/file viewport, selection, and file-anchor changes bump `panel_generation` and cause stale snapshots to be rejected in `panel_anchor.c`/`log.c`.
+
+2) Severity: medium
+   Confidence: high
+   Defect family: dead-history/change-diary comments remain in a Task 1-touched runtime surface
+   File:line: `src/ui/display.c:20-33`, `src/ui/display.c:45`, `src/ui/display.c:423-424`
+   Evidence: the file still contains comments such as “PrintMenuLine is removed...”, “Removed: PrintLine...”, “Unused function”, “Legacy border strings removed”, and “Updated: (F)ilespec -> (F)ilter...”. These narrate deleted history rather than current invariants or design rationale.
+   Impact: this violates the repository’s source-comment contract and leaves misleading maintenance noise inside the locked AppState surface, which is the opposite of the roadmap phase’s clean-code/guardrail goal.
+   Concrete fix: delete the dead-history comments entirely, and keep only current invariant/rationale comments that explain active behavior.
+
+Validation run during audit
+- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py` -> PASS
+- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'current_repository_appstate_contract_passes or render_projection_runtime_uses_no_compatibility_shim or runtime_generation_domain_startup_requires_projection_note_for_coverage_only or appstate_transition_accessor_fails_closed_on_invalid_metadata'` -> 4 passed
+
+FAIL for the locked task scope.
+The task does not appear completed/fixed satisfactorily within the locked scope, because the live implementation still violates the documented `panel_generation` invalidation contract that Task 1 depends on for fail-closed restore semantics.
+
+Residual risks
+- Additional panel-local helper paths may share the same generation-invalidation defect pattern beyond the representative tree/file selection and viewport helpers audited here.
+- The focused guard suite currently gives a false sense of closure for this defect family because it emphasizes routing and metadata presence over generation-behavior correctness.
+
+Exhaustiveness statement
+- This audit appears broad and materially exhaustive within the locked scope: registry metadata, startup validation, canonical restore paths, representative dispatch callers, direct guard tests, and closeout docs/checkpoint were all reconciled. I did not perform an unrelated repository-wide audit.
+
+Audit inventory reconciliation summary
+- Audited:
+  - `docs/ROADMAP.md` Task 1 source of truth and completion line
+  - `docs/ARCHITECTURE.md` AppState contract and generation rules
+  - `docs/SPECIFICATION.md` canonical restore/generation rules
+  - `.agent/handoffs/prompt.1.txt` closeout inventory
+  - `registry/appstate/*.json`
+  - `scripts/check_appstate_contract.py`
+  - `tests/test_appstate_contract_guard.py`
+  - runtime helper/restore/dispatch files listed in the locked scope above
+- Intentionally not audited with reason:
+  - incidental AI/process/documentation files that appeared in the long AppState-labelled git history but do not affect Task 1 runtime acceptance (for example `.ai/*`, workflow governance docs, unrelated named handoff reports) were excluded to preserve the scope lock.
+  - unrelated repository areas not directly touched by the Task 1 work item were not audited.
+- Uncertain with reason:
+  - full historical PR-to-commit mapping for every AppState batch is only partially discoverable from local linear history; the merged work set above is reconstructed from the on-branch commit series plus the live checkpoint’s PR 387/388 statements.
+
+Grouped defect families
+- Generation-invalidation contract break in panel-local AppState commit helpers and corresponding guard coverage gap.
+- Dead-history comment drift in a Task 1-touched runtime file.
+
+Next highest-value coherent family to fix first
+- Fix the panel-generation invalidation family first. It is the acceptance-critical root-cause family because it directly invalidates the fail-closed restore contract that justified marking Task 1 complete.
+
+Focused validation path for that family
+- Add/adjust contract tests so panel-local selection/viewport/file-anchor helper commits must advance `panel_generation`.
+- Add a regression path proving that a saved tree/file snapshot becomes stale after navigation-only helper mutations and is then re-resolved/fallen back rather than reused.
+- Re-run `python3 scripts/check_appstate_contract.py` and the focused `tests/test_appstate_contract_guard.py` selection, then any newly added targeted restore/navigation regression tests.

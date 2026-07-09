@@ -47,8 +47,7 @@ BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol) {
     return FALSE;
 
   panel->vol = vol;
-  panel->panel_generation++;
-  return TRUE;
+  return AppStateCommitPanelGeneration(panel);
 }
 
 BOOL AppStateSetPanelVolumeFileStateList(
@@ -141,8 +140,7 @@ BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
     panel->file_selection_name[PATH_LENGTH] = '\0';
   }
 
-  panel->panel_generation++;
-  return TRUE;
+  return AppStateCommitPanelGeneration(panel);
 }
 
 BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
@@ -151,11 +149,13 @@ BOOL AppStateCommitPanelTreeSelection(YtreeNovaPanel *panel,
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.tree_selection_key"))
     return FALSE;
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
   if (!panel)
     return FALSE;
 
   panel->current_dir_entry = current_dir_entry;
-  return TRUE;
+  return AppStateCommitPanelGeneration(panel);
 }
 
 BOOL AppStateCommitPanelTreeViewportTopPath(YtreeNovaPanel *panel, int slot,
@@ -285,12 +285,14 @@ BOOL AppStateCommitPanelFileViewport(YtreeNovaPanel *panel, int start_file,
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
     return FALSE;
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
   if (!panel)
     return FALSE;
 
   panel->start_file = start_file;
   panel->file_cursor_pos = file_cursor_pos;
-  return TRUE;
+  return AppStateCommitPanelGeneration(panel);
 }
 
 BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,
@@ -299,11 +301,13 @@ BOOL AppStateCommitPanelFileAnchor(YtreeNovaPanel *panel,
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.file_viewport_origin"))
     return FALSE;
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
   if (!panel)
     return FALSE;
 
   panel->file_dir_entry = file_dir_entry;
-  return TRUE;
+  return AppStateCommitPanelGeneration(panel);
 }
 
 BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
@@ -314,10 +318,12 @@ BOOL AppStateCommitPanelTreeViewport(YtreeNovaPanel *panel, int disp_begin_pos,
     return FALSE;
   if (!AppStateValidatedOwnerField("panel.tree_cursor_pos"))
     return FALSE;
+  if (!AppStateValidatedOwnerField("panel.panel_generation"))
+    return FALSE;
   if (!panel)
     return FALSE;
 
   panel->disp_begin_pos = disp_begin_pos;
   panel->cursor_pos = cursor_pos;
-  return TRUE;
+  return AppStateCommitPanelGeneration(panel);
 }
