@@ -345,6 +345,7 @@ void PositionPanelAtIndex(YtreeNovaPanel *panel, int idx) {
   int height;
   int begin;
   int cursor;
+  unsigned int viewport_generation;
 
   if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
       panel->vol->total_dirs <= 0)
@@ -368,9 +369,12 @@ void PositionPanelAtIndex(YtreeNovaPanel *panel, int idx) {
 
   if (!AppStateCommitPanelTreeViewport(panel, begin, cursor))
     return;
-  RememberPanelViewportTop(panel);
-  if (!AppStateCommitPanelGeneration(panel))
+  viewport_generation = panel->panel_generation;
+  if (!AppStateCommitPanelTreeSelection(panel, idx))
     return;
+  if (!AppStateRestorePanelGeneration(panel, viewport_generation))
+    return;
+  RememberPanelViewportTop(panel);
 }
 
 static BOOL VisibleIndexWithinTopPath(const struct Volume *vol,
@@ -424,6 +428,7 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
   int height;
   int begin;
   int cursor;
+  unsigned int viewport_generation;
 
   if (!vol || !panel || !snapshot)
     return FALSE;
@@ -469,9 +474,12 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
 
   if (!AppStateCommitPanelTreeViewport(panel, begin, cursor))
     return FALSE;
-  RememberPanelViewportTop(panel);
-  if (!AppStateCommitPanelGeneration(panel))
+  viewport_generation = panel->panel_generation;
+  if (!AppStateCommitPanelTreeSelection(panel, target_idx))
     return FALSE;
+  if (!AppStateRestorePanelGeneration(panel, viewport_generation))
+    return FALSE;
+  RememberPanelViewportTop(panel);
   return TRUE;
 }
 

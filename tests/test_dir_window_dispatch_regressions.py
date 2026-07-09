@@ -257,6 +257,7 @@ def test_restore_snapshots_validate_generation_before_reuse():
     defs_source = _defs_source()
     log_source = _log_source()
     panel_anchor_source = _panel_anchor_file_source()
+    panel_helper_source = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     dir_ops_source = _dir_ops_source()
     visibility_source = _appstate_visibility_source()
 
@@ -286,10 +287,23 @@ def test_restore_snapshots_validate_generation_before_reuse():
     )
 
     assert 'include "ytnova_appstate_panel.h"' in panel_anchor_source
-    assert "AppStateCommitPanelGeneration(panel)" in panel_anchor_source
-    assert "AppStateRestorePanelGeneration(dst, src->panel_generation)" in (
-        panel_anchor_source
-    )
+    for signature in (
+        "BOOL AppStateCommitPanelTreeSelection(",
+        "BOOL AppStateCommitPanelFileViewport(",
+        "BOOL AppStateCommitPanelFileAnchor(",
+        "BOOL AppStateCommitPanelTreeViewport(",
+    ):
+        start = panel_helper_source.index(signature)
+        end = panel_helper_source.find("\nBOOL ", start + 1)
+        body = (
+            panel_helper_source[start:]
+            if end < 0
+            else panel_helper_source[start:end]
+        )
+        assert 'AppStateValidatedOwnerField("panel.panel_generation")' in body
+        assert "return AppStateCommitPanelGeneration(panel);" in body
+    assert "AppStateRestorePanelGeneration(dst, src->panel_generation)" in panel_anchor_source
+    assert "AppStateCommitPanelGeneration(panel)" not in panel_anchor_source
 
     assert "AppStateCommitPanelVisibilityFilter(p, !p->hide_dot_files)" in dir_ops_source
     assert "panel->panel_generation++;" in visibility_source, visibility_source

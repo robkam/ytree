@@ -118,10 +118,12 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   if (!panel || !panel->vol)
     return;
 
+  restore_generation = panel->panel_generation;
   ResetPanelFileContext(panel);
+  if (!AppStateRestorePanelGeneration(panel, restore_generation))
+    return;
   vol = panel->vol;
   state = FindPanelVolumeFileState(panel, vol->id);
-  restore_generation = panel->panel_generation;
   if (!AppStateCommitPanelFileViewport(panel, 0, 0))
     return;
   if (!AppStateCommitPanelFileSelection(panel, NULL, NULL))
@@ -131,6 +133,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   if (!AppStateCommitPanelFileAnchor(panel, NULL))
     return;
   if (!AppStateCommitPanelFileShape(panel, FALSE))
+    return;
+  if (!AppStateRestorePanelGeneration(panel, restore_generation))
     return;
   if (!state)
     return;
@@ -174,6 +178,8 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
                                  state->saved_file_selection_name);
     }
   }
+  if (!AppStateRestorePanelGeneration(panel, restore_generation))
+    return;
   if (!AppStateCommitPanelFocus(ctx, panel, state->saved_focus))
     return;
   (void)AppStateCommitPanelFileShape(panel, state->saved_big_file_view);

@@ -2,43 +2,100 @@
 
 Date: 2026-07-09
 Repo: /home/rob/ytreenova
-Roadmap item: Unified AppState Transition Machine + Projection Contract
-Persona: developer
-Current branch: appstate-transition-contract-closeout
-Active PR: draft https://github.com/robkam/ytreenova/pull/388
-Last merged PR: https://github.com/robkam/ytreenova/pull/387
-Supersession state: resumed by maintainer; no later stop/pause override.
+Work item source: docs/ROADMAP.md Task 1
+Title: Task 1: Unified AppState Transition Machine + Projection Contract
+Acceptance target: one explicit AppState transition/ownership contract where UI-affecting actions/events route through registered transition boundaries, render is projection-only, generation-based restore fails closed, and the direct contract docs/tests/registries match the runtime.
+Completion objective: complete Task 1 correctly by fixing the remaining acceptance-critical repo-side defects, reconciling every in-scope surface, and leaving no unaccounted Task 1 runtime/doc/test gap.
 
-Current AppState batch:
-- Final closure audit for the Unified AppState Transition Machine + Projection Contract roadmap item.
-- Git/GitHub audit found no active PRs and confirmed the previous AppState boundary batches are already merged through PR 387.
-- docs/appstate*.json now show runtime/transition coverage across owner fields, transition matrix, action/event coverage, generation domains, invariants, diff harness checks, dispatch surfaces, and transition sequences.
-- Focused contract validation now passes on the current repository state, so this closeout batch only needs the roadmap/handoff source-of-truth updates and draft PR/CI loop.
+Current git/GitHub state:
+- Current branch: `fix/appstate-panel-generation`
+- Active PR: draft `https://github.com/robkam/ytreenova/pull/390`
+- PR 390 head: current branch `HEAD` after the latest force-push for this slice
+- Latest merged PR discovered during resume: `https://github.com/robkam/ytreenova/pull/389`
+- Base branch for the current slice: `origin/main` at `826e8b5`
+- PR 390 CI wait window restarted after the latest force-push for this slice; do not poll before the first 15-minute checkpoint from that push.
+- Local worktree also contains unrelated unstaged edits/deletions outside this Task 1 slice; keep the current commit scoped to the files listed below.
 
-Closure family inventory:
-- docs/ROADMAP.md Task 1 status line: migrated in this batch; marked complete after the focused closure audit passed.
-- docs/appstate_owner_fields.json (26 owner fields): migrated; every entry is `covered_by_runtime_registry`.
-- docs/appstate_generation_domains.json (11 domains): migrated; every entry is `covered_by_runtime_registry`.
-- docs/appstate_invariants.json (8 invariants): migrated; every entry is `covered_by_runtime_registry`.
-- docs/appstate_diff_harness.json (5 harness checks): migrated; every entry is `covered_by_runtime_registry`.
-- docs/appstate_transition_matrix.json (12 transitions): migrated; every entry is `covered_by_transition_record`.
-- docs/appstate_action_coverage.json (85 actions): migrated; every entry is `covered_by_transition_record`.
-- docs/appstate_event_coverage.json (9 events): migrated; every entry is `covered_by_transition_record`.
-- docs/appstate_dispatch_surfaces.json (14 surfaces): migrated; every entry is `covered_by_transition_record`.
-- docs/appstate_transition_sequences.json (17 scenarios): migrated; every entry is `covered_by_runtime_registry`.
-- Runtime registry/accessor surfaces (`include/ytnova_appstate_actions.h`, `src/core/appstate_actions.c`, `src/core/main.c`): intentionally unchanged in this batch; audit shows startup/accessor validation already fails closed on invalid registry metadata and cross-links actions/events/sequences/harness coverage.
-- Runtime dispatch/helper boundary cluster (`src/ui/key_engine.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c`, `src/ui/display.c`, `src/ui/panel_anchor.c`, `src/ui/volume_menu.c`, `src/core/appstate_volume_registry.c`, `src/ui/appstate_*.c` helpers): intentionally unchanged in this batch; their documented boundary families were migrated in earlier merged PRs and no uncovered adjacent surface remains in the registries.
-- Contract enforcement/test surfaces (`scripts/check_appstate_contract.py`, `tests/test_appstate_contract_guard.py`): intentionally unchanged in this batch; focused validation passed without exposing a repo-side gap.
-- Legacy compatibility seam audit (render/projection authority): migrated; focused guard coverage asserts there is no remaining render compatibility shim path.
+Audit-selected defect family for the next coherent batch:
+- Panel-generation invalidation contract break in authoritative panel-local AppState commit helpers.
+- Why this family now: it is the highest-value Task 1 defect family because it directly breaks the documented fail-closed restore contract for stale tree/file snapshots.
 
-Closure reconciliation:
-- No remaining AppState boundary family is currently unaccounted for in the roadmap-item registries.
-- No deferred/blocked item is currently identified; if CI disproves the closure audit, reopen the affected family instead of forcing roadmap completion.
+Deferred audit defect families:
+- Dead-history/change-diary comments in `src/ui/display.c`.
+- Split reason: different owner boundary and validation path. The current family is runtime restore/generation correctness with focused AppState helper + restore tests; the display-comment cleanup is source-comment hygiene and can land separately without coupling to the runtime fix.
 
-Validation evidence:
-- `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
-- `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'current_repository_appstate_contract_passes or render_projection_runtime_uses_no_compatibility_shim or runtime_generation_domain_startup_requires_projection_note_for_coverage_only or appstate_transition_accessor_fails_closed_on_invalid_metadata'`
-- `git diff --check`
+Explicit in-scope inventory for the panel-generation invalidation family:
+- Source-of-truth/task tracking:
+  - `docs/ROADMAP.md` Task 1 status/acceptance line
+  - `docs/ARCHITECTURE.md` panel-generation / fail-closed restore contract text
+  - `docs/SPECIFICATION.md` canonical restore and generation-validation text
+  - `.agent/handoffs/prompt.1.txt` (this tracked checkpoint)
+  - `.agent/handoffs/audit.current.txt`
+  - `.agent/handoffs/audit.task-1.txt`
+- Authoritative runtime helper surface:
+  - `src/ui/appstate_panel.c`
+    - `AppStateCommitPanelGeneration`
+    - `AppStateRestorePanelGeneration`
+    - `AppStateCommitPanelFileSelection` (existing model that already advances generation)
+    - `AppStateCommitPanelTreeSelection`
+    - `AppStateCommitPanelFileViewport`
+    - `AppStateCommitPanelFileAnchor`
+    - `AppStateCommitPanelTreeViewport`
+- Direct generation-preserving restore/copy seams that must be audited alongside the helper fix:
+  - `src/ui/panel_anchor.c`
+    - `PositionPanelAtIndex`
+    - `RestorePanelViewportSnapshot`
+    - `RestorePanelTreeViewportSnapshot`
+    - `DonatePanelState`
+  - `src/cmd/log.c`
+    - `RestorePanelFileSelection`
+    - tree restore path that reapplies `saved_tree_panel_generation`
+  - `src/ui/split_transition.c`
+    - split-collapse path that restores preserved tree state with `source_panel_generation`
+- Adjacent caller surfaces to reconcile after the helper fix:
+  - `src/ui/dir_nav.c`
+  - `src/ui/file_nav.c`
+  - `src/ui/file_list.c`
+  - `src/ui/ctrl_dir.c`
+  - `src/ui/ctrl_file.c`
+  - `src/ui/ctrl_file_ops.c`
+  - `src/ui/dir_ops.c`
+  - `src/ui/volume_menu.c`
+  - `src/core/init.c`
+  - `src/core/volume.c`
+  - `src/ui/f2_picker.c`
+  - Intention: most should remain unchanged if the authoritative helpers own the generation bump and the explicit generation-preserving seams stay correct.
+- Directly affected tests/guards:
+  - `tests/test_appstate_contract_guard.py`
+  - `tests/test_dir_window_dispatch_regressions.py`
+  - `scripts/check_appstate_contract.py`
+
+Bug reproducer and adjacent failure surfaces:
+- Reproducer path: `AppStateCommitPanelTreeSelection`, `AppStateCommitPanelTreeViewport`, `AppStateCommitPanelFileViewport`, and `AppStateCommitPanelFileAnchor` currently mutate panel-local restore-relevant state without advancing `panel->panel_generation`.
+- Shared root-cause surfaces: restore code in `src/ui/panel_anchor.c` and `src/cmd/log.c` compares saved-vs-current panel generations to decide whether a snapshot is stale, so helper-only mutations can leave stale snapshots appearing current.
+- Adjacent failure surfaces: navigation/normalization paths that call only those helpers (`dir_nav`, `file_nav`, `volume_menu`, `ctrl_dir`, `ctrl_file`, `dir_ops`, `file_list`, split preserve/donate flows) may all inherit the same stale-snapshot risk until the helper boundary is corrected.
+
+Planned closure reconciliation for this family:
+- `docs/ROADMAP.md`: addressed; Task 1 status is reset to `In Progress` while the acceptance-critical fix is active on a non-main branch.
+- `docs/ARCHITECTURE.md`: intentionally unchanged; the documented contract was already correct and the runtime now conforms to it.
+- `docs/SPECIFICATION.md`: intentionally unchanged; the documented restore/generation rules were already correct and the runtime now conforms to them.
+- `src/ui/appstate_panel.c`: addressed; the authoritative tree selection, tree viewport, file viewport, and file anchor helpers now validate and advance `panel.panel_generation`.
+- `src/ui/panel_anchor.c`: addressed; tree viewport positioning/restore now rely on the authoritative helper-owned generation bump instead of a duplicate manual increment.
+- `src/cmd/log.c`: addressed; restore-only file-anchor materialization now restores `panel_generation` after replaying saved file state.
+- `src/ui/split_transition.c`: intentionally unchanged; its explicit `AppStateRestorePanelGeneration(...)` reconciliation remains sufficient after the helper-owned bump.
+- Adjacent caller surfaces listed above: intentionally unchanged; the centralized helper fix covers their panel-generation behavior without further call-site edits.
+- `tests/test_appstate_contract_guard.py`: addressed; focused helper/restore guard coverage now requires the authoritative helpers to own panel-generation advances.
+- `tests/test_dir_window_dispatch_regressions.py`: addressed; restore-generation guard coverage now requires helper-owned invalidation and no duplicate panel-anchor manual bump.
+- `scripts/check_appstate_contract.py`: intentionally unchanged; it passed after the runtime/test fix without exposing registry drift.
+- Deferred `src/ui/display.c` comment cleanup family: deferred with reason above; do not mix into this batch unless the current family becomes blocked.
+
+Focused validation completed:
+- Red: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'panel_anchor_viewport_generation_commits_through_appstate_helper or panel_local_helpers_validate_generation_domain_before_writes' tests/test_dir_window_dispatch_regressions.py -k 'restore_snapshots_validate_generation_before_reuse'` failed before the runtime fix because the authoritative helpers did not validate/advance `panel.panel_generation`.
+- Green:
+  - `source .venv/bin/activate && python3 scripts/check_appstate_contract.py`
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py::test_panel_local_helpers_validate_generation_domain_before_writes tests/test_appstate_contract_guard.py::test_file_selection_anchor_generation_commits_through_appstate_helper tests/test_appstate_contract_guard.py::test_panel_anchor_viewport_generation_commits_through_appstate_helper tests/test_appstate_contract_guard.py::test_panel_file_viewport_commits_route_through_appstate_helper tests/test_appstate_contract_guard.py::test_panel_tree_viewport_commits_route_through_appstate_helper tests/test_appstate_contract_guard.py::test_panel_tree_selection_commits_route_through_appstate_helper tests/test_appstate_contract_guard.py::test_panel_generation_restores_route_through_appstate_helper tests/test_dir_window_dispatch_regressions.py::test_restore_snapshots_validate_generation_before_reuse tests/test_dir_window_dispatch_regressions.py::test_split_tab_refresh_rejects_stale_file_restore_snapshot`
+  - `make clean && make`
+  - `git diff --check`
 
 Next action:
-- Wait for PR 388 CI to age past the first 15-minute checkpoint, then inspect a compact pass/fail/running summary and either fix red or continue the wait loop.
+- Wait for PR 390 to age past the first CI checkpoint from the latest push, then recheck live status on the current head before deciding whether to fix red or continue the wait loop.
