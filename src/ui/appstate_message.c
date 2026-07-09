@@ -11,6 +11,8 @@
 BOOL AppStateCommitStatusLineError(ViewContext *ctx, const char *message) {
   if (!AppStateValidatedOwnerField("ctx.message_state"))
     return FALSE;
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
   if (!ctx || !message)
     return FALSE;
 
@@ -22,6 +24,8 @@ BOOL AppStateCommitStatusLineError(ViewContext *ctx, const char *message) {
 
 BOOL AppStateClearStatusLineError(ViewContext *ctx) {
   if (!AppStateValidatedOwnerField("ctx.message_state"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
     return FALSE;
   if (!ctx)
     return FALSE;

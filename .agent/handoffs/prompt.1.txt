@@ -1,28 +1,28 @@
 # ytreenova AppState continuation checkpoint
 
-Date: 2026-07-08
+Date: 2026-07-09
 Repo: /home/rob/ytreenova
 Roadmap item: Unified AppState Transition Machine + Projection Contract
 Persona: developer
-Current branch: appstate-volume-registry-boundary-validation
-Active PR: draft https://github.com/robkam/ytreenova/pull/384
-Last merged PR: https://github.com/robkam/ytreenova/pull/383
+Current branch: appstate-command-message-boundary-validation
+Active PR: draft https://github.com/robkam/ytreenova/pull/385
+Last merged PR: https://github.com/robkam/ytreenova/pull/384
 Supersession state: resumed by maintainer; no later stop/pause override.
 
 Current AppState batch:
-- Merged the shared-volume generation-domain fail-closed guard around the `src/ui/appstate_volume.c` helper boundary.
-- Volume payload-cache, logged-state, subtree, generation-counter, and dir-entry-list helpers now validate `generation.volume.shared-authority` before mutating shared volume authority fields.
-- Focused contract regression coverage now asserts those helper writes stay behind the documented shared-volume generation-domain gate.
-- Next adjacent batch targets the `src/core/appstate_volume_registry.c` lifecycle boundary so registry add/remove/clear helpers validate `lifecycle.volume.registry` before mutating `ctx.volumes_head`.
+- Merged the volume-registry lifecycle fail-closed guard around the `src/core/appstate_volume_registry.c` helper boundary.
+- Registry add/remove/clear helpers now validate `lifecycle.volume.registry` before mutating `ctx.volumes_head`.
+- Focused contract regression coverage now asserts those registry writes stay behind the documented lifecycle generation-domain gate.
+- Next adjacent batch targets the command/message session boundary so global search term and status-line message helpers validate `target.modal-command.session` before mutating command/message session state.
 
 Merged validation evidence:
-- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_helpers_validate_generation_domain_before_writes'`
+- Red first: `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_registry_helpers_validate_generation_domain_before_writes'`
 - Green:
-  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_helpers_validate_generation_domain_before_writes or volume_generation_commits_route_through_appstate_helper or volume_dir_entry_list_cache_commits_route_through_appstate_helper or volume_logged_state_commits_route_through_appstate_helper or directory_payload_reset_commits_route_through_appstate_helper or directory_log_flag_commits_route_through_appstate_helper or directory_matching_payload_commits_route_through_appstate_helper or directory_tagged_payload_commits_route_through_appstate_helper'`
+  - `source .venv/bin/activate && pytest -q tests/test_appstate_contract_guard.py -k 'volume_registry or select_loaded_volume_validates_volume_surfaces_before_menu_work'`
   - `make clean && make`
   - `git diff --check`
 - PR CI: green before ready/merge
-- Merge commit: `6e0acea74f53de2ecf2d53d18f831645539f54e5`
+- Merge commit: `8bdb16c2230ca6f7a055c5361f7171d453d80944`
 
 Next action:
 - Wait for the draft PR CI run to age past the first 15-minute checkpoint, then inspect compact status summary and either fix red or continue the wait loop.
