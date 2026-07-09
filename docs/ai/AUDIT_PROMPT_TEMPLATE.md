@@ -3,7 +3,7 @@
 Maintainer instructions:
 - Delete the `Audit target:` line that does not apply, then fill in the missing number on the line you keep.
 - Do not rewrite the rest unless you intentionally want custom behavior.
-- A future maintainer may have only this repository clone and its handoff files. The AI must rely on repo state, git/GitHub state, and `.agent/handoffs/` rather than any external chat history.
+- A future maintainer may have only this repository clone. The AI must rely on repo state, git/GitHub state, and any currently-present transient relay files under `.agent/handoffs/`, not on external chat history.
 
 :at c
 use skill code-auditor-gate
@@ -20,6 +20,8 @@ Primary goal:
 - Be willing to conclude PASS if the selected task/bug appears completed or fixed satisfactorily within the locked scope. Do not invent findings just to avoid a PASS result.
 
 Scope lock:
+- Before auditing the selected work item, inspect `.agent/handoffs/` for leftovers from any other task or bug.
+- If unrelated completed-work-item relay files remain and no active PR/branch still depends on them, delete them before continuing so the audit does not preserve cross-task residue.
 - Review only the merged diff for this work and the files it directly touched.
 - Automatically derive the task's canonical source of truth from the selected `Audit target:` line.
 - Cross-check only directly relevant supporting surfaces:
@@ -48,10 +50,11 @@ Pre-audit inventory rule:
   - adjacent failure surfaces that could share the same root cause,
   - any stale workaround or duplicate behavior path that may have survived the fix.
 - Do not start emitting final conclusions until this audit inventory is explicit enough to prove scope coverage.
-- Write the final audit result into both of these handoff files so later task prompts can consume it without maintainer triage:
+- If the audit FAILS, create `/home/rob/ytreenova/.agent/handoffs/` if needed and write the final audit result into both of these handoff files so the next task prompt can consume it without maintainer triage:
   - `/home/rob/ytreenova/.agent/handoffs/audit.current.txt`
   - `/home/rob/ytreenova/.agent/handoffs/audit.task-<number>.txt` for roadmap tasks or `/home/rob/ytreenova/.agent/handoffs/audit.bug-<number>.txt` for bugs.
-- Overwrite those files with the latest audit for the selected work item; repeated audits of the same task/bug must be able to replace an older verdict cleanly.
+- Overwrite those files with the latest failed audit for the selected work item; repeated FAIL audits of the same task/bug must be able to replace an older verdict cleanly.
+- If the audit PASSES and matching relay files for this work item exist, delete them before the final response unless some still-active work item explicitly depends on them.
 
 Coverage rule:
 - Audit the entire inventoried scope in one pass.
@@ -80,6 +83,10 @@ Anti-premature-pass rule:
 - If no credible in-scope defects remain after that final sweep, say so clearly and return PASS without forcing another iteration.
 
 Output format:
+- The maintainer-facing final response must be exactly one of:
+  - `PASS`
+  - `FAIL saved to <handoff-path>; next use docs/ai/TASK_PROMPT_TEMPLATE.md with Work item: <same target>`
+- Write the detailed audit record into failed-audit handoff files, not into the maintainer-facing final response, unless the maintainer explicitly asks to see the findings.
 - Findings first.
 - Severity-ranked.
 - For each finding include:

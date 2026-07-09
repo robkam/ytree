@@ -52,7 +52,7 @@ Also load the matching project skill when the task calls for it:
 - Never have two active agents edit the same file at the same time.
 - Separate concurrent work by task, file set, or worktree.
 - For this repo, prefer the documented architect -> developer -> code_auditor loop over ad hoc parallel editing.
-- When the maintainer is using tracked recovery context, keep `.agent/handoffs/prompt.1.txt` current with the active unit and treat older prompt/report files as transient unless explicitly preserved.
+- When the maintainer is using relay files, keep only the minimal temporary `.agent/handoffs/` state needed for the active work item, and delete leftovers before the next task or bug begins.
 
 ## Validation and execution
 

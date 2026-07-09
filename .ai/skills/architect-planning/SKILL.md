@@ -32,9 +32,9 @@ Use this skill when the active persona is `architect`.
 - UX Economy Criteria (for interactive flows)
 
 When generating a stateless developer handoff artifact, you MUST also require:
-- developer writes `/home/rob/ytreenova/.agent/handoffs/report.<task-id>.txt`
-- developer completion reply is exactly one line:
-  `Task <task-id> completed, report in /home/rob/ytreenova/.agent/handoffs/report.<task-id>.txt`
+- developer creates only the minimal temporary relay file(s) actually needed for the active work item
+- developer deletes consumed relay files when the work item reaches a neutral stop state
+- developer completion reply is a delta-only status line with concrete evidence handles, not a hardcoded task-numbered file-path formula
 
 ## Guardrails
 

@@ -166,8 +166,8 @@ If procedural instructions appear in persona files, move them into skills and le
 
 Use this workflow when a tracked bug or task needs architect-supervised implementation.
 Prompt templates:
-- **[TASK_PROMPT_TEMPLATE.md](TASK_PROMPT_TEMPLATE.md)**: architect-led implementation entrypoint for one tracked task or bugfix. The maintainer edits only the applicable `Work item:` selector line, and the AI derives title/scope from that selector, auto-consumes matching audit handoffs if present, and drives coherent batching plus completion-proof coverage.
-- **[AUDIT_PROMPT_TEMPLATE.md](AUDIT_PROMPT_TEMPLATE.md)**: adversarial post-implementation audit entrypoint for one locked task or bugfix scope. The maintainer edits only the applicable `Audit target:` selector line, and the AI derives scope from that selector, writes the latest audit handoff files, and may return PASS when the work is already satisfactory.
+- **[TASK_PROMPT_TEMPLATE.md](TASK_PROMPT_TEMPLATE.md)**: architect-led implementation entrypoint for one tracked task or bugfix. The maintainer edits only the applicable `Work item:` selector line, and the AI derives title/scope from that selector, auto-consumes matching failed-audit relay files if present, and drives coherent batching plus completion-proof coverage.
+- **[AUDIT_PROMPT_TEMPLATE.md](AUDIT_PROMPT_TEMPLATE.md)**: adversarial post-implementation audit entrypoint for one locked task or bugfix scope. The maintainer edits only the applicable `Audit target:` selector line, and the AI derives scope from that selector, writes failed-audit relay files only when follow-up work is needed, and may return PASS when the work is already satisfactory.
 
 ##### 3.1.0.1 MCP Config Bootstrap (Recommended)
 
@@ -225,15 +225,17 @@ make qa-fuzz
     *   not fragmented into helper-by-helper or guard-by-guard micro-steps inside one boundary family unless a materially different validation path or risk split requires it,
     *   defined with an explicit coverage inventory for the in-scope files/symbols/tests/call paths before implementation starts,
     *   executed one work item at a time.
-3.  Handoff artifacts are split into:
-    *   tracked recovery checkpoint: keep the current designated live tracked handoff checkpoint in `.agent/handoffs/` current and commit it with the active unit when the maintainer is using tracked recovery context,
-    *   transient prompt/report scratch artifacts: do not commit them unless the maintainer explicitly asks to preserve them.
-4.  When tracked recovery context is active, refresh the committed live tracked handoff checkpoint before the branch's first push and again after merge/cleanup so the next autonomous resume starts from current branch and PR state.
-5.  The tracked checkpoint or unit handoff must record the current coverage inventory and its closure status whenever the mission spans multiple related surfaces or resumes across sessions.
-6.  Reusable audit handoffs live under `.agent/handoffs/`:
-    *   `audit.current.txt`: latest audit verdict for the most recently audited work item,
-    *   `audit.task-<number>.txt` / `audit.bug-<number>.txt`: latest audit verdict for that specific roadmap task or bug.
+3.  Handoff artifacts under `.agent/handoffs/` are temporary relay state for active work only:
+    *   create only the minimal files needed for the current work item,
+    *   keep them current while that work item is still active,
+    *   record the current coverage inventory and closure status in the active relay file whenever the mission spans multiple related surfaces or resumes across sessions,
+    *   before starting a new work item, delete leftovers from any older completed work item so one task or bug never inherits another item's relay residue,
+    *   delete them once the work item reaches a neutral stop state, so `.agent/handoffs/` is empty between work items.
+4.  Failed-audit relay files live under `.agent/handoffs/` only until the next follow-up task consumes them:
+    *   `audit.current.txt`: latest failed audit verdict for the most recently audited work item,
+    *   `audit.task-<number>.txt` / `audit.bug-<number>.txt`: latest failed audit verdict for that specific roadmap task or bug.
     *   When a task prompt resumes from a failed audit, the AI must read the matching audit handoff automatically and choose the next coherent defect family itself rather than requiring maintainer triage.
+5.  If `.agent/handoffs/` is absent or empty, the next mission must reconstruct from current repo state, git/GitHub state, and the selected tracker item rather than treating the missing relay as a blocker.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 
@@ -250,7 +252,7 @@ make qa-fuzz
     *   acceptance criteria,
     *   verification commands,
     *   blocker conditions,
-    *   expected completion report path (for example `/home/rob/ytreenova/.agent/handoffs/report.<id>.<round>.txt`).
+    *   any temporary relay-file requirement needed for the active work item, or explicit confirmation that no relay file is needed.
 4.  Architect status updates to maintainer must be delta-only and include concrete evidence handles.
 
 #### 3.1.4 Developer Pass (Single Unit)
@@ -314,8 +316,9 @@ make qa-fuzz
 7.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
-    *   PR title/summary and commit wording must describe concrete behavior/problem and must not rely on volatile tracker IDs alone,
-    *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
+    *   PR title/summary, commit wording, tracker-status prose, and other durable repo text must describe concrete behavior/problem and must not rely on volatile tracker IDs alone,
+    *   when durable text needs a noun phrase, use the work item's actual title or the concrete defect family/behavior; do not write temporary workflow phrasing such as `Task 1`, `Bug 216`, `this PR`, `remaining audit family`, `next slice`, or `until the rest lands`,
+    *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous, but keep any accompanying explanation durable rather than tracker-numbered,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
 8.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
@@ -341,11 +344,11 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   `ytnova ~`
     *   Manually exercise the changed behavior.
 2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
-3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).
-    *   Required before final commit: keep the designated live tracked handoff checkpoint current when tracked recovery is in use, and remove or leave untracked stale transient handoff artifacts from `.agent/handoffs/` (for example consumed `prompt.<id>.*.txt` and `report.<id>.*.txt` files) unless the maintainer explicitly asks to keep them.
+3.  **Architect/AI:** Clean stale task artifacts from the finished mission.
+    *   Required before final commit: remove consumed relay files from `.agent/handoffs/` so no completed work item leaves residue behind, unless the maintainer explicitly asks to preserve a still-needed failed-audit handoff for immediate follow-up work.
 4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
-6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.
+6.  **Architect/AI:** Choose a Conventional Commit subject autonomously unless current repo policy or the maintainer explicitly requires approval.
 7.  **Architect/AI:** Commit, push branch, and open/update a draft PR.
     *   PR title must use Conventional Commit format and describe the current atomic unit's durable aim, not a volatile task/bug number or the whole roadmap initiative.
     *   PR body should be concise: summary, scope, and local validation evidence. Do not duplicate obvious CI output or paste check transcripts into the body/comments.
