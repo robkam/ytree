@@ -80,11 +80,11 @@ void DrawAnimationStep(ViewContext *ctx, WINDOW *win) {
         c = '#';
 
 #ifdef COLOR_SUPPORT
-      wattron(win, COLOR_PAIR(CPAIR_DIR) | A_BOLD);
+      wattron(win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #endif
       mvwaddch(win, sy, sx, c);
 #ifdef COLOR_SUPPORT
-      wattroff(win, COLOR_PAIR(CPAIR_DIR) | A_BOLD);
+      wattroff(win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #endif
     } else {
       /* Reset if off-screen but close to camera to keep density high */

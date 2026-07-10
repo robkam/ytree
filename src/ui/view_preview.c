@@ -68,6 +68,12 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
     return;
 
   getmaxyx(win, max_y, max_x);
+#ifdef COLOR_SUPPORT
+  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  wattrset(win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+#else
+  wattrset(win, A_NORMAL);
+#endif
   werase(win);
 
   fd = open(filename, O_RDONLY);
@@ -282,9 +288,9 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
 
 #ifdef COLOR_SUPPORT
             if (ctx->color_enabled) {
-              wattron(win, COLOR_PAIR(CPAIR_HIGLOBAL));
+              wattrset(win, COLOR_PAIR(UI_ROLE_SEARCH_HIT));
               waddnstr(win, match, match_len);
-              wattroff(win, COLOR_PAIR(CPAIR_HIGLOBAL));
+              wattrset(win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
             } else
 #endif
             {

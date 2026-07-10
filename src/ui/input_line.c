@@ -138,10 +138,23 @@ static int normalize_prompt_escape_key(WINDOW *win, int ch) {
  *
  * Returns: The terminating key (CR or ESC).
  */
+static const UICommandStripCommand read_string_path_hint_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "browse", "F2", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+static const UICommandStripCommand read_string_help_hint_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL}};
+static const UICommandStripCommand read_string_history_hint_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+
 static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
                                  int history_type,
-                                 const char *hints_override,
+                                 const UICommandStripCommand *hints_override,
+                                 size_t hints_override_count,
                                  int (*help_callback)(ViewContext *, void *),
                                  void *help_data) {
   WINDOW *win;
@@ -164,7 +177,8 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   int mode_octal_len = 0;
   char mode_original[32] = {0};
   char mode_type = '-';
-  const char *hints;
+  const UICommandStripCommand *hints = NULL;
+  size_t hint_count = 0;
 
   /* Ensure buffer is valid */
   if (buffer == NULL)
@@ -191,12 +205,17 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   }
 
   /* Determine Key Hints */
-  if (hints_override && *hints_override) {
+  if (hints_override != NULL && hints_override_count > 0) {
     hints = hints_override;
+    hint_count = hints_override_count;
   } else if (history_type == HST_LOG || history_type == HST_PATH) {
-    hints = "(F2) browse  (Up) history  (Enter) OK  (Esc) cancel";
+    hints = read_string_path_hint_commands;
+    hint_count = sizeof(read_string_path_hint_commands) /
+                 sizeof(read_string_path_hint_commands[0]);
   } else {
-    hints = "(Up) history  (Enter) OK  (Esc) cancel";
+    hints = read_string_history_hint_commands;
+    hint_count = sizeof(read_string_history_hint_commands) /
+                 sizeof(read_string_history_hint_commands[0]);
   }
 
   /* Clearance: Clear the interaction area on stdscr first */
@@ -225,7 +244,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   UI_Dialog_Push(win, UI_TIER_FOOTER);
 
   keypad(win, TRUE);
-  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
+  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DIALOG));
   curs_set(1); /* Show cursor */
 
   while (1) {
@@ -238,8 +257,26 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
       field_width = COLS - prompt_len - 1;
 
       /* Hints */
-      PrintMenuOptions(win, hints_row, 1, (char *)hints, CPAIR_DIALOG,
-                       CPAIR_HIMENUS);
+      if (help_callback != NULL) {
+        int hint_x = 1;
+
+        UI_RenderCommandStrip(
+            win, hints_row, hint_x, read_string_help_hint_commands,
+            sizeof(read_string_help_hint_commands) /
+                sizeof(read_string_help_hint_commands[0]),
+            UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+        hint_x += UI_CommandStripVisualLength(
+            read_string_help_hint_commands,
+            sizeof(read_string_help_hint_commands) /
+                sizeof(read_string_help_hint_commands[0]));
+        if (hints != NULL && hint_count > 0)
+          hint_x += 2;
+        UI_RenderCommandStrip(win, hints_row, hint_x, hints, hint_count,
+                              UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      } else {
+        UI_RenderCommandStrip(win, hints_row, 1, hints, hint_count,
+                              UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      }
 
       /* Handle Scrolling */
       if (p < scroll_offset) {
@@ -678,15 +715,17 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
 int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel, const char *prompt,
                   char *buffer, int max_len, int history_type) {
   return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
-                               history_type, NULL, NULL, NULL);
+                               history_type, NULL, 0, NULL, NULL);
 }
 
 int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                           const char *prompt, char *buffer, int max_len,
-                          int history_type, const char *hints_override,
+                          int history_type,
+                          const UICommandStripCommand *hints_override,
+                          size_t hints_override_count,
                           int (*help_callback)(ViewContext *, void *),
                           void *help_data) {
   return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
-                               history_type, hints_override, help_callback,
-                               help_data);
+                               history_type, hints_override,
+                               hints_override_count, help_callback, help_data);
 }

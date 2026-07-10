@@ -44,8 +44,7 @@ void UI_RenderStatusLineError(ViewContext *ctx) {
 
   wmove(ctx->ctx_menu_window, 2, 0);
   wclrtoeol(ctx->ctx_menu_window);
-  PrintMenuOptions(ctx->ctx_menu_window, 2, 0, ctx->status_line_error_text,
-                   CPAIR_MENU, CPAIR_WINERR);
+  Print(ctx->ctx_menu_window, 2, 0, ctx->status_line_error_text, UI_ROLE_ERROR);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -163,10 +162,25 @@ void AboutBox(ViewContext *ctx) {
   (void)PrintMessage(ctx, version);
 }
 
+static void AppendModalMessage(char *dst, size_t dst_size, const char *src) {
+  size_t used;
+
+  if (dst == NULL || dst_size == 0)
+    return;
+  if (src == NULL)
+    src = "";
+
+  used = strlen(dst);
+  while (used + 1 < dst_size && *src != '\0')
+    dst[used++] = *src++;
+  dst[used] = '\0';
+}
+
 int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
              ...) {
   char msg_buffer[MESSAGE_LENGTH + 1];
   char final_buffer[MESSAGE_LENGTH + 1];
+  char line_buffer[32];
   va_list ap;
 
   va_start(ap, fmt);
@@ -180,20 +194,25 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
 
   MapModalWindow(ctx, "INTERNAL ERROR", "             PRESS ENTER              ",
                  MODAL_SEVERITY_ERROR);
-  (void)snprintf(final_buffer, sizeof(final_buffer),
-                 "%s*In Module \"%s\"*Line %d", msg_buffer, module, line);
+  final_buffer[0] = '\0';
+  AppendModalMessage(final_buffer, sizeof(final_buffer), msg_buffer);
+  AppendModalMessage(final_buffer, sizeof(final_buffer), "*In Module \"");
+  AppendModalMessage(final_buffer, sizeof(final_buffer), module);
+  AppendModalMessage(final_buffer, sizeof(final_buffer), "\"*Line ");
+  (void)snprintf(line_buffer, sizeof(line_buffer), "%d", line);
+  AppendModalMessage(final_buffer, sizeof(final_buffer), line_buffer);
   return PrintMessage(ctx, final_buffer);
 }
 
 static short ModalSeverityColorPair(ModalSeverity severity) {
   switch (severity) {
     case MODAL_SEVERITY_INFO:
-      return CPAIR_INFO;
+      return UI_ROLE_INFO;
     case MODAL_SEVERITY_WARNING:
-      return CPAIR_WARN;
+      return UI_ROLE_WARNING;
     case MODAL_SEVERITY_ERROR:
     default:
-      return CPAIR_ERR;
+      return UI_ROLE_ERROR;
   }
 }
 
@@ -214,12 +233,11 @@ static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
   mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3,
            ERROR_WINDOW_WIDTH - 1, ACS_RTEE);
   wattroff(ctx->ctx_error_window, A_ALTCHARSET);
-  wattrset(ctx->ctx_error_window, A_NORMAL);
 
-  wattrset(ctx->ctx_error_window, A_REVERSE | A_BLINK);
+  wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));
   MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, prompt);
-  wattrset(ctx->ctx_error_window, A_NORMAL);
   PrintErrorLine(ctx, 1, header);
+  wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));
 }
 
 static void UnmapErrorWindow(ViewContext *ctx) {

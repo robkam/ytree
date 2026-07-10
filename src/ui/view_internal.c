@@ -37,13 +37,25 @@ static struct stat fdstat;
 #define C_POSX (((cursor_pos_x % 2) != 1) ? cursor_pos_x : (cursor_pos_x - 1))
 #define CURSOR_POSX ((ctx->viewer.inhex) ? (C_POSX / 2) : cursor_pos_x)
 #define CANTX(x) ((ctx->viewer.inhex) ? (x * 2) : x)
-#define THECOLOR                                                               \
-  ((ctx->viewer.inedit) ? COLOR_PAIR(CPAIR_STATS) : COLOR_PAIR(CPAIR_DIR))
+#define THECOLOR COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)
+
+static const UICommandStripCommand view_edit_prompt_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "change edit mode", "<TAB>", NULL}};
+static const UICommandStripCommand view_readonly_prompt_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Edit hex", "E", NULL}};
+static const UICommandStripCommand view_navigation_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "NEXT", "RIGHT"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "of line", "HOME", "END"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "line", "DOWN", "UP"}};
 
 static void hex_edit(ViewContext *ctx, char *file_path,
                      const ViewerGeometry *geom);
-static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
-                         int r, long offset);
+static void printhexline(const ViewContext *ctx, WINDOW *win, char *line,
+                         char *buf, int r, long offset);
 static int append_bounded(char *dst, size_t dst_size, const char *src);
 static void update_line(ViewContext *ctx, WINDOW *win, long line);
 static void scroll_down(ViewContext *ctx, WINDOW *win);
@@ -85,8 +97,8 @@ static int append_bounded(char *dst, size_t dst_size, const char *src) {
   return 0;
 }
 
-static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
-                         int r, long offset) {
+static void printhexline(const ViewContext *ctx, WINDOW *win, char *line,
+                         char *buf, int r, long offset) {
   char aux[5];
   int line_overflow = 0;
 
@@ -129,7 +141,7 @@ static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
     waddch(win, line[i] | THECOLOR);
   for (int i = 0; i < ctx->viewer.bytes; i++)
     isprint(buf[i]) ? waddch(win, buf[i] | THECOLOR)
-                    : waddch(win, ACS_BLOCK | COLOR_PAIR(CPAIR_HIDIR));
+                    : waddch(win, ACS_BLOCK | COLOR_PAIR(UI_ROLE_SELECTION));
   return;
 }
 
@@ -204,18 +216,21 @@ static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
 
   doupdate();
 
-  Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, geom->header_y, 6,
-        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
-  PrintOptions(stdscr, geom->message_y, 0,
-               "(Edit file in hexadecimal mode)");
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT);
+  Print(stdscr, geom->message_y, 0, "(Edit file in hexadecimal mode)",
+        UI_ROLE_STATIC_TEXT);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->prompt_y, 0,
-               "(Q)uit   (^L) redraw  (<TAB>) change edit mode");
+  UI_RenderCommandStrip(
+      stdscr, geom->prompt_y, 0, view_edit_prompt_commands,
+      sizeof(view_edit_prompt_commands) / sizeof(view_edit_prompt_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->status_y, 0,
-               "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   "
-               "(DOWN)-(UP) line");
+  UI_RenderCommandStrip(
+      stdscr, geom->status_y, 0, view_navigation_commands,
+      sizeof(view_navigation_commands) / sizeof(view_navigation_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
   free(str);
   wnoutrefresh(stdscr);
@@ -235,18 +250,22 @@ static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
   }
   doupdate();
 
-  Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, geom->header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, geom->header_y, 6,
-        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
-  PrintOptions(stdscr, geom->message_y, 0,
-               "View file in hexadecimal mode");
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), UI_ROLE_DYNAMIC_TEXT);
+  Print(stdscr, geom->message_y, 0, "View file in hexadecimal mode",
+        UI_ROLE_STATIC_TEXT);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->prompt_y, 0,
-               "(Q)uit   (^L) redraw  (E)dit hex");
+  UI_RenderCommandStrip(
+      stdscr, geom->prompt_y, 0, view_readonly_prompt_commands,
+      sizeof(view_readonly_prompt_commands) /
+          sizeof(view_readonly_prompt_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, geom->status_y, 0,
-               "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   "
-               "(DOWN)-(UP) line");
+  UI_RenderCommandStrip(
+      stdscr, geom->status_y, 0, view_navigation_commands,
+      sizeof(view_navigation_commands) / sizeof(view_navigation_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
   free(str);
   wnoutrefresh(stdscr);
@@ -284,15 +303,21 @@ static void SetupViewWindow(ViewContext *ctx, const char *file_path,
   clearok(ctx->viewer.view, TRUE);
   leaveok(ctx->viewer.view, FALSE);
   /*    werase(ctx->viewer.view);*/
-  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR));
+  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   wclear(ctx->viewer.view);
   for (i = 0; i < ctx->viewer.wlines - 1; i++) {
     wmove(ctx->viewer.view, i, 0);
     wclrtoeol(ctx->viewer.view);
   }
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
   Change2View(ctx, geom, file_path);
+#ifdef COLOR_SUPPORT
+  wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   box(ctx->viewer.border, 0, 0);
+#ifdef COLOR_SUPPORT
+  wattroff(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   RefreshWindow(ctx->viewer.border);
   RefreshWindow(ctx->viewer.view);
   ctx->viewer.bytes = (ctx->viewer.wcols - 13) / 4;

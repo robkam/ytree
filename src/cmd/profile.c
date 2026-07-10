@@ -16,8 +16,6 @@
 #define FILECMD_SECTION 5
 #define DIRMAP_SECTION 6
 #define DIRCMD_SECTION 7
-#define COLORS_SECTION 8
-#define FILE_COLORS_SECTION 9
 
 typedef struct {
   char *name;
@@ -81,6 +79,7 @@ static Profile profile[] = {
     {"SEARCHCOMMAND", DEFAULT_SEARCHCOMMAND, NULL, NULL},
     {"SMALLWINDOWSKIP", DEFAULT_SMALLWINDOWSKIP, NULL, NULL},
     {"TAGGEDVIEWER", DEFAULT_TAGGEDVIEWER, NULL, NULL},
+    {"THEME", "classic-blue", NULL, NULL},
     {"TREEDEPTH", DEFAULT_TREEDEPTH, NULL, NULL},
     {"TREEDIFF", DEFAULT_TREEDIFF, NULL, NULL},
     {"UNCOMPRESS", DEFAULT_UNCOMPRESS, NULL, NULL},
@@ -92,14 +91,41 @@ static Profile profile[] = {
 
 static int Compare(const void *s1, const void *s2);
 static int ChCode(const char *s);
+static char *TrimInPlace(char *text);
+static int ProfileSectionFromHeader(const char *name);
+static BOOL ParseProfileAssignment(char *line, char **name, char **value);
+static Viewer *CloneViewerList(const Viewer *head);
+static Dirmenu *CloneDirmenuList(const Dirmenu *head);
+static Filemenu *CloneFilemenuList(const Filemenu *head);
+static FileColorRule *CloneFileColorRules(const FileColorRule *head);
+static void FreeViewerList(Viewer *head);
+static void FreeDirmenuList(Dirmenu *head);
+static void FreeFilemenuList(Filemenu *head);
+static void FreeProfileFileColorRules(FileColorRule *head);
+static void BindProfileRuntimeData(ViewContext *ctx);
+
+struct _profile_runtime_snapshot {
+  char *values[PROFILE_ENTRIES];
+  Viewer *viewer_next;
+  Dirmenu *dirmenu_next;
+  Filemenu *filemenu_next;
+  FileColorRule *file_color_rules_head;
+  char theme_file_path[PATH_LENGTH + 1];
+};
+
+static void BindProfileRuntimeData(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
+
+  ctx->profile_data = profile;
+  ctx->viewer_list = &viewer;
+  ctx->dirmenu_list = &dirmenu;
+  ctx->filemenu_list = &filemenu;
+}
 
 void FreeProfileRuntimeData(ViewContext *ctx) {
   size_t i;
-  Viewer *v, *next_v;
-  Filemenu *m, *next_m;
-  Dirmenu *d, *next_d;
-
-  (void)ctx;
+  BindProfileRuntimeData(ctx);
 
   for (i = 0; i < PROFILE_ENTRIES; ++i) {
     if (profile[i].value != NULL) {
@@ -108,31 +134,264 @@ void FreeProfileRuntimeData(ViewContext *ctx) {
     }
   }
 
-  for (v = viewer.next; v != NULL; v = next_v) {
-    next_v = v->next;
-    if (v->ext != NULL)
-      free(v->ext);
-    if (v->cmd != NULL)
-      free(v->cmd);
-    free(v);
-  }
+  FreeViewerList(viewer.next);
   viewer.next = NULL;
-
-  for (m = filemenu.next; m != NULL; m = next_m) {
-    next_m = m->next;
-    if (m->cmd != NULL)
-      free(m->cmd);
-    free(m);
-  }
+  FreeFilemenuList(filemenu.next);
   filemenu.next = NULL;
-
-  for (d = dirmenu.next; d != NULL; d = next_d) {
-    next_d = d->next;
-    if (d->cmd != NULL)
-      free(d->cmd);
-    free(d);
-  }
+  FreeDirmenuList(dirmenu.next);
   dirmenu.next = NULL;
+}
+
+
+static Viewer *CloneViewerList(const Viewer *head) {
+  Viewer *copy_head = NULL;
+  Viewer *copy_tail = NULL;
+
+  for (; head != NULL; head = head->next) {
+    Viewer *node = xmalloc(sizeof(*node));
+    node->ext = head->ext ? xstrdup(head->ext) : NULL;
+    node->cmd = head->cmd ? xstrdup(head->cmd) : NULL;
+    node->next = NULL;
+    if (copy_tail == NULL)
+      copy_head = node;
+    else
+      copy_tail->next = node;
+    copy_tail = node;
+  }
+
+  return copy_head;
+}
+
+static Dirmenu *CloneDirmenuList(const Dirmenu *head) {
+  Dirmenu *copy_head = NULL;
+  Dirmenu *copy_tail = NULL;
+
+  for (; head != NULL; head = head->next) {
+    Dirmenu *node = xmalloc(sizeof(*node));
+    node->chkey = head->chkey;
+    node->chremap = head->chremap;
+    node->cmd = head->cmd ? xstrdup(head->cmd) : NULL;
+    node->next = NULL;
+    if (copy_tail == NULL)
+      copy_head = node;
+    else
+      copy_tail->next = node;
+    copy_tail = node;
+  }
+
+  return copy_head;
+}
+
+static Filemenu *CloneFilemenuList(const Filemenu *head) {
+  Filemenu *copy_head = NULL;
+  Filemenu *copy_tail = NULL;
+
+  for (; head != NULL; head = head->next) {
+    Filemenu *node = xmalloc(sizeof(*node));
+    node->chkey = head->chkey;
+    node->chremap = head->chremap;
+    node->cmd = head->cmd ? xstrdup(head->cmd) : NULL;
+    node->next = NULL;
+    if (copy_tail == NULL)
+      copy_head = node;
+    else
+      copy_tail->next = node;
+    copy_tail = node;
+  }
+
+  return copy_head;
+}
+
+static FileColorRule *CloneFileColorRules(const FileColorRule *head) {
+  FileColorRule *copy_head = NULL;
+  FileColorRule *copy_tail = NULL;
+
+  for (; head != NULL; head = head->next) {
+    FileColorRule *node = xmalloc(sizeof(*node));
+    node->pattern = head->pattern ? xstrdup(head->pattern) : NULL;
+    node->fg = head->fg;
+    node->bg = head->bg;
+    node->pair_id = head->pair_id;
+    node->next = NULL;
+    if (copy_tail == NULL)
+      copy_head = node;
+    else
+      copy_tail->next = node;
+    copy_tail = node;
+  }
+
+  return copy_head;
+}
+
+static void FreeViewerList(Viewer *head) {
+  Viewer *next;
+
+  for (; head != NULL; head = next) {
+    next = head->next;
+    if (head->ext != NULL)
+      free(head->ext);
+    if (head->cmd != NULL)
+      free(head->cmd);
+    free(head);
+  }
+}
+
+static void FreeDirmenuList(Dirmenu *head) {
+  Dirmenu *next;
+
+  for (; head != NULL; head = next) {
+    next = head->next;
+    if (head->cmd != NULL)
+      free(head->cmd);
+    free(head);
+  }
+}
+
+static void FreeFilemenuList(Filemenu *head) {
+  Filemenu *next;
+
+  for (; head != NULL; head = next) {
+    next = head->next;
+    if (head->cmd != NULL)
+      free(head->cmd);
+    free(head);
+  }
+}
+
+static void FreeProfileFileColorRules(FileColorRule *head) {
+  FileColorRule *next;
+
+  for (; head != NULL; head = next) {
+    next = head->next;
+    if (head->pattern != NULL)
+      free(head->pattern);
+    free(head);
+  }
+}
+
+ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
+  size_t i;
+  ProfileRuntimeSnapshot *snapshot;
+
+  BindProfileRuntimeData(ctx);
+  snapshot = xmalloc(sizeof(*snapshot));
+  memset(snapshot, 0, sizeof(*snapshot));
+
+  for (i = 0; i < PROFILE_ENTRIES; ++i) {
+    if (profile[i].value != NULL)
+      snapshot->values[i] = xstrdup(profile[i].value);
+  }
+  snapshot->viewer_next = CloneViewerList(viewer.next);
+  snapshot->dirmenu_next = CloneDirmenuList(dirmenu.next);
+  snapshot->filemenu_next = CloneFilemenuList(filemenu.next);
+  if (ctx != NULL) {
+    snapshot->file_color_rules_head =
+        CloneFileColorRules((const FileColorRule *)ctx->file_color_rules_head);
+    snprintf(snapshot->theme_file_path, sizeof(snapshot->theme_file_path), "%s",
+             ctx->theme_file_path);
+  }
+
+  return snapshot;
+}
+
+void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
+                                    ProfileRuntimeSnapshot *snapshot) {
+  size_t i;
+
+  if (snapshot == NULL)
+    return;
+
+  FreeProfileRuntimeData(ctx);
+  for (i = 0; i < PROFILE_ENTRIES; ++i) {
+    profile[i].value = snapshot->values[i];
+    snapshot->values[i] = NULL;
+  }
+  viewer.next = snapshot->viewer_next;
+  snapshot->viewer_next = NULL;
+  dirmenu.next = snapshot->dirmenu_next;
+  snapshot->dirmenu_next = NULL;
+  filemenu.next = snapshot->filemenu_next;
+  snapshot->filemenu_next = NULL;
+  if (ctx != NULL) {
+    FreeProfileFileColorRules((FileColorRule *)ctx->file_color_rules_head);
+    ctx->file_color_rules_head = snapshot->file_color_rules_head;
+    snapshot->file_color_rules_head = NULL;
+    snprintf(ctx->theme_file_path, sizeof(ctx->theme_file_path), "%s",
+             snapshot->theme_file_path);
+  }
+  BindProfileRuntimeData(ctx);
+}
+
+void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot) {
+  size_t i;
+
+  if (snapshot == NULL)
+    return;
+
+  for (i = 0; i < PROFILE_ENTRIES; ++i) {
+    if (snapshot->values[i] != NULL)
+      free(snapshot->values[i]);
+  }
+  FreeViewerList(snapshot->viewer_next);
+  FreeDirmenuList(snapshot->dirmenu_next);
+  FreeFilemenuList(snapshot->filemenu_next);
+  FreeProfileFileColorRules(snapshot->file_color_rules_head);
+  free(snapshot);
+}
+
+int ValidateProfileFile(ViewContext *ctx, const char *filename) {
+  FILE *f;
+  char buffer[1024];
+  int section = NO_SECTION;
+  BOOL invalid = FALSE;
+  BOOL read_failed;
+
+  BindProfileRuntimeData(ctx);
+
+  if (filename == NULL)
+    return -1;
+
+  f = fopen(filename, "r");
+  if (f == NULL)
+    return -1;
+
+  while (fgets(buffer, sizeof(buffer), f) != NULL) {
+    char *comment;
+    char *line;
+    char *name;
+    char *value;
+
+    comment = strchr(buffer, '#');
+    if (comment != NULL)
+      *comment = '\0';
+
+    line = TrimInPlace(buffer);
+    if (line == NULL || *line == '\0')
+      continue;
+
+    if (*line == '[') {
+      section = ProfileSectionFromHeader(line);
+      if (section == -1)
+        section = NO_SECTION;
+      continue;
+    }
+
+    if (section == NO_SECTION)
+      continue;
+
+    if (!ParseProfileAssignment(line, &name, &value)) {
+      invalid = TRUE;
+      break;
+    }
+
+    (void)name;
+  }
+
+  read_failed = ferror(f) ? TRUE : FALSE;
+  fclose(f);
+  if (read_failed)
+    return -1;
+  return invalid ? 1 : 0;
 }
 
 int ReadProfile(ViewContext *ctx, const char *filename) {
@@ -147,10 +406,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
   Dirmenu *d, *new_d;
   FILE *f;
 
-  ctx->profile_data = profile;
-  ctx->viewer_list = &viewer;
-  ctx->dirmenu_list = &dirmenu;
-  ctx->filemenu_list = &filemenu;
+  BindProfileRuntimeData(ctx);
 
   FreeProfileRuntimeData(ctx);
 
@@ -188,8 +444,6 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
     for (cptr = name; *cptr && !isspace((unsigned char)*cptr) && *cptr != '=';
          cptr++)
       ;
-    if (*cptr != '=')
-      *cptr = '\0';
 
     if (*name == '[') {
       if (!strcmp(name, "[GLOBAL]"))
@@ -206,20 +460,33 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         section = DIRMAP_SECTION;
       else if (!strcmp(name, "[DIRCMD]"))
         section = DIRCMD_SECTION;
-      else if (!strcmp(name, "[COLORS]"))
-        section = COLORS_SECTION;
-      else if (!strcmp(name, "[FILE_COLORS]"))
-        section = FILE_COLORS_SECTION;
       else
         section = NO_SECTION;
 
       continue;
     }
 
-    if (section == GLOBAL_SECTION) {
-      value = strchr(buffer, '=');
-      if (value) {
+    value = cptr;
+    if (*value == '=') {
+      *value++ = '\0';
+    } else if (*value != '\0') {
+      *value++ = '\0';
+      while (*value && isspace((unsigned char)*value))
+        ++value;
+      if (*value == '=')
         *value++ = '\0';
+      else
+        value = NULL;
+    } else {
+      value = NULL;
+    }
+    if (value != NULL) {
+      while (*value && isspace((unsigned char)*value))
+        ++value;
+    }
+
+    if (section == GLOBAL_SECTION) {
+      if (value) {
         key.name = name;
         if ((p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES,
                          sizeof(*p), Compare))) {
@@ -228,34 +495,8 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
           p->value = xstrdup(value);
         }
       }
-    } else if (section == COLORS_SECTION) {
-      value = strchr(buffer, '=');
-      if (value) {
-        int fg = -1, bg = -1;
-        *value++ = '\0';
-        if (ctx->hook_parse_color) {
-          ctx->hook_parse_color(value, &fg, &bg);
-        }
-        if (fg != -1 && bg != -1 && ctx->hook_update_ui_color) {
-          ctx->hook_update_ui_color(name, fg, bg);
-        }
-      }
-    } else if (section == FILE_COLORS_SECTION) {
-      value = strchr(buffer, '=');
-      if (value) {
-        int fg = -1, bg = -1;
-        *value++ = '\0';
-        if (ctx->hook_parse_color) {
-          ctx->hook_parse_color(value, &fg, &bg);
-        }
-        if (fg != -1 && bg != -1 && ctx->hook_add_file_color_rule) {
-          ctx->hook_add_file_color_rule(ctx, name, fg, bg);
-        }
-      }
     } else if (section == MENU_SECTION) {
-      value = strchr(buffer, '=');
       if (value) {
-        *value++ = '\0';
         if (!strcmp(name, "DIR1") || !strcmp(name, "DIR2") ||
             !strcmp(name, "FILE1") || !strcmp(name, "FILE2")) {
           key.name = name;
@@ -276,9 +517,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         }
       }
     } else if (section == FILEMAP_SECTION) {
-      value = strchr(buffer, '=');
       if (value) {
-        *value++ = '\0';
         while (*value && isspace(*value))
           value++;
         n = strtok_r(name, ",", &old);
@@ -305,9 +544,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         }
       }
     } else if (section == FILECMD_SECTION) {
-      value = strchr(buffer, '=');
       if (value) {
-        *value++ = '\0';
         while (*value && isspace(*value))
           value++;
         for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
@@ -330,9 +567,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         }
       }
     } else if (section == DIRMAP_SECTION) {
-      value = strchr(buffer, '=');
       if (value) {
-        *value++ = '\0';
         while (*value && isspace(*value))
           value++;
         n = strtok_r(name, ",", &old);
@@ -359,9 +594,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         }
       }
     } else if (section == DIRCMD_SECTION) {
-      value = strchr(buffer, '=');
       if (value) {
-        *value++ = '\0';
         while (*value && isspace(*value))
           value++;
         for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
@@ -384,9 +617,7 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         }
       }
     } else if (section == VIEWER_SECTION) {
-      value = strchr(buffer, '=');
       if (value) {
-        *value++ = '\0';
         n = strtok_r(name, ",", &old);
         while (n) {
           new_v = xmalloc(sizeof(*new_v));
@@ -448,6 +679,74 @@ static int ChCode(const char *s) {
     return ((int)((*(s + 1)) & 0x1F));
   else
     return ((int)(*s));
+}
+
+static char *TrimInPlace(char *text) {
+  char *end;
+
+  if (text == NULL)
+    return NULL;
+
+  while (*text && isspace((unsigned char)*text))
+    ++text;
+
+  end = text + strlen(text);
+  while (end > text && isspace((unsigned char)end[-1]))
+    *--end = '\0';
+
+  return text;
+}
+
+static int ProfileSectionFromHeader(const char *name) {
+  if (!strcmp(name, "[GLOBAL]"))
+    return GLOBAL_SECTION;
+  if (!strcmp(name, "[VIEWER]"))
+    return VIEWER_SECTION;
+  if (!strcmp(name, "[MENU]"))
+    return MENU_SECTION;
+  if (!strcmp(name, "[FILEMAP]"))
+    return FILEMAP_SECTION;
+  if (!strcmp(name, "[FILECMD]"))
+    return FILECMD_SECTION;
+  if (!strcmp(name, "[DIRMAP]"))
+    return DIRMAP_SECTION;
+  if (!strcmp(name, "[DIRCMD]"))
+    return DIRCMD_SECTION;
+  return -1;
+}
+
+static BOOL ParseProfileAssignment(char *line, char **name, char **value) {
+  char *cptr;
+
+  if (line == NULL || name == NULL || value == NULL)
+    return FALSE;
+
+  *name = line;
+  for (cptr = *name; *cptr && !isspace((unsigned char)*cptr) && *cptr != '=';
+       cptr++)
+    ;
+  if (cptr == *name)
+    return FALSE;
+
+  *value = cptr;
+  if (**value == '=') {
+    *(*value)++ = '\0';
+  } else if (**value != '\0') {
+    *(*value)++ = '\0';
+    while (**value && isspace((unsigned char)**value))
+      ++*value;
+    if (**value == '=')
+      *(*value)++ = '\0';
+    else
+      *value = NULL;
+  } else {
+    *value = NULL;
+  }
+  if (*value == NULL)
+    return FALSE;
+  while (**value && isspace((unsigned char)**value))
+    ++*value;
+  return TRUE;
 }
 
 static int Compare(const void *s1, const void *s2) {

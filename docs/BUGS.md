@@ -237,7 +237,7 @@ Ordering policy (for all editors, including AI editors):
     *   The failing path is directory copy to a missing destination where the create-directory prompt is canceled with `No`.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.
 *   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer/help ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
-*   **Related**: `BUG-24` (footer restore consistency during input flows), `ROADMAP` Task 43 (footer/F1 context parity).
+*   **Related**: `BUG-21` (footer restore consistency during input flows), `ROADMAP` Task 43 (footer/F1 context parity).
 *   **Status**: Confirmed.
 
 ### **BUG-9.2: Prompt Footer/F1 Parity Can Hide Available Prompt Actions**
@@ -260,21 +260,21 @@ Ordering policy (for all editors, including AI editors):
 *   **Related**: `BUG-9.3` (name-text rendering contamination), `ROADMAP` Task 13 (path/message formatting hygiene).
 *   **Status**: Confirmed.
 
-### **BUG-11: Progress Spinner Can Overwrite Footer/Prompt Help Surfaces**
+### **BUG-10: Progress Spinner Can Overwrite Footer/Prompt Help Surfaces**
 *   **Description**: During long-running operations, spinner/progress rendering can overwrite footer/prompt help text instead of using a non-obtrusive status area.
 *   **Impact**: Hides available actions and makes active workflows look unstable or hung.
 *   **Remediation**: Preserve footer/prompt/F1 ownership during progress updates. Render progress in a dedicated non-obtrusive status surface, and degrade to a compact indicator when space is constrained rather than overwriting help text.
 *   **Related**: `ROADMAP` Task 20 (progress indicators), `ROADMAP` Task 43 (footer/F1 parity contract).
 *   **Status**: Confirmed.
 
-### **BUG-12: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**
+### **BUG-11: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**
 *   **Description**: The first rename-target prompt in `Copy`, `Move`, and `PathCopy` can appear as `COPY: <source> <edited_target>` (and equivalents) without explicit `AS:` labeling, making source vs new-name intent ambiguous.
 *   **Impact**: Increases wrong-target risk and slows high-frequency copy/move workflows because users must infer prompt semantics from field behavior.
 *   **Remediation**: Make rename intent explicit in prompt text for all three flows (for example `COPY: <source> AS: <target>`), keep one-flow interaction depth, and keep destination-dir prompt behavior unchanged. Add focused regression coverage for prompt text/flow parity in `Copy`, `Move`, and `PathCopy`. Keep `F1` help, manpage/USAGE text, and specification wording synchronized with final prompt contract.
 *   **Related**: `ROADMAP` Task 42 (prompt/help clarity).
 *   **Status**: Confirmed.
 
-### **BUG-15: File-View Focus Leak After Parent Jump (`\\`)**
+### **BUG-12: File-View Focus Leak After Parent Jump (`\\`)**
 *   **Description**: After entering parent-directory context from file view using `\\`, navigation keys affect the directory pane before explicit mode switch.
 *   **Findings**:
     *   Arrow keys can change adjacent directory selection while the user is still in file view.
@@ -283,70 +283,70 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Keep navigation scope in the file list after `\\` parent jump and require explicit `Enter` transition before directory-pane navigation is allowed.
 *   **Status**: Confirmed.
 
-### **BUG-16: Zoom/Split State Corruption After Parent/View Toggles**
+### **BUG-13: Zoom/Split State Corruption After Parent/View Toggles**
 *   **Description**: After a sequence involving show-all, repeated view-mode toggles, parent jump (`\\`), and another view toggle, the UI exits the expected zoomed state and shows an empty small pane.
 *   **Findings**:
     *   Layout unexpectedly switches back to tree + small window.
     *   Small window can become empty instead of preserving the current context.
 *   **Impact**: Breaks predictable navigation flow and increases risk of accidental context loss.
 *   **Remediation**: Preserve active zoom/view state across parent-jump and view-toggle transitions; prevent empty-pane state in this flow.
-*   **Related**: `BUG-15` (same focus/state-transition family).
+*   **Related**: `BUG-12` (same focus/state-transition family).
 *   **Status**: Confirmed.
 
-### **BUG-17: Long Lines Wrap Instead of Truncate in List Views**
+### **BUG-14: Long Lines Wrap Instead of Truncate in List Views**
 *   **Description**: Long entries wrap to additional rows instead of truncating in single-row list rendering contexts (reported in `^f` small-window flow and dir/tree list views).
 *   **Impact**: Breaks scanability, corrupts row alignment, and causes ambiguous cursor context in navigation-heavy views.
 *   **Remediation**: Enforce truncate/clipping semantics for list-row rendering in these views and add regression tests that fail on wrapping behavior.
 *   **Status**: Confirmed.
 
-### **BUG-18: Intermittent Showall/Global Filter Can Hide Matching Files**
+### **BUG-15: Intermittent Showall/Global Filter Can Hide Matching Files**
 *   **Description**: In intermittent edge-case `Showall/Global` + filter combinations, directories can show no files even when matching files exist.
 *   **Impact**: Breaks trust in filter correctness and can make users miss valid results.
 *   **Remediation**: Capture a minimal deterministic repro and add regression coverage; verify file-list build/count/filter logic remains consistent in `Showall/Global` contexts with active filters.
 *   **Status**: Confirmed.
 
-### **BUG-19: Directory Copy Prompt Does Not Clearly State Recursive Behavior**
+### **BUG-16: Directory Copy Prompt Does Not Clearly State Recursive Behavior**
 *   **Description**: Directory copy flow prompt text is not explicit enough that directory copy is recursive, so users cannot reliably predict whether descendants are included.
 *   **Impact**: Creates avoidable trust/friction issues in backup-style workflows and increases accidental over-copy concern.
 *   **Remediation**: Make directory-copy prompts/confirmation text explicit about recursive behavior and resulting destination semantics before execution.
 *   **Status**: Confirmed.
 
-### **BUG-20: Directory Copy Can Appear Successful While Producing No Effective Update**
+### **BUG-17: Directory Copy Can Appear Successful While Producing No Effective Update**
 *   **Description**: In some destination states (for example existing target or edge-case destination handling), directory-copy flow can look like it executed successfully while leaving destination contents unchanged or unclear to the user.
 *   **Impact**: High wrong-assurance risk for repeat backup workflows where users expect an update on each run.
 *   **Remediation**: Report explicit copy outcome (`updated`, `skipped`, `destination exists`, or error) and never leave no-op outcomes ambiguous. Add regression coverage for existing-destination and missing-parent edge paths.
 *   **Status**: Confirmed.
 
-### **BUG-21: Archive Mutations Do Not Show Immediate Results in Archive View**
+### **BUG-18: Archive Mutations Do Not Show Immediate Results in Archive View**
 *   **Description**: In archive mode, mutating actions (for example `rename`, `mkdir`, and copy-in flows) can succeed but the current archive listing does not reflect the change immediately.
 *   **Impact**: Creates false-failure perception and high-friction workflow confusion because users may repeat operations that already succeeded.
 *   **Remediation**: After any successful archive mutation, update the archive view in-place so users immediately see the effect in the same archive context, with no manual refresh/re-entry/relog required. Preserve cursor/selection when possible.
-*   **Related**: `BUG-20` (copy outcome clarity).
+*   **Related**: `BUG-17` (copy outcome clarity).
 *   **Status**: Confirmed.
 
-### **BUG-22: Attributes Name Truncation Can Hide File Identity**
+### **BUG-19: Attributes Name Truncation Can Hide File Identity**
 *   **Description**: In attributes/stat contexts, long file names can be truncated using a tail-only style (for example `...fy_xml_integrity.sh`) that hides too much distinguishing information and makes similarly named files harder to differentiate at a glance.
 *   **Impact**: Increases wrong-target risk during metadata workflows and slows navigation in dense directories with similar filenames.
 *   **Remediation**: Apply an identity-preserving truncation policy for filename-bearing attribute surfaces: keep static deterministic text (no marquee/auto-scroll), prefer `prefix…suffix` for plain filenames, and use suffix-focused clipping only where path-tail context is explicitly higher-value.
-*   **Related**: `BUG-17` (no-wrap/truncate contract), `ROADMAP` Task 18 (manual file-column width controls).
+*   **Related**: `BUG-14` (no-wrap/truncate contract), `ROADMAP` Task 18 (manual file-column width controls).
 *   **Status**: Confirmed.
 
-### **BUG-23: Internal Preview Down-Scroll Can Pass EOF and Repeat Last Page**
+### **BUG-20: Internal Preview Down-Scroll Can Pass EOF and Repeat Last Page**
 *   **Description**: In internal preview paths (`F7` preview and internal `^V` tagged viewer), down-scroll/page-down can continue past EOF and keep redisplaying the last page. Up-scroll behavior does not show this defect. External viewer mode stops correctly at EOF.
 *   **Impact**: Produces misleading navigation state and inconsistent behavior between internal and external viewing paths.
 *   **Remediation**: Clamp downward preview offsets at the last valid page in shared internal preview rendering paths so bottom-of-file is a hard stop.
 *   **Related**: `F7` preview and internal `^V` tagged viewer should be treated as one defect family.
 *   **Status**: Confirmed.
 
-### **BUG-24: `/` Jump Replaces Footer Help with Prompt UI**
+### **BUG-21: `/` Jump Replaces Footer Help with Prompt UI**
 *   **Description**: Pressing `/` currently switches footer content to a `Jump to:` prompt UI instead of keeping the normal footer help text visible while incremental jump runs.
 *   **Impact**: Breaks the expected inline jump flow and creates avoidable UI churn during frequent navigation.
 *   **Remediation**: Keep footer help text unchanged during `/` incremental jump and apply immediate selection movement as characters are typed (for example `/y` jumps to the first matching entry) without footer prompt takeover.
 *   **Status**: Confirmed.
 
-### **BUG-25: Color Configuration Roles Are Misrouted Across Unrelated UI Surfaces**
-*   **Description**: Current color-pair names and rendering usage do not map cleanly to visible UI roles. Changing one color key can affect unrelated surfaces, while some documented keys appear unused or hard to observe.
-*   **Manual findings (2026-06-25)**:
+### **BUG-22: Color Configuration Roles Are Misrouted Across Unrelated UI Surfaces**
+*   **Description**: Legacy color-pair names and rendering usage did not map cleanly to visible UI roles. Changing one color key could affect unrelated surfaces, while some documented keys appeared unused or hard to observe.
+*   **Historical manual findings (2026-06-25)**:
     *   Stats panel dynamic values are rendered with the same color as nearby static labels in several places, so values such as paths, filesystem names, counts, sizes, attributes, owners, and timestamps cannot be made white independently of labels.
     *   Stats section titles (`FILTER`, `VOLUME`, `VOLUME STATS`, `CURRENT DIR`/`CURRENT FILE`, `ATTRIBUTES`) are inconsistently treated as border text versus ordinary text.
     *   `WINDIR_COLOR` appears to affect the current filter value, static+dynamic text in volume stats, and current-dir totals/matches/tags text.
@@ -358,15 +358,17 @@ Ordering policy (for all editors, including AI editors):
 *   **Expected**: Color keys should map to coherent semantic roles. Borders/box lines, static labels, dynamic values, keybinding text, neutral dialog/history surfaces, prompt input fields, preview text, and footer/help text must be independently predictable enough that changing one role does not unexpectedly recolor unrelated UI surfaces.
 *   **Impact**: Makes theme tuning unreliable and confusing; users cannot produce a restrained, readable theme because color controls behave like cross-wired chimeras rather than intentional UI roles.
 *   **Remediation**:
-    *   Audit all uses of `CPAIR_*`, `WbkgdSet`, `wattr*`, and `COLOR_PAIR` in the header, stats panel, footer/prompt, F2/history, autoview/preview, and dialog paths.
+    *   Audit all uses of semantic role pairs, `WbkgdSet`, `wattr*`, and `COLOR_PAIR` in the header, stats panel, footer/prompt, F2/history, autoview/preview, and dialog paths.
     *   Split static stats labels from dynamic stats values at render call sites.
     *   Separate border/box-line roles from title text and content text.
-    *   Ensure color configuration comments describe actual behavior until the role-based theme system replaces the legacy keys.
-    *   Align with `ROADMAP` Task 60 by introducing semantic roles instead of preserving misleading legacy pair names as the long-term model.
+*   **Resolution**:
+    *   Public configuration now selects a semantic theme, while role definitions and file-type palettes live in `etc/ytnova.themes` or user theme catalogs.
+    *   Stats labels/titles, dynamic values, borders, tree guides/margins, picker/help surfaces, severity dialogs, preview search hits, header paths, viewer paths, and the clock have dedicated semantic-role routing.
+    *   Runtime color-pair vocabulary is semantic.
 *   **Related**: `ROADMAP` Task 60 (role-based theme system and restrained default palette).
-*   **Status**: Confirmed.
+*   **Status**: Resolved.
 
-### **BUG-26: Recursive Scan Interrupt Responsiveness**
+### **BUG-23: Recursive Scan Interrupt Responsiveness**
 *   **Description**: Interrupting a recursive expansion (`*`) via `ESC` is supported but requires multiple keypresses (Prompt Y/N).
 *   **Impact**: Users cannot instantly halt accidental large-branch scans.
 *   **Remediation**: Evaluate if `ESC` during `ReadTree` should immediately halt the scan once instead of prompting, given that partial results are preserved.
@@ -374,7 +376,7 @@ Ordering policy (for all editors, including AI editors):
 
 ## **Correctness, Consistency, and Naming Defects (Priority Ordered)**
 
-### **BUG-27: Configuration Template Drift (`VI_KEYS`)**
+### **BUG-24: Configuration Template Drift (`VI_KEYS`)**
 *   **Description**: Discrepancy in default visibility and documentation for `VI_KEYS`.
 *   **Findings**:
     *   `default_profile_template.h` uses `VI_KEYS=0`.
@@ -384,7 +386,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Ensure the `ytnova --init` generation path strictly matches the `etc/ytnova.conf` provided in the distribution.
 *   **Status**: Confirmed.
 
-### **BUG-28: VI Mode Key Ambiguity and Collisions**
+### **BUG-25: VI Mode Key Ambiguity and Collisions**
 *   **Description**: When `VI_KEYS=1` is enabled, lowercase navigation keys (`h/j/k/l`) collide with primary command keys without clear UI signaling.
 *   **Findings**:
     *   `j` maps to both `ACTION_MOVE_DOWN` (via `VI_KEY_DOWN`) and historically to `ACTION_LOG_VOLUME` (though currently `l/L` is the log volume key, older documentation/muscle memory remains confused).
@@ -393,14 +395,14 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Audit all `VI_KEY` remappings in `key_engine.c` and ensure the footer help lines (`display.c`) dynamically update to show the uppercase variants when `VI_KEYS=1`.
 *   **Status**: Confirmed.
 
-### **BUG-29: Incremental Search Legacy Mapping (`F12`)**
+### **BUG-26: Incremental Search Legacy Mapping (`F12`)**
 *   **Description**: `F12` is used as an alias for `/` (Incremental Search/Jump), but its presence is inconsistent in help strings and documentation.
 *   **Impact**: Confuses users about "hidden" keys.
 *   **Remediation**: Explicitly document `F12` as a legacy alias or deprecate it in favor of standard `/`.
 *   **Parity Principle:** Treat this as a documentation-parity defect class: no active keybinding may exist in runtime without consistent footer, `F1`, and manpage/USAGE coverage.
 *   **Status**: Confirmed.
 
-### **BUG-30: Misleading Tree Expansion Action Names**
+### **BUG-27: Misleading Tree Expansion Action Names**
 *   **Description**: The internal `YtreeNovaAction` names for tree expansion are swapped relative to their behavior and documentation.
 *   **Findings**:
     *   `+` key maps to `ACTION_TREE_EXPAND_ALL`, but only expands **one level**.
@@ -411,7 +413,7 @@ Ordering policy (for all editors, including AI editors):
     *   Rename `ACTION_ASTERISK` -> `ACTION_TREE_EXPAND_RECURSIVE`.
 *   **Status**: Confirmed.
 
-### **BUG-31: Intermittent Split-Brain Redraw Between Stats Box and Main Panes**
+### **BUG-28: Intermittent Split-Brain Redraw Between Stats Box and Main Panes**
 *   **Description**: Intermittently, the stats box redraw state can diverge from the main UI surfaces (`path`, `dir`, and `file` windows), leaving one surface fresh while the other appears stale/corrupted.
 *   **Impact**: Creates a visibly broken UI state and undermines trust in navigation context during active workflows.
 *   **Remediation**: Unify frame redraw ownership so stats and main panes are rendered from one layout snapshot in one update cycle, and force full-surface invalidation/redraw on resize/recovery/error paths.

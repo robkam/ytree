@@ -135,6 +135,11 @@ extern void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
                                      BOOL tagged);
 
 /* profile.c */
+typedef struct _profile_runtime_snapshot ProfileRuntimeSnapshot;
+extern ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx);
+extern void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
+                                           ProfileRuntimeSnapshot *snapshot);
+extern void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot);
 extern void SetProfileValue(const ViewContext *ctx, char *name,
                             const char *value);
 extern char *GetProfileValue(const ViewContext *ctx, const char *name);
@@ -142,8 +147,17 @@ extern char *GetUserFileAction(const ViewContext *ctx, int chkey,
                                int *pchremap);
 extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
+extern int ValidateProfileFile(ViewContext *ctx, const char *filename);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
+#ifdef COLOR_SUPPORT
+extern int ReadThemeFile(ViewContext *ctx, const char *filename,
+                         const char *theme_name);
+#else
+extern int ReadThemeFile(const ViewContext *ctx, const char *filename,
+                         const char *theme_name);
+#endif
+extern int LoadConfiguredTheme(ViewContext *ctx);
 
 /* history.c */
 extern void ReadHistory(ViewContext *ctx, const char *filename);

@@ -21,12 +21,43 @@ typedef enum {
   COMPARE_HELP_RESULTS
 } CompareHelpTopic;
 
+static const UICommandStripCommand compare_status_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "context help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+static const UICommandStripCommand compare_basis_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Size", "S", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Date", "D", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Size+date", "Z", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Hash", "H", NULL}};
+static const UICommandStripCommand compare_tag_result_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Different", "F", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Match", "M", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Newer", "N", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Older", "O", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Unique", "U", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Type-mismatch", "T", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Error", "E", NULL}};
+static const UICommandStripCommand compare_scope_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Directory only", "D", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Logged tree", "T", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "External viewer", "X", NULL}};
+static const UICommandStripCommand compare_external_scope_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Directory", "D", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Logged tree", "T", NULL}};
+static const UICommandStripCommand compare_help_close_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close help", "F1", "Esc"}};
+static const UICommandStripCommand compare_target_hint_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "browse", "F2", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+
 static void ClearComparePromptArea(ViewContext *ctx) {
   if (!ctx || !ctx->ctx_border_window)
     return;
 
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif
@@ -44,22 +75,41 @@ static void ClearComparePromptArea(ViewContext *ctx) {
   doupdate();
 }
 
-static void DrawComparePrompt(ViewContext *ctx, const char *prompt) {
-  if (!ctx || !ctx->ctx_border_window || !prompt)
+static void DrawComparePrompt(ViewContext *ctx, const char *title,
+                              const UICommandStripCommand *commands,
+                              size_t command_count) {
+  int prompt_x;
+  int status_x;
+
+  if (!ctx || !ctx->ctx_border_window || !title)
     return;
 
   ClearComparePromptArea(ctx);
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU));
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
 #else
   wattrset(ctx->ctx_border_window, A_NORMAL);
 #endif
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-  PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
-                   (char *)prompt, CPAIR_MENU, CPAIR_HIMENUS);
-  PrintMenuOptions(ctx->ctx_border_window, ctx->layout.status_y, 1,
-                   "COMMANDS  (F1) context help  (Esc) cancel", CPAIR_MENU,
-                   CPAIR_HIMENUS);
+
+  Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)title,
+        UI_ROLE_STATIC_TEXT);
+  prompt_x = 1 + StrVisualLength((char *)title);
+  if (commands != NULL && command_count > 0) {
+    prompt_x += 2;
+    UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, prompt_x,
+                          commands, command_count, UI_ROLE_STATIC_TEXT,
+                          UI_ROLE_KEYBIND);
+  }
+
+  Print(ctx->ctx_border_window, ctx->layout.status_y, 1, "COMMANDS",
+        UI_ROLE_STATIC_TEXT);
+  status_x = 1 + StrVisualLength("COMMANDS") + 2;
+  UI_RenderCommandStrip(
+      ctx->ctx_border_window, ctx->layout.status_y, status_x,
+      compare_status_commands,
+      sizeof(compare_status_commands) / sizeof(compare_status_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
 }
@@ -122,7 +172,6 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
   const char *line_0 = NULL;
   const char *line_1 = NULL;
   const char *line_2 = NULL;
-  const char *close_prompt = "(F1)/(Esc) close help";
   const char *help_lines[3];
   int height;
   int i;
@@ -144,8 +193,15 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
     if (line_len > width)
       width = line_len;
   }
-  if (StrVisualLength(close_prompt) + 4 > width)
-    width = StrVisualLength(close_prompt) + 4;
+  if (UI_CommandStripVisualLength(compare_help_close_commands,
+                                  sizeof(compare_help_close_commands) /
+                                      sizeof(compare_help_close_commands[0])) +
+          4 >
+      width)
+    width = UI_CommandStripVisualLength(compare_help_close_commands,
+                                        sizeof(compare_help_close_commands) /
+                                            sizeof(compare_help_close_commands[0])) +
+            4;
 
   width = MINIMUM(width, COLS - 4);
   width = MAXIMUM(width, 42);
@@ -159,21 +215,29 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
 
   UI_Dialog_Push(win, UI_TIER_MODAL);
   keypad(win, TRUE);
-  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
+  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));
   curs_set(0);
 
   while (1) {
     int ch;
 
     werase(win);
+#ifdef COLOR_SUPPORT
+    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
     box(win, 0, 0);
+#ifdef COLOR_SUPPORT
+    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
     mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength(title)) / 2), "%s",
               title);
     for (i = 0; i < 3; i++) {
       mvwprintw(win, 2 + i, 2, "%.*s", width - 4, help_lines[i]);
     }
-    PrintMenuOptions(win, height - 2, 2, (char *)close_prompt, CPAIR_DIALOG,
-                     CPAIR_HIMENUS);
+    UI_RenderCommandStrip(win, height - 2, 2, compare_help_close_commands,
+                          sizeof(compare_help_close_commands) /
+                              sizeof(compare_help_close_commands[0]),
+                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
     wrefresh(win);
 
     ch = WGetch(ctx, win);
@@ -194,16 +258,18 @@ static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {
   return 0;
 }
 
-static int InputCompareChoice(ViewContext *ctx, const char *prompt,
-                              const char *valid_terms, int default_choice,
+static int InputCompareChoice(ViewContext *ctx, const char *title,
+                              const UICommandStripCommand *commands,
+                              size_t command_count, const char *valid_terms,
+                              int default_choice,
                               CompareHelpTopic help_topic) {
-  if (!ctx || !prompt || !valid_terms)
+  if (!ctx || !title || !valid_terms)
     return ESC;
 
   while (1) {
     int ch;
 
-    DrawComparePrompt(ctx, prompt);
+    DrawComparePrompt(ctx, title, commands, command_count);
 
     ch = WGetch(ctx, ctx->ctx_border_window);
     if (ch < 0)
@@ -239,9 +305,6 @@ static int InputCompareChoice(ViewContext *ctx, const char *prompt,
 static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
                                    const char *default_path, char *target_path,
                                    CompareHelpTopic help_topic) {
-  static const char compare_target_hints[] =
-      "(F1) help  (F2) browse  (Up) history  (Enter) OK  (Esc) cancel";
-
   if (!ctx || !prompt || !target_path)
     return -1;
 
@@ -259,7 +322,9 @@ static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
 
   ClearHelp(ctx);
   if (UI_ReadStringWithHelp(ctx, ctx->active, prompt, target_path, PATH_LENGTH,
-                            HST_PATH, compare_target_hints,
+                            HST_PATH, compare_target_hint_commands,
+                            sizeof(compare_target_hint_commands) /
+                                sizeof(compare_target_hint_commands[0]),
                             ShowCompareHelpCallback, &help_topic) != CR) {
     return -1;
   }
@@ -276,9 +341,10 @@ static int PromptCompareBasis(ViewContext *ctx, CompareBasis *basis) {
   if (!ctx || !basis)
     return -1;
 
-  ch =
-      InputCompareChoice(ctx, "COMPARE BASIS: (S)ize (D)ate si(Z)e+date (H)ash",
-                         "SDZH", 0, COMPARE_HELP_BASIS);
+  ch = InputCompareChoice(
+      ctx, "COMPARE BASIS:", compare_basis_commands,
+      sizeof(compare_basis_commands) / sizeof(compare_basis_commands[0]), "SDZH",
+      0, COMPARE_HELP_BASIS);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -308,9 +374,9 @@ static int PromptCompareTagResult(ViewContext *ctx,
     return -1;
 
   ch = InputCompareChoice(
-      ctx,
-      "TAG FILE LIST: di(F)ferent (M)atch (N)ewer (O)lder (U)nique "
-      "(T)ype-mismatch (E)rror",
+      ctx, "TAG FILE LIST:", compare_tag_result_commands,
+      sizeof(compare_tag_result_commands) /
+          sizeof(compare_tag_result_commands[0]),
       "FMNOUTE", 0, COMPARE_HELP_RESULTS);
   if (ch == ESC || ch < 0)
     return -1;
@@ -419,10 +485,10 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
   if (!ctx || !choice)
     return -1;
 
-  ch = InputCompareChoice(ctx,
-                          "COMPARE SCOPE: (D)irectory only  logged (T)ree  "
-                          "e(X)ternal viewer",
-                          "DTX", 'D', COMPARE_HELP_SCOPE);
+  ch = InputCompareChoice(
+      ctx, "COMPARE SCOPE:", compare_scope_commands,
+      sizeof(compare_scope_commands) / sizeof(compare_scope_commands[0]), "DTX",
+      'D', COMPARE_HELP_SCOPE);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -435,9 +501,11 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
     return 0;
   }
   if (ch == 'X') {
-    int scope_ch =
-        InputCompareChoice(ctx, "EXTERNAL VIEWER: (D)irectory  logged (T)ree",
-                           "DT", 'D', COMPARE_HELP_EXTERNAL_SCOPE);
+    int scope_ch = InputCompareChoice(
+        ctx, "EXTERNAL VIEWER:", compare_external_scope_commands,
+        sizeof(compare_external_scope_commands) /
+            sizeof(compare_external_scope_commands[0]),
+        "DT", 'D', COMPARE_HELP_EXTERNAL_SCOPE);
     if (scope_ch == ESC || scope_ch < 0)
       return -1;
     *choice = (scope_ch == 'T') ? COMPARE_MENU_EXTERNAL_TREE

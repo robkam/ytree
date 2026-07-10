@@ -737,7 +737,6 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_EDIT_CONFIG:
       UI_OpenConfigProfile(ctx, dir_entry);
-      RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 

@@ -209,7 +209,15 @@ typedef struct _ViewContext ViewContext;
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 #define TAGGED_SYMBOL '*'
+#define PROFILE_CONFIG_HOME_PATH ".config/ytnova/ytnova.conf"
+#define PROFILE_CONFIG_HOME_PARENT ".config"
+#define PROFILE_CONFIG_HOME_DIR ".config/ytnova"
 #define PROFILE_FILENAME ".ytnova"
+#define THEME_CONFIG_HOME_PATH ".config/ytnova/themes.conf"
+#define THEME_FILENAME ".ytnova.themes"
+#ifndef PACKAGED_THEME_PATH
+#define PACKAGED_THEME_PATH "/usr/local/share/ytnova/ytnova.themes"
+#endif
 #define HISTORY_FILENAME ".ytnova-hst"
 #define CLOCK_INTERVAL 1
 #define DEFAULT_FILE_SPEC "*"
@@ -262,31 +270,28 @@ typedef struct _ViewContext ViewContext;
 
 /* Enums */
 
-enum UI_COLOR_PAIRS {
-  CPAIR_DIR = 1,
-  CPAIR_HIDIR,
-  CPAIR_WINDIR,
-  CPAIR_FILE,
-  CPAIR_HIFILE,
-  CPAIR_WINFILE,
-  CPAIR_STATS,
-  CPAIR_WINSTATS,
-  CPAIR_BORDERS,
-  CPAIR_HIMENUS,
-  CPAIR_MENU,
-  CPAIR_DIALOG,
-  CPAIR_WINERR,
-  CPAIR_HST,
-  CPAIR_HIHST,
-  CPAIR_WINHST,
-  CPAIR_GLOBAL,
-  CPAIR_HIGLOBAL,
-  CPAIR_INFO,
-  CPAIR_WARN,
-  CPAIR_ERR,
+typedef enum UISemanticRolePair {
+  FILE_COLOR_PAIR_UNASSIGNED = 0,
+  UI_ROLE_DYNAMIC_TEXT = 1,
+  UI_ROLE_STATIC_TEXT,
+  UI_ROLE_KEYBIND,
+  UI_ROLE_HELP,
+  UI_ROLE_PICKER,
+  UI_ROLE_SELECTION,
+  UI_ROLE_BOX_LINES,
+  UI_ROLE_TREE_LINES,
+  UI_ROLE_MARGIN,
+  UI_ROLE_DIALOG,
+  UI_ROLE_INFO,
+  UI_ROLE_WARNING,
+  UI_ROLE_ERROR,
+  UI_ROLE_SEARCH_HIT,
+  UI_ROLE_DISABLED,
   NUM_UI_COLOR_PAIRS,
   F_COLOR_PAIR_BASE = 32
-};
+} UISemanticRolePair;
+
+#define UI_VIEWER_FRAME_PAIR NUM_UI_COLOR_PAIRS
 
 enum HistoryType {
   HST_GENERAL = 0,
@@ -864,6 +869,7 @@ typedef struct {
   int (*read_group_entries)(void);
   int (*read_passwd_entries)(void);
   int (*read_profile)(ViewContext *ctx, const char *filename);
+  int (*load_theme)(ViewContext *ctx);
   void (*read_history)(ViewContext *ctx, const char *filename);
   char *(*get_profile_value)(const ViewContext *ctx, const char *name);
   BOOL (*has_user_action)(const ViewContext *ctx);
@@ -875,7 +881,11 @@ typedef struct {
   void (*wbkgd_set)(const ViewContext *ctx, WINDOW *win, chtype c);
   int (*ui_notice)(ViewContext *ctx, const char *msg);
   void (*parse_color_string)(const char *color_str, int *fg, int *bg);
+  BOOL (*parse_color_string_strict)(const char *color_str, int *fg, int *bg);
   void (*update_ui_color)(const char *name, int fg, int bg);
+  void *(*capture_ui_colors)(void);
+  void (*restore_ui_colors)(void *snapshot);
+  void (*free_ui_colors)(void *snapshot);
   void (*add_file_color_rule)(ViewContext *ctx, const char *pattern, int fg,
                               int bg);
   void (*bind_runtime_hooks)(ViewContext *ctx);
@@ -921,6 +931,7 @@ extern void UI_CoreQuitSuspendClock(ViewContext *ctx);
 extern void UI_CoreQuitShutdownTerminal(ViewContext *ctx);
 extern void CoreInitOps_RegisterCmdConfig(CoreInitOps *ops);
 extern void CoreInitOps_RegisterCmdProfile(CoreInitOps *ops);
+extern void CoreInitOps_RegisterCmdTheme(CoreInitOps *ops);
 extern void CoreInitOps_RegisterUIRuntime(CoreInitOps *ops);
 extern void CoreMainOps_Register(ViewContext *ctx);
 extern void CoreStorageOps_Register(ViewContext *ctx);
@@ -1000,6 +1011,8 @@ typedef struct _ViewContext {
   BOOL status_line_error_pending;
   char status_line_error_text[PATH_LENGTH + 1];
   char *initial_directory;
+  char configuration_file_path[PATH_LENGTH + 1];
+  char theme_file_path[PATH_LENGTH + 1];
   char *confirm_quit;
   void *file_color_rules_head;
 

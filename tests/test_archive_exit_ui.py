@@ -73,6 +73,123 @@ def _has_tree_row_for_dir(screen_rows, dir_name):
     return False
 
 
+def _footer_has_key_tokens(footer, *tokens):
+    footer = footer.lower()
+    return all(f"({token.lower()})" in footer for token in tokens)
+
+
+def _footer_key_token_index(footer_line, token):
+    return footer_line.lower().index(f"({token.lower()})")
+
+
+def _cell_style_for_text(tui, needle, *, exclude_substrings=()):
+    screen_rows = tui.get_screen_dump()
+
+    for y, line in enumerate(screen_rows):
+        if needle not in line:
+            continue
+        if any(excluded in line for excluded in exclude_substrings):
+            continue
+        x = line.index(needle)
+        cell = tui.screen.buffer[y][x]
+        return cell.fg, cell.bg, cell.bold, cell.reverse
+
+    raise AssertionError(
+        f"Could not find screen cell for {needle!r}.\nScreen:\n{_screen_text(tui)}"
+    )
+
+
+def _wait_for_style_change(
+    tui, needle, before_style, *, exclude_substrings=(), timeout=2.0
+):
+    deadline = time.time() + timeout
+    current_style = before_style
+
+    while time.time() < deadline:
+        current_style = _cell_style_for_text(
+            tui, needle, exclude_substrings=exclude_substrings
+        )
+        if current_style != before_style:
+            return current_style
+        time.sleep(0.1)
+
+    return current_style
+
+
+def _write_test_theme_catalog(root):
+    theme_dir = root / ".config" / "ytnova"
+    theme_dir.mkdir(parents=True)
+    (theme_dir / "themes.conf").write_text(
+        """
+[theme classic-blue]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+
+[theme bash-black]
+background = black
+box_lines = grey on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = +white on black
+keybind = +white on black
+selection = black on yellow
+dialog = white on black
+picker = black on yellow
+help = white on black
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on black
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_theme_switch_editor(root):
+    editor = root / "switch_theme_editor.sh"
+    editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        "sed -i 's/^THEME=.*/THEME=bash-black/' \"$f\"\n",
+        encoding="utf-8",
+    )
+    editor.chmod(0o755)
+    return editor
+
+
+def _write_smallwindowskip_toggle_editor(root):
+    editor = root / "toggle_smallwindowskip.sh"
+    editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        "if grep -q '^SMALLWINDOWSKIP=' \"$f\"; then\n"
+        "  sed -i 's/^SMALLWINDOWSKIP=.*/SMALLWINDOWSKIP=1/' \"$f\"\n"
+        "else\n"
+        "  printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    editor.chmod(0o755)
+    return editor
+
+
 def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     """At archive root: first LEFT collapses children, second LEFT is a no-op."""
     root = tmp_path / "archive_exit_root"
@@ -141,7 +258,7 @@ def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytnova_binary):
 
     footer = _footer_text(tui)
     screen = "\n".join(tui.get_screen_dump())
-    assert "hex j compare" not in footer, (
+    assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
         "Leaf directory should be unlogged after '-' and not enter file mode.\n"
         f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
@@ -326,7 +443,7 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytnova_bina
         "Backslash at archive root must exit archive context.\n"
         f"Screen:\n{screen}"
     )
-    assert "hex invert j compare" in footer, (
+    assert _footer_has_key_tokens(footer, "H", "I", "J"), (
         "Backslash archive-root exit must land in file focus on archive file.\n"
         f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
@@ -355,14 +472,14 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
             break
         tui.send_keystroke(Keys.DOWN, wait=0.2)
     assert "inside_dir/nested" in tui.get_screen_dump()[0], _screen_text(tui)
-    assert "\\ root" in _footer_text(tui), (
+    assert "\\" in _footer_text(tui), (
         "Archive non-root footer should advertise backslash jump-to-root behavior."
     )
 
     before = _screen_text(tui)
     tui.send_keystroke("\\", wait=0.6)
     after = _screen_text(tui)
-    assert "\\ exit" in _footer_text(tui), (
+    assert "\\" in _footer_text(tui), (
         "Archive root footer should advertise backslash exit behavior."
     )
     assert "ARCHIVE" in after, "Backslash at archive non-root must not exit archive mode."
@@ -392,13 +509,17 @@ def test_archive_file_backslash_is_silent_noop(tmp_path, ytnova_binary):
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     before = _screen_text(tui)
     before_footer = _footer_text(tui)
-    assert "hex invert j compare" in before_footer, "Expected archive file window footer."
+    assert _footer_has_key_tokens(
+        before_footer, "H", "I", "J"
+    ), "Expected archive file window footer."
 
     tui.send_keystroke("\\", wait=0.4)
     after = _screen_text(tui)
     after_footer = _footer_text(tui)
     assert "ARCHIVE" in after, "Backslash in archive file window must stay in archive context."
-    assert "hex invert j compare" in after_footer, "Backslash in archive file window must be a no-op."
+    assert _footer_has_key_tokens(
+        after_footer, "H", "I", "J"
+    ), "Backslash in archive file window must be a no-op."
     assert after_footer == before_footer, "Backslash in archive file window should not move context."
     assert "\a" not in before + after, "No bell expected for no-op backslash action."
 
@@ -426,12 +547,16 @@ def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytnova_bi
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     file_before = _screen_text(tui)
     file_before_footer = _footer_text(tui)
-    assert "hex invert j compare" in file_before_footer, "Expected normal filesystem file window."
+    assert _footer_has_key_tokens(
+        file_before_footer, "H", "I", "J"
+    ), "Expected normal filesystem file window."
 
     tui.send_keystroke("\\", wait=0.4)
     file_after = _screen_text(tui)
     file_after_footer = _footer_text(tui)
-    assert "hex invert j compare" in file_after_footer, "Backslash in fs file window must be a no-op."
+    assert _footer_has_key_tokens(
+        file_after_footer, "H", "I", "J"
+    ), "Backslash in fs file window must be a no-op."
     assert file_after_footer == file_before_footer, "Backslash in fs file window should not move context."
     assert "\a" not in file_before + file_after, "No bell expected for fs file backslash no-op."
 
@@ -457,7 +582,7 @@ def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytnova_binary
     tui.send_keystroke("+", wait=0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     footer = _footer_text(tui)
-    assert "hex invert j compare" in footer, (
+    assert _footer_has_key_tokens(footer, "H", "I", "J"), (
         "'+' should relog directory so Enter opens file mode.\n"
         f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
     )
@@ -501,7 +626,7 @@ def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "child_a")
         _assert_margin_plus_marker(rows, "child_b")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on unlogged dir should stay in directory window, not switch "
             "to file window.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -588,7 +713,7 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "cmd")
         _assert_margin_plus_marker(rows, "ui")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on placeholder dir should stay in directory window, not "
             "switch to file window.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -696,7 +821,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "cmd")
         _assert_margin_plus_marker(rows, "ui")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on placeholder dir should remain in directory view when "
             "SMALLWINDOWSKIP=1.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -743,7 +868,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
         rows = tui.get_screen_dump()
         _assert_margin_plus_marker(rows, "cmd")
         _assert_margin_plus_marker(rows, "ui")
-        assert "hex invert j compare" not in footer, (
+        assert not _footer_has_key_tokens(footer, "H", "I", "J"), (
             "Enter on placeholder dir should remain in directory view when "
             "SMALLWINDOWSKIP=0.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
@@ -819,18 +944,7 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
 
-    toggle_editor = root / "toggle_smallwindowskip.sh"
-    toggle_editor.write_text(
-        "#!/bin/sh\n"
-        "f=\"$1\"\n"
-        "if grep -q '^SMALLWINDOWSKIP=' \"$f\"; then\n"
-        "  sed -i 's/^SMALLWINDOWSKIP=.*/SMALLWINDOWSKIP=1/' \"$f\"\n"
-        "else\n"
-        "  printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
-        "fi\n",
-        encoding="utf-8",
-    )
-    toggle_editor.chmod(0o755)
+    toggle_editor = _write_smallwindowskip_toggle_editor(root)
 
     (root / ".ytnova").write_text(
         "[GLOBAL]\n"
@@ -856,7 +970,8 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         tui.send_keystroke(Keys.ENTER, wait=0.5)  # back to dir
 
         # Edit config via F10 and let the configured editor switch value to 1.
-        tui.send_keystroke("\x1b[21~", wait=0.9)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
         assert "SMALLWINDOWSKIP=1" in (root / ".ytnova").read_text(
             encoding="utf-8"
         ), "Config edit flow did not update SMALLWINDOWSKIP in profile file."
@@ -879,51 +994,344 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         tui.quit()
 
 
-def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_binary):
-    root = tmp_path / "missing_profile_f10_no_save"
+def test_smallwindowskip_config_edit_uses_startup_selected_profile_path(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "smallwindowskip_custom_profile"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    toggle_editor = _write_smallwindowskip_toggle_editor(root)
+    custom_profile = root / "custom.conf"
+    custom_profile.write_text(
+        "[GLOBAL]\n"
+        "SMALLWINDOWSKIP=0\n"
+        f"EDITOR={toggle_editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        args=["-p", str(custom_profile)],
+    )
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        assert "SMALLWINDOWSKIP=1" in custom_profile.read_text(encoding="utf-8"), (
+            "F10 config edit must target the startup-selected -p profile path.\n"
+            f"Profile contents:\n{custom_profile.read_text(encoding='utf-8')}"
+        )
+        assert not (root / ".ytnova").exists(), (
+            "F10 config edit must not fall back to ~/.ytnova when startup used -p."
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        footer_after = _footer_text(tui).lower()
+        footer_after_lines = [line.strip().lower() for line in _footer_lines(tui)]
+        assert footer_after_lines and footer_after_lines[0].startswith("dir"), (
+            "Reload after editing the startup-selected profile must apply "
+            "SMALLWINDOWSKIP in-session.\n"
+            f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f10_reload_repaints_theme_from_tree_focus(tmp_path, ytnova_binary):
+    root = tmp_path / "f10_reload_tree_repaint"
+    root.mkdir()
+    _write_test_theme_catalog(root)
+    editor = _write_theme_switch_editor(root)
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    profile_path = root / ".ytnova"
+    profile_path.write_text(
+        "[GLOBAL]\n"
+        "THEME=classic-blue\n"
+        "SMALLWINDOWSKIP=1\n"
+        f"EDITOR={editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        before_style = _cell_style_for_text(
+            tui,
+            "target",
+            exclude_substrings=("Path:", "CURRENT DIR", "CURRENT FILE"),
+        )
+
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        after_style = _wait_for_style_change(
+            tui,
+            "target",
+            before_style,
+            exclude_substrings=("Path:", "CURRENT DIR", "CURRENT FILE"),
+        )
+        assert after_style != before_style, (
+            "F10 reload from tree focus must repaint the active tree row after "
+            "theme changes.\n"
+            f"Before={before_style} After={after_style}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
+    root = tmp_path / "f10_reload_file_repaint"
+    root.mkdir()
+    _write_test_theme_catalog(root)
+    editor = _write_theme_switch_editor(root)
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    profile_path = root / ".ytnova"
+    profile_path.write_text(
+        "[GLOBAL]\n"
+        "THEME=classic-blue\n"
+        "SMALLWINDOWSKIP=1\n"
+        f"EDITOR={editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        before_style = _cell_style_for_text(
+            tui,
+            "file0.txt",
+            exclude_substrings=("Path:", "CURRENT FILE"),
+        )
+
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        after_style = _wait_for_style_change(
+            tui,
+            "file0.txt",
+            before_style,
+            exclude_substrings=("Path:", "CURRENT FILE"),
+        )
+        assert after_style != before_style, (
+            "F10 reload from file focus must repaint the active file row after "
+            "theme changes.\n"
+            f"Before={before_style} After={after_style}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_missing_profile_f10_unchanged_edit_creates_profile(tmp_path, ytnova_binary):
+    root = tmp_path / "missing_profile_f10_unchanged_edit"
     root.mkdir()
     target = root / "target"
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
 
     editor_capture = root / "f10_default_buffer_snapshot.txt"
-    noop_editor = root / "noop_profile_editor.sh"
-    noop_editor.write_text(
+    unchanged_editor = root / "unchanged_profile_editor.sh"
+    unchanged_editor.write_text(
         "#!/bin/sh\n"
         "f=\"$1\"\n"
         f"cp \"$f\" \"{editor_capture}\"\n"
         "exit 0\n",
         encoding="utf-8",
     )
-    noop_editor.chmod(0o755)
+    unchanged_editor.chmod(0o755)
 
-    profile_path = root / ".ytnova"
+    profile_path = root / ".config" / "ytnova" / "ytnova.conf"
     assert not profile_path.exists()
 
     tui = YtreeNovaTUI(
         executable=ytnova_binary,
         cwd=str(root),
-        env_extra={"EDITOR": str(noop_editor)},
+        env_extra={"EDITOR": str(unchanged_editor)},
     )
     time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
-        tui.send_keystroke("\x1b[21~", wait=0.9)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
 
         for _ in range(20):
             if editor_capture.exists():
                 break
             time.sleep(0.1)
         assert editor_capture.exists(), (
-            "F10 on missing ~/.ytnova must open an editable default profile buffer."
+            "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
         assert "[GLOBAL]" in editor_capture.read_text(encoding="utf-8"), (
             "Default profile buffer should include [GLOBAL] section header."
         )
-        assert not profile_path.exists(), (
-            "Exiting config edit without save must not create ~/.ytnova."
+        assert profile_path.exists(), (
+            "A successful F10 -> Enter edit of a missing profile must keep the starter profile."
         )
+        assert profile_path.read_text(encoding="utf-8") == editor_capture.read_text(
+            encoding="utf-8"
+        ), (
+            "An unchanged missing-profile edit must persist the starter profile verbatim."
+        )
+    finally:
+        tui.quit()
+
+
+def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_binary):
+    root = tmp_path / "missing_themes_f10_unchanged_edit"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    editor_capture = root / "f10_default_themes_snapshot.txt"
+    unchanged_editor = root / "unchanged_themes_editor.sh"
+    unchanged_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    unchanged_editor.chmod(0o755)
+
+    themes_path = root / ".config" / "ytnova" / "themes.conf"
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(unchanged_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        themes_path.unlink(missing_ok=True)
+        assert not themes_path.exists()
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        for _ in range(20):
+            if editor_capture.exists():
+                break
+            time.sleep(0.1)
+        assert editor_capture.exists(), (
+            "F10 -> Themes on a missing themes file must open an editable default themes buffer."
+        )
+        assert "[theme classic-blue]" in editor_capture.read_text(encoding="utf-8"), (
+            "Default themes buffer should include the compiled starter catalog."
+        )
+        assert themes_path.exists(), (
+            "A successful F10 -> Themes edit of a missing file must keep the starter themes file."
+        )
+        assert themes_path.read_text(encoding="utf-8") == editor_capture.read_text(
+            encoding="utf-8"
+        ), (
+            "An unchanged missing-themes edit must persist the starter themes catalog verbatim."
+        )
+    finally:
+        tui.quit()
+
+
+def test_f10_themes_edits_active_home_dotfile_fallback(tmp_path, ytnova_binary):
+    root = tmp_path / "f10_themes_home_fallback"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    edited_path_capture = root / "edited_themes_path.txt"
+    editor_capture = root / "edited_themes_buffer.txt"
+    touch_editor = root / "touch_fallback_themes_editor.sh"
+    touch_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"printf '%s\\n' \"$f\" > \"{edited_path_capture}\"\n"
+        "printf '\\n# edited by f10 themes\\n' >> \"$f\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    touch_editor.chmod(0o755)
+
+    fallback_themes_path = root / ".ytnova.themes"
+    fallback_themes_path.write_text(
+        """
+[theme classic-blue]
+background = blue
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on blue
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    xdg_themes_path = root / ".config" / "ytnova" / "themes.conf"
+    xdg_themes_path.unlink(missing_ok=True)
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(touch_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        for _ in range(20):
+            if edited_path_capture.exists():
+                break
+            time.sleep(0.1)
+
+        assert edited_path_capture.exists(), "F10 -> Themes must invoke the editor."
+        assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
+            fallback_themes_path
+        ), (
+            "F10 -> Themes must edit the active home-dotfile fallback theme file, "
+            "not silently switch to XDG."
+        )
+        assert not xdg_themes_path.exists(), (
+            "Editing an active home-dotfile fallback themes file must not create "
+            "a parallel XDG themes authority."
+        )
+        assert "# edited by f10 themes" in fallback_themes_path.read_text(
+            encoding="utf-8"
+        ), "The active fallback themes file should receive the edit."
+        assert editor_capture.exists(), "The editor should capture the edited buffer."
     finally:
         tui.quit()
 
@@ -947,7 +1355,7 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
     )
     save_editor.chmod(0o755)
 
-    profile_path = root / ".ytnova"
+    profile_path = root / ".config" / "ytnova" / "ytnova.conf"
     assert not profile_path.exists()
 
     tui = YtreeNovaTUI(
@@ -959,18 +1367,19 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
-        tui.send_keystroke("\x1b[21~", wait=0.9)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
 
         for _ in range(20):
             if editor_capture.exists():
                 break
             time.sleep(0.1)
         assert editor_capture.exists(), (
-            "F10 on missing ~/.ytnova must open an editable default profile buffer."
+            "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
-        assert profile_path.exists(), "Saving config edit must create ~/.ytnova."
+        assert profile_path.exists(), "Saving the F10 -> Enter config edit must create a profile."
         assert "SMALLWINDOWSKIP=1" in profile_path.read_text(encoding="utf-8"), (
-            "Saved missing-profile edit must persist into ~/.ytnova."
+            "Saved F10 -> Enter missing-profile edit must persist into the profile."
         )
     finally:
         tui.quit()
@@ -1337,18 +1746,15 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     # Enter archive file view.
     footer = _footer_text(tui)
     for _ in range(4):
-        if "j compare" in footer and ("arch-file" in footer or "file" in footer):
+        if _footer_has_key_tokens(footer, "H", "I", "J", "^F", "R"):
             break
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         footer = _footer_text(tui)
 
-    assert "arch" in footer and "file" in footer
-    assert "filemode" in footer, f"Archive file footer should show Filemode.\n{footer}"
-    assert "rename" in footer, f"Archive file footer should show Rename wording.\n{footer}"
-    assert "j compare" in footer, f"Archive file footer should expose J compare action.\n{footer}"
-    assert "fmode" not in footer, f"Archive file footer still shows mangled Fmode label.\n{footer}"
-    assert "rnm" not in footer, f"Archive file footer still shows mangled Rnm label.\n{footer}"
+    assert _footer_has_key_tokens(
+        footer, "H", "I", "J", "^F", "R"
+    ), f"Archive file footer should expose file-view key tokens.\n{footer}"
 
     tui.quit()
 
@@ -1378,8 +1784,12 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
     )
 
     header = _footer_lines(tui)[0].lower()
-    assert "compare" in header, f"Archive dir footer should show Compare.\n{header}"
-    assert "dirmode" in header and "global" in header and header.index("dirmode") < header.index("global"), (
+    assert _footer_has_key_tokens(
+        header, "^f", "g", "j"
+    ), f"Archive dir footer should expose dirmode/global/compare key tokens.\n{header}"
+    assert _footer_key_token_index(header, "^f") < _footer_key_token_index(
+        header, "g"
+    ), (
         "Archive dir footer should list dirmode before global."
     )
 

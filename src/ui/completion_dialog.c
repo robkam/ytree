@@ -66,7 +66,7 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
 
 #ifdef NO_HIGHLIGHT
     {
-      const char *suffix = (color == CPAIR_HIHST) ? " <" : "  ";
+      const char *suffix = (color == UI_ROLE_SELECTION) ? " <" : "  ";
       size_t line_len = strlen(line_ptr);
       size_t suffix_len = strlen(suffix);
       if (line_len + suffix_len + 1 <= BUFSIZ) {
@@ -76,16 +76,16 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
     WAddStr(ctx->ctx_matches_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
-    WbkgdSet(ctx, ctx->ctx_matches_window, COLOR_PAIR(color));
+    wattrset(ctx->ctx_matches_window, COLOR_PAIR(color));
 #else
-    if (color == CPAIR_HIHST)
+    if (color == UI_ROLE_SELECTION)
       wattrset(ctx->ctx_matches_window, A_REVERSE);
 #endif /* COLOR_SUPPORT */
     WAddStr(ctx->ctx_matches_window, line_ptr);
 #ifdef COLOR_SUPPORT
-    WbkgdSet(ctx, ctx->ctx_matches_window, COLOR_PAIR(CPAIR_WINHST));
+    wattrset(ctx->ctx_matches_window, COLOR_PAIR(UI_ROLE_PICKER));
 #else
-    if (color == CPAIR_HIHST)
+    if (color == UI_ROLE_SELECTION)
       wattrset(ctx->ctx_matches_window, 0);
 #endif /* COLOR_SUPPORT */
 #endif /* NO_HIGHLIGHT */
@@ -104,13 +104,13 @@ static int DisplayMatches(ViewContext *ctx) {
     if (ctx->tab_disp_begin_pos + i >= ctx->tab_total_matches)
       break;
     if (ctx->tab_disp_begin_pos + i != hilight_no)
-      PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + i, i, CPAIR_HST, 0,
+      PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + i, i, UI_ROLE_PICKER, 0,
                      &hide_left, &hide_right);
     else
       p_y = i;
   }
   if (p_y >= 0) {
-    PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + p_y, p_y, CPAIR_HIHST, 0,
+    PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + p_y, p_y, UI_ROLE_SELECTION, 0,
                    &hide_left, &hide_right);
   }
   return 0;
@@ -142,7 +142,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       if (start_x) {
         start_x = 0;
         PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                       ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                       ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                        &hide_right);
       }
     }
@@ -158,7 +158,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
     case KEY_RIGHT:
       start_x++;
       PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                     ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                     ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                      &hide_right);
       if (hide_right < 0)
         start_x--;
@@ -168,7 +168,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       if (start_x > 0)
         start_x--;
       PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                     ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                     ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                      &hide_right);
       break;
 
@@ -180,7 +180,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       } else {
         if (ctx->tab_cursor_pos + 1 < MATCHES_WINDOW_HEIGHT) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
                          &hide_right);
           if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
                                                 ctx->tab_cursor_pos + 1)) {
@@ -189,11 +189,11 @@ char *GetMatches(ViewContext *ctx, char *base) {
             break;
           }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                          &hide_right);
         } else {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
                          &hide_right);
           scroll(ctx->ctx_matches_window);
           if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos + 1,
@@ -203,7 +203,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
             break;
           }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                          &hide_right);
         }
       }
@@ -215,7 +215,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       } else {
         if (ctx->tab_cursor_pos - 1 >= 0) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
                          &hide_right);
           if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
                                                 ctx->tab_cursor_pos - 1)) {
@@ -224,11 +224,11 @@ char *GetMatches(ViewContext *ctx, char *base) {
             break;
           }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                          &hide_right);
         } else {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
                          &hide_right);
           wmove(ctx->ctx_matches_window, 0, 0);
           winsertln(ctx->ctx_matches_window);
@@ -239,7 +239,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
             break;
           }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                          &hide_right);
         }
       }
@@ -251,7 +251,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       } else {
         if (ctx->tab_cursor_pos < MATCHES_WINDOW_HEIGHT - 1) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
                          &hide_right);
           if (ctx->tab_disp_begin_pos + MATCHES_WINDOW_HEIGHT >
               ctx->tab_total_matches - 1)
@@ -266,7 +266,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
             break;
           }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                          &hide_right);
         } else {
           if (ctx->tab_disp_begin_pos + ctx->tab_cursor_pos +
@@ -295,7 +295,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       } else {
         if (ctx->tab_cursor_pos > 0) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
                          &hide_right);
           if (!AppStateCommitCompletionViewport(ctx, ctx->tab_disp_begin_pos,
                                                 0)) {
@@ -304,7 +304,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
             break;
           }
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
-                         ctx->tab_cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                         ctx->tab_cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
                          &hide_right);
         } else {
           next_begin = ctx->tab_disp_begin_pos - MATCHES_WINDOW_HEIGHT;

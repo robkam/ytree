@@ -348,37 +348,94 @@ A bordered pop-up box that overlays the center of the screen, used for:
 
 ### 6.5 Modal/Dialog Color Taxonomy Contract
 `ytnova` modal and dialog surfaces are split into two classes:
-*   **Severity class (`info`, `warn`, `error`):** Outcome/diagnostic overlays that communicate informational notices, warnings, or errors and require acknowledgment.
+*   **Severity class (`info`, `warning`, `error`):** Outcome/diagnostic overlays that communicate informational notices, warnings, or errors and require acknowledgment.
 *   **Neutral interaction class:** Selection/picker/help/history/volume/prompt-like interaction surfaces used to collect or browse input.
 
 Routing contract:
-*   Severity class MUST route through runtime-mapped severity pairs only: `INFO_COLOR` -> `CPAIR_INFO`, `WARN_COLOR` -> `CPAIR_WARN`, `ERR_COLOR` -> `CPAIR_ERR`.
-*   Neutral interaction class MUST NOT use severity pairs. Neutral dialogs/pickers use dedicated neutral palette keys (`DIALOG_COLOR` for generic neutral dialogs/prompts; history surfaces use `WINHST_COLOR`/`HST_COLOR`).
+*   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
+*   Severity modal headers, body text, frames, and prompts MUST retain the active severity role pair. They MUST NOT use raw reverse/blink styling that swaps foreground/background away from the configured severity colors.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role.
+*   Tree status-marker columns use `margin`; tree guide glyphs use `tree_lines`; tree directory names and attributes use `dynamic_text`. File-type palette rules do not style directory tree rows.
+*   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
 
 Current modal/dialog audit:
 
 | Surface | Class | Routing |
 | :--- | :--- | :--- |
-| `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `INFO_COLOR` |
-| `src/ui/error.c` `UI_Warning` | Severity `warn` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `WARN_COLOR` |
-| `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `ERR_COLOR` |
-| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
-| `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
-| `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
-| `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `WINHST_COLOR` + `HST_COLOR`/`HIHST_COLOR` |
-| `src/ui/completion_dialog.c` completion list window | Neutral interaction (selection list) | `WINHST_COLOR` + `HST_COLOR`/`HIHST_COLOR` |
+| `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `info` |
+| `src/ui/error.c` `UI_Warning` | Severity `warning` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `warning` |
+| `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `error` |
+| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `help` |
+| `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `picker` |
+| `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `dialog` |
+| `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `picker` |
+| `src/ui/completion_dialog.c` completion list window | Neutral interaction (selection list) | `picker` |
 
 ---
 
-## 7. The Virtual Filesystem (VFS)
+## 7. Theme and Color Contract
+Themes are plain-text user-editable files separate from the main configuration. The main config selects the active theme; theme files define semantic UI roles and optional file-type palette rules.
+
+### 7.1 Theme Files and Discovery
+*   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
+*   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
+*   Home-directory fallback user paths are `~/.ytnova` and `~/.ytnova.themes` when the XDG target paths cannot be used.
+*   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
+*   Built-in theme names include `classic-blue` and `bash-black`.
+*   User-facing theme files use semantic role names only.
+
+### 7.2 Semantic Roles
+Required roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `help`, `info`, `warning`, `error`, `search_hit`, and `disabled`.
+
+Role meanings:
+*   `background`: default application background.
+*   `box_lines`: panel borders, separators, dialog boxes, and window frames.
+*   `tree_lines`: tree guide glyphs.
+*   `margin`: tree/file margins and status marker columns; inherits `dynamic_text` unless explicitly set.
+*   `static_text`: fixed labels and captions.
+*   `dynamic_text`: filenames, paths, counts, sizes, timestamps, current mode values, tree names, and file names.
+*   `keybind`: footer/menu key tokens only.
+*   `selection`: active highlighted row/bar.
+*   `dialog`: neutral prompt/dialog surfaces.
+*   `picker`: selectable-list surfaces.
+*   `help`: F1/context help reading surfaces.
+*   `info`, `warning`, `error`: severity road-sign roles.
+*   `search_hit`: search/current-hit standout highlight.
+*   `disabled`: inactive or unavailable commands/options.
+
+### 7.3 Color Syntax
+Theme styles accept named colors, numeric colors, `grey`/`gray`, and bright-prefix colors such as `+red`, `+yellow`, `+white`, and `+grey`/`+gray`. Preferred examples are `+white on blue`, `white on blue`, `cyan on blue`, `black on +grey`, `black on yellow`, and `+white on red`. User-facing docs and examples use `grey`/`gray` terminology for grey shades.
+
+Every rendered style resolves internally to a complete foreground/background pair. If a role or file-type style omits a background, it inherits the active theme background appropriate for that surface.
+
+### 7.4 File-Type Palette Rules
+File-type coloring is an optional content-decoration layer owned by the active theme. If a theme has no file-type rules, ordinary filenames use `dynamic_text`.
+
+Palette rules use compact grouped lines:
+
+```text
+archives = red: tar,tgz,zip
+scripts = +cyan: sh,bash,zsh,py,pl,rb
+links = +cyan: LINK
+executables = green: EXEC
+```
+
+Rules are first-match-wins. Selectors are extension names without `*.` by default; `LINK` and `EXEC` are special selectors. Directories in the tree use theme roles and are not styled by file-type palette rules. When a rule omits a background, it inherits the active filename/window background.
+
+### 7.5 F10 Config Surface and Reload
+`F10` opens the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
+
+---
+
+## 8. The Virtual Filesystem (VFS)
 *   **Archive Integration:** Archives are treated as directories. Entering an archive logs it as a Virtual Volume. `Left Arrow` at the root of an archive "Backs Out" to the parent physical volume.
 *   **Stream Rewrite:** Modifications to archives use an atomic rewrite strategy to ensure data integrity.
 *   **Live View:** Use `inotify` (where available) for automatic refreshes. If kernel limits are hit, the system falls back to manual refresh logic safely.
 
 ---
 
-## 8. Filtering & Command Execution
+## 9. Filtering & Command Execution
 *   **Filter Stack:** Cumulative logic applies: `Filespec AND Attribute Mask AND Date/Size AND Regex`.
 *   **Grep Tagged (`^s`):** A non-destructive content filter applied to the currently tagged set.
 *   **Targeting:** In Split-Screen, Copy/Move operations in the Active Panel use the Inactive Panel's current path as the default destination.
@@ -389,7 +446,7 @@ Current modal/dialog audit:
 
 ---
 
-## 9. Safety & Integrity
+## 10. Safety & Integrity
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
@@ -397,7 +454,7 @@ Current modal/dialog audit:
 
 ---
 
-## 10. Module Organization & Architecture
+## 11. Module Organization & Architecture
 
 ### 10.1 Directory Ownership
 Every module (`.c`/`.h` pair) must reside in the directory corresponding to its architectural layer:

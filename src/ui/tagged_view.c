@@ -16,6 +16,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+static const UICommandStripCommand tagged_view_message_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "next page/file", "Space", "PgDn"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "prev page", "PgUp", NULL}};
+static const UICommandStripCommand tagged_view_prompt_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Next file", "N", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Prev file (wrap)", "P", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "line", "Up", "Down"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "of line", "Home", "End"}};
+
 static BOOL CopyBoundedStringChecked(char *dst, size_t dst_size,
                                      const char *src) {
   int written;
@@ -129,8 +139,8 @@ static void SetupTaggedViewWindow(ViewContext *ctx) {
   leaveok(ctx->viewer.view, FALSE);
 
 #ifdef COLOR_SUPPORT
-  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(CPAIR_WINDIR));
-  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
+  WbkgdSet(ctx, ctx->viewer.view, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #endif
 }
 
@@ -168,17 +178,28 @@ static void DrawTaggedViewHeader(ViewContext *ctx, const char *display_path,
            total_count, display_path ? display_path : "");
   available = (COLS > 7) ? (COLS - 7) : 1;
 
-  Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, ctx->layout.header_y, 0, "File: ", UI_ROLE_STATIC_TEXT);
   Print(stdscr, ctx->layout.header_y, 6,
-        CutPathname(clipped_header, header_buf, available), CPAIR_HIMENUS);
+        CutPathname(clipped_header, header_buf, available), UI_ROLE_DYNAMIC_TEXT);
 
-  PrintOptions(stdscr, ctx->layout.message_y, 0,
-               "(Q)uit  (Space/PgDn) next page/file  (PgUp) prev page");
-  PrintOptions(stdscr, ctx->layout.prompt_y, 0,
-               "(N)ext file  (P)rev file (wrap)  (Up/Down) line  (Home/End)");
-  PrintOptions(stdscr, ctx->layout.status_y, 0, "View tagged files");
+  UI_RenderCommandStrip(
+      stdscr, ctx->layout.message_y, 0, tagged_view_message_commands,
+      sizeof(tagged_view_message_commands) / sizeof(tagged_view_message_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  UI_RenderCommandStrip(
+      stdscr, ctx->layout.prompt_y, 0, tagged_view_prompt_commands,
+      sizeof(tagged_view_prompt_commands) / sizeof(tagged_view_prompt_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  Print(stdscr, ctx->layout.status_y, 0, "View tagged files",
+        UI_ROLE_STATIC_TEXT);
 
+#ifdef COLOR_SUPPORT
+  wattron(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   box(ctx->viewer.border, 0, 0);
+#ifdef COLOR_SUPPORT
+  wattroff(ctx->viewer.border, COLOR_PAIR(UI_VIEWER_FRAME_PAIR));
+#endif
   wnoutrefresh(stdscr);
   wnoutrefresh(ctx->viewer.border);
 }
@@ -494,8 +515,12 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
         if (strlen(canonical_internal_path) > 0) {
           char *dir_only;
 
-          snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir,
-                   canonical_internal_path);
+          if (Path_Join(t_dirname, sizeof(t_dirname), temp_dir,
+                        canonical_internal_path) != 0) {
+            UI_Warning(ctx, "Skipped long temp path*\"%s\"",
+                       canonical_internal_path);
+            continue;
+          }
           dir_only = xstrdup(t_dirname);
           dirname(dir_only);
           if (recursive_mkdir(dir_only) != 0) {
@@ -505,10 +530,18 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
             continue;
           }
           free(dir_only);
-          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir,
-                   canonical_internal_path);
+          if (Path_Join(t_filename, sizeof(t_filename), temp_dir,
+                        canonical_internal_path) != 0) {
+            UI_Warning(ctx, "Skipped long temp path*\"%s\"",
+                       canonical_internal_path);
+            continue;
+          }
         } else {
-          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
+          if (Path_Join(t_filename, sizeof(t_filename), temp_dir, fe->name) !=
+              0) {
+            UI_Warning(ctx, "Skipped long temp path*\"%s\"", fe->name);
+            continue;
+          }
         }
 
         if (ExtractArchiveNode(s->log_path, canonical_internal_path, t_filename,

@@ -620,7 +620,7 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
   helper_key =
       (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF" : "DIRDIFF";
   if (!String_HasNonWhitespace(helper)) {
-    UI_Message(ctx, "%s helper is not configured.*Set %s in ~/.ytnova.",
+    UI_Message(ctx, "%s helper is not configured.*Set %s in the main config.",
                UI_CompareFlowTypeName(flow_type), helper_key);
     return;
   }
@@ -658,7 +658,8 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
 
   if (Path_BuildCompareCommandLine(helper, source_path, target_path,
                                    command_line, sizeof(command_line)) != 0) {
-    UI_Message(ctx, "%s command is invalid or too long.*Check %s in ~/.ytnova.",
+    UI_Message(ctx, "%s command is invalid or too long.*Check %s in the main "
+                    "config.",
                helper_key, helper_key);
     return;
   }
@@ -684,7 +685,8 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
   close(start_dir_fd);
 
   if (result == -1) {
-    UI_Message(ctx, "Failed to launch compare helper.*Check %s in ~/.ytnova.",
+    UI_Message(ctx, "Failed to launch compare helper.*Check %s in the main "
+                    "config.",
                helper_key);
     return;
   }
@@ -696,7 +698,7 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
       String_GetCommandDisplayName(helper, command_name, sizeof(command_name));
       UI_Message(ctx,
                  "Compare helper not available:*\"%s\"*"
-                 "Install it or update %s in ~/.ytnova.",
+                 "Install it or update %s in the main config.",
                  command_name[0] ? command_name : helper, helper_key);
     }
   }
