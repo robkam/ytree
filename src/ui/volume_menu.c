@@ -13,10 +13,39 @@
 #include "ytnova_ui.h"
 
 static const UICommandStripCommand volume_command_strip[] = {
-    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Select", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Switch", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Up", "Down"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "switch", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "quit", "Esc", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL}};
+
+static void PaintVolumeRow(const ViewContext *ctx, WINDOW *win, int y_pos,
+                           int win_width, char *item_text, BOOL selected,
+                           BOOL active) {
+  chtype base_attr;
+  chtype item_attr;
+
+#ifdef COLOR_SUPPORT
+  if (ctx->color_enabled) {
+    base_attr = COLOR_PAIR(UI_ROLE_PICKER);
+    item_attr =
+        selected ? UISelectionAttrForBase(ctx, UI_ROLE_PICKER) : base_attr;
+  } else {
+    base_attr = 0;
+    item_attr = selected ? A_REVERSE : (active ? A_BOLD : 0);
+  }
+#else
+  (void)ctx;
+  base_attr = 0;
+  item_attr = selected ? A_REVERSE : (active ? A_BOLD : 0);
+#endif
+
+  wattrset(win, base_attr);
+  mvwhline(win, y_pos, 1, ' ', win_width - 2);
+  wmove(win, y_pos, 2);
+  wattrset(win, item_attr);
+  WAddStr(win, item_text);
+  wattrset(win, base_attr);
+}
 
 static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
   int disp_begin_pos;
@@ -125,7 +154,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
   do {
     int max_path_len;
-    int current_volume_index;
     BOOL menu_active;
     int scroll_offset;
 
@@ -137,7 +165,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
     /* Reset num_volumes and max_path_len for fresh snapshot */
     max_path_len = 0;
-    current_volume_index = -1;
     scroll_offset = 0; /* Reset scroll offset for new menu display */
 
     num_volumes = HASH_COUNT(ctx->volumes_head);
@@ -165,7 +192,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         max_path_len = len;
       }
       if (s == ctx->active->vol) {
-        current_volume_index = i;
         new_selected_index = i; // Set selected to current volume
       }
       i++;
@@ -266,23 +292,10 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         int y_pos =
             3 + j; /* Start listing from y=3, relative to visible line j */
 
-        if (actual_idx == selected_index) {
-#ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(UI_ROLE_SELECTION));
-#else
-          wattron(win, A_REVERSE);
-#endif
-        } else if (actual_idx == current_volume_index) {
-#ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(UI_ROLE_PICKER));
-#else
-          wattron(win, A_BOLD);
-#endif
-        }
-
         const char *path_to_display =
             vol_array[actual_idx]->vol_stats.log_path;
         char display_buf[PATH_LENGTH + 1];
+        char item_buf[PATH_LENGTH + 8];
 
         if (strlen(path_to_display) == 0) {
           path_to_display = "<No Path>";
@@ -294,23 +307,11 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         int max_w = win_width - 8;
         CutPathname(display_buf, path_to_display, max_w);
 
-        mvwprintw(win, y_pos, 2, "[%c] %s",
-                  (actual_idx == selected_index ? '*' : ' '), display_buf);
-
-        if (actual_idx == current_volume_index &&
-            actual_idx != selected_index) {
-#ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));
-#else
-          wattroff(win, A_BOLD);
-#endif
-        } else if (actual_idx == selected_index) {
-#ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(UI_ROLE_SELECTION));
-#else
-          wattroff(win, A_REVERSE);
-#endif
-        }
+        (void)snprintf(item_buf, sizeof(item_buf), "[%c] %s",
+                       (actual_idx == selected_index ? '*' : ' '), display_buf);
+        PaintVolumeRow(ctx, win, y_pos, win_width, item_buf,
+                       actual_idx == selected_index,
+                       vol_array[actual_idx] == ctx->active->vol);
       }
       wrefresh(win);
 

@@ -28,6 +28,11 @@ def footer_text(tui):
     for line in lines:
         normalized = re.sub(r"[()]", "", line.lower())
         normalized = re.sub(r"\s+", " ", normalized).strip()
+        nav_match = re.search(r"\b(file|tree)\s+f1\s+help\b", normalized)
+        if nav_match:
+            current_surface = "tree" if nav_match.group(1) == "file" else "file"
+            normalized = normalized[nav_match.start() :]
+            normalized = current_surface + normalized[len(nav_match.group(1)) :]
         if normalized:
             normalized_lines.append(normalized)
 
@@ -60,9 +65,15 @@ def footer_text(tui):
 
     if normalized_lines and normalized_lines[-1].startswith("tree "):
         normalized_lines.append("j tree")
+    if normalized_lines and normalized_lines[-1].startswith("file "):
+        normalized_lines.append("j file")
+
+    if any(line.startswith("file ") for line in normalized_lines):
+        if all(token in raw for token in ("(h)", "(i)", "(j)")):
+            normalized_lines.append("hex invert j compare")
 
     normalized = "\n".join(normalized_lines)
-    return raw + "\n" + normalized + "\n" + " ".join(key_tokens)
+    return normalized + "\n" + " ".join(key_tokens)
 
 
 def find_line_with_text(tui, needle):

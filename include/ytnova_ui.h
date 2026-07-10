@@ -81,6 +81,8 @@ extern void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c);
 extern void ParseColorString(const char *color_str, int *fg, int *bg);
 extern BOOL ParseColorStringStrict(const char *color_str, int *fg, int *bg);
 extern void UpdateUIColor(const char *name, int fg, int bg);
+extern chtype UISelectionAttrForBase(const ViewContext *ctx, int base_role);
+extern chtype UIKeybindAttrForBase(int overlay_role, int base_role);
 extern void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg,
                              int bg);
 extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
@@ -94,6 +96,10 @@ extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
 #define ParseColorStringStrict(color_str, fg, bg)                           \
   ((void)(color_str), (void)(fg), (void)(bg), FALSE)
 #define UpdateUIColor(name, fg, bg) ((void)(name), (void)(fg), (void)(bg))
+#define UISelectionAttrForBase(ctx, base_role)                              \
+  ((void)(ctx), (void)(base_role), A_REVERSE)
+#define UIKeybindAttrForBase(overlay_role, base_role)                       \
+  ((void)(overlay_role), (void)(base_role), A_BOLD)
 #define AddFileColorRule(ctx, pattern, fg, bg)                               \
   ((void)(ctx), (void)(pattern), (void)(fg), (void)(bg))
 #define GetFileTypeColor(ctx, fe_ptr)                                        \
@@ -438,6 +444,9 @@ extern void Nav_End(int *cursor, int *offset, int total_items, int page_height);
 
 /* vol_menu.c */
 extern int SelectLoadedVolume(ViewContext *ctx, int *return_key);
+
+/* application_menu.c */
+extern int UI_OpenApplicationsMenu(ViewContext *ctx);
 
 /* view_internal.c */
 extern int InternalView(ViewContext *ctx, char *file_path,

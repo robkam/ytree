@@ -82,6 +82,14 @@ def _footer_key_token_index(footer_line, token):
     return footer_line.lower().index(f"({token.lower()})")
 
 
+def _graceful_quit(tui, *, wait=0.8):
+    tui.send_keystroke("q", wait=wait)
+    if tui.child.isalive():
+        tui.child.close(force=True)
+    else:
+        tui.child.close()
+
+
 def _cell_style_for_text(tui, needle, *, exclude_substrings=()):
     screen_rows = tui.get_screen_dump()
 
@@ -123,39 +131,37 @@ def _write_test_theme_catalog(root):
         """
 [theme classic-blue]
 background = blue
-box_lines = cyan on blue
-tree_lines = +white on blue
+box_lines = cyan
+tree_lines = +white
 margin = dynamic_text
-static_text = white on blue
-dynamic_text = +white on blue
-keybind = +white on blue
-selection = black on +grey
-dialog = black on +grey
-picker = black on +grey
-help = white on blue
-info = +white on blue
+static_text = white
+dynamic_text = +white
+keybind = +white
+selection = black on white
+dialog = white
+picker = black on cyan
+help = white
+info = +white
 warning = black on yellow
 error = +white on red
 search_hit = black on yellow
-disabled = grey on blue
 
 [theme bash-black]
 background = black
-box_lines = grey on black
-tree_lines = white on black
+box_lines = grey
+tree_lines = white
 margin = dynamic_text
-static_text = white on black
-dynamic_text = +white on black
-keybind = +white on black
-selection = black on yellow
-dialog = white on black
-picker = black on yellow
-help = white on black
-info = +white on blue
+static_text = white
+dynamic_text = +white
+keybind = +white
+selection = black on white
+dialog = white
+picker = black on grey
+help = white
+info = white on blue
 warning = black on yellow
-error = +white on red
+error = white on red
 search_hit = black on yellow
-disabled = grey on black
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -972,9 +978,11 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         # Edit config via F10 and let the configured editor switch value to 1.
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
-        assert "SMALLWINDOWSKIP=1" in (root / ".ytnova").read_text(
-            encoding="utf-8"
-        ), "Config edit flow did not update SMALLWINDOWSKIP in profile file."
+        xdg_profile = root / ".config" / "ytnova" / "ytnova.conf"
+        assert "SMALLWINDOWSKIP=1" in xdg_profile.read_text(encoding="utf-8"), (
+            "Config edit flow should migrate the edited session into the preferred "
+            "XDG profile file."
+        )
 
         # After live apply: two ENTER presses should return to dir mode.
         tui.send_keystroke(Keys.ENTER, wait=0.5)
@@ -1068,23 +1076,14 @@ def test_f10_reload_repaints_theme_from_tree_focus(tmp_path, ytnova_binary):
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
-        before_style = _cell_style_for_text(
-            tui,
-            "target",
-            exclude_substrings=("Path:", "CURRENT DIR", "CURRENT FILE"),
-        )
+        before_style = _cell_style_for_text(tui, "Path:")
 
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
 
-        after_style = _wait_for_style_change(
-            tui,
-            "target",
-            before_style,
-            exclude_substrings=("Path:", "CURRENT DIR", "CURRENT FILE"),
-        )
+        after_style = _wait_for_style_change(tui, "Path:", before_style)
         assert after_style != before_style, (
-            "F10 reload from tree focus must repaint the active tree row after "
+            "F10 reload from tree focus must repaint the visible path header after "
             "theme changes.\n"
             f"Before={before_style} After={after_style}\n\nScreen:\n{_screen_text(tui)}"
         )
@@ -1116,23 +1115,14 @@ def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        before_style = _cell_style_for_text(
-            tui,
-            "file0.txt",
-            exclude_substrings=("Path:", "CURRENT FILE"),
-        )
+        before_style = _cell_style_for_text(tui, "Path:")
 
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
 
-        after_style = _wait_for_style_change(
-            tui,
-            "file0.txt",
-            before_style,
-            exclude_substrings=("Path:", "CURRENT FILE"),
-        )
+        after_style = _wait_for_style_change(tui, "Path:", before_style)
         assert after_style != before_style, (
-            "F10 reload from file focus must repaint the active file row after "
+            "F10 reload from file focus must repaint the visible path header after "
             "theme changes.\n"
             f"Before={before_style} After={after_style}\n\nScreen:\n{_screen_text(tui)}"
         )
@@ -1180,16 +1170,33 @@ def test_missing_profile_f10_unchanged_edit_creates_profile(tmp_path, ytnova_bin
         assert editor_capture.exists(), (
             "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
-        assert "[GLOBAL]" in editor_capture.read_text(encoding="utf-8"), (
-            "Default profile buffer should include [GLOBAL] section header."
+        profile_text = editor_capture.read_text(encoding="utf-8")
+        assert "# YtreeNova Defaults" in profile_text, (
+            "Missing-profile F10 bootstrap should keep the commented starter "
+            "profile header, not a stripped key dump."
+        )
+        assert "[GLOBAL]" in profile_text, "Profile buffer should include [GLOBAL]."
+        assert "[MENU]" in profile_text and "[DIRMAP]" in profile_text, (
+            "Missing-profile F10 bootstrap should preserve the documented "
+            "starter sections for later customization."
+        )
+        assert f"EDITOR={unchanged_editor}" in profile_text, (
+            "Missing-profile F10 bootstrap should seed from the active in-memory "
+            "runtime profile so the current EDITOR survives into the created file."
         )
         assert profile_path.exists(), (
             "A successful F10 -> Enter edit of a missing profile must keep the starter profile."
         )
-        assert profile_path.read_text(encoding="utf-8") == editor_capture.read_text(
-            encoding="utf-8"
-        ), (
+        assert profile_path.read_text(encoding="utf-8") == profile_text, (
             "An unchanged missing-profile edit must persist the starter profile verbatim."
+        )
+        assert ".jpg,.gif,.bmp,.tif,.ppm,.xpm=xv -" in profile_text, (
+            "Runtime-seeded profiles should keep grouped VIEWER extension lists so "
+            "the starter config stays tidy."
+        )
+        assert ".1,.2,.3,.4,.5,.6,.7,.8,.n=nroff -man - | less" in profile_text, (
+            "Runtime-seeded profiles should keep grouped VIEWER manpage handlers "
+            "instead of exploding every extension onto its own line."
         )
     finally:
         tui.quit()
@@ -1278,21 +1285,20 @@ def test_f10_themes_edits_active_home_dotfile_fallback(tmp_path, ytnova_binary):
         """
 [theme classic-blue]
 background = blue
-box_lines = cyan on blue
-tree_lines = +white on blue
+box_lines = cyan
+tree_lines = +white
 margin = dynamic_text
-static_text = white on blue
-dynamic_text = +white on blue
-keybind = +white on blue
-selection = black on +grey
-dialog = black on +grey
-picker = black on +grey
-help = white on blue
-info = +white on blue
+static_text = white
+dynamic_text = +white
+keybind = +white
+selection = black on white
+dialog = white
+picker = black on cyan
+help = white
+info = +white
 warning = black on yellow
 error = +white on red
 search_hit = black on yellow
-disabled = grey on blue
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -1334,6 +1340,261 @@ disabled = grey on blue
         assert editor_capture.exists(), "The editor should capture the edited buffer."
     finally:
         tui.quit()
+
+
+def test_legacy_profile_f10_migrates_to_xdg_profile(tmp_path, ytnova_binary):
+    root = tmp_path / "legacy_profile_f10_migrates_to_xdg"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    edited_path_capture = root / "f10_migrated_profile_path.txt"
+    editor_capture = root / "f10_migrated_profile_snapshot.txt"
+    migrate_editor = root / "migrate_profile_editor.sh"
+    migrate_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"printf '%s\\n' \"$f\" > \"{edited_path_capture}\"\n"
+        "printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    migrate_editor.chmod(0o755)
+
+    legacy_profile_path = root / ".ytnova"
+    legacy_profile_path.write_text(
+        "[GLOBAL]\n"
+        "TREEDEPTH=7\n"
+        f"EDITOR={migrate_editor}\n",
+        encoding="utf-8",
+    )
+    profile_path = root / ".config" / "ytnova" / "ytnova.conf"
+    assert not profile_path.exists()
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        for _ in range(20):
+            if edited_path_capture.exists():
+                break
+            time.sleep(0.1)
+
+        assert edited_path_capture.exists(), "F10 -> Enter must invoke the editor."
+        assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
+            profile_path
+        ), "F10 config edit should migrate legacy ~/.ytnova editing to the XDG profile path."
+        assert profile_path.exists(), "F10 config edit should create the XDG profile during migration."
+        profile_text = profile_path.read_text(encoding="utf-8")
+        assert "TREEDEPTH=7" in profile_text, (
+            "Migrated XDG profile should preserve existing legacy profile settings.\n"
+            f"Profile contents:\n{profile_text}"
+        )
+        assert f"EDITOR={migrate_editor}" in profile_text, (
+            "Migrated XDG profile should be seeded from the active legacy profile, "
+            "not from the packaged default template."
+        )
+        assert "SMALLWINDOWSKIP=1" in profile_text, (
+            "Edits written through F10 should persist into the migrated XDG profile."
+        )
+    finally:
+        tui.quit()
+
+
+def test_removed_legacy_profile_f10_recreates_xdg_not_dotfile(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "removed_legacy_profile_f10_recreates_xdg"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    edited_path_capture = root / "f10_removed_legacy_profile_path.txt"
+    save_editor = root / "removed_legacy_profile_editor.sh"
+    save_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"printf '%s\\n' \"$f\" > \"{edited_path_capture}\"\n"
+        "printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    save_editor.chmod(0o755)
+
+    legacy_profile_path = root / ".ytnova"
+    legacy_profile_path.write_text(
+        "[GLOBAL]\n"
+        "TREEDEPTH=7\n"
+        f"EDITOR={save_editor}\n",
+        encoding="utf-8",
+    )
+    profile_path = root / ".config" / "ytnova" / "ytnova.conf"
+    assert not profile_path.exists()
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        legacy_profile_path.unlink()
+        assert not legacy_profile_path.exists()
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+
+        for _ in range(20):
+            if edited_path_capture.exists():
+                break
+            time.sleep(0.1)
+
+        assert edited_path_capture.exists(), "F10 -> Enter must invoke the editor."
+        assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
+            profile_path
+        ), "F10 config edit should recreate the preferred XDG profile, not ~/.ytnova."
+        assert profile_path.exists(), "Saving after legacy-profile removal should create the XDG profile."
+        assert not legacy_profile_path.exists(), (
+            "F10 config edit should not recreate ~/.ytnova when the preferred "
+            "XDG profile path is available."
+        )
+        profile_text = profile_path.read_text(encoding="utf-8")
+        assert "# YtreeNova Defaults" in profile_text, (
+            "Recreated XDG profiles should keep the commented starter template, "
+            "not rewrite the file as a stripped key dump."
+        )
+        assert "[MENU]" in profile_text and "[DIRMAP]" in profile_text, (
+            "Recreated XDG profiles should keep the starter customization "
+            "sections for later editing."
+        )
+        assert "TREEDEPTH=7" in profile_text, (
+            "When the legacy profile has been removed, F10 should seed the new "
+            "XDG profile from the active in-memory runtime profile.\n"
+            f"Profile contents:\n{profile_text}"
+        )
+        assert f"EDITOR={save_editor}" in profile_text, (
+            "The recreated XDG profile should preserve the active in-memory "
+            "EDITOR setting after the legacy file has been removed."
+        )
+    finally:
+        tui.quit()
+
+
+def test_default_history_save_uses_xdg_state_home(tmp_path, ytnova_binary):
+    root = tmp_path / "default_history_uses_xdg_state_home"
+    root.mkdir()
+    (root / "file0.txt").write_text("x", encoding="utf-8")
+    (root / ".ytnova-hst").write_text("0:0:legacy-history-entry\n", encoding="utf-8")
+    state_home = root / ".statehome"
+    history_path = state_home / "ytnova" / "ytnova.hst"
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        env_extra={"XDG_STATE_HOME": str(state_home)},
+    )
+    time.sleep(0.8)
+
+    try:
+        pass
+    finally:
+        _graceful_quit(tui)
+
+    assert history_path.exists(), (
+        "Default history should persist under $XDG_STATE_HOME/ytnova/ytnova.hst."
+    )
+    assert "legacy-history-entry" in history_path.read_text(encoding="utf-8")
+    assert not (state_home / ".ytnova-hst").exists(), (
+        "Default history save should not write the legacy filename under "
+        "$XDG_STATE_HOME."
+    )
+
+
+def test_default_history_save_uses_local_state_fallback(tmp_path, ytnova_binary):
+    root = tmp_path / "default_history_uses_local_state"
+    root.mkdir()
+    (root / "file0.txt").write_text("x", encoding="utf-8")
+    (root / ".ytnova-hst").write_text("0:0:legacy-history-entry\n", encoding="utf-8")
+    history_path = root / ".local" / "state" / "ytnova" / "ytnova.hst"
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        pass
+    finally:
+        _graceful_quit(tui)
+
+    assert history_path.exists(), (
+        "When XDG_STATE_HOME is unset, history should persist under "
+        "~/.local/state/ytnova/ytnova.hst."
+    )
+    assert "legacy-history-entry" in history_path.read_text(encoding="utf-8")
+
+
+def test_custom_history_path_from_h_overrides_default_state_path(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "custom_history_path_override"
+    root.mkdir()
+    (root / "file0.txt").write_text("x", encoding="utf-8")
+    state_home = root / ".statehome"
+    custom_history = root / "custom-history.hst"
+    default_history = state_home / "ytnova" / "ytnova.hst"
+    custom_history.write_text("0:0:custom-history-entry\n", encoding="utf-8")
+    before_mtime = custom_history.stat().st_mtime_ns
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        args=["-h", str(custom_history)],
+        env_extra={"XDG_STATE_HOME": str(state_home)},
+    )
+    time.sleep(0.8)
+
+    try:
+        time.sleep(1.1)
+    finally:
+        _graceful_quit(tui)
+
+    assert custom_history.exists(), (
+        "An explicit -h history path must remain authoritative for quit-time saves."
+    )
+    assert "custom-history-entry" in custom_history.read_text(encoding="utf-8")
+    assert custom_history.stat().st_mtime_ns > before_mtime, (
+        "An explicit -h history file should be rewritten on quit rather than "
+        "falling back to the default state path."
+    )
+    assert not default_history.exists(), (
+        "An explicit -h history path must not also create the default XDG state file."
+    )
+
+
+def test_legacy_history_is_loaded_and_migrated_to_state_path(tmp_path, ytnova_binary):
+    root = tmp_path / "legacy_history_migrates_to_state"
+    root.mkdir()
+    (root / "file0.txt").write_text("x", encoding="utf-8")
+    legacy_history = root / ".ytnova-hst"
+    state_history = root / ".local" / "state" / "ytnova" / "ytnova.hst"
+    legacy_history.write_text("0:0:legacy-history-entry\n", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        pass
+    finally:
+        _graceful_quit(tui)
+
+    assert state_history.exists(), (
+        "Legacy history should migrate into the XDG state history path on quit."
+    )
+    assert "legacy-history-entry" in state_history.read_text(encoding="utf-8")
 
 
 def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):

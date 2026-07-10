@@ -624,8 +624,8 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
     screen = "\n".join(tui.get_screen_dump())
     assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
     assert "Treespec" not in screen
-    assert "Tree  F1 help" in screen
-    assert "Dir   F1 help" not in screen
+    assert "File F1 help" in screen
+    assert "Tree F1 help" not in screen
     assert "jump" in screen
     assert "dotfiles" in screen
     assert "eXecute" in screen
@@ -634,7 +634,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
     screen = "\n".join(tui.get_screen_dump())
     assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
     assert "to dir" in screen
-    assert "Dir   F1 help" in screen
+    assert "Tree F1 help" in screen
     assert "jump" in screen
     assert "dotfiles" in screen
     assert "eXecute" in screen
@@ -722,7 +722,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
         assert not src.exists()
 
     post = "\n".join(tui.get_screen_dump())
-    assert "Tree  F1 help" in post, "Footer/help row disappeared after dir copy/move"
+    assert "File F1 help" in post, "Footer/help row disappeared after dir copy/move"
     assert "Path:" in post, "Header/border row disappeared after dir copy/move"
 
     tui.quit()

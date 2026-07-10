@@ -54,6 +54,11 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
     "dialog",      "picker",    "help",        "info",
     "warning",     "error",     "search_hit",  "disabled"};
 
+static const char *legacy_starter_background_roles[] = {
+    "box_lines", "tree_lines", "static_text", "dynamic_text",
+    "keybind",   "help",       "info"};
+
+static BOOL ThemeRoleIsOptional(const char *name);
 static char *TrimInPlace(char *text);
 static BOOL SplitAssignment(char *line, char **name, char **value);
 static BOOL SectionMatches(const char *line, const char *prefix,
@@ -87,6 +92,11 @@ static BOOL ValidateThemePaletteLines(const ViewContext *ctx,
 static BOOL StageThemePaletteLines(const ViewContext *ctx,
                                    ThemePaletteLine *head,
                                    ViewContext *target_ctx);
+static BOOL SplitExplicitThemeBackground(const char *style, char *foreground,
+                                         size_t foreground_size,
+                                         char *background,
+                                         size_t background_size);
+static void NormalizeLegacyStarterThemeRoles(ThemeRoleValue *roles);
 static void FreeThemeFileColorRules(FileColorRule *rule);
 static char *ReadThemeLine(ThemeLineSource *source, char *buffer,
                            size_t buffer_size);
@@ -194,6 +204,10 @@ static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name) {
   }
 
   return NULL;
+}
+
+static BOOL ThemeRoleIsOptional(const char *name) {
+  return name != NULL && strcmp(name, "disabled") == 0;
 }
 
 static BOOL CopyThemeValueStrict(char *dest, size_t dest_size,
@@ -446,7 +460,7 @@ static BOOL ValidateThemeRoles(const ViewContext *ctx, ThemeRoleValue *roles) {
     return FALSE;
 
   for (i = 0; i < THEME_ROLE_COUNT; ++i) {
-    if (!roles[i].is_set)
+    if (!roles[i].is_set && !ThemeRoleIsOptional(roles[i].name))
       return FALSE;
   }
 
@@ -469,6 +483,8 @@ static BOOL ValidateThemeRoles(const ViewContext *ctx, ThemeRoleValue *roles) {
     int fg;
     int bg;
 
+    if (!roles[i].is_set)
+      continue;
     if (strcmp(roles[i].name, "background") == 0)
       continue;
     if (!ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
@@ -508,6 +524,127 @@ static BOOL StageThemePaletteLines(const ViewContext *ctx,
   }
 
   return TRUE;
+}
+
+static BOOL SplitExplicitThemeBackground(const char *style, char *foreground,
+                                         size_t foreground_size,
+                                         char *background,
+                                         size_t background_size) {
+  const char *on;
+  size_t foreground_length;
+
+  if (style == NULL || foreground == NULL || background == NULL ||
+      foreground_size == 0 || background_size == 0)
+    return FALSE;
+
+  on = strstr(style, " on ");
+  if (on == NULL || on == style || *(on + 4) == '\0')
+    return FALSE;
+
+  foreground_length = (size_t)(on - style);
+  if (foreground_length >= foreground_size)
+    return FALSE;
+
+  memcpy(foreground, style, foreground_length);
+  foreground[foreground_length] = '\0';
+
+  return CopyThemeValueStrict(background, background_size, on + 4);
+}
+
+static void NormalizeLegacyStarterThemeRoles(ThemeRoleValue *roles) {
+  const ThemeRoleValue *background_role;
+  char legacy_background[THEME_STYLE_LENGTH];
+  char candidate_backgrounds
+      [sizeof(legacy_starter_background_roles) /
+       sizeof(legacy_starter_background_roles[0])][THEME_STYLE_LENGTH];
+  int candidate_counts[sizeof(legacy_starter_background_roles) /
+                       sizeof(legacy_starter_background_roles[0])];
+  size_t candidate_total = 0;
+  int explicit_role_count = 0;
+  int dominant_count = 0;
+  size_t dominant_index = 0;
+  size_t i;
+
+  if (roles == NULL)
+    return;
+
+  background_role = FindRole(roles, "background");
+  if (background_role == NULL || !background_role->is_set)
+    return;
+
+  memset(candidate_counts, 0, sizeof(candidate_counts));
+
+  for (i = 0;
+       i < sizeof(legacy_starter_background_roles) /
+               sizeof(legacy_starter_background_roles[0]);
+       ++i) {
+    char foreground[THEME_STYLE_LENGTH];
+    char background[THEME_STYLE_LENGTH];
+    const ThemeRoleValue *role;
+    size_t j;
+    BOOL matched = FALSE;
+
+    role = FindRole(roles, legacy_starter_background_roles[i]);
+    if (role == NULL || !role->is_set ||
+        !SplitExplicitThemeBackground(role->value, foreground,
+                                      sizeof(foreground), background,
+                                      sizeof(background)))
+      continue;
+
+    ++explicit_role_count;
+    if (strcmp(background, background_role->value) == 0)
+      continue;
+
+    for (j = 0; j < candidate_total; ++j) {
+      if (strcmp(candidate_backgrounds[j], background) == 0) {
+        ++candidate_counts[j];
+        matched = TRUE;
+        break;
+      }
+    }
+
+    if (!matched &&
+        candidate_total < sizeof(candidate_backgrounds) /
+                              sizeof(candidate_backgrounds[0])) {
+      (void)snprintf(candidate_backgrounds[candidate_total],
+                     sizeof(candidate_backgrounds[candidate_total]), "%s",
+                     background);
+      candidate_counts[candidate_total] = 1;
+      ++candidate_total;
+    }
+  }
+
+  for (i = 0; i < candidate_total; ++i) {
+    if (candidate_counts[i] > dominant_count) {
+      dominant_count = candidate_counts[i];
+      dominant_index = i;
+    }
+  }
+
+  if (dominant_count < 4 || dominant_count * 2 <= explicit_role_count)
+    return;
+
+  (void)snprintf(legacy_background, sizeof(legacy_background), "%s",
+                 candidate_backgrounds[dominant_index]);
+
+  for (i = 0;
+       i < sizeof(legacy_starter_background_roles) /
+               sizeof(legacy_starter_background_roles[0]);
+       ++i) {
+    char foreground[THEME_STYLE_LENGTH];
+    char background[THEME_STYLE_LENGTH];
+    ThemeRoleValue *role = FindRole(roles, legacy_starter_background_roles[i]);
+
+    if (role == NULL || !role->is_set ||
+        !SplitExplicitThemeBackground(role->value, foreground,
+                                      sizeof(foreground), background,
+                                      sizeof(background)))
+      continue;
+    if (strcmp(background, legacy_background) != 0)
+      continue;
+
+    (void)snprintf(role->value, sizeof(role->value), "%s", foreground);
+  }
 }
 
 static void FreeThemeFileColorRules(FileColorRule *rule) {
@@ -651,6 +788,9 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
     FreeThemePaletteLines(palette_head);
     return THEME_LOAD_NOT_FOUND;
   }
+
+  (void)theme_name;
+  NormalizeLegacyStarterThemeRoles(roles);
 
   if (invalid_theme || !ValidateThemeRoles(ctx, roles) ||
       !ValidateThemePaletteLines(ctx, palette_head)) {

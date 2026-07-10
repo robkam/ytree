@@ -40,6 +40,8 @@ typedef struct {
   int refresh_mode;
 } ReloadableProfileState;
 
+static int EnsureConfigHomeDirectory(const char *home);
+
 static int WriteAll(int fd, const char *buf, size_t len) {
   size_t written_total = 0;
 
@@ -88,8 +90,176 @@ static int WriteStarterFile(ViewContext *ctx, const char *path,
   return 1;
 }
 
+static int ResolvePreferredProfilePath(char *profile_path,
+                                       size_t profile_path_size) {
+  const char *home;
+
+  if (profile_path == NULL || profile_path_size == 0)
+    return -1;
+
+  profile_path[0] = '\0';
+  home = getenv("HOME");
+  if (home == NULL || *home == '\0')
+    return -1;
+  if (EnsureConfigHomeDirectory(home) != 0)
+    return -1;
+  {
+    int written = snprintf(profile_path, profile_path_size, "%s/%s", home,
+                           PROFILE_CONFIG_HOME_PATH);
+
+    if (written < 0 || written >= (int)profile_path_size) {
+      profile_path[0] = '\0';
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int ResolveLegacyProfilePath(char *profile_path,
+                                    size_t profile_path_size) {
+  const char *home;
+
+  if (profile_path == NULL || profile_path_size == 0)
+    return -1;
+
+  profile_path[0] = '\0';
+  home = getenv("HOME");
+  if (home && *home) {
+    int written = snprintf(profile_path, profile_path_size, "%s/%s", home,
+                           PROFILE_FILENAME);
+
+    if (written >= 0 && written < (int)profile_path_size)
+      return 0;
+  }
+
+  {
+    int written = snprintf(profile_path, profile_path_size, "%s",
+                           PROFILE_FILENAME);
+
+    if (written >= 0 && written < (int)profile_path_size)
+      return 0;
+  }
+
+  profile_path[0] = '\0';
+  return -1;
+}
+
+static int IsHomeLegacyProfilePath(const char *profile_path) {
+  char legacy_path[PATH_LENGTH + 1];
+
+  if (profile_path == NULL || *profile_path == '\0')
+    return 0;
+  if (ResolveLegacyProfilePath(legacy_path, sizeof(legacy_path)) != 0)
+    return 0;
+  return strcmp(profile_path, legacy_path) == 0;
+}
+
+static int IsPreferredProfilePath(const char *profile_path) {
+  char preferred_path[PATH_LENGTH + 1];
+
+  if (profile_path == NULL || *profile_path == '\0')
+    return 0;
+  if (ResolvePreferredProfilePath(preferred_path, sizeof(preferred_path)) != 0)
+    return 0;
+  return strcmp(profile_path, preferred_path) == 0;
+}
+
+static int CopyStarterFile(ViewContext *ctx, const char *source_path,
+                           const char *target_path, const char *label) {
+  int source_fd;
+  int target_fd;
+  char buffer[4096];
+
+  if (source_path == NULL || *source_path == '\0' || target_path == NULL ||
+      *target_path == '\0' || label == NULL)
+    return -1;
+
+  source_fd = open(source_path, O_RDONLY);
+  if (source_fd == -1) {
+    MESSAGE(ctx, "Can't migrate %s \"%s\"*%s", label, source_path,
+            strerror(errno));
+    return -1;
+  }
+
+  target_fd = open(target_path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  if (target_fd == -1) {
+    int saved_errno = errno;
+
+    close(source_fd);
+    if (saved_errno == EEXIST)
+      return 0;
+    MESSAGE(ctx, "Can't create migrated %s \"%s\"*%s", label, target_path,
+            strerror(saved_errno));
+    return -1;
+  }
+
+  for (;;) {
+    ssize_t read_now = read(source_fd, buffer, sizeof(buffer));
+
+    if (read_now == 0)
+      break;
+    if (read_now < 0) {
+      int saved_errno = errno;
+
+      close(source_fd);
+      close(target_fd);
+      unlink(target_path);
+      MESSAGE(ctx, "Can't migrate %s \"%s\"*%s", label, source_path,
+              strerror(saved_errno));
+      return -1;
+    }
+    if (WriteAll(target_fd, buffer, (size_t)read_now) != 0) {
+      int saved_errno = errno;
+
+      close(source_fd);
+      close(target_fd);
+      unlink(target_path);
+      MESSAGE(ctx, "Can't create migrated %s \"%s\"*%s", label, target_path,
+              strerror(saved_errno));
+      return -1;
+    }
+  }
+
+  if (close(source_fd) != 0 || close(target_fd) != 0) {
+    int saved_errno = errno;
+
+    unlink(target_path);
+    MESSAGE(ctx, "Can't create migrated %s \"%s\"*%s", label, target_path,
+            strerror(saved_errno));
+    return -1;
+  }
+
+  return 1;
+}
+
 static int EnsureConfigStarterFile(ViewContext *ctx, const char *profile_path) {
-  int result =
+  int result;
+
+  if (profile_path == NULL || *profile_path == '\0')
+    return -1;
+
+  if (ctx != NULL && ctx->configuration_file_path[0] != '\0' &&
+      !ctx->configuration_file_path_is_explicit &&
+      IsHomeLegacyProfilePath(ctx->configuration_file_path) &&
+      IsPreferredProfilePath(profile_path)) {
+    if (access(ctx->configuration_file_path, F_OK) == 0) {
+      result = CopyStarterFile(ctx, ctx->configuration_file_path, profile_path,
+                               "config");
+
+      return result < 0 ? -1 : 0;
+    }
+  }
+
+  if (ctx != NULL) {
+    result = CreateProfileFromRuntimeState(ctx, profile_path);
+    if (result < 0) {
+      MESSAGE(ctx, "Can't create config \"%s\"", profile_path);
+      return -1;
+    }
+    return 0;
+  }
+
+  result =
       WriteStarterFile(ctx, profile_path, default_profile_template, "config");
   return result < 0 ? -1 : 0;
 }
@@ -212,39 +382,25 @@ static int EnsureConfigHomeDirectory(const char *home) {
 
 static void ResolveProfilePath(const ViewContext *ctx, char *profile_path,
                                size_t profile_path_size) {
-  const char *home;
-
   if (profile_path == NULL || profile_path_size == 0)
     return;
 
   profile_path[0] = '\0';
+  if (ctx != NULL && ctx->configuration_file_path[0] != '\0' &&
+      ctx->configuration_file_path_is_explicit) {
+    (void)snprintf(profile_path, profile_path_size, "%s",
+                   ctx->configuration_file_path);
+    return;
+  }
+  if (ResolvePreferredProfilePath(profile_path, profile_path_size) == 0)
+    return;
   if (ctx != NULL && ctx->configuration_file_path[0] != '\0') {
     (void)snprintf(profile_path, profile_path_size, "%s",
                    ctx->configuration_file_path);
     return;
   }
-  home = getenv("HOME");
-  if (home && *home) {
-    int written;
-
-    if (EnsureConfigHomeDirectory(home) == 0) {
-      written = snprintf(profile_path, profile_path_size, "%s/%s", home,
-                         PROFILE_CONFIG_HOME_PATH);
-      if (written >= 0 && written < (int)profile_path_size)
-        return;
-    }
-
-    written = snprintf(profile_path, profile_path_size, "%s/%s", home,
-                       PROFILE_FILENAME);
-    if (written >= 0 && written < (int)profile_path_size)
-      return;
-  }
-  if (!profile_path[0]) {
-    int written =
-        snprintf(profile_path, profile_path_size, "%s", PROFILE_FILENAME);
-    if (written < 0 || written >= (int)profile_path_size)
-      profile_path[0] = '\0';
-  }
+  if (ResolveLegacyProfilePath(profile_path, profile_path_size) != 0)
+    profile_path[0] = '\0';
 }
 
 static int ResolveThemesBootstrapPath(char *themes_path,
@@ -303,6 +459,8 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
                                 const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
   ReloadableProfileState runtime_state;
+  char previous_profile_path[PATH_LENGTH + 1];
+  BOOL previous_profile_path_is_explicit;
   int profile_validation;
 #ifdef COLOR_SUPPORT
   UIColorSnapshot *color_snapshot;
@@ -323,6 +481,9 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
       ctx->right != NULL ? ctx->right->hide_dot_files : FALSE;
   runtime_state.animation_method = ctx->animation_method;
   runtime_state.refresh_mode = ctx->refresh_mode;
+  previous_profile_path_is_explicit = ctx->configuration_file_path_is_explicit;
+  (void)snprintf(previous_profile_path, sizeof(previous_profile_path), "%s",
+                 ctx->configuration_file_path);
 
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
       access(profile_path, F_OK) == 0) {
@@ -352,6 +513,11 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
         UI_ShowStatusLineError(ctx, "Reload failed: can't apply config");
         return -1;
       }
+      (void)snprintf(ctx->configuration_file_path,
+                     sizeof(ctx->configuration_file_path), "%s", profile_path);
+      ctx->configuration_file_path_is_explicit =
+          previous_profile_path_is_explicit &&
+          strcmp(previous_profile_path, profile_path) == 0;
     } else {
       ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
       RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);

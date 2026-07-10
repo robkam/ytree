@@ -794,20 +794,26 @@ static BOOL CommandStripKeyUsesCompactLabel(
 }
 
 static BOOL CommandStripCompactKeyNeedsSpace(const char *primary_key) {
-  return primary_key == NULL ||
-         (strcmp(primary_key, "/") != 0 && strcmp(primary_key, "`") != 0 &&
-          strcmp(primary_key, "\\") != 0);
+  return primary_key == NULL || strcmp(primary_key, "\\") != 0;
 }
 
 static void CommandStripAddLength(int *len, const char *text);
 
+static void CommandStripAddVisibleKeyLength(int *len, const char *key) {
+  if (len == NULL || key == NULL || *key == '\0')
+    return;
+
+  CommandStripAddLength(len, key);
+}
+
 static void CommandStripAddKeySequenceLength(int *len, const char *primary_key,
                                              const char *secondary_key,
                                              BOOL plain_text) {
-  CommandStripAddLength(len, primary_key);
+  (void)plain_text;
+  CommandStripAddVisibleKeyLength(len, primary_key);
   if (secondary_key != NULL) {
     CommandStripAddLength(len, "/");
-    CommandStripAddLength(len, secondary_key);
+    CommandStripAddVisibleKeyLength(len, secondary_key);
   }
 }
 
@@ -822,14 +828,43 @@ static void CommandStripAddLength(int *len, const char *text) {
     *len += CommandStripTextLength(text);
 }
 
-static void CommandStripMeasureCommand(int *len,
-                                       const UICommandStripCommand *command) {
+static void CommandStripAddMnemonicLabelLength(int *len, const char *label,
+                                               const char *key) {
+  const char *inline_key;
+
+  if (len == NULL || label == NULL)
+    return;
+
+  inline_key = CommandStripFindInlineLabelKey(label, key);
+  if (inline_key == NULL) {
+    if (key != NULL && *key != '\0') {
+      CommandStripAddVisibleKeyLength(len, key);
+      if (*label != '\0')
+        CommandStripAddLength(len, " ");
+    }
+    CommandStripAddLength(len, label);
+    return;
+  }
+
+  while (label < inline_key) {
+    char ch[2];
+
+    ch[0] = *label++;
+    ch[1] = '\0';
+    CommandStripAddLength(len, ch);
+  }
+  CommandStripAddVisibleKeyLength(len, key);
+  CommandStripAddLength(len, inline_key + 1);
+}
+
+static void CommandStripMeasureCommandFull(int *len,
+                                           const UICommandStripCommand *command) {
   if (len == NULL || command == NULL)
     return;
 
   switch (command->layout) {
   case UI_COMMAND_LAYOUT_MNEMONIC:
-    CommandStripAddLength(len, command->label);
+    CommandStripAddMnemonicLabelLength(len, command->label, command->primary_key);
     break;
   case UI_COMMAND_LAYOUT_KEY_PREFIX:
   {
@@ -857,7 +892,9 @@ static void CommandStripMeasureCommand(int *len,
     break;
   }
   case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
-    CommandStripAddLength(len, command->label);
+    CommandStripAddVisibleKeyLength(len, command->primary_key);
+    CommandStripAddLength(len, "/");
+    CommandStripAddMnemonicLabelLength(len, command->label, command->secondary_key);
     break;
   case UI_COMMAND_LAYOUT_LABEL_FIRST:
     CommandStripAddLength(len, command->label);
@@ -871,8 +908,41 @@ static void CommandStripMeasureCommand(int *len,
   }
 }
 
-int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
-                                size_t command_count) {
+static void CommandStripMeasureCommandCompact(
+    int *len, const UICommandStripCommand *command) {
+  if (len == NULL || command == NULL)
+    return;
+
+  switch (command->layout) {
+  case UI_COMMAND_LAYOUT_MNEMONIC:
+    CommandStripAddVisibleKeyLength(len, command->primary_key);
+    break;
+  case UI_COMMAND_LAYOUT_KEY_PREFIX:
+    CommandStripAddKeySequenceLength(
+        len, command->primary_key, command->secondary_key,
+        CommandStripKeyUsesPlainText(command->primary_key) &&
+            (command->secondary_key == NULL ||
+             CommandStripKeyUsesPlainText(command->secondary_key)));
+    break;
+  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+    CommandStripAddKeySequenceLength(
+        len, command->primary_key, command->secondary_key,
+        CommandStripKeyUsesPlainText(command->primary_key) &&
+            (command->secondary_key == NULL ||
+             CommandStripKeyUsesPlainText(command->secondary_key)));
+    break;
+  case UI_COMMAND_LAYOUT_LABEL_FIRST:
+    CommandStripAddKeySequenceLength(
+        len, command->primary_key, command->secondary_key,
+        CommandStripKeyUsesPlainText(command->primary_key) &&
+            (command->secondary_key == NULL ||
+             CommandStripKeyUsesPlainText(command->secondary_key)));
+    break;
+  }
+}
+
+static int CommandStripVisualLengthMode(const UICommandStripCommand *commands,
+                                        size_t command_count, BOOL compact) {
   size_t i;
   int len = 0;
 
@@ -881,11 +951,19 @@ int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
 
   for (i = 0; i < command_count; ++i) {
     if (i > 0)
-      CommandStripAddLength(&len, "  ");
-    CommandStripMeasureCommand(&len, &commands[i]);
+      CommandStripAddLength(&len, compact ? " " : "  ");
+    if (compact)
+      CommandStripMeasureCommandCompact(&len, &commands[i]);
+    else
+      CommandStripMeasureCommandFull(&len, &commands[i]);
   }
 
   return len;
+}
+
+int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
+                                size_t command_count) {
+  return CommandStripVisualLengthMode(commands, command_count, FALSE);
 }
 
 static void CommandStripRenderText(WINDOW *win, int y, int *x, int max_x,
@@ -907,6 +985,7 @@ static void CommandStripRenderKeySequence(WINDOW *win, int y, int *x, int max_x,
                                           const char *secondary_key,
                                           int normal_attr, int key_attr,
                                           BOOL plain_text) {
+  (void)plain_text;
   CommandStripRenderText(win, y, x, max_x, primary_key, key_attr);
   if (secondary_key != NULL) {
     CommandStripRenderText(win, y, x, max_x, "/", normal_attr);
@@ -914,15 +993,49 @@ static void CommandStripRenderKeySequence(WINDOW *win, int y, int *x, int max_x,
   }
 }
 
-static void CommandStripRenderCommand(WINDOW *win, int y, int *x, int max_x,
-                                      const UICommandStripCommand *command,
-                                      int normal_attr, int key_attr) {
+static void CommandStripRenderMnemonicLabel(WINDOW *win, int y, int *x,
+                                            int max_x, const char *label,
+                                            const char *key, int normal_attr,
+                                            int key_attr) {
+  const char *inline_key;
+
+  if (label == NULL)
+    return;
+
+  inline_key = CommandStripFindInlineLabelKey(label, key);
+  if (inline_key == NULL) {
+    if (key != NULL && *key != '\0') {
+      CommandStripRenderKeySequence(win, y, x, max_x, key, NULL, normal_attr,
+                                    key_attr, FALSE);
+      if (*label != '\0')
+        CommandStripRenderText(win, y, x, max_x, " ", normal_attr);
+    }
+    CommandStripRenderText(win, y, x, max_x, label, normal_attr);
+    return;
+  }
+
+  while (label < inline_key && *x < max_x) {
+    char ch[2];
+
+    ch[0] = *label++;
+    ch[1] = '\0';
+    CommandStripRenderText(win, y, x, max_x, ch, normal_attr);
+  }
+  CommandStripRenderKeySequence(win, y, x, max_x, key, NULL, normal_attr,
+                                key_attr, FALSE);
+  CommandStripRenderText(win, y, x, max_x, inline_key + 1, normal_attr);
+}
+
+static void CommandStripRenderCommandFull(WINDOW *win, int y, int *x, int max_x,
+                                          const UICommandStripCommand *command,
+                                          int normal_attr, int key_attr) {
   if (command == NULL)
     return;
 
   switch (command->layout) {
   case UI_COMMAND_LAYOUT_MNEMONIC:
-    CommandStripRenderText(win, y, x, max_x, command->label, normal_attr);
+    CommandStripRenderMnemonicLabel(win, y, x, max_x, command->label,
+                                    command->primary_key, normal_attr, key_attr);
     break;
   case UI_COMMAND_LAYOUT_KEY_PREFIX:
   {
@@ -963,11 +1076,40 @@ static void CommandStripRenderCommand(WINDOW *win, int y, int *x, int max_x,
     break;
   }
   case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
-    CommandStripRenderText(win, y, x, max_x, command->label, normal_attr);
+    CommandStripRenderKeySequence(win, y, x, max_x, command->primary_key, NULL,
+                                  normal_attr, key_attr, FALSE);
+    CommandStripRenderText(win, y, x, max_x, "/", normal_attr);
+    CommandStripRenderMnemonicLabel(win, y, x, max_x, command->label,
+                                    command->secondary_key, normal_attr,
+                                    key_attr);
     break;
   case UI_COMMAND_LAYOUT_LABEL_FIRST:
     CommandStripRenderText(win, y, x, max_x, command->label, normal_attr);
     CommandStripRenderText(win, y, x, max_x, " ", normal_attr);
+    CommandStripRenderKeySequence(
+        win, y, x, max_x, command->primary_key, command->secondary_key,
+        normal_attr, key_attr,
+        CommandStripKeyUsesPlainText(command->primary_key) &&
+            (command->secondary_key == NULL ||
+             CommandStripKeyUsesPlainText(command->secondary_key)));
+    break;
+  }
+}
+
+static void CommandStripRenderCommandCompact(
+    WINDOW *win, int y, int *x, int max_x, const UICommandStripCommand *command,
+    int normal_attr, int key_attr) {
+  if (command == NULL)
+    return;
+
+  switch (command->layout) {
+  case UI_COMMAND_LAYOUT_MNEMONIC:
+    CommandStripRenderKeySequence(win, y, x, max_x, command->primary_key, NULL,
+                                  normal_attr, key_attr, FALSE);
+    break;
+  case UI_COMMAND_LAYOUT_KEY_PREFIX:
+  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+  case UI_COMMAND_LAYOUT_LABEL_FIRST:
     CommandStripRenderKeySequence(
         win, y, x, max_x, command->primary_key, command->secondary_key,
         normal_attr, key_attr,
@@ -983,8 +1125,10 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                            size_t command_count, int ncolor, int hcolor) {
   size_t i;
   int max_x;
+  int available_width;
   int normal_attr;
   int key_attr;
+  BOOL compact;
 
   if (win == NULL || commands == NULL || x < 0 || y < 0)
     return;
@@ -992,10 +1136,13 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
   max_x = getmaxx(win);
   if (max_x <= 0 || x >= max_x)
     return;
+  available_width = max_x - x;
+  compact = CommandStripVisualLengthMode(commands, command_count, FALSE) >
+            available_width;
 
 #ifdef COLOR_SUPPORT
   normal_attr = COLOR_PAIR(ncolor);
-  key_attr = COLOR_PAIR(hcolor);
+  key_attr = UIKeybindAttrForBase(hcolor, ncolor);
 #else
   normal_attr = A_NORMAL;
   key_attr = A_BOLD;
@@ -1003,9 +1150,14 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
 
   for (i = 0; i < command_count && x < max_x; ++i) {
     if (i > 0)
-      CommandStripRenderText(win, y, &x, max_x, "  ", normal_attr);
-    CommandStripRenderCommand(win, y, &x, max_x, &commands[i], normal_attr,
-                              key_attr);
+      CommandStripRenderText(win, y, &x, max_x, compact ? " " : "  ",
+                             normal_attr);
+    if (compact)
+      CommandStripRenderCommandCompact(win, y, &x, max_x, &commands[i],
+                                       normal_attr, key_attr);
+    else
+      CommandStripRenderCommandFull(win, y, &x, max_x, &commands[i],
+                                    normal_attr, key_attr);
   }
 
   wattrset(win, 0);

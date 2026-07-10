@@ -11,7 +11,7 @@ def test_theme_catalog_drift_checker_rejects_stale_header(tmp_path):
     stale_header = tmp_path / "default_theme_catalog.h"
     stale_header.write_text(
         _read("src/core/default_theme_catalog.h").replace(
-            "box_lines = cyan on blue", "box_lines = white on magenta", 1
+            "box_lines = cyan", "box_lines = white on magenta", 1
         ),
         encoding="utf-8",
     )
@@ -38,8 +38,8 @@ def test_theme_catalog_drift_checker_rejects_stale_header(tmp_path):
 def test_main_border_window_uses_content_background_role():
     theme_source = _read("etc/ytnova.themes")
     contrast_theme = theme_source.replace(
-        "box_lines = cyan on blue", "box_lines = white on magenta", 1
-    ).replace("box_lines = grey on black", "box_lines = black on cyan", 1)
+        "box_lines = cyan", "box_lines = white on magenta", 1
+    ).replace("box_lines = grey", "box_lines = black on cyan", 1)
     init_source = _read("src/core/init.c")
     display_source = _read("src/ui/display.c")
 

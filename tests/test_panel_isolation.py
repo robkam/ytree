@@ -168,9 +168,9 @@ def test_tree_viewport_helper_uses_current_row_and_exact_labels():
         "t" + "q" * left_width + "j                   x",
         "x  No files".ljust(left_width) + "x                   x",
         "m" + "q" * left_width + "vqqqqqqqqqqqqqqqqqqqj",
-        "DIR      Attributes Brief Copy Delete Filter Global Invert J compare Log Makedir Newfile",
-        "COMMANDS Only tagged Pipe Quit Rename Showall Tag Untag moVedir Write eXecute Z archive",
-        "←j Tree  F1 help  F5 refresh  F6 stats  F7 autoview  F8 split  F10 config  Esc cancel",
+        "Attributes Brief Copy Delete Filter Global Invert J compare Log Makedir Newfile Only tagged",
+        "Pipe Quit Rename Showall Tag Untag moVedir Write eXecute Z archive / jump ` dotfiles",
+        "←─┘ File F1 help  F5 refresh  F6 stats  F7 autoview  F8 split  F9 apps  F10 config  Esc cancel",
     ]
 
     assert _tree_panel_selected_label(lines) == "for later"

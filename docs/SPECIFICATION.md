@@ -176,7 +176,6 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 *   **`F8`**: split-screen toggle.
 *   **`F9`**: user menu (Macros).
 *   **`F10`**: configuration.
-*   **`F12`**: incremental jump (Legacy alias for `/`).
 
 ### 4.5 Prompt Interaction Standards
 When a text prompt is active, specialized conventions ensure a refined editing experience:
@@ -341,6 +340,8 @@ A bordered pop-up box that overlays the center of the screen, used for:
 ### 6.4 Context Help Contract (Footer <-> F1)
 *   **Parity Rule:** For any active context, commands shown in footer help MUST appear in that context's F1 help set. Missing footer commands in F1 are defects.
 *   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytnova.1.md` and generated `docs/USAGE.md`.
+*   **Visual Rule:** Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place. Literal key tokens such as `Esc`, `Enter`, `Up`, `Down`, and function keys render as key tokens, not as synthetic words.
+*   **Text-Notation Rule:** In plain-text docs and tests, `(K)eyword` notation is the durable way to describe that in-place highlight when color cannot be shown directly.
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
 *   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and Ctrl-held footer variants.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
@@ -379,14 +380,17 @@ Themes are plain-text user-editable files separate from the main configuration. 
 
 ### 7.1 Theme Files and Discovery
 *   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
-*   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
+*   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf` and `$XDG_CONFIG_HOME/ytnova/themes.conf`; when `XDG_CONFIG_HOME` is unset, they fall back to `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
 *   Home-directory fallback user paths are `~/.ytnova` and `~/.ytnova.themes` when the XDG target paths cannot be used.
 *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
+*   Future config-family catalogs such as key bindings and labels follow the same `.../ytnova/` config-directory policy rather than inventing new home-root files.
+*   Command history is session state, not config: its preferred path is `$XDG_STATE_HOME/ytnova/ytnova.hst`, falling back to `~/.local/state/ytnova/ytnova.hst` when `XDG_STATE_HOME` is unset; legacy `~/.ytnova-hst` remains a compatibility path only when the state target cannot be used or when migrating old history forward.
 *   Built-in theme names include `classic-blue` and `bash-black`.
 *   User-facing theme files use semantic role names only.
+*   `THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned.
 
 ### 7.2 Semantic Roles
-Required roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `help`, `info`, `warning`, `error`, `search_hit`, and `disabled`.
+Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `help`, `info`, `warning`, `error`, and `search_hit`.
 
 Role meanings:
 *   `background`: default application background.
@@ -398,16 +402,15 @@ Role meanings:
 *   `keybind`: footer/menu key tokens only.
 *   `selection`: active highlighted row/bar.
 *   `dialog`: neutral prompt/dialog surfaces.
-*   `picker`: selectable-list surfaces.
+*   `picker`: selectable-list surfaces. The shipped starter themes keep picker-family surfaces on a different background so F2, history, volume, and applications menus stand out from the main content area.
 *   `help`: F1/context help reading surfaces.
 *   `info`, `warning`, `error`: severity road-sign roles.
 *   `search_hit`: search/current-hit standout highlight.
-*   `disabled`: inactive or unavailable commands/options.
 
 ### 7.3 Color Syntax
 Theme styles accept named colors, numeric colors, `grey`/`gray`, and bright-prefix colors such as `+red`, `+yellow`, `+white`, and `+grey`/`+gray`. Preferred examples are `+white on blue`, `white on blue`, `cyan on blue`, `black on +grey`, `black on yellow`, and `+white on red`. User-facing docs and examples use `grey`/`gray` terminology for grey shades.
 
-Every rendered style resolves internally to a complete foreground/background pair. If a role or file-type style omits a background, it inherits the active theme background appropriate for that surface.
+Every rendered style resolves internally to a complete foreground/background pair. If a role or file-type style omits a background, it inherits the active theme background appropriate for that surface. Shipped starter themes should prefer omitted backgrounds for ordinary content roles when they are meant to track the theme background, so changing `background` produces an intuitive full-surface repaint.
 
 ### 7.4 File-Type Palette Rules
 File-type coloring is an optional content-decoration layer owned by the active theme. If a theme has no file-type rules, ordinary filenames use `dynamic_text`.

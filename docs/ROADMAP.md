@@ -83,7 +83,7 @@ Ordering policy (for all editors, including AI editors):
 *   Existing dead-history comments in first-party code are removed or rewritten to durable design intent.
 *   New guard fails on forbidden patterns and passes on current baseline.
 *   `make qa-all` passes with the new guard enabled.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress. A picker-themed `F9` Applications menu shell now exists so theme surfaces can be previewed there; preset execution, user-configurable entries, and completion reporting remain open.
 
 ### **Task 3: Unified Clean-Code Compliance Gate**
 *   **Goal:** Enforce clean-code rules continuously through one measurable gate instead of ad-hoc review.
@@ -191,8 +191,8 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.1: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
-*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the human-edited default runtime config source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`. When Task 60 splits themes out of the main config, `etc/ytnova.themes` becomes the separate human-edited default theme source and must be covered by the same deterministic source/generated checks.
-*   **Mechanism:** Add a reproducible generator path (`etc/ytnova.conf` -> `src/core/default_profile_template.h`, plus any Task 60 theme template/gate output) and a QA/CI check that fails when generated output is stale or hand-edited.
+*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the human-edited default runtime config source; `etc/ytnova.themes` is the separate human-edited default theme source; and any Task 11.2 split companion surfaces (`etc/ytnova.bindings`, `etc/ytnova.labels`) must follow the same source/generated discipline once introduced. Generated headers/templates are generated-only and consumed by `--init`.
+*   **Mechanism:** Add reproducible generator paths for each canonical config surface (`etc/ytnova.conf` -> `src/core/default_profile_template.h`, `etc/ytnova.themes` -> theme catalog output, plus any Task 11.2 companion-surface outputs) and a QA/CI check that fails when generated output is stale or hand-edited.
 *   **Acceptance Criteria:**
 *   `ytnova --init` output remains byte-equivalent to the canonical template semantics.
 *   A single documented command regenerates the header deterministically.
@@ -200,7 +200,59 @@ Ordering policy (for all editors, including AI editors):
 *   **Files to Modify:** `Makefile`, `scripts/*` (new/updated generator + verifier), `src/core/default_profile_template.h`, and contributor/docs references as needed.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 11.2: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)**
+#### **Task 11.2: Split User Label and Binding Surfaces (i18n/l10n-Safe Config Layout)**
+*   **Goal:** Separate user-visible label overrides and input/action customization from the main runtime profile using XDG-first companion files, while keeping the canonical design safe for future gettext/i18n/l10n work.
+*   **Rationale:** The current main profile still mixes core runtime settings with menu-text overrides and input/action customization. That blocks clean ownership boundaries and makes future localization fragile because whole rendered footer/menu lines are not stable translation units. Canonical user-editable text must be keyed by stable action identity, while rendered footer/help/menu lines must be assembled at runtime from localized labels plus current key tokens.
+*   **Canonical Surface Split:**
+    *   `etc/ytnova.conf` -> `~/.config/ytnova/ytnova.conf` (fallback `~/.ytnova`) remains the human-edited source for core runtime configuration only.
+    *   `etc/ytnova.themes` -> `~/.config/ytnova/themes.conf` (fallback `~/.ytnova.themes`) remains the human-edited source for theme roles/palette only.
+    *   New `etc/ytnova.bindings` -> `~/.config/ytnova/bindings.conf` (fallback `~/.ytnova.bindings`) becomes the human-edited source for `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]`.
+    *   New `etc/ytnova.labels` -> `~/.config/ytnova/labels.conf` (fallback `~/.ytnova.labels`) becomes the human-edited source for user-visible action-label overrides keyed by stable action identity, not by rendered line position.
+*   **Canonical Ownership Rules:**
+    *   `ytnova.conf` must not remain the canonical home for `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
+    *   `labels.conf` is the canonical user-editable label override surface.
+    *   `bindings.conf` is the canonical user-editable input/action customization surface.
+    *   No canonical user-editable file may store fully rendered footer/help/menu lines as the primary data model.
+    *   Key tokens, localized/default labels, disabled-state logic, and line layout must remain separate concerns.
+*   **Localization Contract:**
+    *   Stable action IDs are the canonical identity for user-visible commands.
+    *   Default labels come from code/gettext-ready message sources, not from hardcoded rendered footer lines.
+    *   User label overrides in `labels.conf` apply by action ID only.
+    *   Current bound key tokens are resolved independently from `bindings.conf` or built-in keymaps.
+    *   Footer/help/menu rendering must assemble visible command entries from action ID + label + key token + availability state at runtime.
+    *   Locale-specific word order, mnemonic placement, truncation, and line packing must not depend on raw `[MENU]` whole-line overrides.
+*   **Compatibility Contract:**
+    *   Legacy `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]` sections in `ytnova.conf` may be accepted only as compatibility inputs during migration.
+    *   Companion-file precedence must be: dedicated split file -> legacy section in `ytnova.conf` -> built-in defaults.
+    *   If both a dedicated split file and a legacy section define the same label or binding, the dedicated split file wins deterministically.
+    *   Legacy `[MENU]` is a compatibility shim only and must not remain the long-term canonical override model.
+*   **Discovery and Bootstrap Contract:**
+    *   For `ytnova.conf`, `themes.conf`, `bindings.conf`, and `labels.conf`, runtime must prefer `~/.config/ytnova/*.conf`.
+    *   Home-dotfile fallbacks (`~/.ytnova`, `~/.ytnova.themes`, `~/.ytnova.bindings`, `~/.ytnova.labels`) exist only for environments where the XDG-style home config path cannot be used; they are not the preferred location on supported Linux/BSD/illumos/Hurd targets.
+    *   Missing user files fall back to packaged/compiled defaults without creating a user file.
+    *   Only `--init` and explicit `F10` edit flows create starter files.
+*   **Mechanism:**
+    *   Add packaged default sources `etc/ytnova.bindings` and `etc/ytnova.labels`.
+    *   Add deterministic generator/verification paths for starter artifacts derived from those sources, matching the existing source/generated policy used for `etc/ytnova.conf` and `etc/ytnova.themes`.
+    *   Refactor config discovery so startup, `--init`, reload, and `F10` all use one shared path-resolution policy across config/theme/bindings/labels surfaces.
+    *   Add explicit loaders/validators for bindings and labels rather than growing one monolithic profile parser indefinitely.
+    *   Extend `F10` so the configuration surface can edit/create the active config, themes, bindings, and labels files independently while preserving the same XDG-first/fallback rules.
+    *   Reload must be atomic across config + labels + bindings + themes: validation failure in any one surface keeps the previously working runtime state.
+*   **Acceptance Criteria:**
+*   `bindings.conf` and `labels.conf` exist as documented first-class config surfaces with packaged defaults and starter-file generation.
+*   `ytnova.conf` no longer serves as the canonical editable source for label overrides or key/custom-command mappings.
+*   No canonical user-editable file stores raw rendered footer/menu lines as the primary override model.
+*   Structured label resolution is keyed by stable action identity and remains independent from bound key tokens.
+*   XDG-first discovery and home-dotfile fallback behavior is consistent across config, themes, bindings, and labels.
+*   Missing user bindings/labels files fall back to built-in defaults without file creation.
+*   `--init` can bootstrap all four user-editable surfaces without ambiguity.
+*   `F10` can resolve, create, and edit the active file for each surface independently.
+*   Legacy sections in `ytnova.conf` still load during the compatibility phase, but dedicated split files override them deterministically.
+*   Reload fails closed if any one of config/theme/bindings/labels is malformed or invalid, and the previous working state remains active.
+*   `docs/SPECIFICATION.md`, manpage/USAGE docs, and contributor guidance describe labels as i18n/l10n-safe structured overrides rather than rendered-line text replacement.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 11.3: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)**
 *   **Goal:** Harden config/history reliability and corruption resistance without changing user-facing feature semantics.
 *   **Scope:**
 *   Strict parse rules for config/history input.
@@ -215,6 +267,28 @@ Ordering policy (for all editors, including AI editors):
 *   Persistence writes are crash-safe and do not produce truncated/half-written files.
 *   Regression tests cover malformed input, invalid value ranges, interrupted-write simulation, and recovery behavior.
 *   - [ ] **Status:** Not Started.
+
+#### **Task 11.4: Implement In-App Configuration Editor (F10)**
+*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for the split config surfaces.
+*   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility, and gives the split config/theme/bindings/labels model one coherent in-app entry point instead of scattering file editing across ad hoc workflows.
+*   **UI Contract:** The `F10` command strip is `(C)onfig  (T)hemes  (B)indings  (L)abels  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under `F10`, not as a global/main-UI key.
+*   **File Contract:**
+    *   Config editing targets the preferred runtime config at `~/.config/ytnova/ytnova.conf`; if startup loaded the legacy fallback `~/.ytnova`, `F10` acts as the migration path and should create/edit the XDG profile whenever that target path is usable, falling back to `~/.ytnova` only when the XDG-style target path cannot be used.
+    *   Theme editing targets the active theme file (`~/.config/ytnova/themes.conf` or fallback `~/.ytnova.themes`).
+    *   Bindings editing targets the active bindings file (`~/.config/ytnova/bindings.conf` or fallback `~/.ytnova.bindings`).
+    *   Labels editing targets the active labels file (`~/.config/ytnova/labels.conf` or fallback `~/.ytnova.labels`).
+*   **Dependency Contract:**
+    *   Sequence after Task 11.2 defines the canonical split surfaces and precedence rules.
+    *   The editor must preserve the same XDG-first/home-dotfile-fallback rules as startup and `--init`.
+    *   Guided editing must not re-collapse structured label/action data back into legacy raw `[MENU]` whole-line text.
+*   **Acceptance Criteria:**
+*   `F10` exposes one coherent hub for config, themes, bindings, labels, and reload.
+*   `F10 -> Enter -> result` still opens the main config as the common path.
+*   Each `F10` action edits or creates the active runtime file for that surface using the same path-resolution rules as startup.
+*   Guided editing for common options is possible without blocking raw-text editing for advanced users.
+*   Reload from the `F10` hub respects the atomic reload contract across config/theme/bindings/labels surfaces.
+*   Footer/F1/manpage wording for `F10` stays synchronized with the split-surface model.
+*   - [ ] **Status:** In Progress.
 
 ---
 
@@ -613,33 +687,38 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Task 40: Responsive Adaptive Footer**
-*   **Goal:** Group footer auto-fit layout and width-tier behavior under one umbrella with explicit subtask sequencing.
+*   **Goal:** Replace hardcoded footer-line command placement with a structured, self-organizing footer layout engine that assembles command entries at runtime and keeps the function-key band fitting cleanly on the bottom footer line.
+*   **Rationale:** The current footer model is too position-bound and too brittle for context changes, responsive width changes, and future localization. Footer content must be assembled from stable action entries rather than handwritten line strings so that key tokens, translated/default labels, disabled-state logic, and line packing can evolve independently.
+*   **Scope:** Footer layout/packing/rendering only. This task defines how footer command entries are assembled, prioritized, wrapped, truncated, and fitted into the available footer area. Footer/F1 parity and wording accuracy remain coordinated with the dedicated parity task rather than being left implicit here.
+*   **Self-Organizing Footer Contract:**
+    *   The footer is built from structured command entries, not hardcoded rendered lines.
+    *   The top footer lines must self-organize according to available width, command priority, context, and availability state.
+    *   The function-key command band must fit on the bottom footer line through structured packing rules rather than fixed hand-authored text.
+    *   Key tokens, labels, separators, disabled state, and visibility rules are independent fields in the layout model.
+    *   Footer rendering must remain compatible with future gettext/i18n/l10n work: labels are not assumed to have fixed English width or fixed word order.
+*   **Cross-Task Contract:**
+    *   This task depends on the structured label/key-token split introduced by Task 11.2.
+    *   Footer labels must come from stable action IDs plus current label resolution, not from legacy raw `[MENU]` whole-line overrides.
+    *   Task 43 remains the footer/F1/help parity contract that verifies the footer layout is semantically honest once this layout engine exists.
+*   **Acceptance Criteria:**
+*   Footer command layout is generated from structured entries rather than hardcoded per-line binding strings.
+*   The top footer lines auto-fit their visible commands according to width and context without relying on fixed English-only line templates.
+*   The function-key band fits on the bottom footer line through defined packing/truncation/priority rules.
+*   Key tokens remain independent from labels, so keymap changes and future localization do not require hardcoded footer-line rewrites.
+*   Footer layout behavior is documented with deterministic ordering, overflow, truncation, and disabled-state rules.
+*   The resulting footer architecture is explicitly compatible with Task 11.2 label/binding separation and with future gettext-based localization work.
+*   - [ ] **Status:** Not Started.
 
 #### **Task 40.1: Footer Auto-Fit Line Layout (No Hardcoded Per-Line Bindings)**
-*   **Goal:** Footer command hints must auto-fit available width instead of relying on fixed hardcoded keybinding placement per line.
-*   **Rationale:** Improves discoverability and prevents truncation/clipping across terminal sizes without changing command behavior.
-*   **Scope:**
-    *   Build footer lines from the active command set at render time.
-    *   Pack/wrap hints by available columns (`COLS`) with stable ordering.
-    *   Keep two-line footer budget unless constrained terminal fallback requires compact mode.
-*   **Scope Lock (mandatory):**
-    *   No keybinding changes.
-    *   No command behavior changes.
-    *   No prompt/help semantic changes.
-*   **Acceptance Criteria:**
-    *   Footer content fits width deterministically at common sizes (80, 100, 120, 160 cols).
-    *   No clipped mid-token hints in supported sizes.
-    *   F1 remains visible in compact and standard footer variants.
-    *   Existing footer/F1 parity checks remain green.
+*   **Goal:** Define and implement the structured footer-entry model and the auto-fit packing rules for the self-organizing top footer lines and bottom function-key band.
+*   **Mechanism:** Introduce footer entries keyed by stable action identity, with independently resolved label, key token, visibility, enabled/disabled state, and priority; then pack those entries into available footer lines deterministically.
+*   **Cross-Reference:** Labels must resolve through the Task 11.2 label architecture rather than through legacy `[MENU]` rendered-line text.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 40.2: Implement Responsive Adaptive Footer**
-*   **Goal:** Make the two-line command footer dynamic based on terminal width.
-    *   **Compact (constrained dimensions):** Show all currently available actions as bound-key hints only (minimal/no labels), and always keep `(F1)` visible for full help.
-    *   **Standard (80-120 cols):** Show the standard set (current behavior).
-    *   **Wide (> 120 cols):** Unfold "hidden" or advanced commands (Hex, Group, Sort modes) directly into the footer so the user doesn't have to remember them.
-*   **Rationale:** Preserves full action discoverability in constrained terminals without wrapping/clutter while maximizing utility on larger displays.
-*   **Mechanism:** Define command groups (Priority 1, 2, 3). In `DisplayDirHelp` / `DisplayFileHelp`, construct the string dynamically based on `COLS`.
+*   **Goal:** Apply the structured footer layout engine across runtime contexts so footer content reflows correctly under different widths, modes, prompts, and command availability states.
+*   **Mechanism:** Replace fixed footer-line assumptions with runtime packing/reflow while preserving deterministic ordering and context-sensitive visibility rules.
+*   **Cross-Reference:** Task 43 validates semantic parity between footer, help, and prompts after this layout work lands; Task 11.2 provides the structured label/key-token inputs that make localization-safe footer rendering possible.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 41: Implement Integrated Help System**
@@ -658,6 +737,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Ensure F1 help is concise, context-specific, and complete for each footer/help variant, with no missing commands.
 *   **Rationale:** Footer and F1 are the primary in-app guidance surfaces; they must match exactly while keeping F1 brief and pushing detail to manpage/USAGE.
 *   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer/help/prompt mismatch (discoverability + confidence).
+*   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
 *   **Scope Lock:** Help contract, coverage matrix, and text-structure readiness only; no command behavior changes in this task.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching F1 help set with concise wording and no essay-style descriptions.
@@ -996,7 +1076,6 @@ Ordering policy (for all editors, including AI editors):
         *   `warning`: warning road-sign color.
         *   `error`: error road-sign color.
         *   `search_hit`: standout search/current-hit highlight.
-        *   `disabled`: inactive or unavailable commands/options.
     *   Do not add a separate `critical` role; fatal failures are generally outside useful interactive rendering scope.
     *   Allow advanced themes to override narrower roles later, but default theme files should stay short and readable.
 *   **Theme vs File-Type Coloring:**
@@ -1036,8 +1115,10 @@ Ordering policy (for all editors, including AI editors):
         *   `+white on red`
     *   Move larger theme definitions out of the main config. The main config selects the active theme; the theme file defines named themes and each theme's file-type palette.
     *   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
-    *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
-    *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
+    *   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf` and `$XDG_CONFIG_HOME/ytnova/themes.conf`; when `XDG_CONFIG_HOME` is unset they fall back to `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
+    *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes` only when the XDG-style targets cannot be used.
+    *   Future config-family catalogs such as bindings and labels follow the same `.../ytnova/` config-directory policy.
+    *   Command history is session state, not config: prefer `$XDG_STATE_HOME/ytnova/ytnova.hst`, fall back to `~/.local/state/ytnova/ytnova.hst` when `XDG_STATE_HOME` is unset, and use `~/.ytnova-hst` only as a compatibility fallback or migration source.
     *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
     *   The theme file may contain an unlimited number of named themes. Used theme definitions are uncommented; unused bundled or user themes can be prefixed with `#` to comment them out.
     *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
@@ -1050,21 +1131,20 @@ Ordering policy (for all editors, including AI editors):
     *   Successful reload silently repaints using the new config/theme. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
 *   **Default Palette Direction:**
     *   `background = blue`
-    *   `box_lines = cyan on blue`
-    *   `tree_lines = +white on blue`
+    *   `box_lines = cyan`
+    *   `tree_lines = +white`
     *   `margin = dynamic_text`
-    *   `static_text = white on blue`
-    *   `dynamic_text = +white on blue`
-    *   `keybind = +white on blue`
-    *   `selection = black on +grey`
-    *   `dialog = black on +grey`
-    *   `picker = black on +grey`
-    *   `help = white on blue`
-    *   `info = +white on blue`
+    *   `static_text = white`
+    *   `dynamic_text = +white`
+    *   `keybind = +white`
+    *   `selection = black on white`
+    *   `dialog = white`
+    *   `picker = black on cyan`
+    *   `help = white`
+    *   `info = +white`
     *   `warning = black on yellow`
     *   `error = +white on red`
     *   `search_hit = black on yellow`
-    *   `disabled = grey on blue`
 *   **Implementation Direction:**
     *   Audit existing color options for duplicate severity aliases or unused compatibility entries.
     *   Audit `src/ui/color.c` and all window background/border drawing paths for reversed color-pair use, unintended `A_REVERSE`, foreground-only styling, and stale background attributes.
@@ -1327,19 +1407,12 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/manpage wording explicitly documents context split where `Y` differs by mode.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-11: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for split config files.
-*   **UI Contract:** The F10 command strip is `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under F10, not as a global/main-UI key.
-*   **File Contract:** Config editing targets the active runtime config (`~/.config/ytnova/ytnova.conf` or legacy `~/.ytnova`); theme editing targets the active theme file (`~/.config/ytnova/themes.conf` or legacy `~/.ytnova.themes`). If the current post-`[VIEWER]` customization sections are split later, group `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]` into one key/commands customization file and expose it as one top-level F10 action rather than adding deeper nested menus or many tiny files.
-*   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility.
-*   - [ ] **Status:** Not Started.
-
-### **Idea FE-12: Implement Mouse Support**
+### **Idea FE-11: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** In capable terminal environments, mouse support can improve speed and ease of use for navigation and selection without changing the keyboard-first design.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-13: Configurable Split Header Path Display (`active` or `both`)**
+### **Idea FE-12: Configurable Split Header Path Display (`active` or `both`)**
 *   **Goal:** Add a user option for split-mode header path display so users can choose active-panel-only path or both-panel paths.
 *   **Rationale:** Active-only header is cleaner by default, while dual-path header can improve orientation for users managing two distant locations.
 *   **Scope Lock:** Header display policy only; no split navigation, selection, or command behavior changes.
@@ -1350,7 +1423,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1 help and config docs are updated when option lands.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-14: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
+### **Idea FE-13: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
 *   **Goal:** Replace the current history-biased prompt input with a first-class path-entry workflow that is good enough for deep navigation, destination entry, and command prompts.
 *   **Scope:** This task subsumes the previous separate ideas for shell-style tab completion, deep path jump, and advanced ncurses-native command-line editing.
 *   **Behavior to Deliver:**
@@ -1361,7 +1434,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt entry should be strong enough that common path-based workflows stay direct: "type path -> complete/adjust -> Enter -> result" without forcing a separate browser/menu detour.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-15: Tagged-Only Results View**
+### **Idea FE-14: Tagged-Only Results View**
 *   **Goal:** Add a view mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
     *   `F4` toggles **Tagged-Only** view mode.
@@ -1371,13 +1444,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
 *   - [ ] **Status:** In Progress (tagged-only toggle shipped on `o/O`; broader workflow/key-shape refinements remain).
 
-### **Idea FE-16: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
+### **Idea FE-15: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
 *   **Rationale:** Recursive tagging may reduce steps in some trees, but can also add command ambiguity and accidental broad-selection risk.
 *   **Investigation Output:** Document concrete user workflows, interaction-depth impact, and safety tradeoffs; propose either (a) no change, or (b) a minimal, default-safe recursive tagging design with clear scope/confirmation semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-17: Richer Compare Result Views**
+### **Idea FE-16: Richer Compare Result Views**
 *   **Goal:** Extend compare workflows so the result can be viewed directly, not just turned into tags on the active side.
 *   **User-Facing Behavior:**
     *   After comparing two directories/trees, users can narrow the result to categories such as **left/source only**, **right/target only**, **newer**, **older**, **size different**, **content different**, or **identical**.
@@ -1386,7 +1459,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Current compare behavior is useful but blunt. A richer result view makes compare a practical review tool rather than only a tag generator.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-18: Recent-Directory Bookmarks and Pinned Favorites**
+### **Idea FE-17: Recent-Directory Bookmarks and Pinned Favorites**
 *   **Goal:** Add a first-class recent-directory and pinned-favorites picker for fast return to commonly visited locations.
 *   **User-Facing Behavior:**
     *   Show a compact list of recently visited directories together with user-pinned favorites.
@@ -1396,7 +1469,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt history helps when the user remembers what they typed. A dedicated recent-directory/favorites list helps when the user remembers the place, not the exact command string.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-19: Dual-Preview Split Mode**
+### **Idea FE-18: Dual-Preview Split Mode**
 *   **Goal:** Allow each `F8` split panel to enter and retain its own `F7`-style preview state independently.
 *   **User-Facing Behavior:**
     *   In split mode, each panel can independently enter preview without forcing preview state changes in the other panel.
@@ -1412,7 +1485,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves per-panel state retention, panel switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-20: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
+### **Idea FE-19: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
 *   **Goal:** In directory focus, allow `Shift+Up/Down/Page/Home/End` to scroll the small file window for the selected directory without switching to full file-window focus.
 *   **Rationale:** This gives a fast "peek and keep tree focus" workflow and mirrors the existing `Shift`-navigation feel used in `F7` preview.
 *   **Scope Lock:** Directory-focus small-file-window navigation only; no new submenu flow, no change to normal unshifted tree navigation, and no change to `F7` preview behavior.
@@ -1425,7 +1498,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for shifted small-window navigation bounds/offset behavior and isolation from directory navigation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-21: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
+### **Idea FE-20: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
 *   **Goal:** Replace the narrow `NewFile` entry point with a single explicit `Create` chooser whose available options are filtered by the active backend and context.
 *   **User-Facing Behavior:**
     *   Where creation is supported, `n`/`N` opens `Create:` with only the actions that are valid for the active backend/context.
@@ -1449,81 +1522,81 @@ Ordering policy (for all editors, including AI editors):
 *   Symlink creation is available natively where supported, with explicit prompts and focused regression coverage for both selected-target and explicit-target flows.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-22: Per-Window Filter State (Split Screen Prerequisite)**
+### **Idea FE-21: Per-Window Filter State (Split Screen Prerequisite)**
 *   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left panel versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-23: State Preservation on Reload (`^L`)**
+### **Idea FE-22: State Preservation on Reload (`^L`)**
 *   Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-24: Preserve Tree Expansion on Refresh**
+### **Idea FE-23: Preserve Tree Expansion on Refresh**
 *   Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-25: Scroll Bars**
+### **Idea FE-24: Scroll Bars**
 *   On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list (configurable to char or line).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-26: Callback API Constification Cleanup (cppcheck strict mode)**
+### **Idea FE-25: Callback API Constification Cleanup (cppcheck strict mode)**
 *   `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 3: Long-Horizon Experiments**
 
-### **Idea FE-27: Implement VFS Abstraction Layer** (Use the Architect persona here)
+### **Idea FE-26: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytnova` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 *   **Follow-on Direction:** Include remote logging backends under this VFS model (FTP/SFTP candidates), with final protocol choice deferred until security and maintenance review.
 
-### **Idea FE-28: Define VFS Interface & Volume Integration** (Use the Architect persona here)
+### **Idea FE-27: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytnova_vfs.h`.
     *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
     *   Update `include/ytnova_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 
-### **Idea FE-29: Implement VFS Registry** (Use the Architect persona here)
+### **Idea FE-28: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
     *   Implement `VFS_Init()` (registers built-in drivers).
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 
-### **Idea FE-30: Implement "Local" VFS Driver** (Use the Architect persona here)
+### **Idea FE-29: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
     *   Move logic from `src/fs/tree_read.c` into the driver's `.scan` method.
     *   Ensure it populates `DirEntry` structures exactly as before.
 
-### **Idea FE-31: Implement "Archive" VFS Driver** (Use the Architect persona here)
+### **Idea FE-30: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
     *   Move logic from `src/fs/archive_read.c` and `src/fs/archive_write.c` into the driver.
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 
-### **Idea FE-32: Switch `LogDisk` to VFS** (Use the Architect persona here)
+### **Idea FE-31: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
     *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 
-### **Idea FE-33: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
+### **Idea FE-32: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 
-### **Idea FE-34: Database Browsing and Editing via Virtual Filesystem Drivers**
+### **Idea FE-33: Database Browsing and Editing via Virtual Filesystem Drivers**
 *   **Goal:** After the driver-based VFS abstraction exists, allow ytnova to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
 *   **User-Facing Direction:** Treat a database as a structured volume (for example database -> tables -> rows/records or exported views) rather than as one opaque file blob.
 *   **Rationale:** This is a specialized extension of the VFS model, not a core file-manager requirement. Keep it as a future experiment until a clear driver design and real use-case exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-35: Implement Recursive Directory Watching**
+### **Idea FE-34: Implement Recursive Directory Watching**
 *   **Goal:** Keep visible tree and file-list state fresh by watching all currently expanded filesystem directories, not only the active cursor directory.
 *   **Rationale:** Without recursive watch coverage, edits in visible sibling/child directories can leave the UI stale until manual refresh.
 *   **Scope Lock:** Filesystem watcher behavior only; no archive-internal recursive watching.
@@ -1539,18 +1612,18 @@ Ordering policy (for all editors, including AI editors):
     *   `ENOSPC` fallback is explicit, stable, and non-fatal.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-36: Implement Shell Script Generator**
+### **Idea FE-35: Implement Shell Script Generator**
 *   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-37: Keyboard Macros (F12 Record/Playback)**
+### **Idea FE-36: Keyboard Macros (F12 Record/Playback)**
 *   **Goal:** Record and replay simple keystroke sequences.
 *   **Rationale:** Useful for repeating safe, local interaction sequences.
 *   **Status:** Deferred.
 *   **Note:** Revisit only after a safe design exists that cannot turn traces into a secret-capturing scripting surface.
 
-### **Idea FE-38: Enhance Built-In Viewer**
+### **Idea FE-37: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytnova's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
 *   **Builds On:** Current-delivery viewer work such as `Add Configurable Bypass for External Viewers` and `Standardize Internal Viewer Layout`.
 *   **Candidate Scope:**
@@ -1563,18 +1636,18 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 
-### **Idea FE-39: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
+### **Idea FE-38: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
 *   **Goal:** Investigate a runtime path where ytnova's TUI is not tightly coupled to ncurses.
 *   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytnova interaction semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-40: Implement "Safe Delete" (Trash Can)**
+### **Idea FE-39: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
 *   **Config:** Add a `ytnova.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-41: Port to other platforms**
+### **Idea FE-40: Port to other platforms**
 *   **Validation:** Currently practical via WSL and QEMU
 *   **Possible:** OmniOS (illumos), GNU Hurd, FreeBSD
 *   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris, Redox OS

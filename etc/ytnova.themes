@@ -16,41 +16,46 @@
 
 [theme classic-blue]
 background = blue
-box_lines = cyan on blue
-tree_lines = +white on blue
+box_lines = cyan
+tree_lines = +white
+static_text = white
+dynamic_text = +white
 margin = dynamic_text
-static_text = white on blue
-dynamic_text = +white on blue
-keybind = +white on blue
-selection = black on +grey
-dialog = black on +grey
-picker = black on +grey
-help = white on blue
-info = +white on blue
+keybind = +white
+selection = black on white
+dialog = white
+picker = black on cyan
+help = white
+info = black on cyan
 warning = black on yellow
 error = +white on red
 search_hit = black on yellow
-disabled = grey on blue
 
 [file-types classic-blue]
+archives = red: tar,tgz,zip,gz,rar,7z,iso
+scripts = +cyan: sh,bash,py,pl,rb
+code = yellow: c,h,cpp,rs,go,java,js,ts
+media = magenta: jpg,png,gif,mp4,mp3,wav
+documents = white: pdf,txt,md,doc,docx
+links = cyan: LINK
+executables = green: EXEC
 
 [theme bash-black]
 background = black
-box_lines = grey on black
-tree_lines = white on black
+box_lines = grey
+tree_lines = white
+static_text = white
+dynamic_text = +white
 margin = dynamic_text
-static_text = white on black
-dynamic_text = +white on black
-keybind = +white on black
-selection = black on yellow
-dialog = white on black
-picker = black on yellow
-help = white on black
-info = +white on blue
+keybind = +white
+selection = black on white
+dialog = white
+picker = black on grey
+help = white
+info = white on blue
 warning = black on yellow
-error = +white on red
+error = white on red
 search_hit = black on yellow
-disabled = grey on black
 
 [file-types bash-black]
 archives = red: tar,tgz,zip,gz,rar,7z,iso

@@ -17,6 +17,29 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
                            int start_x, int *hide_left, int *hide_right);
 static int DisplayMatches(ViewContext *ctx);
 
+static void PaintMatchRow(ViewContext *ctx, int y, int color) {
+  int window_width;
+  int window_height;
+  chtype attr;
+
+  GetMaxYX(ctx->ctx_matches_window, &window_height, &window_width);
+#ifdef COLOR_SUPPORT
+  if (color == UI_ROLE_SELECTION)
+    attr = UISelectionAttrForBase(ctx, UI_ROLE_PICKER);
+  else if (ctx->color_enabled)
+    attr = COLOR_PAIR(UI_ROLE_PICKER);
+  else
+    attr = 0;
+#else
+  (void)ctx;
+  attr = (color == UI_ROLE_SELECTION) ? A_REVERSE : 0;
+#endif
+
+  wattrset(ctx->ctx_matches_window, attr);
+  mvwhline(ctx->ctx_matches_window, y, 0, ' ', window_width);
+  wmove(ctx->ctx_matches_window, y, 1);
+}
+
 static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
                            int start_x, int *hide_left, int *hide_right) {
   int n;
@@ -40,7 +63,7 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
     (void)strncpy(buffer, (char *)ctx->tab_mtchs[entry_no], BUFSIZ - 3);
     buffer[BUFSIZ - 3] = '\0';
     n = strlen(buffer);
-    wmove(ctx->ctx_matches_window, y, 1);
+    PaintMatchRow(ctx, y, color);
 
     if (n <= ef_window_width) {
 
@@ -76,7 +99,10 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
     WAddStr(ctx->ctx_matches_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
-    wattrset(ctx->ctx_matches_window, COLOR_PAIR(color));
+    if (color == UI_ROLE_SELECTION)
+      wattrset(ctx->ctx_matches_window, UISelectionAttrForBase(ctx, UI_ROLE_PICKER));
+    else
+      wattrset(ctx->ctx_matches_window, COLOR_PAIR(UI_ROLE_PICKER));
 #else
     if (color == UI_ROLE_SELECTION)
       wattrset(ctx->ctx_matches_window, A_REVERSE);

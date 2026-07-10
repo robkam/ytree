@@ -257,8 +257,8 @@ def test_dir_mkdir_cancel_no_footer_artifact(ytnova_binary, tmp_path):
     footer_text = "\n".join(footer_lines)
     footer_lower = footer_text.lower()
 
-    assert "commands" in footer_lower, \
-        f"COMMANDS footer line missing after mkdir cancel.\nFooter:\n{footer_text}"
+    assert "pipe" in footer_lower, \
+        f"Footer action line missing after mkdir cancel.\nFooter:\n{footer_text}"
 
     artifact_lines = [
         line.strip()

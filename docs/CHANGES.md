@@ -21,6 +21,7 @@ Minor/trivial fixes are tracked in git history.
 - **Global State Removal**: Drove major mutable application state out of file-scope globals and into structured runtime state.
 - **Volume Architecture**: Reworked logged roots, physical directories, and archive contexts into explicit volume contexts so multi-volume and archive workflows share a common model.
 - **AppState Contracts**: Documented and enforced AppState transition boundaries so controller and UI code can preserve selected-panel, viewport, and active-volume invariants.
+- **State-Machine Transition Core**: Reframed `AppState` around one explicit transition machine with validated state changes and rendering as projection only, reducing split/focus/restore regressions.
 - **SRP & SoC Enforcement**: Deep-dive refactor to decouple the Filesystem Model (Model) from the UI (View), replacing implicit state access with explicit ownership and context passing.
 - **Global State Encapsulation**: Refactored the core engine to encapsulate previously global variables, improving reentrancy and modularity.
 - **Source Normalization**: Reorganized the source tree into semantic layers (`core`, `ui`, `fs`, `cmd`, `util`) with modular header decomposition.
@@ -41,7 +42,7 @@ Minor/trivial fixes are tracked in git history.
 - **UDF/ISO Bridge Support**: Enhanced detection logic to correctly handle multi-format bridge media (e.g., modern Windows ISOs).
 
 ### New Features & UI/UX Refinements
-- **Color Theme Engine**: Added full **256-color support** and a semantic theme catalog. Users select a named theme in `ytnova.conf`, then define UI roles and optional file-type palettes in `themes.conf`.
+- **Color Theme Engine**: Added full **256-color support**, a semantic theme catalog, and theme-local file-type palettes. Users select a named theme in `ytnova.conf`, then define UI roles and file-type coloring in `themes.conf`.
 - **Hidden File Visibility**: Dotfiles and hidden directories are now filtered by default. Use the backtick (`` ` ``) key to toggle their visibility globally.
 - **Split-Screen (F8)**: Support for independent panels with separate context, cursors, and filters for efficient cross-volume operations.
 - **Integrated Comparison Suite**: Added a dedicated Compare submenu supporting Directory, File, and Logged-Tree comparisons.

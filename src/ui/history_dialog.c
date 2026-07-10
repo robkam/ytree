@@ -18,6 +18,28 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
                           int start_x, int *hide_left, int *hide_right);
 static int DisplayHistory(ViewContext *ctx);
 
+static void PaintHistoryRow(ViewContext *ctx, int y, int color) {
+  int window_width;
+  int window_height;
+  chtype attr;
+
+  GetMaxYX(ctx->ctx_history_window, &window_height, &window_width);
+#ifdef COLOR_SUPPORT
+  if (ctx->color_enabled)
+    attr = COLOR_PAIR(UI_ROLE_PICKER);
+  else
+    attr = 0;
+#else
+  (void)ctx;
+  attr = 0;
+#endif
+
+  (void)color;
+  wattrset(ctx->ctx_history_window, attr);
+  mvwhline(ctx->ctx_history_window, y, 0, ' ', window_width);
+  wmove(ctx->ctx_history_window, y, 0);
+}
+
 static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
                           int start_x, int *hide_left, int *hide_right) {
   int n;
@@ -43,7 +65,7 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
     (void)strncpy(buffer, pp->hst, BUFSIZ - 3);
     buffer[BUFSIZ - 3] = '\0';
     n = strlen(buffer);
-    wmove(ctx->ctx_history_window, y, 0);
+    PaintHistoryRow(ctx, y, color);
 
     if (n <= ef_window_width) {
 
@@ -79,7 +101,10 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
     WAddStr(ctx->ctx_history_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
-    wattrset(ctx->ctx_history_window, COLOR_PAIR(color));
+    if (color == UI_ROLE_SELECTION)
+      wattrset(ctx->ctx_history_window, UISelectionAttrForBase(ctx, UI_ROLE_PICKER));
+    else
+      wattrset(ctx->ctx_history_window, COLOR_PAIR(UI_ROLE_PICKER));
 
 #else
     if (color == UI_ROLE_SELECTION)

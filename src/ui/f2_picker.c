@@ -8,13 +8,180 @@
 #include "ytnova_cmd.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_volume.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
+#include <stdlib.h>
 
 static const UICommandStripCommand f2_command_strip[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cycle", "<", ">"}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cycle", "<", ">"}};
+
+static int F2VisibleRows(int win_height) {
+  if (win_height <= 1)
+    return 1;
+  return win_height - 1;
+}
+
+static int F2ReadTreeDepth(ViewContext *ctx) {
+  int read_depth = 0;
+
+  if (ctx != NULL)
+    read_depth = (int)strtol((GetProfileValue)(ctx, "TREEDEPTH"), NULL, 0);
+  if (read_depth < 0)
+    read_depth = 0;
+  return read_depth;
+}
+
+static DirEntry *F2CurrentDir(struct Volume *target_vol, int disp_begin_pos,
+                              int cursor_pos) {
+  int index;
+
+  if (!target_vol || !target_vol->dir_entry_list || target_vol->total_dirs <= 0)
+    return NULL;
+
+  index = disp_begin_pos + cursor_pos;
+  if (index < 0 || index >= target_vol->total_dirs)
+    return NULL;
+
+  return target_vol->dir_entry_list[index].dir_entry;
+}
+
+static BOOL F2PositionAtIndex(const struct Volume *target_vol, int target_index,
+                              int win_height, int *disp_begin_pos,
+                              int *cursor_pos) {
+  int visible_rows;
+
+  if (!target_vol || !disp_begin_pos || !cursor_pos || target_index < 0 ||
+      target_index >= target_vol->total_dirs)
+    return FALSE;
+
+  visible_rows = F2VisibleRows(win_height);
+  if (*disp_begin_pos < 0)
+    *disp_begin_pos = 0;
+  if (target_index < *disp_begin_pos) {
+    *disp_begin_pos = target_index;
+    *cursor_pos = 0;
+  } else if (target_index >= *disp_begin_pos + visible_rows) {
+    *disp_begin_pos = target_index - visible_rows + 1;
+    *cursor_pos = visible_rows - 1;
+  } else {
+    *cursor_pos = target_index - *disp_begin_pos;
+  }
+
+  if (*disp_begin_pos < 0)
+    *disp_begin_pos = 0;
+  if (*cursor_pos < 0)
+    *cursor_pos = 0;
+  return TRUE;
+}
+
+static BOOL F2PositionAtDir(const struct Volume *target_vol,
+                            const DirEntry *target_dir, int win_height,
+                            int *disp_begin_pos, int *cursor_pos) {
+  int i;
+
+  if (!target_vol || !target_dir || !target_vol->dir_entry_list)
+    return FALSE;
+
+  for (i = 0; i < target_vol->total_dirs; ++i) {
+    if (target_vol->dir_entry_list[i].dir_entry == target_dir)
+      return F2PositionAtIndex(target_vol, i, win_height, disp_begin_pos,
+                               cursor_pos);
+  }
+
+  return FALSE;
+}
+
+static BOOL F2ExpandCurrentDir(ViewContext *ctx, struct Volume *target_vol,
+                               int win_height, int *disp_begin_pos,
+                               int *cursor_pos) {
+  DirEntry *selected;
+  char selected_path[PATH_LENGTH + 1];
+  int dummy_counter = 0;
+  int read_depth = 1;
+
+  if (!ctx || !target_vol)
+    return FALSE;
+
+  selected = F2CurrentDir(target_vol, *disp_begin_pos, *cursor_pos);
+  if (selected == NULL)
+    return FALSE;
+
+  if (!selected->not_scanned && selected->sub_tree != NULL)
+    return F2PositionAtDir(target_vol, selected->sub_tree, win_height,
+                           disp_begin_pos, cursor_pos);
+
+  if (!selected->unlogged_flag &&
+      (selected->sub_tree != NULL || selected->file != NULL)) {
+    if (!AppStateCommitDirEntryLoggedState(selected, FALSE,
+                                           selected->unlogged_flag))
+      return FALSE;
+    BuildDirEntryList(ctx, target_vol, &dummy_counter);
+    BuildDirEntryList(ctx, target_vol, &dummy_counter);
+    return F2PositionAtDir(target_vol, selected, win_height, disp_begin_pos,
+                           cursor_pos);
+  }
+
+  flushinp();
+  SuspendClock(ctx);
+  GetPath(selected, selected_path);
+  if (selected->unlogged_flag)
+    read_depth = F2ReadTreeDepth(ctx);
+  (void)ReadTree(ctx, selected, selected_path, read_depth,
+                 &target_vol->vol_stats, NULL, NULL);
+  ApplyFilter(selected, &target_vol->vol_stats);
+  InitClock(ctx);
+
+  if (!AppStateCommitDirEntryLoggedState(selected, FALSE, FALSE))
+    return FALSE;
+
+  BuildDirEntryList(ctx, target_vol, &dummy_counter);
+  BuildDirEntryList(ctx, target_vol, &dummy_counter);
+  return F2PositionAtDir(target_vol, selected, win_height,
+                         disp_begin_pos, cursor_pos);
+}
+
+static BOOL F2CollapseCurrentDir(ViewContext *ctx, struct Volume *target_vol,
+                                 int win_height, int *disp_begin_pos,
+                                 int *cursor_pos) {
+  DirEntry *selected;
+  DirEntry *de_ptr;
+  FileEntry *fe_ptr;
+  FileEntry *next_fe_ptr;
+  int dummy_counter = 0;
+
+  if (!ctx || !target_vol)
+    return FALSE;
+
+  selected = F2CurrentDir(target_vol, *disp_begin_pos, *cursor_pos);
+  if (selected == NULL)
+    return FALSE;
+
+  if (selected->not_scanned || selected->sub_tree == NULL) {
+    if (selected->up_tree == NULL)
+      return FALSE;
+    return F2PositionAtDir(target_vol, selected->up_tree, win_height,
+                           disp_begin_pos, cursor_pos);
+  }
+
+  for (de_ptr = selected->sub_tree; de_ptr; de_ptr = de_ptr->next) {
+    UnReadTree(ctx, de_ptr, &target_vol->vol_stats);
+  }
+  for (fe_ptr = selected->file; fe_ptr; fe_ptr = next_fe_ptr) {
+    next_fe_ptr = fe_ptr->next;
+    RemoveFile(ctx, fe_ptr, &target_vol->vol_stats);
+  }
+
+  if (!AppStateCommitDirEntryLoggedState(selected, TRUE, TRUE))
+    return FALSE;
+
+  BuildDirEntryList(ctx, target_vol, &dummy_counter);
+  BuildDirEntryList(ctx, target_vol, &dummy_counter);
+  return F2PositionAtDir(target_vol, selected, win_height, disp_begin_pos,
+                         cursor_pos);
+}
 
 int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */
@@ -89,6 +256,15 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
               local_disp_begin_pos + local_cursor_pos, TRUE);
   do {
+#ifdef COLOR_SUPPORT
+    if (ctx->color_enabled)
+      wattrset(ctx->ctx_f2_window, COLOR_PAIR(UI_ROLE_PICKER));
+    else
+      wattrset(ctx->ctx_f2_window, 0);
+#else
+    wattrset(ctx->ctx_f2_window, 0);
+#endif
+    mvwhline(ctx->ctx_f2_window, win_height - 1, 0, ' ', win_width);
     UI_RenderCommandStrip(
         ctx->ctx_f2_window, win_height - 1, 2, f2_command_strip,
         sizeof(f2_command_strip) / sizeof(f2_command_strip[0]), UI_ROLE_PICKER,
@@ -145,6 +321,26 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
           DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
                       local_disp_begin_pos + local_cursor_pos, TRUE);
         }
+      }
+      break;
+
+    case ACTION_MOVE_RIGHT:
+      if (F2ExpandCurrentDir(ctx, target_vol, win_height, &local_disp_begin_pos,
+                             &local_cursor_pos)) {
+        DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
+                    local_disp_begin_pos + local_cursor_pos, TRUE);
+      } else {
+        UI_Beep(ctx, FALSE);
+      }
+      break;
+
+    case ACTION_MOVE_LEFT:
+      if (F2CollapseCurrentDir(ctx, target_vol, win_height,
+                               &local_disp_begin_pos, &local_cursor_pos)) {
+        DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
+                    local_disp_begin_pos + local_cursor_pos, TRUE);
+      } else {
+        UI_Beep(ctx, FALSE);
       }
       break;
 
