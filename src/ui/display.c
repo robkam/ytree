@@ -160,6 +160,7 @@ static const UICommandStripCommand preview_command_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Exit Preview", "F7", NULL}};
 static const UICommandStripCommand dir_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged", "F4", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
@@ -168,6 +169,7 @@ static const UICommandStripCommand dir_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged", "F4", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
@@ -177,6 +179,7 @@ static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged", "F4", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
@@ -186,6 +189,7 @@ static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand file_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged", "F4", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
@@ -194,6 +198,7 @@ static const UICommandStripCommand file_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand file_help_nav_to_dir_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged", "F4", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},

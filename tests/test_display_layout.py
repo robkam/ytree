@@ -608,7 +608,7 @@ def test_backslash_to_dir_in_showall_and_global(ytnova_binary, tmp_path, mode_ke
 def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path):
     """
     REGRESSION:
-    Footer command rows must render function key labels as text (F7/F8/F10/F1),
+    Footer command rows must render function key labels as text (F4/F7/F8/F10/F1),
     not ACS glyph substitutions.
     """
     d = tmp_path / "footer_fkeys"
@@ -622,7 +622,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
     tui.send_keystroke("", wait=0.2)
 
     screen = "\n".join(tui.get_screen_dump())
-    assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
+    assert "F4" in screen and "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
     assert "Treespec" not in screen
     assert "Tree  F1 help" in screen
     assert "Dir   F1 help" not in screen
@@ -632,7 +632,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.6)
     screen = "\n".join(tui.get_screen_dump())
-    assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
+    assert "F4" in screen and "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
     assert "to dir" in screen
     assert "Dir   F1 help" in screen
     assert "jump" in screen

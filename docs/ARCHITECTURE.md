@@ -227,7 +227,7 @@ Compatibility shims are retired from the current AppState contract. Any legacy m
 *   **Transition Invariant:** A directory can only be entered (Tree to File Mode) if it contains at least one file.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel restores the cursor to the last highlighted file.
 *   **Navigation Stability:** Moving through the Tree never automatically triggers a transition into File Mode.
-*   **Tag-View Scope Rule:** `i/I` (invert tags) and `o/O` (tagged-only file-list toggle) operate on the active panel's current file-list scope, regardless of whether focus is in tree or file window.
+*   **Tag-View Scope Rule:** `i/I` (invert tags) and `F4`/`o/O` (tagged-only file-list toggle) operate on the active panel's current file-list scope, regardless of whether focus is in tree or file window.
 *   **Root Boundary Rule:** `Left` on an expanded root performs the same node-local reset as `-` (collapse + release/unlog). Further `Left` on an already-unlogged root is a no-op.
 
 ### 5.2 Protocol B: Archive and Volume Lifecycle

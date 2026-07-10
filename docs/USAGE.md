@@ -90,6 +90,7 @@ Activated by **F7**. The screen layout changes to show the file list on the left
 These commands work in most modes:
 
   - **F1**: Help (context-sensitive in prompts/dialogs).
+  - **F4**: Toggle tagged-only view for the active panel's current file-list scope without changing tag state.
   - **F5**: Refresh (same as **^L**).
   - **F6**: Toggle Statistics Panel (Wide Mode).
   - **F7**: Toggle File Preview Pane.
@@ -130,7 +131,7 @@ Active when browsing the directory tree window.
   - **L** (Log): Log a new directory or archive file. Logging an already logged volume/path performs a fresh reload and reanchors selection at the volume root.
   - **M** (Makedir): Create a new directory.
   - **N** (New File): Create a new empty file.
-  - **O** (Only tagged): Toggle tagged-only file-list view for the current directory scope.
+  - **O** (Only tagged): Toggle tagged-only file-list view for the current directory scope. **F4** is the function-key alias.
   - **P** (Pipe, or **|**): Pipe the selected directory to a command (stdin).
   - **R** (Rename): Rename selected directory.
   - **S** (Showall): Show all files in all directories of the current volume.
@@ -169,7 +170,7 @@ Active when the file window is focused.
   - **M** (Move): Move the selected file.
   - **^N**: Move all tagged files.
   - **N** (New File): Create a new empty file.
-  - **O** (Only tagged): Toggle tagged-only file-list view (show tagged files only).
+  - **O** (Only tagged): Toggle tagged-only file-list view (show tagged files only). **F4** is the function-key alias.
   - **P** (Pipe, or **|**): Pipe content of file to a command (stdin).
   - **R** (Rename): Rename the selected file.
   - **S** (Sort): Sort filelist (Access time, Change time, Extension, Group, Modification time, Name, Owner, Size).
@@ -207,7 +208,7 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytnova behaves like a virtual fi
   - **I** (Invert Tags): Toggle tag state for files in the selected/current archive directory scope.
   - **L** (Log): Log a new directory or archive. Logging an already logged volume/path performs a fresh reload and reanchors selection at the volume root.
   - **M** (Makedir): Create directory in archive context where supported.
-  - **O** (Only tagged): Toggle tagged-only file-list view for the current archive directory scope.
+  - **O** (Only tagged): Toggle tagged-only file-list view for the current archive directory scope. **F4** is the function-key alias.
   - **R** (Rename): Rename selected archive directory entry.
   - **S** (Showall): Show all files in the archive.
   - **T** (Tag): Tag all files in current virtual directory.
@@ -229,7 +230,7 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytnova behaves like a virtual fi
   - **H** (Hex): View file in hex mode.
   - **I** (Invert Tags): Toggle the tag state of all visible files.
   - **M** (Move): Move selected file using archive-aware semantics.
-  - **O** (Only tagged): Toggle tagged-only file-list view (show tagged files only).
+  - **O** (Only tagged): Toggle tagged-only file-list view (show tagged files only). **F4** is the function-key alias.
   - **P** (Pipe, or **|**): Pipe content to command.
   - **R** (Rename): Rename selected archive file entry.
   - **S** (Sort): Sort file list.

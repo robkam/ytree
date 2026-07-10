@@ -5644,6 +5644,9 @@ def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> No
     assert body.count("return ACTION_NONE;") == 1
     assert body.index("return ACTION_NONE;") < body.index("switch (ch)")
     assert "AppStateValidatedKeyAction(" in body
+    assert 'case KEY_F(4):\n    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);' in body
+    assert 'case KEY_F(16):\n    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);' in body
+    assert 'case KEY_F(28):\n    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);' in body
     assert not re.search(r"return\s+ACTION_(?!NONE;)", body)
 
 

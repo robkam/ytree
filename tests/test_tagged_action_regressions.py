@@ -106,7 +106,7 @@ def test_invert_tags_i_and_upper_i_in_archive_directory_window(
         tui.quit()
 
 
-def test_only_tagged_toggle_o_from_directory_window(ytnova_binary, tmp_path):
+def test_only_tagged_toggle_o_and_f4_from_directory_window(ytnova_binary, tmp_path):
     work_dir = tmp_path / "dir_window_only_tagged"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
@@ -127,7 +127,39 @@ def test_only_tagged_toggle_o_from_directory_window(ytnova_binary, tmp_path):
         footer = _footer_text(tui)
         assert "j tree" in footer, f"Expected directory footer before tagged-only toggle.\n{footer}"
 
+        tui.send_keystroke(Keys.F4, wait=0.35)
+        tagged_only_screen = _screen_text(tui)
+        assert "alpha.txt" in tagged_only_screen, tagged_only_screen
+        assert "gamma.txt" in tagged_only_screen, tagged_only_screen
+        assert "beta.txt" not in tagged_only_screen, tagged_only_screen
+
         tui.send_keystroke("o", wait=0.35)
+        full_screen = _screen_text(tui)
+        assert "alpha.txt" in full_screen, full_screen
+        assert "beta.txt" in full_screen, full_screen
+        assert "gamma.txt" in full_screen, full_screen
+    finally:
+        tui.quit()
+
+
+def test_only_tagged_toggle_o_and_f4_from_file_window(ytnova_binary, tmp_path):
+    work_dir = tmp_path / "file_window_only_tagged"
+    work_dir.mkdir()
+    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
+    (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
+    (work_dir / "gamma.txt").write_text("gamma", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
+    time.sleep(0.5)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke("t", wait=0.2)  # alpha
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)  # gamma
+
+        tui.send_keystroke(Keys.F4, wait=0.35)
         tagged_only_screen = _screen_text(tui)
         assert "alpha.txt" in tagged_only_screen, tagged_only_screen
         assert "gamma.txt" in tagged_only_screen, tagged_only_screen

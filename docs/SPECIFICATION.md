@@ -160,7 +160,7 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 *   **The Volume Menu Rule (`K` menu):** Selecting the already-active volume preserves its current in-memory state (no implicit relog/reload).
 *   **The Explicit Relog Rule (`L` on current path):** Logging an already logged volume/path performs a fresh relog/reload of that volume state and reanchors selection at volume root.
 *   **The Invert Rule (`i`/`I`):** In both tree and file windows, invert tags applies to the active panel's current file-list scope (filesystem and archive contexts).
-*   **The Only-Tagged Rule (`o`/`O`):** In both tree and file windows, toggle tagged-only file-list view for the active panel's current scope; toggling never changes tag state.
+*   **The Only-Tagged Rule (`F4`, `o`/`O`):** In both tree and file windows, toggle tagged-only file-list view for the active panel's current scope; toggling never changes tag state.
 *   **The Archive/Global Jump (`\`):** In Archive Mode, jumps to the archive root. in Global/Showall views, jumps to the highlighted file's directory.
 *   **Numeric FileInfo Band (`1..9`, `0`):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). These controls apply to file-display rendering for the active panel whether focus is currently in the tree/dir window or file window.
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
@@ -170,6 +170,7 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 ### 4.4 Function Key Blueprint (F1-F12)
 *   **`F1`**: help.
 *   **`F2`**: directory picker (Prompts Only).
+*   **`F4`**: tagged-only toggle for the active panel's current file-list scope.
 *   **`F5`**: refresh.
 *   **`F6`**: stats toggle.
 *   **`F7`**: autoview toggle.

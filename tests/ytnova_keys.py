@@ -22,6 +22,7 @@ class Keys:
     # Note: If these fail, try "\033OR" for F7 and "\033OS" for F8
     F1 = "\033OP"
     F2 = "\033OQ"
+    F4 = "\033OS"
     F5 = "\033[15~"
     F7 = "\033[18~"
     F8 = "\033[19~"

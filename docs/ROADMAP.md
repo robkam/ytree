@@ -1369,7 +1369,7 @@ Ordering policy (for all editors, including AI editors):
     *   Leaving the mode restores the normal file/filter view; tags remain unchanged.
     *   This should compose cleanly with existing filters, grep-on-tagged workflows, and compare/tag workflows.
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
-*   - [ ] **Status:** In Progress (tagged-only toggle shipped on `o/O`; broader workflow/key-shape refinements remain).
+*   - [x] **Status:** Completed.
 
 ### **Idea FE-16: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
