@@ -19,8 +19,8 @@ If no command line arguments are provided, the current directory will be logged.
   - **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
   - **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
   - **-h** *history\_file*: Use *history\_file* instead of the default `~/.ytnova-hst`.
-  - **--init**: Create missing starter profile and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. Use `-p` to target a different profile file.
-  - **-p** *config\_file*: Use *config\_file* instead of the default `~/.config/ytnova/ytnova.conf`.
+  - **--init**: Create a starter profile file and exit. By default this creates `~/.ytnova` only if it does not already exist. Use `-p` to target a different file.
+  - **-p** *config\_file*: Use *config\_file* instead of the default `~/.ytnova`.
   - **-v**, **-V**, **--version**: Print ytnova version information and exit.
   - *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
 
@@ -94,7 +94,7 @@ These commands work in most modes:
   - **F6**: Toggle Statistics Panel (Wide Mode).
   - **F7**: Toggle File Preview Pane.
   - **F8**: Toggle Split Screen Mode.
-  - **F10**: Open the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **T** to edit themes, or **R** to reload the current config and theme. A successful reload silently repaints; a failed reload keeps the previous working config/theme and reports the error in the status/footer area.
+  - **F10**: Edit `~/.ytnova` in `$EDITOR`. If the file does not exist yet, the editor opens a new buffer at that path; save to create it (or run `ytnova --init` to generate defaults first).
   - **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
   - **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
   - **B**: Toggle Brief (Compact) filename view in the File Window.
@@ -180,7 +180,7 @@ Active when the file window is focused.
     for this action.)*
   - **^U**: Untag all displayed files. *(With `VI_KEYS=1`, `^U` is page-up
     navigation and uppercase `U` becomes Untag All.)*
-  - **V** (View): View file with the pager defined in the main config (default: less).
+  - **V** (View): View file with the pager defined in `~/.ytnova` (default: less).
   - **^V**: **View Tagged**. View all tagged files sequentially.
   - **W** (Write): Export the selected file to a command or file using a formatting dialog (Raw, Framed, Page Break).
   - **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
@@ -289,37 +289,14 @@ These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
 
 # CONFIGURATION
 
-ytnova reads its main configuration from `~/.config/ytnova/ytnova.conf` by
-default. The home-directory fallback path is `~/.ytnova` when the XDG target
-cannot be used. Passing `-p` *config\_file*
-uses that explicit main config path instead.
+ytnova reads configuration from `~/.ytnova` by default, or from `-p` *config\_file*
+when provided.
 
-Use `ytnova --init` to create the preferred main config when it is missing.
-Existing files are never overwritten by `--init`.
+Use `ytnova --init` to create `~/.ytnova` when it is missing. Existing files are
+never overwritten by `--init`.
 Example: `ytnova --init`
 
-The file created by `--init` is a fully annotated profile template. It selects a
-semantic theme with `THEME=classic-blue`; role definitions and file-type palette
-rules live in theme files, not in the main config.
-
-Theme catalogs are plain text. ytnova loads user themes from
-`~/.config/ytnova/themes.conf`, falls back to `~/.ytnova.themes` only when the
-XDG target cannot be used, then
-uses the installed packaged catalog or compiled-in defaults without creating a
-user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
-The bundled defaults include `classic-blue` and `bash-black`.
-
-Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
-`selection`, `dialog`, `picker`, `help`, `warning`, `error`, and `search_hit`.
-Color values accept names or numbers, `grey`/`gray`, bright prefixes such as
-`+white` or `+grey`, and optional backgrounds such as `+white on blue`.
-
-Theme-local file-type palettes use compact grouped rules, for example
-`archives = red: tar,tgz,zip` or `scripts = +cyan: sh,bash,py`. Rules are
-evaluated top to bottom; the first matching extension or special selector wins.
-Special selectors may include `LINK` and `EXEC`; directory tree rows use theme
-roles rather than file-type palette rules. When a rule omits a background, it
-inherits the active filename/window background.
+The file created by `--init` is a fully annotated profile template.
 
 # QUIT TO DIRECTORY
 
@@ -338,10 +315,7 @@ yt() {
 
 # FILES
 
-  - `~/.config/ytnova/ytnova.conf`: Preferred main configuration file.
-  - `~/.config/ytnova/themes.conf`: Preferred user theme catalog.
-  - `~/.ytnova`: Legacy fallback main configuration file.
-  - `~/.ytnova.themes`: Legacy fallback user theme catalog.
+  - `~/.ytnova`: Configuration file.
   - `~/.ytnova-hst`: Command line history.
 
 ### Reporting problems

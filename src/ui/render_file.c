@@ -237,10 +237,8 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
   int base_color_pair;
   int width;
   BOOL is_tagged;
-  BOOL is_active_panel;
   BOOL align_name_col;
-  int inactive_highlight_attr;
-  int highlight_color_pair;
+  int highlight_attr;
   char row_label[PATH_LENGTH + 2];
   const char *primary_name;
 
@@ -261,9 +259,9 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     primary_name = row_label;
   }
   is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
-  is_active_panel = !(ctx->is_split_screen && panel != ctx->active);
-  inactive_highlight_attr = A_BOLD | A_UNDERLINE;
-  highlight_color_pair = UI_ROLE_SELECTION;
+  highlight_attr = (ctx->is_split_screen && panel != ctx->active)
+                       ? (A_BOLD | A_UNDERLINE)
+                       : A_REVERSE;
 
   if (ctx->fixed_col_width > 0) {
     pos_x = x * (ctx->fixed_col_width + 1);
@@ -277,13 +275,12 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     CutFilename(display_name, compact_label, ctx->fixed_col_width - 2);
 
     /* Set Attributes */
-    int color = (hilight && is_active_panel) ? highlight_color_pair
-                                             : GetFileTypeColor(ctx, fe_ptr);
+    int color = GetFileTypeColor(ctx, fe_ptr);
     wattron(win, COLOR_PAIR(color));
     if (is_tagged)
       wattron(win, A_BOLD);
-    if (hilight && !is_active_panel)
-      wattron(win, inactive_highlight_attr);
+    if (hilight)
+      wattron(win, highlight_attr);
 
     /* Draw */
     wprintw(win, "%c %s", (is_tagged) ? TAGGED_SYMBOL : ' ', display_name);
@@ -296,8 +293,8 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     }
 
     /* Cleanup */
-    if (hilight && !is_active_panel)
-      wattroff(win, inactive_highlight_attr);
+    if (hilight)
+      wattroff(win, highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
     wattroff(win, COLOR_PAIR(color));
@@ -379,17 +376,15 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     ef_window_width = 0;
 
   wmove(win, y, pos_x);
-  base_color_pair = (hilight && ctx->highlight_full_line && is_active_panel)
-                        ? highlight_color_pair
-                        : GetFileTypeColor(ctx, fe_ptr);
+  base_color_pair = GetFileTypeColor(ctx, fe_ptr);
 
   if (ctx->highlight_full_line) {
     /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
     wattron(win, COLOR_PAIR(base_color_pair));
     if (is_tagged)
       wattron(win, A_BOLD);
-    if (hilight && !is_active_panel)
-      wattron(win, inactive_highlight_attr);
+    if (hilight)
+      wattron(win, highlight_attr);
 
     /* Build the full line string */
     switch (panel->file_mode) {
@@ -558,8 +553,8 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     }
     waddstr(win, line_ptr);
 
-    if (hilight && !is_active_panel)
-      wattroff(win, inactive_highlight_attr);
+    if (hilight)
+      wattroff(win, highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
 
@@ -627,19 +622,11 @@ void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y
     }
 
     /* Highlight only the name */
-    if (hilight) {
-      if (is_active_panel)
-        wattrset(win, COLOR_PAIR(highlight_color_pair));
-      else
-        wattron(win, inactive_highlight_attr);
-    }
+    if (hilight)
+      wattron(win, highlight_attr);
     AddClippedAtCursor(win, display_name, width);
-    if (hilight) {
-      if (is_active_panel)
-        wattrset(win, COLOR_PAIR(base_color_pair));
-      else
-        wattroff(win, inactive_highlight_attr);
-    }
+    if (hilight)
+      wattroff(win, highlight_attr);
 
     /* Print attributes for modes other than MODE_3 */
     if (panel->file_mode != MODE_3) {
@@ -740,7 +727,7 @@ void DisplayFiles(ViewContext *ctx, YtreeNovaPanel *panel, const DirEntry *de_pt
   height = getmaxy(win);
 
 #ifdef COLOR_SUPPORT
-  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINFILE));
 #endif
   werase(win);
 

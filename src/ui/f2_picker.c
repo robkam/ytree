@@ -12,10 +12,6 @@
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
 
-static const UICommandStripCommand f2_command_strip[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cycle", "<", ">"}};
-
 int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */
   unsigned int original_panel_generation;
@@ -89,10 +85,10 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
               local_disp_begin_pos + local_cursor_pos, TRUE);
   do {
-    UI_RenderCommandStrip(
-        ctx->ctx_f2_window, win_height - 1, 2, f2_command_strip,
-        sizeof(f2_command_strip) / sizeof(f2_command_strip[0]), UI_ROLE_PICKER,
-        UI_ROLE_KEYBIND);
+    /* Footer Drawing */
+    wattron(ctx->ctx_f2_window, A_BOLD);
+    mvwaddstr(ctx->ctx_f2_window, win_height - 1, 2, "[ (L)og (< >) Cycle ]");
+    wattroff(ctx->ctx_f2_window, A_BOLD);
 
     RefreshWindow(ctx->ctx_f2_window);
     doupdate();

@@ -98,7 +98,7 @@ Exactly **three** global variables exist in the codebase. Each has a specific te
 
 | Variable | Type | File | Justification |
 |---|---|---|---|
-| `ui_colors[]` | `UIColor[]` | `src/ui/color.c` | Color palette table — mutated only by startup and F10 reload commit paths after strict config/theme validation. Failed reloads restore the previous working palette before reporting status. |
+| `ui_colors[]` | `UIColor[]` | `src/ui/color.c` | Color palette table — written once during config parsing at startup, read-only thereafter. Shared across all UI code as immutable configuration. |
 | `NUM_UI_COLORS` | `int` | `src/ui/color.c` | Derived from `sizeof(ui_colors)` — effectively a compile-time constant. |
 | `ytnova_shutdown_flag` | `volatile sig_atomic_t` | `src/core/main.c` | Set by the `SIGTERM`/`SIGINT` signal handler. POSIX signal handlers cannot receive context pointers; an atomic global flag is the mandated pattern for signal-to-mainloop communication. |
 
@@ -245,16 +245,9 @@ Compatibility shims are retired from the current AppState contract. Any legacy m
 
 ## 6. Visual and Rendering Standards
 *   **Terminal Integrity:** UI updates are staged using `wnoutrefresh()` and committed atomically via `doupdate()` to prevent visual artifacts.
-*   **Theme Configuration Boundary:** Runtime theme selection is read from the main profile, but role definitions and file-type palettes live in separate theme files. Packaged defaults are `etc/ytnova.conf` and `etc/ytnova.themes`; user discovery prefers XDG paths and falls back to home-directory dotfiles only when the XDG targets cannot be used.
-*   **Edit Authority Rule:** `F10` edits the active user file for the selected surface (XDG or home-dotfile fallback); when runtime is using built-in defaults for that surface, `F10` materializes the XDG file for that surface and edits it.
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) are used only for horizontal boundary lines. Vertical separators must remain clean.
 *   **Tree State Rendering Contract:** Unlogged state is rendered in the dedicated tree status-margin column; directory names do not carry a `+` suffix, while `/` may still be shown when the directory has subdirectories.
 *   **Micro-Consistency:** Mode flags must be synchronized with the layout before any redraw.
-*   **Background Ownership:** Set a window background once per refresh path, then clear before drawing. Entry renderers may set temporary attributes but must not change the window background inside item loops.
-*   **Semantic Role Projection:** Renderers consume semantic role pairs. F1/context help uses `help`; picker surfaces use `picker`; tree status columns use `margin`; tree guide glyphs use `tree_lines`; directory tree names stay on `dynamic_text`; severity errors use `error`; search-hit spans use `search_hit` and then restore their surrounding content role.
-*   **File-Type Palette Boundary:** File-type palette rules are optional per-theme filename decoration. They are evaluated top-to-bottom as first-match-wins rules, resolve to full foreground/background pairs, and must not style directory tree rows.
-*   **Frame/Fill Separation:** Window fills use the content/background role for their surface, while frames and separators use `box_lines`; do not map a border role onto the full window fill.
-*   **Stats Role Split:** In stats rendering, box lines use `box_lines`, stats titles and fixed labels use `static_text`, and changing stats values use `dynamic_text`.
 
 ---
 

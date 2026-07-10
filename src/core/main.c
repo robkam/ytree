@@ -8,7 +8,6 @@
 #include "ytnova_defs.h"
 #include "ytnova_appstate_actions.h"
 #include "default_profile_template.h"
-#include "default_theme_catalog.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -2239,8 +2238,6 @@ static void SigIntHandler(int sig) {
   ytnova_shutdown_flag = 1;
 }
 
-static int EnsureDefaultProfileDirectory(void);
-
 static int GetDefaultProfilePath(char *path, size_t path_size) {
   const char *home = getenv("HOME");
   int written;
@@ -2248,84 +2245,27 @@ static int GetDefaultProfilePath(char *path, size_t path_size) {
   if (!path || path_size == 0 || !home || !*home)
     return -1;
 
-  if (EnsureDefaultProfileDirectory() == 0) {
-    written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                       PROFILE_CONFIG_HOME_PATH);
-    if (written >= 0 && (size_t)written < path_size)
-      return 0;
-  }
-
   written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
                      PROFILE_FILENAME);
-  if (written < 0 || (size_t)written >= path_size)
+  if (written < 0 || (size_t)written >= path_size) {
     return -1;
-  return 0;
-}
-
-static int GetDefaultThemePath(char *path, size_t path_size) {
-  const char *home = getenv("HOME");
-  int written;
-
-  if (!path || path_size == 0 || !home || !*home)
-    return -1;
-
-  if (EnsureDefaultProfileDirectory() == 0) {
-    written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                       THEME_CONFIG_HOME_PATH);
-    if (written >= 0 && (size_t)written < path_size)
-      return 0;
   }
-
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     THEME_FILENAME);
-  if (written < 0 || (size_t)written >= path_size)
-    return -1;
-  return 0;
-}
-
-static int EnsureDefaultProfileDirectory(void) {
-  const char *home = getenv("HOME");
-  char path[PATH_LENGTH + 1];
-  struct stat st;
-  int written;
-
-  if (!home || !*home)
-    return -1;
-
-  written = snprintf(path, sizeof(path), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_CONFIG_HOME_PARENT);
-  if (written < 0 || (size_t)written >= sizeof(path))
-    return -1;
-  if (mkdir(path, S_IRWXU) != 0) {
-    if (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
-      return -1;
-  }
-
-  written = snprintf(path, sizeof(path), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_CONFIG_HOME_DIR);
-  if (written < 0 || (size_t)written >= sizeof(path))
-    return -1;
-  if (mkdir(path, S_IRWXU) != 0) {
-    if (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
-      return -1;
-  }
-
   return 0;
 }
 
 /*
  * Return values:
- *   0 = file created
- *   1 = file already exists (left untouched)
+ *   0 = profile created
+ *   1 = profile already exists (left untouched)
  *  -1 = hard error
  */
-static int InitDefaultFile(const char *path, const char *contents) {
+static int InitProfileFile(const char *path) {
   int fd;
   FILE *fp;
   size_t len;
   size_t written;
 
-  if (!path || !*path || !contents)
+  if (!path || !*path)
     return -1;
 
   fd = open(path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
@@ -2342,8 +2282,8 @@ static int InitDefaultFile(const char *path, const char *contents) {
     return -1;
   }
 
-  len = strlen(contents);
-  written = fwrite(contents, 1, len, fp);
+  len = strlen(default_profile_template);
+  written = fwrite(default_profile_template, 1, len, fp);
   if (written != len || fclose(fp) != 0) {
     unlink(path);
     return -1;
@@ -2467,18 +2407,8 @@ int main(int argc, char **argv) {
 
   if (init_requested) {
     char init_path_buffer[PATH_LENGTH + 1];
-    char init_theme_path_buffer[PATH_LENGTH + 1];
     const char *init_path = conf;
-    const char *init_theme_path = init_theme_path_buffer;
-    int init_profile_status;
-    int init_theme_status;
-
-    if (GetDefaultThemePath(init_theme_path_buffer,
-                            sizeof(init_theme_path_buffer)) != 0) {
-      fprintf(stderr,
-              "Cannot resolve target themes path. Set HOME before --init.\n");
-      exit(1);
-    }
+    int init_status;
 
     if (!init_path) {
       if (GetDefaultProfilePath(init_path_buffer, sizeof(init_path_buffer)) !=
@@ -2496,29 +2426,19 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-    init_profile_status = InitDefaultFile(init_path, default_profile_template);
-    if (init_profile_status == -1) {
-      fprintf(stderr, "Failed to initialize profile %s: %s\n", init_path,
-              strerror(errno));
-      exit(1);
-    }
-    init_theme_status = InitDefaultFile(init_theme_path, default_theme_catalog);
-    if (init_theme_status == -1) {
-      fprintf(stderr, "Failed to initialize themes %s: %s\n", init_theme_path,
-              strerror(errno));
-      exit(1);
-    }
-
-    if (init_profile_status == 0)
+    init_status = InitProfileFile(init_path);
+    if (init_status == 0) {
       fprintf(stdout, "Created profile: %s\n", init_path);
-    else
+      return 0;
+    }
+    if (init_status == 1) {
       fprintf(stdout, "%s already exists; not overwritten\n", init_path);
+      return 0;
+    }
 
-    if (init_theme_status == 0)
-      fprintf(stdout, "Created themes: %s\n", init_theme_path);
-    else
-      fprintf(stdout, "%s already exists; not overwritten\n", init_theme_path);
-    return 0;
+    fprintf(stderr, "Failed to initialize profile %s: %s\n", init_path,
+            strerror(errno));
+    exit(1);
   }
 
   if (ctx.core_main_ops.init(&ctx, conf, hist)) {

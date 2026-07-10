@@ -62,16 +62,12 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
                    int entry_no, int y, unsigned char hilight, BOOL is_active) {
   unsigned int j;
   int color;
-  int highlight_color;
-  int margin_color;
-  int tree_line_color;
 
   if (!ctx || !vol || !win)
     return;
   char graph_buffer[PATH_LENGTH + 1];
   const char *format = NULL;
   char *line_buffer = NULL;
-  size_t line_buffer_capacity = 0;
   char *dir_name;
   char attributes[11];
   char modify_time[20]; /* Increased from 13 to 20 for "YYYY-MM-DD HH:MM" */
@@ -84,15 +80,9 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   DirEntry *de_ptr;
 
   if (win == ctx->ctx_f2_window) {
-    color = UI_ROLE_PICKER;
-    highlight_color = UI_ROLE_SELECTION;
-    margin_color = UI_ROLE_PICKER;
-    tree_line_color = UI_ROLE_PICKER;
+    color = CPAIR_HST;
   } else {
-    color = UI_ROLE_DYNAMIC_TEXT;
-    highlight_color = UI_ROLE_SELECTION;
-    margin_color = UI_ROLE_MARGIN;
-    tree_line_color = UI_ROLE_TREE_LINES;
+    color = CPAIR_DIR;
   }
 
   /* Build the tree graph string (e.g., "| 6- ") */
@@ -124,11 +114,13 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   case MODE_1:
     (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
     (void)CTime(de_ptr->stat_struct.st_mtime, modify_time);
-    line_buffer_capacity = 96;
-    line_buffer = (char *)xmalloc(line_buffer_capacity);
+    /* Increased buffer size from 38 to 42 to accommodate 16-char date */
+    line_buffer = (char *)xmalloc(42);
+
+    /* Updated %12s to %16s for date */
     format = "%10s %3d %8lld %16s";
 
-    (void)snprintf(line_buffer, line_buffer_capacity, format, attributes,
+    (void)snprintf(line_buffer, 42, format, attributes,
                    (int)de_ptr->stat_struct.st_nlink,
                    (long long)de_ptr->stat_struct.st_size, modify_time);
     break;
@@ -146,11 +138,10 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
                      (int)de_ptr->stat_struct.st_gid);
       group_name_ptr = group;
     }
-    line_buffer_capacity = 160;
-    line_buffer = (char *)xmalloc(line_buffer_capacity);
+    line_buffer = (char *)xmalloc(40);
 
     format = "%12u  %-12s %-12s";
-    (void)snprintf(line_buffer, line_buffer_capacity, format,
+    (void)snprintf(line_buffer, 40, format,
                    (unsigned int)de_ptr->stat_struct.st_ino, owner_name_ptr,
                    group_name_ptr);
     break;
@@ -159,65 +150,47 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   case MODE_4:
     (void)CTime(de_ptr->stat_struct.st_ctime, change_time);
     (void)CTime(de_ptr->stat_struct.st_atime, access_time);
+    /* Increased buffer size from 40 to 50 to accommodate two 16-char dates */
+    /* Format: "Chg.: " (6) + 16 + "  Acc.: " (8) + 16 = 46 chars. 50 is safe.
+     */
     format = "Chg.: %16s  Acc.: %16s";
-    line_buffer_capacity = 80;
-    line_buffer = (char *)xmalloc(line_buffer_capacity);
+    line_buffer = (char *)xmalloc(50);
 
-    (void)snprintf(line_buffer, line_buffer_capacity, format, change_time,
-                   access_time);
+    (void)snprintf(line_buffer, 50, format, change_time, access_time);
     break;
   }
+
+  /* --- Redesigned Drawing Logic --- */
 
   const int status_col = 0;
   const int graph_col = 3;
   int attr_start_col = 38; /* Column where attributes begin */
   int graph_len = strlen(graph_buffer);
   chtype line_attr;
-  chtype margin_attr;
-  chtype tree_line_attr;
-  chtype name_attr;
-  chtype inactive_full_line_attr;
 
   wmove(win, y, 0);
   wclrtoeol(win);
 
   /* Set the base attribute for the line */
 #ifdef COLOR_SUPPORT
-  line_attr = (hilight && ctx->highlight_full_line && is_active)
-                  ? COLOR_PAIR(highlight_color)
-                  : COLOR_PAIR(color);
-  margin_attr = (hilight && ctx->highlight_full_line && is_active)
-                    ? COLOR_PAIR(highlight_color)
-                    : COLOR_PAIR(margin_color);
-  tree_line_attr = (hilight && ctx->highlight_full_line && is_active)
-                       ? COLOR_PAIR(highlight_color)
-                       : COLOR_PAIR(tree_line_color);
+  line_attr = COLOR_PAIR(color);
 #else
   line_attr = A_NORMAL;
-  margin_attr = A_NORMAL;
-  tree_line_attr = A_NORMAL;
 #endif
-  name_attr = line_attr;
-  inactive_full_line_attr = (hilight && ctx->highlight_full_line && !is_active)
-                                ? (A_BOLD | A_UNDERLINE)
-                                : A_NORMAL;
-  if (inactive_full_line_attr != A_NORMAL) {
-    margin_attr |= inactive_full_line_attr;
-    tree_line_attr |= inactive_full_line_attr;
-    name_attr |= inactive_full_line_attr;
+  wattron(win, line_attr);
+
+  /* If full line highlight is enabled, turn on reverse now. */
+  if (hilight && ctx->highlight_full_line) {
+    if (is_active)
+      wattron(win, A_REVERSE);
+    else
+      wattron(win, A_BOLD | A_UNDERLINE);
   }
 
-#ifndef COLOR_SUPPORT
-  if (hilight && ctx->highlight_full_line && is_active)
-    name_attr = margin_attr = tree_line_attr = A_REVERSE;
-#endif
-
   /* Part 1: Draw status marker and tree graph characters manually */
-  wattrset(win, margin_attr);
   mvwaddch(win, y, status_col,
            (de_ptr->unlogged_flag || de_ptr->not_scanned) ? '+' : ' ');
   wmove(win, y, graph_col);
-  wattrset(win, tree_line_attr);
   wattron(win, A_ALTCHARSET);
   for (j = 0; j < (unsigned int)graph_len; ++j) {
     int ch;
@@ -241,7 +214,6 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     waddch(win, (chtype)ch | A_BOLD); /* Keep graph characters bold */
   }
   wattroff(win, A_ALTCHARSET);
-  wattrset(win, name_attr);
 
   /* Part 2: Prepare and draw the directory name */
   char name_buffer[PATH_LENGTH + 2];
@@ -284,33 +256,19 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     (void)snprintf(name_buffer, sizeof(name_buffer), "%s", temp_name);
   }
 
-  /* If name-only highlight is active, select just the directory name. */
+  /* If name-only highlight, toggle reverse just for the name. */
   if (hilight && !ctx->highlight_full_line) {
-#ifdef COLOR_SUPPORT
-    if (is_active)
-      wattrset(win, COLOR_PAIR(highlight_color));
-    else
-      wattron(win, A_BOLD | A_UNDERLINE);
-#else
     if (is_active)
       wattron(win, A_REVERSE);
     else
       wattron(win, A_BOLD | A_UNDERLINE);
-#endif
   }
   mvwaddstr(win, y, graph_col + graph_len, name_buffer);
   if (hilight && !ctx->highlight_full_line) {
-#ifdef COLOR_SUPPORT
-    if (is_active)
-      wattrset(win, name_attr);
-    else
-      wattroff(win, A_BOLD | A_UNDERLINE);
-#else
     if (is_active)
       wattroff(win, A_REVERSE);
     else
       wattroff(win, A_BOLD | A_UNDERLINE);
-#endif
   }
 
   /* Part 3: Draw attributes and fill the gap in between */
@@ -323,7 +281,14 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     mvwaddstr(win, y, attr_start_col, line_buffer);
   }
 
-  wattrset(win, 0);
+  /* Turn off attributes */
+  if (hilight && ctx->highlight_full_line) {
+    if (is_active)
+      wattroff(win, A_REVERSE);
+    else
+      wattroff(win, A_BOLD | A_UNDERLINE);
+  }
+  wattroff(win, line_attr);
 
   if (line_buffer)
     free(line_buffer);
@@ -345,21 +310,15 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
 #ifdef COLOR_SUPPORT
   if (win == ctx->ctx_f2_window) {
-    WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));
   } else {
-    WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINDIR));
   }
 #endif
   werase(win);
 
   if (win == ctx->ctx_f2_window) {
-#ifdef COLOR_SUPPORT
-    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
-#endif
     box(win, 0, 0);
-#ifdef COLOR_SUPPORT
-    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
-#endif
   }
 
   panel = ResolveDirRenderPanel(ctx, vol, win);

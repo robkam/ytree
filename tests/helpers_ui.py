@@ -20,49 +20,7 @@ def footer_lines(tui):
 
 
 def footer_text(tui):
-    lines = footer_lines(tui)
-    raw = "\n".join(lines).lower()
-    normalized_lines = []
-    key_tokens = []
-
-    for line in lines:
-        normalized = re.sub(r"[()]", "", line.lower())
-        normalized = re.sub(r"\s+", " ", normalized).strip()
-        if normalized:
-            normalized_lines.append(normalized)
-
-        for segment in re.split(r"\s{2,}", line.strip()):
-            token = None
-
-            if not segment:
-                continue
-            if segment in {"DIR", "FILE", "COMMANDS", "ARCHIVE", "ARCH-FILE", "Tree", "Dir"}:
-                continue
-
-            match = re.match(r"(\^[A-Za-z0-9]+)\b", segment)
-            if match:
-                token = match.group(1)
-            else:
-                match = re.match(r"([A-Z][0-9]+)\b", segment)
-                if match:
-                    token = match.group(1)
-                else:
-                    match = re.match(r"([A-Z`/]+)\s", segment)
-                    if match:
-                        token = match.group(1)
-                    else:
-                        match = re.search(r"[A-Z]", segment)
-                        if match:
-                            token = match.group(0)
-
-            if token is not None:
-                key_tokens.append(f"({token.lower()})")
-
-    if normalized_lines and normalized_lines[-1].startswith("tree "):
-        normalized_lines.append("j tree")
-
-    normalized = "\n".join(normalized_lines)
-    return raw + "\n" + normalized + "\n" + " ".join(key_tokens)
+    return "\n".join(footer_lines(tui)).lower()
 
 
 def find_line_with_text(tui, needle):

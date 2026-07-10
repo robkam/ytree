@@ -118,17 +118,17 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:** Smell baseline audit evidence exists, recurring smell checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unapproved new smell violations.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 5.1: Baseline Code-Smell Audit and Debt Register**
+#### **Task 6: Baseline Code-Smell Audit and Debt Register**
 *   **Goal:** Audit current codebase for structural smells and categorize debt with explicit remediation sequencing.
 *   **Deliverables:** baseline report covering hotspots, oversized controllers/functions, boundary exceptions, and tracked rationale for retained debt.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 5.2: Strengthen Smell-Prevention Guards**
+#### **Task 7: Strengthen Smell-Prevention Guards**
 *   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
 *   **Mechanism:** Tighten module-boundary/controller-growth policies and require explicit approval paths for exceptions.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 5.3: Smell Gate Evidence as Merge Prerequisite**
+#### **Task 8: Smell Gate Evidence as Merge Prerequisite**
 *   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
 *   **Mechanism:** Require successful smell checks in QA artifacts and block integration on unresolved unapproved violations.
 *   - [ ] **Status:** Not Started.
@@ -191,8 +191,8 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.1: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
-*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the human-edited default runtime config source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`. When Task 60 splits themes out of the main config, `etc/ytnova.themes` becomes the separate human-edited default theme source and must be covered by the same deterministic source/generated checks.
-*   **Mechanism:** Add a reproducible generator path (`etc/ytnova.conf` -> `src/core/default_profile_template.h`, plus any Task 60 theme template/gate output) and a QA/CI check that fails when generated output is stale or hand-edited.
+*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the only human-edited default profile source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`.
+*   **Mechanism:** Add a reproducible generator path (`etc/ytnova.conf` -> `src/core/default_profile_template.h`) and a QA/CI check that fails when generated output is stale or hand-edited.
 *   **Acceptance Criteria:**
 *   `ytnova --init` output remains byte-equivalent to the canonical template semantics.
 *   A single documented command regenerates the header deterministically.
@@ -706,6 +706,15 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/help/manpage text are synchronized for the new sort option.
 *   - [ ] **Status:** Not Started.
 
+#### **Task 49: Create Watcher Infrastructure (`watcher.c`)**
+*   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
+*   **Logic:**
+    *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
+    *   **Add Watch:** Implement `Watcher_SetDir(char *path)` which removes the previous watch (if any) and adds a new watch (`inotify_add_watch`) on the specified path for events: `IN_CREATE | IN_DELETE | IN_MOVE | IN_MODIFY | IN_ATTRIB`.
+    *   **Check:** Implement `Watcher_CheckEvents()` which reads from the file descriptor. If events are found, it returns `TRUE`, otherwise `FALSE`.
+    *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 46: Input Loop Determinism and Event Handling**
 *   **Goal:** Group event-priority policy and multiplexing implementation under one umbrella to reduce recurring input-loop regressions.
 
@@ -721,23 +730,14 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 #### **Task 46.2: Non-Blocking FD Multiplexing Implementation**
-*   **Task:** Implement/maintain non-blocking input multiplexing (`select`/`poll`) for keyboard + watcher FDs as the concrete mechanism under Task 46.
+*   **Task:** Implement/maintain non-blocking input multiplexing (`select`/`poll`) for keyboard + watcher FDs as the concrete mechanism under Task 50.
 *   **Scope Lock:** Mechanism-level implementation only.
 *   **Acceptance Criteria:**
-*   Multiplex loop behavior conforms to Task 46 event-priority contract.
+*   Multiplex loop behavior conforms to Task 50 event-priority contract.
 *   Regression coverage confirms no blocking/starvation under mixed input/event load.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 46.3: Create Watcher Infrastructure (`watcher.c`)**
-*   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
-*   **Logic:**
-    *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
-    *   **Add Watch:** Implement `Watcher_SetDir(char *path)` which removes the previous watch (if any) and adds a new watch (`inotify_add_watch`) on the specified path for events: `IN_CREATE | IN_DELETE | IN_MOVE | IN_MODIFY | IN_ATTRIB`.
-    *   **Check:** Implement `Watcher_CheckEvents()` which reads from the file descriptor. If events are found, it returns `TRUE`, otherwise `FALSE`.
-    *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 46.4: Implement Live Refresh Logic**
+#### **Task 51: Implement Live Refresh Logic**
 *   **Task:** Connect the `refresh_needed` flag to the main window logic.
 *   **Logic:**
     *   In `dirwin.c` (`HandleDirWindow`) and `filewin.c` (`HandleFileWindow`), inside the input loop:
@@ -750,7 +750,7 @@ Ordering policy (for all editors, including AI editors):
     *   *Note:* We must ensure the cursor stays on the same file if possible (by saving the filename before rescan and finding it after).
 *   - [ ] **Status:** Not Started.
 
-#### **Task 46.5: Update Watch Context on Navigation (Current-Directory Auto-Refresh Context)**
+#### **Task 52: Update Watch Context on Navigation (Current-Directory Auto-Refresh Context)**
 *   **Task:** Ensure the watcher always monitors the *current* directory so the file list the user is looking at stays fresh without a manual reload.
 *   **Logic:**
     *   In `dirwin.c`: Whenever the user moves the cursor to a new directory (UP/DOWN), update the watcher.
@@ -759,7 +759,7 @@ Ordering policy (for all editors, including AI editors):
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 46.6: Implement Directory Filtering (Non-Recursive)**
+#### **Task 53: Implement Directory Filtering (Non-Recursive)**
 *   **Description:** Extend Filter to support directory-pattern tokens identified by a trailing slash.
     *   `dir/` means include matching directories in the current tree view.
     *   `-dir/` means exclude matching directories in the current tree view.
@@ -783,12 +783,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   - [ ] **Status:** Not Started.
 
-### **Task 50: Nested Archive Traversal**
-*   Allow transparently entering an archive that is itself inside another archive.
+#### **Task 57: Implement Archive Move (`M`) Support**
+*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 50.1: Implement Archive Move (`M`) Support**
-*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
+### **Task 50: Nested Archive Traversal**
+*   Allow transparently entering an archive that is itself inside another archive.
 *   - [ ] **Status:** Not Started.
 
 ---
@@ -802,20 +802,20 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 51.1: Baseline Security Debt Audit and Classification**
+#### **Task 60: Baseline Security Debt Audit and Classification**
 *   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
 *   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 51.2: Runtime Execution Security Guardrail**
+#### **Task 61: Runtime Execution Security Guardrail**
 *   **Goal:** Group runtime execution security hardening and guard expansion under one umbrella with mandatory staged completion.
 
-##### **Task 51.2.1: Expand Security Guard Coverage to Block Reintroduction**
+##### **Task 61.1: Expand Security Guard Coverage to Block Reintroduction**
 *   **Goal:** Ensure banned/legacy security-sensitive APIs and patterns are explicitly rejected by automated guard scripts.
 *   **Mechanism:** Extend guard checks for legacy unsafe escaping/runtime paths and other approved denylisted APIs/patterns.
 *   - [ ] **Status:** Not Started.
 
-##### **Task 51.2.2: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)**
+##### **Task 61.2: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)**
 *   **Goal:** Make runtime command execution deterministic and secure by using one mandatory process-launch path in app runtime code.
 *   **Policy (mandatory):** Runtime launches **must** use `fork()` -> `execvp()` -> `waitpid()` only.
 *   **Non-Goal:** This task **must not** introduce `posix_spawn()`.
@@ -831,7 +831,7 @@ Ordering policy (for all editors, including AI editors):
     *   Child process **must** execute target via `execvp()`.
     *   Parent **must** reap child via `waitpid()` using an `EINTR`-safe wait loop.
     *   No new runtime `system()` or `popen()` usage is permitted.
-    *   Any temporary migration shim/wrapper **must** be removed before task closure (see Task 63).
+    *   Any temporary migration shim/wrapper **must** be removed before task closure (see Task 62).
 
 *   **Acceptance Criteria:**
     *   All runtime command-launch paths use the shared `fork`/`execvp`/`waitpid` implementation.
@@ -841,10 +841,10 @@ Ordering policy (for all editors, including AI editors):
         *   ytnova returns to interactive control after command completion,
         *   terminal/curses state is restored correctly after command return.
     *   QA guard fails CI if new runtime `system()`/`popen()` usage is introduced.
-    *   Shim cleanup is complete per Task 63.
+    *   Shim cleanup is complete per Task 62.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 51.3: Security Regression Gate in CI + Merge Workflow**
+#### **Task 62: Security Regression Gate in CI + Merge Workflow**
 *   **Goal:** Make security verification non-optional in routine change flow.
 *   **Mechanism:** Require security gate evidence for non-trivial PRs and keep merge blocked until gates pass.
 *   - [ ] **Status:** Not Started.
@@ -984,14 +984,11 @@ Ordering policy (for all editors, including AI editors):
         *   `background`: default application background.
         *   `box_lines`: panel borders, separators, dialog boxes, and window frames.
         *   `tree_lines`: tree guide glyphs; default follows dynamic/content text rather than border chrome.
-        *   `margin`: tree/file margins and status marker columns; inherits `dynamic_text` unless explicitly set by the active theme.
         *   `static_text`: fixed labels/captions and text that rarely changes.
         *   `dynamic_text`: filenames, paths, counts, sizes, timestamps, current mode values, tree names, and file names.
         *   `keybind`: footer/menu keybinding characters.
-        *   `selection`: active highlighted row/bar; selection may use inverse video or explicit colors, but if explicit colors are used both foreground and background must be configurable.
+        *   `selection`: active highlighted row/bar.
         *   `dialog`: neutral prompt/dialog surface.
-        *   `picker`: selectable-list surfaces such as F2, history/completion lists, and the volume menu.
-        *   `help`: F1/context-help reading surface; keep distinct from selectable pickers so help text does not inherit row-picker styling.
         *   `info`: informational road-sign color.
         *   `warning`: warning road-sign color.
         *   `error`: error road-sign color.
@@ -1010,21 +1007,19 @@ Ordering policy (for all editors, including AI editors):
     *   File-type palettes belong to themes, so different themes can define different extension colors.
     *   If the active theme defines no file-type palette rules, all filenames use the theme `dynamic_text`/filename role.
     *   If an extension is not listed in the active theme palette, it uses the default filename color.
-    *   Prefer named, compact grouped rules over one line per extension. Do not use a bare color line followed by a bare extension line; every rule must be self-contained and labeled enough to be understandable. The group name before `=` is for human readability; matching is driven by the style and selectors after `=`:
-        *   `archives = red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img`
-        *   `scripts = +cyan: sh,bash,zsh,py,pl,rb`
-        *   `archives = 1: tar,tgz,zip` is acceptable for numeric-color users, but named colors are preferred in shipped examples.
-    *   The style side must accept the same color syntax as theme roles, including optional background:
+    *   Prefer compact grouped rules over one line per extension, for example:
+        *   `red: tar,tgz,arj,taz,lzh,zip,z,Z,gz,bz2,deb,rpm,jar,rar,7z,iso,img`
+        *   `+cyan: sh,bash,zsh,py,pl,rb`
+    *   The left side should accept the same color syntax as theme roles, including optional background:
         *   `red`
         *   `+red`
         *   `red on blue`
         *   `+cyan on black`
     *   When a file-type rule omits a background, inherit the active theme filename background but still resolve to a complete foreground/background pair internally.
-    *   Rules list extensions without `*.` by default. Special selectors may include `LINK` and `EXEC`; directories in the tree use theme roles rather than file-type palette rules.
-    *   Rules are evaluated top-to-bottom and the first matching rule wins. Put more specific rules before generic rules; for example, place `scripts = +cyan: sh,bash,zsh,py,pl,rb` before `executables = green: EXEC` if executable scripts should keep the script color rather than the generic executable color.
+    *   Legacy numeric color pairs may remain supported for compatibility, but new examples should use named colors.
 *   **Configuration Direction:**
-    *   Do not preserve confusing legacy color-key names as the user-facing model. Temporary internal compatibility shims may be used only during the rewrite to keep staged changes testable, and must be removed or isolated before Task 60 closure.
-    *   Add `grey` / `gray` support for dark grey. User-facing docs and comments must use `grey`/`gray`, not `bright black`.
+    *   Preserve compatibility with existing color settings where practical.
+    *   Add `grey` / `gray` support for dark grey.
     *   Add `+grey` / `+gray` support for light grey.
     *   Add a bright-prefix syntax such as `+red`, `+yellow`, `+white`, and `+grey`.
     *   Prefer canonical plain-text style syntax such as:
@@ -1034,61 +1029,43 @@ Ordering policy (for all editors, including AI editors):
         *   `black on +grey`
         *   `black on yellow`
         *   `+white on red`
-    *   Move larger theme definitions out of the main config. The main config selects the active theme; the theme file defines named themes and each theme's file-type palette.
-    *   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
-    *   Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
-    *   Legacy fallback user paths are `~/.ytnova` and `~/.ytnova.themes`.
-    *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
-    *   The theme file may contain an unlimited number of named themes. Used theme definitions are uncommented; unused bundled or user themes can be prefixed with `#` to comment them out.
+    *   Move larger theme definitions out of the main `~/.ytnova` config into a plain-text theme file `~/.ythemes`, while keeping `~/.ytnova` for selecting the active theme.
+    *   `~/.ythemes` may contain an unlimited number of named themes.
+    *   Used theme definitions are uncommented.
+    *   Unused bundled or user themes can be prefixed with `#` to comment them out.
     *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
-*   **F10 Config Surface and Reload Direction:**
-    *   `F10` opens a shallow configuration command surface, not a single hardwired raw-file editor.
-    *   The command strip is exactly: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`.
-    *   Common path remains `F10 -> Enter -> edit config`; direct expert paths are `F10 -> C`, `F10 -> T`, and `F10 -> R`.
-    *   Reload is available only under `F10`; do not add a top-level/global reload key.
-    *   Policy: `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it.
-    *   Successful reload silently repaints using the new config/theme. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
 *   **Default Palette Direction:**
     *   `background = blue`
     *   `box_lines = cyan on blue`
     *   `tree_lines = +white on blue`
-    *   `margin = dynamic_text`
     *   `static_text = white on blue`
     *   `dynamic_text = +white on blue`
     *   `keybind = +white on blue`
     *   `selection = black on +grey`
     *   `dialog = black on +grey`
-    *   `picker = black on +grey`
-    *   `help = white on blue`
     *   `info = +white on blue`
     *   `warning = black on yellow`
     *   `error = +white on red`
     *   `search_hit = black on yellow`
     *   `disabled = grey on blue`
 *   **Implementation Direction:**
-    *   Audit existing color options for duplicate severity aliases or unused compatibility entries.
+    *   Audit existing color options, including whether `WINERR_COLOR` and `ERR_COLOR` are duplicates or whether one is unused.
     *   Audit `src/ui/color.c` and all window background/border drawing paths for reversed color-pair use, unintended `A_REVERSE`, foreground-only styling, and stale background attributes.
     *   Replace ad-hoc foreground-only coloring with complete role resolution where each rendered style resolves to a foreground and background.
     *   Ensure `cyan,blue` renders cyan glyphs on blue background, never blue glyphs on cyan background.
     *   Ensure panel borders and stats borders draw cyan line glyphs on blue background; they must not set the whole panel fill to cyan.
     *   Ensure stats titles render as white on blue and stats dynamic values render as bright white on blue.
-    *   Split stats rendering roles explicitly: section titles and fixed labels use `static_text`/title styling, changing values use `dynamic_text`, and box lines use `box_lines`.
     *   Ensure tree and file names render as bright white on blue in the classic-blue theme.
     *   Ensure switching from black-theme coloring to blue-theme coloring cannot leave black-background or incompatible file-color attributes behind.
-    *   Replace misleading menu/keybinding strings with token-aware rendering. The required F2 footer wording is `(L)og  (<)/(>) Cycle`; key tokens `L`, `<`, and `>` use `keybind`, while translated/descriptive text uses the surrounding role.
-    *   Volume-menu keybindings must use the same integrated keybinding grammar as the rest of the UI; do not use detached labels such as `D Delete`. The volume-menu command strip is exactly: `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`.
-    *   Prepare for Task 61 by storing menu/help entries as structured command labels plus key tokens, not as one translated display string. Example: command `COPY` has label `Copy` and key token `C`, allowing English `(C)opy`; a German keymap/locale can use label `Kopieren` and key token `K`, allowing `(K)opieren`, without translators editing raw punctuation to expose the shortcut.
-    *   Map any leftover severity color aliases only through temporary migration paths and keep them out of the final user-facing theme model.
     *   Set window background once per refresh path and clear/redraw safely; avoid background changes inside per-row rendering loops.
     *   Keep file-type color application as a distinct optional layer after base theme role resolution.
 *   **Theme Set:**
     *   Provide at least two built-in themes:
         *   `classic-blue`: restrained public/default theme.
         *   `bash-black`: power-user black-background theme with optional richer file coloring.
-    *   Each built-in theme must carry its own file-type palette. A theme may intentionally define an empty file-type palette, in which case ordinary filenames use the theme filename/`dynamic_text` role.
     *   Future in-app theme editing should operate on semantic roles and the separate file-type coloring layer rather than exposing unrelated one-off color knobs.
 *   **Out of Scope / Follow-On:**
-    *   Full modal-placement redesign is separate interaction work, but Task 60 must not introduce modal success/noise for theme/config reload. Successful theme/config reload must silently repaint without a success message. Non-obvious errors use footer/status text only. Destructive confirmations and real choice pickers may still use prompt/dialog surfaces until a later interaction task replaces them.
+    *   Modal-dialog placement may deserve separate UX work. XTree/ZTree-style footer prompts can be preferable because they appear where the user is already looking, but that should be handled as a separate interaction-design task rather than bundled into the theme system.
 *   **Acceptance Criteria:**
     *   The default theme is readable, restrained, and suitable for screenshots.
     *   Normal filenames, tree names, tree lines, paths, keybindings, and dynamic values are bright white or otherwise high-contrast in the classic-blue theme.
@@ -1100,22 +1077,15 @@ Ordering policy (for all editors, including AI editors):
     *   Any theme can define its own file-type coloring palette.
     *   File-type colors do not bleed assumptions from one theme into another theme.
     *   `grey`/`gray`, `+grey`/`+gray`, and `+color` bright-prefix parsing are documented and tested.
-    *   User-facing theme/config examples use `grey`/`gray`, never `bright black`.
-    *   Runtime theme lookup uses XDG `themes.conf` first, then legacy `~/.ytnova.themes`; missing user theme catalogs are satisfied from packaged/compiled defaults without creating a user file, only --init / explicit edit flows create starter files.
-    *   F2 shows `(L)og  (<)/(>) Cycle` with only key tokens styled as keybindings.
-    *   F10 exposes `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`; reload is not exposed as a global/main-UI key.
-    *   The volume menu shows `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete` with only key tokens styled as keybindings.
-    *   F1/context help uses the `help` role, while F2/history/completion/volume selectable lists use `picker`.
     *   Theme implementation proves foreground/background pair correctness.
     *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
     *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
-    *   Legacy profile `[COLORS]` / `[FILE_COLORS]` parsing is not a runtime theme path; theme files are authoritative for semantic roles and file-type palettes.
-*   - [x] **Status:** Complete.
+    *   Existing user color configuration remains compatible where practical, with documented migration behavior for any renamed/deprecated options.
+*   - [ ] **Status:** Not Started.
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
 *   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytnova.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
-*   **Keybinding token contract:** Translate human command labels only. Key tokens come from the active keymap and punctuation comes from the renderer. For example, English can render key token `C` + label `Copy` as `(C)opy`, while German can render key token `K` + label `Kopieren` as `(K)opieren`. Translators must not be required to preserve raw strings like `(C)opy` for shortcut visibility.
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
 *   **Pilot locale:** Ship one non-English reference locale (for example German) as a contributor template proving end-to-end UI + manpage translation workflow.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
@@ -1124,9 +1094,8 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 62: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
 *   **Sequencing dependency:** Implement after Task 45 (Ctrl-held footer signaling + footer wording cleanup). Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
-*   **Config contract:** Select a keymap profile via `ytnova.conf` (opt-in). Locale-oriented profiles are allowed as explicit user choices, for example an English mnemonic profile can bind `C` to `Copy`, while a German mnemonic profile can bind `K` to `Kopieren` and `L` to `Löschen`. The shipped default keymap must remain portable and internally consistent, but compatibility with old confusing UI wording is not a reason to preserve that wording.
-*   **Display contract:** Footer/help text must render active key tokens plus localized command labels together (for example active binding `C` + translated label `Copy` -> `(C)opy`) so runtime hints always match active bindings. Key tokens are data from the keymap, labels are data from localization, and punctuation/styling are renderer-owned.
-*   **Legacy menu override contract:** The existing `[MENU]` text override only changes displayed text and does not change keyboard behavior. It may remain as an expert display override during migration, but it is not the final localization/keybinding model and must not be used as a substitute for real keymap-driven labels.
+*   **Config contract:** Select profile via `ytnova.conf` (opt-in), keeping a stable default keymap for existing users.
+*   **Display contract:** Footer/help text must render active key + localized command label together (for example active binding `C` + translated `Copy` -> `(C)opy`) so runtime hints always match active bindings.
 *   **Canonicalization/validation contract:** Normalize terminal byte aliases during keymap load (`^M`=`Enter`/`CR`, `^J`=`LF`/newline enter path, `^I`=`Tab`, `^[`=`Esc`) and reject profiles that map alias-equivalent inputs to different commands. Alias-equivalent inputs mapping to the same command are valid.
 *   **Portability fallback contract:** Require workflow-level fallback for core actions (reachable without fragile terminal-specific modifiers). This is not a per-key duplication mandate; tagged/single-item variants may share menu/mode-driven paths when direct keyspace is exhausted.
 *   **Behavior stability contract:** Default shipping keymap remains portable and stable; custom overrides are opt-in and must pass collision/unbound-action validation before activation.
@@ -1137,7 +1106,7 @@ Ordering policy (for all editors, including AI editors):
 ## **Phase 8: Final Polish (Post-Alpha, Pre-v1.0.0)**
 *This phase focuses on release polish. Security, module-boundary, and quality gates remain continuous from earlier phases and are not deferred to this phase.*
 
-### **Task 63: Remove Temporary Compatibility Shims (Global Cleanup Gate)**
+### **Task 62: Remove Temporary Compatibility Shims (Global Cleanup Gate)**
 *   **Goal:** Eliminate temporary compatibility shims introduced during staged migrations and prevent shim accumulation as permanent architecture debt.
 *   **Scope:** Applies to all migration tasks, including process-launch hardening and overlay/submode state unification.
 *   **Policy (mandatory):**
@@ -1150,12 +1119,12 @@ Ordering policy (for all editors, including AI editors):
     *   CI/QA gate fails if orphaned/expired shim markers exist.
 *   - [ ] **Status:** Not Started.
 
-### **Task 64: UI/UX Snappiness Polish (Targeted Optimization)**
+### **Task 63: UI/UX Snappiness Polish (Targeted Optimization)**
 *   **Goal:** Improve perceived responsiveness in high-frequency flows using profiling-driven optimizations.
 *   **Rationale:** Premature optimization is avoided; final polish applies targeted improvements where bottlenecks are measured.
 *   - [ ] **Status:** Not Started.
 
-### **Task 65: Source Comment Hygiene Pass**
+### **Task 64: Source Comment Hygiene Pass**
 *   **Goal:** Tidy comments for clarity and maintainability before v1.0.0.
 *   **Policy:** Keep comments for invariants and design rationale; remove redundant narration of obvious control flow.
 *   **Check:** Verify banner comments are only used where they add design/invariant context.
@@ -1166,12 +1135,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Excluded:** Do not modify third-party `uthash.h`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 66: Final Consistency Sweep (Style, Docs, UX Wording)**
+### **Task 65: Final Consistency Sweep (Style, Docs, UX Wording)**
 *   **Goal:** Run a final consistency pass across style-sensitive surfaces (code style guardrails, docs wording, and help/footer terminology).
 *   **Rationale:** Multi-contributor consistency is enforced continuously via guardrails and review; this task is a final convergence pass.
 *   - [ ] **Status:** Not Started.
 
-### **Task 67: Multi-Round Adversarial Security Review**
+### **Task 66: Multi-Round Adversarial Security Review**
 *   **Goal:** Perform a pre-v1.0.0 multi-round security review using adversarial and AppSec perspectives.
 *   **Examples:** Senior AppSec reviewer, penetration-tester mindset, and insider-knowledge threat modeling.
 *   **Rationale:** Final pre-release pressure test on top of continuous Phase 2 security gates.
@@ -1182,7 +1151,7 @@ Ordering policy (for all editors, including AI editors):
 ## **Beta: Stabilization and Performance**
 *This phase follows alpha delivery phases and precedes wishlist work. Place stabilization tasks here: bug fixes, regressions, reliability, and performance. Defer non-essential feature work to wishlist phases.*
 
-### **Task 68: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
+### **Task 67: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
 *   **Goal:** Make overlay/submode behavior deterministic by moving to one unified state model while preserving current user-visible behavior.
 *   **Why now (Beta):** Split/mode/node state is explicit and stable, but overlay/submode behavior is still distributed across flags/controller paths.
 *   **Precondition:** Current bug queue and planned current-delivery tasks are completed and green.
@@ -1205,7 +1174,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Post-migration Cleanup (mandatory):**
     *   Temporary compatibility shims **must** be removed once migration acceptance criteria are met.
     *   No compatibility shim may remain as permanent architecture.
-    *   Shim cleanup is mandatory per Task 63 before closure.
+    *   Shim cleanup is mandatory per Task 62 before closure.
 
 *   **Acceptance Criteria:**
     *   One authoritative overlay/submode state path exists in runtime logic.
@@ -1328,9 +1297,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-11: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for split config files.
-*   **UI Contract:** The F10 command strip is `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under F10, not as a global/main-UI key.
-*   **File Contract:** Config editing targets the active runtime config (`~/.config/ytnova/ytnova.conf` or legacy `~/.ytnova`); theme editing targets the active theme file (`~/.config/ytnova/themes.conf` or legacy `~/.ytnova.themes`). If the current post-`[VIEWER]` customization sections are split later, group `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]` into one key/commands customization file and expose it as one top-level F10 action rather than adding deeper nested menus or many tiny files.
+*   **Goal:** Implement a user-friendly configuration editor (activated by `F10`) that supports guided editing for common options in `~/.ytnova` (e.g., `CONFIRMQUIT`, colors), while retaining an expert raw-text path.
 *   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility.
 *   - [ ] **Status:** Not Started.
 

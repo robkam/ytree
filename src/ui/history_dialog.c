@@ -70,7 +70,7 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
 #ifdef NO_HIGHLIGHT
     /* Mark pinned items */
     const char *marker = pp->pinned ? "+<" : " <";
-    const char *suffix = (color == UI_ROLE_SELECTION) ? marker : "  ";
+    const char *suffix = (color == CPAIR_HIHST) ? marker : "  ";
     size_t line_len = strlen(line_ptr);
     size_t suffix_len = strlen(suffix);
     if (line_len + suffix_len + 1 <= BUFSIZ) {
@@ -79,10 +79,23 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
     WAddStr(ctx->ctx_history_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
-    wattrset(ctx->ctx_history_window, COLOR_PAIR(color));
+    /*
+     * Align with F2 Visual Style:
+     * 1. Use CPAIR_HST as the base color (matches F2).
+     * 2. Use A_REVERSE for selection (matches F2).
+     * 3. Ignore CPAIR_HIHST to prevent color mismatch.
+     */
+    int display_attr = COLOR_PAIR(CPAIR_HST);
+
+    /* If passed color indicates selection, use Reverse Video */
+    if (color == CPAIR_HIHST) {
+      display_attr |= A_REVERSE;
+    }
+
+    wattrset(ctx->ctx_history_window, display_attr);
 
 #else
-    if (color == UI_ROLE_SELECTION)
+    if (color == CPAIR_HIHST)
       wattrset(ctx->ctx_history_window, A_REVERSE);
 #endif /* COLOR_SUPPORT */
 
@@ -98,9 +111,9 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
 
 #ifdef COLOR_SUPPORT
     /* Reset to standard window background */
-    wattrset(ctx->ctx_history_window, COLOR_PAIR(UI_ROLE_PICKER));
+    wattrset(ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
 #else
-    if (color == UI_ROLE_SELECTION)
+    if (color == CPAIR_HIHST)
       wattrset(ctx->ctx_history_window, 0);
 #endif /* COLOR_SUPPORT */
 #endif /* NO_HIGHLIGHT */
@@ -119,13 +132,13 @@ static int DisplayHistory(ViewContext *ctx) {
     if (ctx->disp_begin_pos + i >= ctx->total_hist)
       break;
     if (ctx->disp_begin_pos + i != hilight_no)
-      PrintHstEntry(ctx, ctx->disp_begin_pos + i, i, UI_ROLE_PICKER, 0, &hide_left,
+      PrintHstEntry(ctx, ctx->disp_begin_pos + i, i, CPAIR_HST, 0, &hide_left,
                     &hide_right);
     else
       p_y = i;
   }
   if (p_y >= 0) {
-    PrintHstEntry(ctx, ctx->disp_begin_pos + p_y, p_y, UI_ROLE_SELECTION, 0,
+    PrintHstEntry(ctx, ctx->disp_begin_pos + p_y, p_y, CPAIR_HIHST, 0,
                   &hide_left, &hide_right);
   }
   return 0;
@@ -165,7 +178,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       if (start_x) {
         start_x = 0;
         PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                      ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                      ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                       &hide_right);
       }
     }
@@ -242,7 +255,7 @@ char *GetHistory(ViewContext *ctx, int type) {
     case KEY_RIGHT:
       start_x++;
       PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos, ctx->cursor_pos,
-                    UI_ROLE_SELECTION, start_x, &hide_left, &hide_right);
+                    CPAIR_HIHST, start_x, &hide_left, &hide_right);
       if (hide_right < 0)
         start_x--;
       break;
@@ -251,7 +264,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       if (start_x > 0)
         start_x--;
       PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos, ctx->cursor_pos,
-                    UI_ROLE_SELECTION, start_x, &hide_left, &hide_right);
+                    CPAIR_HIHST, start_x, &hide_left, &hide_right);
       break;
 
     case '\t':
@@ -261,7 +274,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       } else {
         if (ctx->cursor_pos + 1 < HISTORY_WINDOW_HEIGHT) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos,
                                              ctx->cursor_pos + 1)) {
@@ -270,11 +283,11 @@ char *GetHistory(ViewContext *ctx, int type) {
             break;
           }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         } else {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           scroll(ctx->ctx_history_window);
           if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos + 1,
@@ -284,7 +297,7 @@ char *GetHistory(ViewContext *ctx, int type) {
             break;
           }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         }
       }
@@ -296,7 +309,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       } else {
         if (ctx->cursor_pos - 1 >= 0) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos,
                                              ctx->cursor_pos - 1)) {
@@ -305,11 +318,11 @@ char *GetHistory(ViewContext *ctx, int type) {
             break;
           }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         } else {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           wmove(ctx->ctx_history_window, 0, 0);
           winsertln(ctx->ctx_history_window);
@@ -320,7 +333,7 @@ char *GetHistory(ViewContext *ctx, int type) {
             break;
           }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         }
       }
@@ -331,7 +344,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       } else {
         if (ctx->cursor_pos < HISTORY_WINDOW_HEIGHT - 1) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           if (ctx->disp_begin_pos + HISTORY_WINDOW_HEIGHT > ctx->total_hist - 1)
             next_cursor = ctx->total_hist - ctx->disp_begin_pos - 1;
@@ -344,7 +357,7 @@ char *GetHistory(ViewContext *ctx, int type) {
             break;
           }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         } else {
           if (ctx->disp_begin_pos + ctx->cursor_pos + HISTORY_WINDOW_HEIGHT <
@@ -372,7 +385,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       } else {
         if (ctx->cursor_pos > 0) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_PICKER, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
                         &hide_right);
           if (!AppStateCommitHistoryViewport(ctx, ctx->disp_begin_pos, 0)) {
             RetVal = NULL;
@@ -380,7 +393,7 @@ char *GetHistory(ViewContext *ctx, int type) {
             break;
           }
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
-                        ctx->cursor_pos, UI_ROLE_SELECTION, start_x, &hide_left,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
                         &hide_right);
         } else {
           next_begin = ctx->disp_begin_pos - HISTORY_WINDOW_HEIGHT;

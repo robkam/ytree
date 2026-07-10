@@ -12,12 +12,6 @@
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
-static const UICommandStripCommand volume_command_strip[] = {
-    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Select", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Switch", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL}};
-
 static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
   int disp_begin_pos;
   int cursor_pos;
@@ -106,8 +100,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
   WINDOW *win = NULL;
   int win_height, win_width, win_x, win_y;
   int result = -1; /* Assume cancel by default */
-  int prompt_width;
   char title[] = "Select Volume";
+  char prompt[] =
+      "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete.";
   BOOL changes_made = FALSE;
   BOOL restart_menu = FALSE;
 
@@ -131,9 +126,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
     restart_menu = FALSE;
     menu_active = TRUE;
-    prompt_width = UI_CommandStripVisualLength(
-        volume_command_strip,
-        sizeof(volume_command_strip) / sizeof(volume_command_strip[0]));
 
     /* Reset num_volumes and max_path_len for fresh snapshot */
     max_path_len = 0;
@@ -186,7 +178,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     win_width = MAXIMUM((int)(strlen(title) + 4), max_path_len + 12);
 
     /* Ensure it covers the prompt */
-    win_width = MAXIMUM(win_width, prompt_width + 4);
+    win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4);
 
     /* Constraint: Fit strictly within the main directory area (left of stats
      * panel) */
@@ -236,25 +228,16 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     UI_Dialog_Push(win, UI_TIER_MODAL);
 
     keypad(win, TRUE);
-    WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
     curs_set(0); /* Hide cursor */
 
     /* 3. Input Loop */
     while (menu_active) {
       werase(win);
-#ifdef COLOR_SUPPORT
-      wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
-#endif
       box(win, 0, 0);
-#ifdef COLOR_SUPPORT
-      wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
-#endif
       mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
-      UI_RenderCommandStrip(
-          win, win_height - 2, (win_width - prompt_width) / 2,
-          volume_command_strip,
-          sizeof(volume_command_strip) / sizeof(volume_command_strip[0]),
-          UI_ROLE_PICKER, UI_ROLE_KEYBIND);
+      mvwprintw(win, win_height - 2, (win_width - StrVisualLength(prompt)) / 2,
+                "%s", prompt);
 
       /* Drawing loop using scroll_offset and visible_lines */
       for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */
@@ -267,17 +250,12 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
             3 + j; /* Start listing from y=3, relative to visible line j */
 
         if (actual_idx == selected_index) {
-#ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(UI_ROLE_SELECTION));
-#else
-          wattron(win, A_REVERSE);
-#endif
+          wattron(win, A_REVERSE); /* Highlight selected item */
         } else if (actual_idx == current_volume_index) {
-#ifdef COLOR_SUPPORT
-          wattron(win, COLOR_PAIR(UI_ROLE_PICKER));
-#else
-          wattron(win, A_BOLD);
-#endif
+          wattron(
+              win,
+              COLOR_PAIR(
+                  CPAIR_HIMENUS)); /* Highlight current volume differently */
         }
 
         const char *path_to_display =
@@ -299,17 +277,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
         if (actual_idx == current_volume_index &&
             actual_idx != selected_index) {
-#ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));
-#else
-          wattroff(win, A_BOLD);
-#endif
+          wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
         } else if (actual_idx == selected_index) {
-#ifdef COLOR_SUPPORT
-          wattroff(win, COLOR_PAIR(UI_ROLE_SELECTION));
-#else
           wattroff(win, A_REVERSE);
-#endif
         }
       }
       wrefresh(win);

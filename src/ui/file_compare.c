@@ -111,8 +111,8 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
   filediff = UI_GetCompareHelperCommand(ctx, COMPARE_FLOW_FILE);
   if (!String_HasNonWhitespace(filediff)) {
     UI_Message(ctx,
-               "FILEDIFF helper is not configured.*Set FILEDIFF in the main "
-               "config.");
+               "FILEDIFF helper is not configured.*Set FILEDIFF in ~/.ytnova "
+               "(or .ytnova).");
     return;
   }
 
@@ -164,8 +164,9 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
 
   if (Path_BuildCompareCommandLine(filediff, source_path, target_path,
                                    command_line, sizeof(command_line)) != 0) {
-    UI_Message(ctx, "FILEDIFF command is invalid or too long.*Check FILEDIFF "
-                    "in the main config.");
+    UI_Message(
+        ctx,
+        "FILEDIFF command is invalid or too long.*Check FILEDIFF in ~/.ytnova.");
     return;
   }
 
@@ -192,7 +193,7 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
   if (result == -1) {
     UI_Message(
         ctx, "Failed to launch FILEDIFF helper.*Install/configure FILEDIFF in "
-             "the main config.");
+             "~/.ytnova.");
     return;
   }
 
@@ -204,7 +205,7 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
                                    sizeof(command_name));
       UI_Message(ctx,
                  "FILEDIFF helper not available:*\"%s\"*"
-                 "Install it or update FILEDIFF in the main config.",
+                 "Install it or update FILEDIFF in ~/.ytnova.",
                  command_name[0] ? command_name : filediff);
     }
   }

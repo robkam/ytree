@@ -71,15 +71,10 @@ extern void SuspendClock(ViewContext *ctx);
 
 /* color.c */
 #ifdef COLOR_SUPPORT
-typedef struct _ui_color_snapshot UIColorSnapshot;
-extern UIColorSnapshot *UIColorSnapshot_Create(void);
-extern void UIColorSnapshot_Restore(UIColorSnapshot *snapshot);
-extern void UIColorSnapshot_Free(UIColorSnapshot *snapshot);
 extern void StartColors(ViewContext *ctx);
 extern void ReinitColorPairs(ViewContext *ctx);
 extern void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c);
 extern void ParseColorString(const char *color_str, int *fg, int *bg);
-extern BOOL ParseColorStringStrict(const char *color_str, int *fg, int *bg);
 extern void UpdateUIColor(const char *name, int fg, int bg);
 extern void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg,
                              int bg);
@@ -89,15 +84,6 @@ extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
 #define StartColors(ctx) ;
 #define ReinitColorPairs(ctx) ;
 #define WbkgdSet(ctx, a, b) ;
-#define ParseColorString(color_str, fg, bg)                                 \
-  ((void)(color_str), (void)(fg), (void)(bg))
-#define ParseColorStringStrict(color_str, fg, bg)                           \
-  ((void)(color_str), (void)(fg), (void)(bg), FALSE)
-#define UpdateUIColor(name, fg, bg) ((void)(name), (void)(fg), (void)(bg))
-#define AddFileColorRule(ctx, pattern, fg, bg)                               \
-  ((void)(ctx), (void)(pattern), (void)(fg), (void)(bg))
-#define GetFileTypeColor(ctx, fe_ptr)                                        \
-  ((void)(ctx), (void)(fe_ptr), UI_ROLE_DYNAMIC_TEXT)
 #endif
 
 /* dirwin.c */
@@ -202,24 +188,6 @@ extern void PrintLine(WINDOW *win, int y, int x, const char *line, int len);
 extern void PrintMenuOptions(WINDOW *, int, int, char *, int, int);
 extern void PrintOptions(WINDOW *, int, int, char *);
 extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
-typedef enum {
-  UI_COMMAND_LAYOUT_MNEMONIC,
-  UI_COMMAND_LAYOUT_KEY_PREFIX,
-  UI_COMMAND_LAYOUT_ALT_MNEMONIC,
-  UI_COMMAND_LAYOUT_LABEL_FIRST
-} UICommandStripLayout;
-typedef struct {
-  UICommandStripLayout layout;
-  const char *label;
-  const char *primary_key;
-  const char *secondary_key;
-} UICommandStripCommand;
-extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
-                                       size_t command_count);
-extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
-                                  const UICommandStripCommand *commands,
-                                  size_t command_count, int ncolor,
-                                  int hcolor);
 extern int WAddStr(WINDOW *win, char *str);
 extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 
@@ -300,9 +268,6 @@ extern void HitReturnToContinue(void);
 extern int InputChoice(ViewContext *ctx, const char *msg, const char *term);
 extern int InputChoiceLiteral(ViewContext *ctx, const char *msg,
                               const char *term);
-extern int InputChoiceCommandStrip(ViewContext *ctx,
-                                   const UICommandStripCommand *commands,
-                                   size_t command_count, const char *term);
 extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
                           const char *dst_path, int *mode_flags);
 
@@ -312,9 +277,7 @@ extern int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel,
                          int history_type);
 extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
-                                 int history_type,
-                                 const UICommandStripCommand *hints_override,
-                                 size_t hints_override_count,
+                                 int history_type, const char *hints_override,
                                  int (*help_callback)(ViewContext *, void *),
                                  void *help_data);
 
