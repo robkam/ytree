@@ -95,7 +95,7 @@ These commands work in most modes:
   - **F7**: Toggle File Preview Pane.
   - **F8**: Toggle Split Screen Mode.
   - **F10**: Open the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **T** to edit themes, or **R** to reload the current config and theme. A successful reload silently repaints; a failed reload keeps the previous working config/theme and reports the error in the status/footer area.
-  - **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
+  - **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
   - **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
   - **B**: Toggle Brief (Compact) filename view in the File Window.
   - **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
@@ -303,14 +303,16 @@ semantic theme with `THEME=classic-blue`; role definitions and file-type palette
 rules live in theme files, not in the main config.
 
 Theme catalogs are plain text. ytnova loads user themes from
-`~/.config/ytnova/themes.conf`, falls back to `~/.ytnova.themes` only when the
-XDG target cannot be used, then
+`$XDG_CONFIG_HOME/ytnova/themes.conf` or `~/.config/ytnova/themes.conf`, falls
+back to `~/.ytnova.themes` only when the XDG-style target cannot be used, then
 uses the installed packaged catalog or compiled-in defaults without creating a
 user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 The bundled defaults include `classic-blue` and `bash-black`.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `selection`, `dialog`, `picker`, `help`, `warning`, `error`, and `search_hit`.
+The bundled starter themes keep `picker` on a different background so F2, history,
+volume, and applications menus stand out from the main content background.
 Color values accept names or numbers, `grey`/`gray`, bright prefixes such as
 `+white` or `+grey`, and optional backgrounds such as `+white on blue`.
 
@@ -319,7 +321,10 @@ Theme-local file-type palettes use compact grouped rules, for example
 evaluated top to bottom; the first matching extension or special selector wins.
 Special selectors may include `LINK` and `EXEC`; directory tree rows use theme
 roles rather than file-type palette rules. When a rule omits a background, it
-inherits the active filename/window background.
+inherits the active filename/window background. Starter themes should also omit
+redundant backgrounds on ordinary content roles when they are meant to follow
+the theme background, so changing `background = ...` repaints the shared
+surface intuitively.
 
 # QUIT TO DIRECTORY
 
@@ -338,11 +343,12 @@ yt() {
 
 # FILES
 
-  - `~/.config/ytnova/ytnova.conf`: Preferred main configuration file.
-  - `~/.config/ytnova/themes.conf`: Preferred user theme catalog.
+  - `$XDG_CONFIG_HOME/ytnova/ytnova.conf` or `~/.config/ytnova/ytnova.conf`: Preferred main configuration file.
+  - `$XDG_CONFIG_HOME/ytnova/themes.conf` or `~/.config/ytnova/themes.conf`: Preferred user theme catalog.
+  - `$XDG_STATE_HOME/ytnova/ytnova.hst` or `~/.local/state/ytnova/ytnova.hst`: Preferred command history path.
   - `~/.ytnova`: Legacy fallback main configuration file.
   - `~/.ytnova.themes`: Legacy fallback user theme catalog.
-  - `~/.ytnova-hst`: Command line history.
+  - `~/.ytnova-hst`: Legacy fallback command history path.
 
 ### Reporting problems
 

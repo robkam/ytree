@@ -27,7 +27,7 @@ def _has_border_glyphs(tui):
 def _assert_no_footer_artifacts(tui):
     footer_lines = _footer_lines(tui)
     footer_text = "\n".join(footer_lines).lower()
-    assert "commands" in footer_text, f"COMMANDS footer line missing.\nFooter:\n{footer_text}"
+    assert "pipe" in footer_text, f"Footer action line missing.\nFooter:\n{footer_text}"
     artifact_lines = [
         line for line in footer_lines if line.strip() and len(line.strip()) == 1 and line.strip().isalpha()
     ]
@@ -340,7 +340,7 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytnova_bin
     tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke("\x10", wait=0.3)  # Ctrl-P history-up
-    assert tui.wait_for_content("History", timeout=1.0)
+    assert tui.wait_for_content("Pin/unpin", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     tui.quit()
 

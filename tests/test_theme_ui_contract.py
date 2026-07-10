@@ -65,9 +65,9 @@ def _assert_command_strip_uses_full_label_model(source, array_name, labels):
 def test_f2_footer_uses_required_theme_command_strip():
     source = _read("src/ui/f2_picker.c")
 
-    assert _command_strip_text(source, "f2_command_strip") == "(L)og  (<)/(>) Cycle"
+    assert _command_strip_text(source, "f2_command_strip") == "(L)og  (<)/(>) cycle"
     _assert_command_strip_uses_full_label_model(
-        source, "f2_command_strip", ("Log", "Cycle")
+        source, "f2_command_strip", ("Log", "cycle")
     )
     assert "UI_RenderCommandStrip" in source
     assert '"[ (L)og (< >) Cycle ]"' not in source
@@ -75,10 +75,14 @@ def test_f2_footer_uses_required_theme_command_strip():
 
 def test_command_strip_key_role_controls_color_styling():
     source = _read("src/ui/display_utils.c")
+    color_source = _read("src/ui/color.c")
 
-    assert "key_attr = COLOR_PAIR(hcolor);" in source
+    assert "UIKeybindAttrForBase(hcolor, ncolor)" in source
     assert "key_attr = COLOR_PAIR(hcolor) | A_BOLD;" not in source
     assert "COLOR_PAIR(color) | A_BOLD" not in source
+    assert "init_pair(UI_KEYBIND_BASE_PAIR + (i - 1)," in color_source
+    assert "NormalizeColorIndex(UIColorForeground(UI_ROLE_KEYBIND), COLORS)," in color_source
+    assert "NormalizeColorIndex(UIColorBackground(i), COLORS));" in color_source
 
 
 def test_color_supported_roles_do_not_add_bold_attributes():
@@ -205,10 +209,10 @@ def test_volume_menu_uses_required_theme_command_strip():
 
     assert (
         _command_strip_text(source, "volume_command_strip")
-        == "Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete"
+        == "(Up)/(Down) select  (Enter) switch  (Esc) quit  (D)elete"
     )
     _assert_command_strip_uses_full_label_model(
-        source, "volume_command_strip", ("Select", "Switch", "Quit", "Delete")
+        source, "volume_command_strip", ("select", "switch", "quit", "Delete")
     )
     assert "UI_RenderCommandStrip" in source
     assert "Use UP/DOWN to select" not in source
@@ -238,6 +242,10 @@ def test_help_surfaces_use_help_role():
     assert "static const UICommandStripCommand history_help_commands[]" in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, dir_help" not in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, file_help" not in display_source
+    assert "PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix," in display_source
+    assert "mvwaddstr(ctx->ctx_menu_window, y, 0, strip->prefix);" not in display_source
+    assert 'strncmp(strip->prefix, "9-4 ", 4) == 0' in display_source
+    assert 'PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", UI_ROLE_KEYBIND);' in display_source
     assert 'GetProfileValue)(ctx, "DIR1")' not in display_source
     assert 'GetProfileValue)(ctx, "DIR2")' not in display_source
     assert 'GetProfileValue)(ctx, "FILE1")' not in display_source
@@ -245,6 +253,10 @@ def test_help_surfaces_use_help_role():
     assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' not in display_source
+    assert '{{ "DIR      ", dir_help_disk_mode_0_commands,' in display_source
+    assert '{ "COMMANDS ", file_help_disk_mode_1_commands,' in display_source
+    assert '"" , history_help_commands' not in display_source
+    assert '        "", history_help_commands,' in display_source
     assert "Updated:" not in display_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in compare_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
@@ -252,6 +264,7 @@ def test_help_surfaces_use_help_role():
 
 
 def test_task_sixty_touched_surfaces_use_structured_command_strips():
+    app_menu_source = _read("src/ui/application_menu.c")
     compare_source = _read("src/ui/compare_request.c")
     display_source = _read("src/ui/display.c")
     input_line_source = _read("src/ui/input_line.c")
@@ -266,6 +279,7 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "static const UICommandStripCommand compare_scope_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_external_scope_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_help_close_commands[]" in compare_source
+    assert "static const UICommandStripCommand applications_menu_commands[]" in app_menu_source
     assert "static const UICommandStripCommand read_string_path_hint_commands[]" in input_line_source
     assert "static const UICommandStripCommand read_string_history_hint_commands[]" in input_line_source
     assert "UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, prompt_x," in compare_source
@@ -277,8 +291,8 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "view_navigation_commands" in internal_view_source
     assert "DisplayBuiltInHelpLine(ctx, 2, nav_strip);" in display_source
     assert "PrintMenuOptions(ctx->ctx_border_window, ctx->layout.status_y, 1," not in compare_source
-    assert '"Tree  (F1) help' not in display_source
-    assert '"Dir   (F1) help' not in display_source
+    assert '"9-4 File "' in display_source
+    assert '"9-4 Tree "' in display_source
     assert '"(F1)/(Esc) close help"' not in compare_source
     assert '"(F2) browse  (Up) history  (Enter) OK  (Esc) cancel"' not in input_line_source
     assert '"(Up) history  (Enter) OK  (Esc) cancel"' not in input_line_source
@@ -289,7 +303,9 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
 
 
 def test_picker_surfaces_use_picker_and_selection_roles():
+    app_menu_source = _read("src/ui/application_menu.c")
     completion_source = _read("src/ui/completion_dialog.c")
+    history_source = _read("src/ui/history_dialog.c")
     volume_source = _read("src/ui/volume_menu.c")
     render_dir_source = _read("src/ui/render_dir.c")
     display_source = _read("src/ui/display.c")
@@ -298,16 +314,76 @@ def test_picker_surfaces_use_picker_and_selection_roles():
         completion_source
     )
     assert "ctx->ctx_matches_window, COLOR_PAIR(UI_ROLE_PICKER)" in completion_source
+    assert "ctx->ctx_history_window, COLOR_PAIR(UI_ROLE_PICKER)" in history_source
+    assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in app_menu_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in app_menu_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in app_menu_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in app_menu_source
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_source
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_source
-    assert "COLOR_PAIR(UI_ROLE_SELECTION)" in volume_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in volume_source
     assert "COLOR_PAIR(CPAIR_HST) | A_BOLD" not in volume_source
     assert "win == ctx->ctx_f2_window" in render_dir_source
     assert "color = UI_ROLE_PICKER;" in render_dir_source
+    assert "tree_line_color = UI_ROLE_PICKER;" in render_dir_source
+    assert "UIOverlayAttrForBase(UI_ROLE_TREE_LINES, UI_ROLE_PICKER)" not in render_dir_source
+    assert "waddch(win, (chtype)ch | ((win == ctx->ctx_f2_window) ? 0 : A_BOLD));" in (
+        render_dir_source
+    )
+    assert "waddch(win, (chtype)ch | A_BOLD);" not in render_dir_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in render_dir_source
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in render_dir_source
     assert "box(ctx->ctx_f2_window, 0, 0);" not in display_source
+
+
+def test_picker_family_selection_can_fall_back_to_inverse_of_picker_base():
+    app_menu_source = _read("src/ui/application_menu.c")
+    color_source = _read("src/ui/color.c")
+    history_source = _read("src/ui/history_dialog.c")
+    completion_source = _read("src/ui/completion_dialog.c")
+    volume_source = _read("src/ui/volume_menu.c")
+
+    assert "UISelectionAttrForBase" in color_source
+    assert "UIColorForeground(UI_ROLE_SELECTION) == UIColorForeground(base_role)" in (
+        color_source
+    )
+    assert "UIColorBackground(UI_ROLE_SELECTION) == UIColorBackground(base_role)" in (
+        color_source
+    )
+    assert "return COLOR_PAIR(base_role) | A_REVERSE;" in color_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in app_menu_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in history_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in completion_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in volume_source
+    assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in _read("src/ui/render_dir.c")
+
+
+def test_navigation_help_lists_f9_apps_between_split_and_config():
+    display_source = _read("src/ui/display.c")
+
+    assert '{UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL}' in display_source
+
+
+def test_f9_applications_menu_is_wired_in_tree_and_file_controllers():
+    dir_source = _read("src/ui/ctrl_dir.c")
+    file_source = _read("src/ui/ctrl_file.c")
+
+    assert "if (ch == KEY_F(9)) {" in dir_source
+    assert "UI_OpenApplicationsMenu(ctx);" in dir_source
+    assert "if (ch == KEY_F(9)) {" in file_source
+    assert "UI_OpenApplicationsMenu(ctx);" in file_source
+
+
+def test_f2_footer_row_is_cleared_before_redrawing_command_strip():
+    source = _read("src/ui/f2_picker.c")
+
+    assert "mvwhline(ctx->ctx_f2_window, win_height - 1, 0, ' ', win_width);" in source
+    clear_row = source.index(
+        "mvwhline(ctx->ctx_f2_window, win_height - 1, 0, ' ', win_width);"
+    )
+    render_strip = source.index("UI_RenderCommandStrip(")
+    assert clear_row < render_strip
 
 
 def test_active_file_and_tree_selection_use_selection_role_pairs():
@@ -317,7 +393,9 @@ def test_active_file_and_tree_selection_use_selection_role_pairs():
     assert "highlight_color = UI_ROLE_SELECTION;" in dir_source
     assert "highlight_color = UI_ROLE_SELECTION;" in dir_source
     assert "COLOR_PAIR(highlight_color)" in dir_source
-    assert "inactive_full_line_attr = (hilight && ctx->highlight_full_line && !is_active)" in dir_source
+    assert "full_line_highlight =" in dir_source
+    assert "win != ctx->ctx_f2_window" in dir_source
+    assert "inactive_full_line_attr = (hilight && full_line_highlight && !is_active)" in dir_source
     assert "wattron(win, A_BOLD | A_UNDERLINE);" in dir_source
 
     assert "highlight_color_pair = UI_ROLE_SELECTION;" in file_source
@@ -348,15 +426,29 @@ def test_tree_lines_and_margin_use_dedicated_theme_roles():
     assert "GetFileTypeColor" not in dir_source
 
 
-def test_disabled_role_projects_to_runtime_pair():
-    defs_source = _read("include/ytnova_defs.h")
-    color_source = _read("src/ui/color.c")
-    theme_source = _read("src/cmd/theme.c")
+def test_incremental_jump_uses_slash_without_f12_alias():
+    key_source = _read("src/ui/key_engine.c")
+    man_source = _read("etc/ytnova.1.md")
+    usage_source = _read("docs/USAGE.md")
+    spec_source = _read("docs/SPECIFICATION.md")
 
-    assert "UI_ROLE_DISABLED" in defs_source
-    assert "CPAIR_DISABLED" not in defs_source
-    assert '{"disabled", UI_ROLE_DISABLED, 8, 0}' in color_source
-    assert '"disabled"' in theme_source
+    assert "case '/':" in key_source
+    assert "ACTION_LIST_JUMP" in key_source
+    assert "KEY_F(12)" not in key_source
+    assert "**/** (or **F12**)" not in man_source
+    assert "**/** (or **F12**)" not in usage_source
+    assert "**`F12`**: incremental jump" not in spec_source
+    assert "Legacy alias for `/`" not in spec_source
+
+
+def test_disabled_role_is_not_advertised_in_starter_theme_contract():
+    starter_theme_source = _read("etc/ytnova.themes")
+    spec_source = _read("docs/SPECIFICATION.md")
+    roadmap_source = _read("docs/ROADMAP.md")
+
+    assert "disabled =" not in starter_theme_source
+    assert "`disabled`" not in spec_source
+    assert "`disabled`: inactive or unavailable commands/options." not in roadmap_source
 
 
 def test_header_path_uses_dynamic_text_role():

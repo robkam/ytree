@@ -474,6 +474,14 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       (void)AppStateClearResizeRequest(ctx);
     }
 
+#ifdef KEY_F
+    if (ch == KEY_F(9)) {
+      (void)UI_OpenApplicationsMenu(ctx);
+      need_dsp_help = TRUE;
+      continue;
+    }
+#endif
+
     action = GetKeyAction(ctx, ch);
 
     /* Special remapping for MODE_1: TAB/BTAB act as UP/DOWN */

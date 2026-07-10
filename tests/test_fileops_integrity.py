@@ -19,7 +19,11 @@ def _snapshot_tree(root: Path) -> dict[str, str]:
     for path in sorted(root.rglob("*")):
         if path.is_file():
             relpath = str(path.relative_to(root))
-            if relpath.startswith(".ytnova"):
+            if (
+                relpath.startswith(".ytnova")
+                or relpath.startswith(".config/ytnova/")
+                or relpath.startswith(".local/state/ytnova/")
+            ):
                 continue
             snapshot[relpath] = _sha256_file(path)
     return snapshot

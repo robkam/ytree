@@ -672,6 +672,10 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   return 0;
 }
 
+static void capture_parse_color(const char *color_str, int *fg, int *bg) {
+  ParseColorString(color_str, fg, bg);
+}
+
 static void capture_update_color(const char *name, int fg, int bg) {
   if (color_count >= 32)
     return;
@@ -712,6 +716,138 @@ int main(int argc, char **argv) {
   }
 
   if (expect_color("margin", 15, COLOR_BLUE) != 0)
+    return 1;
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_theme_roles_without_explicit_background_inherit_theme_background(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_background_inheritance_driver.c"
+    binary = tmp_path / "theme_background_inheritance_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = red
+box_lines = cyan
+tree_lines = +white
+margin = dynamic_text
+static_text = white
+dynamic_text = +white
+keybind = +white
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white
+info = +white
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+  char name[32];
+  int fg;
+  int bg;
+} CapturedColor;
+
+static CapturedColor colors[32];
+static int color_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void capture_parse_color(const char *color_str, int *fg, int *bg) {
+  ParseColorString(color_str, fg, bg);
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  if (color_count >= 32)
+    return;
+  snprintf(colors[color_count].name, sizeof(colors[color_count].name), "%s",
+           name);
+  colors[color_count].fg = fg;
+  colors[color_count].bg = bg;
+  ++color_count;
+}
+
+static int expect_color(const char *name, int fg, int bg) {
+  int i;
+
+  for (i = 0; i < color_count; ++i) {
+    if (strcmp(colors[i].name, name) == 0 && colors[i].fg == fg &&
+        colors[i].bg == bg)
+      return 0;
+  }
+
+  fprintf(stderr, "missing color %s %d,%d\n", name, fg, bg);
+  return 1;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = capture_parse_color;
+  ctx.hook_update_ui_color = capture_update_color;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+  if (expect_color("box_lines", COLOR_CYAN, COLOR_RED) != 0 ||
+      expect_color("tree_lines", 15, COLOR_RED) != 0 ||
+      expect_color("margin", 15, COLOR_RED) != 0 ||
+      expect_color("static_text", COLOR_WHITE, COLOR_RED) != 0 ||
+      expect_color("dynamic_text", 15, COLOR_RED) != 0 ||
+      expect_color("keybind", 15, COLOR_RED) != 0 ||
+      expect_color("help", COLOR_WHITE, COLOR_RED) != 0 ||
+      expect_color("info", 15, COLOR_RED) != 0 ||
+      expect_color("disabled", 8, COLOR_RED) != 0)
     return 1;
 
   return 0;
@@ -1673,13 +1809,12 @@ dynamic_text = white on black
 keybind = +white on black
 selection = black on white
 dialog = white on black
-picker = black on white
+picker = black on cyan
 help = white on black
 info = white on black
 warning = black on yellow
 error = white on red
 search_hit = black on yellow
-disabled = grey on black
 """,
         encoding="utf-8",
     )
@@ -2201,6 +2336,181 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
 
 
+def _assert_legacy_theme_seed_rebases_background_roles(
+    tmp_path, theme_name, theme_text, extra_assertion=""
+):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "home"
+    theme_dir = home / ".config" / "ytnova"
+    theme_file = theme_dir / "themes.conf"
+    safe_name = theme_name.replace("-", "_")
+    driver = tmp_path / f"{safe_name}_rebase_driver.c"
+    binary = tmp_path / f"{safe_name}_rebase_driver"
+
+    theme_dir.mkdir(parents=True)
+    theme_file.write_text(theme_text, encoding="utf-8")
+    driver.write_text(
+        f'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int box_lines_bg = -1;
+static int tree_lines_bg = -1;
+static int static_text_bg = -1;
+static int dynamic_text_bg = -1;
+static int keybind_bg = -1;
+static int help_bg = -1;
+static int info_bg = -1;
+static int dialog_bg = -1;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {{
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}}
+
+static char *configured_theme(const ViewContext *ctx, const char *name) {{
+  (void)ctx;
+  if (strcmp(name, "THEME") == 0)
+    return "{theme_name}";
+  return NULL;
+}}
+
+static void capture_update_color(const char *name, int fg, int bg) {{
+  (void)fg;
+  if (strcmp(name, "box_lines") == 0)
+    box_lines_bg = bg;
+  else if (strcmp(name, "tree_lines") == 0)
+    tree_lines_bg = bg;
+  else if (strcmp(name, "static_text") == 0)
+    static_text_bg = bg;
+  else if (strcmp(name, "dynamic_text") == 0)
+    dynamic_text_bg = bg;
+  else if (strcmp(name, "keybind") == 0)
+    keybind_bg = bg;
+  else if (strcmp(name, "help") == 0)
+    help_bg = bg;
+  else if (strcmp(name, "info") == 0)
+    info_bg = bg;
+  else if (strcmp(name, "dialog") == 0)
+    dialog_bg = bg;
+}}
+
+int main(int argc, char **argv) {{
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+  if (setenv("HOME", argv[1], 1) != 0)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = capture_update_color;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+  ctx.core_init_ops.get_profile_value = configured_theme;
+
+  if (LoadConfiguredTheme(&ctx) != 0) {{
+    fprintf(stderr, "legacy theme did not load\\n");
+    return 1;
+  }}
+
+  if (box_lines_bg != COLOR_RED || tree_lines_bg != COLOR_RED ||
+      static_text_bg != COLOR_RED || dynamic_text_bg != COLOR_RED ||
+      keybind_bg != COLOR_RED || help_bg != COLOR_RED ||
+      info_bg != COLOR_RED) {{
+    fprintf(stderr, "legacy seed did not rebase inherited backgrounds\\n");
+    return 1;
+  }}
+{extra_assertion}
+  return 0;
+}}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
+
+
+def test_legacy_classic_blue_seed_rebases_redundant_background_roles(tmp_path):
+    _assert_legacy_theme_seed_rebases_background_roles(
+        tmp_path,
+        "classic-blue",
+        """
+[theme classic-blue]
+background = red
+box_lines = cyan on blue
+tree_lines = +white on blue
+margin = dynamic_text
+static_text = white on blue
+dynamic_text = +white on blue
+keybind = +white on blue
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on blue
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+""",
+    )
+
+
+def test_legacy_custom_theme_seed_rebases_redundant_background_roles(tmp_path):
+    _assert_legacy_theme_seed_rebases_background_roles(
+        tmp_path,
+        "custom-night",
+        """
+[theme custom-night]
+background = red
+box_lines = grey on black
+tree_lines = white on black
+margin = dynamic_text
+static_text = white on black
+dynamic_text = +white on black
+keybind = +white on black
+selection = black on yellow
+dialog = white on black
+picker = black on yellow
+help = white on black
+info = +white on black
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey on black
+""",
+        extra_assertion="""
+  if (dialog_bg != COLOR_BLACK) {
+    fprintf(stderr, "custom dialog background should remain explicit\\n");
+    return 1;
+  }
+""",
+    )
+
+
 def test_missing_user_theme_catalog_uses_packaged_catalog_without_creating_file(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "home"
@@ -2223,13 +2533,12 @@ dynamic_text = white on black
 keybind = +white on black
 selection = black on white
 dialog = white on black
-picker = black on white
+picker = black on cyan
 help = white on black
 info = white on black
 warning = black on yellow
 error = white on red
 search_hit = black on yellow
-disabled = grey on black
 """,
         encoding="utf-8",
     )
@@ -2440,6 +2749,73 @@ int main(int argc, char **argv) {
         check=True,
     )
     subprocess.run([str(binary), str(home)], cwd=tmp_path, check=True)
+
+
+def test_picker_selection_can_fall_back_to_inverse_when_theme_matches_base(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    driver = tmp_path / "picker_selection_inverse_driver.c"
+    binary = tmp_path / "picker_selection_inverse_driver"
+
+    driver.write_text(
+        r'''
+#include "ytnova_ui.h"
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(void) {
+  ViewContext ctx;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.color_enabled = TRUE;
+
+  UpdateUIColor("picker", COLOR_WHITE, COLOR_BLUE);
+  UpdateUIColor("selection", COLOR_WHITE, COLOR_BLUE);
+
+  if (UISelectionAttrForBase(&ctx, UI_ROLE_PICKER) !=
+      (COLOR_PAIR(UI_ROLE_PICKER) | A_REVERSE)) {
+    fprintf(stderr, "picker selection did not fall back to inverse\n");
+    return 1;
+  }
+
+  UpdateUIColor("selection", COLOR_BLACK, COLOR_WHITE);
+  if (UISelectionAttrForBase(&ctx, UI_ROLE_PICKER) !=
+      COLOR_PAIR(UI_ROLE_SELECTION)) {
+    fprintf(stderr, "distinct picker selection did not stay explicit\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary)], cwd=tmp_path, check=True)
+
+
 
 
 def test_profile_runtime_snapshot_restores_values_and_palette(tmp_path):

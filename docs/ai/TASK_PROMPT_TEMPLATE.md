@@ -26,7 +26,8 @@ Recovery and source of truth:
 - If `/home/rob/ytreenova/.agent/handoffs/` is absent or empty, reconstruct from current repo state, git/GitHub state, and the selected tracker item alone.
 - If relevant relay files for this work item are present under `/home/rob/ytreenova/.agent/handoffs/`, use only the minimum necessary ones.
 - Create or update only the minimal relay files needed for the active work item.
-- Delete all consumed relay files for this work item after merge/cleanup or after a PASS audit closes it, so `.agent/handoffs/` returns to empty between work items.
+- To anticipate clone-based resume, commit a durable resume handoff for that work item instead of relying only on transient local relay state.
+- Delete all consumed, completed, or otherwise stale relay/handoff files for this work item after merge/cleanup or after a PASS audit closes it, so `.agent/handoffs/` returns to empty between work items.
 - Automatically derive the canonical source-of-truth docs, trackers, tests, codebase registry files, and directly relevant runtime surfaces from the selected `Work item:` line.
 - If either of these audit handoff files exists for the selected work item, read it automatically and treat it as part of the source of truth:
   - `/home/rob/ytreenova/.agent/handoffs/audit.current.txt` if it clearly names the same work item,

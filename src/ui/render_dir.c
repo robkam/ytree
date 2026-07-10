@@ -82,6 +82,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   const char *owner_name_ptr;
   const char *group_name_ptr;
   DirEntry *de_ptr;
+  BOOL append_expand_suffix = FALSE;
 
   if (win == ctx->ctx_f2_window) {
     color = UI_ROLE_PICKER;
@@ -172,33 +173,40 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   const int graph_col = 3;
   int attr_start_col = 38; /* Column where attributes begin */
   int graph_len = strlen(graph_buffer);
+  BOOL full_line_highlight =
+      (ctx->highlight_full_line && win != ctx->ctx_f2_window);
   chtype line_attr;
   chtype margin_attr;
   chtype tree_line_attr;
   chtype name_attr;
   chtype inactive_full_line_attr;
+  chtype active_name_highlight_attr;
 
   wmove(win, y, 0);
   wclrtoeol(win);
 
   /* Set the base attribute for the line */
 #ifdef COLOR_SUPPORT
-  line_attr = (hilight && ctx->highlight_full_line && is_active)
+  line_attr = (hilight && full_line_highlight && is_active)
                   ? COLOR_PAIR(highlight_color)
                   : COLOR_PAIR(color);
-  margin_attr = (hilight && ctx->highlight_full_line && is_active)
+  margin_attr = (hilight && full_line_highlight && is_active)
                     ? COLOR_PAIR(highlight_color)
                     : COLOR_PAIR(margin_color);
-  tree_line_attr = (hilight && ctx->highlight_full_line && is_active)
+  tree_line_attr = (hilight && full_line_highlight && is_active)
                        ? COLOR_PAIR(highlight_color)
                        : COLOR_PAIR(tree_line_color);
+  active_name_highlight_attr =
+      (win == ctx->ctx_f2_window) ? UISelectionAttrForBase(ctx, UI_ROLE_PICKER)
+                                  : COLOR_PAIR(highlight_color);
 #else
   line_attr = A_NORMAL;
   margin_attr = A_NORMAL;
   tree_line_attr = A_NORMAL;
+  active_name_highlight_attr = A_REVERSE;
 #endif
   name_attr = line_attr;
-  inactive_full_line_attr = (hilight && ctx->highlight_full_line && !is_active)
+  inactive_full_line_attr = (hilight && full_line_highlight && !is_active)
                                 ? (A_BOLD | A_UNDERLINE)
                                 : A_NORMAL;
   if (inactive_full_line_attr != A_NORMAL) {
@@ -208,7 +216,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   }
 
 #ifndef COLOR_SUPPORT
-  if (hilight && ctx->highlight_full_line && is_active)
+  if (hilight && full_line_highlight && is_active)
     name_attr = margin_attr = tree_line_attr = A_REVERSE;
 #endif
 
@@ -238,7 +246,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
       ch = graph_buffer[j];
       break;
     }
-    waddch(win, (chtype)ch | A_BOLD); /* Keep graph characters bold */
+    waddch(win, (chtype)ch | ((win == ctx->ctx_f2_window) ? 0 : A_BOLD));
   }
   wattroff(win, A_ALTCHARSET);
   wattrset(win, name_attr);
@@ -259,6 +267,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
       if (name_len < sizeof(name_buffer) - 1) {
         name_buffer[name_len] = '/';
         name_buffer[name_len + 1] = '\0';
+        append_expand_suffix = TRUE;
       }
     }
   }
@@ -285,10 +294,14 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   }
 
   /* If name-only highlight is active, select just the directory name. */
-  if (hilight && !ctx->highlight_full_line) {
+  if (hilight && !full_line_highlight) {
+    size_t highlight_name_len = strlen(name_buffer);
+    BOOL split_expand_suffix =
+        (win == ctx->ctx_f2_window && append_expand_suffix &&
+         highlight_name_len > 0);
 #ifdef COLOR_SUPPORT
     if (is_active)
-      wattrset(win, COLOR_PAIR(highlight_color));
+      wattrset(win, active_name_highlight_attr);
     else
       wattron(win, A_BOLD | A_UNDERLINE);
 #else
@@ -297,20 +310,42 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     else
       wattron(win, A_BOLD | A_UNDERLINE);
 #endif
-  }
-  mvwaddstr(win, y, graph_col + graph_len, name_buffer);
-  if (hilight && !ctx->highlight_full_line) {
+    if (split_expand_suffix) {
+      highlight_name_len--;
+      char saved_ch = name_buffer[highlight_name_len];
+
+      name_buffer[highlight_name_len] = '\0';
+      mvwaddstr(win, y, graph_col + graph_len, name_buffer);
 #ifdef COLOR_SUPPORT
-    if (is_active)
-      wattrset(win, name_attr);
-    else
-      wattroff(win, A_BOLD | A_UNDERLINE);
+      if (is_active)
+        wattrset(win, name_attr);
+      else
+        wattroff(win, A_BOLD | A_UNDERLINE);
 #else
-    if (is_active)
-      wattroff(win, A_REVERSE);
-    else
-      wattroff(win, A_BOLD | A_UNDERLINE);
+      if (is_active)
+        wattroff(win, A_REVERSE);
+      else
+        wattroff(win, A_BOLD | A_UNDERLINE);
 #endif
+      name_buffer[highlight_name_len] = saved_ch;
+      waddnstr(win, name_buffer + highlight_name_len,
+               (int)(strlen(name_buffer) - highlight_name_len));
+    } else {
+      mvwaddstr(win, y, graph_col + graph_len, name_buffer);
+#ifdef COLOR_SUPPORT
+      if (is_active)
+        wattrset(win, name_attr);
+      else
+        wattroff(win, A_BOLD | A_UNDERLINE);
+#else
+      if (is_active)
+        wattroff(win, A_REVERSE);
+      else
+        wattroff(win, A_BOLD | A_UNDERLINE);
+#endif
+    }
+  } else {
+    mvwaddstr(win, y, graph_col + graph_len, name_buffer);
   }
 
   /* Part 3: Draw attributes and fill the gap in between */

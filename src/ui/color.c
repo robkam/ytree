@@ -132,6 +132,32 @@ static int UIColorForeground(int pair_id) {
   return COLOR_WHITE;
 }
 
+chtype UISelectionAttrForBase(const ViewContext *ctx, int base_role) {
+  if (ctx == NULL || !ctx->color_enabled)
+    return A_REVERSE;
+
+  if (UIColorForeground(UI_ROLE_SELECTION) == UIColorForeground(base_role) &&
+      UIColorBackground(UI_ROLE_SELECTION) == UIColorBackground(base_role)) {
+    return COLOR_PAIR(base_role) | A_REVERSE;
+  }
+
+  return COLOR_PAIR(UI_ROLE_SELECTION);
+}
+
+chtype UIKeybindAttrForBase(int overlay_role, int base_role) {
+  int pair_id;
+
+  if (overlay_role != UI_ROLE_KEYBIND)
+    return COLOR_PAIR(overlay_role);
+  if (base_role < UI_ROLE_DYNAMIC_TEXT || base_role >= NUM_UI_COLOR_PAIRS)
+    return COLOR_PAIR(overlay_role);
+
+  /* Keybind overlay pairs are reserved after the semantic UI pairs and before
+   * any file-type palette pairs. */
+  pair_id = UI_KEYBIND_BASE_PAIR + (base_role - 1);
+  return COLOR_PAIR(pair_id);
+}
+
 UIColorSnapshot *UIColorSnapshot_Create(void) {
   int i;
   UIColorSnapshot *snapshot = xmalloc(sizeof(*snapshot));
@@ -280,6 +306,11 @@ void ReinitColorPairs(ViewContext *ctx) {
   init_pair(UI_VIEWER_FRAME_PAIR,
             NormalizeColorIndex(UIColorForeground(UI_ROLE_BOX_LINES), COLORS),
             NormalizeColorIndex(UIColorBackground(UI_ROLE_DYNAMIC_TEXT), COLORS));
+  for (i = UI_ROLE_DYNAMIC_TEXT; i < NUM_UI_COLOR_PAIRS; ++i) {
+    init_pair(UI_KEYBIND_BASE_PAIR + (i - 1),
+              NormalizeColorIndex(UIColorForeground(UI_ROLE_KEYBIND), COLORS),
+              NormalizeColorIndex(UIColorBackground(i), COLORS));
+  }
 
   /* Initialize file type colors */
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {

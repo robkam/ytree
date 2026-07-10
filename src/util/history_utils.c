@@ -7,13 +7,108 @@
 
 #include "ytnova_defs.h"
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define MAX_HST_FILE_LINES 200
 
 void InsHistory(ViewContext *ctx, const char *NewHst, int type);
+static int EnsureParentDirectoryExists(const char *filename);
+
+int ResolvePreferredHistoryPath(char *path, size_t path_size) {
+  const char *xdg_state_home;
+  int written;
+
+  if (path == NULL || path_size == 0)
+    return -1;
+
+  path[0] = '\0';
+  xdg_state_home = getenv(HISTORY_STATE_HOME_ENV);
+  if (xdg_state_home != NULL && *xdg_state_home != '\0') {
+    written = snprintf(path, path_size, "%s/%s", xdg_state_home,
+                       HISTORY_STATE_HOME_PATH);
+    if (written >= 0 && (size_t)written < path_size)
+      return 0;
+    path[0] = '\0';
+    return -1;
+  }
+
+  xdg_state_home = getenv("HOME");
+  if (xdg_state_home == NULL || *xdg_state_home == '\0')
+    return -1;
+
+  written = snprintf(path, path_size, "%s/%s", xdg_state_home,
+                     HISTORY_STATE_HOME_FALLBACK);
+  if (written < 0 || (size_t)written >= path_size) {
+    path[0] = '\0';
+    return -1;
+  }
+  return 0;
+}
+
+int ResolveLegacyHistoryPath(char *path, size_t path_size) {
+  const char *home;
+  int written;
+
+  if (path == NULL || path_size == 0)
+    return -1;
+
+  path[0] = '\0';
+  home = getenv("HOME");
+  if (home == NULL || *home == '\0')
+    return -1;
+
+  written = snprintf(path, path_size, "%s/%s", home, HISTORY_LEGACY_FILENAME);
+  if (written < 0 || (size_t)written >= path_size) {
+    path[0] = '\0';
+    return -1;
+  }
+  return 0;
+}
+
+static int EnsureParentDirectoryExists(const char *filename) {
+  char path[PATH_LENGTH + 1];
+  char *cursor;
+
+  if (filename == NULL || *filename == '\0')
+    return -1;
+  if (snprintf(path, sizeof(path), "%s", filename) < 0 ||
+      strlen(filename) >= sizeof(path))
+    return -1;
+
+  cursor = strrchr(path, FILE_SEPARATOR_CHAR);
+  if (cursor == NULL)
+    return 0;
+  *cursor = '\0';
+
+  for (cursor = path + 1; *cursor != '\0'; ++cursor) {
+    struct stat st;
+
+    if (*cursor != FILE_SEPARATOR_CHAR)
+      continue;
+    *cursor = '\0';
+    if (mkdir(path, S_IRWXU) != 0 &&
+        (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))) {
+      *cursor = FILE_SEPARATOR_CHAR;
+      return -1;
+    }
+    *cursor = FILE_SEPARATOR_CHAR;
+  }
+
+  {
+    struct stat st;
+
+    if (mkdir(path, S_IRWXU) != 0 &&
+        (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode)))
+      return -1;
+  }
+
+  return 0;
+}
 
 static void FreeViewList(ViewContext *ctx) {
   if (ctx->history_view_list) {
@@ -127,6 +222,8 @@ void SaveHistory(ViewContext *ctx, const char *Filename) {
   if (!ctx->history_head)
     return;
 
+  if (EnsureParentDirectoryExists(Filename) != 0)
+    return;
   if ((HstFile = fopen(Filename, "w")) == NULL)
     return;
 

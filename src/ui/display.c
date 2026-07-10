@@ -49,9 +49,9 @@ static const UICommandStripCommand dir_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL}};
 static const UICommandStripCommand dir_help_disk_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
@@ -95,7 +95,7 @@ static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
 static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Brief", "B", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Copy", "C", "^K"},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K"},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Edit", "E", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
@@ -103,9 +103,9 @@ static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N"}};
 static const UICommandStripCommand file_help_disk_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Move", "M", "^N"},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
@@ -164,6 +164,7 @@ static const UICommandStripCommand dir_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
@@ -172,6 +173,7 @@ static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
@@ -181,6 +183,7 @@ static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
@@ -190,6 +193,7 @@ static const UICommandStripCommand file_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand file_help_nav_to_dir_commands[] = {
@@ -198,22 +202,23 @@ static const UICommandStripCommand file_help_nav_to_dir_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "to dir", "\\", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const HelpCommandStrip dir_help_nav_builtin[] = {
-    {"Tree  ", dir_help_nav_commands,
+    {"9-4 File ", dir_help_nav_commands,
      sizeof(dir_help_nav_commands) / sizeof(dir_help_nav_commands[0])},
-    {"Tree  ", dir_help_nav_archive_to_root_commands,
+    {"9-4 File ", dir_help_nav_archive_to_root_commands,
      sizeof(dir_help_nav_archive_to_root_commands) /
          sizeof(dir_help_nav_archive_to_root_commands[0])},
-    {"Tree  ", dir_help_nav_archive_exit_commands,
+    {"9-4 File ", dir_help_nav_archive_exit_commands,
      sizeof(dir_help_nav_archive_exit_commands) /
          sizeof(dir_help_nav_archive_exit_commands[0])}};
 static const HelpCommandStrip file_help_nav_builtin[] = {
-    {"Dir   ", file_help_nav_commands,
+    {"9-4 Tree ", file_help_nav_commands,
      sizeof(file_help_nav_commands) / sizeof(file_help_nav_commands[0])},
-    {"Dir   ", file_help_nav_to_dir_commands,
+    {"9-4 Tree ", file_help_nav_to_dir_commands,
      sizeof(file_help_nav_to_dir_commands) /
          sizeof(file_help_nav_to_dir_commands[0])}};
 static const HelpCommandStrip preview_help_builtin[] = {
@@ -229,14 +234,14 @@ static const HelpCommandStrip dir_help_builtin[MAX_MODES][2] = {
      { "COMMANDS ", dir_help_disk_mode_1_commands,
        sizeof(dir_help_disk_mode_1_commands) /
            sizeof(dir_help_disk_mode_1_commands[0]) }},
-    {{ "DIR       ", dir_help_ll_mode_0_commands,
+    {{ "DIR      ", dir_help_ll_mode_0_commands,
        sizeof(dir_help_ll_mode_0_commands) /
            sizeof(dir_help_ll_mode_0_commands[0]) },
-     { "COMMANDS  ", NULL, 0 }},
+     { "", NULL, 0 }},
     {{ "ARCHIVE   ", dir_help_archive_mode_0_commands,
        sizeof(dir_help_archive_mode_0_commands) /
            sizeof(dir_help_archive_mode_0_commands[0]) },
-     { "COMMANDS  ", dir_help_archive_mode_1_commands,
+     { "COMMANDS ", dir_help_archive_mode_1_commands,
        sizeof(dir_help_archive_mode_1_commands) /
            sizeof(dir_help_archive_mode_1_commands[0]) }},
     {{ "DIR      ", dir_help_disk_mode_0_commands,
@@ -253,14 +258,14 @@ static const HelpCommandStrip file_help_builtin[MAX_MODES][2] = {
      { "COMMANDS ", file_help_disk_mode_1_commands,
        sizeof(file_help_disk_mode_1_commands) /
            sizeof(file_help_disk_mode_1_commands[0]) }},
-    {{ "FILE      ", file_help_ll_mode_0_commands,
+    {{ "FILE     ", file_help_ll_mode_0_commands,
        sizeof(file_help_ll_mode_0_commands) /
            sizeof(file_help_ll_mode_0_commands[0]) },
-     { "COMMANDS  ", NULL, 0 }},
+     { "", NULL, 0 }},
     {{ "ARCH-FILE ", file_help_archive_mode_0_commands,
        sizeof(file_help_archive_mode_0_commands) /
            sizeof(file_help_archive_mode_0_commands[0]) },
-     { "COMMANDS  ", file_help_archive_mode_1_commands,
+     { "COMMANDS ", file_help_archive_mode_1_commands,
        sizeof(file_help_archive_mode_1_commands) /
            sizeof(file_help_archive_mode_1_commands[0]) }},
     {{ "FILE     ", file_help_disk_mode_0_commands,
@@ -278,13 +283,25 @@ static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
       strip->prefix == NULL)
     return;
 
+  if (strncmp(strip->prefix, "9-4 ", 4) == 0) {
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_HELP));
+    PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", UI_ROLE_KEYBIND);
+    PrintSpecialString(ctx->ctx_menu_window, y, 3, (char *)strip->prefix + 3,
+                       UI_ROLE_HELP);
 #else
-  wattrset(ctx->ctx_menu_window, A_NORMAL);
+    PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", A_BOLD);
+    PrintSpecialString(ctx->ctx_menu_window, y, 3, (char *)strip->prefix + 3,
+                       A_NORMAL);
 #endif
-  mvwaddstr(ctx->ctx_menu_window, y, 0, strip->prefix);
-  wattrset(ctx->ctx_menu_window, 0);
+  } else {
+#ifdef COLOR_SUPPORT
+    PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix,
+                       UI_ROLE_HELP);
+#else
+    PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix,
+                       A_NORMAL);
+#endif
+  }
 
   prefix_width = StrVisualLength((char *)strip->prefix);
   UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width, strip->commands,
@@ -357,7 +374,7 @@ void DisplayHistoryHelp(ViewContext *ctx) {
   werase(ctx->ctx_menu_window);
   {
     static const HelpCommandStrip history_help_strip = {
-        "History   ", history_help_commands,
+        "", history_help_commands,
         sizeof(history_help_commands) / sizeof(history_help_commands[0])};
     DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);
   }

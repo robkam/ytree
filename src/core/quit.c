@@ -35,12 +35,19 @@ static void PerformQuit(ViewContext *ctx) {
     if (quit_ops->suspend_clock != NULL)
       quit_ops->suspend_clock(ctx);
     /* Common exit procedure for all quit types */
-    const char *p = getenv("HOME");
-    if (p) {
+    {
       char path_for_history[PATH_LENGTH + 1];
-      snprintf(path_for_history, sizeof(path_for_history), "%s%c%s", p,
-               FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
-      if (quit_ops->save_history != NULL)
+
+      path_for_history[0] = '\0';
+      if (ctx->history_file_path[0] != '\0') {
+        snprintf(path_for_history, sizeof(path_for_history), "%s",
+                 ctx->history_file_path);
+      } else if (ResolvePreferredHistoryPath(path_for_history,
+                                             sizeof(path_for_history)) != 0) {
+        (void)ResolveLegacyHistoryPath(path_for_history,
+                                       sizeof(path_for_history));
+      }
+      if (path_for_history[0] != '\0' && quit_ops->save_history != NULL)
         quit_ops->save_history(ctx, path_for_history);
     }
     if (quit_ops->close_watcher != NULL)

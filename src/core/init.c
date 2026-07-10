@@ -957,6 +957,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
 
   ctx->user_umask = umask(0);
   ctx->configuration_file_path[0] = '\0';
+  ctx->configuration_file_path_is_explicit = FALSE;
+  ctx->history_file_path[0] = '\0';
   setenv("ESCDELAY", "25", 1);
   ctx->curses_screen = newterm(NULL, stdout, stdin);
   if (ctx->curses_screen == NULL) {
@@ -1004,6 +1006,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   DEBUG_LOG("Init: ReadPasswdEntries done");
 
   if (configuration_file != NULL) {
+    ctx->configuration_file_path_is_explicit = TRUE;
     (void)snprintf(ctx->configuration_file_path,
                    sizeof(ctx->configuration_file_path), "%s",
                    configuration_file);
@@ -1065,13 +1068,30 @@ int Init(ViewContext *ctx, const char *configuration_file,
   DEBUG_LOG("Init: ReCreateWindows after theme done");
 
   if (history_file != NULL) {
+    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
+                   history_file);
     DEBUG_LOG("Init: Reading history %s", history_file);
     if (ctx->core_init_ops.read_history != NULL)
       ctx->core_init_ops.read_history(ctx, history_file);
-  } else if (home) {
-    snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-             HISTORY_FILENAME);
+  } else if (ResolvePreferredHistoryPath(buffer, sizeof(buffer)) == 0) {
+    char legacy_history_path[PATH_LENGTH + 1];
+
+    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
+                   buffer);
     DEBUG_LOG("Init: Reading history %s", buffer);
+    if (ctx->core_init_ops.read_history != NULL)
+      ctx->core_init_ops.read_history(ctx, buffer);
+    if (access(buffer, F_OK) != 0 &&
+        ResolveLegacyHistoryPath(legacy_history_path,
+                                 sizeof(legacy_history_path)) == 0) {
+      DEBUG_LOG("Init: Reading legacy history %s", legacy_history_path);
+      if (ctx->core_init_ops.read_history != NULL)
+        ctx->core_init_ops.read_history(ctx, legacy_history_path);
+    }
+  } else if (ResolveLegacyHistoryPath(buffer, sizeof(buffer)) == 0) {
+    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
+                   buffer);
+    DEBUG_LOG("Init: Reading fallback history %s", buffer);
     if (ctx->core_init_ops.read_history != NULL)
       ctx->core_init_ops.read_history(ctx, buffer);
   }

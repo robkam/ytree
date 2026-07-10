@@ -5,8 +5,10 @@
  *
  ***************************************************************************/
 
+#include "../core/default_profile_template.h"
 #include "config.h"
 #include "ytnova_cmd.h"
+#include <errno.h>
 
 #define NO_SECTION 0
 #define GLOBAL_SECTION 1
@@ -91,6 +93,7 @@ static Profile profile[] = {
 
 static int Compare(const void *s1, const void *s2);
 static int ChCode(const char *s);
+static int WriteProfileKey(FILE *fp, int chcode);
 static char *TrimInPlace(char *text);
 static int ProfileSectionFromHeader(const char *name);
 static BOOL ParseProfileAssignment(char *line, char **name, char **value);
@@ -103,6 +106,21 @@ static void FreeDirmenuList(Dirmenu *head);
 static void FreeFilemenuList(Filemenu *head);
 static void FreeProfileFileColorRules(FileColorRule *head);
 static void BindProfileRuntimeData(ViewContext *ctx);
+static const Profile *FindProfileEntry(const char *name);
+static const char *ProfileEffectiveValue(const Profile *entry);
+static BOOL IsMenuProfileName(const char *name);
+static int WriteGlobalExtraProfileEntries(FILE *fp,
+                                          const BOOL written[PROFILE_ENTRIES]);
+static int WriteViewerProfileEntries(FILE *fp);
+static int WriteMenuProfileEntries(FILE *fp);
+static int WriteDirMapEntries(FILE *fp);
+static int WriteFileMapEntries(FILE *fp);
+static int WriteDirCmdEntries(FILE *fp);
+static int WriteFileCmdEntries(FILE *fp);
+static int FlushRenderedProfileSection(FILE *fp, int section,
+                                       const BOOL written[PROFILE_ENTRIES],
+                                       BOOL *viewer_written);
+static int WriteRenderedProfileTemplate(ViewContext *ctx, FILE *fp);
 
 struct _profile_runtime_snapshot {
   char *values[PROFILE_ENTRIES];
@@ -672,6 +690,368 @@ char *GetProfileValue(const ViewContext *ctx, const char *name) {
   if (p->envvar && (cptr = getenv(p->envvar)))
     return (cptr);
   return (p->def);
+}
+
+static int WriteProfileKey(FILE *fp, int chcode) {
+  if (fp == NULL)
+    return -1;
+  if (chcode == '^')
+    return fputs("^^", fp) == EOF ? -1 : 0;
+  if (chcode > 0 && chcode < ' ') {
+    if (fputc('^', fp) == EOF)
+      return -1;
+    return fputc(chcode + '@', fp) == EOF ? -1 : 0;
+  }
+  return fputc(chcode, fp) == EOF ? -1 : 0;
+}
+
+static const Profile *FindProfileEntry(const char *name) {
+  Profile key;
+
+  if (name == NULL || *name == '\0')
+    return NULL;
+
+  memset(&key, 0, sizeof(key));
+  key.name = (char *)name;
+  return bsearch(&key, profile, PROFILE_ENTRIES, sizeof(profile[0]), Compare);
+}
+
+static const char *ProfileEffectiveValue(const Profile *entry) {
+  if (entry == NULL)
+    return "";
+  if (entry->value != NULL)
+    return entry->value;
+  return entry->def != NULL ? entry->def : "";
+}
+
+static BOOL IsMenuProfileName(const char *name) {
+  return name != NULL &&
+         (!strcmp(name, "DIR1") || !strcmp(name, "DIR2") ||
+          !strcmp(name, "FILE1") || !strcmp(name, "FILE2"));
+}
+
+static int WriteGlobalExtraProfileEntries(FILE *fp,
+                                          const BOOL written[PROFILE_ENTRIES]) {
+  size_t i;
+
+  if (fp == NULL || written == NULL)
+    return -1;
+
+  for (i = 0; i < PROFILE_ENTRIES; ++i) {
+    const char *value;
+
+    if (written[i] || IsMenuProfileName(profile[i].name))
+      continue;
+    value = ProfileEffectiveValue(&profile[i]);
+    if ((profile[i].def != NULL && strcmp(value, profile[i].def) == 0) ||
+        ((profile[i].def == NULL || profile[i].def[0] == '\0') &&
+         value[0] == '\0'))
+      continue;
+    if (fprintf(fp, "%s=%s\n", profile[i].name, value) < 0)
+      return -1;
+  }
+  return 0;
+}
+
+static BOOL ViewerCommandsMatch(const Viewer *left, const Viewer *right) {
+  if (left == NULL || right == NULL)
+    return FALSE;
+  if (left->cmd == NULL || right->cmd == NULL)
+    return left->cmd == right->cmd;
+  return strcmp(left->cmd, right->cmd) == 0;
+}
+
+static int WriteViewerProfileEntries(FILE *fp) {
+  Viewer *viewer_head;
+
+  if (fp == NULL)
+    return -1;
+
+  for (viewer_head = viewer.next; viewer_head != NULL;) {
+    Viewer *group_tail = viewer_head;
+
+    if (fprintf(fp, "%s", viewer_head->ext != NULL ? viewer_head->ext : "") < 0)
+      return -1;
+
+    while (group_tail->next != NULL &&
+           ViewerCommandsMatch(viewer_head, group_tail->next)) {
+      group_tail = group_tail->next;
+      if (fprintf(fp, ",%s", group_tail->ext != NULL ? group_tail->ext : "") < 0)
+        return -1;
+    }
+
+    if (fprintf(fp, "=%s\n", viewer_head->cmd != NULL ? viewer_head->cmd : "") < 0)
+      return -1;
+    viewer_head = group_tail->next;
+  }
+  return 0;
+}
+
+static int WriteMenuProfileEntries(FILE *fp) {
+  static const char *menu_names[] = {"DIR1", "DIR2", "FILE1", "FILE2"};
+  size_t i;
+
+  if (fp == NULL)
+    return -1;
+
+  for (i = 0; i < sizeof(menu_names) / sizeof(menu_names[0]); ++i) {
+    const Profile *entry = FindProfileEntry(menu_names[i]);
+    const char *value = ProfileEffectiveValue(entry);
+
+    if (value[0] == '\0')
+      continue;
+    if (fprintf(fp, "%s=%s\n", menu_names[i], value) < 0)
+      return -1;
+  }
+  return 0;
+}
+
+static int WriteDirMapEntries(FILE *fp) {
+  Dirmenu *dirmenu_head;
+
+  if (fp == NULL)
+    return -1;
+
+  for (dirmenu_head = dirmenu.next; dirmenu_head != NULL;
+       dirmenu_head = dirmenu_head->next) {
+    if (dirmenu_head->cmd == NULL &&
+        dirmenu_head->chremap == dirmenu_head->chkey)
+      continue;
+    if (WriteProfileKey(fp, dirmenu_head->chkey) != 0 || fputc('=', fp) == EOF)
+      return -1;
+    if (dirmenu_head->chremap != -1 &&
+        WriteProfileKey(fp, dirmenu_head->chremap) != 0)
+      return -1;
+    if (fputc('\n', fp) == EOF)
+      return -1;
+  }
+  return 0;
+}
+
+static int WriteFileMapEntries(FILE *fp) {
+  Filemenu *filemenu_head;
+
+  if (fp == NULL)
+    return -1;
+
+  for (filemenu_head = filemenu.next; filemenu_head != NULL;
+       filemenu_head = filemenu_head->next) {
+    if (filemenu_head->cmd == NULL &&
+        filemenu_head->chremap == filemenu_head->chkey)
+      continue;
+    if (WriteProfileKey(fp, filemenu_head->chkey) != 0 || fputc('=', fp) == EOF)
+      return -1;
+    if (filemenu_head->chremap != -1 &&
+        WriteProfileKey(fp, filemenu_head->chremap) != 0)
+      return -1;
+    if (fputc('\n', fp) == EOF)
+      return -1;
+  }
+  return 0;
+}
+
+static int WriteDirCmdEntries(FILE *fp) {
+  Dirmenu *dirmenu_head;
+
+  if (fp == NULL)
+    return -1;
+
+  for (dirmenu_head = dirmenu.next; dirmenu_head != NULL;
+       dirmenu_head = dirmenu_head->next) {
+    if (dirmenu_head->cmd == NULL)
+      continue;
+    if (WriteProfileKey(fp, dirmenu_head->chkey) != 0 || fputc('=', fp) == EOF ||
+        fputs(dirmenu_head->cmd, fp) == EOF || fputc('\n', fp) == EOF)
+      return -1;
+  }
+  return 0;
+}
+
+static int WriteFileCmdEntries(FILE *fp) {
+  Filemenu *filemenu_head;
+
+  if (fp == NULL)
+    return -1;
+
+  for (filemenu_head = filemenu.next; filemenu_head != NULL;
+       filemenu_head = filemenu_head->next) {
+    if (filemenu_head->cmd == NULL)
+      continue;
+    if (WriteProfileKey(fp, filemenu_head->chkey) != 0 || fputc('=', fp) == EOF ||
+        fputs(filemenu_head->cmd, fp) == EOF || fputc('\n', fp) == EOF)
+      return -1;
+  }
+  return 0;
+}
+
+static int FlushRenderedProfileSection(FILE *fp, int section,
+                                       const BOOL written[PROFILE_ENTRIES],
+                                       BOOL *viewer_written) {
+  switch (section) {
+  case GLOBAL_SECTION:
+    return WriteGlobalExtraProfileEntries(fp, written);
+  case VIEWER_SECTION:
+    if (viewer_written != NULL && !*viewer_written) {
+      if (WriteViewerProfileEntries(fp) != 0)
+        return -1;
+      *viewer_written = TRUE;
+    }
+    return 0;
+  case MENU_SECTION:
+    return WriteMenuProfileEntries(fp);
+  case DIRMAP_SECTION:
+    return WriteDirMapEntries(fp);
+  case FILEMAP_SECTION:
+    return WriteFileMapEntries(fp);
+  case DIRCMD_SECTION:
+    return WriteDirCmdEntries(fp);
+  case FILECMD_SECTION:
+    return WriteFileCmdEntries(fp);
+  default:
+    return 0;
+  }
+}
+
+static int WriteRenderedProfileTemplate(ViewContext *ctx, FILE *fp) {
+  BOOL written[PROFILE_ENTRIES];
+  BOOL viewer_written = FALSE;
+  char *template_copy;
+  char *line;
+  int section = NO_SECTION;
+
+  if (ctx == NULL || fp == NULL)
+    return -1;
+
+  BindProfileRuntimeData(ctx);
+  memset(written, 0, sizeof(written));
+
+  template_copy = xstrdup(default_profile_template);
+  for (line = template_copy; line != NULL;) {
+    char *next_line = strchr(line, '\n');
+    int next_section;
+
+    if (next_line != NULL)
+      *next_line++ = '\0';
+
+    next_section = ProfileSectionFromHeader(line);
+    if (next_section != -1) {
+      if (FlushRenderedProfileSection(fp, section, written, &viewer_written) != 0) {
+        free(template_copy);
+        return -1;
+      }
+      section = next_section;
+      viewer_written = FALSE;
+      if (fprintf(fp, "%s\n", line) < 0) {
+        free(template_copy);
+        return -1;
+      }
+      line = next_line;
+      continue;
+    }
+
+    if (section == GLOBAL_SECTION && line[0] != '#') {
+      char *name;
+      char *value;
+
+      if (ParseProfileAssignment(line, &name, &value)) {
+        const Profile *entry = FindProfileEntry(name);
+
+        if (entry != NULL) {
+          written[entry - profile] = TRUE;
+          if (fprintf(fp, "%s=%s\n", entry->name, ProfileEffectiveValue(entry)) < 0) {
+            free(template_copy);
+            return -1;
+          }
+          line = next_line;
+          continue;
+        }
+      }
+    }
+
+    if (section == VIEWER_SECTION && line[0] != '\0' && line[0] != '#') {
+      if (!viewer_written) {
+        if (WriteViewerProfileEntries(fp) != 0) {
+          free(template_copy);
+          return -1;
+        }
+        viewer_written = TRUE;
+      }
+      line = next_line;
+      continue;
+    }
+
+    if (fprintf(fp, "%s\n", line) < 0) {
+      free(template_copy);
+      return -1;
+    }
+    line = next_line;
+  }
+
+  if (FlushRenderedProfileSection(fp, section, written, &viewer_written) != 0) {
+    free(template_copy);
+    return -1;
+  }
+
+  free(template_copy);
+  return 0;
+}
+
+int WriteProfileFromRuntimeState(ViewContext *ctx, const char *filename) {
+  FILE *fp;
+
+  if (ctx == NULL || filename == NULL || *filename == '\0')
+    return -1;
+
+  fp = fopen(filename, "w");
+  if (fp == NULL)
+    return -1;
+
+  if (WriteRenderedProfileTemplate(ctx, fp) != 0) {
+    fclose(fp);
+    return -1;
+  }
+
+  if (fclose(fp) != 0)
+    return -1;
+  return 0;
+}
+
+int CreateProfileFromRuntimeState(ViewContext *ctx, const char *filename) {
+  int fd;
+  FILE *fp;
+
+  if (ctx == NULL || filename == NULL || *filename == '\0')
+    return -1;
+
+  fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    if (errno == EEXIST)
+      return 0;
+    return -1;
+  }
+
+  fp = fdopen(fd, "w");
+  if (fp == NULL) {
+    int saved_errno = errno;
+
+    close(fd);
+    unlink(filename);
+    errno = saved_errno;
+    return -1;
+  }
+
+  if (WriteRenderedProfileTemplate(ctx, fp) != 0) {
+    fclose(fp);
+    unlink(filename);
+    return -1;
+  }
+
+  if (fclose(fp) != 0) {
+    unlink(filename);
+    return -1;
+  }
+
+  return 1;
 }
 
 static int ChCode(const char *s) {

@@ -18,7 +18,6 @@ THEME_ROLES = {
     "warning",
     "error",
     "search_hit",
-    "disabled",
 }
 
 
@@ -38,9 +37,15 @@ def test_packaged_config_delegates_theme_details_to_theme_catalog():
     changes_source = _read_source("docs/CHANGES.md")
 
     for source in (conf_source, template_source):
+        assert "Built-in default profile template for ~/.config/ytnova/ytnova.conf." in source
+        assert "If the XDG config path cannot be used, ytnova falls back to ~/.ytnova." in source
+        assert "F10 Config and `ytnova --init` can write it for you." in source
         assert "THEME=classic-blue" in source
-        assert "theme catalog" in source
-        assert "dynamic_text" in source
+        assert "# THEME=bash-black" in source
+        assert "Built-in starter themes" in source
+        assert "leave one uncommented" in source
+        assert "semantic roles and file-type palette rules" in source
+        assert "Theme customization lives in ~/.config/ytnova/themes.conf." not in source
         assert "[COLORS]" not in source
         assert "[FILE_COLORS]" not in source
         assert "DIR_COLOR=" not in source
@@ -91,19 +96,46 @@ def _theme_role_names(section):
     return roles
 
 
+def _theme_role_order(section):
+    roles = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        roles.append(stripped.split("=", 1)[0].strip())
+    return roles
+
+
 def test_packaged_theme_catalog_defines_required_semantic_roles():
     source = _read_source("etc/ytnova.themes")
+    classic = _theme_section(source, "theme classic-blue")
+    bash_black = _theme_section(source, "theme bash-black")
 
-    for theme_name in ("theme classic-blue", "theme bash-black"):
-        section = _theme_section(source, theme_name)
+    for section in (classic, bash_black):
         assert _theme_role_names(section) == THEME_ROLES
 
-    classic = _theme_section(source, "theme classic-blue")
+    assert _theme_role_order(classic) == _theme_role_order(bash_black)
+
     assert "background = blue" in classic
     assert "margin = dynamic_text" in classic
     assert "error = +white on red" in classic
     assert "warning = black on yellow" in classic
     assert "search_hit = black on yellow" in classic
+    assert "box_lines = cyan\n" in classic
+    assert "tree_lines = +white\n" in classic
+    assert "dynamic_text = +white\n" in classic
+    assert "keybind = +white\n" in classic
+    assert "selection = black on white\n" in classic
+    assert "dialog = white\n" in classic
+    assert "picker = black on cyan\n" in classic
+    assert "disabled =" not in classic
+    assert "box_lines = cyan on blue" not in classic
+    assert "dynamic_text = +white on blue" not in classic
+    assert "background = black" in bash_black
+    assert "keybind = +white\n" in bash_black
+    assert "picker = black on grey\n" in bash_black
+    assert "info = white on blue\n" in bash_black
+    assert "error = white on red\n" in bash_black
 
 
 def test_packaged_config_selects_classic_theme():
@@ -113,6 +145,8 @@ def test_packaged_config_selects_classic_theme():
 
     assert "THEME=classic-blue" in conf_source
     assert "THEME=classic-blue" in template_source
+    assert "# THEME=bash-black" in conf_source
+    assert "# THEME=bash-black" in template_source
     assert '{"THEME", "classic-blue", NULL, NULL},' in profile_source
 
 
@@ -128,15 +162,15 @@ def test_packaged_theme_catalog_uses_compact_file_palettes():
         section = _theme_section(source, section_name)
         assert "\nDIR" not in section
         assert "*." not in section
-    assert ":" not in _theme_section(source, "file-types classic-blue")
 
     classic = _theme_section(source, "file-types classic-blue")
-    assert "archives =" not in classic
-    assert "scripts =" not in classic
-    assert "media =" not in classic
-    assert "documents =" not in classic
-    assert "links =" not in classic
-    assert "executables =" not in classic
+    assert "archives = red: tar,tgz,zip,gz,rar,7z,iso" in classic
+    assert "scripts = +cyan: sh,bash,py,pl,rb" in classic
+    assert "code = yellow: c,h,cpp,rs,go,java,js,ts" in classic
+    assert "media = magenta: jpg,png,gif,mp4,mp3,wav" in classic
+    assert "documents = white: pdf,txt,md,doc,docx" in classic
+    assert "links = cyan: LINK" in classic
+    assert "executables = green: EXEC" in classic
 
     bash_black = _theme_section(source, "file-types bash-black")
     assert "LINK" in bash_black
@@ -181,7 +215,7 @@ def test_spec_documents_user_visible_theme_contract():
         in spec_source
     )
     assert (
-        "Preferred user paths are `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`"
+        "Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf` and `$XDG_CONFIG_HOME/ytnova/themes.conf`"
         in spec_source
     )
     assert (
@@ -194,12 +228,21 @@ def test_spec_documents_user_visible_theme_contract():
         in spec_source
     )
     assert (
-        "Required roles are `background`, `box_lines`, `tree_lines`, `margin`"
+        "Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`"
         in spec_source
     )
+    assert "`disabled`" not in spec_source
     assert "`grey`/`gray`" in spec_source
     assert "bright black" not in spec_source.lower()
     assert "Rules are first-match-wins" in spec_source
+    assert (
+        "Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place"
+        in spec_source
+    )
+    assert (
+        "`THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned."
+        in spec_source
+    )
     assert "Reload is available only inside this surface" in spec_source
 
 
@@ -223,8 +266,10 @@ def test_manpage_documents_user_visible_theme_contract():
         assert "compiled-in defaults" in source
         assert "classic-blue" in source
         assert "bash-black" in source
+        assert "**/**: **Incremental Jump**" in source
+        assert "F12" not in source
         assert "`grey`/`gray`" in source
-        assert "+white on blue" in source
+        assert "inherits the active filename/window background" in source
         assert "archives = red: tar,tgz,zip" in source
         assert "first matching extension or special selector wins" in source
         assert "bright black" not in source.lower()

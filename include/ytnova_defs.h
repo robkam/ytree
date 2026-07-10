@@ -218,7 +218,10 @@ typedef struct _ViewContext ViewContext;
 #ifndef PACKAGED_THEME_PATH
 #define PACKAGED_THEME_PATH "/usr/local/share/ytnova/ytnova.themes"
 #endif
-#define HISTORY_FILENAME ".ytnova-hst"
+#define HISTORY_STATE_HOME_ENV "XDG_STATE_HOME"
+#define HISTORY_STATE_HOME_PATH "ytnova/ytnova.hst"
+#define HISTORY_STATE_HOME_FALLBACK ".local/state/ytnova/ytnova.hst"
+#define HISTORY_LEGACY_FILENAME ".ytnova-hst"
 #define CLOCK_INTERVAL 1
 #define DEFAULT_FILE_SPEC "*"
 
@@ -292,6 +295,7 @@ typedef enum UISemanticRolePair {
 } UISemanticRolePair;
 
 #define UI_VIEWER_FRAME_PAIR NUM_UI_COLOR_PAIRS
+#define UI_KEYBIND_BASE_PAIR (UI_VIEWER_FRAME_PAIR + 1)
 
 enum HistoryType {
   HST_GENERAL = 0,
@@ -940,6 +944,8 @@ extern void CoreWatcherOps_Register(ViewContext *ctx);
 extern void UI_Dialog_Init(void);
 extern char *GetProfileValue(const ViewContext *ctx, const char *name);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
+extern int ResolvePreferredHistoryPath(char *path, size_t path_size);
+extern int ResolveLegacyHistoryPath(char *path, size_t path_size);
 extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 extern int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
 extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
@@ -1012,6 +1018,8 @@ typedef struct _ViewContext {
   char status_line_error_text[PATH_LENGTH + 1];
   char *initial_directory;
   char configuration_file_path[PATH_LENGTH + 1];
+  BOOL configuration_file_path_is_explicit;
+  char history_file_path[PATH_LENGTH + 1];
   char theme_file_path[PATH_LENGTH + 1];
   char *confirm_quit;
   void *file_color_rules_head;

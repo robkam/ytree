@@ -41,8 +41,14 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     assert "# YtreeNova Defaults" in created
     assert "[GLOBAL]" in created
     assert "THEME=classic-blue" in created
+    assert "# THEME=bash-black" in created
     created_themes = themes.read_text(encoding="utf-8")
     assert "[theme classic-blue]" in created_themes
+    assert "picker = black on cyan" in created_themes
+    assert "picker = black on grey" in created_themes
+    assert "info = white on blue" in created_themes
+    assert "error = white on red" in created_themes
+    assert "disabled =" not in created_themes
 
     profile.write_text("SENTINEL\n", encoding="utf-8")
     themes.write_text("THEME SENTINEL\n", encoding="utf-8")
@@ -62,7 +68,10 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     assert profile.exists()
     assert not (home / ".config" / "ytnova" / "ytnova.conf").exists()
     assert "Created profile:" in result.stdout
-    assert "THEME=classic-blue" in profile.read_text(encoding="utf-8")
+    profile_text = profile.read_text(encoding="utf-8")
+    assert "THEME=classic-blue" in profile_text
+    assert "# THEME=bash-black" in profile_text
+    assert "F12" not in profile_text
 
 
 def test_init_falls_back_to_home_targets_when_xdg_dir_is_unavailable(

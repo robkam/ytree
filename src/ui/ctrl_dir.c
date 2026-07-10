@@ -469,7 +469,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   int ch, unput_char;
   BOOL need_dsp_help;
   char new_log_path[PATH_LENGTH + 1];
-  YtreeNovaAction action; /* Declare YtreeNovaAction variable */
+  YtreeNovaAction action = ACTION_NONE;
   const struct Volume *start_vol = NULL;
   Statistic *s = NULL;
   int height;
@@ -724,6 +724,14 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       (void)AppStateClearResizeRequest(ctx);
     }
+
+#ifdef KEY_F
+    if (ch == KEY_F(9)) {
+      (void)UI_OpenApplicationsMenu(ctx);
+      need_dsp_help = TRUE;
+      continue;
+    }
+#endif
 
     action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeNovaAction */
     action = AppStateValidatedKeyAction(action);

@@ -149,6 +149,8 @@ extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern int ValidateProfileFile(ViewContext *ctx, const char *filename);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
+extern int WriteProfileFromRuntimeState(ViewContext *ctx, const char *filename);
+extern int CreateProfileFromRuntimeState(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
 #ifdef COLOR_SUPPORT
 extern int ReadThemeFile(ViewContext *ctx, const char *filename,
