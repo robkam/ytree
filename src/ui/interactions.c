@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_cmd.h"
+#include "ytnova_dialog.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 #include "interactions_panel_paths.h"
@@ -664,12 +665,12 @@ int QuerySystemCall(ViewContext *ctx, const char *command_line, Statistic *s) {
 
   HitReturnToContinue(); /* 3. Print message and wait for key in raw terminal */
 
-  /* 4. Aggressive redraw/refresh to restore the curses UI completely */
-  touchwin(stdscr);
-  wnoutrefresh(stdscr);
-  doupdate();
-
+  if (ctx->hook_init_clock)
+    ctx->hook_init_clock(ctx);
   (void)GetAvailBytes(&s->disk_space, s);
+  UI_Dialog_RefreshAll(ctx);
+  ClockHandler(ctx, 0);
+  doupdate();
 
   return (result);
 }

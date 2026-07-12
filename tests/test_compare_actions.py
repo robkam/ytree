@@ -341,6 +341,7 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytnova_bin
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke("\x10", wait=0.3)  # Ctrl-P history-up
     assert tui.wait_for_content("Pin/unpin", timeout=1.0)
+    assert "Delete" in _screen_text(tui), _screen_text(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     tui.quit()
 

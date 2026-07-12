@@ -149,6 +149,7 @@ static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL}};
 static const UICommandStripCommand history_help_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cancel", "Esc", NULL}};
 static const UICommandStripCommand preview_help_commands[] = {

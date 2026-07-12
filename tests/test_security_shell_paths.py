@@ -2,6 +2,7 @@ import shlex
 import time
 
 from helpers_files import wait_for_file as _wait_for_file
+from helpers_ui import screen_text
 from helpers_source import read_repo_source
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
@@ -238,3 +239,93 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
     )
 
     tui.quit()
+
+
+def test_execute_default_prefill_runs_executable_from_current_directory(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "execute_default_prefill_current_dir"
+    root.mkdir()
+
+    script_path = root / "run me.sh"
+    marker_path = root / "script_ran.marker"
+    script_path.write_text(
+        "#!/bin/sh\n"
+        f"printf 'ran\\n' > {shlex.quote(str(marker_path))}\n",
+        encoding="utf-8",
+    )
+    script_path.chmod(0o755)
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.6)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
+    tui.send_keystroke("x", wait=0.35)
+    assert tui.wait_for_content("COMMAND:", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.8)
+
+    assert _wait_for_file(marker_path, timeout=2.0), (
+        "Default execute command should run the selected executable from the "
+        "current directory."
+    )
+    if tui.wait_for_content("Hit return to continue", timeout=1.0):
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+
+    tui.quit()
+
+
+def test_execute_default_prefill_shows_plain_dot_slash_for_simple_script_name(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "execute_default_prefill_prompt"
+    root.mkdir()
+
+    script_path = root / "blob.sh"
+    script_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    script_path.chmod(0o755)
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    time.sleep(0.6)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
+    tui.send_keystroke("x", wait=0.35)
+
+    screen = screen_text(tui)
+    assert "COMMAND: ./blob.sh" in screen, screen
+    assert "COMMAND: ./'blob.sh'" not in screen, screen
+
+    tui.quit()
+
+
+def test_query_system_call_reinitializes_clock_and_dialog_refresh_after_continue():
+    src = read_repo_source("src/ui/interactions.c")
+    start = src.index("int QuerySystemCall(")
+    end = src.index("\nint UI_ReadFilter(", start)
+    body = src[start:end]
+
+    assert "HitReturnToContinue();" in body, (
+        "QuerySystemCall should keep the raw-terminal continue prompt after the "
+        "external command returns."
+    )
+    assert "ctx->hook_init_clock(ctx);" in body, (
+        "QuerySystemCall must restore the clock/curses state immediately after "
+        "the continue prompt returns."
+    )
+    assert "UI_Dialog_RefreshAll(ctx);" in body, (
+        "QuerySystemCall must restage the full window stack after restoring the "
+        "clock so footer, borders, path, and stats redraw immediately."
+    )
+    assert "ClockHandler(ctx, 0);" in body, (
+        "QuerySystemCall must repaint the live clock/calendar after restoring "
+        "the dialog stack."
+    )
+
+    continue_idx = body.index("HitReturnToContinue();")
+    clock_idx = body.index("ctx->hook_init_clock(ctx);")
+    dialog_idx = body.index("UI_Dialog_RefreshAll(ctx);")
+    clock_draw_idx = body.index("ClockHandler(ctx, 0);")
+    doupdate_idx = body.index("doupdate();")
+
+    assert continue_idx < clock_idx < dialog_idx < clock_draw_idx < doupdate_idx, (
+        "QuerySystemCall must reinitialize curses, refresh the dialog stack, "
+        "redraw the clock, and only then flush the redraw after the continue "
+        "prompt."
+    )
