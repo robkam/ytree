@@ -1,0 +1,61 @@
+Work item: file-view x defaults should use a clean current-directory command and restore the full UI immediately after command return.
+Status: In Progress.
+
+Selected family: file-view execute-command default template, post-command UI restore, and adjacent history-help command strip parity.
+Source of truth:
+- Maintainer bug report: selecting an executable shell script, pressing x, then Enter should run it like ./foobar.sh from the current directory instead of plain foobar.sh.
+- Maintainer follow-up: the prompt should show `./blob.sh`, not `./'blob.sh'`, and the UI should not pause on a partial redraw after dismissing `[Hit return to continue]`.
+
+Inventory:
+- tests/test_security_shell_paths.py
+  - reproducer path for x-command execution from file view [addressed]
+  - prompt text regression for simple executable names [addressed]
+  - QuerySystemCall UI-restore contract after continue prompt [addressed]
+  - adjacent placeholder/injection execute tests [addressed via focused regression rerun]
+- tests/test_ui_display.py
+  - adjacent footer visibility/no-flicker coverage for command-return redraw surfaces [addressed via focused rerun]
+- tests/test_compare_actions.py
+  - history-window shared edit-navigation help strip should show Delete for `D`/history-up flows [addressed]
+- src/ui/ctrl_file_ops.c
+  - ACTION_CMD_X default command_template prefill for executable files [addressed]
+  - adjacent tagged execute/search placeholder normalization surfaces [intentionally unchanged: they expand explicit user commands and do not prefill executable names]
+- src/ui/interactions.c
+  - QuerySystemCall restore path after HitReturnToContinue [addressed]
+- src/ui/display.c
+  - history help command strip content for Ctrl-P/history window [addressed]
+- src/cmd/execute.c
+  - Execute() command expansion/chdir/runtime execution path [intentionally unchanged: already chdirs into the selected directory and executes the built command line]
+  - ExecuteCommand() tagged execution path [intentionally unchanged: tagged execution already expands explicit user templates against selected paths]
+- src/util/path_utils.c
+  - Path_ShellQuote / Path_BuildCommandLine quoting behavior used by execute flow [intentionally unchanged: quoting helpers already preserve literal argv values; fixes belong in the executable-prefill and QuerySystemCall callers]
+- src/ui/ctrl_dir.c
+  - tree/directory ACTION_CMD_X path for non-file commands [intentionally unchanged: directory-mode x does not prefill the selected executable filename]
+
+Reproducer:
+- file view on an executable shell script in current directory
+- press x
+- expected prompt default for simple names: `./name`
+- expected Enter behavior: run from cwd, then restore footer/path/stats/clock immediately after dismissing `[Hit return to continue]`
+- previous failures:
+  - prompt showed `./'name'` for simple script names
+  - shell previously reported name not found before the first fix because current directory is not searched via PATH
+  - QuerySystemCall restored only a partial screen state after the continue prompt because it skipped clock re-init and full dialog-stack redraw
+
+Closure tracking:
+- tests/test_security_shell_paths.py: addressed
+- tests/test_ui_display.py focused coverage: addressed
+- tests/test_compare_actions.py history-help coverage: addressed
+- src/ui/ctrl_file_ops.c ACTION_CMD_X prefill: addressed
+- src/ui/interactions.c QuerySystemCall restore path: addressed
+- src/ui/display.c history-help strip: addressed
+- src/cmd/execute.c: intentionally unchanged (existing chdir/execute path already correct)
+- src/util/path_utils.c: intentionally unchanged (quoting helpers already correct)
+- src/ui/ctrl_dir.c: intentionally unchanged (different owner surface and behavior)
+
+Validation:
+- Red: `source .venv/bin/activate && pytest -q tests/test_security_shell_paths.py -k 'plain_dot_slash or query_system_call_reinitializes_clock'`
+- `make clean && make -j4`
+- Green: `source .venv/bin/activate && pytest -q tests/test_compare_actions.py -k reuses_shared_edit_navigation_behavior`
+- Green focused: `source .venv/bin/activate && pytest -q tests/test_security_shell_paths.py -k 'plain_dot_slash or query_system_call_reinitializes_clock or execute_default_prefill_runs_executable_from_current_directory or execute_command_placeholder_preserves_metacharacter_filename_literal or execute_placeholder_in_user_quotes_does_not_enable_shell_injection'`
+- Green broader: `source .venv/bin/activate && pytest -q tests/test_compare_actions.py tests/test_security_shell_paths.py tests/test_ui_display.py -k 'reuses_shared_edit_navigation_behavior or execute_default_prefill or query_system_call_reinitializes_clock or footer_visible or footer_no_flicker or footer_blank_on_big_window_entry'`
+- Green targeted static analysis: `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src/ui/ctrl_file_ops.c`
