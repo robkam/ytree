@@ -310,8 +310,10 @@ user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 The bundled defaults include `classic-blue` and `bash-black`.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
-`selection`, `dialog`, `picker`, `help`, `warning`, `error`, and `search_hit`.
-The bundled starter themes keep `picker` on a different background so F2, history,
+`selection`, `dialog`, `picker`, `picker_selection`, `help`, `warning`,
+`error`, and `search_hit`. When `picker_selection` is omitted it falls back to
+`selection`, so existing themes keep the same picker highlight behavior. The
+bundled starter themes keep `picker` on a different background so F2, history,
 volume, and applications menus stand out from the main content background.
 Color values accept names or numbers, `grey`/`gray`, bright prefixes such as
 `+white` or `+grey`, and optional backgrounds such as `+white on blue`.

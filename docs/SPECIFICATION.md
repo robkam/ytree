@@ -355,7 +355,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 Routing contract:
 *   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
 *   Severity modal headers, body text, frames, and prompts MUST retain the active severity role pair. They MUST NOT use raw reverse/blink styling that swaps foreground/background away from the configured severity colors.
-*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
 *   Tree status-marker columns use `margin`; tree guide glyphs use `tree_lines`; tree directory names and attributes use `dynamic_text`. File-type palette rules do not style directory tree rows.
 *   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
@@ -390,7 +390,7 @@ Themes are plain-text user-editable files separate from the main configuration. 
 *   `THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned.
 
 ### 7.2 Semantic Roles
-Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `help`, `info`, `warning`, `error`, and `search_hit`.
+Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `info`, `warning`, `error`, and `search_hit`.
 
 Role meanings:
 *   `background`: default application background.
@@ -403,6 +403,7 @@ Role meanings:
 *   `selection`: active highlighted row/bar.
 *   `dialog`: neutral prompt/dialog surfaces.
 *   `picker`: selectable-list surfaces. The shipped starter themes keep picker-family surfaces on a different background so F2, history, volume, and applications menus stand out from the main content area.
+*   `picker_selection`: picker-family highlighted row/bar override. When omitted, picker-family selection falls back to `selection`.
 *   `help`: F1/context help reading surfaces.
 *   `info`, `warning`, `error`: severity road-sign roles.
 *   `search_hit`: search/current-hit standout highlight.

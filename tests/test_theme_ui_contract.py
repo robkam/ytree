@@ -345,18 +345,28 @@ def test_picker_family_selection_can_fall_back_to_inverse_of_picker_base():
     volume_source = _read("src/ui/volume_menu.c")
 
     assert "UISelectionAttrForBase" in color_source
-    assert "UIColorForeground(UI_ROLE_SELECTION) == UIColorForeground(base_role)" in (
-        color_source
-    )
-    assert "UIColorBackground(UI_ROLE_SELECTION) == UIColorBackground(base_role)" in (
-        color_source
-    )
+    assert "selection_role = UI_ROLE_SELECTION;" in color_source
     assert "return COLOR_PAIR(base_role) | A_REVERSE;" in color_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in app_menu_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in history_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in completion_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in volume_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in _read("src/ui/render_dir.c")
+
+
+def test_picker_family_selection_supports_optional_picker_selection_role():
+    color_source = _read("src/ui/color.c")
+    theme_source = _read("src/cmd/theme.c")
+    man_source = _read("etc/ytnova.1.md")
+    usage_source = _read("docs/USAGE.md")
+    spec_source = _read("docs/SPECIFICATION.md")
+
+    assert "UI_ROLE_PICKER_SELECTION" in color_source
+    assert '"picker_selection"' in color_source
+    assert '"picker_selection"' in theme_source
+    assert 'strcmp(name, "picker_selection") == 0' in theme_source
+    for source in (man_source, usage_source, spec_source):
+        assert "picker_selection" in source
 
 
 def test_navigation_help_lists_f9_apps_between_split_and_config():

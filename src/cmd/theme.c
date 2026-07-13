@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
-#define THEME_ROLE_COUNT 16
+#define THEME_ROLE_COUNT 17
 
 typedef enum {
   THEME_SECTION_NONE = 0,
@@ -51,7 +51,7 @@ typedef struct {
 static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "selection",
-    "dialog",      "picker",    "help",        "info",
+    "dialog",      "picker",    "picker_selection", "help", "info",
     "warning",     "error",     "search_hit",  "disabled"};
 
 static const char *legacy_starter_background_roles[] = {
@@ -207,7 +207,9 @@ static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name) {
 }
 
 static BOOL ThemeRoleIsOptional(const char *name) {
-  return name != NULL && strcmp(name, "disabled") == 0;
+  return name != NULL &&
+         (strcmp(name, "picker_selection") == 0 ||
+          strcmp(name, "disabled") == 0);
 }
 
 static BOOL CopyThemeValueStrict(char *dest, size_t dest_size,
@@ -717,11 +719,18 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
     snprintf(roles[i].name, sizeof(roles[i].name), "%s", required_roles[i]);
   {
     ThemeRoleValue *margin_role = FindRole(roles, "margin");
+    ThemeRoleValue *picker_selection_role =
+        FindRole(roles, "picker_selection");
 
     if (margin_role != NULL) {
       snprintf(margin_role->value, sizeof(margin_role->value), "%s",
                "dynamic_text");
       margin_role->is_set = TRUE;
+    }
+    if (picker_selection_role != NULL) {
+      snprintf(picker_selection_role->value,
+               sizeof(picker_selection_role->value), "%s", "selection");
+      picker_selection_role->is_set = TRUE;
     }
   }
 
