@@ -16,7 +16,12 @@ BOOL AppStateRestorePanelGeneration(YtreeNovaPanel *panel,
 BOOL AppStateCommitPanelVolume(YtreeNovaPanel *panel, struct Volume *vol);
 BOOL AppStateSetPanelVolumeFileStateList(
     YtreeNovaPanel *panel, PanelVolumeFileState *volume_file_state);
+BOOL AppStateCommitPanelDirectoryDisplayMode(YtreeNovaPanel *panel, int dir_mode);
 BOOL AppStateCommitPanelFileDisplayMode(YtreeNovaPanel *panel, int file_mode);
+BOOL AppStateCommitPanelFileInfoOverlayMode(YtreeNovaPanel *panel,
+                                            int overlay_mode);
+BOOL AppStateCommitPanelFixedColumnWidth(YtreeNovaPanel *panel,
+                                         int fixed_col_width);
 BOOL AppStateCommitPanelFileMaxColumn(YtreeNovaPanel *panel, unsigned max_column);
 BOOL AppStateCommitPanelFileRenderingMetrics(YtreeNovaPanel *panel,
                                              unsigned max_filename,
@@ -25,6 +30,10 @@ BOOL AppStateCommitPanelFileRenderingMetrics(YtreeNovaPanel *panel,
                                              BOOL update_userview);
 BOOL AppStateCommitPanelFileSortOrder(YtreeNovaPanel *panel,
                                       BOOL reverse_sort);
+BOOL AppStateCommitPanelSizeUnitMode(YtreeNovaPanel *panel,
+                                     BOOL human_size_units);
+BOOL AppStateCommitPanelSymlinkTargetMode(YtreeNovaPanel *panel,
+                                          BOOL show_symlink_targets);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);

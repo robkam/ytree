@@ -97,7 +97,27 @@ These commands work in most modes:
   - **F10**: Open the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **T** to edit themes, or **R** to reload the current config and theme. A successful reload silently repaints; a failed reload keeps the previous working config/theme and reports the error in the status/footer area.
   - **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
   - **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
-  - **B**: Toggle Brief (Compact) filename view in the File Window.
+  - **1 .. 0**: File or directory info band for the active panel (disabled in `F7` preview).
+      - In tree/directory focus the footer shows `1..0 dir view`.
+      - In file focus the footer shows `1..0 file view`.
+      - The current file/directory stats section shows the active view by name (for example `View: Name`, `View: Compact`, or `View: Git`).
+      - `1`: Name only. This is the plain default/baseline view, startup always begins here, and pressing `1` also resets temporary compact/overlay state back to Name.
+      - `2`: Attributes, including `name -> target` symlink rows in file projections.
+      - `3`: Owner.
+      - `4`: Times.
+      - By default, `1..4` are shared per panel, so changing the tree/directory view also changes the file-window view for that panel.
+      - Selecting `1..4` returns that file projection to its named base view and clears temporary extra view state there.
+      - Pressing the already-active `2`, `3`, or `4` again resets that context back to `1` / Name.
+      - Set `SEPARATE_DIR_FILE_VIEWS=1` to make tree/directory and file-window `1..4` views independent again.
+      - `5`: Toggle the compact Name/full-width file rendering variant when the current `1` / Name base view is active.
+      - `6`: Toggle binary vs human-readable size units for directory/file rows only. Stats stay human-readable.
+      - `7`: Toggle Mini preview detail (start of readable file contents on every visible file row). This leaves Compact so the detail is visible.
+      - `8`: Toggle File detail (`file`-style type-summary text on every visible file row). This leaves Compact so the detail is visible.
+      - `9`: Toggle the Git status band in filesystem file lists when the current directory is inside a Git worktree.
+      - `0`: Currently unused; silent no-op.
+      - `5` only works from the current `1` / Name base view; it always uses the Name file projection and is a silent no-op from `2`, `3`, or `4`.
+      - `5`, `7`, `8`, and `9` do not change tree rows; they change the panel's file projection instead, so in tree focus they update the small file window and in file focus they update the file window.
+      - Extra view states do not stack in the stats label; it names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`).
   - **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
   - **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
   - **\<** / **\>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
@@ -141,7 +161,7 @@ Active when browsing the directory tree window.
   - **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
   - **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytnova archives the tagged files. If nothing is tagged, ytnova archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
   - **\`** (Backtick): Toggle visibility of hidden dot-files and directories.
-  - **^F** (Dir Mode): Cycle directory display modes (Filenames only -\> Attributes -\> Inode/Owner -\> Times).
+  - **1 .. 4** (Dir Mode): Select the active panel's base directory/file view while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner, `4` Times. `5`, `7`, `8`, and `9` update the panel's file projection; `6` toggles panel-wide row size units; `0` is unused; `9` is a silent no-op outside Git worktrees.
   - **Enter**: On logged directories, switch to File Mode (focus the file window). On unlogged/not-yet-scanned directories, perform one-level log/reveal (same behavior as `+`) and stay in Directory Mode.
   - **-**: State-based collapse/release. First press collapses an expanded node. Second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged. At root, use `-` to release logged contents.
   - **Tree status marker**: Unlogged directories use `+` in the left status margin column. Directory names do not carry a `+` suffix; an unlogged directory may still show `/` when it has subdirectories.
@@ -186,7 +206,13 @@ Active when the file window is focused.
   - **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
   - **Y**: (Pathcopy): Copy selected file, replicating its directory structure relative to the current volume root.
   - **Z** (archive): Create an archive from tagged files, or from the selected file/directory when nothing is tagged. Directory sources are archived recursively.
-  - **^F** (File Mode): Cycle file display modes.
+  - **1 .. 4** (Base View): Select the file or directory base view for the active panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`, `3`, or `4` again to return to `1`.
+  - **5**: Toggle the compact Name/full-width file rendering variant when the current base view is `1` / Name.
+  - **6**: Toggle binary vs human-readable size units for directory/file rows on the active panel.
+  - **7**: Toggle Mini preview detail in the file window.
+  - **8**: Toggle File detail in the file window.
+  - **9**: Toggle the Git status band for filesystem file lists when the current directory is inside a Git worktree.
+  - **0**: Currently unused; silent no-op.
   - **Enter**: Switch to Full Screen File Mode / Directory Mode.
   - **Left Arrow**: Move to the previous visible file column; in one-column
     layouts this performs page-up navigation.
@@ -212,7 +238,7 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytnova behaves like a virtual fi
   - **S** (Showall): Show all files in the archive.
   - **T** (Tag): Tag all files in current virtual directory.
   - **U** (Untag): Untag all files in current virtual directory.
-  - **^F** (Dir Mode): Cycle display modes.
+  - **1 .. 4** (Dir Mode): Select the active panel's base archive-directory/file view while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner, `4` Times. `5`, `7`, `8`, and `9` update the panel's file projection; `6` toggles panel-wide row size units; `0` is unused; `9` is a silent no-op in archives.
   - **Enter**: Switch to Archive-File Mode.
   - **-**: State-based collapse/release. Expanded nodes collapse; collapsed logged nodes (or logged leaves) unlog/release.
   - **Left Arrow**: Collapse the current archive directory when expanded; otherwise move selection to its parent directory.
@@ -244,7 +270,13 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytnova behaves like a virtual fi
   - **^V**: **View Tagged**. View all tagged files sequentially.
   - **W** (Write): Export file content to a command or file.
   - **Y** (Pathcopy): Copy selected file with relative path preservation.
-  - **^F** (File Mode): Cycle display modes.
+  - **1 .. 4** (Base View): Select the archive-file base view for the active panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`, `3`, or `4` again to return to `1`.
+  - **5**: Toggle the compact Name/full-width file rendering variant when the current base view is `1` / Name.
+  - **6**: Toggle binary vs human-readable size units for archive rows.
+  - **7**: Toggle Mini preview detail in the file window.
+  - **8**: Toggle File detail in the file window.
+  - **9**: Silent no-op in archive file lists.
+  - **0**: Currently unused; silent no-op.
   - **Enter**: Switch to Archive-Dir Mode.
   - **\\**: No-op.
 
@@ -298,16 +330,15 @@ Use `ytnova --init` to create the preferred main config when it is missing.
 Existing files are never overwritten by `--init`.
 Example: `ytnova --init`
 
-The file created by `--init` is a fully annotated profile template. It selects a
-semantic theme with `THEME=classic-blue`; role definitions and file-type palette
-rules live in theme files, not in the main config.
+The file created by `--init` is a fully annotated profile template. It selects
+the default semantic theme; role definitions and file-type palette rules live
+in theme files, not in the main config.
 
 Theme catalogs are plain text. ytnova loads user themes from
 `$XDG_CONFIG_HOME/ytnova/themes.conf` or `~/.config/ytnova/themes.conf`, falls
 back to `~/.ytnova.themes` only when the XDG-style target cannot be used, then
 uses the installed packaged catalog or compiled-in defaults without creating a
 user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
-The bundled defaults include `classic-blue` and `bash-black`.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `selection`, `dialog`, `picker`, `picker_selection`, `help`, `warning`,

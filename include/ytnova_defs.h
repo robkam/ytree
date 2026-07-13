@@ -258,6 +258,12 @@ typedef struct _ViewContext ViewContext;
 #define MODE_4 3
 #define MODE_5 4
 
+/* FileInfo file-window overlay modes */
+#define FILEINFO_OVERLAY_NONE 0
+#define FILEINFO_OVERLAY_RICH 1
+#define FILEINFO_OVERLAY_SUMMARY 2
+#define FILEINFO_OVERLAY_GIT 3
+
 #define BOOL unsigned char
 #ifndef TRUE
 #define TRUE (1)
@@ -397,6 +403,16 @@ typedef enum {
   ACTION_COMPARE_DIR,
   ACTION_COMPARE_TREE,
   ACTION_EDIT_CONFIG,
+  ACTION_FILEINFO_1,
+  ACTION_FILEINFO_2,
+  ACTION_FILEINFO_3,
+  ACTION_FILEINFO_4,
+  ACTION_FILEINFO_5,
+  ACTION_FILEINFO_6,
+  ACTION_FILEINFO_7,
+  ACTION_FILEINFO_8,
+  ACTION_FILEINFO_9,
+  ACTION_FILEINFO_0,
   ACTION_USER_CMD
 } YtreeNovaAction;
 
@@ -643,6 +659,11 @@ typedef struct {
 } FileEntryList;
 
 typedef struct {
+  FileEntry *file;
+  char code[3];
+} PanelGitStatusEntry;
+
+typedef struct {
   DirEntry *tree;
   long long disk_space;
   long long disk_capacity;
@@ -797,7 +818,10 @@ typedef struct {
   char file_selection_name[PATH_LENGTH + 1];
   char file_selection_dir_path[PATH_LENGTH + 1];
   BOOL saved_big_file_view; /* Panel-local file-window shape snapshot. */
+  int dir_mode;
   int file_mode;
+  int fileinfo_overlay_mode;
+  int fixed_col_width;
   int max_column;
   int current_dir_entry;
   unsigned int panel_generation;
@@ -805,7 +829,15 @@ typedef struct {
   unsigned int max_visual_filename_len;
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;
+  PanelGitStatusEntry *git_status_entries;
+  unsigned int git_status_entry_count;
+  FileEntry *git_status_first_file;
+  FileEntry *git_status_last_file;
+  char git_status_dir_path[PATH_LENGTH + 1];
+  BOOL human_size_units;
+  BOOL git_status_is_worktree;
   BOOL reverse_sort;
+  BOOL show_symlink_targets;
   BOOL hide_dot_files; /* Panel-local visibility. */
 } YtreeNovaPanel;
 

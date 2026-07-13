@@ -391,8 +391,24 @@ void InitView(ViewContext *ctx) {
     exit(1);
   }
   DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
+  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->left, MODE_3)) {
+    fprintf(stderr, "InitView: failed to initialize left panel dir mode\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
   if (!AppStateCommitPanelFileDisplayMode(ctx->left, MODE_1)) {
     fprintf(stderr, "InitView: failed to initialize left panel file mode\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
+  if (!AppStateCommitPanelFileInfoOverlayMode(ctx->left,
+                                              FILEINFO_OVERLAY_NONE) ||
+      !AppStateCommitPanelFixedColumnWidth(ctx->left, 0) ||
+      !AppStateCommitPanelSizeUnitMode(ctx->left, FALSE) ||
+      !AppStateCommitPanelSymlinkTargetMode(ctx->left, FALSE)) {
+    fprintf(stderr, "InitView: failed to initialize left panel fileinfo state\n");
     free(ctx->left);
     ctx->left = NULL;
     exit(1);
@@ -424,8 +440,28 @@ void InitView(ViewContext *ctx) {
     exit(1);
   }
   DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
+  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->right, MODE_3)) {
+    fprintf(stderr, "InitView: failed to initialize right panel dir mode\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
   if (!AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1)) {
     fprintf(stderr, "InitView: failed to initialize right panel file mode\n");
+    free(ctx->right);
+    free(ctx->left);
+    ctx->right = NULL;
+    ctx->left = NULL;
+    exit(1);
+  }
+  if (!AppStateCommitPanelFileInfoOverlayMode(ctx->right,
+                                              FILEINFO_OVERLAY_NONE) ||
+      !AppStateCommitPanelFixedColumnWidth(ctx->right, 0) ||
+      !AppStateCommitPanelSizeUnitMode(ctx->right, FALSE) ||
+      !AppStateCommitPanelSymlinkTargetMode(ctx->right, FALSE)) {
+    fprintf(stderr, "InitView: failed to initialize right panel fileinfo state\n");
     free(ctx->right);
     free(ctx->left);
     ctx->right = NULL;
@@ -917,12 +953,34 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->right->file_count = 0;
 
   /* Initialize Panel Defaults for Rendering */
+  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->left, MODE_3))
+    return -1;
   if (!AppStateCommitPanelFileDisplayMode(ctx->left, MODE_1))
+    return -1;
+  if (!AppStateCommitPanelFileInfoOverlayMode(ctx->left,
+                                              FILEINFO_OVERLAY_NONE))
+    return -1;
+  if (!AppStateCommitPanelFixedColumnWidth(ctx->left, 0))
+    return -1;
+  if (!AppStateCommitPanelSizeUnitMode(ctx->left, FALSE))
+    return -1;
+  if (!AppStateCommitPanelSymlinkTargetMode(ctx->left, FALSE))
     return -1;
   if (!AppStateCommitPanelFileMaxColumn(ctx->left, 1))
     return -1;
 
+  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->right, MODE_3))
+    return -1;
   if (!AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1))
+    return -1;
+  if (!AppStateCommitPanelFileInfoOverlayMode(ctx->right,
+                                              FILEINFO_OVERLAY_NONE))
+    return -1;
+  if (!AppStateCommitPanelFixedColumnWidth(ctx->right, 0))
+    return -1;
+  if (!AppStateCommitPanelSizeUnitMode(ctx->right, FALSE))
+    return -1;
+  if (!AppStateCommitPanelSymlinkTargetMode(ctx->right, FALSE))
     return -1;
   if (!AppStateCommitPanelFileMaxColumn(ctx->right, 1))
     return -1;
@@ -1097,12 +1155,22 @@ int Init(ViewContext *ctx, const char *configuration_file,
   }
   DEBUG_LOG("Init: ReadHistory done");
 
-  /* Initial Mode Setup for both panels */
-  int initial_mode = strtol(CoreInitGetProfileValue(ctx, "FILEMODE"), NULL, 0);
+  /* Startup always begins in the plain shared Name view. */
+  BOOL human_size_units =
+      (strcmp(CoreInitGetProfileValue(ctx, "FILE_SIZE_UNITS"),
+              "human-readable") == 0);
+
   if (ctx->core_init_ops.set_panel_file_mode != NULL) {
-    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->left, initial_mode);
-    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->right, initial_mode);
+    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->left, MODE_3);
+    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->right, MODE_3);
   }
+  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->left, MODE_3) ||
+      !AppStateCommitPanelDirectoryDisplayMode(ctx->right, MODE_3) ||
+      !AppStateCommitDirectoryDisplayMode(ctx, MODE_3))
+    return -1;
+  if (!AppStateCommitPanelSizeUnitMode(ctx->left, human_size_units) ||
+      !AppStateCommitPanelSizeUnitMode(ctx->right, human_size_units))
+    return -1;
   DEBUG_LOG("Init: SetPanelFileMode done");
 
   SetKindOfSort(SORT_BY_NAME, &ctx->active->vol->vol_stats);

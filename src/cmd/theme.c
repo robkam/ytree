@@ -933,7 +933,7 @@ int LoadConfiguredTheme(ViewContext *ctx) {
     return -1;
   SetThemeFilePath(ctx, NULL);
 
-  theme_name = "classic-blue";
+  theme_name = "quiet-blue";
   if (ctx->core_init_ops.get_profile_value != NULL) {
     const char *configured = ctx->core_init_ops.get_profile_value(ctx, "THEME");
     if (configured != NULL && *configured != '\0')

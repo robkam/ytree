@@ -9,9 +9,65 @@
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 
+static void FormatBinaryDirSize(const ViewContext *ctx, long long value,
+                                char *buffer, size_t buffer_size) {
+  char temp[64];
+  int len;
+  int commas;
+  int i;
+  int j;
+  char separator;
+
+  if (!buffer || buffer_size == 0)
+    return;
+
+  (void)snprintf(temp, sizeof(temp), "%lld", value);
+  len = (int)strlen(temp);
+  commas = (len - 1) / 3;
+  if ((size_t)(len + commas + 1) > buffer_size) {
+    (void)snprintf(buffer, buffer_size, "%lld", value);
+    return;
+  }
+
+  separator = (ctx && ctx->number_seperator) ? ctx->number_seperator : ',';
+  j = len + commas;
+  buffer[j] = '\0';
+  for (i = len - 1; i >= 0; i--) {
+    buffer[--j] = temp[i];
+    if (i > 0 && (len - i) % 3 == 0)
+      buffer[--j] = separator;
+  }
+}
+
+static void FormatDirSize(const ViewContext *ctx, const YtreeNovaPanel *panel,
+                          long long value, char *buffer, size_t buffer_size) {
+  double scaled = (double)value;
+  int unit_index = 0;
+  static const char *units[] = {"B", "K", "M", "G", "T", "P"};
+
+  if (!buffer || buffer_size == 0)
+    return;
+  if (!panel || !panel->human_size_units) {
+    FormatBinaryDirSize(ctx, value, buffer, buffer_size);
+    return;
+  }
+  if (value < 0) {
+    (void)snprintf(buffer, buffer_size, "Err");
+    return;
+  }
+  while (scaled >= 999.5 && unit_index < 5) {
+    scaled /= 1024.0;
+    unit_index++;
+  }
+  if (unit_index == 0)
+    (void)snprintf(buffer, buffer_size, "%lld%s", value, units[unit_index]);
+  else
+    (void)snprintf(buffer, buffer_size, "%.1f%s", scaled, units[unit_index]);
+}
+
 static const YtreeNovaPanel *ResolveDirRenderPanel(const ViewContext *ctx,
-                                               const struct Volume *vol,
-                                               const WINDOW *win) {
+                                                   const struct Volume *vol,
+                                                   const WINDOW *win) {
   if (!ctx || !vol || !win)
     return NULL;
 
@@ -25,6 +81,17 @@ static const YtreeNovaPanel *ResolveDirRenderPanel(const ViewContext *ctx,
   return NULL;
 }
 
+static int ResolveDirRenderMode(const ViewContext *ctx, const struct Volume *vol,
+                                const WINDOW *win) {
+  const YtreeNovaPanel *panel = ResolveDirRenderPanel(ctx, vol, win);
+
+  if (panel)
+    return panel->dir_mode;
+  if (ctx)
+    return ctx->dir_mode;
+  return MODE_3;
+}
+
 /*
  * SetDirMode
  * Sets the display mode for directory entries.
@@ -34,14 +101,44 @@ void SetDirMode(ViewContext *ctx, int new_mode) {
   (void)AppStateCommitDirectoryDisplayMode(ctx, new_mode);
 }
 
-void RotateDirMode(ViewContext *ctx) {
-  int next_mode;
+void SelectDirMode(ViewContext *ctx, int selection) {
+  int new_mode = MODE_3;
+  int current_mode;
 
   if (!ctx)
     return;
 
-  next_mode = ctx->dir_mode;
-  switch (ctx->dir_mode) {
+  current_mode = (ctx->active) ? ctx->active->dir_mode : ctx->dir_mode;
+
+  switch (selection) {
+  case 1:
+    new_mode = MODE_3;
+    break;
+  case 2:
+    new_mode = (current_mode == MODE_1) ? MODE_3 : MODE_1;
+    break;
+  case 3:
+    new_mode = (current_mode == MODE_2) ? MODE_3 : MODE_2;
+    break;
+  case 4:
+    new_mode = (current_mode == MODE_4) ? MODE_3 : MODE_4;
+    break;
+  default:
+    return;
+  }
+  (void)AppStateCommitDirectoryDisplayMode(ctx, new_mode);
+}
+
+void RotateDirMode(ViewContext *ctx) {
+  int next_mode;
+  int current_mode;
+
+  if (!ctx)
+    return;
+
+  current_mode = (ctx->active) ? ctx->active->dir_mode : ctx->dir_mode;
+  next_mode = current_mode;
+  switch (current_mode) {
   case MODE_1:
     next_mode = MODE_2;
     break;
@@ -81,8 +178,11 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   char group[GROUP_NAME_MAX + 1];
   const char *owner_name_ptr;
   const char *group_name_ptr;
+  const YtreeNovaPanel *render_panel;
   DirEntry *de_ptr;
   BOOL append_expand_suffix = FALSE;
+  int dir_mode;
+  char size_text[32];
 
   if (win == ctx->ctx_f2_window) {
     color = UI_ROLE_PICKER;
@@ -114,6 +214,8 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   }
 
   de_ptr = vol->dir_entry_list[entry_no].dir_entry;
+  dir_mode = ResolveDirRenderMode(ctx, vol, win);
+  render_panel = ResolveDirRenderPanel(ctx, vol, win);
   {
     const char *branch_marker = de_ptr->next ? "6-" : "3-";
     (void)snprintf(graph_buffer + graph_used, sizeof(graph_buffer) - graph_used,
@@ -121,17 +223,18 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   }
 
   /* Build the attribute string based on the current directory mode */
-  switch (ctx->dir_mode) {
+  switch (dir_mode) {
   case MODE_1:
     (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
     (void)CTime(de_ptr->stat_struct.st_mtime, modify_time);
+    FormatDirSize(ctx, render_panel, (long long)de_ptr->stat_struct.st_size,
+                  size_text, sizeof(size_text));
     line_buffer_capacity = 96;
     line_buffer = (char *)xmalloc(line_buffer_capacity);
-    format = "%10s %3d %8lld %16s";
+    format = "%10s %3d %11s %16s";
 
     (void)snprintf(line_buffer, line_buffer_capacity, format, attributes,
-                   (int)de_ptr->stat_struct.st_nlink,
-                   (long long)de_ptr->stat_struct.st_size, modify_time);
+                   (int)de_ptr->stat_struct.st_nlink, size_text, modify_time);
     break;
   case MODE_2:
     (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
@@ -274,7 +377,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
   /* Calculate maximum allowed name length based on mode and window width */
   int max_name_len;
-  if (ctx->dir_mode == MODE_3) {
+  if (dir_mode == MODE_3) {
     /* In MODE_3 (name-only), truncate based on full window width */
     max_name_len = ctx->layout.dir_win_width - graph_col - graph_len - 1;
   } else {

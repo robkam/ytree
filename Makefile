@@ -193,7 +193,9 @@ $(BUILD_DIR):
 
 # Generate USAGE.md from the man page source
 docs:
-	$(CMARK) --to commonmark $(MANSRC) > $(DOC_DIR)/USAGE.md
+	$(CMARK) --to commonmark $(MANSRC) | \
+		sed 's/Authors and contributors are listed in the AUTHORS.md file\./Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file./' \
+		> $(DOC_DIR)/USAGE.md
 
 # Generate the roff man page
 $(MANPAGE): $(MANSRC) | $(BUILD_DIR)

@@ -656,6 +656,16 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_CMD_O:
     case ACTION_CMD_G:
     case ACTION_TOGGLE_MODE:
+    case ACTION_FILEINFO_1:
+    case ACTION_FILEINFO_2:
+    case ACTION_FILEINFO_3:
+    case ACTION_FILEINFO_4:
+    case ACTION_FILEINFO_5:
+    case ACTION_FILEINFO_6:
+    case ACTION_FILEINFO_7:
+    case ACTION_FILEINFO_8:
+    case ACTION_FILEINFO_9:
+    case ACTION_FILEINFO_0:
     case ACTION_CMD_V:
     case ACTION_CMD_H:
     case ACTION_CMD_E:

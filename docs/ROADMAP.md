@@ -99,7 +99,7 @@ Ordering policy (for all editors, including AI editors):
 *   Baseline debt is explicitly allowlisted with owner + removal plan; no silent grandfathering.
 *   New violations fail local gate and CI evidence.
 *   `make qa-all` passes with `qa-clean-code` enabled on the current baseline.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress.
 
 ### **Task 4: Compiler Warning Baseline + No-New-Warnings Gate**
 *   **Goal:** Reduce `-Wall/-Wextra` warning debt to a maintained baseline and prevent warning regressions on supported toolchains.
@@ -751,32 +751,38 @@ Ordering policy (for all editors, including AI editors):
 *   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytnova.1.md`/`docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
+### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..0`; `0` unused)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.
 *   **Behavior Contract:**
 *   `1` => Name only (default/baseline). This is also the reset-to-default selection.
-*   `2` => Long.
+*   `2` => Attributes, including `name -> target` symlink rows in file projections.
 *   `3` => Owner.
 *   `4` => Times.
-*   `5` => toggle file-size units (`binary` vs `human-readable`) for list/stat surfaces that display size.
-*   `5` composes with the currently selected file-info mode and does not reset other file-info toggles.
-*   `6` => toggle symlink row rendering (`name` vs `name -> target`) in list rows.
-*   `7` => toggle richer metadata/text-snippet view.
+*   `5` => toggle compact Name/full-width file-window rendering when the current `1` / Name base view is active. This replaces the old `B` Brief toggle.
+*   `6` => toggle file-size units (`binary` vs `human-readable`) for directory/file row surfaces.
+*   `6` composes with the currently selected file-info mode and does not reset other file-info toggles. Stats remain human-readable.
+*   `7` => toggle Mini preview text-snippet view.
 *   `8` => toggle file-type/summary view.
-*   `9` => toggle brief/full width behavior for file-window rendering.
-*   `0` => Git-focused file-info band (status-oriented file view) when the current scope is inside a Git worktree.
+*   `9` => Git-focused file-info band (status-oriented file view) when the current scope is inside a Git worktree.
+*   `0` => currently unused; silent no-op.
 *   Number keys are grouped by ownership/scope for the active panel:
-    *   **Panel-wide toggles (dir + file projections):** `` ` `` dotfiles (existing behavior) and `5` size-unit toggle.
-    *   **Context-scoped display modes (`dir` vs `file`):** `1..4` apply to the currently focused context only (dir-focus changes dir display only; file-focus changes file display only).
-    *   **File-window-only toggles:** `6..0` (`6`, `7`, `8`, `9`, `0`) affect file-window rendering only and are silent no-ops when dir/tree focus is active.
+    *   **Panel-wide toggles (dir + file projections):** `` ` `` dotfiles (existing behavior) and `6` size-unit toggle.
+    *   **Shared-by-default display modes:** `1..4` change the active panel's current view, and tree/directory + file windows follow each other by default.
+    *   **Base-view reset:** selecting `1..4` returns the named base view and clears temporary overlay/compact view states for that file projection.
+    *   **Repeat-select reset:** pressing the already-active `2`, `3`, or `4` view key again resets that context back to `1` / Name.
+    *   **Startup baseline:** panels always start in `1` / Name view; old `FILEMODE` profile lines no longer override startup.
+    *   **Optional separate display modes:** `SEPARATE_DIR_FILE_VIEWS=1` restores split behavior so dir-focus changes only the dir/tree view and file-focus changes only the file-window view.
+    *   **Compact normalization:** `5` only works from the current `1` / Name base view. It always uses the Name file projection and is a silent no-op from `2`, `3`, or `4`.
+    *   **File-projection toggles:** `5`, `7`, `8`, and `9` never change tree rows. They affect the panel's file projection instead, so in tree focus they update the embedded small file window and in file focus they update the file window.
 *   Not active in `F7` preview mode.
-*   If a requested mode is unsupported in the active context (for example VFS file mode `4`, or `0` outside a Git worktree), do a silent no-op (no beep).
-*   Git band (`0`) defaults to off, uses cached/non-blocking status refresh, and must not stall list rendering in large repos.
-*   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `binary`) as the seed for `5`.
-*   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 39 scope lock.
-*   **UX/Help Policy:** Footer stays concise (`1..0 FileInfo`); full key semantics live in F1 help/manpage.
+*   If a requested mode is unsupported in the active context (for example VFS file mode `4`, or `9` outside a Git worktree), do a silent no-op (no beep).
+*   Git band (`9`) defaults to off, uses cached/non-blocking status refresh, and must not stall list rendering in large repos.
+*   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `human-readable`) as the seed for `6`.
+*   Add `SEPARATE_DIR_FILE_VIEWS=0|1` profile setting (default `0`) to switch between shared and split `1..4` panel views.
+*   **Keybinding Policy:** Remove `^F` and `B` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 39 scope lock.
+*   **UX/Help Policy:** Footer stays concise (`1..0 dir view` / `1..0 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics live in F1 help/manpage.
 *   **Spec/Docs Sync Policy:** When delivered, update `docs/SPECIFICATION.md` and `etc/ytnova.1.md` (and regenerated `docs/USAGE.md`) with the same grouped ownership contract.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 45: Add Case-Sensitive Sort Toggle + Profile Default**
 *   **Goal:** Add case-sensitivity as a sort option in the existing sort flow and profile defaults.

@@ -163,8 +163,8 @@
       "field": "panel.file_display_state",
       "owner_region": "panel-local state",
       "canonical_owner": "YtreeNovaPanel.file display projection state",
-      "runtime_carrier": "YtreeNovaPanel.file_mode, max_column, max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len, and reverse_sort",
-      "mutation_rule": "May change only through file display mode, render metric, or sort-order commits that validate supported presentation modes, derived column bounds, cached file rendering widths, and file ordering projection.",
+      "runtime_carrier": "YtreeNovaPanel.file_mode, fileinfo_overlay_mode, fixed_col_width, max_column, max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len, human_size_units, reverse_sort, and show_symlink_targets",
+      "mutation_rule": "May change only through file display mode, file-info overlay, size-unit, symlink-rendering, width, render metric, or sort-order commits that validate supported presentation modes, derived column bounds, cached file rendering widths, and file ordering projection.",
       "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.inactive-panel-frozen",

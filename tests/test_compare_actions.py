@@ -271,10 +271,13 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytnova_binary, tmp_
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
     footer = _footer_text(tui).lower()
-    for token in ("brief", "copy", "delete"):
+    for token in ("1..0 dir view", "copy", "delete"):
         assert token in footer, (
             "Directory footer should be restored after returning from external compare."
         )
+    assert "brief" not in footer, (
+        "Directory footer should not restore the removed Brief command after external compare."
+    )
     assert _has_border_glyphs(tui), (
         "Screen frame/border glyphs disappeared after external compare return.\n"
         f"Screen:\n{_screen_text(tui)}"
@@ -885,8 +888,8 @@ def test_split_filemode_toggle_truncates_footer_without_wrapping(ytnova_binary, 
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
-    # Ctrl-F toggles file mode; footer text must clip in-place, not wrap.
-    tui.send_keystroke("\x06", wait=0.4)
+    # Numeric FileInfo mode selection must clip footer text in-place, not wrap.
+    tui.send_keystroke("2", wait=0.4)
     footer_lines = _footer_lines(tui)
     footer_text = "\n".join(footer_lines).lower()
 

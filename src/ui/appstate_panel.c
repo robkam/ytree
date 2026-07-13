@@ -63,6 +63,18 @@ BOOL AppStateSetPanelVolumeFileStateList(
   return TRUE;
 }
 
+BOOL AppStateCommitPanelDirectoryDisplayMode(YtreeNovaPanel *panel, int dir_mode) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+  if (dir_mode < MODE_1 || dir_mode > MODE_4)
+    return FALSE;
+
+  panel->dir_mode = dir_mode;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileDisplayMode(YtreeNovaPanel *panel, int file_mode) {
   if (!AppStateValidatedOwnerField("panel.file_display_state"))
     return FALSE;
@@ -72,6 +84,31 @@ BOOL AppStateCommitPanelFileDisplayMode(YtreeNovaPanel *panel, int file_mode) {
     return FALSE;
 
   panel->file_mode = file_mode;
+  return TRUE;
+}
+
+BOOL AppStateCommitPanelFileInfoOverlayMode(YtreeNovaPanel *panel,
+                                            int overlay_mode) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+  if (overlay_mode < FILEINFO_OVERLAY_NONE ||
+      overlay_mode > FILEINFO_OVERLAY_GIT)
+    return FALSE;
+
+  panel->fileinfo_overlay_mode = overlay_mode;
+  return TRUE;
+}
+
+BOOL AppStateCommitPanelFixedColumnWidth(YtreeNovaPanel *panel,
+                                         int fixed_col_width) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel || fixed_col_width < 0)
+    return FALSE;
+
+  panel->fixed_col_width = fixed_col_width;
   return TRUE;
 }
 
@@ -111,6 +148,28 @@ BOOL AppStateCommitPanelFileSortOrder(YtreeNovaPanel *panel,
     return FALSE;
 
   panel->reverse_sort = reverse_sort;
+  return TRUE;
+}
+
+BOOL AppStateCommitPanelSizeUnitMode(YtreeNovaPanel *panel,
+                                     BOOL human_size_units) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->human_size_units = human_size_units ? TRUE : FALSE;
+  return TRUE;
+}
+
+BOOL AppStateCommitPanelSymlinkTargetMode(YtreeNovaPanel *panel,
+                                          BOOL show_symlink_targets) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->show_symlink_targets = show_symlink_targets ? TRUE : FALSE;
   return TRUE;
 }
 

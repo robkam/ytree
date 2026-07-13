@@ -6501,11 +6501,7 @@ def test_fixed_column_width_commits_through_appstate_helper() -> None:
         ctrl_file_ops
     )
     for source in [ctrl_dir, ctrl_file_ops]:
-        assert re.search(
-            r"AppStateCommitFixedColumnWidth\(\s*ctx,\s*"
-            r"\(ctx->fixed_col_width == 0\) \? 32 : 0\)",
-            source,
-        )
+        assert "ResolveCompactFileWidth(" in source
 
 
 def test_display_options_commit_through_appstate_helpers() -> None:

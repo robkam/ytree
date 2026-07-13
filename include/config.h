@@ -7,7 +7,8 @@
 
 /* Default (max) TreeDepth on startup */
 #define DEFAULT_TREEDEPTH     "2"
-#define DEFAULT_FILEMODE      "2"
+#define DEFAULT_FILE_SIZE_UNITS "human-readable"
+#define DEFAULT_SEPARATE_DIR_FILE_VIEWS "0"
 #define DEFAULT_SMALLWINDOWSKIP "1"
 #define DEFAULT_NUMBERSEP     "."
 #define DEFAULT_VI_KEYS       "0"

@@ -63,8 +63,8 @@ static void ReadFileList(ViewContext *ctx, YtreeNovaPanel *panel, BOOL tagged_on
       name_len = strlen(fe_ptr->name);
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
         visual_linkname_len = StrVisualLength(&fe_ptr->name[name_len + 1]);
-        max_visual_linkname_len =
-            MAX((int)max_visual_linkname_len, (int)visual_linkname_len);
+        if (panel->show_symlink_targets)
+          visual_name_len += visual_linkname_len + 4;
       }
       max_visual_filename_len =
           MAX((int)max_visual_filename_len, (int)visual_name_len);
@@ -136,10 +136,11 @@ void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no) {
     max_visual_filename_len =
         MAX((int)max_visual_filename_len, (int)visual_name_len);
     if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-      /* FIX: Cast StrVisualLength to int for MAX macro */
-      max_visual_linkname_len =
-          MAX((int)max_visual_linkname_len,
-              (int)StrVisualLength(&fe_ptr->name[name_len + 1]));
+      if (ctx->active->show_symlink_targets)
+        max_visual_filename_len =
+            MAX((int)max_visual_filename_len,
+                visual_name_len + 4 +
+                    (int)StrVisualLength(&fe_ptr->name[name_len + 1]));
     }
   }
 
@@ -168,10 +169,11 @@ void FileList_ChangeFileEntry(ViewContext *ctx) {
       max_visual_filename_len =
           MAX((int)max_visual_filename_len, (int)visual_name_len);
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-        /* FIX: Cast StrVisualLength to int for MAX macro */
-        max_visual_linkname_len =
-            MAX((int)max_visual_linkname_len,
-                (int)StrVisualLength(&fe_ptr->name[name_len + 1]));
+        if (ctx->active->show_symlink_targets)
+          max_visual_filename_len =
+              MAX((int)max_visual_filename_len,
+                  visual_name_len + 4 +
+                      (int)StrVisualLength(&fe_ptr->name[name_len + 1]));
       }
     }
   }
@@ -182,6 +184,7 @@ void FileList_ChangeFileEntry(ViewContext *ctx) {
 }
 
 void FreeFileEntryList(YtreeNovaPanel *panel) {
+  FileInfoGitInvalidate(panel);
   if (panel && panel->file_entry_list) {
     free(panel->file_entry_list);
     panel->file_entry_list = NULL;
