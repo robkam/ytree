@@ -40,6 +40,24 @@ def _line_containing_all(tui, *needles):
     raise AssertionError(f"Could not find {needles!r}.\n{screen_text(tui)}")
 
 
+def _assert_footer_column_alignment(lines, first_row_token, second_row_token):
+    assert lines[0].find(first_row_token) == lines[1].find(second_row_token) == lines[2].find("F1 help"), (
+        "Footer rows should share one left-aligned command column.\n"
+        + "\n".join(lines)
+    )
+
+
+def _assert_single_space_after_nav_glyphs(line, label):
+    assert line[3:].startswith(f" {label} F1 help"), (
+        "Footer nav row should use exactly one space after the nav glyphs.\n"
+        f"{line!r}"
+    )
+    assert not line[3:].startswith(f"  {label}"), (
+        "Footer nav row must not double-space after the nav glyphs.\n"
+        f"{line!r}"
+    )
+
+
 def test_narrow_dir_and_file_footers_show_explicit_mnemonic_keys(tmp_path):
     root = _root_with_file(tmp_path)
     tui = _spawn_narrow_tui(root)
@@ -75,18 +93,24 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         time.sleep(1.0)
         tui._read_output(0.5)
 
-        dir_footer = "\n".join(footer_lines(tui))
+        dir_lines = footer_lines(tui)
+        dir_footer = "\n".join(dir_lines)
         assert "/ jump" in dir_footer
         assert "/jump" not in dir_footer
         assert "` dotfiles" in dir_footer
         assert "`dotfiles" not in dir_footer
+        _assert_single_space_after_nav_glyphs(dir_lines[2], "File")
+        _assert_footer_column_alignment(dir_lines, "Attributes", "Pipe")
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        file_footer = "\n".join(footer_lines(tui))
+        file_lines = footer_lines(tui)
+        file_footer = "\n".join(file_lines)
         assert "C/^K copy" in file_footer
         assert "C/^K Copy" not in file_footer
         assert "M/^N move" in file_footer
         assert "M/^N Move" not in file_footer
+        _assert_single_space_after_nav_glyphs(file_lines[2], "Tree")
+        _assert_footer_column_alignment(file_lines, "Attributes", "Newfile")
     finally:
         tui.quit()
 

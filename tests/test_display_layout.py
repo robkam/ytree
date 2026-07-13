@@ -4,6 +4,7 @@ import re
 import pexpect
 from helpers_stats import current_file_from_stats as _current_file_from_stats
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
+from helpers_ui import footer_lines as _footer_lines
 from helpers_ui import footer_text as _footer_text
 from ytnova_keys import Keys
 from tui_harness import YtreeNovaTUI
@@ -583,6 +584,35 @@ def test_backslash_to_dir_in_showall_and_global(ytnova_binary, tmp_path, mode_ke
     tui.send_keystroke(mode_key, wait=0.6)
     screen = "\n".join(tui.get_screen_dump())
     assert "to dir" in screen, "Show All/Global footer should include '\\ to dir'"
+    footer_rows = _footer_lines(tui)
+    assert "/ jump" in footer_rows[1], (
+        "Show All/Global file footer should keep / jump on the commands row.\n"
+        f"{footer_rows[1]!r}"
+    )
+    assert "` dotfiles" in footer_rows[1], (
+        "Show All/Global file footer should keep ` dotfiles on the commands row.\n"
+        f"{footer_rows[1]!r}"
+    )
+    assert "\\ to dir" in footer_rows[2], (
+        "Show All/Global footer should render backslash to dir with a separator space.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert "\\to dir" not in footer_rows[2], (
+        "Show All/Global footer must not collapse the backslash-to-dir label.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert footer_rows[2][3:].startswith(" Tree F1 help"), (
+        "Show All/Global footer should use a single space between the nav glyphs and Tree.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert not footer_rows[2][3:].startswith("  Tree"), (
+        "Show All/Global footer must not double-space after the nav glyphs.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert footer_rows[0].find("Attributes") == footer_rows[1].find("Newfile") == footer_rows[2].find("F1 help"), (
+        "Show All/Global footer rows should share one left-aligned command column.\n"
+        + "\n".join(footer_rows)
+    )
 
     # Select the target file deterministically via filter.
     tui.send_keystroke("f", wait=0.2)
