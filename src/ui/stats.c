@@ -30,7 +30,9 @@
 static void RecalcLayout(ViewContext *ctx);
 static void FormatNumber(const ViewContext *ctx, char *buf, size_t size,
                          long long val);
+static void FormatCompactCount(char *buf, size_t size, long long val);
 static void FormatShortSize(char *buf, size_t size, long long val);
+static void FormatDisplaySize(char *buf, size_t size, long long val);
 static void SetStatsBaseColor(ViewContext *ctx);
 static void SetStatsStaticColor(ViewContext *ctx);
 static void SetStatsDynamicColor(ViewContext *ctx);
@@ -42,6 +44,8 @@ static void PrintStatRow(ViewContext *ctx, int y, const char *label,
 static void PrintStatsDynamicLine(ViewContext *ctx, int y, const char *value);
 static void PrintStatsLabelValue(ViewContext *ctx, int y, const char *label,
                                  const char *value);
+static void DescribeDirViewState(const ViewContext *ctx, char *buf, size_t size);
+static void DescribeFileViewState(const ViewContext *ctx, char *buf, size_t size);
 static void DrawAttributes(ViewContext *ctx, const char *name,
                            const struct stat *s, const FileEntry *fe);
 static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s);
@@ -59,10 +63,10 @@ static void RecalcLayout(ViewContext *ctx) {
     ctx->layout.stats_y_vstat_sep = 0; /* Hidden */
     ctx->layout.stats_y_vstat_val = 6; /* 6, 7, 8 */
     ctx->layout.stats_y_dstat_sep = 0; /* Hidden */
-    ctx->layout.stats_y_dstat_val = 9; /* 9, 10, 11, 12 */
+    ctx->layout.stats_y_dstat_val = 9; /* 9, 10, 11, 12, 13 */
     ctx->layout.stats_y_attr_sep = 0;  /* Hidden */
-    ctx->layout.stats_y_attr_val = 13; /* 13, 14, 15, 16, 17 */
-    /* Total used: 2 to 17. 18 is border. Fits in 20 (LINES=24 ->
+    ctx->layout.stats_y_attr_val = 14; /* 14, 15, 16, 17, 18 */
+    /* Total used: 2 to 18. 19 is spacer. 20 is border. Fits in 20 (LINES=24 ->
      * ctx->layout.bottom_border_y=20) */
   } else {
     /* Standard Spacious Mode */
@@ -73,8 +77,8 @@ static void RecalcLayout(ViewContext *ctx) {
     ctx->layout.stats_y_vstat_val = 8;
     ctx->layout.stats_y_dstat_sep = 11;
     ctx->layout.stats_y_dstat_val = 12;
-    ctx->layout.stats_y_attr_sep = 16;
-    ctx->layout.stats_y_attr_val = 17;
+    ctx->layout.stats_y_attr_sep = 17;
+    ctx->layout.stats_y_attr_val = 18;
   }
 }
 
@@ -174,6 +178,28 @@ static void FormatNumber(const ViewContext *ctx, char *buf, size_t size,
   }
 }
 
+static void FormatCompactCount(char *buf, size_t size, long long val) {
+  double d = (double)val;
+  int i = 0;
+
+  if (val < 0) {
+    snprintf(buf, size, "Err");
+    return;
+  }
+
+  while (d >= 999.5 && i < 5) {
+    d /= 1000.0;
+    i++;
+  }
+
+  if (i == 0) {
+    snprintf(buf, size, "%lld", val);
+  } else {
+    static const char *const compact_units[] = {"", "K", "M", "G", "T", "P"};
+    snprintf(buf, size, "%.1f%s", d, compact_units[i]);
+  }
+}
+
 static void FormatShortSize(char *buf, size_t size, long long val) {
   double d = (double)val;
   const char *units[] = {"B", "K", "M", "G", "T", "P"};
@@ -201,6 +227,10 @@ static void FormatShortSize(char *buf, size_t size, long long val) {
        "999.9G" is 6 chars. "1000T" is 5 chars. Safe. */
     snprintf(buf, size, "%.1f%s", d, units[i]);
   }
+}
+
+static void FormatDisplaySize(char *buf, size_t size, long long val) {
+  FormatShortSize(buf, size, val);
 }
 
 static void SetStatsBaseColor(ViewContext *ctx) {
@@ -358,20 +388,35 @@ static void PrintStatRow(ViewContext *ctx, int y, const char *label,
                          long long count, long long bytes) {
   char count_buf[32];
   char size_buf[32];
+  char value_buf[80];
+  int value_width;
 
   if (y >= ctx->layout.bottom_border_y)
     return;
 
+  value_width = INNER_W - 5;
+  if (value_width < 1)
+    return;
+
   FormatNumber(ctx, count_buf, sizeof(count_buf), count);
-  FormatShortSize(size_buf, sizeof(size_buf), bytes);
+  FormatDisplaySize(size_buf, sizeof(size_buf), bytes);
+  snprintf(value_buf, sizeof(value_buf), "%s %s", count_buf, size_buf);
+  if ((int)strlen(value_buf) > value_width) {
+    snprintf(count_buf, sizeof(count_buf), "%lld", count);
+    snprintf(value_buf, sizeof(value_buf), "%s %s", count_buf, size_buf);
+  }
+  if ((int)strlen(value_buf) > value_width) {
+    FormatCompactCount(count_buf, sizeof(count_buf), count);
+    snprintf(value_buf, sizeof(value_buf), "%s %s", count_buf, size_buf);
+  }
 
   SetStatsBaseColor(ctx);
   mvwhline(ctx->ctx_border_window, y, STAT_X + 1, ' ', INNER_W);
   SetStatsStaticColor(ctx);
   mvwprintw(ctx->ctx_border_window, y, STAT_X + 1, "%-4s ", label);
   SetStatsDynamicColor(ctx);
-  mvwprintw(ctx->ctx_border_window, y, STAT_X + 6, "%9s %6s", count_buf,
-            size_buf);
+  mvwprintw(ctx->ctx_border_window, y, STAT_X + 6, "%*.*s", value_width,
+            value_width, value_buf);
   SetStatsBaseColor(ctx);
 }
 
@@ -413,6 +458,71 @@ static void PrintStatsLabelValue(ViewContext *ctx, int y, const char *label,
   SetStatsBaseColor(ctx);
 }
 
+static const char *BaseViewName(int mode) {
+  switch (mode) {
+  case MODE_1:
+    return "Attributes";
+  case MODE_2:
+    return "Owner";
+  case MODE_4:
+    return "Times";
+  case MODE_5:
+    return "Custom";
+  case MODE_3:
+  default:
+    return "Name";
+  }
+}
+
+static const char *PrimaryFileInfoName(const YtreeNovaPanel *panel) {
+  if (!panel)
+    return "Name";
+
+  if (panel->fixed_col_width != 0)
+    return "Compact";
+
+  switch (panel->fileinfo_overlay_mode) {
+  case FILEINFO_OVERLAY_RICH:
+    return "Mini preview";
+  case FILEINFO_OVERLAY_SUMMARY:
+    return "File";
+  case FILEINFO_OVERLAY_GIT:
+    return "Git";
+  default:
+    break;
+  }
+
+  return BaseViewName(panel->file_mode);
+}
+
+static void DescribeDirViewState(const ViewContext *ctx, char *buf, size_t size) {
+  const YtreeNovaPanel *panel;
+
+  if (!buf || size == 0)
+    return;
+
+  buf[0] = '\0';
+  panel = (ctx) ? ctx->active : NULL;
+  if (panel &&
+      (panel->fileinfo_overlay_mode != FILEINFO_OVERLAY_NONE ||
+       panel->fixed_col_width != 0)) {
+    snprintf(buf, size, "%s", PrimaryFileInfoName(panel));
+    return;
+  }
+  snprintf(buf, size, "%s", BaseViewName(panel ? panel->dir_mode : MODE_3));
+}
+
+static void DescribeFileViewState(const ViewContext *ctx, char *buf, size_t size) {
+  const YtreeNovaPanel *panel;
+
+  if (!buf || size == 0)
+    return;
+
+  buf[0] = '\0';
+  panel = (ctx) ? ctx->active : NULL;
+  snprintf(buf, size, "%s", PrimaryFileInfoName(panel));
+}
+
 static void DrawAttributes(ViewContext *ctx, const char *name,
                            const struct stat *s, const FileEntry *fe) {
   char buf[128];
@@ -427,7 +537,7 @@ static void DrawAttributes(ViewContext *ctx, const char *name,
   (void)fe;
   PrintStatsDynamicLine(ctx, ctx->layout.stats_y_attr_val, name);
 
-  FormatShortSize(num_buf, sizeof(num_buf), s->st_size);
+  FormatDisplaySize(num_buf, sizeof(num_buf), s->st_size);
   PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 1, "Size: ",
                        num_buf);
 
@@ -529,7 +639,7 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
   } else {
     char size_buf[32];
     int free_percent = -1;
-    FormatShortSize(size_buf, sizeof(size_buf), s->disk_space);
+    FormatDisplaySize(size_buf, sizeof(size_buf), s->disk_space);
     if (s->disk_capacity > 0) {
       double percent = ((double)s->disk_space * 100.0) / (double)s->disk_capacity;
       if (percent < 0.0)
@@ -593,28 +703,34 @@ void DisplayDirStatistic(ViewContext *ctx, const DirEntry *de,
   }
 
   PrintStatsDynamicLine(ctx, ctx->layout.stats_y_dstat_val, de->name);
+  {
+    char view_buf[64];
+    DescribeDirViewState(ctx, view_buf, sizeof(view_buf));
+    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 1, "View: ",
+                         view_buf);
+  }
 
   if (de->global_flag) {
     /* In Show All mode, display global totals */
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 1,
-                 "Tot:", s->disk_total_files, s->disk_total_bytes);
     PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 2,
+                 "Tot:", s->disk_total_files, s->disk_total_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
                  "Mat:", s->disk_matching_files, s->disk_matching_bytes);
   } else {
     /* In Normal mode, display current directory totals */
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 1,
-                 "Tot:", de->total_files, de->total_bytes);
     PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 2,
+                 "Tot:", de->total_files, de->total_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
                  "Mat:", de->matching_files, de->matching_bytes);
   }
 
   /* Tag count always shows global disk total in Show All mode, but we use the
    * disk stats directly if global_flag is set. */
   if (de->global_flag) {
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 4,
                  "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
   } else {
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 4,
                  "Tag:", de->tagged_files, de->tagged_bytes);
   }
 }
@@ -638,20 +754,26 @@ void DisplayFileStatistic(ViewContext *ctx, const FileEntry *fe,
   DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "CURRENT FILE");
 
   PrintStatsDynamicLine(ctx, ctx->layout.stats_y_dstat_val, fe->name);
+  {
+    char view_buf[64];
+    DescribeFileViewState(ctx, view_buf, sizeof(view_buf));
+    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 1, "View: ",
+                         view_buf);
+  }
 
-  FormatShortSize(size_buf, sizeof(size_buf), fe->stat_struct.st_size);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 1, "Size: ",
+  FormatDisplaySize(size_buf, sizeof(size_buf), fe->stat_struct.st_size);
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 2, "Size: ",
                        size_buf);
 
   {
     char attr_buf[16];
     GetAttributes(fe->stat_struct.st_mode, attr_buf);
-    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 2, "Perm: ",
+    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 3, "Perm: ",
                          attr_buf);
   }
 
   CTime(fe->stat_struct.st_mtime, time_buf);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 3, "Mod : ",
+  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 4, "Mod : ",
                        time_buf);
 }
 

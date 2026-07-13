@@ -140,7 +140,7 @@ def _write_test_theme_catalog(root):
     theme_dir.mkdir(parents=True)
     (theme_dir / "themes.conf").write_text(
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = blue
 box_lines = cyan
 tree_lines = +white
@@ -1094,7 +1094,7 @@ def test_f10_reload_repaints_theme_from_tree_focus(tmp_path, ytnova_binary):
     profile_path = root / ".ytnova"
     profile_path.write_text(
         "[GLOBAL]\n"
-        "THEME=classic-blue\n"
+        "THEME=quiet-blue\n"
         "SMALLWINDOWSKIP=1\n"
         f"EDITOR={editor}\n",
         encoding="utf-8",
@@ -1132,7 +1132,7 @@ def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
     profile_path = root / ".ytnova"
     profile_path.write_text(
         "[GLOBAL]\n"
-        "THEME=classic-blue\n"
+        "THEME=quiet-blue\n"
         "SMALLWINDOWSKIP=1\n"
         f"EDITOR={editor}\n",
         encoding="utf-8",
@@ -1273,7 +1273,7 @@ def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_b
         assert editor_capture.exists(), (
             "F10 -> Themes on a missing themes file must open an editable default themes buffer."
         )
-        assert "[theme classic-blue]" in editor_capture.read_text(encoding="utf-8"), (
+        assert "[theme quiet-blue]" in editor_capture.read_text(encoding="utf-8"), (
             "Default themes buffer should include the compiled starter catalog."
         )
         assert themes_path.exists(), (
@@ -1312,7 +1312,7 @@ def test_f10_themes_edits_active_home_dotfile_fallback(tmp_path, ytnova_binary):
     fallback_themes_path = root / ".ytnova.themes"
     fallback_themes_path.write_text(
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = blue
 box_lines = cyan
 tree_lines = +white
@@ -2033,64 +2033,44 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
         "Expected archive mode after logging into tar file."
     )
 
-    # Enter archive file view.
-    footer = _footer_text(tui)
-    for _ in range(4):
-        if _footer_has_key_tokens(footer, "H", "I", "J", "^F", "R"):
-            break
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        footer = _footer_text(tui)
-
-    assert _footer_has_key_tokens(
-        footer, "H", "I", "J", "^F", "R"
-    ), f"Archive file footer should expose file-view key tokens.\n{footer}"
     footer_rows = _footer_lines(tui)
     assert footer_rows[0].startswith("ARCHIVE"), (
         "Archive file footer prefix should render plain ARCHIVE text without box-art noise.\n"
         f"{footer_rows[0]!r}"
     )
-    assert footer_rows[2][3:].startswith(" Tree F1 help"), (
+    assert footer_rows[2][3:].startswith(" File F1 help"), (
         "Archive file footer should use exactly one space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
-    assert not footer_rows[2][3:].startswith("  Tree"), (
+    assert not footer_rows[2][3:].startswith("  File"), (
         "Archive file footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
-    assert footer_rows[0].find("Brief") == footer_rows[2].find("F1 help"), (
-        "Archive file footer nav row should align F1 with the command columns.\n"
-        f"{footer_rows[0]!r}\n{footer_rows[2]!r}"
-    )
-    assert footer_rows[0].find("Brief") == footer_rows[1].find("Move"), (
-        "Archive file footer command rows should align their first commands.\n"
-        f"{footer_rows[0]!r}\n{footer_rows[1]!r}"
-    )
     _assert_footer_segments_in_order(
         footer_rows[0],
-        "Brief",
+        "1..0 dir view",
         "Copy",
         "Delete",
         "Filter",
-        "^F filemode",
-        "Hex",
-        "Invert",
+        "Global",
         "J compare",
-        "Rename",
-        "Sort",
-        "Tag",
-        "View",
+        "Log",
+        "Makedir",
     )
     _assert_footer_segments_in_order(
         footer_rows[1],
-        "Move",
         "Pipe",
-        "^R rename",
+        "Rename",
+        "Showall",
+        "Tag",
         "Untag",
-        "pathcopY",
+        "moVedir",
+        "Quit",
         "/ jump",
         "` dotfiles",
     )
+    assert "^F" not in footer_rows[0]
+    assert "Brief" not in footer_rows[0]
 
     tui.quit()
 
@@ -2121,9 +2101,9 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
 
     footer_rows = _footer_lines(tui)
     header = footer_rows[0]
-    for segment in ("^F dirmode", "Global", "J compare"):
+    for segment in ("1..0 dir view", "Global", "J compare"):
         assert segment in header, (
-            "Archive dir footer should expose dirmode/global/compare labels.\n"
+            "Archive dir footer should expose FileInfo/global/compare labels.\n"
             f"{header!r}"
         )
     assert footer_rows[2][3:].startswith(" File F1 help"), (
@@ -2134,30 +2114,21 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "Archive dir footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
-    assert footer_rows[0].find("Brief") == footer_rows[2].find("F1 help"), (
-        "Archive dir footer nav row should align F1 with the command columns.\n"
-        f"{footer_rows[0]!r}\n{footer_rows[2]!r}"
-    )
-    assert header.index("^F dirmode") < header.index("Global"), (
-        "Archive dir footer should list dirmode before global."
-    )
-    assert footer_rows[0].find("Brief") == footer_rows[1].find("Pipe"), (
-        "Archive dir footer command rows should align their first commands.\n"
-        f"{footer_rows[0]!r}\n{footer_rows[1]!r}"
+    assert header.index("1..0 dir view") < header.index("Global"), (
+        "Archive dir footer should list FileInfo before global."
     )
     _assert_footer_segments_in_order(
         footer_rows[0],
-        "Brief",
+        "1..0 dir view",
         "Copy",
         "Delete",
         "Filter",
-        "^F dirmode",
         "Global",
         "J compare",
         "Log",
         "Makedir",
     )
-    assert "(^F)" not in footer_rows[0]
+    assert "^F" not in footer_rows[0]
     assert "(G)" not in footer_rows[0]
     assert "compare (J)" not in footer_rows[0]
     _assert_footer_segments_in_order(

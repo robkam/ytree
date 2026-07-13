@@ -951,6 +951,22 @@ BOOL handle_file_window_misc_dispatch_action(
   dir_entry = *dir_entry_ptr;
 
   switch (action) {
+  case ACTION_FILEINFO_1:
+  case ACTION_FILEINFO_2:
+  case ACTION_FILEINFO_3:
+  case ACTION_FILEINFO_4:
+  case ACTION_FILEINFO_5:
+  case ACTION_FILEINFO_6:
+  case ACTION_FILEINFO_7:
+  case ACTION_FILEINFO_8:
+  case ACTION_FILEINFO_9:
+  case ACTION_FILEINFO_0:
+    if (!FileInfoHandleFileAction(ctx, action, dir_entry, s, start_x,
+                                  preview_line_offset_ptr, update_preview))
+      return FALSE;
+    need_dsp_help = TRUE;
+    break;
+
   case ACTION_TOGGLE_HIDDEN:
     ToggleDotFiles(ctx, ctx->active);
     dir_entry = GetPanelDirEntry(ctx->active);
@@ -1196,7 +1212,10 @@ BOOL handle_file_window_misc_dispatch_action(
 
   case ACTION_TOGGLE_COMPACT:
     if (!AppStateCommitFixedColumnWidth(ctx,
-                                        (ctx->fixed_col_width == 0) ? 32 : 0))
+                                        (ctx->fixed_col_width == 0)
+                                            ? ResolveCompactFileWidth(
+                                                  ctx, ctx->active)
+                                            : 0))
       return FALSE;
     (void)AppStateMarkResizeRequest(ctx);
     break;

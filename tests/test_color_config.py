@@ -41,7 +41,7 @@ def test_packaged_config_delegates_theme_details_to_theme_catalog():
         assert "Built-in default profile template for ~/.config/ytnova/ytnova.conf." in source
         assert "If the XDG config path cannot be used, ytnova falls back to ~/.ytnova." in source
         assert "F10 Config and `ytnova --init` can write it for you." in source
-        assert "THEME=classic-blue" in source
+        assert "THEME=quiet-blue" in source
         assert "# THEME=bash-black" in source
         assert "Built-in starter themes" in source
         assert "leave one uncommented" in source
@@ -109,7 +109,7 @@ def _theme_role_order(section):
 
 def test_packaged_theme_catalog_defines_required_semantic_roles():
     source = _read_source("etc/ytnova.themes")
-    classic = _theme_section(source, "theme classic-blue")
+    classic = _theme_section(source, "theme quiet-blue")
     bash_black = _theme_section(source, "theme bash-black")
 
     for section in (classic, bash_black):
@@ -146,27 +146,27 @@ def test_packaged_config_selects_classic_theme():
     template_source = _read_source("src/core/default_profile_template.h")
     profile_source = _read_source("src/cmd/profile.c")
 
-    assert "THEME=classic-blue" in conf_source
-    assert "THEME=classic-blue" in template_source
+    assert "THEME=quiet-blue" in conf_source
+    assert "THEME=quiet-blue" in template_source
     assert "# THEME=bash-black" in conf_source
     assert "# THEME=bash-black" in template_source
-    assert '{"THEME", "classic-blue", NULL, NULL},' in profile_source
+    assert '{"THEME", "quiet-blue", NULL, NULL},' in profile_source
 
 
 def test_packaged_theme_catalog_uses_compact_file_palettes():
     source = _read_source("etc/ytnova.themes")
 
-    assert "[file-types classic-blue]" in source
+    assert "[file-types quiet-blue]" in source
     assert "[file-types bash-black]" in source
     assert "_COLOR" not in source
     assert "bright black" not in source.lower()
 
-    for section_name in ("file-types classic-blue", "file-types bash-black"):
+    for section_name in ("file-types quiet-blue", "file-types bash-black"):
         section = _theme_section(source, section_name)
         assert "\nDIR" not in section
         assert "*." not in section
 
-    classic = _theme_section(source, "file-types classic-blue")
+    classic = _theme_section(source, "file-types quiet-blue")
     assert "archives = red: tar,tgz,zip,gz,rar,7z,iso" in classic
     assert "scripts = +cyan: sh,bash,py,pl,rb" in classic
     assert "code = yellow: c,h,cpp,rs,go,java,js,ts" in classic
@@ -267,8 +267,8 @@ def test_manpage_documents_user_visible_theme_contract():
         assert "~/.config/ytnova/themes.conf" in source
         assert "~/.ytnova.themes" in source
         assert "compiled-in defaults" in source
-        assert "classic-blue" in source
-        assert "bash-black" in source
+        assert "quiet-blue" not in source
+        assert "bash-black" not in source
         assert "**/**: **Incremental Jump**" in source
         assert "F12" not in source
         assert "`grey`/`gray`" in source

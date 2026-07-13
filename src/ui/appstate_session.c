@@ -19,6 +19,8 @@ BOOL AppStateCommitActivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
     return FALSE;
 
   ctx->active = panel;
+  ctx->dir_mode = panel->dir_mode;
+  ctx->fixed_col_width = panel->fixed_col_width;
   return TRUE;
 }
 

@@ -168,6 +168,7 @@ extern void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
                           int entry_no, int y, unsigned char hilight,
                           BOOL is_active);
 extern void SetDirMode(ViewContext *ctx, int new_mode);
+extern void SelectDirMode(ViewContext *ctx, int selection);
 extern void RotateDirMode(ViewContext *ctx);
 
 /* display.c */
@@ -287,6 +288,10 @@ extern BOOL handle_tag_file_action(ViewContext *ctx, int action,
 extern void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p,
                              int new_file_mode);
 extern int GetPanelFileMode(const YtreeNovaPanel *p);
+extern int ResolveCompactFileWidth(const ViewContext *ctx,
+                                   const YtreeNovaPanel *panel);
+extern void SelectPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p,
+                                int selection);
 extern void RotatePanelFileMode(ViewContext *ctx, YtreeNovaPanel *p);
 extern int GetPanelMaxColumn(const YtreeNovaPanel *p);
 extern void SetFileRenderingMetrics(YtreeNovaPanel *p, unsigned max_filename,
@@ -299,6 +304,23 @@ extern void DisplayFiles(ViewContext *ctx, YtreeNovaPanel *panel,
 extern void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no,
                            int y, int x, unsigned char hilight, int start_x,
                            WINDOW *win);
+
+/* fileinfo_band.c */
+extern int FileInfoActionSelection(YtreeNovaAction action);
+extern BOOL FileInfoHandleDirAction(ViewContext *ctx, YtreeNovaAction action,
+                                    DirEntry *dir_entry, const Statistic *s);
+extern BOOL FileInfoHandleFileAction(
+    ViewContext *ctx, YtreeNovaAction action, DirEntry *dir_entry,
+    const Statistic *s, int start_x, long *preview_line_offset_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *));
+
+/* fileinfo_git.c */
+extern void FileInfoGitInvalidate(YtreeNovaPanel *panel);
+extern BOOL FileInfoGitRefresh(ViewContext *ctx, YtreeNovaPanel *panel,
+                               const DirEntry *dir_entry);
+extern void FileInfoGitDescribe(const YtreeNovaPanel *panel,
+                                const FileEntry *file_entry, char *buffer,
+                                size_t buffer_size);
 
 /* key_engine.c */
 extern int Getch(ViewContext *ctx);

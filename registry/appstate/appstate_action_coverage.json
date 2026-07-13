@@ -4124,6 +4124,526 @@
       ]
     },
     {
+      "action": "ACTION_FILEINFO_1",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_2",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_3",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_4",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_5",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_6",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_7",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_8",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_9",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
+      "action": "ACTION_FILEINFO_0",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreeNovaPanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "covered_by_transition_record",
+      "migration_notes": [
+        "Runtime action coverage is validated through the shared keybinding transition record and decoded-action dispatch metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
+      ]
+    },
+    {
       "action": "ACTION_USER_CMD",
       "transition_id": "transition.command-completion.user-command",
       "category": "command_completion",

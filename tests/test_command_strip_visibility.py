@@ -64,7 +64,9 @@ def test_narrow_dir_and_file_footers_show_explicit_mnemonic_keys(tmp_path):
 
     try:
         dir_footer = "\n".join(footer_lines(tui))
-        assert "A B C D F G I J L M N O" in dir_footer
+        assert "1..0 A C D F G I J L M N O" in dir_footer
+        assert "^F" not in dir_footer
+        assert "Brief" not in dir_footer
         assert "(A)" not in dir_footer
         assert "(M)" not in dir_footer
         assert "(N)" not in dir_footer
@@ -72,7 +74,9 @@ def test_narrow_dir_and_file_footers_show_explicit_mnemonic_keys(tmp_path):
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         file_footer = "\n".join(footer_lines(tui))
-        assert "A B C/^K D E F ^F H I J L M/^N" in file_footer
+        assert "1..0 A C/^K D E F H I J L M/^N" in file_footer
+        assert "^F" not in file_footer
+        assert "Brief" not in file_footer
         assert "N O P Q R S W X Y Z / `" in file_footer
         assert "(A)" not in file_footer
         assert "(E)" not in file_footer
@@ -100,7 +104,7 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "` dotfiles" in dir_footer
         assert "`dotfiles" not in dir_footer
         _assert_single_space_after_nav_glyphs(dir_lines[2], "File")
-        _assert_footer_column_alignment(dir_lines, "Attributes", "Pipe")
+        _assert_footer_column_alignment(dir_lines, "1..0 dir view", "Pipe")
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         file_lines = footer_lines(tui)
@@ -110,7 +114,7 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "M/^N move" in file_footer
         assert "M/^N Move" not in file_footer
         _assert_single_space_after_nav_glyphs(file_lines[2], "Tree")
-        _assert_footer_column_alignment(file_lines, "Attributes", "Newfile")
+        _assert_footer_column_alignment(file_lines, "1..0 file view", "Newfile")
     finally:
         tui.quit()
 

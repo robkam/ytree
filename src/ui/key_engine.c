@@ -549,8 +549,26 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'f':
   case 'F':
     return AppStateValidatedKeyAction(ACTION_FILTER);
-  case 0x06:
-    return AppStateValidatedKeyAction(ACTION_TOGGLE_MODE);
+  case '1':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_1);
+  case '2':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_2);
+  case '3':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_3);
+  case '4':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_4);
+  case '5':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_5);
+  case '6':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_6);
+  case '7':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_7);
+  case '8':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_8);
+  case '9':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_9);
+  case '0':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_0);
   case 0x0C:
     return AppStateValidatedKeyAction(ACTION_REFRESH);
   case KEY_RESIZE:
@@ -569,9 +587,6 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'a':
   case 'A':
     return AppStateValidatedKeyAction(ACTION_CMD_A);
-  case 'b':
-  case 'B':
-    return AppStateValidatedKeyAction(ACTION_TOGGLE_COMPACT);
   case 'c':
   case 'C':
     return AppStateValidatedKeyAction(ACTION_CMD_C);

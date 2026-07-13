@@ -43,7 +43,7 @@ documents = yellow: pdf,txt,md,markdown,doc,docx,rtf,chm,css,ctl,diz,docm,dtd,fo
 links = grey: LINK
 executables = +green: EXEC
 
-[theme classic-blue]
+[theme quiet-blue]
 background = blue
 box_lines = cyan
 tree_lines = +white
@@ -61,7 +61,7 @@ warning = black on yellow
 error = +white on red
 search_hit = black on yellow
 
-[file-types classic-blue]
+[file-types quiet-blue]
 archives = red: tar,tgz,zip,gz,rar,7z,iso
 scripts = +cyan: sh,bash,py,pl,rb
 code = yellow: c,h,cpp,rs,go,java,js,ts

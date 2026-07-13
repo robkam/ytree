@@ -365,7 +365,7 @@ def test_profile_validation_matches_startup_for_legacy_and_unknown_sections(tmp_
     profile.write_text(
         """
 [GLOBAL]
-THEME=classic-blue
+THEME=quiet-blue
 IGNORED_GLOBAL=value
 
 [COLORS]
@@ -410,7 +410,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "ReadProfile failed\n");
     return 1;
   }
-  if (strcmp(GetProfileValue(&ctx, "THEME"), "classic-blue") != 0) {
+  if (strcmp(GetProfileValue(&ctx, "THEME"), "quiet-blue") != 0) {
     fprintf(stderr, "global profile value was not applied\n");
     return 1;
   }
@@ -1664,7 +1664,7 @@ def test_invalid_user_theme_catalog_blocks_packaged_fallback(tmp_path):
     preferred_dir.mkdir(parents=True)
     (preferred_dir / "themes.conf").write_text(
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = blue
 box_lines = cyan on blue
 """,
@@ -1693,7 +1693,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -1799,7 +1799,7 @@ disabled = grey on black
     )
     installed_theme.write_text(
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = black
 box_lines = red on black
 tree_lines = white on black
@@ -1839,7 +1839,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -1913,7 +1913,7 @@ def test_invalid_packaged_theme_catalog_falls_back_to_compiled_default(tmp_path)
     installed_dir.mkdir(parents=True)
     installed_theme.write_text(
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = not-a-color
 """,
         encoding="utf-8",
@@ -1939,7 +1939,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -2029,7 +2029,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -2169,7 +2169,7 @@ FILE *__wrap_tmpfile64(void) { return NULL; }
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -2263,7 +2263,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -2457,9 +2457,9 @@ int main(int argc, char **argv) {{
 def test_legacy_classic_blue_seed_rebases_redundant_background_roles(tmp_path):
     _assert_legacy_theme_seed_rebases_background_roles(
         tmp_path,
-        "classic-blue",
+        "quiet-blue",
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = red
 box_lines = cyan on blue
 tree_lines = +white on blue
@@ -2523,7 +2523,7 @@ def test_missing_user_theme_catalog_uses_packaged_catalog_without_creating_file(
     installed_dir.mkdir(parents=True)
     installed_theme.write_text(
         """
-[theme classic-blue]
+[theme quiet-blue]
 background = black
 box_lines = red on black
 tree_lines = white on black
@@ -2564,7 +2564,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
 static char *configured_theme(const ViewContext *ctx, const char *name) {
   (void)ctx;
   if (strcmp(name, "THEME") == 0)
-    return "classic-blue";
+    return "quiet-blue";
   return NULL;
 }
 
@@ -2920,7 +2920,7 @@ def test_profile_runtime_snapshot_restores_values_and_palette(tmp_path):
     original.write_text(
         """
 [GLOBAL]
-THEME=classic-blue
+THEME=quiet-blue
 SMALLWINDOWSKIP=1
 """,
         encoding="utf-8",
@@ -2989,7 +2989,7 @@ int main(int argc, char **argv) {
   ProfileRuntimeSnapshot_Restore(&ctx, snapshot);
   ProfileRuntimeSnapshot_Free(snapshot);
 
-  if (strcmp(GetProfileValue(&ctx, "THEME"), "classic-blue") != 0 ||
+  if (strcmp(GetProfileValue(&ctx, "THEME"), "quiet-blue") != 0 ||
       strcmp(GetProfileValue(&ctx, "SMALLWINDOWSKIP"), "1") != 0) {
     fprintf(stderr, "profile values were not restored\n");
     return 1;

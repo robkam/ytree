@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_layout.h"
+#include "ytnova_appstate_panel.h"
 
 BOOL AppStateCommitSplitScreenLayout(ViewContext *ctx, BOOL is_split_screen) {
   if (!AppStateValidatedGenerationDomain("reflow.layout.projection"))
@@ -79,6 +80,9 @@ BOOL AppStateCommitFixedColumnWidth(ViewContext *ctx, int fixed_col_width) {
   if (!ctx)
     return FALSE;
 
+  if (ctx->active &&
+      !AppStateCommitPanelFixedColumnWidth(ctx->active, fixed_col_width))
+    return FALSE;
   ctx->fixed_col_width = fixed_col_width;
   return TRUE;
 }

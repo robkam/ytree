@@ -275,7 +275,7 @@ class TestFooterVisibility:
 
         # Assert that footer text is NOT present on the line above the prompt
         # In a bug-free UI, the rename prompt clears the entire footer area
-        footer_keywords = ["Attribute", "Brief", "Delete", "Execute", "Filter"]
+        footer_keywords = ["Attribute", "FileInfo", "Delete", "Execute", "Filter"]
         bleeding_words = [word for word in footer_keywords if word in line_above_prompt]
         if bleeding_words:
             pytest.fail(f"BUG: Footer text bled through above rename prompt. Found: {bleeding_words}\nLine above prompt: {line_above_prompt}")

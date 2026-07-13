@@ -40,10 +40,10 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     created = profile.read_text(encoding="utf-8")
     assert "# YtreeNova Defaults" in created
     assert "[GLOBAL]" in created
-    assert "THEME=classic-blue" in created
+    assert "THEME=quiet-blue" in created
     assert "# THEME=bash-black" in created
     created_themes = themes.read_text(encoding="utf-8")
-    assert "[theme classic-blue]" in created_themes
+    assert "[theme quiet-blue]" in created_themes
     assert "picker = black on cyan" in created_themes
     assert "picker = black on grey" in created_themes
     assert "info = white on blue" in created_themes
@@ -69,7 +69,7 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     assert not (home / ".config" / "ytnova" / "ytnova.conf").exists()
     assert "Created profile:" in result.stdout
     profile_text = profile.read_text(encoding="utf-8")
-    assert "THEME=classic-blue" in profile_text
+    assert "THEME=quiet-blue" in profile_text
     assert "# THEME=bash-black" in profile_text
     assert "F12" not in profile_text
 

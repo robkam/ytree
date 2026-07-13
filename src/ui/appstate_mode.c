@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_actions.h"
 #include "ytnova_appstate_mode.h"
+#include "ytnova_appstate_panel.h"
 
 BOOL AppStateCommitViewMode(ViewContext *ctx, int view_mode) {
   if (!AppStateValidatedOwnerField("ctx.view_mode"))
@@ -28,6 +29,9 @@ BOOL AppStateCommitDirectoryDisplayMode(ViewContext *ctx, int dir_mode) {
   if (dir_mode < MODE_1 || dir_mode > MODE_4)
     return FALSE;
 
+  if (ctx->active &&
+      !AppStateCommitPanelDirectoryDisplayMode(ctx->active, dir_mode))
+    return FALSE;
   ctx->dir_mode = dir_mode;
   return TRUE;
 }

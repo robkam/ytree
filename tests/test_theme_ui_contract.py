@@ -631,7 +631,7 @@ def test_theme_editor_tracks_active_path_and_bootstraps_xdg_for_defaults():
     assert "ReadCompiledThemeCatalog" in theme_source
     assert '"etc/ytnova.themes"' not in theme_source
     assert '"etc/ytnova.themes"' not in source
-    assert "[theme classic-blue]" in default_theme_source
+    assert "[theme quiet-blue]" in default_theme_source
 
 
 def test_f10_config_and_reload_do_not_require_theme_path_resolution():

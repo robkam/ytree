@@ -955,6 +955,21 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       }
       break;
 
+    case ACTION_FILEINFO_1:
+    case ACTION_FILEINFO_2:
+    case ACTION_FILEINFO_3:
+    case ACTION_FILEINFO_4:
+    case ACTION_FILEINFO_5:
+    case ACTION_FILEINFO_6:
+    case ACTION_FILEINFO_7:
+    case ACTION_FILEINFO_8:
+    case ACTION_FILEINFO_9:
+    case ACTION_FILEINFO_0:
+      if (!FileInfoHandleDirAction(ctx, action, dir_entry, s))
+        return ESC;
+      need_dsp_help = TRUE;
+      break;
+
     case ACTION_TOGGLE_MODE:
       RotateDirMode(ctx);
       /*DisplayFileWindow(ctx,  dir_entry, 0, -1 );*/
@@ -1129,7 +1144,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_TOGGLE_COMPACT:
       if (!AppStateCommitFixedColumnWidth(
-              ctx, (ctx->fixed_col_width == 0) ? 32 : 0))
+              ctx, (ctx->fixed_col_width == 0)
+                       ? ResolveCompactFileWidth(ctx, ctx->active)
+                       : 0))
         return ESC;
       (void)AppStateMarkResizeRequest(ctx);
       break;
