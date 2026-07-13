@@ -690,6 +690,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Replace hardcoded footer-line command placement with a structured, self-organizing footer layout engine that assembles command entries at runtime and keeps the function-key band fitting cleanly on the bottom footer line.
 *   **Rationale:** The current footer model is too position-bound and too brittle for context changes, responsive width changes, and future localization. Footer content must be assembled from stable action entries rather than handwritten line strings so that key tokens, translated/default labels, disabled-state logic, and line packing can evolve independently.
 *   **Scope:** Footer layout/packing/rendering only. This task defines how footer command entries are assembled, prioritized, wrapped, truncated, and fitted into the available footer area. Footer/F1 parity and wording accuracy remain coordinated with the dedicated parity task rather than being left implicit here.
+*   **Architecture note:** Treat the left mode/toggle signpost and the footer help-command strip as separate render regions. The left label (for example `DIR`, `FILE`, `ARCHIVE`, `←─┘ File`, `←─┘ Tree`) is a context signpost, not part of the command-layout string. The help-command strip must start at an explicit command column determined by layout rules rather than by the rendered width of the left label text. Label wording, glyph rendering, and toggle/context naming must never silently shift the help-command alignment.
 *   **Self-Organizing Footer Contract:**
     *   The footer is built from structured command entries, not hardcoded rendered lines.
     *   The top footer lines must self-organize according to available width, command priority, context, and availability state.
@@ -712,6 +713,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 40.1: Footer Auto-Fit Line Layout (No Hardcoded Per-Line Bindings)**
 *   **Goal:** Define and implement the structured footer-entry model and the auto-fit packing rules for the self-organizing top footer lines and bottom function-key band.
 *   **Mechanism:** Introduce footer entries keyed by stable action identity, with independently resolved label, key token, visibility, enabled/disabled state, and priority; then pack those entries into available footer lines deterministically.
+*   **Explicit render split:** The implementation must model and render the left footer signpost separately from the command strip it precedes. The signpost owns only context/toggle labeling and its own glyph/text rendering; the command strip owns only command packing and starts from a declared layout column, not from the measured width of the signpost string.
 *   **Cross-Reference:** Labels must resolve through the Task 11.2 label architecture rather than through legacy `[MENU]` rendered-line text.
 *   - [ ] **Status:** Not Started.
 

@@ -793,10 +793,6 @@ static BOOL CommandStripKeyUsesCompactLabel(
          !CommandStripKeyUsesPlainText(command->primary_key);
 }
 
-static BOOL CommandStripCompactKeyNeedsSpace(const char *primary_key) {
-  return primary_key == NULL || strcmp(primary_key, "\\") != 0;
-}
-
 static void CommandStripAddLength(int *len, const char *text);
 
 static void CommandStripAddVisibleKeyLength(int *len, const char *key) {
@@ -874,8 +870,7 @@ static void CommandStripMeasureCommandFull(int *len,
         CommandStripAddLength(len, command->label);
       } else {
         CommandStripAddLength(len, command->primary_key);
-        if (CommandStripCompactKeyNeedsSpace(command->primary_key))
-          CommandStripAddLength(len, " ");
+        CommandStripAddLength(len, " ");
         CommandStripAddLength(len, command->label);
       }
       break;
@@ -1057,8 +1052,7 @@ static void CommandStripRenderCommandFull(WINDOW *win, int y, int *x, int max_x,
       } else {
         CommandStripRenderText(win, y, x, max_x, command->primary_key,
                                key_attr);
-        if (CommandStripCompactKeyNeedsSpace(command->primary_key))
-          CommandStripRenderText(win, y, x, max_x, " ", normal_attr);
+        CommandStripRenderText(win, y, x, max_x, " ", normal_attr);
         CommandStripRenderText(win, y, x, max_x, command->label, normal_attr);
       }
       break;

@@ -13,6 +13,7 @@ THEME_ROLES = {
     "selection",
     "dialog",
     "picker",
+    "picker_selection",
     "help",
     "info",
     "warning",
@@ -128,12 +129,14 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "selection = black on white\n" in classic
     assert "dialog = white\n" in classic
     assert "picker = black on cyan\n" in classic
+    assert "picker_selection = selection\n" in classic
     assert "disabled =" not in classic
     assert "box_lines = cyan on blue" not in classic
     assert "dynamic_text = +white on blue" not in classic
     assert "background = black" in bash_black
     assert "keybind = +white\n" in bash_black
     assert "picker = black on grey\n" in bash_black
+    assert "picker_selection = selection\n" in bash_black
     assert "info = white on blue\n" in bash_black
     assert "error = white on red\n" in bash_black
 

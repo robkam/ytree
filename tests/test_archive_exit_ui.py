@@ -82,6 +82,17 @@ def _footer_key_token_index(footer_line, token):
     return footer_line.lower().index(f"({token.lower()})")
 
 
+def _assert_footer_segments_in_order(line, *segments):
+    start = 0
+    for segment in segments:
+        pos = line.find(segment, start)
+        assert pos >= 0, (
+            f"Expected footer segment {segment!r} in order.\n"
+            f"Line: {line!r}"
+        )
+        start = pos + len(segment)
+
+
 def _graceful_quit(tui, *, wait=0.8):
     tui.send_keystroke("q", wait=wait)
     if tui.child.isalive():
@@ -481,12 +492,30 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
     assert "\\" in _footer_text(tui), (
         "Archive non-root footer should advertise backslash jump-to-root behavior."
     )
+    non_root_nav = _footer_lines(tui)[2]
+    assert "\\ root" in non_root_nav, (
+        "Archive non-root footer should render backslash root with a separator space.\n"
+        f"{non_root_nav!r}"
+    )
+    assert "\\root" not in non_root_nav, (
+        "Archive non-root footer must not collapse the backslash-root label.\n"
+        f"{non_root_nav!r}"
+    )
 
     before = _screen_text(tui)
     tui.send_keystroke("\\", wait=0.6)
     after = _screen_text(tui)
     assert "\\" in _footer_text(tui), (
         "Archive root footer should advertise backslash exit behavior."
+    )
+    root_nav = _footer_lines(tui)[2]
+    assert "\\ exit" in root_nav, (
+        "Archive root footer should render backslash exit with a separator space.\n"
+        f"{root_nav!r}"
+    )
+    assert "\\exit" not in root_nav, (
+        "Archive root footer must not collapse the backslash-exit label.\n"
+        f"{root_nav!r}"
     )
     assert "ARCHIVE" in after, "Backslash at archive non-root must not exit archive mode."
     assert "inside_dir/nested" not in tui.get_screen_dump()[0], (
@@ -2016,6 +2045,52 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     assert _footer_has_key_tokens(
         footer, "H", "I", "J", "^F", "R"
     ), f"Archive file footer should expose file-view key tokens.\n{footer}"
+    footer_rows = _footer_lines(tui)
+    assert footer_rows[0].startswith("ARCHIVE"), (
+        "Archive file footer prefix should render plain ARCHIVE text without box-art noise.\n"
+        f"{footer_rows[0]!r}"
+    )
+    assert footer_rows[2][3:].startswith(" Tree F1 help"), (
+        "Archive file footer should use exactly one space after the nav glyphs.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert not footer_rows[2][3:].startswith("  Tree"), (
+        "Archive file footer must not double-space after the nav glyphs.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert footer_rows[0].find("Brief") == footer_rows[2].find("F1 help"), (
+        "Archive file footer nav row should align F1 with the command columns.\n"
+        f"{footer_rows[0]!r}\n{footer_rows[2]!r}"
+    )
+    assert footer_rows[0].find("Brief") == footer_rows[1].find("Move"), (
+        "Archive file footer command rows should align their first commands.\n"
+        f"{footer_rows[0]!r}\n{footer_rows[1]!r}"
+    )
+    _assert_footer_segments_in_order(
+        footer_rows[0],
+        "Brief",
+        "Copy",
+        "Delete",
+        "Filter",
+        "^F filemode",
+        "Hex",
+        "Invert",
+        "J compare",
+        "Rename",
+        "Sort",
+        "Tag",
+        "View",
+    )
+    _assert_footer_segments_in_order(
+        footer_rows[1],
+        "Move",
+        "Pipe",
+        "^R rename",
+        "Untag",
+        "pathcopY",
+        "/ jump",
+        "` dotfiles",
+    )
 
     tui.quit()
 
@@ -2044,14 +2119,60 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "Expected archive mode after logging into tar file."
     )
 
-    header = _footer_lines(tui)[0].lower()
-    assert _footer_has_key_tokens(
-        header, "^f", "g", "j"
-    ), f"Archive dir footer should expose dirmode/global/compare key tokens.\n{header}"
-    assert _footer_key_token_index(header, "^f") < _footer_key_token_index(
-        header, "g"
-    ), (
+    footer_rows = _footer_lines(tui)
+    header = footer_rows[0]
+    for segment in ("^F dirmode", "Global", "J compare"):
+        assert segment in header, (
+            "Archive dir footer should expose dirmode/global/compare labels.\n"
+            f"{header!r}"
+        )
+    assert footer_rows[2][3:].startswith(" File F1 help"), (
+        "Archive dir footer should use exactly one space after the nav glyphs.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert not footer_rows[2][3:].startswith("  File"), (
+        "Archive dir footer must not double-space after the nav glyphs.\n"
+        f"{footer_rows[2]!r}"
+    )
+    assert footer_rows[0].find("Brief") == footer_rows[2].find("F1 help"), (
+        "Archive dir footer nav row should align F1 with the command columns.\n"
+        f"{footer_rows[0]!r}\n{footer_rows[2]!r}"
+    )
+    assert header.index("^F dirmode") < header.index("Global"), (
         "Archive dir footer should list dirmode before global."
     )
+    assert footer_rows[0].find("Brief") == footer_rows[1].find("Pipe"), (
+        "Archive dir footer command rows should align their first commands.\n"
+        f"{footer_rows[0]!r}\n{footer_rows[1]!r}"
+    )
+    _assert_footer_segments_in_order(
+        footer_rows[0],
+        "Brief",
+        "Copy",
+        "Delete",
+        "Filter",
+        "^F dirmode",
+        "Global",
+        "J compare",
+        "Log",
+        "Makedir",
+    )
+    assert "(^F)" not in footer_rows[0]
+    assert "(G)" not in footer_rows[0]
+    assert "compare (J)" not in footer_rows[0]
+    _assert_footer_segments_in_order(
+        footer_rows[1],
+        "Pipe",
+        "Rename",
+        "Showall",
+        "Tag",
+        "Untag",
+        "moVedir",
+        "Quit",
+        "/ jump",
+        "` dotfiles",
+    )
+    assert "\\ exit" in footer_rows[2]
+    assert "\\exit" not in footer_rows[2]
 
     tui.quit()

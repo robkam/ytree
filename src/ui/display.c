@@ -79,9 +79,9 @@ static const UICommandStripCommand dir_help_archive_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dirmode (^F)", "^F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Global (G)", "G", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare (J)", "J", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dirmode", "^F", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL}};
 static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
@@ -91,7 +91,9 @@ static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Brief", "B", NULL},
@@ -146,7 +148,9 @@ static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "rename", "^R", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand history_help_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
@@ -239,7 +243,7 @@ static const HelpCommandStrip dir_help_builtin[MAX_MODES][2] = {
        sizeof(dir_help_ll_mode_0_commands) /
            sizeof(dir_help_ll_mode_0_commands[0]) },
      { "", NULL, 0 }},
-    {{ "ARCHIVE   ", dir_help_archive_mode_0_commands,
+    {{ "ARCHIVE  ", dir_help_archive_mode_0_commands,
        sizeof(dir_help_archive_mode_0_commands) /
            sizeof(dir_help_archive_mode_0_commands[0]) },
      { "COMMANDS ", dir_help_archive_mode_1_commands,
@@ -263,7 +267,7 @@ static const HelpCommandStrip file_help_builtin[MAX_MODES][2] = {
        sizeof(file_help_ll_mode_0_commands) /
            sizeof(file_help_ll_mode_0_commands[0]) },
      { "", NULL, 0 }},
-    {{ "ARCH-FILE ", file_help_archive_mode_0_commands,
+    {{ "ARCHIVE  ", file_help_archive_mode_0_commands,
        sizeof(file_help_archive_mode_0_commands) /
            sizeof(file_help_archive_mode_0_commands[0]) },
      { "COMMANDS ", file_help_archive_mode_1_commands,
@@ -318,12 +322,12 @@ static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
     return;
 
 #ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_HELP));
+  PrintSpecialString(ctx->ctx_border_window, y, 0, (char *)strip->prefix,
+                     UI_ROLE_HELP);
 #else
-  wattrset(ctx->ctx_border_window, A_NORMAL);
+  PrintSpecialString(ctx->ctx_border_window, y, 0, (char *)strip->prefix,
+                     A_NORMAL);
 #endif
-  mvwaddstr(ctx->ctx_border_window, y, 0, strip->prefix);
-  wattrset(ctx->ctx_border_window, 0);
 
   prefix_width = StrVisualLength((char *)strip->prefix);
   UI_RenderCommandStrip(ctx->ctx_border_window, y, prefix_width, strip->commands,
