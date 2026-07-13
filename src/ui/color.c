@@ -14,6 +14,7 @@ UIColor ui_colors[] = {{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0},
                        {"keybind", UI_ROLE_KEYBIND, 15, 0},
                        {"help", UI_ROLE_HELP, 7, 0},
                        {"picker", UI_ROLE_PICKER, 7, 0},
+                       {"picker_selection", UI_ROLE_PICKER_SELECTION, 0, 3},
                        {"selection", UI_ROLE_SELECTION, 0, 3},
                        {"box_lines", UI_ROLE_BOX_LINES, 8, 0},
                        {"tree_lines", UI_ROLE_TREE_LINES, 7, 0},
@@ -133,15 +134,20 @@ static int UIColorForeground(int pair_id) {
 }
 
 chtype UISelectionAttrForBase(const ViewContext *ctx, int base_role) {
+  int selection_role = UI_ROLE_SELECTION;
+
   if (ctx == NULL || !ctx->color_enabled)
     return A_REVERSE;
 
-  if (UIColorForeground(UI_ROLE_SELECTION) == UIColorForeground(base_role) &&
-      UIColorBackground(UI_ROLE_SELECTION) == UIColorBackground(base_role)) {
+  if (base_role == UI_ROLE_PICKER)
+    selection_role = UI_ROLE_PICKER_SELECTION;
+
+  if (UIColorForeground(selection_role) == UIColorForeground(base_role) &&
+      UIColorBackground(selection_role) == UIColorBackground(base_role)) {
     return COLOR_PAIR(base_role) | A_REVERSE;
   }
 
-  return COLOR_PAIR(UI_ROLE_SELECTION);
+  return COLOR_PAIR(selection_role);
 }
 
 chtype UIKeybindAttrForBase(int overlay_role, int base_role) {

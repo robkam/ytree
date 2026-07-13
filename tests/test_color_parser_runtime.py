@@ -2775,7 +2775,7 @@ int main(void) {
   ctx.color_enabled = TRUE;
 
   UpdateUIColor("picker", COLOR_WHITE, COLOR_BLUE);
-  UpdateUIColor("selection", COLOR_WHITE, COLOR_BLUE);
+  UpdateUIColor("picker_selection", COLOR_WHITE, COLOR_BLUE);
 
   if (UISelectionAttrForBase(&ctx, UI_ROLE_PICKER) !=
       (COLOR_PAIR(UI_ROLE_PICKER) | A_REVERSE)) {
@@ -2783,9 +2783,9 @@ int main(void) {
     return 1;
   }
 
-  UpdateUIColor("selection", COLOR_BLACK, COLOR_WHITE);
+  UpdateUIColor("picker_selection", COLOR_BLACK, COLOR_WHITE);
   if (UISelectionAttrForBase(&ctx, UI_ROLE_PICKER) !=
-      COLOR_PAIR(UI_ROLE_SELECTION)) {
+      COLOR_PAIR(UI_ROLE_PICKER_SELECTION)) {
     fprintf(stderr, "distinct picker selection did not stay explicit\n");
     return 1;
   }
@@ -2814,6 +2814,98 @@ int main(void) {
         check=True,
     )
     subprocess.run([str(binary)], cwd=tmp_path, check=True)
+
+
+def test_picker_selection_role_can_override_picker_highlight(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme = tmp_path / "sample.themes"
+    driver = tmp_path / "picker_selection_role_driver.c"
+    binary = tmp_path / "picker_selection_role_driver"
+
+    theme.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan
+tree_lines = +white
+margin = dynamic_text
+static_text = white
+dynamic_text = +white
+keybind = +white
+selection = black on cyan
+dialog = white
+picker = white on cyan
+picker_selection = black on white
+help = white
+info = +white on blue
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+""",
+        encoding="utf-8",
+    )
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.color_enabled = TRUE;
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+  if (UISelectionAttrForBase(&ctx, UI_ROLE_PICKER) !=
+      COLOR_PAIR(UI_ROLE_PICKER_SELECTION)) {
+    fprintf(stderr, "picker selection role did not override picker highlight\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme)], cwd=tmp_path, check=True)
 
 
 

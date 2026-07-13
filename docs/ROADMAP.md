@@ -1038,7 +1038,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Refactor the application to support role-based themes, localization, and user-defined keybindings, moving away from hardcoded English-centric values and colors.
 
 ### **Task 60: Establish Role-Based Theme System and Restrained Default Palette**
-*   **Goal:** Define and implement a role-based color/theme system with a restrained classic-blue default theme, a bash-black alternate theme, plain-text user-editable theme storage, and safe foreground/background handling that prevents color bleed between themes.
+*   **Goal:** Define and implement a role-based color/theme system with a restrained orthodox-blue default theme, a bash-black alternate theme, plain-text user-editable theme storage, and safe foreground/background handling that prevents color bleed between themes.
 *   **Priority:** High. The default visual identity will strongly affect first impressions, screenshots, user trust, and whether users perceive ytnova as focused or noisy.
 *   **Design Direction:**
     *   There is one canonical default look: blue background, bright readable content, restrained structure, grey selection/dialog surfaces, and road-sign alert colors.
@@ -1153,7 +1153,7 @@ Ordering policy (for all editors, including AI editors):
     *   Ensure panel borders and stats borders draw cyan line glyphs on blue background; they must not set the whole panel fill to cyan.
     *   Ensure stats titles render as white on blue and stats dynamic values render as bright white on blue.
     *   Split stats rendering roles explicitly: section titles and fixed labels use `static_text`/title styling, changing values use `dynamic_text`, and box lines use `box_lines`.
-    *   Ensure tree and file names render as bright white on blue in the classic-blue theme.
+    *   Ensure tree and file names render as bright white on blue in the orthodox-blue theme.
     *   Ensure switching from black-theme coloring to blue-theme coloring cannot leave black-background or incompatible file-color attributes behind.
     *   Replace misleading menu/keybinding strings with token-aware rendering. The required F2 footer wording is `(L)og  (<)/(>) Cycle`; key tokens `L`, `<`, and `>` use `keybind`, while translated/descriptive text uses the surrounding role.
     *   Volume-menu keybindings must use the same integrated keybinding grammar as the rest of the UI; do not use detached labels such as `D Delete`. The volume-menu command strip is exactly: `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete`.
@@ -1163,7 +1163,7 @@ Ordering policy (for all editors, including AI editors):
     *   Keep file-type color application as a distinct optional layer after base theme role resolution.
 *   **Theme Set:**
     *   Provide at least two built-in themes:
-        *   `classic-blue`: restrained public/default theme.
+        *   `orthodox-blue`: restrained public/default theme.
         *   `bash-black`: power-user black-background theme with optional richer file coloring.
     *   Each built-in theme must carry its own file-type palette. A theme may intentionally define an empty file-type palette, in which case ordinary filenames use the theme filename/`dynamic_text` role.
     *   Future in-app theme editing should operate on semantic roles and the separate file-type coloring layer rather than exposing unrelated one-off color knobs.
@@ -1171,8 +1171,8 @@ Ordering policy (for all editors, including AI editors):
     *   Full modal-placement redesign is separate interaction work, but Task 60 must not introduce modal success/noise for theme/config reload. Successful theme/config reload must silently repaint without a success message. Non-obvious errors use footer/status text only. Destructive confirmations and real choice pickers may still use prompt/dialog surfaces until a later interaction task replaces them.
 *   **Acceptance Criteria:**
     *   The default theme is readable, restrained, and suitable for screenshots.
-    *   Normal filenames, tree names, tree lines, paths, keybindings, and dynamic values are bright white or otherwise high-contrast in the classic-blue theme.
-    *   Static labels and stats titles are white or otherwise clearly readable in the classic-blue theme.
+    *   Normal filenames, tree names, tree lines, paths, keybindings, and dynamic values are bright white or otherwise high-contrast in the orthodox-blue theme.
+    *   Static labels and stats titles are white or otherwise clearly readable in the orthodox-blue theme.
     *   Error text uses bright white on red.
     *   Warning and search-hit styling uses black on yellow.
     *   Yellow is reserved for warnings/search/rare emphasis and is not used for frequent ordinary states.
