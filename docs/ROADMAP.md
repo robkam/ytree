@@ -173,6 +173,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add file/archive integrity regression coverage for mutation workflows with deterministic pre/post file-count and content-hash assertions.
 *   Add cancel/interruption/failure-path tests that assert no partial/corrupt leftovers, including archive rewrite paths.
 *   Add edge-path coverage for overwrite/self-target, same-path, cross-device behavior, permission/no-space failures, odd filenames, and archive path edge cases.
+*   PTY/TUI helper conventions favor event-driven wait helpers and line-snapshot reuse over fixed sleeps and repeated full-screen joins in polling loops.
 *   Document fixture/helper conventions so new contributors can add mutation-integrity tests consistently.
 *   - [ ] **Status:** Not Started.
 
@@ -726,6 +727,8 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 41: Implement Integrated Help System**
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
+*   **Context Contract:** `F1` help must be contextual by active runtime surface, not a single generic command dump. The help surface must resolve against the currently active directory/tree view, file view, archive view, Showall/Global view, split/preview layout, and prompt/dialog state.
+*   **Sequencing Note:** Prefer to land the Ctrl-held/transient footer variant before this task so the integrated help system can target the real footer/runtime guidance surfaces instead of documenting an older footer contract.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 42: Refine In-App Help Text**
@@ -740,11 +743,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Footer and F1 are the primary in-app guidance surfaces; they must match exactly while keeping F1 brief and pushing detail to manpage/USAGE.
 *   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer/help/prompt mismatch (discoverability + confidence).
 *   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
+*   **Sequencing Note:** Land the Ctrl-held/transient footer variant before this task so parity is enforced against the intended final footer states rather than an intermediate subset.
 *   **Scope Lock:** Help contract, coverage matrix, and text-structure readiness only; no command behavior changes in this task.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching F1 help set with concise wording and no essay-style descriptions.
 *   For active prompt contexts, footer lists currently available prompt actions; F1 may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, `VI_KEYS=1` variants, and Ctrl-held footer variant.
+*   Numeric FileInfo band coverage is explicit: when the footer compresses `1..0 dir view` / `1..0 file view`, the matching `F1` help must briefly decode the active-surface semantics for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, Git, and the current no-op `0`.
 *   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
 *   Help text paths are structured for gettext extraction/reuse (no duplicated ad-hoc strings per view path).
 *   Add regression checks that detect footer/F1 parity drift in covered contexts.

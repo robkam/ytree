@@ -15,12 +15,16 @@ def _screen_lines_text(lines):
     return "\n".join(lines)
 
 
+def footer_lines_from_lines(lines):
+    return list(lines[-3:])
+
+
 def footer_lines(tui):
-    return tui.get_screen_dump()[-3:]
+    return footer_lines_from_lines(tui.get_screen_dump())
 
 
-def footer_text(tui):
-    lines = footer_lines(tui)
+def footer_text_from_lines(lines):
+    lines = footer_lines_from_lines(lines)
     raw = "\n".join(lines).lower()
     normalized_lines = []
     key_tokens = []
@@ -74,6 +78,10 @@ def footer_text(tui):
 
     normalized = "\n".join(normalized_lines)
     return normalized + "\n" + " ".join(key_tokens)
+
+
+def footer_text(tui):
+    return footer_text_from_lines(tui.get_screen_dump())
 
 
 def find_line_with_text(tui, needle):
