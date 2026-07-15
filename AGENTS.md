@@ -20,6 +20,9 @@ Testing quick reference (Codex):
 - Always run pytest with host permissions from the start (no sandbox-first run), because PTY-based tests require unrestricted PTY allocation.
 - Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start (no sandbox-first run), because toolchain steps can require unrestricted environment access.
 - Pre-merge quality gate is PR full-QA CI (`make qa-all` equivalent). Local `make qa-all` is optional unless maintainer-requested.
+- **Inner-Loop Dev Workflow:** Never run full QA sweeps (`qa-all` or `qa-deep`) for single-file edits. Compile with `make` (utilizing ccache and parallel jobs) and execute exactly one target test file or test case using `pytest -q tests/path/to/file.py::test_name`.
+- **No Hard Sleeps:** Replacing `time.sleep()` blocks with static delays is strictly forbidden. All TUI/PTY wait states must use the event-driven polling methods defined in `tests/tui_harness.py` (e.g., `wait_for_condition` or `wait_for_text`).
+- **Layout-Resilient Assertions:** Assertions must never rely on hard-coded line coordinates, exact screen character grids, or rigid UI alignments. Use fuzzy matching, substring searches, and semantic token checks so that the tests do not break during active UI design iteration.
 
 MCP health check (Codex):
 - Diagnose MCP startup/config drift: `make mcp-doctor`
