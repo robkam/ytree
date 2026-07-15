@@ -684,6 +684,8 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
     return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_P);
 
 #ifdef KEY_F
+  case KEY_F(1):
+    return AppStateValidatedKeyAction(ACTION_HELP);
   case KEY_F(8):
     return AppStateValidatedKeyAction(ACTION_SPLIT_SCREEN);
   case KEY_F(7):

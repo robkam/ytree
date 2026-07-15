@@ -203,6 +203,12 @@ char *GetHistory(ViewContext *ctx, int type) {
     case ' ':
       break; /* Quick-Key */
 
+    case KEY_F(1):
+      (void)UI_ShowHistoryHelpPopup(ctx);
+      DisplayHistoryHelp(ctx);
+      (void)DisplayHistory(ctx);
+      break;
+
     case 'd':
     case 'D':
     case KEY_DC:

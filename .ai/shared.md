@@ -108,6 +108,7 @@ These instructions apply to all AI agents used in this repository.
 22. Hybrid PR quality workflow is mandatory:
     - Before first push, run a quick local gate (build plus targeted smoke/tests).
     - Open a draft PR early; red is allowed while iterating.
+    - For an active PR, proactively poll the live required-check state every 5 minutes and remediate clearly repo-side CI failures until the required set is green, unless the failure is external, inconclusive, or the maintainer explicitly tells you to stop.
     - Keep a durable PR title even while checks are red; do not use temporary `WIP:` title prefixes.
     - PR title, summary, and validation text must describe the durable behavior or architecture aim of the atomic unit, not volatile tracker numbers or broader-roadmap labels.
     - PR validation text must be concise local evidence only; do not duplicate self-evident CI/check output or paste full check transcripts into PR bodies or comments.
