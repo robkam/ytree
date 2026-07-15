@@ -225,6 +225,7 @@ def test_help_surfaces_use_help_role():
     init_source = _read("src/core/init.c")
     display_source = _read("src/ui/display.c")
     compare_source = _read("src/ui/compare_request.c")
+    help_popup_source = _read("src/ui/help_popup.c")
 
     assert "UI_ROLE_HELP" in defs_source
     assert "CPAIR_HELP" not in defs_source
@@ -258,15 +259,17 @@ def test_help_surfaces_use_help_role():
     assert '"" , history_help_commands' not in display_source
     assert '        "", history_help_commands,' in display_source
     assert "Updated:" not in display_source
-    assert "COLOR_PAIR(UI_ROLE_HELP)" in compare_source
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in compare_source
+    assert "UI_ShowHelpPopupDismissAnyKey" in compare_source
+    assert "COLOR_PAIR(UI_ROLE_HELP)" in help_popup_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in help_popup_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in help_popup_source
 
 
 def test_task_sixty_touched_surfaces_use_structured_command_strips():
     app_menu_source = _read("src/ui/application_menu.c")
     compare_source = _read("src/ui/compare_request.c")
     display_source = _read("src/ui/display.c")
+    help_popup_source = _read("src/ui/help_popup.c")
     input_line_source = _read("src/ui/input_line.c")
     tagged_source = _read("src/ui/tagged_view.c")
     internal_view_source = _read("src/ui/view_internal.c")
@@ -278,7 +281,10 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "static const UICommandStripCommand compare_tag_result_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_scope_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_external_scope_commands[]" in compare_source
-    assert "static const UICommandStripCommand compare_help_close_commands[]" in compare_source
+    assert "UI_ShowHelpPopupDismissAnyKey(ctx, title, rows," in compare_source
+    assert "static const UICommandStripCommand help_popup_close_commands[]" in (
+        help_popup_source
+    )
     assert "static const UICommandStripCommand applications_menu_commands[]" in app_menu_source
     assert "static const UICommandStripCommand read_string_path_hint_commands[]" in input_line_source
     assert "static const UICommandStripCommand read_string_history_hint_commands[]" in input_line_source

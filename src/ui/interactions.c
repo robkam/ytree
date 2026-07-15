@@ -38,9 +38,6 @@ typedef enum {
   PROMPT_HELP_CREATE_ARCHIVE
 } PromptHelpTopic;
 
-static const UICommandStripCommand prompt_help_close_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close help", "F1", "Esc"}};
-
 static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   int written;
 
@@ -93,88 +90,26 @@ static void GetPromptHelpLines(PromptHelpTopic topic, const char **title,
 }
 
 static void ShowPromptHelpPopup(ViewContext *ctx, PromptHelpTopic topic) {
-  WINDOW *win;
   const char *title = NULL;
   const char *line_0 = NULL;
   const char *line_1 = NULL;
   const char *line_2 = NULL;
-  const char *help_lines[3];
-  int height;
-  int i;
-  int width;
-  int win_x;
-  int win_y;
+  UIHelpPopupRow rows[3];
 
   if (!ctx)
     return;
 
   GetPromptHelpLines(topic, &title, &line_0, &line_1, &line_2);
-  help_lines[0] = line_0;
-  help_lines[1] = line_1;
-  help_lines[2] = line_2;
-
-  width = StrVisualLength((char *)title) + 8;
-  for (i = 0; i < 3; ++i) {
-    int line_len = StrVisualLength((char *)help_lines[i]) + 4;
-
-    if (line_len > width)
-      width = line_len;
-  }
-  if (UI_CommandStripVisualLength(prompt_help_close_commands,
-                                  sizeof(prompt_help_close_commands) /
-                                      sizeof(prompt_help_close_commands[0])) +
-          4 >
-      width) {
-    width = UI_CommandStripVisualLength(prompt_help_close_commands,
-                                        sizeof(prompt_help_close_commands) /
-                                            sizeof(prompt_help_close_commands[0])) +
-            4;
-  }
-
-  width = MINIMUM(width, COLS - 4);
-  width = MAXIMUM(width, 48);
-  height = 7;
-  win_x = MAXIMUM(1, (COLS - width) / 2);
-  win_y = MAXIMUM(1, (LINES - height) / 2);
-
-  win = newwin(height, width, win_y, win_x);
-  if (!win)
-    return;
-
-  UI_Dialog_Push(win, UI_TIER_MODAL);
-  keypad(win, TRUE);
-  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));
-  curs_set(0);
-
-  while (1) {
-    int ch;
-
-    werase(win);
-#ifdef COLOR_SUPPORT
-    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
-#endif
-    box(win, 0, 0);
-#ifdef COLOR_SUPPORT
-    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
-#endif
-    mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength((char *)title)) / 2),
-              "%s", title);
-    for (i = 0; i < 3; ++i)
-      mvwprintw(win, 2 + i, 2, "%.*s", width - 4, help_lines[i]);
-    UI_RenderCommandStrip(win, height - 2, 2, prompt_help_close_commands,
-                          sizeof(prompt_help_close_commands) /
-                              sizeof(prompt_help_close_commands[0]),
-                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
-    wrefresh(win);
-
-    ch = WGetch(ctx, win);
-    if (ch == ERR)
-      continue;
-    if (ch == KEY_F(1) || ch == ESC || ch == CR || ch == LF)
-      break;
-  }
-
-  UI_Dialog_Close(ctx, win);
+  rows[0].kind = UI_HELP_POPUP_TEXT;
+  rows[0].prefix = NULL;
+  rows[0].text = line_0;
+  rows[0].commands = NULL;
+  rows[0].command_count = 0;
+  rows[1] = rows[0];
+  rows[1].text = line_1;
+  rows[2] = rows[0];
+  rows[2].text = line_2;
+  (void)UI_ShowHelpPopup(ctx, title, rows, sizeof(rows) / sizeof(rows[0]));
 }
 
 static int ShowPromptHelpCallback(ViewContext *ctx, void *help_data) {

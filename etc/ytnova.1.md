@@ -79,7 +79,7 @@ Activated by **F7**. The screen layout changes to show the file list on the left
 ### Global Commands
 These commands work in most modes:
 
-*   **F1**: Help (context-sensitive in prompts/dialogs, including prompt-specific syntax such as `{}` placeholders and tagged-flow semantics).
+*   **F1**: Help. Opens a context-sensitive popup for the active runtime surface: directory/file/archive views, Showall/Global lists, `F7` preview, split-panel targeting notes, picker dialogs, and prompt-specific syntax such as `{}` placeholders or tagged-flow semantics.
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Pane.

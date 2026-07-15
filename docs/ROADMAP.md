@@ -110,18 +110,18 @@ Ordering policy (for all editors, including AI editors):
 *   Add strict QA mode (for example `STRICT=1`) that enables `-Werror` for CI/QA gates while preserving a portable default developer build.
 *   Burn down existing warning debt in prioritized batches (safety/correctness first), keeping suppressions minimal and justified.
 *   CI/QA fails on new warnings in strict mode for supported compilers.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 5: Code-Smell Gate (Audit + Detect + Block)**
 *   **Goal:** Add explicit QA and merge-gate enforcement that audits current code smells and blocks new/reintroduced structural smell debt.
 *   **Scope:** controller growth, god-function budgets, module-boundary violations, complexity hotspots, and architecture drift.
 *   **Acceptance Criteria:** Smell baseline audit evidence exists, recurring smell checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unapproved new smell violations.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 5.1: Baseline Code-Smell Audit and Debt Register**
 *   **Goal:** Audit current codebase for structural smells and categorize debt with explicit remediation sequencing.
 *   **Deliverables:** baseline report covering hotspots, oversized controllers/functions, boundary exceptions, and tracked rationale for retained debt.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 5.2: Strengthen Smell-Prevention Guards**
 *   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
@@ -738,7 +738,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Noise Budget Decision:** Do **not** replace the held-`Ctrl` idea with a permanently noisy fallback such as `Copy/^Copy`, `C/^Copy`, or a tagged-state footer variant that appears only after tagging. The common footer must stay clean enough for new users to operate without help-menu friction.
 *   **Discoverability Contract:** Keep the live footer focused on always-relevant, low-noise bindings plus non-redundant alternates (for example `(C)opy/(^K)` and `(M)ove/(^N)` where the alternate actually differs). Put Ctrl-only tagged/search-oriented operations and their semantics in `F1` help and prompt wording instead of trying to surface every one of them in the footer.
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 43: Enforce Footer/F1 Context-Parity Contract (gettext-ready)**
 *   **Goal:** Ensure F1 help is concise, context-specific, and complete for each footer/help variant, with no missing commands.

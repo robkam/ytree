@@ -342,7 +342,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytnova.1.md` and generated `docs/USAGE.md`.
 *   **Visual Rule:** Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place. Literal key tokens such as `Esc`, `Enter`, `Up`, `Down`, and function keys render as key tokens, not as synthetic words.
 *   **Text-Notation Rule:** In plain-text docs and tests, `(K)eyword` notation is the durable way to describe that in-place highlight when color cannot be shown directly.
-*   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
+*   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, tagged workflows, and active picker/prompt/dialog surfaces such as history, volumes, applications, compare prompts, and syntax-bearing command prompts.
 *   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and for prompt flows that document Ctrl-only tagged/search actions without a held-`Ctrl` footer state.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
 *   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
@@ -367,8 +367,9 @@ Current modal/dialog audit:
 | `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `info` |
 | `src/ui/error.c` `UI_Warning` | Severity `warning` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `warning` |
 | `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `error` |
-| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `help` |
+| `src/ui/help_popup.c` `UI_ShowHelpPopup` | Neutral interaction (help popup) | `help` |
 | `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `picker` |
+| `src/ui/application_menu.c` `UI_OpenApplicationsMenu` window | Neutral interaction (applications picker) | `picker` |
 | `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `dialog` |
 | `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `picker` |
 | `src/ui/completion_dialog.c` completion list window | Neutral interaction (selection list) | `picker` |

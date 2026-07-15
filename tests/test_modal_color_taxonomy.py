@@ -16,20 +16,35 @@ def test_severity_modals_route_only_info_warn_error_pairs():
     )
 
 
-def test_compare_help_popup_uses_help_palette():
-    compare_source = _read_source("src/ui/compare_request.c")
+def test_shared_help_popup_uses_help_palette():
+    help_source = _read_source("src/ui/help_popup.c")
     popup_block = _extract_function_block(
-        compare_source,
-        "static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic)",
+        help_source,
+        "static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,",
     )
 
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));" in popup_block
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
-    assert "UI_RenderCommandStrip(win, height - 2, 2, compare_help_close_commands," in popup_block
-    assert "UI_ROLE_HELP, UI_ROLE_KEYBIND);" in popup_block
+    assert "UI_RenderCommandStrip(win, height - 2," in popup_block
+    assert "UI_ROLE_HELP," in popup_block
+    assert "UI_ROLE_KEYBIND" in popup_block
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in popup_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in popup_block
+
+    compare_source = _read_source("src/ui/compare_request.c")
+    compare_block = _extract_function_block(
+        compare_source,
+        "static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {",
+    )
+    assert "UI_ShowHelpPopupDismissAnyKey(ctx, title, rows," in compare_block
+
+    prompt_source = _read_source("src/ui/interactions.c")
+    prompt_block = _extract_function_block(
+        prompt_source,
+        "static void ShowPromptHelpPopup(ViewContext *ctx, PromptHelpTopic topic) {",
+    )
+    assert "UI_ShowHelpPopup(ctx, title, rows," in prompt_block
 
 
 def test_prompt_uses_dialog_and_volume_uses_picker_palette():

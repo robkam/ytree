@@ -748,6 +748,11 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
 
+    case ACTION_HELP:
+      (void)UI_ShowIntegratedHelp(ctx, dir_entry);
+      need_dsp_help = TRUE;
+      break;
+
     case ACTION_TOGGLE_STATS:
       ctx->show_stats = !ctx->show_stats;
       (void)AppStateMarkResizeRequest(ctx);

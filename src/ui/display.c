@@ -149,6 +149,7 @@ static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
 static const UICommandStripCommand history_help_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cancel", "Esc", NULL}};
 static const UICommandStripCommand preview_help_commands[] = {
@@ -158,6 +159,13 @@ static const UICommandStripCommand preview_help_commands[] = {
 static const UICommandStripCommand preview_command_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Navigate Preview", "Shift", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Exit Preview", "F7", NULL}};
+static const UICommandStripCommand split_help_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "switch panel", "Tab", NULL}};
+static const UICommandStripCommand history_nav_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Up", "Down"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scroll entry", "Left", "Right"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "PgUp", "PgDn"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "Home", "End"}};
 static const UICommandStripCommand dir_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
@@ -349,6 +357,48 @@ static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
                         strip->command_count, UI_ROLE_HELP, UI_ROLE_KEYBIND);
 }
 
+static size_t AppendPopupStripRow(UIHelpPopupRow *rows, size_t row_count,
+                                  const HelpCommandStrip *strip) {
+  if (rows == NULL || strip == NULL || strip->commands == NULL ||
+      strip->command_count == 0)
+    return row_count;
+
+  rows[row_count].kind = UI_HELP_POPUP_COMMAND_STRIP;
+  rows[row_count].prefix = strip->prefix;
+  rows[row_count].text = NULL;
+  rows[row_count].commands = strip->commands;
+  rows[row_count].command_count = strip->command_count;
+  return row_count + 1;
+}
+
+static size_t AppendPopupCommandRow(UIHelpPopupRow *rows, size_t row_count,
+                                    const char *prefix,
+                                    const UICommandStripCommand *commands,
+                                    size_t command_count) {
+  if (rows == NULL || commands == NULL || command_count == 0)
+    return row_count;
+
+  rows[row_count].kind = UI_HELP_POPUP_COMMAND_STRIP;
+  rows[row_count].prefix = prefix;
+  rows[row_count].text = NULL;
+  rows[row_count].commands = commands;
+  rows[row_count].command_count = command_count;
+  return row_count + 1;
+}
+
+static size_t AppendPopupTextRow(UIHelpPopupRow *rows, size_t row_count,
+                                 const char *text) {
+  if (rows == NULL || text == NULL || text[0] == '\0')
+    return row_count;
+
+  rows[row_count].kind = UI_HELP_POPUP_TEXT;
+  rows[row_count].prefix = NULL;
+  rows[row_count].text = text;
+  rows[row_count].commands = NULL;
+  rows[row_count].command_count = 0;
+  return row_count + 1;
+}
+
 void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   int i;
   const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
@@ -416,6 +466,25 @@ void DisplayHistoryHelp(ViewContext *ctx) {
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
+int UI_ShowHistoryHelpPopup(ViewContext *ctx) {
+  UIHelpPopupRow rows[4];
+  size_t row_count = 0;
+  static const HelpCommandStrip history_help_strip = {
+      "", history_help_commands,
+      sizeof(history_help_commands) / sizeof(history_help_commands[0])};
+
+  row_count = AppendPopupStripRow(rows, row_count, &history_help_strip);
+  row_count = AppendPopupCommandRow(
+      rows, row_count, "",
+      history_nav_commands, sizeof(history_nav_commands) /
+                                sizeof(history_nav_commands[0]));
+  row_count = AppendPopupTextRow(
+      rows, row_count,
+      "Pinned entries stay at the top of the current history list.");
+
+  return UI_ShowHelpPopup(ctx, "History Help", rows, row_count);
+}
+
 void DisplayPreviewHelp(ViewContext *ctx) {
   /*
    * Help Footer for Preview Mode (F7)
@@ -426,6 +495,103 @@ void DisplayPreviewHelp(ViewContext *ctx) {
   wmove(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0);
   wclrtoeol(ctx->ctx_border_window);
   DisplayPreviewHelpLine(ctx, Y_PROMPT(ctx) + 1, &preview_help_builtin[1]);
+}
+
+int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
+  UIHelpPopupRow rows[8];
+  size_t row_count = 0;
+  const char *title;
+  ViewFocus active_focus;
+
+  if (ctx == NULL)
+    return -1;
+
+  active_focus = AppStateResolveActivePanelFocus(ctx);
+  if (ctx->preview_mode) {
+    title = "Preview Help";
+    row_count = AppendPopupStripRow(rows, row_count, &preview_help_builtin[0]);
+    row_count = AppendPopupStripRow(rows, row_count, &preview_help_builtin[1]);
+    row_count = AppendPopupTextRow(
+        rows, row_count,
+        "Shift+Up/Down or ^P/^N scroll preview contents line by line.");
+    row_count = AppendPopupTextRow(
+        rows, row_count,
+        "Shift+PgUp/PgDn pages the preview; Shift+Home/End jumps to top/bottom.");
+    return UI_ShowHelpPopup(ctx, title, rows, row_count);
+  }
+
+  if (active_focus == FOCUS_TREE) {
+    const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
+
+    title = (ctx->view_mode == ARCHIVE_MODE) ? "Archive Directory Help"
+                                             : "Directory Help";
+    row_count =
+        AppendPopupStripRow(rows, row_count, &dir_help_builtin[ctx->view_mode][0]);
+    row_count =
+        AppendPopupStripRow(rows, row_count, &dir_help_builtin[ctx->view_mode][1]);
+    if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
+      nav_strip = (dir_entry->up_tree != NULL) ? &dir_help_nav_builtin[1]
+                                               : &dir_help_nav_builtin[2];
+    }
+    row_count = AppendPopupStripRow(rows, row_count, nav_strip);
+  } else {
+    const HelpCommandStrip *builtin_0 = &file_help_builtin[ctx->view_mode][0];
+    const HelpCommandStrip *builtin_1 = &file_help_builtin[ctx->view_mode][1];
+    const HelpCommandStrip *nav_strip;
+    HelpCommandStrip resolved_0 = *builtin_0;
+    HelpCommandStrip resolved_1 = *builtin_1;
+    UICommandStripCommand resolved_commands_0[16];
+    UICommandStripCommand resolved_commands_1[16];
+
+    if (dir_entry != NULL && dir_entry->global_flag) {
+      title = "Showall/Global File Help";
+      nav_strip = &file_help_nav_builtin[1];
+    } else if (ctx->view_mode == ARCHIVE_MODE) {
+      title = "Archive File Help";
+      nav_strip = &file_help_nav_builtin[0];
+    } else {
+      title = "File Help";
+      nav_strip = &file_help_nav_builtin[0];
+    }
+
+    if (builtin_0->commands != NULL && builtin_0->command_count > 0 &&
+        IsViKeysEnabled(ctx)) {
+      memcpy(resolved_commands_0, builtin_0->commands,
+             builtin_0->command_count * sizeof(resolved_commands_0[0]));
+      ApplyViFileHelpOverrides(ctx, resolved_commands_0, builtin_0->command_count);
+      resolved_0.commands = resolved_commands_0;
+      builtin_0 = &resolved_0;
+    }
+    if (builtin_1->commands != NULL && builtin_1->command_count > 0 &&
+        IsViKeysEnabled(ctx)) {
+      memcpy(resolved_commands_1, builtin_1->commands,
+             builtin_1->command_count * sizeof(resolved_commands_1[0]));
+      ApplyViFileHelpOverrides(ctx, resolved_commands_1, builtin_1->command_count);
+      resolved_1.commands = resolved_commands_1;
+      builtin_1 = &resolved_1;
+    }
+
+    row_count = AppendPopupStripRow(rows, row_count, builtin_0);
+    row_count = AppendPopupStripRow(rows, row_count, builtin_1);
+    row_count = AppendPopupStripRow(rows, row_count, nav_strip);
+  }
+
+  if (ctx->is_split_screen) {
+    row_count = AppendPopupCommandRow(
+        rows, row_count, "",
+        split_help_commands,
+        sizeof(split_help_commands) / sizeof(split_help_commands[0]));
+    row_count = AppendPopupTextRow(
+        rows, row_count,
+        "Copy/move/compare prompts default to the inactive panel when split mode is active.");
+  }
+  if (active_focus == FOCUS_FILE && dir_entry != NULL && dir_entry->global_flag) {
+    row_count = AppendPopupTextRow(
+        rows, row_count,
+        "Esc returns to the previous directory view; \\ jumps to the owner directory.");
+  }
+
+  return UI_ShowHelpPopup(ctx, title, rows, row_count);
 }
 
 void ClearHelp(ViewContext *ctx) {

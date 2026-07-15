@@ -143,9 +143,8 @@ Validation rules:
 - Do not stream full CI logs or paste long test output.
 
 CI wait rule:
-- After CI starts or restarts, wait 15 minutes before the first status check.
-- If CI is still running or pending, check every 10 minutes until 50 minutes have elapsed.
-- After 50 minutes, check every 5 minutes until CI is green or red.
+- After CI starts or restarts, check PR status every 5 minutes until required checks are green or red.
+- If CI is still running or pending, keep polling every 5 minutes.
 - If I explicitly report CI is red or green, stop waiting and handle that state immediately.
 - When checking CI, use only a compact pass/fail/running summary via `--jq`.
 - Fetch detailed check or log output only if a check is red.

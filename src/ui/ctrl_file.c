@@ -51,6 +51,7 @@ static YtreeNovaAction FilterPreviewAction(YtreeNovaAction action) {
   switch (action) {
   case ACTION_NONE:
   case ACTION_ESCAPE:
+  case ACTION_HELP:
   case ACTION_VIEW_PREVIEW:
   case ACTION_MOVE_UP:
   case ACTION_MOVE_DOWN:
@@ -677,6 +678,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_ENTER:
     case ACTION_QUIT_DIR:
     case ACTION_QUIT:
+    case ACTION_HELP:
     case ACTION_REFRESH:
     case ACTION_EDIT_CONFIG:
     case ACTION_RESIZE:

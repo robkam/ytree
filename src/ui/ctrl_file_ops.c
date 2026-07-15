@@ -1191,6 +1191,11 @@ BOOL handle_file_window_misc_dispatch_action(
     loop_action = ACTION_NONE;
     break;
 
+  case ACTION_HELP:
+    (void)UI_ShowIntegratedHelp(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
   case ACTION_REFRESH:
     dir_entry = RefreshFileView(ctx, dir_entry);
     need_dsp_help = TRUE;

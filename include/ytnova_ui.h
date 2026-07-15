@@ -186,6 +186,8 @@ extern void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel);
 extern void RefreshView(ViewContext *ctx, DirEntry *dir_entry);
 extern void DisplayPreviewHelp(ViewContext *ctx);
 extern void DisplayHistoryHelp(ViewContext *ctx);
+extern int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry);
+extern int UI_ShowHistoryHelpPopup(ViewContext *ctx);
 
 /* display_utils.c */
 extern int AddStr(char *str);
@@ -221,12 +223,28 @@ typedef struct {
   const char *primary_key;
   const char *secondary_key;
 } UICommandStripCommand;
+typedef enum {
+  UI_HELP_POPUP_TEXT,
+  UI_HELP_POPUP_COMMAND_STRIP
+} UIHelpPopupRowKind;
+typedef struct {
+  UIHelpPopupRowKind kind;
+  const char *prefix;
+  const char *text;
+  const UICommandStripCommand *commands;
+  size_t command_count;
+} UIHelpPopupRow;
 extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
                                        size_t command_count);
 extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                                   const UICommandStripCommand *commands,
                                   size_t command_count, int ncolor,
                                   int hcolor);
+extern int UI_ShowHelpPopup(ViewContext *ctx, const char *title,
+                            const UIHelpPopupRow *rows, size_t row_count);
+extern int UI_ShowHelpPopupDismissAnyKey(ViewContext *ctx, const char *title,
+                                         const UIHelpPopupRow *rows,
+                                         size_t row_count);
 extern int WAddStr(WINDOW *win, char *str);
 extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 
