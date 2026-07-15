@@ -66,23 +66,64 @@ class YtreeNovaTUI:
         self.child.send(keys)
         self._read_output(timeout=wait)
 
+    def peek_screen_dump(self):
+        """Returns an immutable snapshot of the current screen without draining the PTY."""
+        return [str(line) for line in self.screen.display]
+
     def get_screen_dump(self):
         """Returns the screen display as a list of strings representing the grid."""
         # Ensure latest output is collected
         self._read_output(timeout=0.05)
-        return self.screen.display
+        return self.peek_screen_dump()
+
+    def wait_for_condition(self, predicate, timeout=5.0, poll_interval=0.02):
+        """Poll until predicate(screen_lines) returns a truthy value or timeout expires."""
+        deadline = time.monotonic() + self._scaled(timeout)
+
+        while True:
+            self._read_output(timeout=0.0)
+            lines = self.peek_screen_dump()
+            result = predicate(lines)
+            if result:
+                return result
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(self._scaled(poll_interval))
+
+    def wait_for_text(self, target, timeout=5.0, poll_interval=0.02):
+        """Wait until the target string appears anywhere on the screen."""
+        return self.wait_for_condition(
+            lambda lines: lines
+            if any(target in line for line in lines)
+            else False,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
+
+    def send_and_wait_for_condition(
+        self, keys, predicate, timeout=5.0, poll_interval=0.02
+    ):
+        """Send keys, then poll until predicate(screen_lines) becomes truthy."""
+        self.child.send(keys)
+        return self.wait_for_condition(
+            predicate, timeout=timeout, poll_interval=poll_interval
+        )
+
+    def send_and_wait_for_screen_change(
+        self, keys, timeout=5.0, poll_interval=0.02
+    ):
+        """Send keys, then wait for the rendered screen snapshot to change."""
+        before = self.get_screen_dump()
+        return self.send_and_wait_for_condition(
+            keys,
+            lambda lines: lines if lines != before else False,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
 
     def wait_for_content(self, target, timeout=5.0):
         """Wait until the target string appearing anywhere on the screen."""
-        effective_timeout = self._scaled(timeout)
-        start_time = time.time()
-        while time.time() - start_time < effective_timeout:
-            screen = self.get_screen_dump()
-            for line in screen:
-                if target in line:
-                    return True
-            time.sleep(0.1)
-        return False
+        return bool(self.wait_for_text(target, timeout=timeout, poll_interval=0.1))
 
     def quit(self):
         """Cleanly exit."""

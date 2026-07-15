@@ -10,6 +10,7 @@ from helpers_ui import (
     assert_tree_viewport_origin_stable as _assert_tree_viewport_origin_stable,
     find_line_with_text as _find_line_with_text,
     footer_text as _footer_text,
+    footer_text_from_lines as _footer_text_from_lines,
     line_marks_file_as_tagged as _line_marks_file_as_tagged,
     screen_text as _screen_text,
     tree_panel_selected_label as _tree_panel_selected_label,
@@ -47,6 +48,68 @@ def _stats_current_dir_contains(lines, marker):
             if marker in candidate:
                 return True
     return False
+
+
+def _active_volume_name_from_lines(lines, *volume_names):
+    header = lines[0] if lines else ""
+    for name in volume_names:
+        if name in header:
+            return name
+    return None
+
+
+def _wait_for_footer_state(tui, *, contains=(), excludes=(), timeout=2.0):
+    def footer_matches(current_lines):
+        footer = _footer_text_from_lines(current_lines)
+        if all(token in footer for token in contains) and all(
+            token not in footer for token in excludes
+        ):
+            return current_lines
+        return False
+
+    lines = tui.wait_for_condition(
+        footer_matches,
+        timeout=timeout,
+    )
+    assert lines, _screen_text(tui)
+    return lines
+
+
+def _run_compare_and_read_source(tui, compare_target, log_path):
+    if log_path.exists():
+        log_path.unlink()
+
+    lines = tui.send_and_wait_for_condition(
+        "J",
+        lambda current_lines: current_lines
+        if any("COMPARE TARGET:" in line for line in current_lines)
+        else False,
+        timeout=1.5,
+    )
+    assert lines, _screen_text(tui)
+
+    lines = tui.send_and_wait_for_condition(
+        Keys.CTRL_U + str(compare_target) + Keys.ENTER,
+        lambda current_lines: current_lines
+        if log_path.exists()
+        or any("Hit return to continue" in line for line in current_lines)
+        else False,
+        timeout=2.5,
+    )
+    assert lines, _screen_text(tui)
+
+    if any("Hit return to continue" in line for line in lines):
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if not any("Hit return to continue" in line for line in current_lines)
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    return log_path.read_text(encoding="utf-8").splitlines()[0]
 
 
 def _configure_filediff_capture(tmp_dir):
@@ -1415,113 +1478,186 @@ def test_smallwindowskip_volume_cycle_restores_deep_file_context(
         cwd=str(root),
         args=[str(home_vol), str(vol_a), str(vol_b)],
     )
-    time.sleep(1.0)
-
-    def active_volume_name():
-        header = tui.get_screen_dump()[0]
-        for name in (
-            "smallskip_cycle_vol_a",
-            "smallskip_cycle_vol_b",
-            "smallskip_cycle_home",
-        ):
-            if name in header:
-                return name
-        return None
+    volume_names = (
+        "smallskip_cycle_vol_a",
+        "smallskip_cycle_vol_b",
+        "smallskip_cycle_home",
+    )
 
     def cycle_to(volume_name, key=">"):
+        if _active_volume_name_from_lines(tui.get_screen_dump(), *volume_names) == volume_name:
+            return
         for _ in range(12):
-            if active_volume_name() == volume_name:
+            lines = tui.send_and_wait_for_condition(
+                key,
+                lambda current_lines: current_lines
+                if _active_volume_name_from_lines(current_lines, *volume_names)
+                == volume_name
+                else False,
+                timeout=1.5,
+            )
+            if lines:
                 return
-            tui.send_keystroke(key, wait=0.4)
-        assert active_volume_name() == volume_name, _screen_text(tui)
-
-    def run_compare_and_read_source():
-        if log_path.exists():
-            log_path.unlink()
-        tui.send_keystroke("J", wait=0.25)
-        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
-        if tui.wait_for_content("Hit return to continue", timeout=1.0):
-            tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
-        return log_path.read_text(encoding="utf-8").splitlines()[0]
+        assert _active_volume_name_from_lines(tui.get_screen_dump(), *volume_names) == volume_name, (
+            _screen_text(tui)
+        )
 
     try:
         cycle_to("smallskip_cycle_vol_a")
 
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert _stats_current_dir_contains(tui.get_screen_dump(), "a_deep"), _screen_text(
-            tui
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if "hex invert j compare" not in _footer_text_from_lines(lines)
+            else False,
+            timeout=1.5,
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-        assert "a_deep_0.txt" in _screen_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        source_a_expected = run_compare_and_read_source()
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if _stats_current_dir_contains(current_lines, "a_deep")
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if "hex invert j compare" in _footer_text_from_lines(current_lines)
+            and any("a_deep_0.txt" in line for line in current_lines)
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        source_a_expected = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_a_expected.endswith("a_deep_1.txt"), source_a_expected
 
         cycle_to("smallskip_cycle_vol_b")
         if "hex invert j compare" in _footer_text(tui):
-            tui.send_keystroke(Keys.ESC, wait=0.4)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert _stats_current_dir_contains(tui.get_screen_dump(), "b_deep"), _screen_text(
-            tui
+            tui.send_and_wait_for_condition(
+                Keys.ESC,
+                lambda lines: lines
+                if "hex invert j compare" not in _footer_text_from_lines(lines)
+                else False,
+                timeout=1.5,
+            )
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if "hex invert j compare" not in _footer_text_from_lines(lines)
+            else False,
+            timeout=1.5,
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-        assert "b_deep_0.txt" in _screen_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        source_b_expected = run_compare_and_read_source()
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if _stats_current_dir_contains(current_lines, "b_deep")
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if "hex invert j compare" in _footer_text_from_lines(current_lines)
+            and any("b_deep_0.txt" in line for line in current_lines)
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        source_b_expected = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_b_expected.endswith("b_deep_2.txt"), source_b_expected
 
         cycle_to("smallskip_cycle_home")
         if "hex invert j compare" in _footer_text(tui):
-            tui.send_keystroke(Keys.ESC, wait=0.4)
-        _assert_dir_mode_footer(tui, "Expected directory footer on release volume.")
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        assert _stats_current_dir_contains(
-            tui.get_screen_dump(), "zz_release_anchor"
-        ), _screen_text(tui)
-        tui.send_keystroke("k", wait=0.4)
-        assert tui.wait_for_content("Select Volume", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke("d", wait=0.3)
-        tui.send_keystroke("y", wait=0.8)
-        if tui.wait_for_content("Select Volume", timeout=0.4):
-            tui.send_keystroke(Keys.ESC, wait=0.5)
+            tui.send_and_wait_for_condition(
+                Keys.ESC,
+                lambda lines: lines
+                if "hex invert j compare" not in _footer_text_from_lines(lines)
+                else False,
+                timeout=1.5,
+            )
+        _wait_for_footer_state(
+            tui,
+            contains=("j compare", "j tree"),
+            excludes=("hex invert j compare",),
+        )
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        lines = tui.wait_for_condition(
+            lambda current_lines: current_lines
+            if _stats_current_dir_contains(current_lines, "zz_release_anchor")
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            "k",
+            lambda current_lines: current_lines
+            if any("Select Volume" in line for line in current_lines)
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        tui.send_and_wait_for_screen_change("d", timeout=1.0)
+        tui.send_and_wait_for_screen_change("y", timeout=1.5)
+        if tui.wait_for_text("Select Volume", timeout=0.2):
+            tui.send_and_wait_for_condition(
+                Keys.ESC,
+                lambda lines: lines
+                if not any("Select Volume" in line for line in lines)
+                else False,
+                timeout=1.5,
+            )
 
         cycle_to("smallskip_cycle_vol_a")
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        _wait_for_footer_state(tui, contains=("hex invert j compare",))
 
-        source_a_after_cycle = run_compare_and_read_source()
+        source_a_after_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_a_after_cycle == source_a_expected, (
             "SMALLWINDOWSKIP=1 volume cycling lost deep per-volume file context for A.\n"
             f"Expected: {source_a_expected}\n"
             f"Actual:   {source_a_after_cycle}\n{_screen_text(tui)}"
         )
-        tui.send_keystroke(Keys.ESC, wait=0.4)
-        _assert_dir_mode_footer(
-            tui, "Expected directory footer after leaving restored A file view."
+        tui.send_and_wait_for_condition(
+            Keys.ESC,
+            lambda lines: lines
+            if "hex invert j compare" not in _footer_text_from_lines(lines)
+            else False,
+            timeout=1.5,
         )
-        assert _stats_current_dir_contains(tui.get_screen_dump(), "a_deep"), (
+        _wait_for_footer_state(
+            tui,
+            contains=("j compare", "j tree"),
+            excludes=("hex invert j compare",),
+        )
+        lines = tui.wait_for_condition(
+            lambda current_lines: current_lines
+            if _stats_current_dir_contains(current_lines, "a_deep")
+            else False,
+            timeout=1.5,
+        )
+        assert lines, (
             "Leaving restored file view returned to a parent/tree location.\n"
             + _screen_text(tui)
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if "hex invert j compare" in _footer_text_from_lines(lines)
+            else False,
+            timeout=1.5,
+        )
 
-        tui.send_keystroke(">", wait=0.8)
-        assert active_volume_name() == "smallskip_cycle_vol_b", _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-        source_b_after_cycle = run_compare_and_read_source()
+        cycle_to("smallskip_cycle_vol_b")
+        _wait_for_footer_state(tui, contains=("hex invert j compare",))
+        source_b_after_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_b_after_cycle == source_b_expected, (
             "SMALLWINDOWSKIP=1 volume cycling lost deep per-volume file context for B.\n"
             f"Expected: {source_b_expected}\n"
@@ -1627,34 +1763,44 @@ def test_enter_repo_src_preserves_tree_viewport_anchor(ytnova_binary):
     home = repo_root.parent
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(home))
-    time.sleep(1.0)
 
     def move_to_stats_dir(marker, *, max_steps=120):
         marker_token = f" {marker} "
+        lines = tui.get_screen_dump()
+        if _stats_current_dir_contains(lines, marker_token):
+            return lines
         for _ in range(max_steps):
-            if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
-                return
-            tui.send_keystroke(Keys.DOWN, wait=0.12)
+            lines = tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.4)
+            if not lines:
+                lines = tui.get_screen_dump()
+            if _stats_current_dir_contains(lines, marker_token):
+                return lines
         pytest.fail(
             f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
         )
 
     try:
         move_to_stats_dir(repo_root.name)
-        tui.send_keystroke(Keys.RIGHT, wait=0.45)
+        tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=1.5)
 
-        move_to_stats_dir("src")
-        before_lines = tui.get_screen_dump()
+        before_lines = move_to_stats_dir("src")
         before_screen = "\n".join(before_lines)
         before_first_row = _first_tree_row_segment(
             before_lines, _detect_stats_split_x(before_lines)
         )
         assert before_first_row is not None, before_screen
 
-        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        after_lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if _stats_current_dir_contains(current_lines, "src")
+            and "hex invert j compare" not in _footer_text_from_lines(current_lines)
+            else False,
+            timeout=2.0,
+        )
+        assert after_lines, _screen_text(tui)
         _assert_dir_mode_footer(tui, "Expected tree mode after scanning deep tree node.")
 
-        after_lines = tui.get_screen_dump()
         after_screen = "\n".join(after_lines)
         assert _stats_current_dir_contains(after_lines, "src"), (
             "ENTER moved active tree selection unexpectedly.\n"
@@ -1933,99 +2079,171 @@ def test_split_file_selection_preserves_panel_local_volume_cycle_state(
         cwd=str(root),
         args=[str(vol_a), str(vol_b)],
     )
-    time.sleep(1.0)
-
-    def active_volume_name():
-        header = tui.get_screen_dump()[0]
-        for name in ("split_cycle_vol_a", "split_cycle_vol_b"):
-            if name in header:
-                return name
-        return None
-
-    def run_compare_and_read_source():
-        if log_path.exists():
-            log_path.unlink()
-        tui.send_keystroke("J", wait=0.25)
-        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
-        if tui.wait_for_content("Hit return to continue", timeout=1.0):
-            tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
-        return log_path.read_text(encoding="utf-8").splitlines()[0]
+    volume_names = ("split_cycle_vol_a", "split_cycle_vol_b")
 
     try:
-        for _ in range(8):
-            if active_volume_name() == "split_cycle_vol_a":
-                break
-            tui.send_keystroke(">", wait=0.3)
-        assert active_volume_name() == "split_cycle_vol_a", _screen_text(tui)
+        if _active_volume_name_from_lines(tui.get_screen_dump(), *volume_names) != "split_cycle_vol_a":
+            for _ in range(8):
+                lines = tui.send_and_wait_for_condition(
+                    ">",
+                    lambda current_lines: current_lines
+                    if _active_volume_name_from_lines(current_lines, *volume_names)
+                    == "split_cycle_vol_a"
+                    else False,
+                    timeout=1.5,
+                )
+                if lines:
+                    break
+            else:
+                lines = False
+            assert lines, _screen_text(tui)
 
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        source_left_expected = run_compare_and_read_source()
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if "hex invert j compare" in _footer_text_from_lines(current_lines)
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        source_left_expected = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_left_expected.endswith("a_state_2.txt"), source_left_expected
 
-        tui.send_keystroke(Keys.F8, wait=0.4)
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        source_right_expected = run_compare_and_read_source()
+        tui.send_and_wait_for_screen_change(Keys.F8, timeout=1.5)
+        tui.send_and_wait_for_screen_change(Keys.TAB, timeout=1.5)
+        _wait_for_footer_state(tui, contains=("hex invert j compare",))
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
+        source_right_expected = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_right_expected.endswith("a_state_3.txt"), source_right_expected
 
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        source_left_before_cycle = run_compare_and_read_source()
+        tui.send_and_wait_for_screen_change(Keys.TAB, timeout=1.5)
+        source_left_before_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_left_before_cycle == source_left_expected, (
             "Split panel file selections should diverge per panel before cycling.\n"
             f"Left expected:  {source_left_expected}\n"
             f"Left observed:  {source_left_before_cycle}\n{_screen_text(tui)}"
         )
 
-        tui.send_keystroke(">", wait=0.8)
-        assert active_volume_name() == "split_cycle_vol_b", _screen_text(tui)
-        if "hex invert j compare" not in _footer_text(tui):
-            tui.send_keystroke(Keys.ENTER, wait=0.4)
-        tui.send_keystroke("<", wait=0.8)
-        assert active_volume_name() == "split_cycle_vol_a", _screen_text(tui)
-        if "hex invert j compare" not in _footer_text(tui):
-            tui.send_keystroke(Keys.ENTER, wait=0.4)
-        source_left_after_cycle = run_compare_and_read_source()
+        lines = tui.send_and_wait_for_condition(
+            ">",
+            lambda current_lines: current_lines
+            if _active_volume_name_from_lines(current_lines, *volume_names)
+            == "split_cycle_vol_b"
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        if "hex invert j compare" not in _footer_text_from_lines(lines):
+            lines = tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda current_lines: current_lines
+                if "hex invert j compare" in _footer_text_from_lines(current_lines)
+                else False,
+                timeout=1.5,
+            )
+            assert lines, _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            "<",
+            lambda current_lines: current_lines
+            if _active_volume_name_from_lines(current_lines, *volume_names)
+            == "split_cycle_vol_a"
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        if "hex invert j compare" not in _footer_text_from_lines(lines):
+            lines = tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda current_lines: current_lines
+                if "hex invert j compare" in _footer_text_from_lines(current_lines)
+                else False,
+                timeout=1.5,
+            )
+            assert lines, _screen_text(tui)
+        source_left_after_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_left_after_cycle == source_left_expected, (
             "Left split panel lost its own per-volume file selection.\n"
             f"Expected: {source_left_expected}\n"
             f"Actual:   {source_left_after_cycle}\n{_screen_text(tui)}"
         )
 
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        if "hex invert j compare" not in _footer_text(tui):
-            tui.send_keystroke(Keys.ENTER, wait=0.4)
-        source_right_before_cycle = run_compare_and_read_source()
+        lines = tui.send_and_wait_for_screen_change(Keys.TAB, timeout=1.5)
+        assert lines, _screen_text(tui)
+        if "hex invert j compare" not in _footer_text_from_lines(lines):
+            lines = tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda current_lines: current_lines
+                if "hex invert j compare" in _footer_text_from_lines(current_lines)
+                else False,
+                timeout=1.5,
+            )
+            assert lines, _screen_text(tui)
+        source_right_before_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_right_before_cycle == source_right_expected, (
             "Cycling the left split panel leaked selection into right panel.\n"
             f"Expected: {source_right_expected}\n"
             f"Actual:   {source_right_before_cycle}\n{_screen_text(tui)}"
         )
 
-        tui.send_keystroke(">", wait=0.8)
-        assert active_volume_name() == "split_cycle_vol_b", _screen_text(tui)
-        if "hex invert j compare" not in _footer_text(tui):
-            tui.send_keystroke(Keys.ENTER, wait=0.4)
-        tui.send_keystroke("<", wait=0.8)
-        assert active_volume_name() == "split_cycle_vol_a", _screen_text(tui)
-        if "hex invert j compare" not in _footer_text(tui):
-            tui.send_keystroke(Keys.ENTER, wait=0.4)
-        source_right_after_cycle = run_compare_and_read_source()
+        lines = tui.send_and_wait_for_condition(
+            ">",
+            lambda current_lines: current_lines
+            if _active_volume_name_from_lines(current_lines, *volume_names)
+            == "split_cycle_vol_b"
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        if "hex invert j compare" not in _footer_text_from_lines(lines):
+            lines = tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda current_lines: current_lines
+                if "hex invert j compare" in _footer_text_from_lines(current_lines)
+                else False,
+                timeout=1.5,
+            )
+            assert lines, _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            "<",
+            lambda current_lines: current_lines
+            if _active_volume_name_from_lines(current_lines, *volume_names)
+            == "split_cycle_vol_a"
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
+        if "hex invert j compare" not in _footer_text_from_lines(lines):
+            lines = tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda current_lines: current_lines
+                if "hex invert j compare" in _footer_text_from_lines(current_lines)
+                else False,
+                timeout=1.5,
+            )
+            assert lines, _screen_text(tui)
+        source_right_after_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_right_after_cycle == source_right_expected, (
             "Right split panel lost its own per-volume file selection.\n"
             f"Expected: {source_right_expected}\n"
             f"Actual:   {source_right_after_cycle}\n{_screen_text(tui)}"
         )
 
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        if "hex invert j compare" not in _footer_text(tui):
-            tui.send_keystroke(Keys.ENTER, wait=0.4)
-        source_left_after_right_cycle = run_compare_and_read_source()
+        lines = tui.send_and_wait_for_screen_change(Keys.TAB, timeout=1.5)
+        assert lines, _screen_text(tui)
+        if "hex invert j compare" not in _footer_text_from_lines(lines):
+            lines = tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda current_lines: current_lines
+                if "hex invert j compare" in _footer_text_from_lines(current_lines)
+                else False,
+                timeout=1.5,
+            )
+            assert lines, _screen_text(tui)
+        source_left_after_right_cycle = _run_compare_and_read_source(
+            tui, compare_target, log_path
+        )
         assert source_left_after_right_cycle == source_left_expected, (
             "Right-panel cycling leaked back into left panel selection.\n"
             f"Expected: {source_left_expected}\n"

@@ -1,0 +1,53 @@
+Work item: Patch 1 TUI Test Harness Latency Optimization
+Branch: perf/tui-harness-latency
+Draft PR: https://github.com/robkam/ytreenova/pull/399
+Selected family: event-driven PTY wait helpers plus the three slow panel-isolation regressions that spent most runtime in fixed sleeps and repeated full-screen polling.
+Source of truth:
+- User focus action: Patch 1 TUI Test Harness Latency Optimization.
+- docs/ROADMAP.md Task 8 (test architecture / fixture-helper conventions); docs/ROADMAP.md is included in this branch and the maintainer's existing Task 41/43 edits were preserved.
+
+Inventory
+- Test harness runtime surfaces:
+  - tests/tui_harness.py
+    - YtreeNovaTUI._read_output
+    - YtreeNovaTUI.send_keystroke
+    - YtreeNovaTUI.get_screen_dump
+    - YtreeNovaTUI.wait_for_content
+    - new dynamic helpers for this family: peek_screen_dump, wait_for_condition, wait_for_text, send_and_wait_for_condition, send_and_wait_for_screen_change
+- Shared UI helper surfaces:
+  - tests/helpers_ui.py
+    - footer_lines
+    - footer_text
+    - new line-based footer helpers: footer_lines_from_lines, footer_text_from_lines
+- Target regression surfaces:
+  - tests/test_panel_isolation.py
+    - test_smallwindowskip_volume_cycle_restores_deep_file_context
+    - test_split_file_selection_preserves_panel_local_volume_cycle_state
+    - test_enter_repo_src_preserves_tree_viewport_anchor
+    - shared helper usage touched by those tests: _active_volume_name_from_lines, _wait_for_footer_state, _run_compare_and_read_source
+- Source-of-truth / docs surface:
+  - docs/ROADMAP.md (Task 8 helper convention note)
+- Recovery / cleanup surfaces:
+  - stale tracked relay deletion already present: .agent/handoffs/task-44-fileinfo-band.txt
+  - active relay for this work item: .agent/handoffs/patch-1-tui-harness-latency.txt
+
+Closure reconciliation
+- tests/tui_harness.py: addressed (dynamic event-driven wait API added; immutable line snapshots now back screen-diff polling).
+- tests/helpers_ui.py: addressed (footer extraction now works from existing line snapshots so polling loops do not keep re-reading and rejoining the full screen).
+- tests/test_panel_isolation.py targeted trio: addressed (rewritten to use event-driven waits and shared compare/footer helpers while preserving the original behavioral assertions).
+- docs/ROADMAP.md: addressed (Task 8 now records the PTY helper convention that this branch implements).
+- .agent/handoffs/task-44-fileinfo-band.txt: addressed (stale completed relay remains deleted so unrelated residue does not survive into the next PR).
+- Deferred/blocked: none within this Patch 1 family.
+
+Validation
+- Baseline before edits:
+  - `source .venv/bin/activate && TERM=xterm pytest -q tests/test_panel_isolation.py -k 'test_smallwindowskip_volume_cycle_restores_deep_file_context or test_split_file_selection_preserves_panel_local_volume_cycle_state or test_enter_repo_src_preserves_tree_viewport_anchor' --durations=0`
+  - Result: 3 passed in 82.39s; slowest calls were 30.04s, 26.97s, and 24.81s respectively.
+- Final targeted timing after edits:
+  - `source .venv/bin/activate && TERM=xterm pytest -q tests/test_panel_isolation.py -k 'test_smallwindowskip_volume_cycle_restores_deep_file_context or test_split_file_selection_preserves_panel_local_volume_cycle_state or test_enter_repo_src_preserves_tree_viewport_anchor' --durations=0`
+  - Result: 3 passed in 42.29s; slowest calls were 17.63s, 15.20s, and 9.25s respectively.
+- Full requested file validation:
+  - `source .venv/bin/activate && TERM=xterm pytest -q tests/test_panel_isolation.py`
+  - Result: 76 passed in 612.66s.
+- Hygiene:
+  - `git diff --check`
