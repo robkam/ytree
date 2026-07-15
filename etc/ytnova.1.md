@@ -74,12 +74,12 @@ Activated by **F7**. The screen layout changes to show the file list on the left
 
 # KEY BINDINGS
 
-**Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope.
+**Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-`Ctrl` footer variant, and Ctrl-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
 
 ### Global Commands
 These commands work in most modes:
 
-*   **F1**: Help (context-sensitive in prompts/dialogs).
+*   **F1**: Help (context-sensitive in prompts/dialogs, including prompt-specific syntax such as `{}` placeholders and tagged-flow semantics).
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Pane.
@@ -146,8 +146,8 @@ Active when browsing the directory tree window.
 *   **U** (Untag): Untag all files in the selected directory.
 *   **V** (MoveDir): Move the selected directory branch.
 *   **W** (Write): Export files in the selected directory to a command or file using a formatting dialog (Raw, Framed, Page Break).
-*   **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
-*   **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytnova archives the tagged files. If nothing is tagged, ytnova archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
+*   **X** (eXecute): Execute a shell command. Leave `{}` unquoted; ytnova replaces it with the current directory path and shell-quotes the expanded path. Prompt **F1** also explains the tagged-file `^X` repeat path.
+*   **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytnova archives the tagged files. If nothing is tagged, ytnova archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`. Prompt **F1** repeats the suffix list plus the tagged-vs-current-selection rule.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **1 .. 4** (Dir Mode): Select the active panel's base directory/file view while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner, `4` Times. `5`, `7`, `8`, and `9` update the panel's file projection; `6` toggles panel-wide row size units; `0` is unused; `9` is a silent no-op outside Git worktrees.
 *   **Enter**: On logged directories, switch to File Mode (focus the file window). On unlogged/not-yet-scanned directories, perform one-level log/reveal (same behavior as `+`) and stay in Directory Mode.
@@ -180,7 +180,7 @@ Active when the file window is focused.
 *   **P** (Pipe, or **|**): Pipe content of file to a command (stdin).
 *   **R** (Rename): Rename the selected file.
 *   **S** (Sort): Sort filelist (Access time, Change time, Extension, Group, Modification time, Name, Owner, Size).
-*   **^S** (Search): Execute grep on tagged files. Untags files that do not match the command.
+*   **^S** (Search): Execute grep on tagged files. The prompt expects search text, not a full grep command; ytnova builds `grep -i -- PATTERN {}` internally and untags files that do not match. Prompt **F1** summarizes the tagged-scope behavior.
 *   **T** (Tag): Tag selected file.
 *   **^T**: Tag all displayed files.
 *   **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase `u`
@@ -190,7 +190,7 @@ Active when the file window is focused.
 *   **V** (View): View file with the pager defined in the main config (default: less).
 *   **^V**: **View Tagged**. View all tagged files sequentially.
 *   **W** (Write): Export the selected file to a command or file using a formatting dialog (Raw, Framed, Page Break).
-*   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
+*   **X** (eXecute): Execute a shell command. Leave `{}` unquoted; ytnova replaces it with the selected file path and shell-quotes the expanded path. Prompt **F1** also explains the tagged-file `^X` repeat path.
 *   **Y**: (Pathcopy): Copy selected file, replicating its directory structure relative to the current volume root.
 *   **Z** (archive): Create an archive from tagged files, or from the selected file/directory when nothing is tagged. Directory sources are archived recursively.
 *   **1 .. 4** (Base View): Select the file or directory base view for the active panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`, `3`, or `4` again to return to `1`.
@@ -245,7 +245,7 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytnova behaves like a virtual fi
 *   **P** (Pipe, or **|**): Pipe content to command.
 *   **R** (Rename): Rename selected archive file entry.
 *   **S** (Sort): Sort file list.
-*   **^S** (Search): Search tagged files for a string. Untags files that do not match.
+*   **^S** (Search): Search tagged files for a string. The prompt expects search text, not a full grep command; ytnova builds `grep -i -- PATTERN {}` internally and untags files that do not match. Prompt **F1** summarizes the tagged-scope behavior.
 *   **T** (Tag): Tag selected file.
 *   **^T**: Tag all files.
 *   **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase `u`

@@ -275,6 +275,26 @@ static const HelpCommandStrip file_help_builtin[MAX_MODES][2] = {
        sizeof(file_help_disk_mode_1_commands) /
            sizeof(file_help_disk_mode_1_commands[0]) }}};
 
+static void ApplyViFileHelpOverrides(const ViewContext *ctx,
+                                     UICommandStripCommand *commands,
+                                     size_t command_count) {
+  size_t i;
+
+  if (!IsViKeysEnabled(ctx) || commands == NULL)
+    return;
+
+  for (i = 0; i < command_count; ++i) {
+    if (commands[i].label == NULL)
+      continue;
+
+    if (strcmp(commands[i].label, "Delete") == 0) {
+      commands[i].primary_key = "d";
+    } else if (strcmp(commands[i].label, "Untag") == 0) {
+      commands[i].primary_key = "u";
+    }
+  }
+}
+
 static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
                                    const HelpCommandStrip *strip) {
   int prefix_width;
@@ -356,8 +376,23 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     return;
 
   werase(ctx->ctx_menu_window);
-  for (i = 0; i < 2; i++)
-    DisplayBuiltInHelpLine(ctx, i, &file_help_builtin[ctx->view_mode][i]);
+  for (i = 0; i < 2; i++) {
+    const HelpCommandStrip *builtin = &file_help_builtin[ctx->view_mode][i];
+
+    if (builtin->commands != NULL && builtin->command_count > 0 &&
+        IsViKeysEnabled(ctx)) {
+      HelpCommandStrip resolved = *builtin;
+      UICommandStripCommand resolved_commands[builtin->command_count];
+
+      memcpy(resolved_commands, builtin->commands,
+             builtin->command_count * sizeof(resolved_commands[0]));
+      ApplyViFileHelpOverrides(ctx, resolved_commands, builtin->command_count);
+      resolved.commands = resolved_commands;
+      DisplayBuiltInHelpLine(ctx, i, &resolved);
+    } else {
+      DisplayBuiltInHelpLine(ctx, i, builtin);
+    }
+  }
   if (dir_entry && dir_entry->global_flag) {
     nav_strip = &file_help_nav_builtin[1];
   } else {
@@ -394,6 +429,8 @@ void DisplayPreviewHelp(ViewContext *ctx) {
 }
 
 void ClearHelp(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
   if (ctx->ctx_menu_window) {
     werase(ctx->ctx_menu_window);
     wnoutrefresh(ctx->ctx_menu_window);
