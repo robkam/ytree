@@ -22,6 +22,10 @@ on:
       - etc/ytnova.1.md
   workflow_dispatch:
 
+concurrency:
+  group: fedora-rawhide-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   fedora-rawhide-gcc:
     name: Fedora Rawhide GCC build/install smoke
