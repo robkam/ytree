@@ -728,13 +728,15 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   **Context Contract:** `F1` help must be contextual by active runtime surface, not a single generic command dump. The help surface must resolve against the currently active directory/tree view, file view, archive view, Showall/Global view, split/preview layout, and prompt/dialog state.
-*   **Sequencing Note:** Prefer to land the Ctrl-held/transient footer variant before this task so the integrated help system can target the real footer/runtime guidance surfaces instead of documenting an older footer contract.
+*   **Sequencing Note:** Prefer to land Task 42's final portable footer/help wording contract before this task so the integrated help system documents the intended low-noise runtime guidance surfaces rather than an abandoned transient-footer idea.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 42: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good; redundant duplicate bindings should not be listed).
 *   **VI Mode Signaling**: Ensure footer help lines dynamically reflect uppercase commands (e.g., `(K) Vol` instead of `(k) Vol`) when `VI_KEYS=1` is active to avoid navigation collisions.
-*   **Ctrl-Held Footer Signaling:** While `Ctrl` is physically held, show the `Ctrl` shortcut footer and keep it visible for the full hold duration. On `Ctrl` release, immediately restore the normal context footer. This is transient key-state feedback, not a toggle mode.
+*   **Portability Decision:** Do **not** require a held-`Ctrl` footer variant. On the supported portable target set (current Linux, BSD, illumos, and Hurd terminal stacks), bare `Ctrl` press/release state is not a reliable cross-terminal input primitive, so a footer that changes only while `Ctrl` is physically held is out of scope for the canonical UX contract.
+*   **Noise Budget Decision:** Do **not** replace the held-`Ctrl` idea with a permanently noisy fallback such as `Copy/^Copy`, `C/^Copy`, or a tagged-state footer variant that appears only after tagging. The common footer must stay clean enough for new users to operate without help-menu friction.
+*   **Discoverability Contract:** Keep the live footer focused on always-relevant, low-noise bindings plus non-redundant alternates (for example `(C)opy/(^K)` and `(M)ove/(^N)` where the alternate actually differs). Put Ctrl-only tagged/search-oriented operations and their semantics in `F1` help and prompt wording instead of trying to surface every one of them in the footer.
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   - [ ] **Status:** Not Started.
 
@@ -743,12 +745,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Footer and F1 are the primary in-app guidance surfaces; they must match exactly while keeping F1 brief and pushing detail to manpage/USAGE.
 *   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer/help/prompt mismatch (discoverability + confidence).
 *   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
-*   **Sequencing Note:** Land the Ctrl-held/transient footer variant before this task so parity is enforced against the intended final footer states rather than an intermediate subset.
+*   **Sequencing Note:** Land Task 42's portable low-noise footer/help wording decisions before this task so parity is enforced against the final portable footer contract rather than a transient modifier-held variant.
 *   **Scope Lock:** Help contract, coverage matrix, and text-structure readiness only; no command behavior changes in this task.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching F1 help set with concise wording and no essay-style descriptions.
 *   For active prompt contexts, footer lists currently available prompt actions; F1 may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
-*   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, `VI_KEYS=1` variants, and Ctrl-held footer variant.
+*   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, prompt flows with Ctrl-only tagged/search semantics, and `VI_KEYS=1` variants.
 *   Numeric FileInfo band coverage is explicit: when the footer compresses `1..0 dir view` / `1..0 file view`, the matching `F1` help must briefly decode the active-surface semantics for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, Git, and the current no-op `0`.
 *   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
 *   Help text paths are structured for gettext extraction/reuse (no duplicated ad-hoc strings per view path).
@@ -1216,7 +1218,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 62: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
-*   **Sequencing dependency:** Implement after Task 45 (Ctrl-held footer signaling + footer wording cleanup). Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
+*   **Sequencing dependency:** Implement after Task 42's portable footer/help wording cleanup. Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
 *   **Config contract:** Select a keymap profile via `ytnova.conf` (opt-in). Locale-oriented profiles are allowed as explicit user choices, for example an English mnemonic profile can bind `C` to `Copy`, while a German mnemonic profile can bind `K` to `Kopieren` and `L` to `Löschen`. The shipped default keymap must remain portable and internally consistent, but compatibility with old confusing UI wording is not a reason to preserve that wording.
 *   **Display contract:** Footer/help text must render active key tokens plus localized command labels together (for example active binding `C` + translated label `Copy` -> `(C)opy`) so runtime hints always match active bindings. Key tokens are data from the keymap, labels are data from localization, and punctuation/styling are renderer-owned.
 *   **Legacy menu override contract:** The existing `[MENU]` text override only changes displayed text and does not change keyboard behavior. It may remain as an expert display override during migration, but it is not the final localization/keybinding model and must not be used as a substitute for real keymap-driven labels.

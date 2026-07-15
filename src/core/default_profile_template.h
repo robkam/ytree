@@ -133,6 +133,7 @@ static const char default_profile_template[] =
     "# The values DIR1, DIR2, FILE1, and FILE2 in the [MENU] section redefine the text\n"
     "# presented in menu lines 1 and 2 of the DIR and FILE windows, respectively.  The\n"
     "# mapping of the keyboard is not changed here, just the text presented to the user.\n"
+    "# These legacy display overrides do not auto-track VI_KEYS/runtime footer variants.\n"
     "######################################\n"
     "\n"
     "[MENU]\n"

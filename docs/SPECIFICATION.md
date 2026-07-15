@@ -325,7 +325,7 @@ These flows may differ in user-facing action, but they must not use different re
 *   **Transient:** Non-critical status (e.g., "File copied"). Appears in the Message row. Disappears on the next keystroke.
 *   **Sticky/Warning:** Requires acknowledgment or input (e.g., "Delete file? Y/N" or "Path not found"). Stays in the footer until the user responds or hits a key to clear the warning.
 *   **Outcome Clarity Rule:** Successful commands may remain quiet, but ytnova MUST NOT appear successful while doing nothing. No-op/skip/error outcomes must be explicit and user-visible.
-*   **Modifier-Held Shortcut Footer:** While `Ctrl` is physically held, the footer MUST switch to the `Ctrl` shortcut help set and remain visible for the full hold duration. On `Ctrl` release, the footer MUST immediately return to the normal context help. This is transient key-state behavior, not a toggle.
+*   **Portable Footer Rule:** The default footer MUST remain portable across the supported terminal target set and MUST NOT depend on bare `Ctrl` press/release state. Ctrl-only tagged/search variants stay out of the always-visible footer and are explained through the active prompt/`F1` help instead.
 
 ### 6.2 Modal Messages (Centered Box)
 A bordered pop-up box that overlays the center of the screen, used for:
@@ -343,7 +343,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Visual Rule:** Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place. Literal key tokens such as `Esc`, `Enter`, `Up`, `Down`, and function keys render as key tokens, not as synthetic words.
 *   **Text-Notation Rule:** In plain-text docs and tests, `(K)eyword` notation is the durable way to describe that in-place highlight when color cannot be shown directly.
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
-*   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and Ctrl-held footer variants.
+*   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and for prompt flows that document Ctrl-only tagged/search actions without a held-`Ctrl` footer state.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
 *   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
 

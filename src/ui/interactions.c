@@ -7,6 +7,7 @@
 
 #include "sort.h"
 #include "watcher.h"
+#include "ytnova_appstate_focus.h"
 #include "ytnova_appstate_panel.h"
 #include "ytnova_cmd.h"
 #include "ytnova_dialog.h"
@@ -30,6 +31,16 @@
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
 
+typedef enum {
+  PROMPT_HELP_EXECUTE_DIRECTORY = 0,
+  PROMPT_HELP_EXECUTE_FILE,
+  PROMPT_HELP_SEARCH_TAGGED,
+  PROMPT_HELP_CREATE_ARCHIVE
+} PromptHelpTopic;
+
+static const UICommandStripCommand prompt_help_close_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close help", "F1", "Esc"}};
+
 static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   int written;
 
@@ -45,6 +56,135 @@ static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   } else if ((size_t)written >= dst_size) {
     dst[dst_size - 1] = '\0';
   }
+}
+
+static void GetPromptHelpLines(PromptHelpTopic topic, const char **title,
+                               const char **line_0, const char **line_1,
+                               const char **line_2) {
+  if (!title || !line_0 || !line_1 || !line_2)
+    return;
+
+  *title = "Prompt Help";
+
+  switch (topic) {
+  case PROMPT_HELP_EXECUTE_DIRECTORY:
+    *line_0 = "Use {} where the current directory path should be inserted.";
+    *line_1 = "Leave {} unquoted; ytnova shell-quotes the expanded path.";
+    *line_2 = "^X reruns the command for each tagged file in the active list.";
+    break;
+  case PROMPT_HELP_EXECUTE_FILE:
+    *line_0 = "{} expands to the selected file path.";
+    *line_1 = "Leave {} unquoted; ytnova shell-quotes the expanded path.";
+    *line_2 = "^X reruns the command for each tagged file.";
+    break;
+  case PROMPT_HELP_SEARCH_TAGGED:
+    *line_0 = "Enter text only; ytnova runs grep -i -- PATTERN {}.";
+    *line_1 = "Only tagged files are searched, and non-matches are untagged.";
+    *line_2 = "This prompt documents the Ctrl-only tagged search path.";
+    break;
+  case PROMPT_HELP_CREATE_ARCHIVE:
+  default:
+    *line_0 = "Use .tar, .tar.gz/.tgz, .tar.bz2/.tbz2, .tar.xz/.txz, or .zip.";
+    *line_1 =
+        "Tagged files win; otherwise ytnova archives the current selection.";
+    *line_2 = "Directory selections are archived recursively.";
+    break;
+  }
+}
+
+static void ShowPromptHelpPopup(ViewContext *ctx, PromptHelpTopic topic) {
+  WINDOW *win;
+  const char *title = NULL;
+  const char *line_0 = NULL;
+  const char *line_1 = NULL;
+  const char *line_2 = NULL;
+  const char *help_lines[3];
+  int height;
+  int i;
+  int width;
+  int win_x;
+  int win_y;
+
+  if (!ctx)
+    return;
+
+  GetPromptHelpLines(topic, &title, &line_0, &line_1, &line_2);
+  help_lines[0] = line_0;
+  help_lines[1] = line_1;
+  help_lines[2] = line_2;
+
+  width = StrVisualLength((char *)title) + 8;
+  for (i = 0; i < 3; ++i) {
+    int line_len = StrVisualLength((char *)help_lines[i]) + 4;
+
+    if (line_len > width)
+      width = line_len;
+  }
+  if (UI_CommandStripVisualLength(prompt_help_close_commands,
+                                  sizeof(prompt_help_close_commands) /
+                                      sizeof(prompt_help_close_commands[0])) +
+          4 >
+      width) {
+    width = UI_CommandStripVisualLength(prompt_help_close_commands,
+                                        sizeof(prompt_help_close_commands) /
+                                            sizeof(prompt_help_close_commands[0])) +
+            4;
+  }
+
+  width = MINIMUM(width, COLS - 4);
+  width = MAXIMUM(width, 48);
+  height = 7;
+  win_x = MAXIMUM(1, (COLS - width) / 2);
+  win_y = MAXIMUM(1, (LINES - height) / 2);
+
+  win = newwin(height, width, win_y, win_x);
+  if (!win)
+    return;
+
+  UI_Dialog_Push(win, UI_TIER_MODAL);
+  keypad(win, TRUE);
+  WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));
+  curs_set(0);
+
+  while (1) {
+    int ch;
+
+    werase(win);
+#ifdef COLOR_SUPPORT
+    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
+    box(win, 0, 0);
+#ifdef COLOR_SUPPORT
+    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+#endif
+    mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength((char *)title)) / 2),
+              "%s", title);
+    for (i = 0; i < 3; ++i)
+      mvwprintw(win, 2 + i, 2, "%.*s", width - 4, help_lines[i]);
+    UI_RenderCommandStrip(win, height - 2, 2, prompt_help_close_commands,
+                          sizeof(prompt_help_close_commands) /
+                              sizeof(prompt_help_close_commands[0]),
+                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
+    wrefresh(win);
+
+    ch = WGetch(ctx, win);
+    if (ch == ERR)
+      continue;
+    if (ch == KEY_F(1) || ch == ESC || ch == CR || ch == LF)
+      break;
+  }
+
+  UI_Dialog_Close(ctx, win);
+}
+
+static int ShowPromptHelpCallback(ViewContext *ctx, void *help_data) {
+  PromptHelpTopic topic = PROMPT_HELP_EXECUTE_FILE;
+
+  if (help_data != NULL)
+    topic = *(PromptHelpTopic *)help_data;
+
+  ShowPromptHelpPopup(ctx, topic);
+  return 0;
 }
 
 static void DrawSortPrompt(ViewContext *ctx, WINDOW *win, BOOL ascending) {
@@ -423,6 +563,7 @@ int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload)
   char destination_path[PATH_LENGTH + 1];
   const char *filename = NULL;
   int input_result;
+  PromptHelpTopic help_topic = PROMPT_HELP_CREATE_ARCHIVE;
   struct stat dest_stat;
   int prompt_written;
   char overwrite_prompt[PATH_LENGTH + 64];
@@ -433,10 +574,11 @@ int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload)
     return -1;
 
   destination_input[0] = '\0';
-  input_result = UI_ReadString(
+  input_result = UI_ReadStringWithHelp(
       ctx, ctx->active,
       "Create archive: (suffix .tar .tar.gz/.tgz .tar.bz2/.tbz2 .tar.xz/.txz .zip) ",
-      destination_input, PATH_LENGTH, HST_FILE);
+      destination_input, PATH_LENGTH, HST_FILE, NULL, 0,
+      ShowPromptHelpCallback, &help_topic);
   if (input_result != CR || destination_input[0] == '\0')
     return 1;
 
@@ -568,11 +710,21 @@ int UI_ArchiveCallback(int status, const char *msg, void *user_data) {
 
 int GetCommandLine(ViewContext *ctx, char *command_line) {
   int result = -1;
+  PromptHelpTopic help_topic = PROMPT_HELP_EXECUTE_FILE;
+  const char *prompt = "COMMAND:";
+
+  if (!ctx || !ctx->active || !command_line)
+    return -1;
 
   ClearHelp(ctx);
 
-  if (UI_ReadString(ctx, ctx->active, "COMMAND:", command_line,
-                    COMMAND_LINE_LENGTH, HST_EXEC) == CR) {
+  if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE) {
+    help_topic = PROMPT_HELP_EXECUTE_DIRECTORY;
+  }
+
+  if (UI_ReadStringWithHelp(ctx, ctx->active, prompt, command_line,
+                            COMMAND_LINE_LENGTH, HST_EXEC, NULL, 0,
+                            ShowPromptHelpCallback, &help_topic) == CR) {
     result = 0;
   }
 
@@ -587,13 +739,15 @@ int GetSearchCommandLine(ViewContext *ctx, char *command_line,
                          char *search_pattern) {
   int result = -1;
   char input_buf[256];
+  PromptHelpTopic help_topic = PROMPT_HELP_SEARCH_TAGGED;
 
   ClearHelp(ctx);
 
   input_buf[0] = '\0';
 
-  if (UI_ReadString(ctx, ctx->active, "SEARCH TAGGED:", input_buf, 256,
-                    HST_SEARCH) == CR) {
+  if (UI_ReadStringWithHelp(ctx, ctx->active, "SEARCH TAGGED:",
+                            input_buf, 256, HST_SEARCH, NULL, 0,
+                            ShowPromptHelpCallback, &help_topic) == CR) {
     size_t command_len;
 
     if (search_pattern) {
