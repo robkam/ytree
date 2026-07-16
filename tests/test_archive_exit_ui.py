@@ -1205,9 +1205,13 @@ def test_missing_profile_f10_unchanged_edit_creates_profile(tmp_path, ytnova_bin
             "profile header, not a stripped key dump."
         )
         assert "[GLOBAL]" in profile_text, "Profile buffer should include [GLOBAL]."
-        assert "[MENU]" in profile_text and "[DIRMAP]" in profile_text, (
-            "Missing-profile F10 bootstrap should preserve the documented "
-            "starter sections for later customization."
+        assert "\n[MENU]\n" not in profile_text and "\n[DIRMAP]\n" not in profile_text, (
+            "Missing-profile F10 bootstrap should no longer keep legacy command "
+            "customization sections inside ytnova.conf."
+        )
+        assert "commands.conf" in profile_text, (
+            "Missing-profile F10 bootstrap should point users at commands.conf "
+            "for command customization."
         )
         assert f"EDITOR={unchanged_editor}" in profile_text, (
             "Missing-profile F10 bootstrap should seed from the active in-memory "
@@ -1283,6 +1287,67 @@ def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_b
             encoding="utf-8"
         ), (
             "An unchanged missing-themes edit must persist the starter themes catalog verbatim."
+        )
+    finally:
+        tui.quit()
+
+
+def test_missing_commands_f10_unchanged_edit_keeps_starter_file(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "missing_commands_f10_unchanged_edit"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    editor_capture = root / "f10_default_commands_snapshot.txt"
+    unchanged_editor = root / "unchanged_commands_editor.sh"
+    unchanged_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    unchanged_editor.chmod(0o755)
+
+    commands_path = root / ".config" / "ytnova" / "commands.conf"
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(unchanged_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        commands_path.unlink(missing_ok=True)
+        assert not commands_path.exists()
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.2)
+        tui.send_keystroke("m", wait=0.2)
+
+        for _ in range(20):
+            if editor_capture.exists():
+                break
+            time.sleep(0.1)
+        assert editor_capture.exists(), (
+            "F10 -> Commands on a missing commands file must open an editable default commands buffer."
+        )
+        commands_text = editor_capture.read_text(encoding="utf-8")
+        assert "context | binding | shown | label | action | command" in commands_text, (
+            "Default commands buffer should include the canonical commands.conf columns."
+        )
+        assert "dir | A | A | Attributes | ACTION_CMD_A |" in commands_text, (
+            "Default commands buffer should include live built-in command rows."
+        )
+        assert commands_path.exists(), (
+            "A successful F10 -> Commands edit of a missing file must keep the starter commands file."
+        )
+        assert commands_path.read_text(encoding="utf-8") == commands_text, (
+            "An unchanged missing-commands edit must persist the starter commands catalog verbatim."
         )
     finally:
         tui.quit()
@@ -1497,9 +1562,12 @@ def test_removed_legacy_profile_f10_recreates_xdg_not_dotfile(
             "Recreated XDG profiles should keep the commented starter template, "
             "not rewrite the file as a stripped key dump."
         )
-        assert "[MENU]" in profile_text and "[DIRMAP]" in profile_text, (
-            "Recreated XDG profiles should keep the starter customization "
-            "sections for later editing."
+        assert "\n[MENU]\n" not in profile_text and "\n[DIRMAP]\n" not in profile_text, (
+            "Recreated XDG profiles should not restore legacy command "
+            "customization sections into ytnova.conf."
+        )
+        assert "commands.conf" in profile_text, (
+            "Recreated XDG profiles should point command customization at commands.conf."
         )
         assert "TREEDEPTH=7" in profile_text, (
             "When the legacy profile has been removed, F10 should seed the new "

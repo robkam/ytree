@@ -26,6 +26,10 @@ def _total_items_count(tui):
     return None
 
 
+def _screen_contains_text(tui, target):
+    return any(target in line for line in tui.get_screen_dump())
+
+
 def _row_style_spans(tui, row, width=120):
     spans = []
     buffer = tui.screen.buffer
@@ -58,6 +62,29 @@ def _span_containing(tui, needle, width=120):
             if needle in text:
                 return row, start, end, style, text
     raise AssertionError(f"Could not find styled span containing {needle!r}.\n{get_screen_text(tui)}")
+
+
+def _has_exact_span_text(tui, target, width=120):
+    for row, line in enumerate(tui.get_screen_dump()):
+        if target not in line:
+            continue
+        for _, _, _, text in _row_style_spans(tui, row, width=width):
+            if text == target:
+                return True
+    return False
+
+
+def _move_selection_to_exact_span(tui, target, max_steps=12):
+    for _ in range(max_steps):
+        if _has_exact_span_text(tui, target):
+            return
+        if not _screen_contains_text(tui, target):
+            tui.send_keystroke(Keys.RIGHT, wait=0.6)
+            continue
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+    raise AssertionError(
+        f"Could not move F2 selection to {target!r}.\n{get_screen_text(tui)}"
+    )
 
 def test_f2_log_and_cycle_volumes(tmp_path):
     """
@@ -167,7 +194,7 @@ def test_f2_right_expands_then_enters_and_left_collapses_or_returns_parent(tmp_p
         tui.send_keystroke(Keys.ENTER, wait=0.3)
 
         tui.send_keystroke(Keys.F2, wait=0.8)
-        tui.send_keystroke(Keys.DOWN, wait=0.3)   # alpha
+        _move_selection_to_exact_span(tui, "alpha")
         tui.send_keystroke(Keys.RIGHT, wait=0.6)  # expand alpha
         expanded = get_screen_text(tui)
         assert "child" in expanded, (
@@ -243,9 +270,14 @@ def test_f2_escape_can_abort_right_expand_scan(tmp_path):
         tui.send_keystroke(Keys.ENTER, wait=0.3)
 
         tui.send_keystroke(Keys.F2, wait=0.8)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)   # alpha
+        _move_selection_to_exact_span(tui, "alpha")
+        before_scan = tui.peek_screen_dump()
         tui.child.send(Keys.RIGHT)                # start subtree scan
-        time.sleep(0.02)
+        tui.wait_for_condition(
+            lambda lines: lines != before_scan,
+            timeout=0.2,
+            poll_interval=0.005,
+        )
         tui.child.send(Keys.ESC)                  # abort the scan mid-flight
         tui._read_output(timeout=0.8)
 
@@ -306,7 +338,7 @@ def test_f2_selection_stops_before_the_synthetic_expand_suffix(tmp_path):
         tui.send_keystroke(Keys.COPY, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.3)
         tui.send_keystroke(Keys.F2, wait=0.8)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        _move_selection_to_exact_span(tui, "alpha")
 
         _, _, _, _, text = _span_containing(tui, "alpha")
         assert text == "alpha", (

@@ -215,6 +215,8 @@ typedef struct _ViewContext ViewContext;
 #define PROFILE_FILENAME ".ytnova"
 #define THEME_CONFIG_HOME_PATH ".config/ytnova/themes.conf"
 #define THEME_FILENAME ".ytnova.themes"
+#define COMMANDS_CONFIG_HOME_PATH ".config/ytnova/commands.conf"
+#define COMMANDS_FILENAME ".ytnova.commands"
 #ifndef PACKAGED_THEME_PATH
 #define PACKAGED_THEME_PATH "/usr/local/share/ytnova/ytnova.themes"
 #endif
@@ -300,6 +302,13 @@ typedef enum UISemanticRolePair {
   NUM_UI_COLOR_PAIRS,
   F_COLOR_PAIR_BASE = 32
 } UISemanticRolePair;
+
+enum ConfigSurface {
+  CONFIG_SURFACE_PROFILE = 0,
+  CONFIG_SURFACE_THEME,
+  CONFIG_SURFACE_COMMANDS
+};
+typedef enum ConfigSurface ConfigSurface;
 
 #define UI_VIEWER_FRAME_PAIR NUM_UI_COLOR_PAIRS
 #define UI_KEYBIND_BASE_PAIR (UI_VIEWER_FRAME_PAIR + 1)
@@ -907,6 +916,7 @@ typedef struct {
   int (*read_group_entries)(void);
   int (*read_passwd_entries)(void);
   int (*read_profile)(ViewContext *ctx, const char *filename);
+  int (*load_commands)(ViewContext *ctx);
   int (*load_theme)(ViewContext *ctx);
   void (*read_history)(ViewContext *ctx, const char *filename);
   char *(*get_profile_value)(const ViewContext *ctx, const char *name);
@@ -968,12 +978,33 @@ extern void UI_CoreQuitCleanupVolumeTree(ViewContext *ctx);
 extern void UI_CoreQuitSuspendClock(ViewContext *ctx);
 extern void UI_CoreQuitShutdownTerminal(ViewContext *ctx);
 extern void CoreInitOps_RegisterCmdConfig(CoreInitOps *ops);
+extern void CoreInitOps_RegisterCmdCommands(CoreInitOps *ops);
 extern void CoreInitOps_RegisterCmdProfile(CoreInitOps *ops);
 extern void CoreInitOps_RegisterCmdTheme(CoreInitOps *ops);
 extern void CoreInitOps_RegisterUIRuntime(CoreInitOps *ops);
 extern void CoreMainOps_Register(ViewContext *ctx);
 extern void CoreStorageOps_Register(ViewContext *ctx);
 extern void CoreWatcherOps_Register(ViewContext *ctx);
+extern int ConfigPaths_EnsureHomeDirectory(const char *home);
+extern int ConfigPaths_ResolvePreferredPath(ConfigSurface surface, char *path,
+                                            size_t path_size);
+extern int ConfigPaths_ResolveLegacyPath(ConfigSurface surface, char *path,
+                                         size_t path_size,
+                                         BOOL allow_cwd_fallback);
+extern int ConfigPaths_ResolveBootstrapPath(ConfigSurface surface, char *path,
+                                            size_t path_size,
+                                            BOOL allow_cwd_fallback);
+extern int ConfigPaths_IsPreferredPath(ConfigSurface surface,
+                                       const char *path);
+extern int ConfigPaths_IsLegacyPath(ConfigSurface surface, const char *path);
+extern int ConfigPaths_ResolveActiveEditPath(const ViewContext *ctx,
+                                             ConfigSurface surface, char *path,
+                                             size_t path_size);
+extern int ConfigPaths_ResolveLoadedOrBootstrapPath(const ViewContext *ctx,
+                                                    ConfigSurface surface,
+                                                    char *path,
+                                                    size_t path_size,
+                                                    BOOL allow_cwd_fallback);
 
 extern void UI_Dialog_Init(void);
 extern char *GetProfileValue(const ViewContext *ctx, const char *name);
@@ -1054,6 +1085,7 @@ typedef struct _ViewContext {
   char configuration_file_path[PATH_LENGTH + 1];
   BOOL configuration_file_path_is_explicit;
   char history_file_path[PATH_LENGTH + 1];
+  char commands_file_path[PATH_LENGTH + 1];
   char theme_file_path[PATH_LENGTH + 1];
   char *confirm_quit;
   void *file_color_rules_head;

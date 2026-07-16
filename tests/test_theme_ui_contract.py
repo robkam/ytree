@@ -608,6 +608,7 @@ def test_theme_docs_capture_role_routing_invariants():
 
 def test_theme_editor_tracks_active_path_and_bootstraps_xdg_for_defaults():
     defs_source = _read("include/ytnova_defs.h")
+    config_paths_source = _read("src/core/config_paths.c")
     source = _read("src/ui/ui_edit_config.c")
     theme_source = _read("src/cmd/theme.c")
     default_theme_source = _read("src/core/default_theme_catalog.h")
@@ -616,16 +617,14 @@ def test_theme_editor_tracks_active_path_and_bootstraps_xdg_for_defaults():
         defs_source
     )
     assert '#define THEME_FILENAME ".ytnova.themes"' in defs_source
-    assert "THEME_CONFIG_HOME_PATH" in theme_source
-    assert "THEME_FILENAME" in theme_source
+    assert "THEME_CONFIG_HOME_PATH" in config_paths_source
+    assert "THEME_FILENAME" in config_paths_source
     assert "char theme_file_path[PATH_LENGTH + 1];" in defs_source
     assert "SetThemeFilePath(ctx, NULL);" in theme_source
     assert "SetThemeFilePath(ctx, path);" in theme_source
-    assert "EnsureConfigHomeDirectory(home) == 0" in source
-    assert "THEME_CONFIG_HOME_PATH" in source
-    assert "THEME_FILENAME" in source
-    assert "ctx->theme_file_path[0] != '\\0'" in source
-    assert 'snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);' in source
+    assert "ConfigPaths_ResolveLoadedOrBootstrapPath" in source
+    assert "CONFIG_SURFACE_THEME" in source
+    assert "ctx->theme_file_path[0] = '\\0';" in theme_source
     assert "Can't resolve themes file path" in source
     assert "EnsureThemesStarterFile(ctx, themes_path)" in source
     assert "EnsureConfigStarterFiles" not in source
@@ -658,10 +657,12 @@ def test_f10_surface_uses_required_command_strip_and_enter_default():
 
     assert (
         _command_strip_text(source, "config_command_strip")
-        == "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit"
+        == "(C)onfig  (M)ommands  (T)hemes  (R)eload  (Esc)/(Q)uit"
     )
     _assert_command_strip_uses_full_label_model(
-        source, "config_command_strip", ("Config", "Themes", "Reload", "Quit")
+        source,
+        "config_command_strip",
+        ("Config", "Commands", "Themes", "Reload", "Quit"),
     )
     assert "InputChoiceCommandStrip" in source
     assert "InputChoiceCommandStrip" in key_source
@@ -673,6 +674,7 @@ def test_f10_surface_uses_required_command_strip_and_enter_default():
     assert 'case CR:' in source
     assert 'case LF:' in source
     assert 'case \'C\':' in source
+    assert 'case \'M\':' in source
     assert 'case \'T\':' in source
     assert 'case \'R\':' in source
 

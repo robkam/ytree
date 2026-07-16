@@ -85,6 +85,9 @@ THEME_CATALOG_SCRIPT = scripts/generate_theme_catalog.py
 PROFILE_TEMPLATE_SRC = etc/ytnova.conf
 PROFILE_TEMPLATE_HDR = src/core/default_profile_template.h
 PROFILE_TEMPLATE_SCRIPT = scripts/generate_default_profile_template.py
+COMMANDS_CATALOG_SRC = etc/ytnova.commands
+COMMANDS_CATALOG_HDR = src/core/default_commands_catalog.h
+COMMANDS_CATALOG_SCRIPT = scripts/generate_default_commands_catalog.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
@@ -171,9 +174,9 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-code-quality qa-all \
+	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-code-quality qa-all \
 	ci-baseline mcp-doctor py-requirements \
-	qa-all-log qa-deep theme-catalog profile-template
+	qa-all-log qa-deep theme-catalog profile-template commands-catalog
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -224,10 +227,12 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	install -m 644 $(MANPAGE).gz $(MANDEST)/$(MAIN).1.gz
 	rm -f $(MANPAGE).gz
 	install -d -m 755 $(DATADEST)
+	install -m 644 etc/ytnova.commands $(DATADEST)/ytnova.commands
 	install -m 644 etc/ytnova.themes $(DATADEST)/ytnova.themes
 	@echo "Installation complete."
 	@echo "Binary: $(BINDEST)/$(MAIN)"
 	@echo "Manual: $(MANDEST)/$(MAIN).1.gz"
+	@echo "Commands: $(DATADEST)/ytnova.commands"
 	@echo "Themes: $(DATADEST)/ytnova.themes"
 
 # Uninstall all installed files
@@ -235,6 +240,7 @@ uninstall:
 	@echo "Uninstalling ytnova from $(PREFIX)..."
 	rm -f $(BINDEST)/$(MAIN)
 	rm -f $(MANDEST)/$(MAIN).1.gz
+	rm -f $(DATADEST)/ytnova.commands
 	rm -f $(DATADEST)/ytnova.themes
 	-rmdir $(DATADEST) 2>/dev/null || true
 	-rmdir $(MANDEST) 2>/dev/null || true
@@ -451,7 +457,15 @@ profile-template:
 	$(PYTHON) $(PROFILE_TEMPLATE_SCRIPT) --source $(PROFILE_TEMPLATE_SRC) \
 		--header $(PROFILE_TEMPLATE_HDR) --write
 
-qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template
+qa-commands-catalog:
+	$(PYTHON) $(COMMANDS_CATALOG_SCRIPT) --source $(COMMANDS_CATALOG_SRC) \
+		--header $(COMMANDS_CATALOG_HDR) --check
+
+commands-catalog:
+	$(PYTHON) $(COMMANDS_CATALOG_SCRIPT) --source $(COMMANDS_CATALOG_SRC) \
+		--header $(COMMANDS_CATALOG_HDR) --write
+
+qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 

@@ -218,11 +218,11 @@ def test_spec_documents_user_visible_theme_contract():
         in spec_source
     )
     assert (
-        "Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf` and `$XDG_CONFIG_HOME/ytnova/themes.conf`"
+        "Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, and `$XDG_CONFIG_HOME/ytnova/commands.conf`"
         in spec_source
     )
     assert (
-        "Home-directory fallback user paths are `~/.ytnova` and `~/.ytnova.themes`"
+        "Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, and `~/.ytnova.commands`"
         in spec_source
     )
     assert "runtime binaries must not consult `etc/` directly" in spec_source

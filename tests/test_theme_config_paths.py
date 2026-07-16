@@ -10,6 +10,7 @@ def _read(relative_path):
 
 def test_config_paths_prefer_xdg_and_use_home_fallback_only_when_xdg_is_unavailable():
     defs = _read("include/ytnova_defs.h")
+    config_paths_source = _read("src/core/config_paths.c")
     init_source = _read("src/core/init.c")
     edit_source = _read("src/ui/ui_edit_config.c")
     history_source = _read("src/util/history_utils.c")
@@ -22,10 +23,10 @@ def test_config_paths_prefer_xdg_and_use_home_fallback_only_when_xdg_is_unavaila
     assert '#define HISTORY_STATE_HOME_PATH "ytnova/ytnova.hst"' in defs
     assert '#define HISTORY_STATE_HOME_FALLBACK ".local/state/ytnova/ytnova.hst"' in defs
     assert '#define HISTORY_LEGACY_FILENAME ".ytnova-hst"' in defs
-    assert "PROFILE_CONFIG_HOME_PATH" in init_source
-    assert "PROFILE_FILENAME" in init_source
-    assert "PROFILE_CONFIG_HOME_PATH" in edit_source
-    assert "PROFILE_CONFIG_HOME_DIR" in edit_source
+    assert "PROFILE_CONFIG_HOME_PATH" in config_paths_source
+    assert "PROFILE_FILENAME" in config_paths_source
+    assert "ConfigPaths_ResolveActiveEditPath" in edit_source
+    assert "CONFIG_SURFACE_PROFILE" in edit_source
     assert "CreateProfileFromRuntimeState" in edit_source
     assert "HISTORY_STATE_HOME_ENV" in history_source
     assert "HISTORY_STATE_HOME_PATH" in history_source

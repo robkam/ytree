@@ -10,6 +10,7 @@
  ***************************************************************************/
 
 #define NO_YTNOVA_MACROS
+#include "../core/default_commands_catalog.h"
 #include "../core/default_profile_template.h"
 #include "../core/default_theme_catalog.h"
 #include "ytnova_appstate_layout.h"
@@ -27,6 +28,7 @@
 
 static const UICommandStripCommand config_command_strip[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Config", "C", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Commands", "M", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Themes", "T", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Reload", "R", NULL},
     {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Quit", "Esc", "Q"}};
@@ -39,8 +41,6 @@ typedef struct {
   int animation_method;
   int refresh_mode;
 } ReloadableProfileState;
-
-static int EnsureConfigHomeDirectory(const char *home);
 
 static int WriteAll(int fd, const char *buf, size_t len) {
   size_t written_total = 0;
@@ -90,78 +90,16 @@ static int WriteStarterFile(ViewContext *ctx, const char *path,
   return 1;
 }
 
-static int ResolvePreferredProfilePath(char *profile_path,
-                                       size_t profile_path_size) {
-  const char *home;
-
-  if (profile_path == NULL || profile_path_size == 0)
-    return -1;
-
-  profile_path[0] = '\0';
-  home = getenv("HOME");
-  if (home == NULL || *home == '\0')
-    return -1;
-  if (EnsureConfigHomeDirectory(home) != 0)
-    return -1;
-  {
-    int written = snprintf(profile_path, profile_path_size, "%s/%s", home,
-                           PROFILE_CONFIG_HOME_PATH);
-
-    if (written < 0 || written >= (int)profile_path_size) {
-      profile_path[0] = '\0';
-      return -1;
-    }
-  }
-  return 0;
-}
-
-static int ResolveLegacyProfilePath(char *profile_path,
-                                    size_t profile_path_size) {
-  const char *home;
-
-  if (profile_path == NULL || profile_path_size == 0)
-    return -1;
-
-  profile_path[0] = '\0';
-  home = getenv("HOME");
-  if (home && *home) {
-    int written = snprintf(profile_path, profile_path_size, "%s/%s", home,
-                           PROFILE_FILENAME);
-
-    if (written >= 0 && written < (int)profile_path_size)
-      return 0;
-  }
-
-  {
-    int written = snprintf(profile_path, profile_path_size, "%s",
-                           PROFILE_FILENAME);
-
-    if (written >= 0 && written < (int)profile_path_size)
-      return 0;
-  }
-
-  profile_path[0] = '\0';
-  return -1;
-}
-
 static int IsHomeLegacyProfilePath(const char *profile_path) {
-  char legacy_path[PATH_LENGTH + 1];
-
   if (profile_path == NULL || *profile_path == '\0')
     return 0;
-  if (ResolveLegacyProfilePath(legacy_path, sizeof(legacy_path)) != 0)
-    return 0;
-  return strcmp(profile_path, legacy_path) == 0;
+  return ConfigPaths_IsLegacyPath(CONFIG_SURFACE_PROFILE, profile_path);
 }
 
 static int IsPreferredProfilePath(const char *profile_path) {
-  char preferred_path[PATH_LENGTH + 1];
-
   if (profile_path == NULL || *profile_path == '\0')
     return 0;
-  if (ResolvePreferredProfilePath(preferred_path, sizeof(preferred_path)) != 0)
-    return 0;
-  return strcmp(profile_path, preferred_path) == 0;
+  return ConfigPaths_IsPreferredPath(CONFIG_SURFACE_PROFILE, profile_path);
 }
 
 static int CopyStarterFile(ViewContext *ctx, const char *source_path,
@@ -270,6 +208,13 @@ static int EnsureThemesStarterFile(ViewContext *ctx, const char *themes_path) {
   return result < 0 ? -1 : 0;
 }
 
+static int EnsureCommandsStarterFile(ViewContext *ctx,
+                                     const char *commands_path) {
+  int result =
+      WriteStarterFile(ctx, commands_path, default_commands_catalog, "commands");
+  return result < 0 ? -1 : 0;
+}
+
 static int ApplyRefreshMode(ViewContext *ctx, DirEntry *dir_entry,
                             int refresh_mode) {
   int old_refresh_mode;
@@ -356,111 +301,34 @@ static void RestoreReloadableProfileState(
   (void)ApplyRefreshMode(ctx, dir_entry, runtime_state->refresh_mode);
 }
 
-static int EnsureConfigHomeDirectory(const char *home) {
-  char config_dir[PATH_LENGTH + 1];
-  char ytnova_dir[PATH_LENGTH + 1];
-  int written;
-
-  if (home == NULL || *home == '\0')
-    return -1;
-
-  written = snprintf(config_dir, sizeof(config_dir), "%s/%s", home,
-                     PROFILE_CONFIG_HOME_PARENT);
-  if (written < 0 || written >= (int)sizeof(config_dir))
-    return -1;
-
-  if (mkdir(config_dir, S_IRWXU) != 0 && errno != EEXIST)
-    return -1;
-  written = snprintf(ytnova_dir, sizeof(ytnova_dir), "%s/%s", home,
-                     PROFILE_CONFIG_HOME_DIR);
-  if (written < 0 || written >= (int)sizeof(ytnova_dir))
-    return -1;
-  if (mkdir(ytnova_dir, S_IRWXU) != 0 && errno != EEXIST)
-    return -1;
-  return 0;
-}
-
 static void ResolveProfilePath(const ViewContext *ctx, char *profile_path,
                                size_t profile_path_size) {
-  if (profile_path == NULL || profile_path_size == 0)
-    return;
-
-  profile_path[0] = '\0';
-  if (ctx != NULL && ctx->configuration_file_path[0] != '\0' &&
-      ctx->configuration_file_path_is_explicit) {
-    (void)snprintf(profile_path, profile_path_size, "%s",
-                   ctx->configuration_file_path);
-    return;
-  }
-  if (ResolvePreferredProfilePath(profile_path, profile_path_size) == 0)
-    return;
-  if (ctx != NULL && ctx->configuration_file_path[0] != '\0') {
-    (void)snprintf(profile_path, profile_path_size, "%s",
-                   ctx->configuration_file_path);
-    return;
-  }
-  if (ResolveLegacyProfilePath(profile_path, profile_path_size) != 0)
+  if (ConfigPaths_ResolveActiveEditPath(ctx, CONFIG_SURFACE_PROFILE, profile_path,
+                                        profile_path_size) != 0 &&
+      profile_path != NULL && profile_path_size > 0)
     profile_path[0] = '\0';
-}
-
-static int ResolveThemesBootstrapPath(char *themes_path,
-                                      size_t themes_path_size) {
-  const char *home;
-
-  if (themes_path == NULL || themes_path_size == 0)
-    return -1;
-
-  themes_path[0] = '\0';
-  home = getenv("HOME");
-  if (home && *home) {
-    int written;
-
-    if (EnsureConfigHomeDirectory(home) == 0) {
-      written = snprintf(themes_path, themes_path_size, "%s/%s", home,
-                         THEME_CONFIG_HOME_PATH);
-      if (written >= 0 && written < (int)themes_path_size)
-        return 0;
-    }
-
-    written = snprintf(themes_path, themes_path_size, "%s/%s", home,
-                       THEME_FILENAME);
-    if (written >= 0 && written < (int)themes_path_size)
-      return 0;
-  }
-
-  {
-    int written = snprintf(themes_path, themes_path_size, "%s", THEME_FILENAME);
-
-    if (written >= 0 && written < (int)themes_path_size)
-      return 0;
-  }
-  return -1;
 }
 
 static int ResolveThemesPath(const ViewContext *ctx, char *themes_path,
                              size_t themes_path_size) {
-  if (themes_path == NULL || themes_path_size == 0)
-    return -1;
+  return ConfigPaths_ResolveLoadedOrBootstrapPath(
+      ctx, CONFIG_SURFACE_THEME, themes_path, themes_path_size, TRUE);
+}
 
-  if (ctx != NULL && ctx->theme_file_path[0] != '\0') {
-    int written = snprintf(themes_path, themes_path_size, "%s",
-                           ctx->theme_file_path);
-
-    if (written >= 0 && written < (int)themes_path_size)
-      return 0;
-    themes_path[0] = '\0';
-    return -1;
-  }
-
-  return ResolveThemesBootstrapPath(themes_path, themes_path_size);
+static int ResolveCommandsPath(const ViewContext *ctx, char *commands_path,
+                               size_t commands_path_size) {
+  return ConfigPaths_ResolveLoadedOrBootstrapPath(
+      ctx, CONFIG_SURFACE_COMMANDS, commands_path, commands_path_size, TRUE);
 }
 
 static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
                                 const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
   ReloadableProfileState runtime_state;
+  char commands_path[PATH_LENGTH + 1];
   char previous_profile_path[PATH_LENGTH + 1];
   BOOL previous_profile_path_is_explicit;
+  int commands_validation;
   int profile_validation;
 #ifdef COLOR_SUPPORT
   UIColorSnapshot *color_snapshot;
@@ -484,6 +352,8 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
   previous_profile_path_is_explicit = ctx->configuration_file_path_is_explicit;
   (void)snprintf(previous_profile_path, sizeof(previous_profile_path), "%s",
                  ctx->configuration_file_path);
+  if (ResolveCommandsPath(ctx, commands_path, sizeof(commands_path)) != 0)
+    commands_path[0] = '\0';
 
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
       access(profile_path, F_OK) == 0) {
@@ -529,6 +399,36 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
       UI_ShowStatusLineError(ctx, "Reload failed: can't read config");
       return -1;
     }
+  }
+
+  if (commands_path[0] != '\0' && access(commands_path, F_OK) == 0) {
+    commands_validation = ValidateCommandsFile(commands_path);
+    if (commands_validation != 0) {
+      ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+      RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
+#ifdef COLOR_SUPPORT
+      UIColorSnapshot_Restore(color_snapshot);
+      UIColorSnapshot_Free(color_snapshot);
+#endif
+      ProfileRuntimeSnapshot_Free(profile_snapshot);
+      UI_ShowStatusLineError(ctx, commands_validation < 0
+                                      ? "Reload failed: can't read commands"
+                                      : "Reload failed: malformed commands");
+      return -1;
+    }
+  }
+
+  if (ctx->core_init_ops.load_commands != NULL &&
+      ctx->core_init_ops.load_commands(ctx) != 0) {
+    ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
+    RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
+#ifdef COLOR_SUPPORT
+    UIColorSnapshot_Restore(color_snapshot);
+    UIColorSnapshot_Free(color_snapshot);
+#endif
+    ProfileRuntimeSnapshot_Free(profile_snapshot);
+    UI_ShowStatusLineError(ctx, "Reload failed: can't load commands");
+    return -1;
   }
 
   if (ctx->core_init_ops.load_theme != NULL &&
@@ -589,7 +489,7 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
   term = InputChoiceCommandStrip(
       ctx, config_command_strip,
       sizeof(config_command_strip) / sizeof(config_command_strip[0]),
-      "CTRQ\r\n\033");
+      "CMTRQ\r\n\033");
 
   switch (term) {
   case CR:
@@ -598,6 +498,19 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
     if (EnsureConfigStarterFile(ctx, profile_path) != 0)
       break;
     EditConfigProfile(ctx, dir_entry, profile_path);
+    break;
+  case 'M':
+    {
+      char commands_path[PATH_LENGTH + 1];
+
+      if (ResolveCommandsPath(ctx, commands_path, sizeof(commands_path)) != 0) {
+        MESSAGE(ctx, "Can't resolve commands file path");
+        break;
+      }
+      if (EnsureCommandsStarterFile(ctx, commands_path) != 0)
+        break;
+      EditThemesFile(ctx, dir_entry, commands_path);
+    }
     break;
   case 'T':
     {

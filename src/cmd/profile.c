@@ -129,6 +129,7 @@ struct _profile_runtime_snapshot {
   Dirmenu *dirmenu_next;
   Filemenu *filemenu_next;
   FileColorRule *file_color_rules_head;
+  char commands_file_path[PATH_LENGTH + 1];
   char theme_file_path[PATH_LENGTH + 1];
 };
 
@@ -288,6 +289,57 @@ static void FreeProfileFileColorRules(FileColorRule *head) {
   }
 }
 
+static int SetUserActionNodeInt(ViewContext *ctx, BOOL is_dir, int chkey,
+                                int chremap, const char *cmd) {
+  Dirmenu *dir_tail;
+  Filemenu *file_tail;
+
+  BindProfileRuntimeData(ctx);
+  if (is_dir) {
+    Dirmenu *node;
+
+    dir_tail = (Dirmenu *)ctx->dirmenu_list;
+    for (node = dir_tail->next; node != NULL; node = node->next) {
+      dir_tail = node;
+      if (node->chkey == chkey) {
+        free(node->cmd);
+        node->cmd = cmd != NULL ? xstrdup(cmd) : NULL;
+        node->chremap = chremap;
+        return 0;
+      }
+    }
+    node = xmalloc(sizeof(*node));
+    node->chkey = chkey;
+    node->chremap = chremap;
+    node->cmd = cmd != NULL ? xstrdup(cmd) : NULL;
+    node->next = NULL;
+    dir_tail->next = node;
+    return 0;
+  }
+
+  {
+    Filemenu *node;
+
+    file_tail = (Filemenu *)ctx->filemenu_list;
+    for (node = file_tail->next; node != NULL; node = node->next) {
+      file_tail = node;
+      if (node->chkey == chkey) {
+        free(node->cmd);
+        node->cmd = cmd != NULL ? xstrdup(cmd) : NULL;
+        node->chremap = chremap;
+        return 0;
+      }
+    }
+    node = xmalloc(sizeof(*node));
+    node->chkey = chkey;
+    node->chremap = chremap;
+    node->cmd = cmd != NULL ? xstrdup(cmd) : NULL;
+    node->next = NULL;
+    file_tail->next = node;
+  }
+  return 0;
+}
+
 ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
   size_t i;
   ProfileRuntimeSnapshot *snapshot;
@@ -306,6 +358,8 @@ ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
   if (ctx != NULL) {
     snapshot->file_color_rules_head =
         CloneFileColorRules((const FileColorRule *)ctx->file_color_rules_head);
+    snprintf(snapshot->commands_file_path, sizeof(snapshot->commands_file_path),
+             "%s", ctx->commands_file_path);
     snprintf(snapshot->theme_file_path, sizeof(snapshot->theme_file_path), "%s",
              ctx->theme_file_path);
   }
@@ -335,10 +389,26 @@ void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
     FreeProfileFileColorRules((FileColorRule *)ctx->file_color_rules_head);
     ctx->file_color_rules_head = snapshot->file_color_rules_head;
     snapshot->file_color_rules_head = NULL;
+    snprintf(ctx->commands_file_path, sizeof(ctx->commands_file_path), "%s",
+             snapshot->commands_file_path);
     snprintf(ctx->theme_file_path, sizeof(ctx->theme_file_path), "%s",
              snapshot->theme_file_path);
   }
   BindProfileRuntimeData(ctx);
+}
+
+int Profile_SetDirUserAction(ViewContext *ctx, int chkey, int chremap,
+                             const char *cmd) {
+  if (ctx == NULL)
+    return -1;
+  return SetUserActionNodeInt(ctx, TRUE, chkey, chremap, cmd);
+}
+
+int Profile_SetFileUserAction(ViewContext *ctx, int chkey, int chremap,
+                              const char *cmd) {
+  if (ctx == NULL)
+    return -1;
+  return SetUserActionNodeInt(ctx, FALSE, chkey, chremap, cmd);
 }
 
 void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot) {
