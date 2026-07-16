@@ -201,56 +201,72 @@ Ordering policy (for all editors, including AI editors):
 *   **Files to Modify:** `Makefile`, `scripts/*` (new/updated generator + verifier), `src/core/default_profile_template.h`, and contributor/docs references as needed.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 11.2: Split User Label and Binding Surfaces (i18n/l10n-Safe Config Layout)**
-*   **Goal:** Separate user-visible label overrides and input/action customization from the main runtime profile using XDG-first companion files, while keeping the canonical design safe for future gettext/i18n/l10n work.
-*   **Rationale:** The current main profile still mixes core runtime settings with menu-text overrides and input/action customization. That blocks clean ownership boundaries and makes future localization fragile because whole rendered footer/menu lines are not stable translation units. Canonical user-editable text must be keyed by stable action identity, while rendered footer/help/menu lines must be assembled at runtime from localized labels plus current key tokens.
+#### **Task 11.2: Split Command Customization into `commands.conf` (i18n/l10n-Safe Layout)**
+*   **Goal:** Separate user-visible command labels, displayed key tokens, input/action customization, and custom shell-command bindings from the main runtime profile using one XDG-first companion command surface, while keeping the canonical design safe for future gettext/i18n/l10n work.
+*   **Rationale:** The current main profile still mixes core runtime settings with menu-text overrides and input/action customization. That blocks clean ownership boundaries and makes future localization fragile because whole rendered footer/menu lines are not stable translation units. Canonical user-editable command data must be keyed by stable action identity, while rendered footer/help/menu lines must be assembled at runtime from localized labels plus current key tokens.
+*   **Pre-Implementation Clarification Gate (mandatory):** A stateless AI or fresh maintainer pass must not jump straight to code on this task. Before implementation, stop and explicitly confirm the following decisions with the maintainer so the split is not inferred differently by different agents:
+    *   the canonical home of command customization;
+    *   the exact precedence order between `commands.conf`, legacy sections in `ytnova.conf`, and built-in defaults;
+    *   the runtime assembly model for visible commands: stable action ID, resolved label, resolved key token, and availability/enabled state;
+    *   the starter-file format and comments for `commands.conf`;
+    *   what `--init` generates for each surface; and
+    *   what `F10` edits/creates for each surface.
+*   **Discussion-First Output Contract (mandatory):** Before coding, the active agent must summarize the proposed answers for those six points back to the maintainer in concrete file/path terms and get alignment on any ambiguous item. Silent assumption is forbidden for this task.
 *   **Canonical Surface Split:**
     *   `etc/ytnova.conf` -> `~/.config/ytnova/ytnova.conf` (fallback `~/.ytnova`) remains the human-edited source for core runtime configuration only.
     *   `etc/ytnova.themes` -> `~/.config/ytnova/themes.conf` (fallback `~/.ytnova.themes`) remains the human-edited source for theme roles/palette only.
-    *   New `etc/ytnova.bindings` -> `~/.config/ytnova/bindings.conf` (fallback `~/.ytnova.bindings`) becomes the human-edited source for `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]`.
-    *   New `etc/ytnova.labels` -> `~/.config/ytnova/labels.conf` (fallback `~/.ytnova.labels`) becomes the human-edited source for user-visible action-label overrides keyed by stable action identity, not by rendered line position.
+    *   New `etc/ytnova.commands` -> `~/.config/ytnova/commands.conf` (fallback `~/.ytnova.commands`) becomes the human-edited source for line-1/line-2 command bindings, shown tokens, labels, and custom shell-command bindings replacing the old `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]` ownership model.
 *   **Canonical Ownership Rules:**
     *   `ytnova.conf` must not remain the canonical home for `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
-    *   `labels.conf` is the canonical user-editable label override surface.
-    *   `bindings.conf` is the canonical user-editable input/action customization surface.
+    *   `commands.conf` is the canonical user-editable command-customization surface.
     *   No canonical user-editable file may store fully rendered footer/help/menu lines as the primary data model.
-    *   Key tokens, localized/default labels, disabled-state logic, and line layout must remain separate concerns.
+    *   Action IDs, localized/default labels, displayed key tokens, disabled-state logic, and line layout must remain separate concerns.
+    *   Custom shell-command bindings must live in the same `commands.conf` surface rather than in an unrelated side file.
 *   **Localization Contract:**
-    *   Stable action IDs are the canonical identity for user-visible commands.
+    *   Stable action IDs are the canonical identity for user-visible commands and must remain untranslated.
     *   Default labels come from code/gettext-ready message sources, not from hardcoded rendered footer lines.
-    *   User label overrides in `labels.conf` apply by action ID only.
-    *   Current bound key tokens are resolved independently from `bindings.conf` or built-in keymaps.
+    *   `commands.conf` stores plain labels, exact input bindings, shown key tokens, stable action IDs, and optional custom shell commands as separate fields.
     *   Footer/help/menu rendering must assemble visible command entries from action ID + label + key token + availability state at runtime.
+    *   If a shown key token appears in the label, runtime must render the compact mnemonic form inline (for example `(C)opy` or `mo(V)edir`). If it does not appear in the label, runtime must render the token separately with a space before the label (for example `(J) compare`). Multi-token displays must render slash-separated highlighted tokens with an unhighlighted slash (for example `(M)/(^N) move`).
     *   Locale-specific word order, mnemonic placement, truncation, and line packing must not depend on raw `[MENU]` whole-line overrides.
 *   **Compatibility Contract:**
     *   Legacy `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, and `[FILECMD]` sections in `ytnova.conf` may be accepted only as compatibility inputs during migration.
-    *   Companion-file precedence must be: dedicated split file -> legacy section in `ytnova.conf` -> built-in defaults.
-    *   If both a dedicated split file and a legacy section define the same label or binding, the dedicated split file wins deterministically.
+    *   Companion-file precedence must be: `commands.conf` -> legacy section in `ytnova.conf` -> built-in defaults.
+    *   If both `commands.conf` and a legacy section define the same command binding or label, `commands.conf` wins deterministically.
     *   Legacy `[MENU]` is a compatibility shim only and must not remain the long-term canonical override model.
 *   **Discovery and Bootstrap Contract:**
-    *   For `ytnova.conf`, `themes.conf`, `bindings.conf`, and `labels.conf`, runtime must prefer `~/.config/ytnova/*.conf`.
-    *   Home-dotfile fallbacks (`~/.ytnova`, `~/.ytnova.themes`, `~/.ytnova.bindings`, `~/.ytnova.labels`) exist only for environments where the XDG-style home config path cannot be used; they are not the preferred location on supported Linux/BSD/illumos/Hurd targets.
+    *   For `ytnova.conf`, `themes.conf`, and `commands.conf`, runtime must prefer `~/.config/ytnova/*.conf`.
+    *   Home-dotfile fallbacks (`~/.ytnova`, `~/.ytnova.themes`, `~/.ytnova.commands`) exist only for environments where the XDG-style home config path cannot be used; they are not the preferred location on supported Linux/BSD/illumos/Hurd targets.
     *   Missing user files fall back to packaged/compiled defaults without creating a user file.
     *   Only `--init` and explicit `F10` edit flows create starter files.
 *   **Mechanism:**
-    *   Add packaged default sources `etc/ytnova.bindings` and `etc/ytnova.labels`.
-    *   Add deterministic generator/verification paths for starter artifacts derived from those sources, matching the existing source/generated policy used for `etc/ytnova.conf` and `etc/ytnova.themes`.
-    *   Refactor config discovery so startup, `--init`, reload, and `F10` all use one shared path-resolution policy across config/theme/bindings/labels surfaces.
-    *   Add explicit loaders/validators for bindings and labels rather than growing one monolithic profile parser indefinitely.
-    *   Extend `F10` so the configuration surface can edit/create the active config, themes, bindings, and labels files independently while preserving the same XDG-first/fallback rules.
-    *   Reload must be atomic across config + labels + bindings + themes: validation failure in any one surface keeps the previously working runtime state.
+    *   Add packaged default source `etc/ytnova.commands`.
+    *   Add deterministic generator/verification paths for starter artifacts derived from that source, matching the existing source/generated policy used for `etc/ytnova.conf` and `etc/ytnova.themes`.
+    *   Refactor config discovery so startup, `--init`, reload, and `F10` all use one shared path-resolution policy across config/theme/commands surfaces.
+    *   Add an explicit loader/validator for `commands.conf` rather than growing one monolithic profile parser indefinitely.
+    *   `commands.conf` starter comments must be concise, self-explanatory, and already populated with live examples. They must document the canonical column order `context | binding | shown | label | action | command`, explain that uppercase and lowercase letters may be bound separately, explain that `Ctrl+letter` bindings are case-insensitive and therefore collide on the same chord, and warn that action IDs are internal names that users must not translate.
+    *   Extend `F10` so the configuration surface can edit/create the active config, themes, and commands files independently while preserving the same XDG-first/fallback rules.
+    *   Reload must be atomic across config + commands + themes: validation failure in any one surface keeps the previously working runtime state.
+*   **Concrete Decisions This Task Must Lock Down:**
+    *   **Canonical home:** `commands.conf` is the canonical editable home of command customization.
+    *   **Precedence:** `commands.conf` -> legacy `ytnova.conf` section -> built-in default.
+    *   **Runtime assembly model:** render footer/help/menu/prompt command entries from `(action_id, label, key_token, availability_state)` rather than from pre-rendered line text.
+    *   **Starter-file model:** `commands.conf` entries use the canonical columns `context | binding | shown | label | action | command`; alias bindings may be comma-separated only when they share the same context, shown token, label, action, and command payload.
+    *   **`--init` contract:** generate/bootstrap the active starter files for config, themes, and commands using the same discovery policy and deterministic source/generated pipeline.
+    *   **`F10` contract:** edit/create the active file for config, themes, and commands independently rather than routing command edits back through monolithic `ytnova.conf` text.
 *   **Acceptance Criteria:**
-*   `bindings.conf` and `labels.conf` exist as documented first-class config surfaces with packaged defaults and starter-file generation.
-*   `ytnova.conf` no longer serves as the canonical editable source for label overrides or key/custom-command mappings.
+*   `commands.conf` exists as a documented first-class config surface with packaged defaults and starter-file generation.
+*   `ytnova.conf` no longer serves as the canonical editable source for label overrides, displayed key tokens, key/custom-command mappings, or footer/menu line text.
 *   No canonical user-editable file stores raw rendered footer/menu lines as the primary override model.
-*   Structured label resolution is keyed by stable action identity and remains independent from bound key tokens.
-*   XDG-first discovery and home-dotfile fallback behavior is consistent across config, themes, bindings, and labels.
-*   Missing user bindings/labels files fall back to built-in defaults without file creation.
-*   `--init` can bootstrap all four user-editable surfaces without ambiguity.
+*   Structured command resolution is keyed by stable action identity and remains independent from bound key tokens.
+*   `commands.conf` documents the canonical column order `context | binding | shown | label | action | command` with concise comments and live examples.
+*   XDG-first discovery and home-dotfile fallback behavior is consistent across config, themes, and commands.
+*   Missing user `commands.conf` files fall back to built-in defaults without file creation.
+*   `--init` can bootstrap all three user-editable surfaces without ambiguity.
 *   `F10` can resolve, create, and edit the active file for each surface independently.
-*   Legacy sections in `ytnova.conf` still load during the compatibility phase, but dedicated split files override them deterministically.
-*   Reload fails closed if any one of config/theme/bindings/labels is malformed or invalid, and the previous working state remains active.
-*   `docs/SPECIFICATION.md`, manpage/USAGE docs, and contributor guidance describe labels as i18n/l10n-safe structured overrides rather than rendered-line text replacement.
+*   Legacy sections in `ytnova.conf` still load during the compatibility phase, but `commands.conf` overrides them deterministically.
+*   Reload fails closed if any one of config/theme/commands is malformed or invalid, and the previous working state remains active.
+*   `docs/SPECIFICATION.md`, manpage/USAGE docs, and contributor guidance describe commands as structured overrides rather than rendered-line text replacement.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 11.3: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)**
@@ -729,7 +745,8 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   **Context Contract:** `F1` help must be contextual by active runtime surface, not a single generic command dump. The help surface must resolve against the currently active directory/tree view, file view, archive view, Showall/Global view, split/preview layout, and prompt/dialog state.
 *   **Sequencing Note:** Prefer to land Task 42's final portable footer/help wording contract before this task so the integrated help system documents the intended low-noise runtime guidance surfaces rather than an abandoned transient-footer idea.
-*   - [ ] **Status:** Not Started.
+*   **Delivered Scope:** Shared modal help now opens from the main runtime surfaces plus active picker/prompt/dialog flows, stays brief enough for in-task consultation, and leaves longer semantics/examples to `etc/ytnova.1.md` and generated `docs/USAGE.md`.
+*   - [x] **Status:** Completed.
 
 ### **Task 42: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good; redundant duplicate bindings should not be listed).
@@ -740,22 +757,59 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   - [x] **Status:** Completed.
 
-### **Task 43: Enforce Footer/F1 Context-Parity Contract (gettext-ready)**
-*   **Goal:** Ensure F1 help is concise, context-specific, and complete for each footer/help variant, with no missing commands.
-*   **Rationale:** Footer and F1 are the primary in-app guidance surfaces; they must match exactly while keeping F1 brief and pushing detail to manpage/USAGE.
+### **Task 43: Refine Contextual F1 Content and Footer-Parity Contract (gettext-ready)**
+*   **Goal:** Ensure each contextual `F1` surface is concise, useful, and complete: it must cover every footer command for the active surface while also clarifying the non-obvious behavior the footer cannot carry.
+*   **Rationale:** Footer and `F1` are the primary in-app guidance surfaces. Pure parity without added clarification degenerates into "the footer again," while essay-length help steals attention from the task at hand. `F1` should be the quick explainer and `etc/ytnova.1.md`/`docs/USAGE.md` should remain the long-form reference.
 *   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer/help/prompt mismatch (discoverability + confidence).
 *   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
 *   **Sequencing Note:** Land Task 42's portable low-noise footer/help wording decisions before this task so parity is enforced against the final portable footer contract rather than a transient modifier-held variant.
-*   **Scope Lock:** Help contract, coverage matrix, and text-structure readiness only; no command behavior changes in this task.
+*   **Scope Lock:** Base help wording/structure, coverage matrix, and text-organization readiness only; no command-behavior changes. Hyperlink/index-style help navigation is tracked separately under Task 43.1, and progress/help coexistence is tracked separately under Task 43.2.
 *   **Acceptance Criteria:**
-*   For each supported context, every footer command appears in the matching F1 help set with concise wording and no essay-style descriptions.
-*   For active prompt contexts, footer lists currently available prompt actions; F1 may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
+*   For each supported context, every footer command appears in the matching `F1` help set, but `F1` need not mirror the footer verbatim if a clearer concise explanation is better.
+*   `F1` adds short clarification for behaviors the footer cannot explain cleanly, especially Ctrl-only tagged/search flows, prompt syntax such as `{}`, numeric `1..0` display/info-band meanings, and split/archive/Showall/Global caveats that affect the current surface.
+*   For active prompt contexts, footer lists currently available prompt actions; `F1` may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, prompt flows with Ctrl-only tagged/search semantics, and `VI_KEYS=1` variants.
 *   Numeric FileInfo band coverage is explicit: when the footer compresses `1..0 dir view` / `1..0 file view`, the matching `F1` help must briefly decode the active-surface semantics for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, Git, and the current no-op `0`.
-*   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
-*   Help text paths are structured for gettext extraction/reuse (no duplicated ad-hoc strings per view path).
+*   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, useful command-line editing, and archive/compress format behavior).
+*   Help text paths are structured for gettext extraction/reuse and future deduplication (no duplicated ad-hoc strings per view path, and no translator-facing requirement to edit C literals just to keep related help prose aligned).
 *   Add regression checks that detect footer/F1 parity drift in covered contexts.
 *   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytnova.1.md`/`docs/USAGE.md`.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.1: Add Contextual F1 Hyperlinks and Shared Explainer Pages**
+*   **Goal:** Let `F1` help reuse shared explanations through navigable links so repeated topics (for example useful command-line editing, tagged-flow semantics, or numeric FileInfo meanings) do not have to be duplicated verbatim on every page.
+*   **Rationale:** As contextual help grows, repeated prose becomes harder to keep consistent. A lightweight mc-style link model keeps `F1` brief while still allowing a user to drill into a short explainer without leaving the modal help surface.
+*   **Interaction Contract:** Keep `F1` modal and task-focused, not a separate browser. When a page exposes links, navigation follows a simple mc-like pattern: link focus moves within the help page, `Enter` follows the selected link, a back action returns to the previous help page, and `Esc` closes the help surface.
+*   **Theme/Config Contract:** Help-surface styling remains part of the theme catalog (`themes.conf` / runtime theme data), not `ytnova.conf`. Base help text continues to use the `help` reading surface, while hyperlink-capable help may add narrower theme roles such as `help_link` and `help_link_selection` for linked text and the active linked target.
+*   **Orthodox Default Direction:** For the default orthodox-blue theme, prefer a restrained reading surface with distinct linked-text and active-link colors rather than picker-style row highlighting. If hyperlinks need dedicated colors, keep the defaults conservative (for example black-on-blue links and yellow-on-blue active-link emphasis) and avoid turning the whole help page into a loud picker.
+*   **Acceptance Criteria:**
+*   Shared topics can be linked from multiple contextual pages without copying the same explanation string into each page body.
+*   Link navigation stays shallow and predictable inside the modal help surface; users do not have to enter a separate browser/workspace to read a linked explainer.
+*   Linked explainer pages can be reached and exited without losing the original contextual-help entry point.
+*   Theme support for linked text and linked-target emphasis is defined in the theme catalog path, not as one-off `[COLORS]` or `ytnova.conf` knobs.
+*   Add focused regression coverage for link focus, follow, back, and close behavior.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.2: Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance**
+*   **Goal:** Preserve footer, prompt, and `F1` help ownership while long-running operations update progress/spinner state.
+*   **Rationale:** Help/trust regressions are not limited to static wording; progress rendering that overwrites guidance surfaces creates the same "UI is lying to me" failure mode during active work.
+*   **Related Bug:** `BUG-10` — progress spinner can overwrite footer/prompt help surfaces.
+*   **Acceptance Criteria:**
+*   Progress updates render in a dedicated non-obtrusive status surface and never overwrite active footer/prompt/F1 guidance.
+*   When `F1` help is open, progress state degrades gracefully to a compact indicator or deferred repaint rather than seizing the help surface.
+*   Focused regression coverage proves long-running operations cannot blank or corrupt contextual guidance surfaces.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.3: Theme the Contextual F1 Reading Surface**
+*   **Goal:** Define and implement the dedicated theme-role behavior for the contextual `F1` reading surface now that the base role-based theme system exists.
+*   **Rationale:** Task 60 established the general theme architecture, but contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes.
+*   **Theme Contract:** All `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. The base help page continues to use the `help` role, and this task may add narrower roles such as `help_link` and `help_link_selection` if hyperlink help needs them.
+*   **Orthodox Default Direction:** Keep the help page readable and quiet on the orthodox-blue theme: black-on-blue or similarly restrained linked text is acceptable, active-link emphasis may use yellow-on-blue, and ordinary body text must remain easier to read than navigation chrome.
+*   **Acceptance Criteria:**
+*   The base `F1` reading surface has an explicit documented theme contract separate from picker/list surfaces.
+*   If hyperlink help is enabled, linked text and active-link emphasis resolve through dedicated theme roles rather than hardcoded colors.
+*   Built-in themes document and ship coherent `F1` help styling without requiring user edits to `ytnova.conf`.
+*   Focused tests or source-contract checks prove `F1` help uses the intended theme roles rather than picker/dialog fallbacks.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..0`; `0` unused)**
@@ -1183,7 +1237,8 @@ Ordering policy (for all editors, including AI editors):
     *   Each built-in theme must carry its own file-type palette. A theme may intentionally define an empty file-type palette, in which case ordinary filenames use the theme filename/`dynamic_text` role.
     *   Future in-app theme editing should operate on semantic roles and the separate file-type coloring layer rather than exposing unrelated one-off color knobs.
 *   **Out of Scope / Follow-On:**
-    *   Full modal-placement redesign is separate interaction work, but Task 60 must not introduce modal success/noise for theme/config reload. Successful theme/config reload must silently repaint without a success message. Non-obvious errors use footer/status text only. Destructive confirmations and real choice pickers may still use prompt/dialog surfaces until a later interaction task replaces them.
+*   Full modal-placement redesign is separate interaction work, but Task 60 must not introduce modal success/noise for theme/config reload. Successful theme/config reload must silently repaint without a success message. Non-obvious errors use footer/status text only. Destructive confirmations and real choice pickers may still use prompt/dialog surfaces until a later interaction task replaces them.
+*   Narrower follow-on roles such as `help_link`, `help_link_selection`, or `shadow` may be added later for hyperlink help and modal chrome, but they still belong in the theme catalog path rather than `ytnova.conf`.
 *   **Acceptance Criteria:**
     *   The default theme is readable, restrained, and suitable for screenshots.
     *   Normal filenames, tree names, tree lines, paths, keybindings, and dynamic values are bright white or otherwise high-contrast in the orthodox-blue theme.
@@ -1211,8 +1266,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
 *   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytnova.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
 *   **Keybinding token contract:** Translate human command labels only. Key tokens come from the active keymap and punctuation comes from the renderer. For example, English can render key token `C` + label `Copy` as `(C)opy`, while German can render key token `K` + label `Kopieren` as `(K)opieren`. Translators must not be required to preserve raw strings like `(C)opy` for shortcut visibility.
+*   **Translator workflow contract:** Contributors should be able to add or update a language by editing standard translation assets (`.po` for runtime UI, `po4a` inputs for docs) without touching C source, renderer punctuation, or mnemonic/key-token wiring.
+*   **Runtime help-text organization:** Short contextual help/footer/prompt prose should flow through a small predictable set of gettext contexts/catalog entries rather than remaining scattered ad-hoc literals, so translators can find related strings together and keep repeated explanations consistent.
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
-*   **Pilot locale:** Ship one non-English reference locale (for example German) as a contributor template proving end-to-end UI + manpage translation workflow.
+*   **Pilot locale:** Ship one non-English reference locale (for example German) as a contributor template proving end-to-end UI + manpage translation workflow, while keeping English fallback automatic for untranslated strings.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
 *   - [ ] **Status:** Not Started.
 
@@ -1266,7 +1323,17 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Multi-contributor consistency is enforced continuously via guardrails and review; this task is a final convergence pass.
 *   - [ ] **Status:** Not Started.
 
-### **Task 67: Multi-Round Adversarial Security Review**
+### **Task 67: Add Modal Window Shadows**
+*   **Goal:** Add a restrained lower/right shadow treatment to modal windows so dialogs read as layered popups rather than flat border boxes.
+*   **Rationale:** A subtle mc-style shadow gives visual depth and makes help/info/error dialogs easier to parse at a glance without changing modal behavior.
+*   **Scope Lock:** Visual chrome only; no modal workflow, severity semantics, or keybinding changes.
+*   **Acceptance Criteria:**
+*   Modal/help/dialog surfaces can render a clipped lower/right shadow where terminal space permits, without obscuring modal content or corrupting underlying layout.
+*   Shadow styling is theme-controlled (directly or through a dedicated semantic role) rather than hardcoded as one-off reverse-video tricks.
+*   Focused rendering tests cover edge clipping and ensure shadow drawing does not bleed into non-modal surfaces.
+*   - [ ] **Status:** Not Started.
+
+### **Task 68: Multi-Round Adversarial Security Review**
 *   **Goal:** Perform a pre-v1.0.0 multi-round security review using adversarial and AppSec perspectives.
 *   **Examples:** Senior AppSec reviewer, penetration-tester mindset, and insider-knowledge threat modeling.
 *   **Rationale:** Final pre-release pressure test on top of continuous Phase 2 security gates.
@@ -1277,7 +1344,7 @@ Ordering policy (for all editors, including AI editors):
 ## **Beta: Stabilization and Performance**
 *This phase follows alpha delivery phases and precedes wishlist work. Place stabilization tasks here: bug fixes, regressions, reliability, and performance. Defer non-essential feature work to wishlist phases.*
 
-### **Task 68: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
+### **Task 69: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
 *   **Goal:** Make overlay/submode behavior deterministic by moving to one unified state model while preserving current user-visible behavior.
 *   **Why now (Beta):** Split/mode/node state is explicit and stable, but overlay/submode behavior is still distributed across flags/controller paths.
 *   **Precondition:** Current bug queue and planned current-delivery tasks are completed and green.

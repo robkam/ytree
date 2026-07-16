@@ -50,6 +50,7 @@ Minor/trivial fixes are tracked in git history.
 - **Incremental "To" Jump**: Integrated high-speed list navigation (`/`) and "To Dir"/"To File" selection jumps with sticky-cursor logic.
 - **Comprehensive Filtering**: Unified filter stack supporting complex Regex patterns, Date ranges, File Attributes, and Size suffixes.
 - **Internal File Preview (F7)**: Integrated file inspection mode that seamlessly toggles the statistics panel.
+- **Unified Numeric FileInfo Band**: Replaced legacy display-mode cycling with direct `1..9` panel display controls for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, Git.
 - **Vi-Keys Profile**: Runtime toggle for `h/j/k/l` navigation with automatic remapping of conflicting legacy keybindings.
 - **Attributes Menu Consolidation**: Unified separate Date, Mode, Owner, and Group modification commands under a single `A` (Attributes) action menu.
 - **Integrated Window Stack**: Implemented a tiered Dialog Manager for flicker-free rendering of prompts, menus, and history pop-overs.
