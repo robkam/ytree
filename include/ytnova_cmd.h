@@ -152,6 +152,13 @@ extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern int WriteProfileFromRuntimeState(ViewContext *ctx, const char *filename);
 extern int CreateProfileFromRuntimeState(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
+extern int Profile_SetDirUserAction(ViewContext *ctx, int chkey, int chremap,
+                                    const char *cmd);
+extern int Profile_SetFileUserAction(ViewContext *ctx, int chkey, int chremap,
+                                     const char *cmd);
+extern int ValidateCommandsFile(const char *filename);
+extern int ReadCommandsFile(ViewContext *ctx, const char *filename);
+extern int LoadConfiguredCommands(ViewContext *ctx);
 #ifdef COLOR_SUPPORT
 extern int ReadThemeFile(ViewContext *ctx, const char *filename,
                          const char *theme_name);

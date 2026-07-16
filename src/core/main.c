@@ -8,6 +8,7 @@
 #include "ytnova_defs.h"
 #include "ytnova_appstate_actions.h"
 #include "default_profile_template.h"
+#include "default_commands_catalog.h"
 #include "default_theme_catalog.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -2250,78 +2251,14 @@ static void SigIntHandler(int sig) {
   ytnova_shutdown_flag = 1;
 }
 
-static int EnsureDefaultProfileDirectory(void);
+static int GetDefaultSurfacePath(ConfigSurface surface, char *path,
+                                 size_t path_size) {
+  const char *home;
 
-static int GetDefaultProfilePath(char *path, size_t path_size) {
-  const char *home = getenv("HOME");
-  int written;
-
-  if (!path || path_size == 0 || !home || !*home)
+  home = getenv("HOME");
+  if (path == NULL || path_size == 0 || home == NULL || *home == '\0')
     return -1;
-
-  if (EnsureDefaultProfileDirectory() == 0) {
-    written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                       PROFILE_CONFIG_HOME_PATH);
-    if (written >= 0 && (size_t)written < path_size)
-      return 0;
-  }
-
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_FILENAME);
-  if (written < 0 || (size_t)written >= path_size)
-    return -1;
-  return 0;
-}
-
-static int GetDefaultThemePath(char *path, size_t path_size) {
-  const char *home = getenv("HOME");
-  int written;
-
-  if (!path || path_size == 0 || !home || !*home)
-    return -1;
-
-  if (EnsureDefaultProfileDirectory() == 0) {
-    written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                       THEME_CONFIG_HOME_PATH);
-    if (written >= 0 && (size_t)written < path_size)
-      return 0;
-  }
-
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     THEME_FILENAME);
-  if (written < 0 || (size_t)written >= path_size)
-    return -1;
-  return 0;
-}
-
-static int EnsureDefaultProfileDirectory(void) {
-  const char *home = getenv("HOME");
-  char path[PATH_LENGTH + 1];
-  struct stat st;
-  int written;
-
-  if (!home || !*home)
-    return -1;
-
-  written = snprintf(path, sizeof(path), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_CONFIG_HOME_PARENT);
-  if (written < 0 || (size_t)written >= sizeof(path))
-    return -1;
-  if (mkdir(path, S_IRWXU) != 0) {
-    if (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
-      return -1;
-  }
-
-  written = snprintf(path, sizeof(path), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     PROFILE_CONFIG_HOME_DIR);
-  if (written < 0 || (size_t)written >= sizeof(path))
-    return -1;
-  if (mkdir(path, S_IRWXU) != 0) {
-    if (errno != EEXIST || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
-      return -1;
-  }
-
-  return 0;
+  return ConfigPaths_ResolveBootstrapPath(surface, path, path_size, FALSE);
 }
 
 /*
@@ -2479,21 +2416,31 @@ int main(int argc, char **argv) {
   if (init_requested) {
     char init_path_buffer[PATH_LENGTH + 1];
     char init_theme_path_buffer[PATH_LENGTH + 1];
+    char init_commands_path_buffer[PATH_LENGTH + 1];
     const char *init_path = conf;
     const char *init_theme_path = init_theme_path_buffer;
+    const char *init_commands_path = init_commands_path_buffer;
     int init_profile_status;
     int init_theme_status;
+    int init_commands_status;
 
-    if (GetDefaultThemePath(init_theme_path_buffer,
-                            sizeof(init_theme_path_buffer)) != 0) {
+    if (GetDefaultSurfacePath(CONFIG_SURFACE_THEME, init_theme_path_buffer,
+                              sizeof(init_theme_path_buffer)) != 0) {
       fprintf(stderr,
               "Cannot resolve target themes path. Set HOME before --init.\n");
       exit(1);
     }
+    if (GetDefaultSurfacePath(CONFIG_SURFACE_COMMANDS,
+                              init_commands_path_buffer,
+                              sizeof(init_commands_path_buffer)) != 0) {
+      fprintf(stderr,
+              "Cannot resolve target commands path. Set HOME before --init.\n");
+      exit(1);
+    }
 
     if (!init_path) {
-      if (GetDefaultProfilePath(init_path_buffer, sizeof(init_path_buffer)) !=
-          0) {
+      if (GetDefaultSurfacePath(CONFIG_SURFACE_PROFILE, init_path_buffer,
+                                sizeof(init_path_buffer)) != 0) {
         fprintf(
             stderr,
             "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
@@ -2519,11 +2466,23 @@ int main(int argc, char **argv) {
               strerror(errno));
       exit(1);
     }
+    init_commands_status =
+        InitDefaultFile(init_commands_path, default_commands_catalog);
+    if (init_commands_status == -1) {
+      fprintf(stderr, "Failed to initialize commands %s: %s\n",
+              init_commands_path, strerror(errno));
+      exit(1);
+    }
 
     if (init_profile_status == 0)
       fprintf(stdout, "Created profile: %s\n", init_path);
     else
       fprintf(stdout, "%s already exists; not overwritten\n", init_path);
+    if (init_commands_status == 0)
+      fprintf(stdout, "Created commands: %s\n", init_commands_path);
+    else
+      fprintf(stdout, "%s already exists; not overwritten\n",
+              init_commands_path);
 
     if (init_theme_status == 0)
       fprintf(stdout, "Created themes: %s\n", init_theme_path);

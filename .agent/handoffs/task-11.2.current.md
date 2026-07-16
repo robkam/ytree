@@ -1,49 +1,52 @@
 ## Task
 
-- Title: Split User Label and Binding Surfaces (i18n/l10n-Safe Config Layout)
-- Acceptance target: `bindings.conf` and `labels.conf` exist as first-class XDG-first config surfaces with packaged defaults, deterministic starter generation, dedicated precedence over legacy `ytnova.conf` sections, independent label/key resolution, shared discovery/bootstrap/edit flows, atomic reload across config/themes/bindings/labels, and matching spec/manpage/contributor guidance.
-- Completion objective: finish Task 11.2 across runtime discovery, parser/loading, `--init`, `F10`, compatibility precedence, structured label/key assembly, docs, and focused regression coverage so no canonical user-editable surface still depends on raw rendered footer/menu lines or monolithic `ytnova.conf` ownership.
+- Title: Split Command Customization into `commands.conf` (i18n/l10n-Safe Layout)
+- Acceptance target: `commands.conf` exists as a first-class XDG-first command-customization surface with packaged defaults and deterministic starter generation; `ytnova.conf` is no longer the canonical editable home for labels, shown key tokens, key/custom-command mappings, or rendered footer/menu text; structured command resolution stays keyed by stable action identity and independent from bound key tokens; discovery/bootstrap/edit/reload behavior is consistent across config, themes, and commands; missing user `commands.conf` falls back to built-in defaults without file creation; `--init` and `F10` can create/edit all three surfaces independently; and legacy `ytnova.conf` command sections still load only as compatibility inputs that lose deterministically to `commands.conf`.
+- Completion objective: finish Task 11.2 across packaged/default command-surface assets, deterministic source/generated starter artifacts, shared config-family discovery/bootstrap/edit/reload policy, explicit `commands.conf` loading and validation with legacy precedence, structured command-data plumbing needed by runtime consumers, focused regression coverage, and matching canonical docs so no command-customization surface still depends on monolithic `ytnova.conf` ownership or raw rendered footer/menu-line storage.
 
 ## Clarification gate
 
-Proposed answers taken from `docs/ROADMAP.md` Task 11.2:
-1. Canonical home of label overrides: `~/.config/ytnova/labels.conf` (fallback `~/.ytnova.labels`), sourced from packaged `etc/ytnova.labels`.
-2. Canonical home of bindings/key-action customization: `~/.config/ytnova/bindings.conf` (fallback `~/.ytnova.bindings`), sourced from packaged `etc/ytnova.bindings`.
-3. Precedence: dedicated split file -> legacy section in `ytnova.conf` -> built-in defaults.
-4. Runtime assembly model: visible command entries render from `(action_id, label, key_token, availability_state)`, not pre-rendered footer/menu lines.
-5. `--init` contract: bootstrap config, themes, bindings, and labels with one deterministic source/generated pipeline and one shared discovery policy.
-6. `F10` contract: resolve/create/edit the active config, themes, bindings, and labels files independently under the same XDG-first/fallback policy.
+Task 11.2 now locks down its own concrete decisions in `docs/ROADMAP.md` lines 250-256, so there is no remaining maintainer ambiguity to pause on:
+1. Canonical home: `commands.conf` is the editable home of command customization.
+2. Precedence: `commands.conf` -> legacy `ytnova.conf` section -> built-in default.
+3. Runtime assembly model: visible command entries resolve from `(action_id, label, key_token, availability_state)`, not whole rendered line overrides.
+4. Starter-file model: canonical columns are `context | binding | shown | label | action | command`, with tightly constrained alias usage.
+5. `--init` contract: bootstrap config, themes, and commands through one shared discovery policy and deterministic source/generated pipeline.
+6. `F10` contract: resolve/create/edit the active config, themes, and commands files independently under that same policy.
 
 ## Selected work family
 
-- Family: config-surface split plumbing for dedicated bindings/labels files plus shared discovery/bootstrap/edit/reload contracts.
-- Why this family now: it is the largest coherent owner boundary that unblocks the rest of Task 11.2; label-runtime assembly depends on first making bindings/labels real config surfaces with shared discovery, precedence, `--init`, and `F10` flows.
+- Family: commands-surface discovery/bootstrap/loader plumbing for `commands.conf`, including shared path resolution, starter generation, compatibility precedence, `--init`, `F10`, and atomic reload hooks.
+- Why this family now: it is the largest coherent owner boundary spanning config/runtime bootstrap and parser ownership. It unlocks the rest of Task 11.2 by making `commands.conf` a real surface instead of a roadmap-only contract.
 - Deferred families:
-  - structured label/runtime command assembly across footer/help/menu surfaces, because it has a materially different runtime/UI validation path from config file discovery/parser/bootstrap plumbing.
-  - final docs/status reconciliation, because it depends on the runtime/config surfaces that land first.
+  - structured footer/help/menu/prompt command assembly from stable action metadata, because it has a materially different runtime/UI validation path from config-surface discovery and parser/bootstrap plumbing.
+  - final manpage/generated-usage sync, because it should land against the settled runtime/config behavior rather than a moving partial contract.
 
 ## Inventory
 
 | Surface | Status | Notes |
 | --- | --- | --- |
-| `docs/ROADMAP.md` Task 11.2 source of truth | pending | Title, contracts, acceptance criteria, and split-family rationale source. |
-| `docs/SPECIFICATION.md` §§7.1 and 7.5 | pending | Current discovery/F10 contract still covers only config/themes. |
-| `etc/ytnova.conf` | pending | Legacy canonical file still documents `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, `[FILECMD]`. User already has local modifications; preserve and fold them in. |
-| new `etc/ytnova.bindings` | pending | Packaged default binding surface. |
-| new `etc/ytnova.labels` | pending | Packaged default label surface. |
-| `src/core/default_profile_template.h` + generator path | pending | Existing generated config template likely must drop canonical bindings/labels ownership text. |
-| new generated starter/header surfaces for bindings/labels | pending | Needed for deterministic `--init`/starter-file bootstrap unless current architecture can safely reuse plain text assets with equal verification guarantees. |
-| `scripts/generate_default_profile_template.py` / new generator(s) / `Makefile` QA targets | pending | Deterministic generation + drift verification for new surfaces. |
-| `include/ytnova_defs.h` path constants / `ViewContext` path bookkeeping | pending | Needs shared config-family paths for bindings/labels plus active-path tracking if runtime edits them independently. |
-| `src/core/main.c` startup discovery and `--init` | pending | Currently initializes config + themes only. |
-| `src/cmd/profile.c` profile parser/runtime snapshot/writeback | pending | Still owns legacy `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, `[FILECMD]` parsing and profile rendering. |
-| `src/cmd/theme.c` / shared discovery helpers | intentionally unchanged? | Reuse expected, but verify shared path-resolution extraction instead of duplicating rules again. |
-| `src/ui/ui_edit_config.c` F10 command surface, starter creation, reload | pending | Currently exposes `(C)onfig (T)hemes (R)eload` only and reloads config+theme only. |
-| structured label/runtime assembly surfaces (`src/ui/display.c`, `src/ui/display_utils.c`, command/help/footer callers) | deferred | Same roadmap item, separate family after dedicated surfaces exist. |
-| focused regression tests in `tests/test_archive_exit_ui.py` | pending | Existing F10 config/themes tests are the direct extension point for bindings/labels/edit/reload bootstrap behavior. |
-| `tests/test_profile_template_sync.py` + new starter sync tests | pending | Generation/verifier coverage for config plus new bindings/labels starters. |
-| docs/manpage surfaces (`etc/ytnova.1.md`, generated `docs/USAGE.md`, contributor guidance) | deferred | Update after runtime/docs contract settles for the new surfaces. |
+| `docs/ROADMAP.md` Task 11.2 | intentionally unchanged | Source of truth already matches the selected family; no tracker text change was needed in this batch. |
+| `docs/SPECIFICATION.md` §§7.1 and 7.5 | intentionally unchanged | Spec already described the commands surface and did not need wording changes for this plumbing batch. |
+| `etc/ytnova.conf` legacy command sections | addressed | Starter config now points command customization at `commands.conf` instead of embedding canonical `[MENU]`/`[DIRMAP]`/`[FILEMAP]`/`[DIRCMD]`/`[FILECMD]` sections. |
+| new `etc/ytnova.commands` | addressed | Added packaged default command-customization starter content. |
+| `src/core/default_profile_template.h` | addressed | Regenerated after removing canonical command-section ownership from the packaged config starter. |
+| new generated compiled command starter/header | addressed | Added generated compiled starter content for `commands.conf`. |
+| `scripts/generate_default_profile_template.py` / new command starter generator / `Makefile` QA targets | addressed | Added a dedicated commands generator and QA/utility targets; existing profile generator stayed intact. |
+| `tests/test_profile_template_sync.py` and adjacent generator sync coverage | addressed | Added commands starter drift coverage alongside the existing profile template check. |
+| `include/ytnova_defs.h` config-family path bookkeeping | addressed | Added command-surface path constants, active-path storage, and init-hook plumbing. |
+| shared config-family path-resolution helper surface | addressed | Added a shared helper module and routed startup/`--init`/F10/theme discovery through it. |
+| `src/core/init.c` startup discovery | addressed | Startup now loads config + commands + themes through the shared XDG-first/fallback policy. |
+| `src/core/main.c` `--init` flow | addressed | `--init` now bootstraps config, commands, and themes together, reports the commands file outcome, and caches `HOME` before the bootstrap-path guard so static analysis no longer flags a null-dereference path in `GetDefaultSurfacePath()`. |
+| `src/cmd/profile.c` | addressed | Added override helpers and snapshot coverage so commands reload remains atomic while legacy profile parsing stays compatibility-only. |
+| new explicit `commands.conf` loader/validator module | addressed | Added a dedicated commands loader/validator rather than extending the monolithic profile parser again. |
+| `src/cmd/theme.c` / existing theme-path discovery | addressed | Updated theme discovery to use the shared path helper rather than leaving duplicate policy logic behind. |
+| `src/ui/ui_edit_config.c` | addressed | F10 now exposes Commands and reloads config + commands + themes atomically. |
+| runtime command consumers (`src/ui/display.c`, `src/ui/display_utils.c`, help/footer/menu/prompt command-strip sources, keybinding/runtime assembly call paths) | deferred | Separate runtime/UI family: converting visible command assembly to stable action/label/key-token data has a materially different validation path from config/bootstrap plumbing. |
+| focused runtime regression coverage in `tests/test_archive_exit_ui.py` | addressed | Added/updated focused F10 starter-file assertions for config and commands. |
+| docs/manpage surfaces (`etc/ytnova.1.md`, generated `docs/USAGE.md`, contributor guidance) | deferred | Final documentation reconciliation stays split because it depends on the later runtime/UI command-assembly family. |
 
 ## Recovery notes
 
-- Removed stale unrelated relay `.agent/handoffs/task-41.current.md` after confirming PR #403 merged on 2026-07-16 and no open PR remained.
+- Rewrote the stale same-task relay after `docs/ROADMAP.md` changed Task 11.2 from split bindings/labels files to the current single `commands.conf` contract.
+- GitHub PR `feat(config): add commands surface bootstrap` stayed draft because CI went red on July 16, 2026: the repo-side failure was the static-analyzer null-dereference report in `src/core/main.c:GetDefaultSurfacePath()`, and the unrelated Fedora checkout failure was a transient GitHub-side archive-download error.

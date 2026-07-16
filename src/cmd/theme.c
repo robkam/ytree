@@ -113,10 +113,6 @@ static ThemeLoadStatus ReadCompiledThemeCatalog(THEME_LOAD_CTX *ctx,
                                                 const char *theme_name);
 static int TryThemeCatalogFile(THEME_LOAD_CTX *ctx, const char *path,
                                const char *theme_name);
-static int TryConfiguredThemePath(THEME_LOAD_CTX *ctx, char *path,
-                                  size_t path_size, const char *home,
-                                  const char *suffix,
-                                  const char *theme_name);
 static int CoreInit_LoadTheme(ViewContext *ctx);
 
 static void SetThemeFilePath(ViewContext *ctx, const char *path) {
@@ -907,25 +903,8 @@ static int TryThemeCatalogFile(THEME_LOAD_CTX *ctx, const char *path,
   return -2;
 }
 
-static int TryConfiguredThemePath(THEME_LOAD_CTX *ctx, char *path,
-                                  size_t path_size, const char *home,
-                                  const char *suffix,
-                                  const char *theme_name) {
-  int written;
-
-  if (home == NULL || *home == '\0')
-    return -1;
-
-  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
-                     suffix);
-  if (written < 0 || (size_t)written >= path_size)
-    return -1;
-  return TryThemeCatalogFile(ctx, path, theme_name);
-}
-
 int LoadConfiguredTheme(ViewContext *ctx) {
   const char *theme_name;
-  const char *home;
   char path[PATH_LENGTH + 1];
   int result;
 
@@ -940,24 +919,27 @@ int LoadConfiguredTheme(ViewContext *ctx) {
       theme_name = configured;
   }
 
-  home = getenv("HOME");
-  result = TryConfiguredThemePath(ctx, path, sizeof(path), home,
-                                  THEME_CONFIG_HOME_PATH, theme_name);
-  if (result == 0) {
-    SetThemeFilePath(ctx, path);
-    return 0;
+  if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_THEME, path,
+                                       sizeof(path)) == 0) {
+    result = TryThemeCatalogFile(ctx, path, theme_name);
+    if (result == 0) {
+      SetThemeFilePath(ctx, path);
+      return 0;
+    }
+    if (result == -2)
+      return -1;
   }
-  if (result == -2)
-    return -1;
 
-  result = TryConfiguredThemePath(ctx, path, sizeof(path), home, THEME_FILENAME,
-                                  theme_name);
-  if (result == 0) {
-    SetThemeFilePath(ctx, path);
-    return 0;
+  if (ConfigPaths_ResolveLegacyPath(CONFIG_SURFACE_THEME, path, sizeof(path),
+                                    FALSE) == 0) {
+    result = TryThemeCatalogFile(ctx, path, theme_name);
+    if (result == 0) {
+      SetThemeFilePath(ctx, path);
+      return 0;
+    }
+    if (result == -2)
+      return -1;
   }
-  if (result == -2)
-    return -1;
 
   result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
   if (result == 0)

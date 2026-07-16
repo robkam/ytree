@@ -118,6 +118,7 @@ static void RegisterCoreInitOps(ViewContext *ctx) {
     return;
   memset(&ctx->core_init_ops, 0, sizeof(ctx->core_init_ops));
   CoreInitOps_RegisterCmdConfig(&ctx->core_init_ops);
+  CoreInitOps_RegisterCmdCommands(&ctx->core_init_ops);
   CoreInitOps_RegisterCmdProfile(&ctx->core_init_ops);
   CoreInitOps_RegisterCmdTheme(&ctx->core_init_ops);
   CoreInitOps_RegisterUIRuntime(&ctx->core_init_ops);
@@ -934,7 +935,6 @@ int Init(ViewContext *ctx, const char *configuration_file,
   InitBoundaryHooks(ctx);
   DEBUG_LOG("ENTER Init");
   char buffer[PATH_LENGTH + 1];
-  const char *home = NULL;
 
   /* ctx already assigned in main.c */
 
@@ -1017,6 +1017,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->configuration_file_path[0] = '\0';
   ctx->configuration_file_path_is_explicit = FALSE;
   ctx->history_file_path[0] = '\0';
+  ctx->commands_file_path[0] = '\0';
   setenv("ESCDELAY", "25", 1);
   ctx->curses_screen = newterm(NULL, stdout, stdin);
   if (ctx->curses_screen == NULL) {
@@ -1071,25 +1072,27 @@ int Init(ViewContext *ctx, const char *configuration_file,
     DEBUG_LOG("Init: Reading profile %s", configuration_file);
     if (ctx->core_init_ops.read_profile != NULL)
       ctx->core_init_ops.read_profile(ctx, configuration_file);
-  } else if ((home = getenv("HOME"))) {
+  } else if (getenv("HOME") != NULL) {
     int read_profile_result = -1;
-    snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-             PROFILE_CONFIG_HOME_PATH);
-    DEBUG_LOG("Init: Reading profile %s", buffer);
-    if (ctx->core_init_ops.read_profile != NULL)
-      read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
-    if (read_profile_result == 0)
-      (void)snprintf(ctx->configuration_file_path,
-                     sizeof(ctx->configuration_file_path), "%s", buffer);
-    if (read_profile_result != 0) {
-      snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-               PROFILE_FILENAME);
-      DEBUG_LOG("Init: Reading legacy profile %s", buffer);
+    if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_PROFILE, buffer,
+                                         sizeof(buffer)) == 0) {
+      DEBUG_LOG("Init: Reading profile %s", buffer);
       if (ctx->core_init_ops.read_profile != NULL)
         read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
       if (read_profile_result == 0)
         (void)snprintf(ctx->configuration_file_path,
                        sizeof(ctx->configuration_file_path), "%s", buffer);
+    }
+    if (read_profile_result != 0) {
+      if (ConfigPaths_ResolveLegacyPath(CONFIG_SURFACE_PROFILE, buffer,
+                                        sizeof(buffer), FALSE) == 0) {
+        DEBUG_LOG("Init: Reading legacy profile %s", buffer);
+        if (ctx->core_init_ops.read_profile != NULL)
+          read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+        if (read_profile_result == 0)
+          (void)snprintf(ctx->configuration_file_path,
+                         sizeof(ctx->configuration_file_path), "%s", buffer);
+      }
     }
     if (read_profile_result != 0) {
       const char *editor_env = getenv("EDITOR");
@@ -1111,6 +1114,13 @@ int Init(ViewContext *ctx, const char *configuration_file,
     }
   }
   DEBUG_LOG("Init: ReadProfile done");
+
+  if (ctx->core_init_ops.load_commands != NULL &&
+      ctx->core_init_ops.load_commands(ctx) != 0) {
+    CoreInitUINotice(ctx, "LoadCommands failed*ABORT");
+    exit(1);
+  }
+  DEBUG_LOG("Init: LoadCommands done");
 
   if (ctx->core_init_ops.load_theme != NULL &&
       ctx->core_init_ops.load_theme(ctx) != 0) {

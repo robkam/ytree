@@ -10,6 +10,7 @@ LAYER_ORDER = ("core", "cmd", "fs", "ui", "util")
 
 HEADER_LAYER = {
     "config.h": "cmd",
+    "default_commands_catalog.h": "core",
     "default_profile_template.h": "core",
     "sort.h": "core",
     "watcher.h": "fs",

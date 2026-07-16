@@ -1,0 +1,78 @@
+######################################
+# commands.conf starter for YtreeNova command customization.
+#
+# Only --init and explicit F10 Commands create this file. When the file is
+# missing, YtreeNova falls back to built-in command defaults without creating
+# a user copy.
+#
+# Canonical columns:
+#   context | binding | shown | label | action | command
+#
+# Rules:
+# - context is currently dir or file for the visible command-strip actions.
+# - binding is the real input key (single keys or Ctrl+letter chords).
+# - shown is the token rendered in footer/help surfaces.
+# - label is plain user-visible text only; do not encode key markup here.
+# - action is the stable internal action ID; do not translate or rename it.
+# - command is blank for built-ins. Use action user-command for custom shell
+#   commands and put the shell command in the final column.
+# - Uppercase and lowercase letters may be bound separately.
+# - Ctrl+letter bindings are case-insensitive, so Ctrl+n and Ctrl+N are the
+#   same chord.
+#
+# Built-in rows below mirror the default visible dir/file command keys. Editing
+# them lets commands.conf override legacy profile command sections cleanly.
+######################################
+# context | binding | shown | label | action | command
+
+dir | A | A | Attributes | ACTION_CMD_A |
+dir | C | C | Copy | ACTION_CMD_C |
+dir | D | D | Delete | ACTION_CMD_D |
+dir | F | F | Filter | ACTION_FILTER |
+dir | G | G | Global | ACTION_CMD_G |
+dir | I | I | Invert | ACTION_INVERT |
+dir | J | J | Compare | ACTION_COMPARE_DIR |
+dir | L | L | Log | ACTION_LOG |
+dir | M | M | Makedir | ACTION_CMD_M |
+dir | N | N | Newfile | ACTION_CMD_MKFILE |
+dir | O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |
+dir | P | P | Pipe | ACTION_CMD_P |
+dir | Q | Q | Quit | ACTION_QUIT |
+dir | R | R | Rename | ACTION_CMD_R |
+dir | S | S | Showall | ACTION_CMD_S |
+dir | T | T | Tag | ACTION_TAG |
+dir | U | U | Untag | ACTION_UNTAG |
+dir | V | V | Movedir | ACTION_CMD_V |
+dir | W | W | Write | ACTION_CMD_PRINT |
+dir | X | X | Execute | ACTION_CMD_X |
+dir | Z | Z | Archive | ACTION_CMD_I |
+dir | / | / | Jump | ACTION_LIST_JUMP |
+dir | ` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |
+
+file | A | A | Attributes | ACTION_CMD_A |
+file | C | C | Copy | ACTION_CMD_C |
+file | Ctrl+K | ^K | Copy tagged | ACTION_CMD_TAGGED_C |
+file | D | D | Delete | ACTION_CMD_D |
+file | E | E | Edit | ACTION_CMD_E |
+file | F | F | Filter | ACTION_FILTER |
+file | H | H | Hex | ACTION_CMD_H |
+file | I | I | Invert | ACTION_INVERT |
+file | J | J | Compare | ACTION_COMPARE_FILE |
+file | L | L | Log | ACTION_LOG |
+file | M | M | Move | ACTION_CMD_M |
+file | Ctrl+N | ^N | Move tagged | ACTION_CMD_TAGGED_M |
+file | N | N | Newfile | ACTION_CMD_MKFILE |
+file | O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |
+file | P | P | Pipe | ACTION_CMD_P |
+file | Q | Q | Quit | ACTION_QUIT |
+file | R | R | Rename | ACTION_CMD_R |
+file | S | S | Sort | ACTION_CMD_S |
+file | W | W | Write | ACTION_CMD_PRINT |
+file | X | X | Execute | ACTION_CMD_X |
+file | Y | Y | Pathcopy | ACTION_CMD_Y |
+file | Z | Z | Archive | ACTION_CMD_I |
+file | / | / | Jump | ACTION_LIST_JUMP |
+file | ` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |
+
+# Example custom shell-command row:
+# dir | K | K | Disk usage | user-command | du %s | less
