@@ -227,7 +227,7 @@ Ordering policy (for all editors, including AI editors):
 ### **BUG-9: Footer/Help/Prompt Trust Family**
 *   **Description**: BUG-9 is the root footer/help/prompt trust family. BUG-9.1 through BUG-9.4 are visible effects of the same underlying discoverability problem.
 *   **Family contract**: footer, F1 help, and prompt text must report the same available actions and context; help surfaces must not imply unavailable actions; cancel/exit paths must restore the normal context footer; archive-specific messages must report the actual attempted shortcut; archive tree rendering must stay structurally honest.
-*   **Related**: `ROADMAP` Task 43 (footer/F1 context parity).
+*   **Related**: `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract) and Task 43.1 (Add Contextual F1 Hyperlinks and Shared Explainer Pages).
 *   **Status**: Fixed.
 
 ### **BUG-9.1: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
@@ -237,14 +237,14 @@ Ordering policy (for all editors, including AI editors):
     *   The failing path is directory copy to a missing destination where the create-directory prompt is canceled with `No`.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.
 *   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer/help ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
-*   **Related**: `BUG-21` (footer restore consistency during input flows), `ROADMAP` Task 43 (footer/F1 context parity).
+*   **Related**: `BUG-21` (footer restore consistency during input flows), `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract).
 *   **Status**: Confirmed.
 
 ### **BUG-9.2: Prompt Footer/F1 Parity Can Hide Available Prompt Actions**
 *   **Description**: In prompt-driven workflows, footer/F1 coverage can omit active prompt actions and semantics (for example completion/browse controls and compare/archive prompt meanings), leaving available behavior under-discoverable.
 *   **Impact**: Creates hidden-feature workflow confusion and high-friction issue reports during routine operations.
 *   **Remediation**: Enforce a prompt-context parity contract: footer shows currently available prompt actions; F1 may add concise semantics/examples for those same actions, but must not advertise unavailable actions.
-*   **Related**: `ROADMAP` Task 43 (footer/F1 context parity), `BUG-9.3` (archive unavailable-action messaging), `BUG-8` (prompt/help context mismatch).
+*   **Related**: `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract), `BUG-9.3` (archive unavailable-action messaging), `BUG-8` (prompt/help context mismatch).
 *   **Status**: Confirmed.
 
 ### **BUG-9.3: Archive Unavailable-Action Message Reports Wrong Shortcut**
@@ -264,7 +264,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: During long-running operations, spinner/progress rendering can overwrite footer/prompt help text instead of using a non-obtrusive status area.
 *   **Impact**: Hides available actions and makes active workflows look unstable or hung.
 *   **Remediation**: Preserve footer/prompt/F1 ownership during progress updates. Render progress in a dedicated non-obtrusive status surface, and degrade to a compact indicator when space is constrained rather than overwriting help text.
-*   **Related**: `ROADMAP` Task 20 (progress indicators), `ROADMAP` Task 43 (footer/F1 parity contract).
+*   **Related**: `ROADMAP` Task 20 (Progress Indicators for Copy/Move/Delete/Archive Workflows), `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract), and `ROADMAP` Task 43.2 (Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance).
 *   **Status**: Confirmed.
 
 ### **BUG-11: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**

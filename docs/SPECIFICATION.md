@@ -379,12 +379,13 @@ Current modal/dialog audit:
 ## 7. Theme and Color Contract
 Themes are plain-text user-editable files separate from the main configuration. The main config selects the active theme; theme files define semantic UI roles and optional file-type palette rules.
 
-### 7.1 Theme Files and Discovery
-*   Packaged default sources are `etc/ytnova.conf` and `etc/ytnova.themes`; runtime binaries must not consult `etc/` directly.
-*   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf` and `$XDG_CONFIG_HOME/ytnova/themes.conf`; when `XDG_CONFIG_HOME` is unset, they fall back to `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`.
-*   Home-directory fallback user paths are `~/.ytnova` and `~/.ytnova.themes` when the XDG target paths cannot be used.
+### 7.1 Theme and Config-Family Files
+*   Packaged default sources are `etc/ytnova.conf`, `etc/ytnova.themes`, and `etc/ytnova.commands`; runtime binaries must not consult `etc/` directly.
+*   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, and `$XDG_CONFIG_HOME/ytnova/commands.conf`; when `XDG_CONFIG_HOME` is unset, they fall back to `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/themes.conf`, and `~/.config/ytnova/commands.conf`.
+*   Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, and `~/.ytnova.commands` when the XDG target paths cannot be used.
 *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
-*   Future config-family catalogs such as key bindings and labels follow the same `.../ytnova/` config-directory policy rather than inventing new home-root files.
+*   If the user command catalog is missing, runtime loads packaged or compiled-in default command data without creating `~/.config/ytnova/commands.conf`.
+*   `commands.conf` is the canonical user-editable source for line-1/line-2 command bindings, shown key tokens, plain labels, stable action IDs, and optional custom shell-command bindings. `ytnova.conf` must not remain the canonical home of `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
 *   Command history is session state, not config: its preferred path is `$XDG_STATE_HOME/ytnova/ytnova.hst`, falling back to `~/.local/state/ytnova/ytnova.hst` when `XDG_STATE_HOME` is unset; legacy `~/.ytnova-hst` remains a compatibility path only when the state target cannot be used or when migrating old history forward.
 *   Built-in theme names include `quiet-blue` and `bash-black`.
 *   User-facing theme files use semantic role names only.
@@ -428,8 +429,35 @@ executables = green: EXEC
 
 Rules are first-match-wins. Selectors are extension names without `*.` by default; `LINK` and `EXEC` are special selectors. Directories in the tree use theme roles and are not styled by file-type palette rules. When a rule omits a background, it inherits the active filename/window background.
 
-### 7.5 F10 Config Surface and Reload
-`F10` opens the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
+### 7.5 `commands.conf` Contract
+`commands.conf` is a starter-commented plain-text table with the canonical columns `context | binding | shown | label | action | command`.
+
+Required contract:
+*   `context` names the runtime surfaces that share the entry (for example `dir,file` or `file,tagged`).
+*   `binding` names the exact key inputs. Uppercase and lowercase letters may be bound separately. `Ctrl+letter` bindings are case-insensitive: `Ctrl+n` and `Ctrl+N` mean the same chord, so only one command may use a given `Ctrl+letter` chord. Alias bindings may be comma-separated only when they share the same context, shown token, label, action ID, and command payload.
+*   `shown` names the token text rendered in footer/help surfaces. It is separate from the real binding so localized labels and display mnemonics do not need to mirror the raw input key exactly.
+*   `label` stores plain user-visible text only. Users must not encode binding markup into the label column.
+*   `action` stores the stable internal action ID. Starter comments must state that users must not translate or rename action IDs.
+*   `command` is blank for built-in actions. Custom shell-command bindings set `action` to `user-command` and store the shell command in `command`.
+*   Footer/help rendering must preserve separate theme roles for key tokens and labels.
+*   If a shown token appears in the label, runtime must render the compact mnemonic form inline, for example `(C)opy` or `mo(V)edir`.
+*   If a shown token does not appear in the label, runtime must render the highlighted token separately with a single space before the label, for example `(J) compare`.
+*   If multiple shown tokens map to one visible entry, runtime must render highlighted tokens slash-separated with an unhighlighted slash, for example `(M)/(^N) move`.
+*   Whole rendered footer/menu lines are not stored in `commands.conf`; they are assembled at runtime from `binding`, `shown`, `label`, `action`, and availability state.
+
+Starter comments must include concise live examples such as:
+
+```text
+context | binding | shown | label | action | command
+dir,file | c,C | C | Copy | copy |
+file,tagged | m,M,^N | M/^N | move | move |
+
+# Custom shell-command example:
+# file | g | G | gcc | user-command | gcc -O -c
+```
+
+### 7.6 F10 Config Surface and Reload
+`F10` opens the configuration command surface with entries for Config, Themes, Commands, Reload, and Quit. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme/commands state and reports the parse/load error in the footer/status area only.
 
 ---
 
