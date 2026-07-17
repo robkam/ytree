@@ -203,7 +203,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Actual**: Dir display mode reverts/reset unexpectedly.
 *   **Impact**: Breaks context-local view-state persistence and makes display-mode controls feel unreliable.
 *   **Remediation**: Persist dir-context display mode independently across focus/context transitions, and preserve it when file-context display mode changes.
-*   **Related**: `ROADMAP` Task 44 (`1..0 FileInfo` ownership contract).
+*   **Related**: `ROADMAP` Task 44 (`1..9 FileInfo` ownership contract).
 *   **Status**: Confirmed.
 
 ### **BUG-7: F7 Preview Over-Restricts Command Availability**

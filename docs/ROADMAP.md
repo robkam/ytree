@@ -244,14 +244,14 @@ Ordering policy (for all editors, including AI editors):
     *   Add deterministic generator/verification paths for starter artifacts derived from that source, matching the existing source/generated policy used for `etc/ytnova.conf` and `etc/ytnova.themes`.
     *   Refactor config discovery so startup, `--init`, reload, and `F10` all use one shared path-resolution policy across config/theme/commands surfaces.
     *   Add an explicit loader/validator for `commands.conf` rather than growing one monolithic profile parser indefinitely.
-    *   `commands.conf` starter comments must be concise, self-explanatory, and already populated with live examples. They must document the canonical column order `context | binding | shown | label | action | command`, explain that uppercase and lowercase letters may be bound separately, explain that `Ctrl+letter` bindings are case-insensitive and therefore collide on the same chord, and warn that action IDs are internal names that users must not translate.
+    *   `commands.conf` starter comments must be concise, self-explanatory, and already populated with live examples. They must document the canonical per-section row order `binding | shown | label | action | command`, explain the `[DIR]` / `[FILE]` section headers, explain that uppercase and lowercase letters may be bound separately, explain that `Ctrl+letter` bindings are case-insensitive and therefore collide on the same chord, and warn that action IDs are internal names that users must not translate.
     *   Extend `F10` so the configuration surface can edit/create the active config, themes, and commands files independently while preserving the same XDG-first/fallback rules.
     *   Reload must be atomic across config + commands + themes: validation failure in any one surface keeps the previously working runtime state.
 *   **Concrete Decisions This Task Must Lock Down:**
     *   **Canonical home:** `commands.conf` is the canonical editable home of command customization.
     *   **Precedence:** `commands.conf` -> legacy `ytnova.conf` section -> built-in default.
     *   **Runtime assembly model:** render footer/help/menu/prompt command entries from `(action_id, label, key_token, availability_state)` rather than from pre-rendered line text.
-    *   **Starter-file model:** `commands.conf` entries use the canonical columns `context | binding | shown | label | action | command`; alias bindings may be comma-separated only when they share the same context, shown token, label, action, and command payload.
+    *   **Starter-file model:** `commands.conf` uses canonical per-context section headers such as `[DIR]` and `[FILE]`; inside each section entries use the canonical row columns `binding | shown | label | action | command`; alias bindings may be comma-separated only when they share the same section, shown token, label, action, and command payload.
     *   **`--init` contract:** generate/bootstrap the active starter files for config, themes, and commands using the same discovery policy and deterministic source/generated pipeline.
     *   **`F10` contract:** edit/create the active file for config, themes, and commands independently rather than routing command edits back through monolithic `ytnova.conf` text.
 *   **Acceptance Criteria:**
@@ -259,7 +259,7 @@ Ordering policy (for all editors, including AI editors):
 *   `ytnova.conf` no longer serves as the canonical editable source for label overrides, displayed key tokens, key/custom-command mappings, or footer/menu line text.
 *   No canonical user-editable file stores raw rendered footer/menu lines as the primary override model.
 *   Structured command resolution is keyed by stable action identity and remains independent from bound key tokens.
-*   `commands.conf` documents the canonical column order `context | binding | shown | label | action | command` with concise comments and live examples.
+*   `commands.conf` documents the canonical sectioned row order `binding | shown | label | action | command` with concise comments and live examples.
 *   XDG-first discovery and home-dotfile fallback behavior is consistent across config, themes, and commands.
 *   Missing user `commands.conf` files fall back to built-in defaults without file creation.
 *   `--init` can bootstrap all three user-editable surfaces without ambiguity.
@@ -766,10 +766,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Scope Lock:** Base help wording/structure, coverage matrix, and text-organization readiness only; no command-behavior changes. Hyperlink/index-style help navigation is tracked separately under Task 43.1, and progress/help coexistence is tracked separately under Task 43.2.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching `F1` help set, but `F1` need not mirror the footer verbatim if a clearer concise explanation is better.
-*   `F1` adds short clarification for behaviors the footer cannot explain cleanly, especially Ctrl-only tagged/search flows, prompt syntax such as `{}`, numeric `1..0` display/info-band meanings, and split/archive/Showall/Global caveats that affect the current surface.
+*   `F1` adds short clarification for behaviors the footer cannot explain cleanly, especially Ctrl-only tagged/search flows, prompt syntax such as `{}`, numeric `1..9` display/info-band meanings, and split/archive/Showall/Global caveats that affect the current surface.
 *   For active prompt contexts, footer lists currently available prompt actions; `F1` may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, prompt flows with Ctrl-only tagged/search semantics, and `VI_KEYS=1` variants.
-*   Numeric FileInfo band coverage is explicit: when the footer compresses `1..0 dir view` / `1..0 file view`, the matching `F1` help must briefly decode the active-surface semantics for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, Git, and the current no-op `0`.
+*   Numeric FileInfo band coverage is explicit: when the footer compresses `1..9 dir view` / `1..9 file view`, the matching `F1` help must briefly decode the active-surface semantics for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, and Git, while keeping the hidden unassigned `0` behavior out of the advertised band.
 *   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, useful command-line editing, and archive/compress format behavior).
 *   Help text paths are structured for gettext extraction/reuse and future deduplication (no duplicated ad-hoc strings per view path, and no translator-facing requirement to edit C literals just to keep related help prose aligned).
 *   Add regression checks that detect footer/F1 parity drift in covered contexts.
@@ -812,7 +812,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused tests or source-contract checks prove `F1` help uses the intended theme roles rather than picker/dialog fallbacks.
 *   - [ ] **Status:** Not Started.
 
-### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..0`; `0` unused)**
+### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.
 *   **Behavior Contract:**
 *   `1` => Name only (default/baseline). This is also the reset-to-default selection.
@@ -841,7 +841,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `human-readable`) as the seed for `6`.
 *   Add `SEPARATE_DIR_FILE_VIEWS=0|1` profile setting (default `0`) to switch between shared and split `1..4` panel views.
 *   **Keybinding Policy:** Remove `^F` and `B` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 39 scope lock.
-*   **UX/Help Policy:** Footer stays concise (`1..0 dir view` / `1..0 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics live in F1 help/manpage.
+*   **UX/Help Policy:** Footer stays concise (`1..9 dir view` / `1..9 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics live in F1 help/manpage. Unassigned `0` remains a silent no-op but is not advertised in the footer/help band.
 *   **Spec/Docs Sync Policy:** When delivered, update `docs/SPECIFICATION.md` and `etc/ytnova.1.md` (and regenerated `docs/USAGE.md`) with the same grouped ownership contract.
 *   - [x] **Status:** Completed.
 
@@ -1193,11 +1193,11 @@ Ordering policy (for all editors, including AI editors):
     *   The format should remain friendly to user edits and future contributed themes, such as light variants, beige themes, or alternate black-background themes.
 *   **F10 Config Surface and Reload Direction:**
     *   `F10` opens a shallow configuration command surface, not a single hardwired raw-file editor.
-    *   The command strip is exactly: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`.
-    *   Common path remains `F10 -> Enter -> edit config`; direct expert paths are `F10 -> C`, `F10 -> T`, and `F10 -> R`.
+    *   The command strip is exactly: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`.
+    *   Common path remains `F10 -> Enter -> edit config`; direct expert paths are `F10 -> C`, `F10 -> M`, `F10 -> T`, and `F10 -> R`.
     *   Reload is available only under `F10`; do not add a top-level/global reload key.
     *   Policy: `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it.
-    *   Successful reload silently repaints using the new config/theme. Failed reload keeps the previous working config/theme and reports the parse/load error in the footer/status area only.
+    *   Successful reload silently repaints using the new config/theme/commands state. Failed reload keeps the previous working config/theme/commands state and reports the parse/load error in the footer/status area only.
 *   **Default Palette Direction:**
     *   `background = blue`
     *   `box_lines = cyan`
@@ -1253,7 +1253,7 @@ Ordering policy (for all editors, including AI editors):
     *   User-facing theme/config examples use `grey`/`gray`, never `bright black`.
     *   Runtime theme lookup uses XDG `themes.conf` first, then legacy `~/.ytnova.themes`; missing user theme catalogs are satisfied from packaged/compiled defaults without creating a user file, only --init / explicit edit flows create starter files.
     *   F2 shows `(L)og  (<)/(>) Cycle` with only key tokens styled as keybindings.
-    *   F10 exposes `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`; reload is not exposed as a global/main-UI key.
+    *   F10 exposes `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`; reload is not exposed as a global/main-UI key.
     *   The volume menu shows `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete` with only key tokens styled as keybindings.
     *   F1/context help uses the `help` role, while F2/history/completion/volume selectable lists use `picker`.
     *   Theme implementation proves foreground/background pair correctness.

@@ -47,10 +47,11 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     assert "[GLOBAL]" in created
     assert "THEME=quiet-blue" in created
     assert "# THEME=bash-black" in created
-    assert "commands.conf" in created
     created_commands = commands.read_text(encoding="utf-8")
-    assert "context | binding | shown | label | action | command" in created_commands
-    assert "dir | A | A | Attributes | ACTION_CMD_A |" in created_commands
+    assert "[DIR]" in created_commands
+    assert "binding | shown | label | action | command" in created_commands
+    assert "A | A | Attributes | ACTION_CMD_A |" in created_commands
+    assert "[FILE]" in created_commands
     created_themes = themes.read_text(encoding="utf-8")
     assert "[theme quiet-blue]" in created_themes
     assert "picker = black on cyan" in created_themes
@@ -89,7 +90,7 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     assert "THEME=quiet-blue" in profile_text
     assert "# THEME=bash-black" in profile_text
     assert "F12" not in profile_text
-    assert "context | binding | shown | label | action | command" in commands.read_text(
+    assert "[DIR]" in commands.read_text(
         encoding="utf-8"
     )
 

@@ -271,7 +271,7 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytnova_binary, tmp_
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
     footer = _footer_text(tui).lower()
-    for token in ("1..0 dir view", "copy", "delete"):
+    for token in ("1..9 dir view", "copy", "delete"):
         assert token in footer, (
             "Directory footer should be restored after returning from external compare."
         )

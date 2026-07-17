@@ -243,6 +243,10 @@ def test_spec_documents_user_visible_theme_contract():
         in spec_source
     )
     assert (
+        "runtime must not capitalize the leading letter just for title-case styling"
+        in spec_source
+    )
+    assert (
         "`THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned."
         in spec_source
     )
@@ -254,7 +258,7 @@ def test_manpage_documents_user_visible_theme_contract():
     usage_source = _read_source("docs/USAGE.md")
 
     for source in (man_source, usage_source):
-        assert "(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
+        assert "(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
         assert (
             "By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`"
             in source

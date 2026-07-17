@@ -5,11 +5,16 @@
 # missing, YtreeNova falls back to built-in command defaults without creating
 # a user copy.
 #
-# Canonical columns:
-#   context | binding | shown | label | action | command
+# Canonical structure:
+#   [DIR]
+#   binding | shown | label | action | command
+#
+#   [FILE]
+#   binding | shown | label | action | command
 #
 # Rules:
-# - context is currently dir or file for the visible command-strip actions.
+# - section headers are currently [DIR] and [FILE] for the visible
+#   command-strip actions.
 # - binding is the real input key (single keys or Ctrl+letter chords).
 # - shown is the token rendered in footer/help surfaces.
 # - label is plain user-visible text only; do not encode key markup here.
@@ -23,56 +28,59 @@
 # Built-in rows below mirror the default visible dir/file command keys. Editing
 # them lets commands.conf override legacy profile command sections cleanly.
 ######################################
-# context | binding | shown | label | action | command
+[DIR]
+# binding | shown | label | action | command
+A | A | Attributes | ACTION_CMD_A |
+C | C | Copy | ACTION_CMD_C |
+D | D | Delete | ACTION_CMD_D |
+F | F | Filter | ACTION_FILTER |
+G | G | Global | ACTION_CMD_G |
+I | I | Invert | ACTION_INVERT |
+J | J | Compare | ACTION_COMPARE_DIR |
+L | L | Log | ACTION_LOG |
+M | M | Makedir | ACTION_CMD_M |
+N | N | Newfile | ACTION_CMD_MKFILE |
+O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |
+P | P | Pipe | ACTION_CMD_P |
+Q | Q | Quit | ACTION_QUIT |
+R | R | Rename | ACTION_CMD_R |
+S | S | Showall | ACTION_CMD_S |
+T | T | Tag | ACTION_TAG |
+U | U | Untag | ACTION_UNTAG |
+V | V | Movedir | ACTION_CMD_V |
+W | W | Write | ACTION_CMD_PRINT |
+X | X | Execute | ACTION_CMD_X |
+Z | Z | Archive | ACTION_CMD_I |
+/ | / | Jump | ACTION_LIST_JUMP |
+` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |
 
-dir | A | A | Attributes | ACTION_CMD_A |
-dir | C | C | Copy | ACTION_CMD_C |
-dir | D | D | Delete | ACTION_CMD_D |
-dir | F | F | Filter | ACTION_FILTER |
-dir | G | G | Global | ACTION_CMD_G |
-dir | I | I | Invert | ACTION_INVERT |
-dir | J | J | Compare | ACTION_COMPARE_DIR |
-dir | L | L | Log | ACTION_LOG |
-dir | M | M | Makedir | ACTION_CMD_M |
-dir | N | N | Newfile | ACTION_CMD_MKFILE |
-dir | O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |
-dir | P | P | Pipe | ACTION_CMD_P |
-dir | Q | Q | Quit | ACTION_QUIT |
-dir | R | R | Rename | ACTION_CMD_R |
-dir | S | S | Showall | ACTION_CMD_S |
-dir | T | T | Tag | ACTION_TAG |
-dir | U | U | Untag | ACTION_UNTAG |
-dir | V | V | Movedir | ACTION_CMD_V |
-dir | W | W | Write | ACTION_CMD_PRINT |
-dir | X | X | Execute | ACTION_CMD_X |
-dir | Z | Z | Archive | ACTION_CMD_I |
-dir | / | / | Jump | ACTION_LIST_JUMP |
-dir | ` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |
-
-file | A | A | Attributes | ACTION_CMD_A |
-file | C | C | Copy | ACTION_CMD_C |
-file | Ctrl+K | ^K | Copy tagged | ACTION_CMD_TAGGED_C |
-file | D | D | Delete | ACTION_CMD_D |
-file | E | E | Edit | ACTION_CMD_E |
-file | F | F | Filter | ACTION_FILTER |
-file | H | H | Hex | ACTION_CMD_H |
-file | I | I | Invert | ACTION_INVERT |
-file | J | J | Compare | ACTION_COMPARE_FILE |
-file | L | L | Log | ACTION_LOG |
-file | M | M | Move | ACTION_CMD_M |
-file | Ctrl+N | ^N | Move tagged | ACTION_CMD_TAGGED_M |
-file | N | N | Newfile | ACTION_CMD_MKFILE |
-file | O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |
-file | P | P | Pipe | ACTION_CMD_P |
-file | Q | Q | Quit | ACTION_QUIT |
-file | R | R | Rename | ACTION_CMD_R |
-file | S | S | Sort | ACTION_CMD_S |
-file | W | W | Write | ACTION_CMD_PRINT |
-file | X | X | Execute | ACTION_CMD_X |
-file | Y | Y | Pathcopy | ACTION_CMD_Y |
-file | Z | Z | Archive | ACTION_CMD_I |
-file | / | / | Jump | ACTION_LIST_JUMP |
-file | ` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |
+[FILE]
+# binding | shown | label | action | command
+A | A | Attributes | ACTION_CMD_A |
+C | C | Copy | ACTION_CMD_C |
+Ctrl+K | ^K | Copy tagged | ACTION_CMD_TAGGED_C |
+D | D | Delete | ACTION_CMD_D |
+E | E | Edit | ACTION_CMD_E |
+F | F | Filter | ACTION_FILTER |
+H | H | Hex | ACTION_CMD_H |
+I | I | Invert | ACTION_INVERT |
+J | J | Compare | ACTION_COMPARE_FILE |
+L | L | Log | ACTION_LOG |
+M | M | Move | ACTION_CMD_M |
+Ctrl+N | ^N | Move tagged | ACTION_CMD_TAGGED_M |
+N | N | Newfile | ACTION_CMD_MKFILE |
+O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |
+P | P | Pipe | ACTION_CMD_P |
+Q | Q | Quit | ACTION_QUIT |
+R | R | Rename | ACTION_CMD_R |
+S | S | Sort | ACTION_CMD_S |
+W | W | Write | ACTION_CMD_PRINT |
+X | X | Execute | ACTION_CMD_X |
+Y | Y | Pathcopy | ACTION_CMD_Y |
+Z | Z | Archive | ACTION_CMD_I |
+/ | / | Jump | ACTION_LIST_JUMP |
+` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |
 
 # Example custom shell-command row:
-# dir | K | K | Disk usage | user-command | du %s | less
+# [DIR]
+# K | K | Disk usage | user-command | du %s | less

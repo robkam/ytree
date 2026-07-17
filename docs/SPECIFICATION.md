@@ -162,7 +162,7 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 *   **The Invert Rule (`i`/`I`):** In both tree and file windows, invert tags applies to the active panel's current file-list scope (filesystem and archive contexts).
 *   **The Only-Tagged Rule (`o`/`O`):** In both tree and file windows, toggle tagged-only file-list view for the active panel's current scope; toggling never changes tag state.
 *   **The Archive/Global Jump (`\`):** In Archive Mode, jumps to the archive root. in Global/Showall views, jumps to the highlighted file's directory.
-*   **Numeric FileInfo Band (`1..0`; `0` unused):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). The footer presents this as `1..0 dir view` in tree/directory focus and `1..0 file view` in file focus. `1` is the simple default/baseline file or directory view, and it is also the reset-to-default selection for temporary FileInfo extras. By default, `1..4` change the active panel's shared view so tree/directory and file windows follow each other. Pressing the already-active `2`, `3`, or `4` again resets that context back to `1` / Name. Selecting `1..4` also returns that file projection to its named base view, clearing temporary compact/overlay state there. `2` is the Attributes view and now owns `name -> target` symlink detail in file projections. `SEPARATE_DIR_FILE_VIEWS=1` restores split behavior so `1..4` change only the currently focused context. `5` toggles the compact Name file rendering variant (the replacement for Brief) only when the current focused `1` / Name base view is active; it does not create compact Attributes/Owner/Times variants and is a silent no-op from `2`, `3`, or `4`. `6` toggles binary vs human-readable size units for directory/file rows only; stats remain human-readable. `7` toggles Mini preview detail that shows the start of readable file contents on every visible file row. `8` toggles File detail (`file`-style type-summary text, with a coarse built-in fallback when external type text is unavailable) on every visible file row. `9` toggles the Git status band for filesystem file lists inside Git worktrees. `5`, `7`, `8`, and `9` never change tree rows; they update the panel's file projection instead, so in tree focus they affect the embedded small file window and in file focus they affect the file window. `6` changes size formatting across the panel's directory/file row surfaces. `0` is currently unused and is a silent no-op. Extra view states do not stack in the stats label; the current file/directory section names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`) so users do not have to decode the numeric band from the footer alone. `9` remains a silent no-op outside Git worktrees.
+*   **Numeric FileInfo Band (`1..9`):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). The footer presents this as `1..9 dir view` in tree/directory focus and `1..9 file view` in file focus. `1` is the simple default/baseline file or directory view, and it is also the reset-to-default selection for temporary FileInfo extras. By default, `1..4` change the active panel's shared view so tree/directory and file windows follow each other. Pressing the already-active `2`, `3`, or `4` again resets that context back to `1` / Name. Selecting `1..4` also returns that file projection to its named base view, clearing temporary compact/overlay state there. `2` is the Attributes view and now owns `name -> target` symlink detail in file projections. `SEPARATE_DIR_FILE_VIEWS=1` restores split behavior so `1..4` change only the currently focused context. `5` toggles the compact Name file rendering variant (the replacement for Brief) only when the current focused `1` / Name base view is active; it does not create compact Attributes/Owner/Times variants and is a silent no-op from `2`, `3`, or `4`. `6` toggles binary vs human-readable size units for directory/file rows only; stats remain human-readable. `7` toggles Mini preview detail that shows the start of readable file contents on every visible file row. `8` toggles File detail (`file`-style type-summary text, with a coarse built-in fallback when external type text is unavailable) on every visible file row. `9` toggles the Git status band for filesystem file lists inside Git worktrees. `5`, `7`, `8`, and `9` never change tree rows; they update the panel's file projection instead, so in tree focus they affect the embedded small file window and in file focus they affect the file window. `6` changes size formatting across the panel's directory/file row surfaces. `0` remains an unassigned silent no-op and is not advertised in the footer band. Extra view states do not stack in the stats label; the current file/directory section names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`) so users do not have to decode the numeric band from the footer alone. `9` remains a silent no-op outside Git worktrees.
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
 *   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
 *   **Quit to Directory (`^q`):** Exits `ytnova` to the currently highlighted directory (requires shell-level support to finalize the shell path).
@@ -430,17 +430,18 @@ executables = green: EXEC
 Rules are first-match-wins. Selectors are extension names without `*.` by default; `LINK` and `EXEC` are special selectors. Directories in the tree use theme roles and are not styled by file-type palette rules. When a rule omits a background, it inherits the active filename/window background.
 
 ### 7.5 `commands.conf` Contract
-`commands.conf` is a starter-commented plain-text table with the canonical columns `context | binding | shown | label | action | command`.
+`commands.conf` is a starter-commented plain-text file with canonical per-context sections such as `[DIR]` and `[FILE]`. Inside each section, rows use the canonical columns `binding | shown | label | action | command`.
 
 Required contract:
-*   `context` names the runtime surfaces that share the entry (for example `dir,file` or `file,tagged`).
-*   `binding` names the exact key inputs. Uppercase and lowercase letters may be bound separately. `Ctrl+letter` bindings are case-insensitive: `Ctrl+n` and `Ctrl+N` mean the same chord, so only one command may use a given `Ctrl+letter` chord. Alias bindings may be comma-separated only when they share the same context, shown token, label, action ID, and command payload.
+*   Section headers name the runtime surface that owns the following rows. The canonical section names are `[DIR]` and `[FILE]`.
+*   `binding` names the exact key inputs. Uppercase and lowercase letters may be bound separately. `Ctrl+letter` bindings are case-insensitive: `Ctrl+n` and `Ctrl+N` mean the same chord, so only one command may use a given `Ctrl+letter` chord. Alias bindings may be comma-separated only when they share the same section, shown token, label, action ID, and command payload.
 *   `shown` names the token text rendered in footer/help surfaces. It is separate from the real binding so localized labels and display mnemonics do not need to mirror the raw input key exactly.
 *   `label` stores plain user-visible text only. Users must not encode binding markup into the label column.
 *   `action` stores the stable internal action ID. Starter comments must state that users must not translate or rename action IDs.
 *   `command` is blank for built-in actions. Custom shell-command bindings set `action` to `user-command` and store the shell command in `command`.
 *   Footer/help rendering must preserve separate theme roles for key tokens and labels.
 *   If a shown token appears in the label, runtime must render the compact mnemonic form inline, for example `(C)opy` or `mo(V)edir`.
+*   If the shown token appears later in the word, only the first matching mnemonic letter is capitalized/highlighted; runtime must not capitalize the leading letter just for title-case styling, so `commands` with shown token `M` renders `co(M)mands`, not `Co(M)mands`.
 *   If a shown token does not appear in the label, runtime must render the highlighted token separately with a single space before the label, for example `(J) compare`.
 *   If multiple shown tokens map to one visible entry, runtime must render highlighted tokens slash-separated with an unhighlighted slash, for example `(M)/(^N) move`.
 *   Whole rendered footer/menu lines are not stored in `commands.conf`; they are assembled at runtime from `binding`, `shown`, `label`, `action`, and availability state.
@@ -448,16 +449,21 @@ Required contract:
 Starter comments must include concise live examples such as:
 
 ```text
-context | binding | shown | label | action | command
-dir,file | c,C | C | Copy | copy |
-file,tagged | m,M,^N | M/^N | move | move |
+[DIR]
+binding | shown | label | action | command
+C | C | Copy | ACTION_CMD_C |
+
+[FILE]
+binding | shown | label | action | command
+X | X | Execute | ACTION_CMD_X |
 
 # Custom shell-command example:
-# file | g | G | gcc | user-command | gcc -O -c
+# [FILE]
+# g | G | gcc | user-command | gcc -O -c
 ```
 
 ### 7.6 F10 Config Surface and Reload
-`F10` opens the configuration command surface with entries for Config, Themes, Commands, Reload, and Quit. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme/commands state and reports the parse/load error in the footer/status area only.
+`F10` opens the configuration command surface with entries in this order: `config`, `commands`, `themes`, `reload`, and `quit`. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme/commands state and reports the parse/load error in the footer/status area only.
 
 ---
 

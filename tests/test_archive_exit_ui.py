@@ -1209,10 +1209,6 @@ def test_missing_profile_f10_unchanged_edit_creates_profile(tmp_path, ytnova_bin
             "Missing-profile F10 bootstrap should no longer keep legacy command "
             "customization sections inside ytnova.conf."
         )
-        assert "commands.conf" in profile_text, (
-            "Missing-profile F10 bootstrap should point users at commands.conf "
-            "for command customization."
-        )
         assert f"EDITOR={unchanged_editor}" in profile_text, (
             "Missing-profile F10 bootstrap should seed from the active in-memory "
             "runtime profile so the current EDITOR survives into the created file."
@@ -1337,10 +1333,13 @@ def test_missing_commands_f10_unchanged_edit_keeps_starter_file(
             "F10 -> Commands on a missing commands file must open an editable default commands buffer."
         )
         commands_text = editor_capture.read_text(encoding="utf-8")
-        assert "context | binding | shown | label | action | command" in commands_text, (
-            "Default commands buffer should include the canonical commands.conf columns."
+        assert "[DIR]" in commands_text and "[FILE]" in commands_text, (
+            "Default commands buffer should include the canonical commands.conf sections."
         )
-        assert "dir | A | A | Attributes | ACTION_CMD_A |" in commands_text, (
+        assert "binding | shown | label | action | command" in commands_text, (
+            "Default commands buffer should include the canonical per-section commands.conf columns."
+        )
+        assert "A | A | Attributes | ACTION_CMD_A |" in commands_text, (
             "Default commands buffer should include live built-in command rows."
         )
         assert commands_path.exists(), (
@@ -1349,6 +1348,36 @@ def test_missing_commands_f10_unchanged_edit_keeps_starter_file(
         assert commands_path.read_text(encoding="utf-8") == commands_text, (
             "An unchanged missing-commands edit must persist the starter commands catalog verbatim."
         )
+    finally:
+        tui.quit()
+
+
+def test_legacy_six_column_commands_file_does_not_abort_startup(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "legacy_commands_startup"
+    root.mkdir()
+    work = root / "work"
+    work.mkdir()
+    (work / "file0.txt").write_text("x", encoding="utf-8")
+    config_dir = root / ".config" / "ytnova"
+    config_dir.mkdir(parents=True)
+    (config_dir / "commands.conf").write_text(
+        "dir | A | A | Attributes | ACTION_CMD_A |\n"
+        "file | X | X | Execute | ACTION_CMD_X |\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
+        cwd=str(work),
+        env_extra={"HOME": str(root)},
+    )
+
+    try:
+        assert tui.child.isalive(), "Legacy six-column commands.conf must not abort startup."
+        screen_text = "\n".join(tui.get_screen_dump())
+        assert "LoadCommands failed" not in screen_text
     finally:
         tui.quit()
 
@@ -1565,9 +1594,6 @@ def test_removed_legacy_profile_f10_recreates_xdg_not_dotfile(
         assert "\n[MENU]\n" not in profile_text and "\n[DIRMAP]\n" not in profile_text, (
             "Recreated XDG profiles should not restore legacy command "
             "customization sections into ytnova.conf."
-        )
-        assert "commands.conf" in profile_text, (
-            "Recreated XDG profiles should point command customization at commands.conf."
         )
         assert "TREEDEPTH=7" in profile_text, (
             "When the legacy profile has been removed, F10 should seed the new "
@@ -2116,7 +2142,7 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     )
     _assert_footer_segments_in_order(
         footer_rows[0],
-        "1..0 dir view",
+        "1..9 dir view",
         "Copy",
         "Delete",
         "Filter",
@@ -2169,7 +2195,7 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
 
     footer_rows = _footer_lines(tui)
     header = footer_rows[0]
-    for segment in ("1..0 dir view", "Global", "J compare"):
+    for segment in ("1..9 dir view", "Global", "J compare"):
         assert segment in header, (
             "Archive dir footer should expose FileInfo/global/compare labels.\n"
             f"{header!r}"
@@ -2182,12 +2208,12 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "Archive dir footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
-    assert header.index("1..0 dir view") < header.index("Global"), (
+    assert header.index("1..9 dir view") < header.index("Global"), (
         "Archive dir footer should list FileInfo before global."
     )
     _assert_footer_segments_in_order(
         footer_rows[0],
-        "1..0 dir view",
+        "1..9 dir view",
         "Copy",
         "Delete",
         "Filter",

@@ -359,8 +359,8 @@ def test_ctrl_u_untags_all(test_dir_with_files, ytnova_binary):
 
 def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     """
-    BUG: Footer can drift away from the unified numeric FileInfo band.
-    EXPECTED: Footer should show "1..0 file view" and should not show Brief/About.
+    BUG: Footer can drift away from the advertised numeric FileInfo band.
+    EXPECTED: Footer should show "1..9 file view" and should not show Brief/About.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
 
@@ -371,7 +371,7 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     screen = _screen_text(lines)
     footer = _footer_text(lines)
 
-    if "1..0 file view" not in footer:
+    if "1..9 file view" not in footer:
         pytest.fail(f"BUG: Footer missing unified FileInfo band\nFooter:\n{footer}\n\nFull screen:\n{screen}")
 
     if "brief" in footer or "compact" in footer:
