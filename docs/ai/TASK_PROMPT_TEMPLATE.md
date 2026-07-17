@@ -150,9 +150,9 @@ CI wait rule:
 - Fetch detailed check or log output only if a check is red.
 - Keep maintainer-facing updates to one short line.
 - If a pushed fix changes the PR, restart the wait cycle from the beginning.
-- If ready conversion, branch sync, base update, or any other PR mutation restarts required checks, restart the wait cycle from the beginning.
+- If PR metadata edits, branch sync, base update, or any other PR mutation restarts required checks, restart the wait cycle from the beginning.
 - A PR is mergeable only when required checks are actually green at the moment you act. If an allegedly green PR is red or pending when rechecked, treat it as not ready and continue remediation/waiting.
-- Recheck the live PR state against the current head SHA immediately before ready conversion and again immediately before merge. Treat the PR as not ready if any required check is red, pending, cancelled, missing, rerunning, or if freshness/up-to-date is no longer green.
+- Recheck the live PR state against the current head SHA immediately before merge. Treat the PR as not ready if any required check is red, pending, cancelled, missing, rerunning, or if freshness/up-to-date is no longer green.
 
 Continuation and stop rules:
 - After every merge, resume the next largest coherent remaining work family without waiting for my go-ahead, unless I later tell you to pause or stop.
@@ -169,7 +169,8 @@ What to do now:
 1. Inspect current git/GitHub state.
 2. If there is an active PR:
    - Follow the CI wait rule.
-   - If checks are green when rechecked live, mark ready if needed, merge when allowed, clean up stale remote/local branch state, delete or refresh any consumed relay files as required by the outcome, then continue according to the continuation rule unless a superseding stop condition applies.
+   - Once required checks are green on the current head SHA, do not edit the PR body, push new commits, update the branch, sync with base, or perform any other PR mutation before merging unless a real fix is required, because those actions may restart CI.
+   - If checks are green when rechecked live, merge when allowed, clean up stale remote/local branch state, delete or refresh any consumed relay files as required by the outcome, then continue according to the continuation rule unless a superseding stop condition applies.
    - If checks failed, inspect only the failure-relevant summary or log tail. Fix only clearly repo-side, in-scope failures.
    - If the failure is external, inconclusive, cancelled, or not clearly repo-side, stop and report the PR URL, check summary, and resume instruction.
 3. If there is no active PR:
@@ -180,10 +181,10 @@ What to do now:
    - Implement the full coherent batch through the repo's developer/auditor/PR workflow.
    - Run focused local validation only.
    - Reconcile the inventory before opening the PR.
-   - Push a draft PR.
+   - Push a regular PR.
    - Update any active relay file needed for recovery, including the inventory and closure status.
    - Follow the CI wait rule.
-   - When CI is green when rechecked live, mark ready if needed, merge when allowed, clean up stale remote/local branch state, delete or refresh relay files so `.agent/handoffs/` does not retain stale work-item residue, then continue with the next largest coherent work family unless a superseding stop condition applies.
+   - When CI is green when rechecked live, merge when allowed, clean up stale remote/local branch state, delete or refresh relay files so `.agent/handoffs/` does not retain stale work-item residue, then continue with the next largest coherent work family unless a superseding stop condition applies.
 
 Reporting discipline:
 - Do not provide broad recaps unless asked.

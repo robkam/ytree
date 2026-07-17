@@ -267,7 +267,7 @@ Ordering policy (for all editors, including AI editors):
 *   Legacy sections in `ytnova.conf` still load during the compatibility phase, but `commands.conf` overrides them deterministically.
 *   Reload fails closed if any one of config/theme/commands is malformed or invalid, and the previous working state remains active.
 *   `docs/SPECIFICATION.md`, manpage/USAGE docs, and contributor guidance describe commands as structured overrides rather than rendered-line text replacement.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 11.3: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)**
 *   **Goal:** Harden config/history reliability and corruption resistance without changing user-facing feature semantics.

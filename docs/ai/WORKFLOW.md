@@ -309,7 +309,7 @@ make qa-fuzz
     *   Maintainer-facing status wording should be constrained to `active`, `completed`, or `blocked`; avoid ambiguous runtime labels (for example `awaiting instruction`) in relay updates.
 5.  Before merge to `main`, architect MUST ensure green PR full-QA CI evidence (`make qa-all` equivalent) for accepted branch state.
 6.  Actual merge-safety gate is mandatory:
-    *   immediately before ready conversion and immediately before merge, re-query the live PR state/checks for the current head SHA,
+    *   immediately before merge, re-query the live PR state/checks for the current head SHA,
     *   treat required checks as not green if any required check is red, pending, cancelled, missing, or rerunning,
     *   require the branch freshness/up-to-date gate to be green at that moment when such a gate exists,
     *   if the head SHA or required-check set changes after the last green observation, restart the wait cycle and do not merge yet.
@@ -328,7 +328,7 @@ make qa-fuzz
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
 1.  When preparing merge to `main`, require green PR full-QA CI gate (`make qa-all` equivalent).
-2.  Immediately before ready conversion and again immediately before merge, recheck live PR status on the current head SHA; if any required check is red, pending, cancelled, missing, rerunning, or freshness is no longer green, do not merge and restart the wait/remediation loop.
+2.  Immediately before merge, recheck live PR status on the current head SHA; if any required check is red, pending, cancelled, missing, rerunning, or freshness is no longer green, do not merge and restart the wait/remediation loop.
 3.  Integrate branch to `main` using fast-forward only.
 4.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
 5.  Delete temporary feature branch locally and on remote after merge.
@@ -349,14 +349,15 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
 6.  **Architect/AI:** Choose a Conventional Commit subject autonomously unless current repo policy or the maintainer explicitly requires approval.
-7.  **Architect/AI:** Commit, push branch, and open/update a draft PR.
+7.  **Architect/AI:** Commit, push branch, and open/update a regular PR.
     *   PR title must use Conventional Commit format and describe the current atomic unit's durable aim, not a volatile task/bug number or the whole roadmap initiative.
     *   PR body should be concise: summary, scope, and local validation evidence. Do not duplicate obvious CI output or paste check transcripts into the body/comments.
-8.  **Maintainer (GitHub):** Review draft PR scope and evidence.
+8.  **Maintainer (GitHub):** Review PR scope and evidence.
 9.  **Architect/AI + Maintainer (GitHub):** Monitor PR CI full gate proactively (for example `gh pr checks <pr-number> --watch`). Do not wait passively for a separate reminder when checks change state.
 10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
-    *   Do not convert a draft PR to ready, request reviewers, or otherwise trigger another long PR gate unless the maintainer explicitly instructs it.
-11. **Architect/AI + Maintainer (GitHub):** If ready conversion, branch sync, or any other PR mutation restarts required checks, restart the wait loop and do not merge against stale earlier green results.
+    *   Do not request reviewers while checks are red unless the maintainer explicitly instructs it.
+    *   Once checks are green on the current head SHA, avoid non-essential PR mutations before merge (for example PR-body edits or base-sync actions) because they may restart CI or invalidate freshness.
+11. **Architect/AI + Maintainer (GitHub):** If PR metadata edits, branch sync, or any other PR mutation restarts required checks, restart the wait loop and do not merge against stale earlier green results.
 12. **Maintainer (GitHub):** Merge PR to `main` only after checks are rechecked live as green on the current head SHA and review is satisfied. Never merge or close a PR while required checks are red, pending, cancelled, missing, rerunning, or freshness is stale.
 13. **Maintainer (GitHub):** Delete remote branch:
     *   `git push origin --delete <branch>`
