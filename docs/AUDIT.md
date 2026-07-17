@@ -56,8 +56,8 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 ### Hybrid PR Cadence (Mandatory)
 
 - Before first push, run a quick local gate (`make`, plus targeted smoke/tests for touched scope).
-- Open a draft PR early; draft PR checks may be red while iterating.
-- Do not request review while draft checks are red.
+- Open a regular PR early; PR checks may be red while iterating.
+- Do not request review while checks are red unless the maintainer explicitly asks.
 - Before merge to `main`, require green PR full-QA CI (`make qa-all` equivalent) plus required loop evidence from this document; local full audit reruns are optional unless the maintainer explicitly requests them.
 - Before merge, require green PR checks and reviewer signoff.
 
@@ -66,14 +66,13 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 | Tier | Owner | Trigger | Required checks | Non-overlap default intent |
 |---|---|---|---|---|
 | Tier A (local fast iteration) | Developer | During implementation before first push and between risky edits | `make`; targeted pytest for touched scope; targeted guards (`qa-unsafe-apis`, `qa-fileops-integrity`) when relevant | Keep iteration fast; avoid full-suite duplication unless local risk demands it |
-| Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) plus path-filtered `qa-split-panel-gates` on split-touching PRs | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
+| Tier B (PR baseline CI) | CI + PR author | Every push while the PR is active | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) plus path-filtered `qa-split-panel-gates` on split-touching PRs | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
 | Tier C (pre-merge full gate) | CI + PR author | Before merge to `main` (or earlier only when explicitly requested) | Green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent); optional local `make qa-all-log` evidence when maintainer-requested; plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Use CI as canonical full-gate signal; avoid duplicate local full-gate reruns during routine iteration |
 | Tier D (merge/release gate) | Maintainer + reviewer | Before merge and before release/tag cut | Branch-protection checks green; reviewer signoff; `qa-sanitize`; `qa-valgrind-full` for release-risk changes; `qa-valgrind-interactive` after major feature flows | Reserve deepest runtime checks for merge/release assurance to avoid slowing every draft iteration |
 
 ### branch-protection and PR State Criteria (Mandatory)
 
-- **Draft PR:** Branch exists and PR stays draft. Red checks are acceptable while iterating. No review requests.
-- **Ready for review:** Tier B branch-protection checks are green and no unresolved blocker findings remain. Tier C may be deferred to pre-merge unless explicitly requested earlier.
+- **Open PR:** Branch exists and the PR is open. Red checks are acceptable while iterating. No review requests while checks are red unless the maintainer explicitly asks.
 - **Merge:** All required branch-protection checks are green, reviewer signoff is present, and Tier D evidence is attached for the current diff/risk.
 - Required branch-protection checks (sync with current workflows):
   - `.github/workflows/ci.yml`: `Guard fuzz harness sync`
@@ -107,8 +106,8 @@ Within a gate, prefer this order:
 
 Track these metrics per PR and as rolling team trends:
 
-- **median draft feedback time:** median elapsed time from draft-PR push to first CI result.
-- **time-to-green:** elapsed time from first draft push to all required branch-protection checks passing.
+- **median PR feedback time:** median elapsed time from PR push to first CI result.
+- **time-to-green:** elapsed time from first PR push to all required branch-protection checks passing.
 - **full-gate runtime:** runtime for full local/CI gates (`make qa-all-log`, plus sanitizer/deep gates when invoked).
 - **flake rate:** reruns caused by non-deterministic failures ÷ total gate runs.
 
@@ -116,10 +115,10 @@ Report metrics in PR notes or release prep notes with before/after deltas when g
 
 Provisional targets (make completion auditable; tighten over time as data improves):
 
-- **Tier B p50 runtime target:** <= 30 minutes per draft-PR push.
+- **Tier B p50 runtime target:** <= 30 minutes per PR push.
 - **Full-gate p50 runtime target:** <= 60 minutes for `make qa-all-log` evidence runs.
 - **Max acceptable flake rate:** <= 5% of gate runs requiring rerun due to non-determinism.
-- **Target time-to-green:** <= 120 minutes from first draft push to required checks all green.
+- **Target time-to-green:** <= 120 minutes from first PR push to required checks all green.
 
 ### Rollout, Rollback, and Risk Register (Mandatory)
 

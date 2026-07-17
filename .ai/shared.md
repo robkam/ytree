@@ -39,7 +39,7 @@ These instructions apply to all AI agents used in this repository.
 
 - When finishing a long-running mission or when explicitly requesting user review via `notify_user`, you SHOULD trigger a desktop notification on the Windows host.
 - Execute: `/home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "<Context-specific milestone>"`
-- Use a concrete milestone string, not a placeholder. Examples: `Draft PR created.` or `Implementation complete, ready for review.`
+- Use a concrete milestone string, not a placeholder. Examples: `PR created.` or `Implementation complete, ready to merge.`
 
 ## Persona Skill Auto-Load
 
@@ -108,17 +108,17 @@ These instructions apply to all AI agents used in this repository.
 21. GitHub branch protection workflow is mandatory: for any change intended for GitHub, create/use a non-`main` branch, push that branch, and open/update a PR. Do not push directly to `main`. If work was committed locally on `main`, branch from current HEAD before the first push and continue via PR.
 22. Hybrid PR quality workflow is mandatory:
     - Before first push, run a quick local gate (build plus targeted smoke/tests).
-    - Open a draft PR early; red is allowed while iterating.
+    - Open a regular PR early; red is allowed while iterating.
     - For an active PR, proactively poll the live required-check state every 5 minutes and remediate clearly repo-side CI failures until the required set is green, unless the failure is external, inconclusive, or the maintainer explicitly tells you to stop.
     - Keep a durable PR title even while checks are red; do not use temporary `WIP:` title prefixes.
     - PR title, summary, and validation text must describe the durable behavior or architecture aim of the atomic unit, not volatile tracker numbers or broader-roadmap labels.
     - PR validation text must be concise local evidence only; do not duplicate self-evident CI/check output or paste full check transcripts into PR bodies or comments.
-    - While PR is red, keep the PR in draft and do not request reviewers.
+    - While PR is red, do not request reviewers unless the maintainer explicitly asks.
     - Before merge to `main`, require green PR full-QA CI gate (`make qa-all` equivalent) and required audit-loop evidence; local `make qa-all` is optional unless the maintainer explicitly requests it.
-    - Convert draft PR to ready only after green PR evidence is available and maintainer direction allows it; do not trigger another long ready-conversion gate without explicit instruction.
+    - Once the required checks are green on the current head SHA, avoid non-essential PR mutations before merge (for example PR-body edits, base syncs, or other metadata changes) because they may restart CI or invalidate freshness.
     - Before merge, require green PR checks and reviewer signoff.
-    - Actual merge-safety gate is mandatory: immediately before ready conversion and again immediately before merge, re-query the live PR state/checks against the current head SHA. Treat required checks as not green if any required check is red, pending, cancelled, missing, or rerunning, or if the branch is not up to date with the base branch at that moment.
-    - If any PR mutation (push, ready conversion, base update, branch sync, or other GitHub-triggered rerun) restarts required checks, restart the wait cycle from the beginning and do not merge until the rerun set is green on the current head SHA.
+    - Actual merge-safety gate is mandatory: immediately before merge, re-query the live PR state/checks against the current head SHA. Treat required checks as not green if any required check is red, pending, cancelled, missing, or rerunning, or if the branch is not up to date with the base branch at that moment.
+    - If any PR mutation (push, PR metadata edits, base update, branch sync, or other GitHub-triggered rerun) restarts required checks, restart the wait cycle from the beginning and do not merge until the rerun set is green on the current head SHA.
 23. Boundary-family batching gate is mandatory: for roadmap, migration, registry, guard, or contract-enforcement work, you MUST default to the largest coherent adjacent boundary-family batch that shares the same owner boundary, generation domain, risk class, and focused validation path. You MUST NOT slice one boundary family into helper-by-helper or guard-by-guard micro-PRs unless the remaining adjacent work is blocked, requires a materially different validation path, or would materially increase review/regression risk.
 24. Coverage-inventory gate is mandatory: for any non-trivial roadmap item, migration, bugfix, or multi-surface task, you MUST build an explicit in-scope inventory before editing. The inventory must name the relevant code surfaces, tests, docs/trackers, and call paths or compatibility seams that could make the work falsely appear complete. For bugfixes, the inventory MUST include the reproducer path plus adjacent failure surfaces that share the same root cause. Record the inventory in the applicable plan, handoff, or tracked checkpoint before or alongside implementation; do not start coding until scope is explicit enough to prove what is in and out.
 25. Closure-reconciliation gate is mandatory: before opening a PR or declaring a work item complete, you MUST reconcile the inventory item by item. Each inventoried item must be marked as addressed, intentionally unchanged with reason, or deferred/blocked with a concrete reason. Silent omission is forbidden. If an item is deferred, the reason must be explicit (for example blocked dependency, materially different validation path, materially different risk class, or different owner boundary) rather than a vague "later" note.
