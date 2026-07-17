@@ -40,15 +40,15 @@ def _line_containing_all(tui, *needles):
     raise AssertionError(f"Could not find {needles!r}.\n{screen_text(tui)}")
 
 
-def _assert_footer_column_alignment(lines, first_row_token, second_row_token):
-    assert lines[0].find(first_row_token) == lines[1].find(second_row_token) == lines[2].find("F1 help"), (
+def _assert_footer_column_alignment(lines, first_row_token, second_row_token, nav_token):
+    assert lines[0].find(first_row_token) == lines[1].find(second_row_token) == lines[2].find(nav_token), (
         "Footer rows should share one left-aligned command column.\n"
         + "\n".join(lines)
     )
 
 
-def _assert_single_space_after_nav_glyphs(line, label):
-    assert line[3:].startswith(f" {label} F1 help"), (
+def _assert_single_space_after_nav_glyphs(line, label, first_command):
+    assert line[3:].startswith(f" {label} {first_command}"), (
         "Footer nav row should use exactly one space after the nav glyphs.\n"
         f"{line!r}"
     )
@@ -58,31 +58,38 @@ def _assert_single_space_after_nav_glyphs(line, label):
     )
 
 
-def test_narrow_dir_and_file_footers_show_explicit_mnemonic_keys(tmp_path):
+def test_narrow_dir_and_file_footers_keep_full_labels_until_resize(tmp_path):
     root = _root_with_file(tmp_path)
     tui = _spawn_narrow_tui(root)
 
     try:
-        dir_footer = "\n".join(footer_lines(tui))
-        assert "1..9 A C D F G I J L M N O" in dir_footer
+        dir_lines = footer_lines(tui)
+        dir_footer = "\n".join(dir_lines)
+        assert "1..9 A C D F G I J L M N O" not in dir_footer
+        assert any("dir view" in line for line in dir_lines[:2]), dir_footer
+        assert dir_lines[1].rstrip().endswith("..."), dir_footer
         assert "^F" not in dir_footer
         assert "Brief" not in dir_footer
         assert "(A)" not in dir_footer
         assert "(M)" not in dir_footer
         assert "(N)" not in dir_footer
-        assert "Esc" in dir_footer
+        assert dir_lines[2].rstrip().endswith("..."), dir_footer
+        assert "F9 apps" in dir_lines[2], dir_footer
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        file_footer = "\n".join(footer_lines(tui))
-        assert "1..9 A C/^K D E F H I J L M/^N" in file_footer
+        file_lines = footer_lines(tui)
+        file_footer = "\n".join(file_lines)
+        assert "1..9 A C/^K D E F H I J L M/^N" not in file_footer
+        assert any("file view" in line for line in file_lines[:2]), file_footer
+        assert file_lines[1].rstrip().endswith("..."), file_footer
         assert "^F" not in file_footer
         assert "Brief" not in file_footer
-        assert "N O P Q R S W X Y Z / `" in file_footer
         assert "(A)" not in file_footer
         assert "(E)" not in file_footer
         assert "(M)" not in file_footer
         assert "(Y)" not in file_footer
-        assert "Esc" in file_footer
+        assert file_lines[2].rstrip().endswith("..."), file_footer
+        assert "F9 apps" in file_lines[2], file_footer
     finally:
         tui.quit()
 
@@ -103,8 +110,15 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "/jump" not in dir_footer
         assert "` dotfiles" in dir_footer
         assert "`dotfiles" not in dir_footer
-        _assert_single_space_after_nav_glyphs(dir_lines[2], "File")
-        _assert_footer_column_alignment(dir_lines, "1..9 dir view", "Pipe")
+        _assert_single_space_after_nav_glyphs(dir_lines[2], "File", "F1 help")
+        assert dir_lines[1].startswith("COMMANDS Only tagged"), (
+            "Wide dir footer second row should begin with the balanced overflow command.\n"
+            + "\n".join(dir_lines)
+        )
+        assert dir_footer.index("Write") < dir_footer.index("eXecute"), dir_footer
+        assert dir_lines[2].find("F9 apps") < dir_lines[2].find("F10 config"), dir_lines[2]
+        assert dir_lines[2].rstrip().endswith("Esc cancel"), dir_lines[2]
+        _assert_footer_column_alignment(dir_lines, "1..9 dir view", "Only tagged", "F1 help")
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         file_lines = footer_lines(tui)
@@ -113,8 +127,19 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "C/^K Copy" not in file_footer
         assert "M/^N move" in file_footer
         assert "M/^N Move" not in file_footer
-        _assert_single_space_after_nav_glyphs(file_lines[2], "Tree")
-        _assert_footer_column_alignment(file_lines, "1..9 file view", "Newfile")
+        _assert_single_space_after_nav_glyphs(file_lines[2], "Tree", "F1 help")
+        assert "Only tagged" in file_lines[1], (
+            "Wide file footer should balance later key-ordered actions onto the second row.\n"
+            + "\n".join(file_lines)
+        )
+        assert file_lines[1].startswith("COMMANDS Newfile"), (
+            "Wide file footer second row should begin with the balanced overflow command.\n"
+            + "\n".join(file_lines)
+        )
+        assert file_footer.index("Write") < file_footer.index("eXecute"), file_footer
+        assert file_lines[2].find("F9 apps") < file_lines[2].find("F10 config"), file_lines[2]
+        assert file_lines[2].rstrip().endswith("Esc cancel"), file_lines[2]
+        _assert_footer_column_alignment(file_lines, "1..9 file view", "Newfile", "F1 help")
     finally:
         tui.quit()
 

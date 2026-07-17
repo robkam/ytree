@@ -5,6 +5,19 @@ Maintainer instructions:
 - Do not rewrite the rest unless you intentionally want custom behavior.
 - A future maintainer may have only this repository clone. The AI must rely on repo state, git/GitHub state, and any currently-present transient relay files under `.agent/handoffs/`, not on external chat history.
 
+## Merge prompt to use only after CI is green
+
+Use this only after the PR is already open and CI is green. Do not include this block in the starter prompt.
+
+Re-check the live PR head SHA and current GitHub merge state against the current GitHub state. If and only if all required checks are green on the current head SHA, the PR is mergeable, and the branch is up to date as required, merge the PR with rebase-merge.
+Do not edit the PR body, push new commits, update the branch, sync with base, or perform any other PR mutation before merging, because those actions may restart CI or invalidate freshness.
+If this merge closes the selected work item, update the in-repo source-of-truth tracker status appropriately on local `main` only if that status change does not require opening another PR; otherwise just report it as remaining follow-up.
+After merge, clean up only non-PR-opening post-merge residue: discard any uncommitted local handoff/relay leftovers, note any tracked stale handoff artifact still on `main`, and do not open another PR unless explicitly instructed.
+Delete the merged feature branch locally and confirm the remote branch is gone.
+Fast-forward local `main` to `origin/main`, leave the checkout clean, and report only completed state, current next action, and changed handles.
+
+## Starter prompt
+
 You are continuing ytreenova work as a stateless AI.
 
 Repo: /home/rob/ytreenova

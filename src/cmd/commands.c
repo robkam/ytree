@@ -112,7 +112,31 @@ static int BindingTokenToKeyCode(const char *token) {
   return -1;
 }
 
-static int DefaultActionKeyCode(const char *context, const char *action_id) {
+int CommandKeyCodeToToken(int key_code, char *token, size_t token_size) {
+  if (token == NULL || token_size == 0)
+    return -1;
+
+  token[0] = '\0';
+  if (key_code <= 0)
+    return -1;
+
+  if (key_code < 0x20 && isalpha((unsigned char)(key_code | 0x40)))
+    return snprintf(token, token_size, "^%c",
+                    (char)toupper((unsigned char)(key_code | 0x40))) >=
+                   (int)token_size
+               ? -1
+               : 0;
+
+  if (isprint((unsigned char)key_code))
+    return snprintf(token, token_size, "%c", (char)toupper(key_code)) >=
+                   (int)token_size
+               ? -1
+               : 0;
+
+  return -1;
+}
+
+int CommandActionDefaultKeyCode(const char *context, const char *action_id) {
   size_t index;
 
   if (context == NULL || action_id == NULL)
@@ -140,7 +164,7 @@ static int ApplyContextBinding(ViewContext *ctx, const char *context,
     return -1;
   }
 
-  default_key = DefaultActionKeyCode(context, action_id);
+  default_key = CommandActionDefaultKeyCode(context, action_id);
   if (default_key < 0)
     return -1;
 
@@ -154,6 +178,53 @@ static int ApplyContextBinding(ViewContext *ctx, const char *context,
 static int IsSupportedContextName(const char *context_name) {
   return context_name != NULL &&
          (strcmp(context_name, "dir") == 0 || strcmp(context_name, "file") == 0);
+}
+
+static int StoreCommandPresentation(ViewContext *ctx, const char *context_name,
+                                    const char *action_id, const char *shown,
+                                    const char *label) {
+  CommandPresentationOverride *entries;
+  size_t *entry_count;
+  size_t index;
+
+  if (ctx == NULL || context_name == NULL || action_id == NULL ||
+      shown == NULL || label == NULL || strcmp(action_id, "user-command") == 0)
+    return 0;
+
+  if (strcmp(context_name, "dir") == 0) {
+    entries = ctx->dir_command_presentations;
+    entry_count = &ctx->dir_command_presentation_count;
+  } else if (strcmp(context_name, "file") == 0) {
+    entries = ctx->file_command_presentations;
+    entry_count = &ctx->file_command_presentation_count;
+  } else {
+    return -1;
+  }
+
+  for (index = 0; index < *entry_count; ++index) {
+    if (strcmp(entries[index].action_id, action_id) == 0) {
+      if (snprintf(entries[index].shown, sizeof(entries[index].shown), "%s",
+                   shown) >= (int)sizeof(entries[index].shown) ||
+          snprintf(entries[index].label, sizeof(entries[index].label), "%s",
+                   label) >= (int)sizeof(entries[index].label))
+        return -1;
+      return 0;
+    }
+  }
+
+  if (*entry_count >= COMMAND_PRESENTATION_OVERRIDES_MAX)
+    return -1;
+
+  if (snprintf(entries[*entry_count].action_id,
+               sizeof(entries[*entry_count].action_id), "%s", action_id) >=
+          (int)sizeof(entries[*entry_count].action_id) ||
+      snprintf(entries[*entry_count].shown, sizeof(entries[*entry_count].shown),
+               "%s", shown) >= (int)sizeof(entries[*entry_count].shown) ||
+      snprintf(entries[*entry_count].label, sizeof(entries[*entry_count].label),
+               "%s", label) >= (int)sizeof(entries[*entry_count].label))
+    return -1;
+  ++*entry_count;
+  return 0;
 }
 
 static int ParseContextSectionName(char *line, char *context_name,
@@ -278,8 +349,14 @@ static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
         *line_error = 1;
         return -1;
       }
+      if (ctx != NULL &&
+          StoreCommandPresentation(ctx, context_name, action_id, shown_column,
+                                   label_column) != 0) {
+        *line_error = 1;
+        return -1;
+      }
       if (ctx == NULL && !command_is_user &&
-          DefaultActionKeyCode(context_name, action_id) < 0) {
+          CommandActionDefaultKeyCode(context_name, action_id) < 0) {
         *line_error = 1;
         return -1;
       }
@@ -412,6 +489,8 @@ int LoadConfiguredCommands(ViewContext *ctx) {
     return -1;
 
   ctx->commands_file_path[0] = '\0';
+  ctx->dir_command_presentation_count = 0;
+  ctx->file_command_presentation_count = 0;
   if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_COMMANDS, path,
                                        sizeof(path)) == 0) {
     result = TryLoadCommandsFile(ctx, path);

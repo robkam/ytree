@@ -720,23 +720,24 @@ Ordering policy (for all editors, including AI editors):
     *   Task 43 remains the footer/F1/help parity contract that verifies the footer layout is semantically honest once this layout engine exists.
 *   **Acceptance Criteria:**
 *   Footer command layout is generated from structured entries rather than hardcoded per-line binding strings.
-*   The top footer lines auto-fit their visible commands according to width and context without relying on fixed English-only line templates.
-*   The function-key band fits on the bottom footer line through defined packing/truncation/priority rules.
+*   The top footer lines auto-fit their visible commands according to width and context across the standard footer surfaces (directory, file, archive, and equivalent context-driven footer variants) without relying on fixed English-only line templates.
+*   The function-key band fits on the bottom footer line through defined packing/truncation/priority rules across the same shared footer layout contract.
 *   Key tokens remain independent from labels, so keymap changes and future localization do not require hardcoded footer-line rewrites.
 *   Footer layout behavior is documented with deterministic ordering, overflow, truncation, and disabled-state rules.
 *   The resulting footer architecture is explicitly compatible with Task 11.2 label/binding separation and with future gettext-based localization work.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 40.1: Footer Auto-Fit Line Layout (No Hardcoded Per-Line Bindings)**
-*   **Goal:** Define and implement the structured footer-entry model and the auto-fit packing rules for the self-organizing top footer lines and bottom function-key band.
-*   **Mechanism:** Introduce footer entries keyed by stable action identity, with independently resolved label, key token, visibility, enabled/disabled state, and priority; then pack those entries into available footer lines deterministically.
+*   **Goal:** Define and implement the structured footer-entry model and the auto-fit packing rules for the shared runtime footer layout so every standard footer context reuses the same self-organizing top rows and bottom function-key band.
+*   **Mechanism:** Introduce footer entries keyed by stable action identity, with independently resolved label, key token, visibility, enabled/disabled state, and priority; then pack those entries into available footer lines deterministically by rendered keybinding token order, including natural function-key sequencing and `Esc` after the function-key run, regardless of whether the active footer is directory, file, archive, or another context-specific variant of the shared footer surface. The two top command rows must choose wrap points that try to use the available width evenly rather than greedily filling row 1 first.
 *   **Explicit render split:** The implementation must model and render the left footer signpost separately from the command strip it precedes. The signpost owns only context/toggle labeling and its own glyph/text rendering; the command strip owns only command packing and starts from a declared layout column, not from the measured width of the signpost string.
-*   **Cross-Reference:** Labels must resolve through the Task 11.2 label architecture rather than through legacy `[MENU]` rendered-line text.
-*   - [ ] **Status:** Not Started.
+*   **Cross-Reference:** Labels must resolve through the Task 11.2 label architecture from stable action IDs plus current binding state, not from footer-line text assembly.
+*   **Coverage note:** This shared footer layout applies wherever the runtime presents the standard footer surface; context changes swap signposts and command sets, not footer-line formatting rules.
+*   - [ ] **Status:** In Progress.
 
 #### **Task 40.2: Implement Responsive Adaptive Footer**
-*   **Goal:** Apply the structured footer layout engine across runtime contexts so footer content reflows correctly under different widths, modes, prompts, and command availability states.
-*   **Mechanism:** Replace fixed footer-line assumptions with runtime packing/reflow while preserving deterministic ordering and context-sensitive visibility rules.
+*   **Goal:** Extend the shared footer-layout work into footer-adjacent prompt takeover surfaces and other specialized status-area flows that do not yet reuse the standard footer renderer.
+*   **Mechanism:** Replace remaining prompt-/dialog-specific footer-area strings with runtime packing/reflow where those surfaces still own the footer region, while preserving deterministic ordering and context-sensitive visibility rules.
 *   **Cross-Reference:** Task 43 validates semantic parity between footer, help, and prompts after this layout work lands; Task 11.2 provides the structured label/key-token inputs that make localization-safe footer rendering possible.
 *   - [ ] **Status:** Not Started.
 
@@ -800,16 +801,18 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves long-running operations cannot blank or corrupt contextual guidance surfaces.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 43.3: Theme the Contextual F1 Reading Surface**
-*   **Goal:** Define and implement the dedicated theme-role behavior for the contextual `F1` reading surface now that the base role-based theme system exists.
-*   **Rationale:** Task 60 established the general theme architecture, but contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes.
-*   **Theme Contract:** All `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. The base help page continues to use the `help` role, and this task may add narrower roles such as `help_link` and `help_link_selection` if hyperlink help needs them.
-*   **Orthodox Default Direction:** Keep the help page readable and quiet on the orthodox-blue theme: black-on-blue or similarly restrained linked text is acceptable, active-link emphasis may use yellow-on-blue, and ordinary body text must remain easier to read than navigation chrome.
+#### **Task 43.3: Theme the Contextual F1 Reading Surface and Separate Footer Guidance Role**
+*   **Goal:** Define and implement distinct theme-role behavior for the contextual `F1` reading surface and the always-visible footer guidance surface now that the base role-based theme system exists.
+*   **Rationale:** Task 60 established the general theme architecture, but it intentionally left `help` overloaded across the footer and the `F1` reading surface. Contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes while the footer keeps an independently tunable low-noise scheme.
+*   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, introduce a dedicated `footer` role for the footer/help strip, and allow narrower roles such as `help_link` and `help_link_selection` if hyperlink help needs them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
+*   **Orthodox Default Direction:** Keep the help page readable and quiet on the orthodox-blue theme: black-on-grey, black-on-cyan linked text is acceptable, active-link emphasis may use yellow-on-blue, and ordinary body text must remain easier to read than navigation chrome.
+*   The footer should remain concise and lower-noise than modal help while still allowing its own color treatment.
 *   **Acceptance Criteria:**
-*   The base `F1` reading surface has an explicit documented theme contract separate from picker/list surfaces.
+*   The base `F1` reading surface has an explicit documented theme contract separate from picker/list surfaces and separate from the footer guidance strip.
+*   Footer rendering resolves through a dedicated `footer` role rather than reusing `help`.
 *   If hyperlink help is enabled, linked text and active-link emphasis resolve through dedicated theme roles rather than hardcoded colors.
-*   Built-in themes document and ship coherent `F1` help styling without requiring user edits to `ytnova.conf`.
-*   Focused tests or source-contract checks prove `F1` help uses the intended theme roles rather than picker/dialog fallbacks.
+*   Built-in themes document and ship coherent footer and `F1` help styling without requiring user edits to `ytnova.conf`.
+*   Focused tests or source-contract checks prove footer and `F1` help can use different theme roles and do not fall back to picker/dialog styling.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
@@ -1257,10 +1260,26 @@ Ordering policy (for all editors, including AI editors):
     *   The volume menu shows `Select (Up)/(Down)  Switch (Enter)  (Esc)/(Q)uit  (D)elete` with only key tokens styled as keybindings.
     *   F1/context help uses the `help` role, while F2/history/completion/volume selectable lists use `picker`.
     *   Theme implementation proves foreground/background pair correctness.
-    *   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
-    *   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
-    *   Legacy profile `[COLORS]` / `[FILE_COLORS]` parsing is not a runtime theme path; theme files are authoritative for semantic roles and file-type palettes.
+*   `docs/SPECIFICATION.md` documents the user-visible theme/color contract.
+*   `docs/ARCHITECTURE.md` documents the rendering/config invariants.
+*   Legacy profile `[COLORS]` / `[FILE_COLORS]` parsing is not a runtime theme path; theme files are authoritative for semantic roles and file-type palettes.
 *   - [x] **Status:** Complete.
+
+#### **Task 60.1: Propagate Active Theme to Supported Terminal Helpers**
+*   **Goal:** Propagate the active YtreeNova theme to supported terminal helpers so configured `EDITOR`, `PAGER`, and `TAGGEDVIEWER=external` flows can launch with a matching or near-matching color preset when the helper supports non-invasive startup theming.
+*   **Rationale:** Task 60 made YtreeNova itself themeable, but external terminal helpers still break visual continuity when the main UI is blue-on-white and the launched helper falls back to unrelated defaults. Supported helpers should be able to follow the active theme without requiring users to hand-maintain per-theme shell startup hacks.
+*   **Scope Contract:** This is an adapter/preset task for known terminal helpers, not a promise to theme arbitrary external commands or GUI applications. Unsupported helpers must continue to launch normally with no theme injection rather than receiving brittle guessed arguments.
+*   **Launch Policy:** Prefer per-launch arguments, environment variables, temporary helper config files, or repo-managed wrapper/adaptor scripts that are selected by helper name/profile. Do **not** auto-edit persistent user shell startup files such as `.bashrc`, editor dotfiles, or pager rc files. Theme changes should apply on the next helper launch without a manual revert step because no persistent user config mutation occurred.
+*   **Documentation Policy:** If a helper cannot be themed well through transient launch-time inputs alone, document an optional user-managed setup path in `etc/ytnova.1.md` / generated `docs/USAGE.md`, but keep that as opt-in guidance rather than automatic mutation. The docs must clearly distinguish between built-in transient presets and user-owned persistent helper customization.
+*   **Tagged Viewer Contract:** `TAGGEDVIEWER=external` participates in this task when the selected external pager/helper is one of the supported terminal helpers. Pager-native behaviors such as hit traversal and search highlighting remain helper-owned unless a supported preset explicitly maps them; YtreeNova must not fight helper-native search-hit semantics just to force visual parity.
+*   **Acceptance Criteria:**
+*   At least the shipped supported-helper set for one editor family and one pager family (for example vim-like and less-like helpers) can be launched with a theme preset that tracks the active YtreeNova theme.
+*   Active-theme changes apply on subsequent helper launches without requiring a revert pass through shell/editor/pager dotfiles.
+*   Unsupported external helpers degrade safely to normal launch behavior with no broken command lines, no silent shell-dotfile edits, and no persistent side effects.
+*   `TAGGEDVIEWER=external` uses the same supported-helper preset path when applicable and otherwise degrades safely to normal external launch behavior.
+*   The manpage/usage docs explain the supported-helper contract, the non-invasive launch policy, and any optional user-managed helper setup for cases where transient theming is insufficient.
+*   Focused regression or source-contract coverage proves helper theming is adapter-driven, opt-in by supported helper identity, and does not mutate persistent user shell/editor/pager startup files.
+*   - [ ] **Status:** Not Started.
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.

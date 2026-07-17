@@ -903,41 +903,138 @@ static void CommandStripMeasureCommandFull(int *len,
   }
 }
 
-static void CommandStripMeasureCommandCompact(
-    int *len, const UICommandStripCommand *command) {
-  if (len == NULL || command == NULL)
+static void CommandStripAppendText(char *buf, size_t buf_size, size_t *offset,
+                                   const char *text) {
+  size_t text_len;
+
+  if (offset == NULL || text == NULL)
     return;
 
-  switch (command->layout) {
-  case UI_COMMAND_LAYOUT_MNEMONIC:
-    CommandStripAddVisibleKeyLength(len, command->primary_key);
-    break;
-  case UI_COMMAND_LAYOUT_KEY_PREFIX:
-    CommandStripAddKeySequenceLength(
-        len, command->primary_key, command->secondary_key,
-        CommandStripKeyUsesPlainText(command->primary_key) &&
-            (command->secondary_key == NULL ||
-             CommandStripKeyUsesPlainText(command->secondary_key)));
-    break;
-  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
-    CommandStripAddKeySequenceLength(
-        len, command->primary_key, command->secondary_key,
-        CommandStripKeyUsesPlainText(command->primary_key) &&
-            (command->secondary_key == NULL ||
-             CommandStripKeyUsesPlainText(command->secondary_key)));
-    break;
-  case UI_COMMAND_LAYOUT_LABEL_FIRST:
-    CommandStripAddKeySequenceLength(
-        len, command->primary_key, command->secondary_key,
-        CommandStripKeyUsesPlainText(command->primary_key) &&
-            (command->secondary_key == NULL ||
-             CommandStripKeyUsesPlainText(command->secondary_key)));
-    break;
+  text_len = strlen(text);
+  if (buf != NULL && buf_size > 0 && *offset < buf_size - 1) {
+    size_t copy_len = text_len;
+
+    if (copy_len > buf_size - 1 - *offset)
+      copy_len = buf_size - 1 - *offset;
+    memcpy(buf + *offset, text, copy_len);
+    *offset += copy_len;
+    buf[*offset] = '\0';
   }
 }
 
-static int CommandStripVisualLengthMode(const UICommandStripCommand *commands,
-                                        size_t command_count, BOOL compact) {
+static void CommandStripAppendSpan(char *buf, size_t buf_size, size_t *offset,
+                                   const char *start, size_t len) {
+  if (offset == NULL || start == NULL || len == 0)
+    return;
+
+  if (buf != NULL && buf_size > 0 && *offset < buf_size - 1) {
+    size_t copy_len = len;
+
+    if (copy_len > buf_size - 1 - *offset)
+      copy_len = buf_size - 1 - *offset;
+    memcpy(buf + *offset, start, copy_len);
+    *offset += copy_len;
+    buf[*offset] = '\0';
+  }
+}
+
+static void CommandStripAppendChar(char *buf, size_t buf_size, size_t *offset,
+                                   char ch) {
+  char text[2];
+
+  text[0] = ch;
+  text[1] = '\0';
+  CommandStripAppendText(buf, buf_size, offset, text);
+}
+
+static void CommandStripAppendMnemonicLabel(char *buf, size_t buf_size,
+                                            size_t *offset, const char *label,
+                                            const char *key) {
+  const char *inline_key;
+
+  if (offset == NULL || label == NULL)
+    return;
+
+  inline_key = CommandStripFindInlineLabelKey(label, key);
+  if (inline_key == NULL) {
+    if (key != NULL && *key != '\0') {
+      CommandStripAppendText(buf, buf_size, offset, key);
+      if (*label != '\0')
+        CommandStripAppendText(buf, buf_size, offset, " ");
+    }
+    CommandStripAppendText(buf, buf_size, offset, label);
+    return;
+  }
+
+  CommandStripAppendSpan(buf, buf_size, offset, label,
+                         (size_t)(inline_key - label));
+  CommandStripAppendText(buf, buf_size, offset, key);
+  CommandStripAppendText(buf, buf_size, offset, inline_key + 1);
+}
+
+int UI_FormatCommandStripEntryText(const UICommandStripCommand *command,
+                                   char *buf, size_t buf_size) {
+  size_t offset = 0;
+
+  if (buf != NULL && buf_size > 0)
+    buf[0] = '\0';
+  if (command == NULL)
+    return 0;
+
+  switch (command->layout) {
+  case UI_COMMAND_LAYOUT_MNEMONIC:
+    CommandStripAppendMnemonicLabel(buf, buf_size, &offset, command->label,
+                                    command->primary_key);
+    break;
+  case UI_COMMAND_LAYOUT_KEY_PREFIX:
+  {
+    if (CommandStripKeyUsesCompactLabel(command)) {
+      const char *inline_key =
+          CommandStripFindInlineLabelKey(command->label, command->primary_key);
+
+      if (inline_key != NULL) {
+        CommandStripAppendSpan(buf, buf_size, &offset, command->label,
+                               (size_t)(inline_key - command->label));
+        CommandStripAppendChar(buf, buf_size, &offset,
+                               (char)toupper((unsigned char)*inline_key));
+        CommandStripAppendText(buf, buf_size, &offset, inline_key + 1);
+        break;
+      }
+    }
+
+    CommandStripAppendText(buf, buf_size, &offset, command->primary_key);
+    if (command->secondary_key != NULL) {
+      CommandStripAppendText(buf, buf_size, &offset, "/");
+      CommandStripAppendText(buf, buf_size, &offset, command->secondary_key);
+    }
+    CommandStripAppendText(buf, buf_size, &offset, " ");
+    CommandStripAppendText(buf, buf_size, &offset, command->label);
+    break;
+  }
+  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+    CommandStripAppendText(buf, buf_size, &offset, command->primary_key);
+    CommandStripAppendText(buf, buf_size, &offset, "/");
+    CommandStripAppendMnemonicLabel(buf, buf_size, &offset, command->label,
+                                    command->secondary_key);
+    break;
+  case UI_COMMAND_LAYOUT_LABEL_FIRST:
+    CommandStripAppendText(buf, buf_size, &offset, command->label);
+    CommandStripAppendText(buf, buf_size, &offset, " ");
+    CommandStripAppendText(buf, buf_size, &offset, command->primary_key);
+    if (command->secondary_key != NULL) {
+      CommandStripAppendText(buf, buf_size, &offset, "/");
+      CommandStripAppendText(buf, buf_size, &offset, command->secondary_key);
+    }
+    break;
+  }
+
+  if (buf != NULL && buf_size > 0)
+    buf[buf_size - 1] = '\0';
+  return CommandStripTextLength(buf);
+}
+
+int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
+                                size_t command_count) {
   size_t i;
   int len = 0;
 
@@ -946,19 +1043,11 @@ static int CommandStripVisualLengthMode(const UICommandStripCommand *commands,
 
   for (i = 0; i < command_count; ++i) {
     if (i > 0)
-      CommandStripAddLength(&len, compact ? " " : "  ");
-    if (compact)
-      CommandStripMeasureCommandCompact(&len, &commands[i]);
-    else
-      CommandStripMeasureCommandFull(&len, &commands[i]);
+      CommandStripAddLength(&len, "  ");
+    CommandStripMeasureCommandFull(&len, &commands[i]);
   }
 
   return len;
-}
-
-int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
-                                size_t command_count) {
-  return CommandStripVisualLengthMode(commands, command_count, FALSE);
 }
 
 static void CommandStripRenderText(WINDOW *win, int y, int *x, int max_x,
@@ -1090,39 +1179,13 @@ static void CommandStripRenderCommandFull(WINDOW *win, int y, int *x, int max_x,
   }
 }
 
-static void CommandStripRenderCommandCompact(
-    WINDOW *win, int y, int *x, int max_x, const UICommandStripCommand *command,
-    int normal_attr, int key_attr) {
-  if (command == NULL)
-    return;
-
-  switch (command->layout) {
-  case UI_COMMAND_LAYOUT_MNEMONIC:
-    CommandStripRenderKeySequence(win, y, x, max_x, command->primary_key, NULL,
-                                  normal_attr, key_attr, FALSE);
-    break;
-  case UI_COMMAND_LAYOUT_KEY_PREFIX:
-  case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
-  case UI_COMMAND_LAYOUT_LABEL_FIRST:
-    CommandStripRenderKeySequence(
-        win, y, x, max_x, command->primary_key, command->secondary_key,
-        normal_attr, key_attr,
-        CommandStripKeyUsesPlainText(command->primary_key) &&
-            (command->secondary_key == NULL ||
-             CommandStripKeyUsesPlainText(command->secondary_key)));
-    break;
-  }
-}
-
 void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                            const UICommandStripCommand *commands,
                            size_t command_count, int ncolor, int hcolor) {
   size_t i;
   int max_x;
-  int available_width;
   int normal_attr;
   int key_attr;
-  BOOL compact;
 
   if (win == NULL || commands == NULL || x < 0 || y < 0)
     return;
@@ -1130,9 +1193,6 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
   max_x = getmaxx(win);
   if (max_x <= 0 || x >= max_x)
     return;
-  available_width = max_x - x;
-  compact = CommandStripVisualLengthMode(commands, command_count, FALSE) >
-            available_width;
 
 #ifdef COLOR_SUPPORT
   normal_attr = COLOR_PAIR(ncolor);
@@ -1144,14 +1204,9 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
 
   for (i = 0; i < command_count && x < max_x; ++i) {
     if (i > 0)
-      CommandStripRenderText(win, y, &x, max_x, compact ? " " : "  ",
-                             normal_attr);
-    if (compact)
-      CommandStripRenderCommandCompact(win, y, &x, max_x, &commands[i],
-                                       normal_attr, key_attr);
-    else
-      CommandStripRenderCommandFull(win, y, &x, max_x, &commands[i],
-                                    normal_attr, key_attr);
+      CommandStripRenderText(win, y, &x, max_x, "  ", normal_attr);
+    CommandStripRenderCommandFull(win, y, &x, max_x, &commands[i], normal_attr,
+                                  key_attr);
   }
 
   wattrset(win, 0);

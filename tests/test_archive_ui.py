@@ -61,9 +61,9 @@ def test_archive_dir_footer_pipe_action_visible(ytnova_binary, tmp_path):
             "Precondition failed: expected archive directory footer context.\n"
             f"{footer_lines[0]}"
         )
-        assert "pipe" in footer_lines[1], (
+        assert any("pipe" in line for line in footer_lines[:2]), (
             "Archive directory footer should advertise Pipe.\n"
-            f"{footer_lines[1]}"
+            + "\n".join(footer_lines[:2])
         )
     finally:
         tui.quit()
@@ -85,9 +85,9 @@ def test_archive_pipe_return_restores_ui_surfaces(ytnova_binary, tmp_path):
             "Precondition failed: expected archive directory footer context.\n"
             f"{pre_footer_lines[0]}"
         )
-        assert "pipe" in pre_footer_lines[1], (
+        assert any("pipe" in line for line in pre_footer_lines[:2]), (
             "Precondition failed: expected Pipe action in archive footer.\n"
-            f"{pre_footer_lines[1]}"
+            + "\n".join(pre_footer_lines[:2])
         )
 
         pipe_output = root / "pipe_return.txt"
@@ -118,9 +118,9 @@ def test_archive_pipe_return_restores_ui_surfaces(ytnova_binary, tmp_path):
             "Archive footer context was not restored after pipe return.\n"
             f"{post_footer_lines[0]}"
         )
-        assert "pipe" in post_footer_lines[1], (
+        assert any("pipe" in line for line in post_footer_lines[:2]), (
             "Archive directory footer lost Pipe action after pipe return.\n"
-            f"{post_footer_lines[1]}"
+            + "\n".join(post_footer_lines[:2])
         )
     finally:
         tui.quit()

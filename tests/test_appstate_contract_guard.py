@@ -10042,6 +10042,22 @@ def test_render_footer_focus_reads_project_from_panel_state() -> None:
         assert "AppStateResolveActivePanelFocus(ctx)" in source
         assert "ctx->focused_window" not in source
 
+    assert "ResolveFooterCommandList(" in display
+    assert "RenderFooterTopRows(" in display
+    assert "RenderFooterNavRow(" in display
+    dir_help_start = display.index("void DisplayDirHelp(")
+    dir_help_end = display.index("\nvoid DisplayFileHelp(", dir_help_start)
+    dir_help_body = display[dir_help_start:dir_help_end]
+    file_help_start = display.index("void DisplayFileHelp(")
+    file_help_end = display.index("\nvoid DisplayHistoryHelp(", file_help_start)
+    file_help_body = display[file_help_start:file_help_end]
+    assert "DisplayBuiltInHelpLine(ctx, 0" not in dir_help_body
+    assert "DisplayBuiltInHelpLine(ctx, 1" not in dir_help_body
+    assert "DisplayBuiltInHelpLine(ctx, 2" not in dir_help_body
+    assert "DisplayBuiltInHelpLine(ctx, 0" not in file_help_body
+    assert "DisplayBuiltInHelpLine(ctx, 1" not in file_help_body
+    assert "DisplayBuiltInHelpLine(ctx, 2" not in file_help_body
+
 
 def test_key_and_stats_focus_reads_project_from_panel_state() -> None:
     key_engine = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
