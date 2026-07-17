@@ -35,14 +35,29 @@ def _command_strip_text(source, array_name):
             rendered.append("  ")
         secondary_key = None if secondary_value == "NULL" else secondary_key
         if layout == "MNEMONIC":
-            rendered.extend(["(", primary_key, ")", label[1:]])
+            inline_at = label.lower().find(primary_key.lower())
+            if inline_at >= 0:
+                rendered.extend(
+                    [label[:inline_at], "(", primary_key, ")", label[inline_at + 1 :]]
+                )
+            else:
+                rendered.extend(["(", primary_key, ") ", label])
         elif layout == "KEY_PREFIX":
             rendered.extend(["(", primary_key])
             if secondary_key is not None:
                 rendered.extend([")/(", secondary_key])
             rendered.extend([") ", label])
         elif layout == "ALT_MNEMONIC":
-            rendered.extend(["(", primary_key, ")/(", secondary_key, ")", label[1:]])
+            inline_at = label.lower().find(secondary_key.lower())
+            rendered.extend(["(", primary_key, ")/"])
+            if inline_at >= 0:
+                rendered.extend(
+                    ["(", secondary_key, ")", label[inline_at + 1 :]]
+                    if inline_at == 0
+                    else [label[:inline_at], "(", secondary_key, ")", label[inline_at + 1 :]]
+                )
+            else:
+                rendered.extend(["(", secondary_key, ") ", label])
         elif layout == "LABEL_FIRST":
             rendered.extend([label, " (", primary_key])
             if secondary_key is not None:
@@ -657,12 +672,12 @@ def test_f10_surface_uses_required_command_strip_and_enter_default():
 
     assert (
         _command_strip_text(source, "config_command_strip")
-        == "(C)onfig  (M)ommands  (T)hemes  (R)eload  (Esc)/(Q)uit"
+        == "(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit"
     )
     _assert_command_strip_uses_full_label_model(
         source,
         "config_command_strip",
-        ("Config", "Commands", "Themes", "Reload", "Quit"),
+        ("config", "commands", "themes", "reload", "quit"),
     )
     assert "InputChoiceCommandStrip" in source
     assert "InputChoiceCommandStrip" in key_source

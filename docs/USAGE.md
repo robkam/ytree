@@ -94,12 +94,12 @@ These commands work in most modes:
   - **F6**: Toggle Statistics Panel (Wide Mode).
   - **F7**: Toggle File Preview Pane.
   - **F8**: Toggle Split Screen Mode.
-  - **F10**: Open the configuration command surface: `(C)onfig  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **T** to edit themes, or **R** to reload the current config and theme. A successful reload silently repaints; a failed reload keeps the previous working config/theme and reports the error in the status/footer area.
+  - **F10**: Open the configuration command surface: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **M** to edit commands, **T** to edit themes, or **R** to reload the current config/theme/commands set. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
   - **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
   - **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
-  - **1 .. 0**: File or directory info band for the active panel (disabled in `F7` preview).
-      - In tree/directory focus the footer shows `1..0 dir view`.
-      - In file focus the footer shows `1..0 file view`.
+  - **1 .. 9**: File or directory info band for the active panel (disabled in `F7` preview).
+      - In tree/directory focus the footer shows `1..9 dir view`.
+      - In file focus the footer shows `1..9 file view`.
       - The current file/directory stats section shows the active view by name (for example `View: Name`, `View: Compact`, or `View: Git`).
       - `1`: Name only. This is the plain default/baseline view, startup always begins here, and pressing `1` also resets temporary compact/overlay state back to Name.
       - `2`: Attributes, including `name -> target` symlink rows in file projections.
@@ -114,7 +114,6 @@ These commands work in most modes:
       - `7`: Toggle Mini preview detail (start of readable file contents on every visible file row). This leaves Compact so the detail is visible.
       - `8`: Toggle File detail (`file`-style type-summary text on every visible file row). This leaves Compact so the detail is visible.
       - `9`: Toggle the Git status band in filesystem file lists when the current directory is inside a Git worktree.
-      - `0`: Currently unused; silent no-op.
       - `5` only works from the current `1` / Name base view; it always uses the Name file projection and is a silent no-op from `2`, `3`, or `4`.
       - `5`, `7`, `8`, and `9` do not change tree rows; they change the panel's file projection instead, so in tree focus they update the small file window and in file focus they update the file window.
       - Extra view states do not stack in the stats label; it names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`).

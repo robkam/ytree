@@ -151,6 +151,39 @@ static int ApplyContextBinding(ViewContext *ctx, const char *context,
   return -1;
 }
 
+static int IsSupportedContextName(const char *context_name) {
+  return context_name != NULL &&
+         (strcmp(context_name, "dir") == 0 || strcmp(context_name, "file") == 0);
+}
+
+static int ParseContextSectionName(char *line, char *context_name,
+                                   size_t context_name_size) {
+  const char *name;
+  char *end;
+  size_t index;
+
+  if (line == NULL || line[0] != '[')
+    return 0;
+
+  end = strrchr(line, ']');
+  if (end == NULL || end[1] != '\0' || end == line + 1)
+    return -1;
+  *end = '\0';
+
+  name = TrimInPlace(line + 1);
+  if (name == NULL || *name == '\0' ||
+      snprintf(context_name, context_name_size, "%s", name) >=
+          (int)context_name_size) {
+    *end = ']';
+    return -1;
+  }
+  for (index = 0; context_name[index] != '\0'; ++index)
+    context_name[index] = (char)tolower((unsigned char)context_name[index]);
+
+  *end = ']';
+  return IsSupportedContextName(context_name) ? 1 : -1;
+}
+
 static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
                                   char *binding_column, char *shown_column,
                                   char *label_column, char *action_column,
@@ -217,7 +250,7 @@ static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
       *line_error = 1;
       return -1;
     }
-    if (strcmp(context_name, "dir") != 0 && strcmp(context_name, "file") != 0) {
+    if (!IsSupportedContextName(context_name)) {
       *line_error = 1;
       return -1;
     }
@@ -258,8 +291,10 @@ static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
 
 static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
   char buffer[2048];
+  char active_context[32];
   int line_no = 0;
 
+  active_context[0] = '\0';
   while (fgets(buffer, sizeof(buffer), fp) != NULL) {
     char *parts[6];
     char *cursor;
@@ -267,6 +302,8 @@ static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
     char *comment;
     int index;
     int line_error;
+    int separator_count;
+    int section_result;
 
     ++line_no;
     if ((comment = strchr(buffer, '#')) != NULL)
@@ -275,10 +312,25 @@ static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
     if (line == NULL || *line == '\0')
       continue;
 
+    section_result =
+        ParseContextSectionName(line, active_context, sizeof(active_context));
+    if (section_result > 0)
+      continue;
+    if (section_result < 0)
+      return 1;
+
+    separator_count = 0;
+    for (cursor = line; *cursor != '\0'; ++cursor) {
+      if (*cursor == '|')
+        ++separator_count;
+    }
+    if (separator_count != 4 && separator_count != 5)
+      return 1;
+
     cursor = line;
-    for (index = 0; index < 6; ++index) {
+    for (index = 0; index < separator_count + 1; ++index) {
       parts[index] = cursor;
-      if (index < 5) {
+      if (index < separator_count) {
         cursor = strchr(cursor, '|');
         if (cursor == NULL)
           return 1;
@@ -286,9 +338,17 @@ static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
       }
     }
 
-    if (ProcessCommandsColumns(ctx, parts[0], parts[1], parts[2], parts[3],
-                               parts[4], parts[5],
-                               &line_error) != 0)
+    if (separator_count == 5) {
+      if (ProcessCommandsColumns(ctx, parts[0], parts[1], parts[2], parts[3],
+                                 parts[4], parts[5], &line_error) != 0)
+        return line_error ? 1 : -1;
+      continue;
+    }
+
+    if (active_context[0] == '\0')
+      return 1;
+    if (ProcessCommandsColumns(ctx, active_context, parts[0], parts[1], parts[2],
+                               parts[3], parts[4], &line_error) != 0)
       return line_error ? 1 : -1;
   }
 

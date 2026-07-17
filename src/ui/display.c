@@ -39,7 +39,7 @@ typedef struct {
 } HelpCommandStrip;
 
 static const UICommandStripCommand dir_help_disk_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..0", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
@@ -65,7 +65,7 @@ static const UICommandStripCommand dir_help_disk_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand dir_help_ll_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..0", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "reload", "^L", NULL},
@@ -74,7 +74,7 @@ static const UICommandStripCommand dir_help_ll_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
 static const UICommandStripCommand dir_help_archive_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..0", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
@@ -93,7 +93,7 @@ static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..0", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL},
     {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K"},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
@@ -118,7 +118,7 @@ static const UICommandStripCommand file_help_disk_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand file_help_ll_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..0", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
@@ -127,7 +127,7 @@ static const UICommandStripCommand file_help_ll_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
 static const UICommandStripCommand file_help_archive_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..0", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
