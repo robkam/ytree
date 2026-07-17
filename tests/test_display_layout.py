@@ -609,6 +609,10 @@ def test_backslash_to_dir_in_showall_and_global(ytnova_binary, tmp_path, mode_ke
         "Show All/Global footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
+    assert "Newfile" in footer_rows[1], (
+        "Show All/Global footer should balance later key-ordered actions onto the second row.\n"
+        + "\n".join(footer_rows)
+    )
     assert footer_rows[0].find("1..9 file view") == footer_rows[1].find("Newfile") == footer_rows[2].find("F1 help"), (
         "Show All/Global footer rows should share one left-aligned command column.\n"
         + "\n".join(footer_rows)

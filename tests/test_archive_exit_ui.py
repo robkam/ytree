@@ -2140,8 +2140,9 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
         "Archive file footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
+    top_footer = "  ".join(footer_rows[:2])
     _assert_footer_segments_in_order(
-        footer_rows[0],
+        top_footer,
         "1..9 dir view",
         "Copy",
         "Delete",
@@ -2150,16 +2151,19 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
         "J compare",
         "Log",
         "Makedir",
-    )
-    _assert_footer_segments_in_order(
-        footer_rows[1],
         "Pipe",
+        "Quit",
         "Rename",
         "Showall",
         "Tag",
         "Untag",
         "moVedir",
-        "Quit",
+        "/ jump",
+        "` dotfiles",
+    )
+    _assert_footer_segments_in_order(
+        footer_rows[1],
+        "moVedir",
         "/ jump",
         "` dotfiles",
     )
@@ -2211,8 +2215,9 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
     assert header.index("1..9 dir view") < header.index("Global"), (
         "Archive dir footer should list FileInfo before global."
     )
+    top_footer = "  ".join(footer_rows[:2])
     _assert_footer_segments_in_order(
-        footer_rows[0],
+        top_footer,
         "1..9 dir view",
         "Copy",
         "Delete",
@@ -2221,19 +2226,22 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "J compare",
         "Log",
         "Makedir",
+        "Pipe",
+        "Quit",
+        "Rename",
+        "Showall",
+        "Tag",
+        "Untag",
+        "moVedir",
+        "/ jump",
+        "` dotfiles",
     )
     assert "^F" not in footer_rows[0]
     assert "(G)" not in footer_rows[0]
     assert "compare (J)" not in footer_rows[0]
     _assert_footer_segments_in_order(
         footer_rows[1],
-        "Pipe",
-        "Rename",
-        "Showall",
-        "Tag",
-        "Untag",
         "moVedir",
-        "Quit",
         "/ jump",
         "` dotfiles",
     )

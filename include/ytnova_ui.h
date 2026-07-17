@@ -236,6 +236,8 @@ typedef struct {
 } UIHelpPopupRow;
 extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
                                        size_t command_count);
+extern int UI_FormatCommandStripEntryText(const UICommandStripCommand *command,
+                                          char *buf, size_t buf_size);
 extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                                   const UICommandStripCommand *commands,
                                   size_t command_count, int ncolor,

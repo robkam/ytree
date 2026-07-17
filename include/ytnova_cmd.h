@@ -156,9 +156,14 @@ extern int Profile_SetDirUserAction(ViewContext *ctx, int chkey, int chremap,
                                     const char *cmd);
 extern int Profile_SetFileUserAction(ViewContext *ctx, int chkey, int chremap,
                                      const char *cmd);
+extern int ResolveUserActionBindingKey(const ViewContext *ctx, BOOL is_dir,
+                                       int default_key);
 extern int ValidateCommandsFile(const char *filename);
 extern int ReadCommandsFile(ViewContext *ctx, const char *filename);
 extern int LoadConfiguredCommands(ViewContext *ctx);
+extern int CommandActionDefaultKeyCode(const char *context,
+                                       const char *action_id);
+extern int CommandKeyCodeToToken(int key_code, char *token, size_t token_size);
 #ifdef COLOR_SUPPORT
 extern int ReadThemeFile(ViewContext *ctx, const char *filename,
                          const char *theme_name);

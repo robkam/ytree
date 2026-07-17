@@ -283,6 +283,487 @@ static const HelpCommandStrip file_help_builtin[MAX_MODES][2] = {
        sizeof(file_help_disk_mode_1_commands) /
            sizeof(file_help_disk_mode_1_commands[0]) }}};
 
+typedef struct {
+  UICommandStripCommand command;
+  const char *primary_action_id;
+  const char *secondary_action_id;
+} FooterCommandSpec;
+
+typedef struct {
+  UICommandStripCommand command;
+  char label[COMMAND_PRESENTATION_LABEL_LENGTH];
+  char primary_key[COMMAND_PRESENTATION_SHOWN_LENGTH];
+  char secondary_key[COMMAND_PRESENTATION_SHOWN_LENGTH];
+  char rendered_text[160];
+  int key_class;
+} ResolvedFooterCommand;
+
+typedef struct {
+  size_t line_counts[2];
+  size_t visible_count;
+  BOOL truncated;
+  size_t truncated_row;
+  size_t truncated_index;
+  int truncated_width;
+} FooterPackResult;
+
+typedef struct {
+  size_t fit_count;
+  BOOL truncated;
+  size_t truncated_index;
+  int truncated_width;
+  int used_width;
+  size_t represented_count;
+} FooterRowFit;
+
+#define FOOTER_COMMAND_COLUMN 9
+#define FOOTER_STATIC(layout, label, key1, key2)                                 \
+  { { layout, label, key1, key2 }, NULL, NULL }
+#define FOOTER_ACTION(layout, label, key1, key2, action_id)                      \
+  { { layout, label, key1, key2 }, action_id, NULL }
+#define FOOTER_ACTIONS(layout, label, key1, key2, action_id, action_id2)         \
+  { { layout, label, key1, key2 }, action_id, action_id2 }
+
+static int FooterCommandKeyClass(const UICommandStripCommand *command) {
+  const char *key;
+
+  if (command == NULL)
+    return 2;
+
+  key = command->primary_key;
+  if (key == NULL || key[0] == '\0')
+    return 2;
+  if (isdigit((unsigned char)key[0]))
+    return 0;
+  if (isalpha((unsigned char)key[0]))
+    return 1;
+  return 2;
+}
+
+static int FooterCommandKeySortGroup(const char *key) {
+  if (key == NULL || key[0] == '\0')
+    return 3;
+
+  if (isdigit((unsigned char)key[0]))
+    return 0;
+
+  if (isalpha((unsigned char)key[0])) {
+    if (key[1] == '\0')
+      return 0;
+    if (toupper((unsigned char)key[0]) == 'F' &&
+        isdigit((unsigned char)key[1]))
+      return 1;
+    return 2;
+  }
+
+  return 3;
+}
+
+static int FooterCommandKeyNaturalNumber(const char *key) {
+  int value = 0;
+  size_t i;
+
+  if (key == NULL)
+    return -1;
+
+  for (i = 0; key[i] != '\0'; ++i) {
+    if (!isdigit((unsigned char)key[i]))
+      return -1;
+    value = value * 10 + (key[i] - '0');
+  }
+
+  return i > 0 ? value : -1;
+}
+
+static int CompareFooterCommandKeys(const char *left, const char *right) {
+  int left_group;
+  int right_group;
+  int cmp;
+
+  if (left == NULL || left[0] == '\0')
+    return (right == NULL || right[0] == '\0') ? 0 : 1;
+  if (right == NULL || right[0] == '\0')
+    return -1;
+
+  left_group = FooterCommandKeySortGroup(left);
+  right_group = FooterCommandKeySortGroup(right);
+  if (left_group != right_group)
+    return left_group - right_group;
+
+  if (left_group == 1) {
+    int left_number = FooterCommandKeyNaturalNumber(left + 1);
+    int right_number = FooterCommandKeyNaturalNumber(right + 1);
+
+    if (left_number != right_number)
+      return left_number - right_number;
+  } else if (left_group == 0 && isdigit((unsigned char)left[0]) &&
+             isdigit((unsigned char)right[0])) {
+    int left_number = 0;
+    int right_number = 0;
+    const char *left_end = left;
+    const char *right_end = right;
+
+    while (isdigit((unsigned char)*left_end)) {
+      left_number = left_number * 10 + (*left_end - '0');
+      ++left_end;
+    }
+    while (isdigit((unsigned char)*right_end)) {
+      right_number = right_number * 10 + (*right_end - '0');
+      ++right_end;
+    }
+    if (left_number != right_number)
+      return left_number - right_number;
+    cmp = strcasecmp(left_end, right_end);
+    if (cmp != 0)
+      return cmp;
+  }
+
+  return strcasecmp(left, right);
+}
+
+static int CompareResolvedFooterCommands(const ResolvedFooterCommand *left,
+                                         const ResolvedFooterCommand *right) {
+  int cmp;
+
+  if (left->key_class != right->key_class)
+    return left->key_class - right->key_class;
+
+  cmp = CompareFooterCommandKeys(left->primary_key, right->primary_key);
+  if (cmp != 0)
+    return cmp;
+
+  cmp = CompareFooterCommandKeys(left->secondary_key, right->secondary_key);
+  if (cmp != 0)
+    return cmp;
+
+  cmp = strcasecmp(left->label, right->label);
+  if (cmp != 0)
+    return cmp;
+
+  return strcasecmp(left->rendered_text, right->rendered_text);
+}
+
+static FooterRowFit FitFooterRow(const UICommandStripCommand *commands,
+                                 size_t command_count, int available_width) {
+  FooterRowFit fit;
+  int line_width = 0;
+
+  memset(&fit, 0, sizeof(fit));
+  while (fit.fit_count < command_count) {
+    int command_width =
+        UI_CommandStripVisualLength(&commands[fit.fit_count], 1);
+    int separator_width = fit.fit_count > 0 ? 2 : 0;
+
+    if (line_width + separator_width + command_width <= available_width) {
+      line_width += separator_width + command_width;
+      ++fit.fit_count;
+      continue;
+    }
+
+    if (fit.fit_count == 0 || available_width - line_width - separator_width >= 3) {
+      fit.truncated = TRUE;
+      fit.truncated_index = fit.fit_count;
+      fit.truncated_width = available_width - line_width - separator_width;
+      if (fit.truncated_width < 0)
+        fit.truncated_width = 0;
+      fit.used_width = line_width + separator_width + fit.truncated_width;
+      fit.represented_count = fit.fit_count + 1;
+      return fit;
+    }
+
+    --fit.fit_count;
+    line_width = fit.fit_count > 0
+                     ? UI_CommandStripVisualLength(commands, fit.fit_count)
+                     : 0;
+    fit.truncated = TRUE;
+    fit.truncated_index = fit.fit_count;
+    fit.truncated_width =
+        available_width - line_width - (fit.fit_count > 0 ? 2 : 0);
+    if (fit.truncated_width < 0)
+      fit.truncated_width = 0;
+    fit.used_width =
+        line_width + (fit.fit_count > 0 ? 2 : 0) + fit.truncated_width;
+    fit.represented_count = fit.fit_count + 1;
+    return fit;
+  }
+
+  fit.used_width = line_width;
+  fit.represented_count = fit.fit_count;
+  return fit;
+}
+
+static void SortResolvedFooterCommands(ResolvedFooterCommand *resolved,
+                                       UICommandStripCommand *commands,
+                                       size_t command_count) {
+  size_t i;
+
+  if (resolved == NULL || commands == NULL)
+    return;
+
+  for (i = 1; i < command_count; ++i) {
+    ResolvedFooterCommand current = resolved[i];
+    size_t j = i;
+
+    while (j > 0 &&
+           CompareResolvedFooterCommands(&current, &resolved[j - 1]) < 0) {
+      resolved[j] = resolved[j - 1];
+      --j;
+    }
+    resolved[j] = current;
+  }
+
+  for (i = 0; i < command_count; ++i)
+    resolved[i].command.label = resolved[i].label;
+  for (i = 0; i < command_count; ++i)
+    resolved[i].command.primary_key = resolved[i].primary_key;
+  for (i = 0; i < command_count; ++i)
+    resolved[i].command.secondary_key =
+        resolved[i].secondary_key[0] != '\0' ? resolved[i].secondary_key : NULL;
+  for (i = 0; i < command_count; ++i)
+    commands[i] = resolved[i].command;
+}
+
+static const FooterCommandSpec dir_footer_standard_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
+                  "ACTION_CMD_A"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
+                  "ACTION_CMD_C"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
+                  "ACTION_CMD_D"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL,
+                  "ACTION_CMD_G"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL,
+                  "ACTION_INVERT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
+                  "ACTION_COMPARE_DIR"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL,
+                  "ACTION_CMD_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
+                  "ACTION_CMD_MKFILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL,
+                  "ACTION_TOGGLE_TAGGED_MODE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
+                  "ACTION_CMD_P"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
+                  "ACTION_CMD_R"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
+                  "ACTION_CMD_V"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL,
+                  "ACTION_CMD_PRINT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
+                  "ACTION_CMD_X"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL,
+                  "ACTION_CMD_I"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
+                  "ACTION_LIST_JUMP"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
+                  "ACTION_TOGGLE_HIDDEN")};
+
+static const FooterCommandSpec dir_footer_ll_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "reload", "^L", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT")};
+
+static const FooterCommandSpec dir_footer_archive_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
+                  "ACTION_CMD_C"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
+                  "ACTION_CMD_D"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL,
+                  "ACTION_CMD_G"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
+                  "ACTION_COMPARE_DIR"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL,
+                  "ACTION_CMD_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
+                  "ACTION_CMD_P"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
+                  "ACTION_CMD_R"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
+                  "ACTION_CMD_V"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
+                  "ACTION_LIST_JUMP"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
+                  "ACTION_TOGGLE_HIDDEN")};
+
+static const FooterCommandSpec file_footer_standard_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
+                  "ACTION_CMD_A"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
+                   "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
+                  "ACTION_CMD_D"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Edit", "E", NULL,
+                  "ACTION_CMD_E"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL,
+                  "ACTION_CMD_H"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL,
+                  "ACTION_INVERT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
+                  "ACTION_COMPARE_FILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N",
+                   "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
+                  "ACTION_CMD_MKFILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL,
+                  "ACTION_TOGGLE_TAGGED_MODE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
+                  "ACTION_CMD_P"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
+                  "ACTION_CMD_R"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL,
+                  "ACTION_CMD_PRINT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
+                  "ACTION_CMD_X"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
+                  "ACTION_CMD_Y"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL,
+                  "ACTION_CMD_I"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
+                  "ACTION_LIST_JUMP"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
+                  "ACTION_TOGGLE_HIDDEN")};
+
+static const FooterCommandSpec file_footer_ll_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT")};
+
+static const FooterCommandSpec file_footer_archive_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
+                  "ACTION_CMD_C"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
+                  "ACTION_CMD_D"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL,
+                  "ACTION_CMD_H"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL,
+                  "ACTION_INVERT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
+                  "ACTION_COMPARE_FILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
+                  "ACTION_CMD_R"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Move", "M", NULL,
+                  "ACTION_CMD_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
+                  "ACTION_CMD_P"),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "rename", "^R", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
+                  "ACTION_CMD_Y"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
+                  "ACTION_LIST_JUMP"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
+                  "ACTION_TOGGLE_HIDDEN")};
+
+static const FooterCommandSpec dir_footer_nav_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
+
+static const FooterCommandSpec dir_footer_nav_archive_to_root_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
+
+static const FooterCommandSpec dir_footer_nav_archive_exit_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
+
+static const FooterCommandSpec file_footer_nav_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
+
+static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "to dir", "\\", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
+
 static void ApplyViFileHelpOverrides(const ViewContext *ctx,
                                      UICommandStripCommand *commands,
                                      size_t command_count) {
@@ -301,6 +782,279 @@ static void ApplyViFileHelpOverrides(const ViewContext *ctx,
       commands[i].primary_key = "u";
     }
   }
+}
+
+static const CommandPresentationOverride *
+FindCommandPresentationOverride(const ViewContext *ctx, BOOL is_dir,
+                                const char *action_id) {
+  const CommandPresentationOverride *entries;
+  size_t entry_count;
+  size_t index;
+
+  if (ctx == NULL || action_id == NULL)
+    return NULL;
+
+  if (is_dir) {
+    entries = ctx->dir_command_presentations;
+    entry_count = ctx->dir_command_presentation_count;
+  } else {
+    entries = ctx->file_command_presentations;
+    entry_count = ctx->file_command_presentation_count;
+  }
+
+  for (index = 0; index < entry_count; ++index) {
+    if (strcmp(entries[index].action_id, action_id) == 0)
+      return &entries[index];
+  }
+  return NULL;
+}
+
+static void NormalizeFooterLabel(UICommandStripLayout layout, char *label) {
+  if (label == NULL || label[0] == '\0')
+    return;
+  if ((layout == UI_COMMAND_LAYOUT_KEY_PREFIX ||
+       layout == UI_COMMAND_LAYOUT_ALT_MNEMONIC) &&
+      isalpha((unsigned char)label[0])) {
+    label[0] = (char)tolower((unsigned char)label[0]);
+  }
+}
+
+static void ResolveFooterActionKey(const ViewContext *ctx, BOOL is_dir,
+                                   const char *action_id,
+                                   const char *fallback_key, char *out,
+                                   size_t out_size) {
+  if (out == NULL || out_size == 0)
+    return;
+  out[0] = '\0';
+
+  if (action_id != NULL) {
+    const CommandPresentationOverride *presentation =
+        FindCommandPresentationOverride(ctx, is_dir, action_id);
+
+    if (presentation != NULL && presentation->shown[0] != '\0') {
+      (void)snprintf(out, out_size, "%s", presentation->shown);
+      return;
+    }
+    {
+      int default_key =
+          CommandActionDefaultKeyCode(is_dir ? "dir" : "file", action_id);
+
+      if (default_key >= 0) {
+        int effective_key = ResolveUserActionBindingKey(ctx, is_dir, default_key);
+
+        if (CommandKeyCodeToToken(effective_key, out, out_size) == 0)
+          return;
+      }
+    }
+  }
+
+  if (fallback_key != NULL)
+    (void)snprintf(out, out_size, "%s", fallback_key);
+}
+
+static void ResolveFooterCommandSpec(const ViewContext *ctx, BOOL is_dir,
+                                     const FooterCommandSpec *spec,
+                                     ResolvedFooterCommand *resolved) {
+  const CommandPresentationOverride *presentation;
+  const char *label = NULL;
+
+  memset(resolved, 0, sizeof(*resolved));
+  resolved->command.layout = spec->command.layout;
+
+  if (spec->primary_action_id != NULL) {
+    presentation =
+        FindCommandPresentationOverride(ctx, is_dir, spec->primary_action_id);
+    if (presentation != NULL && presentation->label[0] != '\0')
+      label = presentation->label;
+  }
+  if (label == NULL)
+    label = spec->command.label;
+  if (label != NULL)
+    (void)snprintf(resolved->label, sizeof(resolved->label), "%s", label);
+  NormalizeFooterLabel(spec->command.layout, resolved->label);
+
+  ResolveFooterActionKey(ctx, is_dir, spec->primary_action_id,
+                         spec->command.primary_key, resolved->primary_key,
+                         sizeof(resolved->primary_key));
+  ResolveFooterActionKey(ctx, is_dir, spec->secondary_action_id,
+                         spec->command.secondary_key, resolved->secondary_key,
+                         sizeof(resolved->secondary_key));
+
+  if (!is_dir && IsViKeysEnabled(ctx) && spec->primary_action_id != NULL) {
+    if (strcmp(spec->primary_action_id, "ACTION_CMD_D") == 0) {
+      (void)snprintf(resolved->primary_key, sizeof(resolved->primary_key), "%s",
+                     "d");
+    } else if (strcmp(spec->primary_action_id, "ACTION_UNTAG") == 0) {
+      (void)snprintf(resolved->primary_key, sizeof(resolved->primary_key), "%s",
+                     "u");
+    }
+  }
+
+  resolved->command.label = resolved->label;
+  resolved->command.primary_key = resolved->primary_key;
+  resolved->command.secondary_key =
+      resolved->secondary_key[0] != '\0' ? resolved->secondary_key : NULL;
+  resolved->key_class = FooterCommandKeyClass(&resolved->command);
+  (void)UI_FormatCommandStripEntryText(&resolved->command, resolved->rendered_text,
+                                       sizeof(resolved->rendered_text));
+}
+
+static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands,
+                                           size_t command_count,
+                                           int available_width, size_t rows) {
+  FooterPackResult result;
+  size_t split_index;
+  size_t best_split = 0;
+  FooterRowFit best_row1_fit;
+  BOOL best_found = FALSE;
+  size_t best_full_visible = 0;
+  size_t best_represented = 0;
+  int best_balance_delta = 0;
+
+  memset(&result, 0, sizeof(result));
+
+  if (rows != 2 || command_count == 0) {
+    size_t row_index;
+    size_t start_index = 0;
+
+    for (row_index = 0; row_index < rows; ++row_index) {
+      FooterRowFit fit = FitFooterRow(commands + start_index,
+                                      command_count - start_index,
+                                      available_width);
+
+      result.line_counts[row_index] = fit.fit_count;
+      result.visible_count += fit.fit_count;
+      if (fit.truncated) {
+        result.truncated = TRUE;
+        result.truncated_row = row_index;
+        result.truncated_index = start_index + fit.truncated_index;
+        result.truncated_width = fit.truncated_width;
+        return result;
+      }
+      start_index += fit.fit_count;
+    }
+    return result;
+  }
+
+  memset(&best_row1_fit, 0, sizeof(best_row1_fit));
+  for (split_index = 1; split_index <= command_count; ++split_index) {
+    FooterRowFit row1_fit;
+    int row0_width = UI_CommandStripVisualLength(commands, split_index);
+    int balance_delta;
+    size_t full_visible;
+    size_t represented;
+
+    if (row0_width > available_width)
+      break;
+
+    row1_fit = FitFooterRow(commands + split_index, command_count - split_index,
+                            available_width);
+    full_visible = split_index + row1_fit.fit_count;
+    represented = split_index + row1_fit.represented_count;
+    balance_delta = abs(row0_width - row1_fit.used_width);
+
+    if (!best_found || represented > best_represented ||
+        (represented == best_represented && full_visible > best_full_visible) ||
+        (represented == best_represented && full_visible == best_full_visible &&
+         balance_delta < best_balance_delta)) {
+      best_found = TRUE;
+      best_split = split_index;
+      best_row1_fit = row1_fit;
+      best_represented = represented;
+      best_full_visible = full_visible;
+      best_balance_delta = balance_delta;
+    }
+  }
+
+  if (!best_found) {
+    FooterRowFit fit = FitFooterRow(commands, command_count, available_width);
+
+    result.line_counts[0] = fit.fit_count;
+    result.visible_count = fit.fit_count;
+    result.truncated = fit.truncated;
+    result.truncated_row = 0;
+    result.truncated_index = fit.truncated_index;
+    result.truncated_width = fit.truncated_width;
+    return result;
+  }
+
+  result.line_counts[0] = best_split;
+  result.line_counts[1] = best_row1_fit.fit_count;
+  result.visible_count = best_split + best_row1_fit.fit_count;
+  if (best_row1_fit.truncated) {
+    result.truncated = TRUE;
+    result.truncated_row = 1;
+    result.truncated_index = best_split + best_row1_fit.truncated_index;
+    result.truncated_width = best_row1_fit.truncated_width;
+  }
+  return result;
+}
+
+static void RenderFooterSignpost(WINDOW *win, int y, const char *signpost) {
+  char padded[FOOTER_COMMAND_COLUMN];
+
+  if (win == NULL || signpost == NULL)
+    return;
+
+  (void)snprintf(padded, sizeof(padded), "%-*.*s", FOOTER_COMMAND_COLUMN - 1,
+                 FOOTER_COMMAND_COLUMN - 1, signpost);
+  if (strncmp(signpost, "9-4", 3) == 0) {
+#ifdef COLOR_SUPPORT
+    PrintSpecialString(win, y, 0, "9-4", UI_ROLE_KEYBIND);
+    PrintSpecialString(win, y, 3, padded + 3, UI_ROLE_HELP);
+#else
+    PrintSpecialString(win, y, 0, "9-4", A_BOLD);
+    PrintSpecialString(win, y, 3, padded + 3, A_NORMAL);
+#endif
+  } else {
+#ifdef COLOR_SUPPORT
+    PrintSpecialString(win, y, 0, padded, UI_ROLE_HELP);
+#else
+    PrintSpecialString(win, y, 0, padded, A_NORMAL);
+#endif
+  }
+}
+
+static void RenderPackedFooterLine(WINDOW *win, int y, const char *signpost,
+                                   const UICommandStripCommand *commands,
+                                   size_t command_count,
+                                   const UICommandStripCommand *truncated_command,
+                                   int truncated_width) {
+  char truncated_text[160];
+  char clipped[160];
+  int x = FOOTER_COMMAND_COLUMN;
+  int visible_prefix;
+  int dots;
+
+  if (win == NULL)
+    return;
+
+  wmove(win, y, 0);
+  wclrtoeol(win);
+  if (signpost != NULL && signpost[0] != '\0')
+    RenderFooterSignpost(win, y, signpost);
+  if (commands != NULL && command_count > 0) {
+    UI_RenderCommandStrip(win, y, FOOTER_COMMAND_COLUMN, commands, command_count,
+                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
+    x += UI_CommandStripVisualLength(commands, command_count);
+  }
+  if (truncated_command == NULL || truncated_width <= 0)
+    return;
+
+  if (command_count > 0) {
+    PrintSpecialString(win, y, x, "  ", UI_ROLE_HELP);
+    x += 2;
+  }
+
+  (void)UI_FormatCommandStripEntryText(truncated_command, truncated_text,
+                                       sizeof(truncated_text));
+  dots = truncated_width >= 3 ? 3 : truncated_width;
+  visible_prefix = truncated_width - dots;
+  if (dots <= 0)
+    return;
+  (void)snprintf(clipped, sizeof(clipped), "%.*s%.*s", visible_prefix,
+                 truncated_text, dots, "...");
+  PrintSpecialString(win, y, x, clipped, UI_ROLE_HELP);
 }
 
 static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
@@ -399,56 +1153,196 @@ static size_t AppendPopupTextRow(UIHelpPopupRow *rows, size_t row_count,
   return row_count + 1;
 }
 
+static const FooterCommandSpec *GetDirFooterSpecs(const ViewContext *ctx,
+                                                  size_t *command_count,
+                                                  const char **line0_signpost,
+                                                  const char **line1_signpost) {
+  if (ctx->view_mode == LL_FILE_MODE) {
+    *command_count =
+        sizeof(dir_footer_ll_specs) / sizeof(dir_footer_ll_specs[0]);
+    *line0_signpost = "DIR";
+    *line1_signpost = "";
+    return dir_footer_ll_specs;
+  }
+  if (ctx->view_mode == ARCHIVE_MODE) {
+    *command_count =
+        sizeof(dir_footer_archive_specs) / sizeof(dir_footer_archive_specs[0]);
+    *line0_signpost = "ARCHIVE";
+    *line1_signpost = "COMMANDS";
+    return dir_footer_archive_specs;
+  }
+
+  *command_count =
+      sizeof(dir_footer_standard_specs) / sizeof(dir_footer_standard_specs[0]);
+  *line0_signpost = "DIR";
+  *line1_signpost = "COMMANDS";
+  return dir_footer_standard_specs;
+}
+
+static const FooterCommandSpec *
+GetDirFooterNavSpecs(const ViewContext *ctx, const DirEntry *dir_entry,
+                     size_t *command_count, const char **signpost) {
+  *signpost = "9-4 File";
+  if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
+    if (dir_entry->up_tree != NULL) {
+      *command_count = sizeof(dir_footer_nav_archive_to_root_specs) /
+                       sizeof(dir_footer_nav_archive_to_root_specs[0]);
+      return dir_footer_nav_archive_to_root_specs;
+    }
+    *command_count = sizeof(dir_footer_nav_archive_exit_specs) /
+                     sizeof(dir_footer_nav_archive_exit_specs[0]);
+    return dir_footer_nav_archive_exit_specs;
+  }
+
+  *command_count =
+      sizeof(dir_footer_nav_specs) / sizeof(dir_footer_nav_specs[0]);
+  return dir_footer_nav_specs;
+}
+
+static const FooterCommandSpec *GetFileFooterSpecs(const ViewContext *ctx,
+                                                   size_t *command_count,
+                                                   const char **line0_signpost,
+                                                   const char **line1_signpost) {
+  if (ctx->view_mode == LL_FILE_MODE) {
+    *command_count =
+        sizeof(file_footer_ll_specs) / sizeof(file_footer_ll_specs[0]);
+    *line0_signpost = "FILE";
+    *line1_signpost = "";
+    return file_footer_ll_specs;
+  }
+  if (ctx->view_mode == ARCHIVE_MODE) {
+    *command_count = sizeof(file_footer_archive_specs) /
+                     sizeof(file_footer_archive_specs[0]);
+    *line0_signpost = "ARCHIVE";
+    *line1_signpost = "COMMANDS";
+    return file_footer_archive_specs;
+  }
+
+  *command_count =
+      sizeof(file_footer_standard_specs) / sizeof(file_footer_standard_specs[0]);
+  *line0_signpost = "FILE";
+  *line1_signpost = "COMMANDS";
+  return file_footer_standard_specs;
+}
+
+static const FooterCommandSpec *
+GetFileFooterNavSpecs(const DirEntry *dir_entry, size_t *command_count,
+                      const char **signpost) {
+  *signpost = "9-4 Tree";
+  if (dir_entry != NULL && dir_entry->global_flag) {
+    *command_count = sizeof(file_footer_nav_to_dir_specs) /
+                     sizeof(file_footer_nav_to_dir_specs[0]);
+    return file_footer_nav_to_dir_specs;
+  }
+
+  *command_count =
+      sizeof(file_footer_nav_specs) / sizeof(file_footer_nav_specs[0]);
+  return file_footer_nav_specs;
+}
+
+static void ResolveFooterCommandList(const ViewContext *ctx, BOOL is_dir,
+                                     const FooterCommandSpec *specs,
+                                     size_t spec_count,
+                                     ResolvedFooterCommand *resolved,
+                                     UICommandStripCommand *commands) {
+  size_t index;
+
+  for (index = 0; index < spec_count; ++index) {
+    ResolveFooterCommandSpec(ctx, is_dir, &specs[index], &resolved[index]);
+    commands[index] = resolved[index].command;
+  }
+  SortResolvedFooterCommands(resolved, commands, spec_count);
+}
+
+static void RenderFooterTopRows(ViewContext *ctx, const char *line0_signpost,
+                                const char *line1_signpost,
+                                const UICommandStripCommand *commands,
+                                size_t command_count) {
+  FooterPackResult pack;
+  int available_width;
+
+  available_width = getmaxx(ctx->ctx_menu_window) - FOOTER_COMMAND_COLUMN;
+  if (available_width < 0)
+    available_width = 0;
+  pack = PackFooterCommands(commands, command_count, available_width, 2);
+
+  RenderPackedFooterLine(ctx->ctx_menu_window, 0, line0_signpost, commands,
+                         pack.line_counts[0], NULL, 0);
+  RenderPackedFooterLine(ctx->ctx_menu_window, 1, line1_signpost,
+                         commands + pack.line_counts[0], pack.line_counts[1],
+                         pack.truncated && pack.truncated_row == 1
+                             ? &commands[pack.truncated_index]
+                             : NULL,
+                         pack.truncated && pack.truncated_row == 1
+                             ? pack.truncated_width
+                             : 0);
+}
+
+static void RenderFooterNavRow(ViewContext *ctx, const char *signpost,
+                               const FooterCommandSpec *specs,
+                               size_t spec_count) {
+  ResolvedFooterCommand resolved[16];
+  UICommandStripCommand commands[16];
+  FooterPackResult pack;
+  int available_width;
+
+  ResolveFooterCommandList(ctx, AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE,
+                           specs, spec_count, resolved, commands);
+  available_width = getmaxx(ctx->ctx_menu_window) - FOOTER_COMMAND_COLUMN;
+  if (available_width < 0)
+    available_width = 0;
+  pack = PackFooterCommands(commands, spec_count, available_width, 1);
+  RenderPackedFooterLine(ctx->ctx_menu_window, 2, signpost, commands,
+                         pack.line_counts[0],
+                         pack.truncated ? &commands[pack.truncated_index] : NULL,
+                         pack.truncated ? pack.truncated_width : 0);
+}
+
 void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
-  int i;
-  const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
+  ResolvedFooterCommand resolved[32];
+  UICommandStripCommand commands[32];
+  const FooterCommandSpec *specs;
+  const FooterCommandSpec *nav_specs;
+  const char *line0_signpost;
+  const char *line1_signpost;
+  const char *nav_signpost;
+  size_t spec_count;
+  size_t nav_count;
 
   if (!ctx->ctx_menu_window)
     return;
 
   werase(ctx->ctx_menu_window);
-  for (i = 0; i < 2; i++)
-    DisplayBuiltInHelpLine(ctx, i, &dir_help_builtin[ctx->view_mode][i]);
-  if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
-    nav_strip = (dir_entry->up_tree != NULL) ? &dir_help_nav_builtin[1]
-                                             : &dir_help_nav_builtin[2];
-  }
-  DisplayBuiltInHelpLine(ctx, 2, nav_strip);
+  specs = GetDirFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
+  ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
+  RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);
+  nav_specs = GetDirFooterNavSpecs(ctx, dir_entry, &nav_count, &nav_signpost);
+  RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);
   UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
 void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
-  int i;
-  const HelpCommandStrip *nav_strip;
+  ResolvedFooterCommand resolved[32];
+  UICommandStripCommand commands[32];
+  const FooterCommandSpec *specs;
+  const FooterCommandSpec *nav_specs;
+  const char *line0_signpost;
+  const char *line1_signpost;
+  const char *nav_signpost;
+  size_t spec_count;
+  size_t nav_count;
 
   if (!ctx->ctx_menu_window)
     return;
 
   werase(ctx->ctx_menu_window);
-  for (i = 0; i < 2; i++) {
-    const HelpCommandStrip *builtin = &file_help_builtin[ctx->view_mode][i];
-
-    if (builtin->commands != NULL && builtin->command_count > 0 &&
-        IsViKeysEnabled(ctx)) {
-      HelpCommandStrip resolved = *builtin;
-      UICommandStripCommand resolved_commands[builtin->command_count];
-
-      memcpy(resolved_commands, builtin->commands,
-             builtin->command_count * sizeof(resolved_commands[0]));
-      ApplyViFileHelpOverrides(ctx, resolved_commands, builtin->command_count);
-      resolved.commands = resolved_commands;
-      DisplayBuiltInHelpLine(ctx, i, &resolved);
-    } else {
-      DisplayBuiltInHelpLine(ctx, i, builtin);
-    }
-  }
-  if (dir_entry && dir_entry->global_flag) {
-    nav_strip = &file_help_nav_builtin[1];
-  } else {
-    nav_strip = &file_help_nav_builtin[0];
-  }
-  DisplayBuiltInHelpLine(ctx, 2, nav_strip);
+  specs =
+      GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
+  ResolveFooterCommandList(ctx, FALSE, specs, spec_count, resolved, commands);
+  RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);
+  nav_specs = GetFileFooterNavSpecs(dir_entry, &nav_count, &nav_signpost);
+  RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);
   UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
 }

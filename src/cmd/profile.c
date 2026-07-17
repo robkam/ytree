@@ -131,6 +131,12 @@ struct _profile_runtime_snapshot {
   FileColorRule *file_color_rules_head;
   char commands_file_path[PATH_LENGTH + 1];
   char theme_file_path[PATH_LENGTH + 1];
+  CommandPresentationOverride
+      dir_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t dir_command_presentation_count;
+  CommandPresentationOverride
+      file_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t file_command_presentation_count;
 };
 
 static void BindProfileRuntimeData(ViewContext *ctx) {
@@ -160,6 +166,10 @@ void FreeProfileRuntimeData(ViewContext *ctx) {
   filemenu.next = NULL;
   FreeDirmenuList(dirmenu.next);
   dirmenu.next = NULL;
+  if (ctx != NULL) {
+    ctx->dir_command_presentation_count = 0;
+    ctx->file_command_presentation_count = 0;
+  }
 }
 
 
@@ -362,6 +372,14 @@ ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
              "%s", ctx->commands_file_path);
     snprintf(snapshot->theme_file_path, sizeof(snapshot->theme_file_path), "%s",
              ctx->theme_file_path);
+    memcpy(snapshot->dir_command_presentations, ctx->dir_command_presentations,
+           sizeof(snapshot->dir_command_presentations));
+    snapshot->dir_command_presentation_count =
+        ctx->dir_command_presentation_count;
+    memcpy(snapshot->file_command_presentations, ctx->file_command_presentations,
+           sizeof(snapshot->file_command_presentations));
+    snapshot->file_command_presentation_count =
+        ctx->file_command_presentation_count;
   }
 
   return snapshot;
@@ -393,6 +411,14 @@ void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
              snapshot->commands_file_path);
     snprintf(ctx->theme_file_path, sizeof(ctx->theme_file_path), "%s",
              snapshot->theme_file_path);
+    memcpy(ctx->dir_command_presentations, snapshot->dir_command_presentations,
+           sizeof(ctx->dir_command_presentations));
+    ctx->dir_command_presentation_count =
+        snapshot->dir_command_presentation_count;
+    memcpy(ctx->file_command_presentations, snapshot->file_command_presentations,
+           sizeof(ctx->file_command_presentations));
+    ctx->file_command_presentation_count =
+        snapshot->file_command_presentation_count;
   }
   BindProfileRuntimeData(ctx);
 }
@@ -1230,6 +1256,43 @@ char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap) {
   if (pchremap)
     *pchremap = chkey;
   return (NULL);
+}
+
+int ResolveUserActionBindingKey(const ViewContext *ctx, BOOL is_dir,
+                                int default_key) {
+  int resolved = default_key;
+  BOOL default_is_active = TRUE;
+
+  if (ctx == NULL || default_key < 0)
+    return default_key;
+
+  if (is_dir) {
+    Dirmenu *node;
+
+    for (node = ((Dirmenu *)ctx->dirmenu_list)->next; node != NULL;
+         node = node->next) {
+      if (node->chkey == default_key && node->chremap != default_key)
+        default_is_active = FALSE;
+      if (node->cmd == NULL && node->chremap == default_key &&
+          node->chkey != default_key && resolved == default_key)
+        resolved = node->chkey;
+    }
+  } else {
+    Filemenu *node;
+
+    for (node = ((Filemenu *)ctx->filemenu_list)->next; node != NULL;
+         node = node->next) {
+      if (node->chkey == default_key && node->chremap != default_key)
+        default_is_active = FALSE;
+      if (node->cmd == NULL && node->chremap == default_key &&
+          node->chkey != default_key && resolved == default_key)
+        resolved = node->chkey;
+    }
+  }
+
+  if (default_is_active)
+    return default_key;
+  return resolved;
 }
 
 BOOL IsUserActionDefined(const ViewContext *ctx) {

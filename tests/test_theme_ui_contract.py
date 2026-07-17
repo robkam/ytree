@@ -310,7 +310,8 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "view_edit_prompt_commands" in internal_view_source
     assert "view_readonly_prompt_commands" in internal_view_source
     assert "view_navigation_commands" in internal_view_source
-    assert "DisplayBuiltInHelpLine(ctx, 2, nav_strip);" in display_source
+    assert "RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);" in display_source
+    assert "RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);" in display_source
     assert "PrintMenuOptions(ctx->ctx_border_window, ctx->layout.status_y, 1," not in compare_source
     assert '"9-4 File "' in display_source
     assert '"9-4 Tree "' in display_source

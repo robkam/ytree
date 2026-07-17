@@ -199,6 +199,10 @@ typedef struct _ViewContext ViewContext;
 #define FILE_SPEC_LENGTH 256
 #define DISK_NAME_LENGTH (12 + 1)
 #define COMMAND_LINE_LENGTH 4096
+#define COMMAND_PRESENTATION_OVERRIDES_MAX 64
+#define COMMAND_PRESENTATION_ACTION_ID_LENGTH 32
+#define COMMAND_PRESENTATION_SHOWN_LENGTH 16
+#define COMMAND_PRESENTATION_LABEL_LENGTH 64
 
 /*
  * Message length covers two full paths plus context (for operations such as
@@ -957,6 +961,12 @@ typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
 typedef void (*CoreScanProgressCallback)(ViewContext *ctx, void *user_data);
 
 typedef struct {
+  char action_id[COMMAND_PRESENTATION_ACTION_ID_LENGTH];
+  char shown[COMMAND_PRESENTATION_SHOWN_LENGTH];
+  char label[COMMAND_PRESENTATION_LABEL_LENGTH];
+} CommandPresentationOverride;
+
+typedef struct {
   int (*get_disk_parameter)(char *path, char *volume_name,
                             long long *avail_bytes, long long *capacity,
                             Statistic *s);
@@ -1087,6 +1097,12 @@ typedef struct _ViewContext {
   char history_file_path[PATH_LENGTH + 1];
   char commands_file_path[PATH_LENGTH + 1];
   char theme_file_path[PATH_LENGTH + 1];
+  CommandPresentationOverride
+      dir_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t dir_command_presentation_count;
+  CommandPresentationOverride
+      file_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t file_command_presentation_count;
   char *confirm_quit;
   void *file_color_rules_head;
 
