@@ -233,6 +233,52 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         tui.quit()
 
 
+def test_command_preset_help_layers_packaged_selection_under_local_overrides(tmp_path):
+    root = _root_with_file(tmp_path, "command_preset_help_layering")
+    config_dir = root / ".config" / "ytnova"
+    config_dir.mkdir(parents=True)
+    (config_dir / "commands.conf").write_text(
+        "preset = de\n"
+        "[FILE]\n"
+        "C | C | Copy | ACTION_CMD_C |\n",
+        encoding="utf-8",
+    )
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        tui.send_keystroke(Keys.ENTER)
+        assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
+
+        help_screen = _wait_for_help(tui, "File Help")
+        lower_help = help_screen.lower()
+        assert "copy" in lower_help, help_screen
+        assert "verschieben" in lower_help, help_screen
+        assert "kopieren" not in lower_help, help_screen
+    finally:
+        tui.quit()
+
+
+def test_invalid_command_preset_aborts_startup(tmp_path):
+    root = _root_with_file(tmp_path, "invalid_command_preset_startup")
+    config_dir = root / ".config" / "ytnova"
+    config_dir.mkdir(parents=True)
+    (config_dir / "commands.conf").write_text("preset = missing-preset\n", encoding="utf-8")
+    tui = _spawn_help_tui(root)
+
+    try:
+        screen = tui.wait_for_condition(
+            lambda lines: lines
+            if (not tui.child.isalive())
+            and any("LoadCommands failed" in line for line in lines)
+            else False,
+            timeout=2.0,
+        )
+        assert screen, screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_integrated_help_source_covers_archive_showall_and_history_surfaces():
     display_source = _read_source("src/ui/display.c")
     integrated_block = _extract_function_block(

@@ -19,7 +19,7 @@ If no command line arguments are provided, the current directory will be logged.
   - **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
   - **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
   - **-h** *history\_file*: Use *history\_file* instead of the default `~/.ytnova-hst`.
-  - **--init**: Create missing starter profile and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. Use `-p` to target a different profile file.
+  - **--init**: Create missing starter profile, commands, and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, and `~/.config/ytnova/themes.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. Use `-p` to target a different profile file.
   - **-p** *config\_file*: Use *config\_file* instead of the default `~/.config/ytnova/ytnova.conf`.
   - **-v**, **-V**, **--version**: Print ytnova version information and exit.
   - *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
@@ -94,7 +94,7 @@ These commands work in most modes:
   - **F6**: Toggle Statistics Panel (Wide Mode).
   - **F7**: Toggle File Preview Pane.
   - **F8**: Toggle Split Screen Mode.
-  - **F10**: Open the configuration command surface: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **M** to edit commands, **T** to edit themes, or **R** to reload the current config/theme/commands set. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
+  - **F10**: Open the configuration command surface: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **M** to edit `commands.conf`, **T** to edit themes, or **R** to reload the current config/theme/commands set. The commands path owns preset selection plus local command overrides; packaged command presets stay read-only shared data. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
   - **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
   - **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
   - **1 .. 9**: File or directory info band for the active panel (disabled in `F7` preview).
@@ -358,6 +358,17 @@ redundant backgrounds on ordinary content roles when they are meant to follow
 the theme background, so changing `background = ...` repaints the shared
 surface intuitively.
 
+Command customization lives in `commands.conf`. ytnova loads user command
+overrides from `$XDG_CONFIG_HOME/ytnova/commands.conf` or
+`~/.config/ytnova/commands.conf`, falls back to `~/.ytnova.commands` only when
+the XDG-style target cannot be used, then uses the installed packaged active
+command map or compiled-in defaults without creating a user command file.
+`commands.conf` may optionally start with `preset = <id>` to select one
+packaged read-only command preset before local per-action overrides are
+applied. Packaged preset catalogs live under the shared app-data commands
+directory (for example `/usr/share/ytnova/commands/<preset>.conf`); `F10`
+edits only `commands.conf`, not the packaged preset files.
+
 # QUIT TO DIRECTORY
 
 To allow `^Q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
@@ -376,11 +387,15 @@ yt() {
 # FILES
 
   - `$XDG_CONFIG_HOME/ytnova/ytnova.conf` or `~/.config/ytnova/ytnova.conf`: Preferred main configuration file.
+  - `$XDG_CONFIG_HOME/ytnova/commands.conf` or `~/.config/ytnova/commands.conf`: Preferred user command map and preset-selection file.
   - `$XDG_CONFIG_HOME/ytnova/themes.conf` or `~/.config/ytnova/themes.conf`: Preferred user theme catalog.
   - `$XDG_STATE_HOME/ytnova/ytnova.hst` or `~/.local/state/ytnova/ytnova.hst`: Preferred command history path.
   - `~/.ytnova`: Legacy fallback main configuration file.
+  - `~/.ytnova.commands`: Legacy fallback user command map file.
   - `~/.ytnova.themes`: Legacy fallback user theme catalog.
   - `~/.ytnova-hst`: Legacy fallback command history path.
+  - `/usr/share/ytnova/ytnova.commands`: Installed packaged active command map.
+  - `/usr/share/ytnova/commands/*.conf`: Installed packaged read-only command presets.
 
 ### Reporting problems
 

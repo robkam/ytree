@@ -126,7 +126,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 5.2: Strengthen Smell-Prevention Guards**
 *   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
 *   **Mechanism:** Tighten module-boundary/controller-growth policies and require explicit approval paths for exceptions.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 5.3: Smell Gate Evidence as Merge Prerequisite**
 *   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
@@ -192,8 +192,8 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.1: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
-*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the human-edited default runtime config source; `etc/ytnova.themes` is the separate human-edited default theme source; and any Task 11.2 split companion surfaces (`etc/ytnova.bindings`, `etc/ytnova.labels`) must follow the same source/generated discipline once introduced. Generated headers/templates are generated-only and consumed by `--init`.
-*   **Mechanism:** Add reproducible generator paths for each canonical config surface (`etc/ytnova.conf` -> `src/core/default_profile_template.h`, `etc/ytnova.themes` -> theme catalog output, plus any Task 11.2 companion-surface outputs) and a QA/CI check that fails when generated output is stale or hand-edited.
+*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the human-edited default runtime config source; `etc/ytnova.themes` is the separate human-edited default theme source; `etc/ytnova.commands` is the human-edited default active command-surface source; and any Task 11.5 locale/layout preset catalogs (for example `etc/commands/*.conf`) must follow the same source/generated discipline once introduced. Generated headers/templates are generated-only and consumed by `--init`.
+*   **Mechanism:** Add reproducible generator paths for each canonical config surface (`etc/ytnova.conf` -> `src/core/default_profile_template.h`, `etc/ytnova.themes` -> theme catalog output, `etc/ytnova.commands` -> default command artifact(s), plus any Task 11.5 preset-catalog outputs) and a QA/CI check that fails when generated output is stale or hand-edited.
 *   **Acceptance Criteria:**
 *   `ytnova --init` output remains byte-equivalent to the canonical template semantics.
 *   A single documented command regenerates the header deterministically.
@@ -267,6 +267,7 @@ Ordering policy (for all editors, including AI editors):
 *   Legacy sections in `ytnova.conf` still load during the compatibility phase, but `commands.conf` overrides them deterministically.
 *   Reload fails closed if any one of config/theme/commands is malformed or invalid, and the previous working state remains active.
 *   `docs/SPECIFICATION.md`, manpage/USAGE docs, and contributor guidance describe commands as structured overrides rather than rendered-line text replacement.
+*   Locale/layout-aware packaged command presets remain follow-on work tracked separately by Task 11.5; Task 11.2 establishes the action/label/token ownership model those presets build on.
 *   - [x] **Status:** Completed.
 
 #### **Task 11.3: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)**
@@ -286,26 +287,63 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 #### **Task 11.4: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for the split config surfaces.
-*   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility, and gives the split config/theme/bindings/labels model one coherent in-app entry point instead of scattering file editing across ad hoc workflows.
-*   **UI Contract:** The `F10` command strip is `(C)onfig  (T)hemes  (B)indings  (L)abels  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under `F10`, not as a global/main-UI key.
+*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for the split config, commands, and theme surfaces.
+*   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility, and gives the split config/theme/commands model one coherent in-app entry point instead of scattering file editing across ad hoc workflows.
+*   **UI Contract:** The `F10` command strip is `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under `F10`, not as a global/main-UI key.
 *   **File Contract:**
     *   Config editing targets the preferred runtime config at `~/.config/ytnova/ytnova.conf`; if startup loaded the legacy fallback `~/.ytnova`, `F10` acts as the migration path and should create/edit the XDG profile whenever that target path is usable, falling back to `~/.ytnova` only when the XDG-style target path cannot be used.
     *   Theme editing targets the active theme file (`~/.config/ytnova/themes.conf` or fallback `~/.ytnova.themes`).
-    *   Bindings editing targets the active bindings file (`~/.config/ytnova/bindings.conf` or fallback `~/.ytnova.bindings`).
-    *   Labels editing targets the active labels file (`~/.config/ytnova/labels.conf` or fallback `~/.ytnova.labels`).
+    *   Commands editing targets the active commands file (`~/.config/ytnova/commands.conf` or fallback `~/.ytnova.commands`).
+    *   The commands path owns preset selection plus per-action overrides; packaged locale/layout preset catalogs remain read-only shared data rather than extra per-user config files.
 *   **Dependency Contract:**
     *   Sequence after Task 11.2 defines the canonical split surfaces and precedence rules.
+    *   Sequence after Task 11.5 if preset selection is exposed in the UI; `F10` must not hardcode obsolete bindings/labels split assumptions.
     *   The editor must preserve the same XDG-first/home-dotfile-fallback rules as startup and `--init`.
     *   Guided editing must not re-collapse structured label/action data back into legacy raw `[MENU]` whole-line text.
 *   **Acceptance Criteria:**
-*   `F10` exposes one coherent hub for config, themes, bindings, labels, and reload.
+*   `F10` exposes one coherent hub for config, commands, themes, and reload.
 *   `F10 -> Enter -> result` still opens the main config as the common path.
 *   Each `F10` action edits or creates the active runtime file for that surface using the same path-resolution rules as startup.
+*   The commands path can edit command overrides without requiring users to rewrite pre-rendered footer/menu lines, and can expose preset selection once Task 11.5 lands.
 *   Guided editing for common options is possible without blocking raw-text editing for advanced users.
-*   Reload from the `F10` hub respects the atomic reload contract across config/theme/bindings/labels surfaces.
+*   Reload from the `F10` hub respects the atomic reload contract across config/theme/commands surfaces.
 *   Footer/F1/manpage wording for `F10` stays synchronized with the split-surface model.
 *   - [ ] **Status:** In Progress.
+
+#### **Task 11.5: Locale/Layout-Aware Command Presets**
+*   **Goal:** Add proper locale/layout-aware command preset catalogs without reopening Task 11.2's ownership model: shipped presets live as separate packaged command-map files, `commands.conf` remains the one active user-editable command surface, and users or packagers can choose a preset without rewriting core command-dispatch code.
+*   **Rationale:** The structured `commands.conf` model from Task 11.2 solves ownership and footer/help assembly, but it does not by itself provide a conventional way to ship German/Lithuanian/Hindi-friendly mnemonic sets. Locale-aware command presets should be packaged like read-only data, selected by stable preset ID, and overridden locally only where needed.
+*   **Scope Lock:** Preset discovery, selection, validation, and override layering only. Do not add automatic locale remapping, physical-scancode assumptions, or a second user-editable bindings/labels surface.
+*   **Preset Catalog Contract:**
+    *   Packaged preset sources live as separate files (for example `etc/commands/en.conf`, `etc/commands/de.conf`, `etc/commands/lt.conf`, `etc/commands/hi-latin.conf`) rather than as one giant multilingual catalog embedded in the active user file.
+    *   Installed presets are read-only shared data (for example `/usr/share/ytnova/commands/<preset>.conf`); `commands.conf` remains the sole canonical user-editable commands surface.
+    *   Preset IDs are stable untranslated identifiers such as `en`, `de`, `lt`, and `hi-latin`; translator-facing prose belongs in labels/help text, not in preset IDs.
+    *   Each preset file uses the same action-based row model as Task 11.2 (`binding | shown | label | action | command`) so footer/help/menu rendering still resolves from stable action IDs plus current key tokens and labels.
+    *   Every preset file begins with concise explanatory comment headers naming the preset ID, intended locale/layout, that the file is packaged read-only data selected from `commands.conf`, and that action IDs must remain untranslated.
+*   **Selection and Override Contract:**
+    *   `commands.conf` may select zero or one preset with a single stable selector line (for example `preset = en`) and may then apply local per-action overrides in the canonical sectioned row format.
+    *   If no preset selector is present, runtime uses the packaged default active command map from `etc/ytnova.commands`; upstream may ship that default as English, while a package may explicitly replace that default for a localized build.
+    *   Comment/uncomment language blocks is not the canonical model; preset selection is explicit data, not manual whole-file surgery.
+    *   Runtime may seed a packaged default preset from the build/package environment, but there is no automatic runtime locale-to-keymap remapping heuristic.
+    *   Missing or invalid preset IDs must fail closed with a clear diagnostic and retain the previous working command state rather than silently substituting a guessed locale.
+*   **Validation Contract:**
+    *   Collision/unbound-action validation remains action-surface-aware and must run after preset load plus local overrides.
+    *   Locale mnemonic freedom must not break the universal core: arrows, Enter, Esc, function keys, and other non-linguistic shared controls remain independently bindable and documentable.
+    *   Footer/help/F1 continue to consume only the resolved current bindings/tokens/labels; they must not special-case locale names or read packaged preset files directly.
+    *   Section ownership is by stable runtime command-surface ID rather than by language or storage back-end name alone. Current canonical surfaces must cover at least directory/file and archive-directory/archive-file variants; future surfaces may add new stable IDs without changing the row grammar.
+*   **Dependency Contract:**
+    *   Sequence after Task 11.2 establishes the action/label/token split.
+    *   Prefer to land before final Task 11.4 polish so `F10` can expose the final commands-surface model rather than a transient one.
+    *   Task 40.2 and Task 43 consume the resolved active command state only; they should not need separate locale-specific layout logic once this task lands.
+*   **Acceptance Criteria:**
+*   Shipped command presets exist as separate packaged source files keyed by stable preset ID.
+*   `commands.conf` remains the single canonical user-editable command surface and can select zero or one preset plus local overrides.
+*   No user-editable surface requires multilingual `[english]` / `[deutsch]` block toggling to switch locale/layout behavior.
+*   Packagers can ship a localized default preset choice without forking command-dispatch code, and users can override that choice later through `commands.conf` / `F10`.
+*   Validation catches collisions and unresolved actions after preset + override resolution.
+*   Preset files carry concise comment headers explaining their role and constraints.
+*   `docs/SPECIFICATION.md`, `docs/ARCHITECTURE.md`, and F10/help docs describe command presets as read-only packaged data layered under one active commands file.
+*   - [ ] **Status:** Not Started.
 
 ---
 
@@ -1450,8 +1488,8 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-5: Keymap Follow-On Work (Post-Baseline)**
-*   **Description:** Follow-up keymap work after baseline keymap support lands (preset profiles, conflict diagnostics, import/export format hardening, and migration notes for existing users).
-*   **Localized keymap profiles:** Add opt-in locale-oriented profiles as separate keymap files (not automatic locale remapping), while keeping the default keymap stable.
+*   **Description:** Follow-up keymap work beyond Task 11.5 after baseline locale/layout-aware preset support lands (for example richer import/export tooling, advanced diagnostics UX, and any migration notes still needed for future users).
+*   **Localized keymap profiles:** The core packaged-preset model is tracked by Task 11.5; any later work here must build on that shared action-based preset architecture rather than invent a second parallel keymap format.
 *   **Best-practice guardrails:** Preserve a universal core of stable bindings (function keys/Ctrl/digits/arrows), allow locale mnemonic aliases where safe, and enforce strict collision/unbound-action validation with clear diagnostics.
 *   - [ ] **Status:** Not Started.
 

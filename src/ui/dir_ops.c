@@ -864,7 +864,7 @@ BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
   char file_name[PATH_LENGTH * 2 + 1];
 
   DEBUG_LOG("ACTION_CMD_MKFILE reached in ctrl_dir.c. mode=%d", ctx->view_mode);
-  if (ctx->view_mode != DISK_MODE)
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE)
     return FALSE;
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
     return FALSE;

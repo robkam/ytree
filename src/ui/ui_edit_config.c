@@ -325,10 +325,8 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
                                 const char *profile_path) {
   ProfileRuntimeSnapshot *profile_snapshot;
   ReloadableProfileState runtime_state;
-  char commands_path[PATH_LENGTH + 1];
   char previous_profile_path[PATH_LENGTH + 1];
   BOOL previous_profile_path_is_explicit;
-  int commands_validation;
   int profile_validation;
 #ifdef COLOR_SUPPORT
   UIColorSnapshot *color_snapshot;
@@ -352,8 +350,6 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
   previous_profile_path_is_explicit = ctx->configuration_file_path_is_explicit;
   (void)snprintf(previous_profile_path, sizeof(previous_profile_path), "%s",
                  ctx->configuration_file_path);
-  if (ResolveCommandsPath(ctx, commands_path, sizeof(commands_path)) != 0)
-    commands_path[0] = '\0';
 
   if (ctx->core_init_ops.read_profile != NULL && profile_path != NULL &&
       access(profile_path, F_OK) == 0) {
@@ -397,23 +393,6 @@ static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
 #endif
       ProfileRuntimeSnapshot_Free(profile_snapshot);
       UI_ShowStatusLineError(ctx, "Reload failed: can't read config");
-      return -1;
-    }
-  }
-
-  if (commands_path[0] != '\0' && access(commands_path, F_OK) == 0) {
-    commands_validation = ValidateCommandsFile(commands_path);
-    if (commands_validation != 0) {
-      ProfileRuntimeSnapshot_Restore(ctx, profile_snapshot);
-      RestoreReloadableProfileState(ctx, dir_entry, &runtime_state);
-#ifdef COLOR_SUPPORT
-      UIColorSnapshot_Restore(color_snapshot);
-      UIColorSnapshot_Free(color_snapshot);
-#endif
-      ProfileRuntimeSnapshot_Free(profile_snapshot);
-      UI_ShowStatusLineError(ctx, commands_validation < 0
-                                      ? "Reload failed: can't read commands"
-                                      : "Reload failed: malformed commands");
       return -1;
     }
   }

@@ -126,6 +126,65 @@ def test_archive_pipe_return_restores_ui_surfaces(ytnova_binary, tmp_path):
         tui.quit()
 
 
+def test_archive_footer_keeps_root_on_command_row_and_omits_ctrl_r_rename(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "archive_footer_layout"
+    root.mkdir()
+    archive_path = root / "footer_layout.tar"
+    _create_tar(
+        archive_path,
+        {
+            "a/b/file.txt": "payload",
+            "a/c/other.txt": "other payload",
+        },
+    )
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
+
+        archive_root_footer = [line.lower() for line in _footer_lines(tui)]
+        assert "exit" in archive_root_footer[1], (
+            "Archive root footer must show \\ exit on the command row.\n"
+            + "\n".join(archive_root_footer)
+        )
+        assert "exit" not in archive_root_footer[2], (
+            "Archive root footer must not duplicate \\ exit on the nav row.\n"
+            + "\n".join(archive_root_footer)
+        )
+
+        tui.send_keystroke(Keys.EXPAND_ALL, wait=0.5)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        assert tui.wait_for_content(f"/{archive_path.name}/a/b", timeout=2.0)
+
+        archive_dir_footer = [line.lower() for line in _footer_lines(tui)]
+        assert "root" in archive_dir_footer[1], (
+            "Archive directory footer must keep \\ root on the command row.\n"
+            + "\n".join(archive_dir_footer)
+        )
+        assert "root" not in archive_dir_footer[2], (
+            "Archive directory footer must not push \\ root onto the nav row.\n"
+            + "\n".join(archive_dir_footer)
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert tui.wait_for_content("file.txt", timeout=2.0)
+
+        archive_file_footer = [line.lower() for line in _footer_lines(tui)]
+        assert "rename" in archive_file_footer[1], (
+            "Archive file footer must still show Rename.\n"
+            + "\n".join(archive_file_footer)
+        )
+        assert "^r rename" not in "\n".join(archive_file_footer), (
+            "Archive file footer must not show the static ^R rename entry.\n"
+            + "\n".join(archive_file_footer)
+        )
+    finally:
+        tui.quit()
+
+
 def test_archive_internal_path_trust_rejects_unsafe_members(
     ytnova_binary, tmp_path
 ):

@@ -492,14 +492,14 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
     assert "\\" in _footer_text(tui), (
         "Archive non-root footer should advertise backslash jump-to-root behavior."
     )
-    non_root_nav = _footer_lines(tui)[2]
-    assert "\\ root" in non_root_nav, (
-        "Archive non-root footer should render backslash root with a separator space.\n"
-        f"{non_root_nav!r}"
+    non_root_commands = _footer_lines(tui)[1]
+    assert "\\ root" in non_root_commands, (
+        "Archive non-root footer must render backslash root on the command row.\n"
+        f"{non_root_commands!r}"
     )
-    assert "\\root" not in non_root_nav, (
+    assert "\\root" not in non_root_commands, (
         "Archive non-root footer must not collapse the backslash-root label.\n"
-        f"{non_root_nav!r}"
+        f"{non_root_commands!r}"
     )
 
     before = _screen_text(tui)
@@ -508,14 +508,14 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
     assert "\\" in _footer_text(tui), (
         "Archive root footer should advertise backslash exit behavior."
     )
-    root_nav = _footer_lines(tui)[2]
-    assert "\\ exit" in root_nav, (
-        "Archive root footer should render backslash exit with a separator space.\n"
-        f"{root_nav!r}"
+    root_commands = _footer_lines(tui)[1]
+    assert "\\ exit" in root_commands, (
+        "Archive root footer must render backslash exit on the command row.\n"
+        f"{root_commands!r}"
     )
-    assert "\\exit" not in root_nav, (
+    assert "\\exit" not in root_commands, (
         "Archive root footer must not collapse the backslash-exit label.\n"
-        f"{root_nav!r}"
+        f"{root_commands!r}"
     )
     assert "ARCHIVE" in after, "Backslash at archive non-root must not exit archive mode."
     assert "inside_dir/nested" not in tui.get_screen_dump()[0], (
@@ -1333,8 +1333,16 @@ def test_missing_commands_f10_unchanged_edit_keeps_starter_file(
             "F10 -> Commands on a missing commands file must open an editable default commands buffer."
         )
         commands_text = editor_capture.read_text(encoding="utf-8")
-        assert "[DIR]" in commands_text and "[FILE]" in commands_text, (
+        assert (
+            "[DIR]" in commands_text
+            and "[ARCHIVE_DIR]" in commands_text
+            and "[FILE]" in commands_text
+            and "[ARCHIVE_FILE]" in commands_text
+        ), (
             "Default commands buffer should include the canonical commands.conf sections."
+        )
+        assert "#   preset = de" in commands_text, (
+            "Default commands buffer should advertise the optional packaged preset selector."
         )
         assert "binding | shown | label | action | command" in commands_text, (
             "Default commands buffer should include the canonical per-section commands.conf columns."
@@ -2245,7 +2253,7 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "/ jump",
         "` dotfiles",
     )
-    assert "\\ exit" in footer_rows[2]
-    assert "\\exit" not in footer_rows[2]
+    assert "\\ exit" in footer_rows[1]
+    assert "\\exit" not in footer_rows[1]
 
     tui.quit()

@@ -143,7 +143,7 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 
 | Category | Definition | Behavioral Persistence |
 | :--- | :--- | :--- |
-| **Linguistic Mnemonics** | Keys bound to command strings (e.g., `c`=copy, `m`=move). | Primary candidates for l10n/i18n re-mapping. |
+| **Linguistic Mnemonics** | Keys bound to command strings (e.g., `c`=copy, `m`=move). | Primary candidates for locale/layout-aware preset remapping. |
 | **Structural Controls** | Positional keys (`+`/`=`, `-`, `*`) that manipulate the tree. | Static; universal regardless of locale. |
 | **Spatial Navigation** | Arrow keys (`←`, `→`) for cursor-oriented tree traversal. | Fixed; directional drill-down / retreat. |
 | **TUI Conventions** | Universal terminal muscle memory (`/`, `^l`, `^v`, `^q`). | Fixed; standard Unix utility behavior. |
@@ -166,6 +166,7 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
 *   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
 *   **Quit to Directory (`^q`):** Exits `ytnova` to the currently highlighted directory (requires shell-level support to finalize the shell path).
+*   **Localized Command-Preset Rule:** Locale/layout adaptation for linguistic mnemonics is provided by explicit command presets keyed by stable preset ID and action ID, not by runtime guesses about physical keyboard layout. A package may choose a default preset, and the user may override it, but runtime command resolution still starts from curses/terminfo key events plus the resolved active command preset.
 
 ### 4.4 Function Key Blueprint (F1-F12)
 *   **`F1`**: help.
@@ -384,12 +385,14 @@ Current modal/dialog audit:
 Themes are plain-text user-editable files separate from the main configuration. The main config selects the active theme; theme files define semantic UI roles and optional file-type palette rules.
 
 ### 7.1 Theme and Config-Family Files
-*   Packaged default sources are `etc/ytnova.conf`, `etc/ytnova.themes`, and `etc/ytnova.commands`; runtime binaries must not consult `etc/` directly.
+*   Packaged default sources are `etc/ytnova.conf`, `etc/ytnova.themes`, and `etc/ytnova.commands`; locale/layout command presets may additionally be shipped as separate packaged sources such as `etc/commands/<preset>.conf`. runtime binaries must not consult `etc/` directly.
 *   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, and `$XDG_CONFIG_HOME/ytnova/commands.conf`; when `XDG_CONFIG_HOME` is unset, they fall back to `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/themes.conf`, and `~/.config/ytnova/commands.conf`.
 *   Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, and `~/.ytnova.commands` when the XDG target paths cannot be used.
 *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
 *   If the user command catalog is missing, runtime loads packaged or compiled-in default command data without creating `~/.config/ytnova/commands.conf`.
-*   `commands.conf` is the canonical user-editable source for line-1/line-2 command bindings, shown key tokens, plain labels, stable action IDs, and optional custom shell-command bindings. `ytnova.conf` must not remain the canonical home of `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
+*   Installed locale/layout preset catalogs live as read-only shared data (for example `/usr/share/ytnova/commands/<preset>.conf`); they are packaged defaults, not extra user-owned config files.
+*   `etc/ytnova.commands` is the packaged default active command map. Upstream may ship it as English by default; a package may explicitly replace that default for a localized build, but runtime does not guess the active preset from locale at startup.
+*   `commands.conf` is the canonical user-editable source for active command selection/overrides, line-1/line-2 command bindings, shown key tokens, plain labels, stable action IDs, and optional custom shell-command bindings. `ytnova.conf` must not remain the canonical home of `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
 *   Command history is session state, not config: its preferred path is `$XDG_STATE_HOME/ytnova/ytnova.hst`, falling back to `~/.local/state/ytnova/ytnova.hst` when `XDG_STATE_HOME` is unset; legacy `~/.ytnova-hst` remains a compatibility path only when the state target cannot be used or when migrating old history forward.
 *   Built-in theme names include `quiet-blue` and `bash-black`.
 *   User-facing theme files use semantic role names only.
@@ -434,15 +437,17 @@ executables = green: EXEC
 Rules are first-match-wins. Selectors are extension names without `*.` by default; `LINK` and `EXEC` are special selectors. Directories in the tree use theme roles and are not styled by file-type palette rules. When a rule omits a background, it inherits the active filename/window background.
 
 ### 7.5 `commands.conf` Contract
-`commands.conf` is a starter-commented plain-text file with canonical per-context sections such as `[DIR]` and `[FILE]`. Inside each section, rows use the canonical columns `binding | shown | label | action | command`.
+`commands.conf` is a starter-commented plain-text file with zero or one optional preset selector line (for example `preset = en`) plus canonical per-context sections. Inside each section, rows use the canonical columns `binding | shown | label | action | command`.
 
 Required contract:
-*   Section headers name the runtime surface that owns the following rows. The canonical section names are `[DIR]` and `[FILE]`.
+*   Section headers name the stable runtime command surface that owns the following rows; they are not language names. Current canonical surface IDs include at least `[DIR]`, `[FILE]`, `[ARCHIVE_DIR]`, and `[ARCHIVE_FILE]`. Future command surfaces may add new stable section IDs without changing the row grammar.
+*   `preset` names one packaged command preset by stable untranslated ID. If present, runtime loads that preset first and then applies local section-row overrides from `commands.conf`. If absent, runtime uses the packaged default active command map from `etc/ytnova.commands`.
 *   `binding` names the exact key inputs. Uppercase and lowercase letters may be bound separately. `Ctrl+letter` bindings are case-insensitive: `Ctrl+n` and `Ctrl+N` mean the same chord, so only one command may use a given `Ctrl+letter` chord. Alias bindings may be comma-separated only when they share the same section, shown token, label, action ID, and command payload.
 *   `shown` names the token text rendered in footer/help surfaces. It is separate from the real binding so localized labels and display mnemonics do not need to mirror the raw input key exactly.
 *   `label` stores plain user-visible text only. Users must not encode binding markup into the label column.
-*   `action` stores the stable internal action ID. Starter comments must state that users must not translate or rename action IDs.
+*   `action` stores the stable internal action ID (for example `copy`, `move`, `delete`, `compare`, `user-command`). Starter comments must state that users must not translate or rename action IDs.
 *   `command` is blank for built-in actions. Custom shell-command bindings set `action` to `user-command` and store the shell command in `command`.
+*   Packaged preset files use the same row model as `commands.conf`, but they are read-only shared data rather than a second user-editable config family.
 *   Footer/help rendering must preserve separate theme roles for key tokens and labels.
 *   If a shown token appears in the label, runtime must render the compact mnemonic form inline, for example `(C)opy` or `mo(V)edir`.
 *   If the shown token appears later in the word, only the first matching mnemonic letter is capitalized/highlighted; runtime must not capitalize the leading letter just for title-case styling, so `commands` with shown token `M` renders `co(M)mands`, not `Co(M)mands`.
@@ -453,21 +458,49 @@ Required contract:
 Starter comments must include concise live examples such as:
 
 ```text
+preset = en
+
 [DIR]
 binding | shown | label | action | command
-C | C | Copy | ACTION_CMD_C |
+C | C | Copy | copy |
 
 [FILE]
 binding | shown | label | action | command
-X | X | Execute | ACTION_CMD_X |
+X | X | eXecute | execute |
+
+[ARCHIVE_DIR]
+binding | shown | label | action | command
+J | J | Compare | compare |
 
 # Custom shell-command example:
 # [FILE]
 # g | G | gcc | user-command | gcc -O -c
 ```
 
+### 7.5.1 Packaged Command Preset File Contract
+Each packaged preset file uses the same section IDs and row grammar as `commands.conf`, but it is installed as read-only shared data and selected indirectly from `commands.conf`.
+
+Required contract:
+*   Every preset file begins with concise comment headers stating:
+    *   the stable preset ID;
+    *   the intended locale/layout or mnemonic audience;
+    *   that the file is packaged read-only preset data selected from `commands.conf`; and
+    *   that action IDs must remain untranslated.
+*   Preset files may provide labels, shown tokens, bindings, and custom command payloads using the same `binding | shown | label | action | command` grammar as `commands.conf`.
+*   Preset files must not require users to comment/uncomment language blocks inside the active user file.
+*   Preset files do not own whole rendered footer/help/menu lines; runtime still assembles visible command entries from the resolved active action table.
+
+Example packaged preset header:
+
+```text
+# Preset: de
+# Locale/layout: German mnemonic preset for PC QWERTZ-class keyboards.
+# This is packaged read-only command-preset data selected from commands.conf.
+# Action IDs are internal identifiers and must not be translated.
+```
+
 ### 7.6 F10 Config Surface and Reload
-`F10` opens the configuration command surface with entries in this order: `config`, `commands`, `themes`, `reload`, and `quit`. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. Successful reload silently repaints. Failed reload keeps the previous working config/theme/commands state and reports the parse/load error in the footer/status area only.
+`F10` opens the configuration command surface with entries in this order: `config`, `commands`, `themes`, `reload`, and `quit`. Reload is available only inside this surface. `F10` edits the active user file for that surface (XDG or home-dotfile fallback); if runtime is using built-in defaults for that surface, `F10` creates the XDG file for that surface and edits it. The `commands` path owns preset selection plus local command overrides, while packaged preset catalogs remain read-only shared data. Successful reload silently repaints. Failed reload keeps the previous working config/theme/commands state and reports the parse/load error in the footer/status area only.
 
 ---
 

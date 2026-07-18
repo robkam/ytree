@@ -48,7 +48,9 @@ typedef struct _filemenu {
 
 static Viewer viewer;
 static Dirmenu dirmenu;
+static Dirmenu archive_dirmenu;
 static Filemenu filemenu;
+static Filemenu archive_filemenu;
 
 /* must be sorted! */
 static Profile profile[] = {
@@ -127,7 +129,9 @@ struct _profile_runtime_snapshot {
   char *values[PROFILE_ENTRIES];
   Viewer *viewer_next;
   Dirmenu *dirmenu_next;
+  Dirmenu *archive_dirmenu_next;
   Filemenu *filemenu_next;
+  Filemenu *archive_filemenu_next;
   FileColorRule *file_color_rules_head;
   char commands_file_path[PATH_LENGTH + 1];
   char theme_file_path[PATH_LENGTH + 1];
@@ -135,9 +139,63 @@ struct _profile_runtime_snapshot {
       dir_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
   size_t dir_command_presentation_count;
   CommandPresentationOverride
+      archive_dir_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t archive_dir_command_presentation_count;
+  CommandPresentationOverride
       file_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
   size_t file_command_presentation_count;
+  CommandPresentationOverride
+      archive_file_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t archive_file_command_presentation_count;
 };
+
+static const char *CurrentCommandContextName(BOOL is_dir, int view_mode) {
+  if (view_mode == ARCHIVE_MODE)
+    return is_dir ? "archive_dir" : "archive_file";
+  return is_dir ? "dir" : "file";
+}
+
+static Dirmenu *SelectDirmenuHead(ViewContext *ctx, const char *context) {
+  if (ctx == NULL || context == NULL)
+    return NULL;
+  if (strcmp(context, "dir") == 0)
+    return (Dirmenu *)ctx->dirmenu_list;
+  if (strcmp(context, "archive_dir") == 0)
+    return (Dirmenu *)ctx->archive_dirmenu_list;
+  return NULL;
+}
+
+static const Dirmenu *SelectConstDirmenuHead(const ViewContext *ctx,
+                                             const char *context) {
+  if (ctx == NULL || context == NULL)
+    return NULL;
+  if (strcmp(context, "dir") == 0)
+    return (const Dirmenu *)ctx->dirmenu_list;
+  if (strcmp(context, "archive_dir") == 0)
+    return (const Dirmenu *)ctx->archive_dirmenu_list;
+  return NULL;
+}
+
+static Filemenu *SelectFilemenuHead(ViewContext *ctx, const char *context) {
+  if (ctx == NULL || context == NULL)
+    return NULL;
+  if (strcmp(context, "file") == 0)
+    return (Filemenu *)ctx->filemenu_list;
+  if (strcmp(context, "archive_file") == 0)
+    return (Filemenu *)ctx->archive_filemenu_list;
+  return NULL;
+}
+
+static const Filemenu *SelectConstFilemenuHead(const ViewContext *ctx,
+                                               const char *context) {
+  if (ctx == NULL || context == NULL)
+    return NULL;
+  if (strcmp(context, "file") == 0)
+    return (const Filemenu *)ctx->filemenu_list;
+  if (strcmp(context, "archive_file") == 0)
+    return (const Filemenu *)ctx->archive_filemenu_list;
+  return NULL;
+}
 
 static void BindProfileRuntimeData(ViewContext *ctx) {
   if (ctx == NULL)
@@ -146,7 +204,9 @@ static void BindProfileRuntimeData(ViewContext *ctx) {
   ctx->profile_data = profile;
   ctx->viewer_list = &viewer;
   ctx->dirmenu_list = &dirmenu;
+  ctx->archive_dirmenu_list = &archive_dirmenu;
   ctx->filemenu_list = &filemenu;
+  ctx->archive_filemenu_list = &archive_filemenu;
 }
 
 void FreeProfileRuntimeData(ViewContext *ctx) {
@@ -164,11 +224,17 @@ void FreeProfileRuntimeData(ViewContext *ctx) {
   viewer.next = NULL;
   FreeFilemenuList(filemenu.next);
   filemenu.next = NULL;
+  FreeFilemenuList(archive_filemenu.next);
+  archive_filemenu.next = NULL;
   FreeDirmenuList(dirmenu.next);
   dirmenu.next = NULL;
+  FreeDirmenuList(archive_dirmenu.next);
+  archive_dirmenu.next = NULL;
   if (ctx != NULL) {
     ctx->dir_command_presentation_count = 0;
+    ctx->archive_dir_command_presentation_count = 0;
     ctx->file_command_presentation_count = 0;
+    ctx->archive_file_command_presentation_count = 0;
   }
 }
 
@@ -299,16 +365,17 @@ static void FreeProfileFileColorRules(FileColorRule *head) {
   }
 }
 
-static int SetUserActionNodeInt(ViewContext *ctx, BOOL is_dir, int chkey,
+static int SetUserActionNodeInt(ViewContext *ctx, const char *context, int chkey,
                                 int chremap, const char *cmd) {
   Dirmenu *dir_tail;
   Filemenu *file_tail;
 
   BindProfileRuntimeData(ctx);
-  if (is_dir) {
+
+  dir_tail = SelectDirmenuHead(ctx, context);
+  if (dir_tail != NULL) {
     Dirmenu *node;
 
-    dir_tail = (Dirmenu *)ctx->dirmenu_list;
     for (node = dir_tail->next; node != NULL; node = node->next) {
       dir_tail = node;
       if (node->chkey == chkey) {
@@ -327,10 +394,10 @@ static int SetUserActionNodeInt(ViewContext *ctx, BOOL is_dir, int chkey,
     return 0;
   }
 
-  {
+  file_tail = SelectFilemenuHead(ctx, context);
+  if (file_tail != NULL) {
     Filemenu *node;
 
-    file_tail = (Filemenu *)ctx->filemenu_list;
     for (node = file_tail->next; node != NULL; node = node->next) {
       file_tail = node;
       if (node->chkey == chkey) {
@@ -346,8 +413,10 @@ static int SetUserActionNodeInt(ViewContext *ctx, BOOL is_dir, int chkey,
     node->cmd = cmd != NULL ? xstrdup(cmd) : NULL;
     node->next = NULL;
     file_tail->next = node;
+    return 0;
   }
-  return 0;
+
+  return -1;
 }
 
 ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
@@ -364,7 +433,9 @@ ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
   }
   snapshot->viewer_next = CloneViewerList(viewer.next);
   snapshot->dirmenu_next = CloneDirmenuList(dirmenu.next);
+  snapshot->archive_dirmenu_next = CloneDirmenuList(archive_dirmenu.next);
   snapshot->filemenu_next = CloneFilemenuList(filemenu.next);
+  snapshot->archive_filemenu_next = CloneFilemenuList(archive_filemenu.next);
   if (ctx != NULL) {
     snapshot->file_color_rules_head =
         CloneFileColorRules((const FileColorRule *)ctx->file_color_rules_head);
@@ -376,10 +447,20 @@ ProfileRuntimeSnapshot *ProfileRuntimeSnapshot_Create(ViewContext *ctx) {
            sizeof(snapshot->dir_command_presentations));
     snapshot->dir_command_presentation_count =
         ctx->dir_command_presentation_count;
+    memcpy(snapshot->archive_dir_command_presentations,
+           ctx->archive_dir_command_presentations,
+           sizeof(snapshot->archive_dir_command_presentations));
+    snapshot->archive_dir_command_presentation_count =
+        ctx->archive_dir_command_presentation_count;
     memcpy(snapshot->file_command_presentations, ctx->file_command_presentations,
            sizeof(snapshot->file_command_presentations));
     snapshot->file_command_presentation_count =
         ctx->file_command_presentation_count;
+    memcpy(snapshot->archive_file_command_presentations,
+           ctx->archive_file_command_presentations,
+           sizeof(snapshot->archive_file_command_presentations));
+    snapshot->archive_file_command_presentation_count =
+        ctx->archive_file_command_presentation_count;
   }
 
   return snapshot;
@@ -401,8 +482,12 @@ void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
   snapshot->viewer_next = NULL;
   dirmenu.next = snapshot->dirmenu_next;
   snapshot->dirmenu_next = NULL;
+  archive_dirmenu.next = snapshot->archive_dirmenu_next;
+  snapshot->archive_dirmenu_next = NULL;
   filemenu.next = snapshot->filemenu_next;
   snapshot->filemenu_next = NULL;
+  archive_filemenu.next = snapshot->archive_filemenu_next;
+  snapshot->archive_filemenu_next = NULL;
   if (ctx != NULL) {
     FreeProfileFileColorRules((FileColorRule *)ctx->file_color_rules_head);
     ctx->file_color_rules_head = snapshot->file_color_rules_head;
@@ -415,10 +500,20 @@ void ProfileRuntimeSnapshot_Restore(ViewContext *ctx,
            sizeof(ctx->dir_command_presentations));
     ctx->dir_command_presentation_count =
         snapshot->dir_command_presentation_count;
+    memcpy(ctx->archive_dir_command_presentations,
+           snapshot->archive_dir_command_presentations,
+           sizeof(ctx->archive_dir_command_presentations));
+    ctx->archive_dir_command_presentation_count =
+        snapshot->archive_dir_command_presentation_count;
     memcpy(ctx->file_command_presentations, snapshot->file_command_presentations,
            sizeof(ctx->file_command_presentations));
     ctx->file_command_presentation_count =
         snapshot->file_command_presentation_count;
+    memcpy(ctx->archive_file_command_presentations,
+           snapshot->archive_file_command_presentations,
+           sizeof(ctx->archive_file_command_presentations));
+    ctx->archive_file_command_presentation_count =
+        snapshot->archive_file_command_presentation_count;
   }
   BindProfileRuntimeData(ctx);
 }
@@ -427,14 +522,55 @@ int Profile_SetDirUserAction(ViewContext *ctx, int chkey, int chremap,
                              const char *cmd) {
   if (ctx == NULL)
     return -1;
-  return SetUserActionNodeInt(ctx, TRUE, chkey, chremap, cmd);
+  return SetUserActionNodeInt(ctx, "dir", chkey, chremap, cmd);
+}
+
+int Profile_SetArchiveDirUserAction(ViewContext *ctx, int chkey, int chremap,
+                                    const char *cmd) {
+  if (ctx == NULL)
+    return -1;
+  return SetUserActionNodeInt(ctx, "archive_dir", chkey, chremap, cmd);
 }
 
 int Profile_SetFileUserAction(ViewContext *ctx, int chkey, int chremap,
                               const char *cmd) {
   if (ctx == NULL)
     return -1;
-  return SetUserActionNodeInt(ctx, FALSE, chkey, chremap, cmd);
+  return SetUserActionNodeInt(ctx, "file", chkey, chremap, cmd);
+}
+
+int Profile_SetArchiveFileUserAction(ViewContext *ctx, int chkey, int chremap,
+                                     const char *cmd) {
+  if (ctx == NULL)
+    return -1;
+  return SetUserActionNodeInt(ctx, "archive_file", chkey, chremap, cmd);
+}
+
+int Profile_SetCommandSurfaceUserAction(ViewContext *ctx, const char *context,
+                                        int chkey, int chremap,
+                                        const char *cmd) {
+  if (ctx == NULL || context == NULL)
+    return -1;
+  return SetUserActionNodeInt(ctx, context, chkey, chremap, cmd);
+}
+
+void Profile_ClearCommandRuntime(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
+
+  BindProfileRuntimeData(ctx);
+  FreeDirmenuList(dirmenu.next);
+  dirmenu.next = NULL;
+  FreeDirmenuList(archive_dirmenu.next);
+  archive_dirmenu.next = NULL;
+  FreeFilemenuList(filemenu.next);
+  filemenu.next = NULL;
+  FreeFilemenuList(archive_filemenu.next);
+  archive_filemenu.next = NULL;
+  ctx->dir_command_presentation_count = 0;
+  ctx->archive_dir_command_presentation_count = 0;
+  ctx->file_command_presentation_count = 0;
+  ctx->archive_file_command_presentation_count = 0;
 }
 
 void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot) {
@@ -449,7 +585,9 @@ void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot) {
   }
   FreeViewerList(snapshot->viewer_next);
   FreeDirmenuList(snapshot->dirmenu_next);
+  FreeDirmenuList(snapshot->archive_dirmenu_next);
   FreeFilemenuList(snapshot->filemenu_next);
+  FreeFilemenuList(snapshot->archive_filemenu_next);
   FreeProfileFileColorRules(snapshot->file_color_rules_head);
   free(snapshot);
 }
@@ -1230,74 +1368,101 @@ static int Compare(const void *s1, const void *s2) {
   return (strcmp(((Profile *)s1)->name, ((Profile *)s2)->name));
 }
 
-char *GetUserFileAction(const ViewContext *ctx, int chkey, int *pchremap) {
-  Filemenu *m;
-  for (m = ((Filemenu *)ctx->filemenu_list)->next; m; m = m->next) {
-    if (chkey == m->chkey) {
-      if (pchremap)
-        *pchremap = m->chremap;
-      return (m->cmd);
+static char *GetUserActionForContext(const ViewContext *ctx, const char *context,
+                                     int chkey, int *pchremap) {
+  const Dirmenu *d = SelectConstDirmenuHead(ctx, context);
+  const Filemenu *m = SelectConstFilemenuHead(ctx, context);
+
+  if (d != NULL) {
+    for (d = d->next; d; d = d->next) {
+      if (chkey == d->chkey) {
+        if (pchremap)
+          *pchremap = d->chremap;
+        return d->cmd;
+      }
+    }
+  } else if (m != NULL) {
+    for (m = m->next; m; m = m->next) {
+      if (chkey == m->chkey) {
+        if (pchremap)
+          *pchremap = m->chremap;
+        return m->cmd;
+      }
     }
   }
+
   if (pchremap)
     *pchremap = chkey;
-  return (NULL);
+  return NULL;
+}
+
+char *GetUserFileAction(const ViewContext *ctx, int chkey, int *pchremap) {
+  return GetUserActionForContext(
+      ctx, CurrentCommandContextName(FALSE, ctx->view_mode), chkey, pchremap);
 }
 
 char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap) {
-  Dirmenu *d;
-  for (d = ((Dirmenu *)ctx->dirmenu_list)->next; d; d = d->next) {
-    if (chkey == d->chkey) {
-      if (pchremap)
-        *pchremap = d->chremap;
-      return (d->cmd);
-    }
-  }
-  if (pchremap)
-    *pchremap = chkey;
-  return (NULL);
+  return GetUserActionForContext(
+      ctx, CurrentCommandContextName(TRUE, ctx->view_mode), chkey, pchremap);
 }
 
-int ResolveUserActionBindingKey(const ViewContext *ctx, BOOL is_dir,
-                                int default_key) {
+int ResolveCommandBindingKeyForContext(const ViewContext *ctx,
+                                       const char *context, int default_key) {
   int resolved = default_key;
   BOOL default_is_active = TRUE;
 
-  if (ctx == NULL || default_key < 0)
+  if (ctx == NULL || context == NULL || default_key < 0)
     return default_key;
 
-  if (is_dir) {
-    Dirmenu *node;
+  {
+    const Dirmenu *dir_head = SelectConstDirmenuHead(ctx, context);
+    const Filemenu *file_head = SelectConstFilemenuHead(ctx, context);
 
-    for (node = ((Dirmenu *)ctx->dirmenu_list)->next; node != NULL;
-         node = node->next) {
-      if (node->chkey == default_key && node->chremap != default_key)
-        default_is_active = FALSE;
-      if (node->cmd == NULL && node->chremap == default_key &&
-          node->chkey != default_key && resolved == default_key)
-        resolved = node->chkey;
-    }
-  } else {
-    Filemenu *node;
+    if (dir_head != NULL) {
+      const Dirmenu *node;
 
-    for (node = ((Filemenu *)ctx->filemenu_list)->next; node != NULL;
-         node = node->next) {
-      if (node->chkey == default_key && node->chremap != default_key)
-        default_is_active = FALSE;
-      if (node->cmd == NULL && node->chremap == default_key &&
-          node->chkey != default_key && resolved == default_key)
-        resolved = node->chkey;
+      for (node = dir_head->next; node != NULL; node = node->next) {
+        if (node->chkey == default_key && node->chremap != default_key)
+          default_is_active = FALSE;
+        if (node->cmd == NULL && node->chremap == default_key &&
+            node->chkey != default_key && resolved == default_key)
+          resolved = node->chkey;
+      }
+    } else if (file_head != NULL) {
+      const Filemenu *node;
+
+      for (node = file_head->next; node != NULL; node = node->next) {
+        if (node->chkey == default_key && node->chremap != default_key)
+          default_is_active = FALSE;
+        if (node->cmd == NULL && node->chremap == default_key &&
+            node->chkey != default_key && resolved == default_key)
+          resolved = node->chkey;
+      }
+    } else {
+      return -1;
     }
   }
 
   if (default_is_active)
     return default_key;
-  return resolved;
+  if (resolved != default_key)
+    return resolved;
+  return -1;
+}
+
+int ResolveUserActionBindingKey(const ViewContext *ctx, BOOL is_dir,
+                                int default_key) {
+  if (ctx == NULL)
+    return default_key;
+  return ResolveCommandBindingKeyForContext(
+      ctx, CurrentCommandContextName(is_dir, ctx->view_mode), default_key);
 }
 
 BOOL IsUserActionDefined(const ViewContext *ctx) {
   return ((BOOL)(((Dirmenu *)ctx->dirmenu_list)->next != NULL ||
-                 ((Filemenu *)ctx->filemenu_list)->next != NULL));
+                 ((Dirmenu *)ctx->archive_dirmenu_list)->next != NULL ||
+                 ((Filemenu *)ctx->filemenu_list)->next != NULL ||
+                 ((Filemenu *)ctx->archive_filemenu_list)->next != NULL));
 }
 
 static int CoreInit_ReadProfile(ViewContext *ctx, const char *filename) {

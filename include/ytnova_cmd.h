@@ -154,8 +154,19 @@ extern int CreateProfileFromRuntimeState(ViewContext *ctx, const char *filename)
 extern void FreeProfileRuntimeData(ViewContext *ctx);
 extern int Profile_SetDirUserAction(ViewContext *ctx, int chkey, int chremap,
                                     const char *cmd);
+extern int Profile_SetArchiveDirUserAction(ViewContext *ctx, int chkey,
+                                           int chremap, const char *cmd);
 extern int Profile_SetFileUserAction(ViewContext *ctx, int chkey, int chremap,
                                      const char *cmd);
+extern int Profile_SetArchiveFileUserAction(ViewContext *ctx, int chkey,
+                                            int chremap, const char *cmd);
+extern int Profile_SetCommandSurfaceUserAction(ViewContext *ctx,
+                                               const char *context, int chkey,
+                                               int chremap, const char *cmd);
+extern void Profile_ClearCommandRuntime(ViewContext *ctx);
+extern int ResolveCommandBindingKeyForContext(const ViewContext *ctx,
+                                              const char *context,
+                                              int default_key);
 extern int ResolveUserActionBindingKey(const ViewContext *ctx, BOOL is_dir,
                                        int default_key);
 extern int ValidateCommandsFile(const char *filename);

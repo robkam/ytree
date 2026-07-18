@@ -41,6 +41,44 @@ def _render_commands_header(source_text: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _render_command_presets_header(source_dir: Path) -> str:
+    lines = [
+        "/* Auto-generated from packaged preset sources under etc/commands/. */",
+        "typedef struct {",
+        "  const char *preset_id;",
+        "  const char *contents;",
+        "} DefaultCommandPresetCatalogEntry;",
+        "",
+        "static const DefaultCommandPresetCatalogEntry default_command_presets_catalog[] = {",
+    ]
+
+    for preset_file in sorted(source_dir.glob("*.conf")):
+        lines.append(f'    {{"{preset_file.stem}",')
+        for raw_line in preset_file.read_text(encoding="utf-8").splitlines(
+            keepends=True
+        ):
+            if raw_line.endswith("\n"):
+                body = raw_line[:-1]
+                suffix = r"\n"
+            else:
+                body = raw_line
+                suffix = ""
+            escaped = body.replace("\\", r"\\").replace('"', r"\"")
+            lines.append(f'        "{escaped}{suffix}"')
+        lines.append("    },")
+
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const size_t default_command_presets_catalog_count =",
+            "    sizeof(default_command_presets_catalog) /",
+            "    sizeof(default_command_presets_catalog[0]);",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
 def test_default_profile_template_header_matches_packaged_config():
     conf_source = Path("etc/ytnova.conf").read_text(encoding="utf-8")
     header_source = Path("src/core/default_profile_template.h").read_text(
@@ -57,3 +95,12 @@ def test_default_commands_catalog_header_matches_packaged_commands():
     )
 
     assert header_source == _render_commands_header(commands_source)
+
+
+def test_default_command_presets_catalog_header_matches_packaged_presets():
+    source_dir = Path("etc/commands")
+    header_source = Path("src/core/default_command_presets_catalog.h").read_text(
+        encoding="utf-8"
+    )
+
+    assert header_source == _render_command_presets_header(source_dir)
