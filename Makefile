@@ -72,6 +72,8 @@ WARNINGS    = -Wall -Wextra -Wno-unused-parameter
 # -DVERSION, -DVERSIONDATE: Version info from Makefile variables
 PROJECT_CPPFLAGS = -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
                    -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
+                   -DPACKAGED_COMMANDS_PATH='"$(YTNOVA_DATADIR)/ytnova.commands"' \
+                   -DPACKAGED_COMMAND_PRESET_DIR='"$(YTNOVA_DATADIR)/commands"' \
                    -DPACKAGED_THEME_PATH='"$(YTNOVA_DATADIR)/ytnova.themes"' \
                    $(COLOR) $(CLOCK) $(READLINE) \
                    -I$(INC_DIR) -MMD -MP
@@ -88,6 +90,9 @@ PROFILE_TEMPLATE_SCRIPT = scripts/generate_default_profile_template.py
 COMMANDS_CATALOG_SRC = etc/ytnova.commands
 COMMANDS_CATALOG_HDR = src/core/default_commands_catalog.h
 COMMANDS_CATALOG_SCRIPT = scripts/generate_default_commands_catalog.py
+COMMAND_PRESETS_SRC_DIR = etc/commands
+COMMAND_PRESETS_HDR = src/core/default_command_presets_catalog.h
+COMMAND_PRESETS_SCRIPT = scripts/generate_default_command_presets_catalog.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
@@ -172,11 +177,11 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 
 .PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
 	git-aliases-install git-aliases-status test \
-	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
-	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-code-quality qa-all \
-	ci-baseline mcp-doctor py-requirements \
-	qa-all-log qa-deep theme-catalog profile-template commands-catalog
+		fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
+		test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
+		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-code-quality qa-all \
+		ci-baseline mcp-doctor py-requirements \
+		qa-all-log qa-deep theme-catalog profile-template commands-catalog command-presets-catalog
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -228,11 +233,14 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	rm -f $(MANPAGE).gz
 	install -d -m 755 $(DATADEST)
 	install -m 644 etc/ytnova.commands $(DATADEST)/ytnova.commands
+	install -d -m 755 $(DATADEST)/commands
+	install -m 644 $(COMMAND_PRESETS_SRC_DIR)/*.conf $(DATADEST)/commands/
 	install -m 644 etc/ytnova.themes $(DATADEST)/ytnova.themes
 	@echo "Installation complete."
 	@echo "Binary: $(BINDEST)/$(MAIN)"
 	@echo "Manual: $(MANDEST)/$(MAIN).1.gz"
 	@echo "Commands: $(DATADEST)/ytnova.commands"
+	@echo "Command presets: $(DATADEST)/commands/*.conf"
 	@echo "Themes: $(DATADEST)/ytnova.themes"
 
 # Uninstall all installed files
@@ -241,6 +249,8 @@ uninstall:
 	rm -f $(BINDEST)/$(MAIN)
 	rm -f $(MANDEST)/$(MAIN).1.gz
 	rm -f $(DATADEST)/ytnova.commands
+	rm -f $(DATADEST)/commands/*.conf
+	-rmdir $(DATADEST)/commands 2>/dev/null || true
 	rm -f $(DATADEST)/ytnova.themes
 	-rmdir $(DATADEST) 2>/dev/null || true
 	-rmdir $(MANDEST) 2>/dev/null || true
@@ -465,7 +475,15 @@ commands-catalog:
 	$(PYTHON) $(COMMANDS_CATALOG_SCRIPT) --source $(COMMANDS_CATALOG_SRC) \
 		--header $(COMMANDS_CATALOG_HDR) --write
 
-qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog
+qa-command-presets-catalog:
+	$(PYTHON) $(COMMAND_PRESETS_SCRIPT) --source-dir $(COMMAND_PRESETS_SRC_DIR) \
+		--header $(COMMAND_PRESETS_HDR) --check
+
+command-presets-catalog:
+	$(PYTHON) $(COMMAND_PRESETS_SCRIPT) --source-dir $(COMMAND_PRESETS_SRC_DIR) \
+		--header $(COMMAND_PRESETS_HDR) --write
+
+qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 

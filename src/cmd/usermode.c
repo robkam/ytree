@@ -9,6 +9,7 @@
 #include "ytnova_fs.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -81,6 +82,8 @@ int FileUserMode(ViewContext *ctx, FileEntryList *file_entry_list, int ch,
   int chremap;
   int command_was_run = 0;
   int current_key = ch;
+  BOOL vi_keys_enabled =
+      (strtol(GetProfileValue(ctx, "VI_KEYS"), NULL, 0) != 0) ? TRUE : FALSE;
 
   while (1) {
     const char *command_str = GetUserFileAction(ctx, current_key, &chremap);
@@ -123,6 +126,13 @@ int FileUserMode(ViewContext *ctx, FileEntryList *file_entry_list, int ch,
     }
 
     /* Check if the chain ends */
+    if (vi_keys_enabled && command_str == NULL &&
+        ((current_key == 'D' && chremap == 'd') ||
+         (current_key == 'U' && chremap == 'u'))) {
+      chremap = current_key;
+      break;
+    }
+
     if (chremap == current_key || chremap <= 0) {
       break;
     } else {

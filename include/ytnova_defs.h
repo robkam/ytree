@@ -201,6 +201,7 @@ typedef struct _ViewContext ViewContext;
 #define COMMAND_LINE_LENGTH 4096
 #define COMMAND_PRESENTATION_OVERRIDES_MAX 64
 #define COMMAND_PRESENTATION_ACTION_ID_LENGTH 32
+#define COMMAND_PRESET_ID_LENGTH 32
 #define COMMAND_PRESENTATION_SHOWN_LENGTH 16
 #define COMMAND_PRESENTATION_LABEL_LENGTH 64
 
@@ -221,6 +222,12 @@ typedef struct _ViewContext ViewContext;
 #define THEME_FILENAME ".ytnova.themes"
 #define COMMANDS_CONFIG_HOME_PATH ".config/ytnova/commands.conf"
 #define COMMANDS_FILENAME ".ytnova.commands"
+#ifndef PACKAGED_COMMANDS_PATH
+#define PACKAGED_COMMANDS_PATH "/usr/local/share/ytnova/ytnova.commands"
+#endif
+#ifndef PACKAGED_COMMAND_PRESET_DIR
+#define PACKAGED_COMMAND_PRESET_DIR "/usr/local/share/ytnova/commands"
+#endif
 #ifndef PACKAGED_THEME_PATH
 #define PACKAGED_THEME_PATH "/usr/local/share/ytnova/ytnova.themes"
 #endif
@@ -1101,8 +1108,14 @@ typedef struct _ViewContext {
       dir_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
   size_t dir_command_presentation_count;
   CommandPresentationOverride
+      archive_dir_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t archive_dir_command_presentation_count;
+  CommandPresentationOverride
       file_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
   size_t file_command_presentation_count;
+  CommandPresentationOverride
+      archive_file_command_presentations[COMMAND_PRESENTATION_OVERRIDES_MAX];
+  size_t archive_file_command_presentation_count;
   char *confirm_quit;
   void *file_color_rules_head;
 
@@ -1179,7 +1192,9 @@ typedef struct _ViewContext {
   void *profile_data;  /* Pointer to the profile array */
   void *viewer_list;   /* Pointer to head of Viewer list */
   void *dirmenu_list;  /* Pointer to head of Dirmenu list */
+  void *archive_dirmenu_list;  /* Pointer to head of archive Dirmenu list */
   void *filemenu_list; /* Pointer to head of Filemenu list */
+  void *archive_filemenu_list; /* Pointer to head of archive Filemenu list */
 
   /* history.c state */
   int total_hist;

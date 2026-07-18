@@ -6,6 +6,8 @@
  ***************************************************************************/
 
 #include "ytnova_cmd.h"
+#include "../core/default_command_presets_catalog.h"
+#include "../core/default_commands_catalog.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -44,6 +46,22 @@ static const CommandActionSpec kCommandActions[] = {
     {"dir", "ACTION_CMD_I", 'z'},
     {"dir", "ACTION_LIST_JUMP", '/'},
     {"dir", "ACTION_TOGGLE_HIDDEN", '`'},
+    {"archive_dir", "ACTION_CMD_C", 'c'},
+    {"archive_dir", "ACTION_CMD_D", 'd'},
+    {"archive_dir", "ACTION_FILTER", 'f'},
+    {"archive_dir", "ACTION_CMD_G", 'g'},
+    {"archive_dir", "ACTION_COMPARE_DIR", 'j'},
+    {"archive_dir", "ACTION_LOG", 'l'},
+    {"archive_dir", "ACTION_CMD_M", 'm'},
+    {"archive_dir", "ACTION_CMD_P", 'p'},
+    {"archive_dir", "ACTION_CMD_R", 'r'},
+    {"archive_dir", "ACTION_CMD_S", 's'},
+    {"archive_dir", "ACTION_TAG", 't'},
+    {"archive_dir", "ACTION_UNTAG", 'u'},
+    {"archive_dir", "ACTION_CMD_V", 'v'},
+    {"archive_dir", "ACTION_QUIT", 'q'},
+    {"archive_dir", "ACTION_LIST_JUMP", '/'},
+    {"archive_dir", "ACTION_TOGGLE_HIDDEN", '`'},
     {"file", "ACTION_CMD_A", 'a'},
     {"file", "ACTION_CMD_C", 'c'},
     {"file", "ACTION_CMD_TAGGED_C", 0x0B},
@@ -68,6 +86,21 @@ static const CommandActionSpec kCommandActions[] = {
     {"file", "ACTION_CMD_I", 'z'},
     {"file", "ACTION_LIST_JUMP", '/'},
     {"file", "ACTION_TOGGLE_HIDDEN", '`'},
+    {"archive_file", "ACTION_CMD_C", 'c'},
+    {"archive_file", "ACTION_CMD_D", 'd'},
+    {"archive_file", "ACTION_FILTER", 'f'},
+    {"archive_file", "ACTION_CMD_H", 'h'},
+    {"archive_file", "ACTION_INVERT", 'i'},
+    {"archive_file", "ACTION_COMPARE_FILE", 'j'},
+    {"archive_file", "ACTION_CMD_M", 'm'},
+    {"archive_file", "ACTION_CMD_P", 'p'},
+    {"archive_file", "ACTION_CMD_R", 'r'},
+    {"archive_file", "ACTION_CMD_S", 's'},
+    {"archive_file", "ACTION_TAG", 't'},
+    {"archive_file", "ACTION_UNTAG", 'u'},
+    {"archive_file", "ACTION_CMD_Y", 'y'},
+    {"archive_file", "ACTION_LIST_JUMP", '/'},
+    {"archive_file", "ACTION_TOGGLE_HIDDEN", '`'},
 };
 
 static char *TrimInPlace(char *text) {
@@ -156,28 +189,55 @@ static int ApplyContextBinding(ViewContext *ctx, const char *context,
                                const char *command) {
   int default_key;
 
-  if (strcmp(action_id, "user-command") == 0) {
-    if (strcmp(context, "dir") == 0)
-      return Profile_SetDirUserAction(ctx, binding_key, -1, command);
-    if (strcmp(context, "file") == 0)
-      return Profile_SetFileUserAction(ctx, binding_key, -1, command);
-    return -1;
-  }
+  if (strcmp(action_id, "user-command") == 0)
+    return Profile_SetCommandSurfaceUserAction(ctx, context, binding_key, -1,
+                                               command);
 
   default_key = CommandActionDefaultKeyCode(context, action_id);
   if (default_key < 0)
     return -1;
 
-  if (strcmp(context, "dir") == 0)
-    return Profile_SetDirUserAction(ctx, binding_key, default_key, NULL);
-  if (strcmp(context, "file") == 0)
-    return Profile_SetFileUserAction(ctx, binding_key, default_key, NULL);
-  return -1;
+  return Profile_SetCommandSurfaceUserAction(ctx, context, binding_key,
+                                             default_key, NULL);
 }
 
 static int IsSupportedContextName(const char *context_name) {
   return context_name != NULL &&
-         (strcmp(context_name, "dir") == 0 || strcmp(context_name, "file") == 0);
+         (strcmp(context_name, "dir") == 0 ||
+          strcmp(context_name, "archive_dir") == 0 ||
+          strcmp(context_name, "file") == 0 ||
+          strcmp(context_name, "archive_file") == 0);
+}
+
+static int CommandPresentationEntriesForContext(
+    ViewContext *ctx, const char *context_name,
+    CommandPresentationOverride **entries_out, size_t **entry_count_out) {
+  if (ctx == NULL || context_name == NULL || entries_out == NULL ||
+      entry_count_out == NULL)
+    return -1;
+
+  if (strcmp(context_name, "dir") == 0) {
+    *entries_out = ctx->dir_command_presentations;
+    *entry_count_out = &ctx->dir_command_presentation_count;
+    return 0;
+  }
+  if (strcmp(context_name, "archive_dir") == 0) {
+    *entries_out = ctx->archive_dir_command_presentations;
+    *entry_count_out = &ctx->archive_dir_command_presentation_count;
+    return 0;
+  }
+  if (strcmp(context_name, "file") == 0) {
+    *entries_out = ctx->file_command_presentations;
+    *entry_count_out = &ctx->file_command_presentation_count;
+    return 0;
+  }
+  if (strcmp(context_name, "archive_file") == 0) {
+    *entries_out = ctx->archive_file_command_presentations;
+    *entry_count_out = &ctx->archive_file_command_presentation_count;
+    return 0;
+  }
+
+  return -1;
 }
 
 static int StoreCommandPresentation(ViewContext *ctx, const char *context_name,
@@ -190,16 +250,9 @@ static int StoreCommandPresentation(ViewContext *ctx, const char *context_name,
   if (ctx == NULL || context_name == NULL || action_id == NULL ||
       shown == NULL || label == NULL || strcmp(action_id, "user-command") == 0)
     return 0;
-
-  if (strcmp(context_name, "dir") == 0) {
-    entries = ctx->dir_command_presentations;
-    entry_count = &ctx->dir_command_presentation_count;
-  } else if (strcmp(context_name, "file") == 0) {
-    entries = ctx->file_command_presentations;
-    entry_count = &ctx->file_command_presentation_count;
-  } else {
+  if (CommandPresentationEntriesForContext(ctx, context_name, &entries,
+                                           &entry_count) != 0)
     return -1;
-  }
 
   for (index = 0; index < *entry_count; ++index) {
     if (strcmp(entries[index].action_id, action_id) == 0) {
@@ -253,6 +306,100 @@ static int ParseContextSectionName(char *line, char *context_name,
 
   *end = ']';
   return IsSupportedContextName(context_name) ? 1 : -1;
+}
+
+static int IsValidPresetId(const char *preset_id) {
+  size_t index;
+
+  if (preset_id == NULL || *preset_id == '\0' ||
+      strlen(preset_id) >= COMMAND_PRESET_ID_LENGTH)
+    return 0;
+
+  for (index = 0; preset_id[index] != '\0'; ++index) {
+    unsigned char ch = (unsigned char)preset_id[index];
+
+    if (!(isdigit(ch) || (ch >= 'a' && ch <= 'z') || ch == '-'))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int ParsePresetSelectorLine(char *line, char *preset_id,
+                                   size_t preset_id_size) {
+  char *cursor;
+  const char *value;
+
+  if (line == NULL)
+    return 0;
+
+  cursor = TrimInPlace(line);
+  if (cursor == NULL || *cursor == '\0')
+    return 0;
+  if (strncasecmp(cursor, "preset", 6) != 0)
+    return 0;
+  if (cursor[6] != '\0' && !isspace((unsigned char)cursor[6]) &&
+      cursor[6] != '=')
+    return 0;
+
+  cursor += 6;
+  while (*cursor && isspace((unsigned char)*cursor))
+    ++cursor;
+  if (*cursor != '=')
+    return -1;
+  ++cursor;
+  value = TrimInPlace(cursor);
+  if (value == NULL || !IsValidPresetId(value) ||
+      snprintf(preset_id, preset_id_size, "%s", value) >=
+          (int)preset_id_size)
+    return -1;
+  return 1;
+}
+
+static int ScanPresetSelector(FILE *fp, int allow_selector, char *preset_id,
+                              size_t preset_id_size) {
+  char buffer[2048];
+  int found_selector = 0;
+  int saw_rows = 0;
+
+  if (fp == NULL)
+    return -1;
+
+  rewind(fp);
+  while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+    char *comment;
+    char *line;
+    char parsed_preset[COMMAND_PRESET_ID_LENGTH];
+    int preset_result;
+
+    if ((comment = strchr(buffer, '#')) != NULL)
+      *comment = '\0';
+    line = TrimInPlace(buffer);
+    if (line == NULL || *line == '\0')
+      continue;
+
+    preset_result =
+        ParsePresetSelectorLine(line, parsed_preset, sizeof(parsed_preset));
+    if (preset_result < 0) {
+      rewind(fp);
+      return -1;
+    }
+    if (preset_result > 0) {
+      if (!allow_selector || found_selector || saw_rows ||
+          snprintf(preset_id, preset_id_size, "%s", parsed_preset) >=
+              (int)preset_id_size) {
+        rewind(fp);
+        return -1;
+      }
+      found_selector = 1;
+      continue;
+    }
+
+    saw_rows = 1;
+  }
+
+  rewind(fp);
+  return found_selector;
 }
 
 static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
@@ -369,7 +516,6 @@ static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
 static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
   char buffer[2048];
   char active_context[32];
-  int line_no = 0;
 
   active_context[0] = '\0';
   while (fgets(buffer, sizeof(buffer), fp) != NULL) {
@@ -377,17 +523,24 @@ static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
     char *cursor;
     char *line;
     char *comment;
+    char preset_id[COMMAND_PRESET_ID_LENGTH];
     int index;
     int line_error;
     int separator_count;
     int section_result;
+    int preset_result;
 
-    ++line_no;
     if ((comment = strchr(buffer, '#')) != NULL)
       *comment = '\0';
     line = TrimInPlace(buffer);
     if (line == NULL || *line == '\0')
       continue;
+
+    preset_result = ParsePresetSelectorLine(line, preset_id, sizeof(preset_id));
+    if (preset_result > 0)
+      continue;
+    if (preset_result < 0)
+      return 1;
 
     section_result =
         ParseContextSectionName(line, active_context, sizeof(active_context));
@@ -432,22 +585,151 @@ static int ProcessCommandsFile(ViewContext *ctx, FILE *fp) {
   return ferror(fp) ? -1 : 0;
 }
 
-static int TryLoadCommandsFile(ViewContext *ctx, const char *path) {
-  int read_result;
+static const char *FindCompiledPresetText(const char *preset_id) {
+  size_t index;
 
-  if (path == NULL || *path == '\0')
-    return 1;
-  if (access(path, F_OK) != 0) {
-    if (errno == ENOENT)
-      return 1;
-    return -1;
+  if (preset_id == NULL)
+    return NULL;
+
+  for (index = 0; index < default_command_presets_catalog_count; ++index) {
+    if (strcmp(default_command_presets_catalog[index].preset_id, preset_id) == 0)
+      return default_command_presets_catalog[index].contents;
   }
 
-  read_result = ReadCommandsFile(ctx, path);
-  if (read_result != 0)
+  return NULL;
+}
+
+static int ReadCommandsStream(ViewContext *ctx, FILE *fp, int allow_selector,
+                              int apply_selector_preset);
+
+static int LoadPresetSource(ViewContext *ctx, const char *preset_id) {
+  char path[PATH_LENGTH + 1];
+  const char *compiled_preset;
+  FILE *fp;
+  int path_len;
+  int result;
+
+  if (!IsValidPresetId(preset_id))
     return -1;
-  (void)snprintf(ctx->commands_file_path, sizeof(ctx->commands_file_path), "%s",
-                 path);
+
+  path_len = snprintf(path, sizeof(path), "%s/%s.conf", PACKAGED_COMMAND_PRESET_DIR,
+                      preset_id);
+  if (path_len < 0 || (size_t)path_len >= sizeof(path))
+    return -1;
+
+  fp = fopen(path, "r");
+  if (fp != NULL) {
+    result = ReadCommandsStream(ctx, fp, FALSE, FALSE);
+    fclose(fp);
+    return result;
+  }
+  if (errno != ENOENT)
+    return -1;
+
+  compiled_preset = FindCompiledPresetText(preset_id);
+  if (compiled_preset == NULL)
+    return -1;
+
+  fp = fmemopen((void *)compiled_preset, strlen(compiled_preset), "r");
+  if (fp == NULL)
+    return -1;
+  result = ReadCommandsStream(ctx, fp, FALSE, FALSE);
+  fclose(fp);
+  return result;
+}
+
+static int ReadCommandsStream(ViewContext *ctx, FILE *fp, int allow_selector,
+                              int apply_selector_preset) {
+  char preset_id[COMMAND_PRESET_ID_LENGTH];
+  int selector_result;
+  int result;
+
+  if (fp == NULL)
+    return -1;
+
+  selector_result =
+      ScanPresetSelector(fp, allow_selector, preset_id, sizeof(preset_id));
+  if (selector_result < 0)
+    return -1;
+  if (selector_result > 0 && apply_selector_preset &&
+      LoadPresetSource(ctx, preset_id) != 0)
+    return -1;
+
+  rewind(fp);
+  result = ProcessCommandsFile(ctx, fp);
+  return result;
+}
+
+static int LoadPackagedDefaultCommands(ViewContext *ctx) {
+  FILE *fp;
+  int result;
+
+  fp = fopen(PACKAGED_COMMANDS_PATH, "r");
+  if (fp != NULL) {
+    result = ReadCommandsStream(ctx, fp, TRUE, TRUE);
+    fclose(fp);
+    return result;
+  }
+  if (errno != ENOENT)
+    return -1;
+
+  fp = fmemopen((void *)default_commands_catalog, strlen(default_commands_catalog),
+                "r");
+  if (fp == NULL)
+    return -1;
+  result = ReadCommandsStream(ctx, fp, TRUE, TRUE);
+  fclose(fp);
+  return result;
+}
+
+static int ResolveExistingCommandsPath(char *path, size_t path_size) {
+  int result;
+
+  if (path == NULL || path_size == 0)
+    return -1;
+  path[0] = '\0';
+
+  if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_COMMANDS, path, path_size) ==
+      0) {
+    if (access(path, F_OK) == 0)
+      return 0;
+    if (errno != ENOENT)
+      return -1;
+  }
+
+  result = ConfigPaths_ResolveLegacyPath(CONFIG_SURFACE_COMMANDS, path, path_size,
+                                         FALSE);
+  if (result == 0) {
+    if (access(path, F_OK) == 0)
+      return 0;
+    if (errno != ENOENT)
+      return -1;
+  }
+
+  path[0] = '\0';
+  return 1;
+}
+
+static int ValidateResolvedCommands(const ViewContext *ctx) {
+  int resolved_keys[sizeof(kCommandActions) / sizeof(kCommandActions[0])];
+  size_t index;
+  size_t prior;
+
+  for (index = 0; index < sizeof(kCommandActions) / sizeof(kCommandActions[0]);
+       ++index) {
+    resolved_keys[index] = ResolveCommandBindingKeyForContext(
+        ctx, kCommandActions[index].context, kCommandActions[index].default_key);
+    if (resolved_keys[index] < 0)
+      return -1;
+
+    for (prior = 0; prior < index; ++prior) {
+      if (strcmp(kCommandActions[prior].context, kCommandActions[index].context) ==
+              0 &&
+          resolved_keys[prior] == resolved_keys[index])
+        return -1;
+    }
+  }
+
   return 0;
 }
 
@@ -461,7 +743,7 @@ int ValidateCommandsFile(const char *filename) {
   fp = fopen(filename, "r");
   if (fp == NULL)
     return -1;
-  result = ProcessCommandsFile(NULL, fp);
+  result = ReadCommandsStream(NULL, fp, TRUE, TRUE);
   fclose(fp);
   return result;
 }
@@ -476,36 +758,60 @@ int ReadCommandsFile(ViewContext *ctx, const char *filename) {
   fp = fopen(filename, "r");
   if (fp == NULL)
     return -1;
-  result = ProcessCommandsFile(ctx, fp);
+  result = ReadCommandsStream(ctx, fp, TRUE, TRUE);
   fclose(fp);
   return result;
 }
 
 int LoadConfiguredCommands(ViewContext *ctx) {
   char path[PATH_LENGTH + 1];
-  int result;
+  char preset_id[COMMAND_PRESET_ID_LENGTH];
+  FILE *fp;
+  int path_result;
+  int selector_result = 0;
 
   if (ctx == NULL)
     return -1;
 
   ctx->commands_file_path[0] = '\0';
-  ctx->dir_command_presentation_count = 0;
-  ctx->file_command_presentation_count = 0;
-  if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_COMMANDS, path,
-                                       sizeof(path)) == 0) {
-    result = TryLoadCommandsFile(ctx, path);
-    if (result != 1)
-      return result;
+  Profile_ClearCommandRuntime(ctx);
+
+  path_result = ResolveExistingCommandsPath(path, sizeof(path));
+  if (path_result < 0)
+    return -1;
+
+  if (path_result == 0) {
+    fp = fopen(path, "r");
+    if (fp == NULL)
+      return -1;
+    selector_result =
+        ScanPresetSelector(fp, TRUE, preset_id, sizeof(preset_id));
+    fclose(fp);
+    if (selector_result < 0)
+      return -1;
   }
 
-  if (ConfigPaths_ResolveLegacyPath(CONFIG_SURFACE_COMMANDS, path, sizeof(path),
-                                    FALSE) == 0) {
-    result = TryLoadCommandsFile(ctx, path);
-    if (result != 1)
-      return result;
+  if (path_result == 0 && selector_result > 0) {
+    if (LoadPresetSource(ctx, preset_id) != 0)
+      return -1;
+  } else if (LoadPackagedDefaultCommands(ctx) != 0) {
+    return -1;
   }
 
-  return 0;
+  if (path_result == 0) {
+    fp = fopen(path, "r");
+    if (fp == NULL)
+      return -1;
+    if (ReadCommandsStream(ctx, fp, TRUE, FALSE) != 0) {
+      fclose(fp);
+      return -1;
+    }
+    fclose(fp);
+    (void)snprintf(ctx->commands_file_path, sizeof(ctx->commands_file_path),
+                   "%s", path);
+  }
+
+  return ValidateResolvedCommands(ctx);
 }
 
 static int CoreInit_LoadCommands(ViewContext *ctx) {

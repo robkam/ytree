@@ -260,7 +260,7 @@ def test_manpage_documents_user_visible_theme_contract():
     for source in (man_source, usage_source):
         assert "(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
         assert (
-            "By default this creates `~/.config/ytnova/ytnova.conf` and `~/.config/ytnova/themes.conf`"
+            "By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, and `~/.config/ytnova/themes.conf`"
             in source
         )
         assert (
@@ -268,8 +268,13 @@ def test_manpage_documents_user_visible_theme_contract():
         )
         assert "View file with the pager defined in the main config" in source
         assert "~/.config/ytnova/ytnova.conf" in source
+        assert "~/.config/ytnova/commands.conf" in source
         assert "~/.config/ytnova/themes.conf" in source
+        assert "~/.ytnova.commands" in source
         assert "~/.ytnova.themes" in source
+        assert "/usr/share/ytnova/commands/<preset>.conf" in source or (
+            "/usr/share/ytnova/commands/*.conf" in source
+        )
         assert "compiled-in defaults" in source
         assert "quiet-blue" not in source
         assert "bash-black" not in source

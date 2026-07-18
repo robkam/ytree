@@ -1088,7 +1088,7 @@ BOOL handle_file_window_misc_dispatch_action(
     break;
 
   case ACTION_CMD_MKFILE:
-    if (ctx->view_mode == DISK_MODE) {
+    if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
       char file_name[PATH_LENGTH * 2 + 1];
       ClearHelp(ctx);
       *file_name = '\0';

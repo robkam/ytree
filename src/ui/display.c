@@ -91,6 +91,7 @@ static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
@@ -141,7 +142,6 @@ static const UICommandStripCommand file_help_archive_mode_0_commands[] = {
 static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Move", "M", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "rename", "^R", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
@@ -183,7 +183,6 @@ static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
@@ -584,7 +583,7 @@ static const FooterCommandSpec dir_footer_ll_specs[] = {
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
                   "ACTION_QUIT")};
 
-static const FooterCommandSpec dir_footer_archive_specs[] = {
+static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
                   "ACTION_CMD_C"),
@@ -614,6 +613,41 @@ static const FooterCommandSpec dir_footer_archive_specs[] = {
                   "ACTION_QUIT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
+                  "ACTION_TOGGLE_HIDDEN")};
+
+static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
+                  "ACTION_CMD_C"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
+                  "ACTION_CMD_D"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL,
+                  "ACTION_CMD_G"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
+                  "ACTION_COMPARE_DIR"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL,
+                  "ACTION_CMD_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
+                  "ACTION_CMD_P"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
+                  "ACTION_CMD_R"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
+                  "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
+                  "ACTION_CMD_V"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
+                  "ACTION_LIST_JUMP"),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
                   "ACTION_TOGGLE_HIDDEN")};
 
@@ -701,7 +735,6 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
                   "ACTION_CMD_M"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
                   "ACTION_CMD_P"),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "rename", "^R", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
                   "ACTION_UNTAG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
@@ -719,28 +752,6 @@ static const FooterCommandSpec dir_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
-
-static const FooterCommandSpec dir_footer_nav_archive_to_root_specs[] = {
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
-
-static const FooterCommandSpec dir_footer_nav_archive_exit_specs[] = {
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
 
 static const FooterCommandSpec file_footer_nav_specs[] = {
@@ -764,24 +775,37 @@ static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "to dir", "\\", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
 
-static void ApplyViFileHelpOverrides(const ViewContext *ctx,
-                                     UICommandStripCommand *commands,
-                                     size_t command_count) {
-  size_t i;
+static const char *FooterContextName(BOOL is_dir, int view_mode) {
+  if (view_mode == ARCHIVE_MODE)
+    return is_dir ? "archive_dir" : "archive_file";
+  return is_dir ? "dir" : "file";
+}
 
-  if (!IsViKeysEnabled(ctx) || commands == NULL)
-    return;
+static int CommandPresentationEntriesForFooter(
+    const ViewContext *ctx, BOOL is_dir, const CommandPresentationOverride **entries,
+    size_t *entry_count) {
+  if (ctx == NULL || entries == NULL || entry_count == NULL)
+    return -1;
 
-  for (i = 0; i < command_count; ++i) {
-    if (commands[i].label == NULL)
-      continue;
-
-    if (strcmp(commands[i].label, "Delete") == 0) {
-      commands[i].primary_key = "d";
-    } else if (strcmp(commands[i].label, "Untag") == 0) {
-      commands[i].primary_key = "u";
+  if (ctx->view_mode == ARCHIVE_MODE) {
+    if (is_dir) {
+      *entries = ctx->archive_dir_command_presentations;
+      *entry_count = ctx->archive_dir_command_presentation_count;
+    } else {
+      *entries = ctx->archive_file_command_presentations;
+      *entry_count = ctx->archive_file_command_presentation_count;
     }
+    return 0;
   }
+
+  if (is_dir) {
+    *entries = ctx->dir_command_presentations;
+    *entry_count = ctx->dir_command_presentation_count;
+  } else {
+    *entries = ctx->file_command_presentations;
+    *entry_count = ctx->file_command_presentation_count;
+  }
+  return 0;
 }
 
 static const CommandPresentationOverride *
@@ -793,14 +817,9 @@ FindCommandPresentationOverride(const ViewContext *ctx, BOOL is_dir,
 
   if (ctx == NULL || action_id == NULL)
     return NULL;
-
-  if (is_dir) {
-    entries = ctx->dir_command_presentations;
-    entry_count = ctx->dir_command_presentation_count;
-  } else {
-    entries = ctx->file_command_presentations;
-    entry_count = ctx->file_command_presentation_count;
-  }
+  if (CommandPresentationEntriesForFooter(ctx, is_dir, &entries, &entry_count) !=
+      0)
+    return NULL;
 
   for (index = 0; index < entry_count; ++index) {
     if (strcmp(entries[index].action_id, action_id) == 0)
@@ -837,7 +856,8 @@ static void ResolveFooterActionKey(const ViewContext *ctx, BOOL is_dir,
     }
     {
       int default_key =
-          CommandActionDefaultKeyCode(is_dir ? "dir" : "file", action_id);
+          CommandActionDefaultKeyCode(FooterContextName(is_dir, ctx->view_mode),
+                                      action_id);
 
       if (default_key >= 0) {
         int effective_key = ResolveUserActionBindingKey(ctx, is_dir, default_key);
@@ -1154,6 +1174,7 @@ static size_t AppendPopupTextRow(UIHelpPopupRow *rows, size_t row_count,
 }
 
 static const FooterCommandSpec *GetDirFooterSpecs(const ViewContext *ctx,
+                                                  const DirEntry *dir_entry,
                                                   size_t *command_count,
                                                   const char **line0_signpost,
                                                   const char **line1_signpost) {
@@ -1165,11 +1186,16 @@ static const FooterCommandSpec *GetDirFooterSpecs(const ViewContext *ctx,
     return dir_footer_ll_specs;
   }
   if (ctx->view_mode == ARCHIVE_MODE) {
-    *command_count =
-        sizeof(dir_footer_archive_specs) / sizeof(dir_footer_archive_specs[0]);
     *line0_signpost = "ARCHIVE";
     *line1_signpost = "COMMANDS";
-    return dir_footer_archive_specs;
+    if (dir_entry != NULL && dir_entry->up_tree != NULL) {
+      *command_count = sizeof(dir_footer_archive_to_root_specs) /
+                       sizeof(dir_footer_archive_to_root_specs[0]);
+      return dir_footer_archive_to_root_specs;
+    }
+    *command_count = sizeof(dir_footer_archive_exit_specs) /
+                     sizeof(dir_footer_archive_exit_specs[0]);
+    return dir_footer_archive_exit_specs;
   }
 
   *command_count =
@@ -1183,17 +1209,6 @@ static const FooterCommandSpec *
 GetDirFooterNavSpecs(const ViewContext *ctx, const DirEntry *dir_entry,
                      size_t *command_count, const char **signpost) {
   *signpost = "9-4 File";
-  if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
-    if (dir_entry->up_tree != NULL) {
-      *command_count = sizeof(dir_footer_nav_archive_to_root_specs) /
-                       sizeof(dir_footer_nav_archive_to_root_specs[0]);
-      return dir_footer_nav_archive_to_root_specs;
-    }
-    *command_count = sizeof(dir_footer_nav_archive_exit_specs) /
-                     sizeof(dir_footer_nav_archive_exit_specs[0]);
-    return dir_footer_nav_archive_exit_specs;
-  }
-
   *command_count =
       sizeof(dir_footer_nav_specs) / sizeof(dir_footer_nav_specs[0]);
   return dir_footer_nav_specs;
@@ -1252,6 +1267,47 @@ static void ResolveFooterCommandList(const ViewContext *ctx, BOOL is_dir,
     commands[index] = resolved[index].command;
   }
   SortResolvedFooterCommands(resolved, commands, spec_count);
+}
+
+static size_t AppendResolvedFooterRows(UIHelpPopupRow *rows, size_t row_count,
+                                       const char *prefix_0,
+                                       const char *prefix_1,
+                                       const UICommandStripCommand *commands,
+                                       size_t command_count) {
+  HelpCommandStrip strip_0;
+  HelpCommandStrip strip_1;
+  size_t split_index;
+
+  if (rows == NULL || commands == NULL || command_count == 0)
+    return row_count;
+
+  split_index = command_count;
+  if (prefix_1 != NULL && prefix_1[0] != '\0') {
+    for (split_index = 0; split_index < command_count; ++split_index) {
+      if (strcmp(commands[split_index].label, "Only tagged") == 0 ||
+          strcmp(commands[split_index].label, "Newfile") == 0 ||
+          strcmp(commands[split_index].label, "Pipe") == 0) {
+        break;
+      }
+    }
+    if (split_index == 0 || split_index >= command_count)
+      split_index = (command_count + 1) / 2;
+  }
+
+  strip_0.prefix = prefix_0 != NULL ? prefix_0 : "";
+  strip_0.commands = commands;
+  strip_0.command_count = prefix_1 != NULL && prefix_1[0] != '\0' ? split_index
+                                                                   : command_count;
+  row_count = AppendPopupStripRow(rows, row_count, &strip_0);
+
+  if (prefix_1 != NULL && prefix_1[0] != '\0' && split_index < command_count) {
+    strip_1.prefix = prefix_1;
+    strip_1.commands = commands + split_index;
+    strip_1.command_count = command_count - split_index;
+    row_count = AppendPopupStripRow(rows, row_count, &strip_1);
+  }
+
+  return row_count;
 }
 
 static void RenderFooterTopRows(ViewContext *ctx, const char *line0_signpost,
@@ -1313,7 +1369,8 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     return;
 
   werase(ctx->ctx_menu_window);
-  specs = GetDirFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
+  specs = GetDirFooterSpecs(ctx, dir_entry, &spec_count, &line0_signpost,
+                            &line1_signpost);
   ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
   RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);
   nav_specs = GetDirFooterNavSpecs(ctx, dir_entry, &nav_count, &nav_signpost);
@@ -1415,27 +1472,30 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   }
 
   if (active_focus == FOCUS_TREE) {
+    ResolvedFooterCommand resolved[32];
+    UICommandStripCommand commands[32];
     const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
+    const FooterCommandSpec *specs;
+    const char *line0_signpost;
+    const char *line1_signpost;
+    size_t spec_count;
 
     title = (ctx->view_mode == ARCHIVE_MODE) ? "Archive Directory Help"
                                              : "Directory Help";
-    row_count =
-        AppendPopupStripRow(rows, row_count, &dir_help_builtin[ctx->view_mode][0]);
-    row_count =
-        AppendPopupStripRow(rows, row_count, &dir_help_builtin[ctx->view_mode][1]);
-    if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
-      nav_strip = (dir_entry->up_tree != NULL) ? &dir_help_nav_builtin[1]
-                                               : &dir_help_nav_builtin[2];
-    }
+    specs = GetDirFooterSpecs(ctx, dir_entry, &spec_count, &line0_signpost,
+                              &line1_signpost);
+    ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
+    row_count = AppendResolvedFooterRows(rows, row_count, line0_signpost,
+                                         line1_signpost, commands, spec_count);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
   } else {
-    const HelpCommandStrip *builtin_0 = &file_help_builtin[ctx->view_mode][0];
-    const HelpCommandStrip *builtin_1 = &file_help_builtin[ctx->view_mode][1];
+    ResolvedFooterCommand resolved[32];
+    UICommandStripCommand commands[32];
     const HelpCommandStrip *nav_strip;
-    HelpCommandStrip resolved_0 = *builtin_0;
-    HelpCommandStrip resolved_1 = *builtin_1;
-    UICommandStripCommand resolved_commands_0[16];
-    UICommandStripCommand resolved_commands_1[16];
+    const FooterCommandSpec *specs;
+    const char *line0_signpost;
+    const char *line1_signpost;
+    size_t spec_count;
 
     if (dir_entry != NULL && dir_entry->global_flag) {
       title = "Showall/Global File Help";
@@ -1448,25 +1508,11 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
       nav_strip = &file_help_nav_builtin[0];
     }
 
-    if (builtin_0->commands != NULL && builtin_0->command_count > 0 &&
-        IsViKeysEnabled(ctx)) {
-      memcpy(resolved_commands_0, builtin_0->commands,
-             builtin_0->command_count * sizeof(resolved_commands_0[0]));
-      ApplyViFileHelpOverrides(ctx, resolved_commands_0, builtin_0->command_count);
-      resolved_0.commands = resolved_commands_0;
-      builtin_0 = &resolved_0;
-    }
-    if (builtin_1->commands != NULL && builtin_1->command_count > 0 &&
-        IsViKeysEnabled(ctx)) {
-      memcpy(resolved_commands_1, builtin_1->commands,
-             builtin_1->command_count * sizeof(resolved_commands_1[0]));
-      ApplyViFileHelpOverrides(ctx, resolved_commands_1, builtin_1->command_count);
-      resolved_1.commands = resolved_commands_1;
-      builtin_1 = &resolved_1;
-    }
-
-    row_count = AppendPopupStripRow(rows, row_count, builtin_0);
-    row_count = AppendPopupStripRow(rows, row_count, builtin_1);
+    specs =
+        GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
+    ResolveFooterCommandList(ctx, FALSE, specs, spec_count, resolved, commands);
+    row_count = AppendResolvedFooterRows(rows, row_count, line0_signpost,
+                                         line1_signpost, commands, spec_count);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
   }
 
