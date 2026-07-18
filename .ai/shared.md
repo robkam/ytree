@@ -109,6 +109,7 @@ These instructions apply to all AI agents used in this repository.
 22. Hybrid PR quality workflow is mandatory:
     - Before first push, run a quick local gate (build plus targeted smoke/tests).
     - Open a regular PR early; red is allowed while iterating.
+    - After the first push for an active branch, the AI MUST start the detached branch repair loop itself (`make ci-repair-start`, relying on auto-discovered handoff when possible) and own that loop autonomously. Do not ask the maintainer to start, watch, or manually poll branch CI while the AI can do it. Use `make ci-repair-status` / `make ci-repair-log` as the AI-facing control surface, restart the loop if needed after later pushes, and interrupt the maintainer only when the loop reaches a true blocked state.
     - For an active PR, proactively poll the live required-check state every 5 minutes and remediate clearly repo-side CI failures until the required set is green, unless the failure is external, inconclusive, or the maintainer explicitly tells you to stop.
     - Keep a durable PR title even while checks are red; do not use temporary `WIP:` title prefixes.
     - PR title, summary, and validation text must describe the durable behavior or architecture aim of the atomic unit, not volatile tracker numbers or broader-roadmap labels.

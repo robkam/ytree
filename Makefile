@@ -498,6 +498,20 @@ qa-all-log:
 qa-deep:
 	bash scripts/qa-deep.sh "$(CURDIR)"
 
+ci-repair-loop:
+	python3 scripts/ci_repair_loop.py $(ARGS)
+
+ci-repair-start:
+	python3 scripts/ci_repair_loop.py --detach $(ARGS)
+
+ci-repair-status:
+	@if [ -f .agent/handoffs/ci-repair.current.md ]; then cat .agent/handoffs/ci-repair.current.md; \
+	else echo "No ci-repair status file yet."; fi
+
+ci-repair-log:
+	@if [ -f .agent/handoffs/ci-repair.current.log ]; then tail -n 80 .agent/handoffs/ci-repair.current.log; \
+	else echo "No ci-repair log yet."; fi
+
 mcp-doctor:
 	python3 scripts/mcp_doctor.py $(if $(filter 1,$(FIX)),--fix,)
 

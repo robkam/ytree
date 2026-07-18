@@ -354,6 +354,14 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   PR body should be concise: summary, scope, and local validation evidence. Do not duplicate obvious CI output or paste check transcripts into the body/comments.
 8.  **Maintainer (GitHub):** Review PR scope and evidence.
 9.  **Architect/AI + Maintainer (GitHub):** Monitor PR CI full gate proactively (for example `gh pr checks <pr-number> --watch`). Do not wait passively for a separate reminder when checks change state.
+    *   To avoid branch-CI babysitting during active implementation, use the branch repair loop. It watches the current branch head, writes a live GitHub failure packet, and launches a fresh Codex repair pass on each red run until checks go green or the retry budget is exhausted.
+    *   Normal start (detached): `make ci-repair-start`
+    *   Detached start with explicit handoff and tuned polling: `make ci-repair-start ARGS='--handoff .agent/handoffs/<task>.current.md --poll-seconds 120 --max-attempts 5'`
+    *   Foreground/debug run: `make ci-repair-loop ARGS='--handoff .agent/handoffs/<task>.current.md'`
+    *   Status: `make ci-repair-status`
+    *   Recent log tail: `make ci-repair-log`
+    *   If exactly one `*.current.md` handoff exists under `.agent/handoffs/`, the loop auto-discovers it and you do not need `--handoff`.
+    *   Detached mode uses `tmux` when available; otherwise it starts a plain detached background process. In both cases the loop keeps running after you close the terminal, and writes state/log artifacts under `.agent/handoffs/`.
 10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
     *   Do not request reviewers while checks are red unless the maintainer explicitly instructs it.
     *   Once checks are green on the current head SHA, avoid non-essential PR mutations before merge (for example PR-body edits or base-sync actions) because they may restart CI or invalidate freshness.
