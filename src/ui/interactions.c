@@ -38,6 +38,21 @@ typedef enum {
   PROMPT_HELP_CREATE_ARCHIVE
 } PromptHelpTopic;
 
+static const UICommandStripCommand sort_by_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "AccTime", "A", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "ChgTime", "C", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Extension", "E", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "ModTime", "M", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Name", "N", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Size", "S", NULL}};
+static const UICommandStripCommand sort_commands_ascending[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "W", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Order [ascending]", "O", NULL}};
+static const UICommandStripCommand sort_commands_descending[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "W", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Order [descending]", "O", NULL}};
+
 static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   int written;
 
@@ -143,13 +158,16 @@ static void DrawSortPrompt(ViewContext *ctx, WINDOW *win, BOOL ascending) {
     werase(win);
   }
 
-  PrintOptions(
-      win, y0, 0,
-      "SORT by   (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime (N)ame "
-      "(S)ize");
-  PrintOptions(win, y0 + 1, 0,
-               ascending ? "COMMANDS  o(W)ner   (O)rder: [ascending]"
-                         : "COMMANDS  o(W)ner   (O)rder: [descending]");
+  Print(win, y0, 0, "SORT by", UI_ROLE_STATIC_TEXT);
+  UI_RenderAdaptiveCommandStrip(
+      win, y0, StrVisualLength("SORT by") + 2, sort_by_commands,
+      sizeof(sort_by_commands) / sizeof(sort_by_commands[0]),
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  Print(win, y0 + 1, 0, "COMMANDS", UI_ROLE_STATIC_TEXT);
+  UI_RenderAdaptiveCommandStrip(
+      win, y0 + 1, StrVisualLength("COMMANDS") + 2,
+      ascending ? sort_commands_ascending : sort_commands_descending, 2,
+      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wnoutrefresh(win);
   doupdate();
 }

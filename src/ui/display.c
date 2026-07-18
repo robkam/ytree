@@ -1074,7 +1074,12 @@ static void RenderPackedFooterLine(WINDOW *win, int y, const char *signpost,
     return;
   (void)snprintf(clipped, sizeof(clipped), "%.*s%.*s", visible_prefix,
                  truncated_text, dots, "...");
-  PrintSpecialString(win, y, x, clipped, UI_ROLE_HELP);
+#ifdef COLOR_SUPPORT
+  wmove(win, y, x);
+  (void)WAttrAddStr(win, COLOR_PAIR(UI_ROLE_HELP), clipped);
+#else
+  (void)MvWAddStr(win, y, x, clipped);
+#endif
 }
 
 static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,

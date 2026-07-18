@@ -323,8 +323,9 @@ int InputChoiceCommandStrip(ViewContext *ctx,
   curs_set(1);
   leaveok(ctx->ctx_border_window, FALSE);
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
-  UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
-                        commands, command_count, UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  UI_RenderAdaptiveCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
+                                commands, command_count, UI_ROLE_STATIC_TEXT,
+                                UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {

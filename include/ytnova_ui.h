@@ -242,6 +242,10 @@ extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                                   const UICommandStripCommand *commands,
                                   size_t command_count, int ncolor,
                                   int hcolor);
+extern int UI_RenderAdaptiveCommandStrip(WINDOW *win, int y, int x,
+                                         const UICommandStripCommand *commands,
+                                         size_t command_count, int ncolor,
+                                         int hcolor);
 extern int UI_ShowHelpPopup(ViewContext *ctx, const char *title,
                             const UIHelpPopupRow *rows, size_t row_count);
 extern int UI_ShowHelpPopupDismissAnyKey(ViewContext *ctx, const char *title,

@@ -95,15 +95,15 @@ static void DrawComparePrompt(ViewContext *ctx, const char *title,
   prompt_x = 1 + StrVisualLength((char *)title);
   if (commands != NULL && command_count > 0) {
     prompt_x += 2;
-    UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, prompt_x,
-                          commands, command_count, UI_ROLE_STATIC_TEXT,
-                          UI_ROLE_KEYBIND);
+    UI_RenderAdaptiveCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y,
+                                  prompt_x, commands, command_count,
+                                  UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   }
 
   Print(ctx->ctx_border_window, ctx->layout.status_y, 1, "COMMANDS",
         UI_ROLE_STATIC_TEXT);
   status_x = 1 + StrVisualLength("COMMANDS") + 2;
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       ctx->ctx_border_window, ctx->layout.status_y, status_x,
       compare_status_commands,
       sizeof(compare_status_commands) / sizeof(compare_status_commands[0]),
