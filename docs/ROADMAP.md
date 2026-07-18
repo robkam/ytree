@@ -777,7 +777,8 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Extend the shared footer-layout work into footer-adjacent prompt takeover surfaces and other specialized status-area flows that do not yet reuse the standard footer renderer.
 *   **Mechanism:** Replace remaining prompt-/dialog-specific footer-area strings with runtime packing/reflow where those surfaces still own the footer region, while preserving deterministic ordering and context-sensitive visibility rules.
 *   **Cross-Reference:** Task 43 validates semantic parity between footer, help, and prompts after this layout work lands; Task 11.2 provides the structured label/key-token inputs that make localization-safe footer rendering possible.
-*   - [ ] **Status:** Not Started.
+*   **Delivered scope:** Prompt takeover rows now use adaptive command-strip rendering with ellipsis-based truncation instead of mid-token clipping, and remaining sort/attribute prompt strings route through structured command-strip layouts rather than hardcoded footer text.
+*   - [x] **Status:** Completed.
 
 ### **Task 41: Implement Integrated Help System**
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
@@ -790,8 +791,8 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 42: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good; redundant duplicate bindings should not be listed).
 *   **VI Mode Signaling**: Ensure footer help lines dynamically reflect uppercase commands (e.g., `(K) Vol` instead of `(k) Vol`) when `VI_KEYS=1` is active to avoid navigation collisions.
-*   **Portability Decision:** Do **not** require a held-`Ctrl` footer variant. On the supported portable target set (current Linux, BSD, illumos, and Hurd terminal stacks), bare `Ctrl` press/release state is not a reliable cross-terminal input primitive, so a footer that changes only while `Ctrl` is physically held is out of scope for the canonical UX contract.
-*   **Noise Budget Decision:** Do **not** replace the held-`Ctrl` idea with a permanently noisy fallback such as `Copy/^Copy`, `C/^Copy`, or a tagged-state footer variant that appears only after tagging. The common footer must stay clean enough for new users to operate without help-menu friction.
+*   **Footer Stability Decision:** The canonical live footer must stay stable across supported terminal paths and must not depend on transient modifier-state telemetry that terminals, multiplexers, and remote sessions may fail to expose consistently.
+*   **Noise Budget Decision:** Do **not** replace the clean footer with permanently noisy fallback forms such as `Copy/^Copy`, `C/^Copy`, or a tagged-state footer variant that appears only after tagging. The common footer must stay clean enough for new users to operate without help-menu friction.
 *   **Discoverability Contract:** Keep the live footer focused on always-relevant, low-noise bindings plus non-redundant alternates (for example `(C)opy/(^K)` and `(M)ove/(^N)` where the alternate actually differs). Put Ctrl-only tagged/search-oriented operations and their semantics in `F1` help and prompt wording instead of trying to surface every one of them in the footer.
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   - [x] **Status:** Completed.
@@ -1777,6 +1778,8 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Idea FE-38: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
 *   **Goal:** Investigate a runtime path where ytnova's TUI is not tightly coupled to ncurses.
+*   **Input-protocol spike:** As part of this investigation, evaluate opt-in enhanced keyboard protocols, starting with kitty keyboard protocol, to determine whether ytnova can distinguish collided control inputs such as `^M` versus `Enter` without breaking the portable terminal path.
+*   **Fallback contract:** If enhanced keyboard negotiation is unavailable, rejected, or stripped by the active terminal path, keep the current portable bindings and help semantics (for example `^N` for tagged move) rather than making kitty-only input a requirement.
 *   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytnova interaction semantics.
 *   - [ ] **Status:** Not Started.
 

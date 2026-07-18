@@ -303,8 +303,8 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "static const UICommandStripCommand applications_menu_commands[]" in app_menu_source
     assert "static const UICommandStripCommand read_string_path_hint_commands[]" in input_line_source
     assert "static const UICommandStripCommand read_string_history_hint_commands[]" in input_line_source
-    assert "UI_RenderCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y, prompt_x," in compare_source
-    assert "UI_RenderCommandStrip(" in tagged_source
+    assert "UI_RenderAdaptiveCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y," in compare_source
+    assert "UI_RenderAdaptiveCommandStrip(" in tagged_source
     assert "tagged_view_message_commands" in tagged_source
     assert "tagged_view_prompt_commands" in tagged_source
     assert "view_edit_prompt_commands" in internal_view_source

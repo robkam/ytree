@@ -222,12 +222,12 @@ static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
   Print(stdscr, geom->message_y, 0, "(Edit file in hexadecimal mode)",
         UI_ROLE_STATIC_TEXT);
   wclrtoeol(stdscr);
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       stdscr, geom->prompt_y, 0, view_edit_prompt_commands,
       sizeof(view_edit_prompt_commands) / sizeof(view_edit_prompt_commands[0]),
       UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       stdscr, geom->status_y, 0, view_navigation_commands,
       sizeof(view_navigation_commands) / sizeof(view_navigation_commands[0]),
       UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
@@ -256,13 +256,13 @@ static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
   Print(stdscr, geom->message_y, 0, "View file in hexadecimal mode",
         UI_ROLE_STATIC_TEXT);
   wclrtoeol(stdscr);
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       stdscr, geom->prompt_y, 0, view_readonly_prompt_commands,
       sizeof(view_readonly_prompt_commands) /
           sizeof(view_readonly_prompt_commands[0]),
       UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wclrtoeol(stdscr);
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       stdscr, geom->status_y, 0, view_navigation_commands,
       sizeof(view_navigation_commands) / sizeof(view_navigation_commands[0]),
       UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);

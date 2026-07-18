@@ -13,8 +13,23 @@ def _spawn_narrow_tui(root):
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
     tui.child.setwinsize(24, 80)
     tui.screen.resize(24, 80)
-    time.sleep(1.0)
-    tui._read_output(0.5)
+    assert tui.wait_for_condition(
+        lambda lines: any("F1 help" in line for line in lines[-3:]),
+        timeout=2.0,
+        poll_interval=0.05,
+    ), screen_text(tui)
+    return tui
+
+
+def _spawn_sized_tui(root, cols):
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+    tui.child.setwinsize(24, cols)
+    tui.screen.resize(24, cols)
+    assert tui.wait_for_condition(
+        lambda lines: any("F1 help" in line for line in lines[-3:]),
+        timeout=2.0,
+        poll_interval=0.05,
+    ), screen_text(tui)
     return tui
 
 
@@ -38,6 +53,10 @@ def _line_containing_all(tui, *needles):
         if all(needle in line for needle in needles):
             return line
     raise AssertionError(f"Could not find {needles!r}.\n{screen_text(tui)}")
+
+
+def _prompt_lines(tui):
+    return tui.get_screen_dump()[-3:]
 
 
 def _assert_footer_column_alignment(lines, first_row_token, second_row_token, nav_token):
@@ -75,6 +94,7 @@ def test_narrow_dir_and_file_footers_keep_full_labels_until_resize(tmp_path):
         assert "(N)" not in dir_footer
         assert dir_lines[2].rstrip().endswith("..."), dir_footer
         assert "F9 apps" in dir_lines[2], dir_footer
+        assert "F10" in dir_lines[2], dir_footer
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         file_lines = footer_lines(tui)
@@ -90,6 +110,7 @@ def test_narrow_dir_and_file_footers_keep_full_labels_until_resize(tmp_path):
         assert "(Y)" not in file_footer
         assert file_lines[2].rstrip().endswith("..."), file_footer
         assert "F9 apps" in file_lines[2], file_footer
+        assert "F10" in file_lines[2], file_footer
     finally:
         tui.quit()
 
@@ -101,8 +122,11 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
     try:
         tui.child.setwinsize(24, 140)
         tui.screen.resize(24, 140)
-        time.sleep(1.0)
-        tui._read_output(0.5)
+        assert tui.wait_for_condition(
+            lambda lines: any("F1 help" in line for line in lines[-3:]),
+            timeout=2.0,
+            poll_interval=0.05,
+        ), screen_text(tui)
 
         dir_lines = footer_lines(tui)
         dir_footer = "\n".join(dir_lines)
@@ -187,5 +211,65 @@ def test_f2_picker_shows_explicit_log_key(tmp_path):
         assert "(L)" not in f2_line
         assert "cycle" in f2_line
         assert "<" in f2_line and ">" in f2_line
+    finally:
+        tui.quit()
+
+
+def test_narrow_compare_target_prompt_uses_truncation_not_mid_token_clipping(tmp_path):
+    root = _root_with_file(tmp_path)
+    tui = _spawn_sized_tui(root, cols=48)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke("J", wait=0.3)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), screen_text(tui)
+
+        lines = _prompt_lines(tui)
+        hint_line = lines[-1]
+        prompt_text = "\n".join(lines)
+
+        assert "F1 help" in hint_line and "F2 browse" in hint_line, prompt_text
+        assert hint_line.rstrip().endswith("..."), (
+            "Narrow compare prompt should truncate the final command entry with an ellipsis.\n"
+            + prompt_text
+        )
+        assert "Esc c" not in hint_line, (
+            "Narrow compare prompt should not clip the cancel command mid-token.\n"
+            + prompt_text
+        )
+    finally:
+        tui.quit()
+
+
+def test_narrow_sort_and_viewer_takeovers_use_ellipsis_for_overflow(tmp_path):
+    root = _root_with_file(tmp_path)
+    tui = _spawn_sized_tui(root, cols=40)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+
+        tui.send_keystroke("s", wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: any("SORT by" in line for line in lines[-3:]),
+            timeout=1.0,
+            poll_interval=0.05,
+        ), screen_text(tui)
+
+        sort_lines = _prompt_lines(tui)
+        sort_text = "\n".join(sort_lines)
+        assert any(line.rstrip().endswith("...") for line in sort_lines[:2]), (
+            "Narrow sort prompt should truncate overflow with an ellipsis instead of clipping key labels.\n"
+            + sort_text
+        )
+
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        tui.send_keystroke("h", wait=0.6)
+
+        viewer_lines = _prompt_lines(tui)
+        viewer_text = "\n".join(viewer_lines)
+        assert viewer_lines[-1].rstrip().endswith("..."), (
+            "Narrow viewer navigation strip should truncate the final command with an ellipsis.\n"
+            + viewer_text
+        )
     finally:
         tui.quit()

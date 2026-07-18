@@ -182,13 +182,15 @@ static void DrawTaggedViewHeader(ViewContext *ctx, const char *display_path,
   Print(stdscr, ctx->layout.header_y, 6,
         CutPathname(clipped_header, header_buf, available), UI_ROLE_DYNAMIC_TEXT);
 
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       stdscr, ctx->layout.message_y, 0, tagged_view_message_commands,
-      sizeof(tagged_view_message_commands) / sizeof(tagged_view_message_commands[0]),
+      sizeof(tagged_view_message_commands) /
+          sizeof(tagged_view_message_commands[0]),
       UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
-  UI_RenderCommandStrip(
+  UI_RenderAdaptiveCommandStrip(
       stdscr, ctx->layout.prompt_y, 0, tagged_view_prompt_commands,
-      sizeof(tagged_view_prompt_commands) / sizeof(tagged_view_prompt_commands[0]),
+      sizeof(tagged_view_prompt_commands) /
+          sizeof(tagged_view_prompt_commands[0]),
       UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   Print(stdscr, ctx->layout.status_y, 0, "View tagged files",
         UI_ROLE_STATIC_TEXT);

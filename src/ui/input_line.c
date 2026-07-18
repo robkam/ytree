@@ -260,22 +260,18 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
       if (help_callback != NULL) {
         int hint_x = 1;
 
-        UI_RenderCommandStrip(
+        hint_x += UI_RenderAdaptiveCommandStrip(
             win, hints_row, hint_x, read_string_help_hint_commands,
             sizeof(read_string_help_hint_commands) /
                 sizeof(read_string_help_hint_commands[0]),
             UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
-        hint_x += UI_CommandStripVisualLength(
-            read_string_help_hint_commands,
-            sizeof(read_string_help_hint_commands) /
-                sizeof(read_string_help_hint_commands[0]));
         if (hints != NULL && hint_count > 0)
           hint_x += 2;
-        UI_RenderCommandStrip(win, hints_row, hint_x, hints, hint_count,
-                              UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+        UI_RenderAdaptiveCommandStrip(win, hints_row, hint_x, hints, hint_count,
+                                      UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
       } else {
-        UI_RenderCommandStrip(win, hints_row, 1, hints, hint_count,
-                              UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+        UI_RenderAdaptiveCommandStrip(win, hints_row, 1, hints, hint_count,
+                                      UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
       }
 
       /* Handle Scrolling */

@@ -54,7 +54,7 @@ def test_prompt_uses_dialog_and_volume_uses_picker_palette():
         "static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,",
     )
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DIALOG));" in input_block
-    assert "UI_RenderCommandStrip(win, hints_row, 1, hints, hint_count," in input_block
+    assert "UI_RenderAdaptiveCommandStrip(win, hints_row, 1, hints, hint_count," in input_block
     assert "UI_ROLE_DIALOG, UI_ROLE_KEYBIND);" in input_block
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in input_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in input_block

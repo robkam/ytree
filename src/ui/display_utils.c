@@ -595,10 +595,50 @@ void Print(WINDOW *win, int y, int x, char *str, int color) {
   }
 }
 
+static BOOL MenuOptionsHasVisibleRemainder(const char *str) {
+  if (str == NULL)
+    return FALSE;
+
+  for (; *str; ++str) {
+    switch (*str) {
+    case '(':
+    case ')':
+    case '[':
+    case ']':
+      continue;
+    default:
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+static void RenderOverflowEllipsis(WINDOW *win, int y, int start_x, int end_x,
+                                   int color) {
+  int dots;
+  int dot_x;
+
+  if (win == NULL || end_x <= start_x)
+    return;
+
+  dots = MINIMUM(3, end_x - start_x);
+  for (dot_x = end_x - dots; dot_x < end_x; ++dot_x) {
+#ifdef COLOR_SUPPORT
+    wattrset(win, COLOR_PAIR(color));
+#else
+    wattrset(win, color);
+#endif
+    mvwaddch(win, y, dot_x, '.');
+  }
+  wattrset(win, 0);
+}
+
 void PrintOptions(WINDOW *win, int y, int x, char *str) {
   int ch;
   int color, hi_color, lo_color;
   int max_x;
+  int start_x = x;
 
   if (x < 0 || y < 0) {
     /* screen too small */
@@ -685,6 +725,9 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
     mvwaddch(win, y, x++, ch);
     wattrset(win, 0);
   }
+
+  if (*str && MenuOptionsHasVisibleRemainder(str))
+    RenderOverflowEllipsis(win, y, start_x, x, lo_color);
 }
 
 void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
@@ -692,6 +735,7 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
   int ch;
   int color, hi_color, lo_color;
   int max_x;
+  int start_x = x;
 
   if (x < 0 || y < 0) {
     /* screen too small */
@@ -747,6 +791,9 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
     mvwaddch(win, y, x++, ch);
     wattrset(win, 0);
   }
+
+  if (*str && MenuOptionsHasVisibleRemainder(str))
+    RenderOverflowEllipsis(win, y, start_x, x, lo_color);
 }
 
 static BOOL CommandStripKeyUsesPlainText(const char *key) {
@@ -1210,4 +1257,111 @@ void UI_RenderCommandStrip(WINDOW *win, int y, int x,
   }
 
   wattrset(win, 0);
+}
+
+typedef struct {
+  size_t fit_count;
+  BOOL truncated;
+  size_t truncated_index;
+  int truncated_width;
+  int used_width;
+} UICommandStripRowFit;
+
+static UICommandStripRowFit
+FitCommandStripRow(const UICommandStripCommand *commands, size_t command_count,
+                   int available_width) {
+  UICommandStripRowFit fit;
+  int line_width = 0;
+
+  memset(&fit, 0, sizeof(fit));
+  while (fit.fit_count < command_count) {
+    int command_width =
+        UI_CommandStripVisualLength(&commands[fit.fit_count], 1);
+    int separator_width = fit.fit_count > 0 ? 2 : 0;
+
+    if (line_width + separator_width + command_width <= available_width) {
+      line_width += separator_width + command_width;
+      ++fit.fit_count;
+      continue;
+    }
+
+    if (fit.fit_count == 0 || available_width - line_width - separator_width >= 3) {
+      fit.truncated = TRUE;
+      fit.truncated_index = fit.fit_count;
+      fit.truncated_width = available_width - line_width - separator_width;
+      if (fit.truncated_width < 0)
+        fit.truncated_width = 0;
+      fit.used_width = line_width + separator_width + fit.truncated_width;
+      return fit;
+    }
+
+    --fit.fit_count;
+    line_width = fit.fit_count > 0
+                     ? UI_CommandStripVisualLength(commands, fit.fit_count)
+                     : 0;
+    fit.truncated = TRUE;
+    fit.truncated_index = fit.fit_count;
+    fit.truncated_width =
+        available_width - line_width - (fit.fit_count > 0 ? 2 : 0);
+    if (fit.truncated_width < 0)
+      fit.truncated_width = 0;
+    fit.used_width =
+        line_width + (fit.fit_count > 0 ? 2 : 0) + fit.truncated_width;
+    return fit;
+  }
+
+  fit.used_width = line_width;
+  return fit;
+}
+
+int UI_RenderAdaptiveCommandStrip(WINDOW *win, int y, int x,
+                                  const UICommandStripCommand *commands,
+                                  size_t command_count, int ncolor,
+                                  int hcolor) {
+  UICommandStripRowFit fit;
+  char truncated_text[160];
+  char clipped[160];
+  int available_width;
+  int cursor_x = x;
+  int dots;
+  int visible_prefix;
+
+  if (win == NULL || commands == NULL || command_count == 0 || x < 0 || y < 0)
+    return 0;
+
+  available_width = getmaxx(win) - x;
+  if (available_width <= 0)
+    return 0;
+
+  fit = FitCommandStripRow(commands, command_count, available_width);
+  if (fit.fit_count > 0) {
+    UI_RenderCommandStrip(win, y, x, commands, fit.fit_count, ncolor, hcolor);
+    cursor_x += UI_CommandStripVisualLength(commands, fit.fit_count);
+  }
+
+  if (!fit.truncated || fit.truncated_width <= 0 ||
+      fit.truncated_index >= command_count)
+    return fit.used_width;
+
+  if (fit.fit_count > 0) {
+    PrintSpecialString(win, y, cursor_x, "  ", ncolor);
+    cursor_x += 2;
+  }
+
+  (void)UI_FormatCommandStripEntryText(&commands[fit.truncated_index],
+                                       truncated_text, sizeof(truncated_text));
+  dots = fit.truncated_width >= 3 ? 3 : fit.truncated_width;
+  visible_prefix = fit.truncated_width - dots;
+  if (dots <= 0)
+    return fit.used_width;
+
+  (void)snprintf(clipped, sizeof(clipped), "%.*s%.*s", visible_prefix,
+                 truncated_text, dots, "...");
+#ifdef COLOR_SUPPORT
+  wmove(win, y, cursor_x);
+  (void)WAttrAddStr(win, COLOR_PAIR(ncolor), clipped);
+#else
+  (void)MvWAddStr(win, y, cursor_x, clipped);
+#endif
+  return fit.used_width;
 }

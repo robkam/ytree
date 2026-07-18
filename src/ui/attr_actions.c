@@ -16,6 +16,22 @@
 #include <unistd.h>
 #include <utime.h>
 
+static const UICommandStripCommand attribute_commands_basic[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Mode", "M", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "O", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL}};
+static const UICommandStripCommand attribute_commands_with_date[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Mode", "M", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "O", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Date", "D", NULL}};
+static const UICommandStripCommand attribute_commands_tagged[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Mode", "M", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "O", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Date", "D", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged date", "^D", NULL}};
+
 static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   int written;
 
@@ -241,21 +257,33 @@ static int change_path_date(ViewContext *ctx, const char *path,
 
 int UI_PromptAttributeAction(ViewContext *ctx, BOOL tagged, BOOL allow_date) {
   int ch;
-  const char *menu_text;
+  const UICommandStripCommand *commands;
+  size_t command_count;
+  int prompt_x;
 
   if (tagged) {
-    menu_text = "ATTRIBUTES: (M)ode (O)wner (G)roup (D)ate (^D)ate";
+    commands = attribute_commands_tagged;
+    command_count =
+        sizeof(attribute_commands_tagged) / sizeof(attribute_commands_tagged[0]);
   } else if (allow_date) {
-    menu_text = "ATTRIBUTES: (M)ode (O)wner (G)roup (D)ate";
+    commands = attribute_commands_with_date;
+    command_count = sizeof(attribute_commands_with_date) /
+                    sizeof(attribute_commands_with_date[0]);
   } else {
-    menu_text = "ATTRIBUTES: (M)ode (O)wner (G)roup";
+    commands = attribute_commands_basic;
+    command_count =
+        sizeof(attribute_commands_basic) / sizeof(attribute_commands_basic[0]);
   }
 
   ClearHelp(ctx);
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
   wclrtoeol(ctx->ctx_border_window);
-  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
-               (char *)menu_text);
+  Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, "ATTRIBUTES:",
+        UI_ROLE_STATIC_TEXT);
+  prompt_x = 1 + StrVisualLength("ATTRIBUTES:") + 2;
+  UI_RenderAdaptiveCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y,
+                                prompt_x, commands, command_count,
+                                UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
 

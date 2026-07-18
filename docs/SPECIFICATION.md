@@ -183,6 +183,7 @@ When a text prompt is active, specialized conventions ensure a refined editing e
 *   **Line Editing**: `^a` / `^e` (start/end), `^k` / `^u` (kill to end/start), `^w` (kill word).
 *   **History**: `^p` or `Up` arrow recalls contextual history (e.g., previous filters).
 *   **Browsing**: `F2` or `^f` opens the directory selection browser.
+*   **Prompt Guidance Layout Rule**: Prompt-owned command rows use structured command-strip rendering with adaptive truncation; if a prompt row cannot fit every visible action, runtime truncates the final visible entry with an ellipsis instead of clipping a key token or label mid-word.
 
 ---
 
@@ -326,7 +327,7 @@ These flows may differ in user-facing action, but they must not use different re
 *   **Transient:** Non-critical status (e.g., "File copied"). Appears in the Message row. Disappears on the next keystroke.
 *   **Sticky/Warning:** Requires acknowledgment or input (e.g., "Delete file? Y/N" or "Path not found"). Stays in the footer until the user responds or hits a key to clear the warning.
 *   **Outcome Clarity Rule:** Successful commands may remain quiet, but ytnova MUST NOT appear successful while doing nothing. No-op/skip/error outcomes must be explicit and user-visible.
-*   **Portable Footer Rule:** The default footer MUST remain portable across the supported terminal target set and MUST NOT depend on bare `Ctrl` press/release state. Ctrl-only tagged/search variants stay out of the always-visible footer and are explained through the active prompt/`F1` help instead.
+*   **Portable Footer Rule:** The default footer MUST remain portable across the supported terminal target set and MUST NOT depend on transient modifier-state telemetry. Ctrl-only tagged/search variants stay out of the always-visible footer and are explained through the active prompt/`F1` help instead.
 *   **Layout Split Rule:** The default runtime footer is three rows: two auto-fit command rows plus one bottom function-key band. Directory, file, archive, and other standard footer contexts share this layout and vary only by their context-specific signposts and visible command entries. Each row has an independent left signpost region and a shared command column. Signpost wording/glyph changes must not shift the command column.
 *   **Auto-Fit Rule:** Visible footer entries are ordered by stable key class: numeric first, alphabetic second, symbolic last. Within each class, entries are ordered by their rendered keybinding token rather than by command label text. Single-letter mnemonic keys sort lexically by key token; function-key tokens sort by natural numeric suffix (`F9` before `F10`); named bottom-band keys such as `Esc` sort after the function-key run. Runtime then packs the resulting full-label entries left-to-right.
 *   **Wrap Rule:** The shared standard footer wraps by whole entry, not by character, across its available command rows. An entry is the complete rendered key/command label, including any internal spaces. Runtime preserves the established order, chooses wrap points that try to balance the used width of the two top command rows rather than greedily saturating row 1 first, and continues packing onto the next allowed row before truncating anything. When the available rows are exhausted, runtime truncates only the final visible entry and marks the truncation with an ellipsis. Runtime MUST NOT truncate earlier visible entries, reorder entries, or rewrite the footer as a handcrafted narrow variant.
@@ -348,7 +349,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Visual Rule:** Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place. Literal key tokens such as `Esc`, `Enter`, `Up`, `Down`, and function keys render as key tokens, not as synthetic words.
 *   **Text-Notation Rule:** In plain-text docs and tests, `(K)eyword` notation is the durable way to describe that in-place highlight when color cannot be shown directly.
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, tagged workflows, and active picker/prompt/dialog surfaces such as history, volumes, applications, compare prompts, and syntax-bearing command prompts.
-*   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and for prompt flows that document Ctrl-only tagged/search actions without a held-`Ctrl` footer state.
+*   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and for prompt flows that document Ctrl-only tagged/search actions without requiring a modifier-state footer variant.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
 *   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
 
