@@ -1,0 +1,44 @@
+Work item: docs/ROADMAP.md Task 11.3
+Title: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)
+Acceptance target:
+- Corrupted or malformed config/history input does not crash runtime and does not leave partial in-memory state.
+- Persistence writes are crash-safe and do not produce truncated/half-written files.
+- Regression tests cover malformed input, invalid value ranges, interrupted-write simulation, and recovery behavior.
+Completion objective:
+- Complete the roadmap item correctly by landing transactional config/history validation, atomic persistence for the selected config/history write paths, focused regression coverage, and roadmap reconciliation for the hardened runtime behavior.
+
+Selected work family:
+- Harden the profile/history load-save boundary as one coherent reliability family: strict validation before apply, actionable diagnostics, atomic persistence plumbing, startup/reload integration, and focused regression tests.
+
+Inventory reconciliation:
+- docs/ROADMAP.md — addressed (Task 11.3 status now marks the config/history robustness gate complete).
+- docs/clean_code_allowlist.json — addressed (explicit clean-code baseline debt now records the enlarged Init budget and the new transactional profile loader budget instead of silently grandfathering the robustness work).
+- src/cmd/profile.c — addressed (profile load is now transactional, validates key ranges/enums/path sanity before apply, reports actionable line/key diagnostics, and persists via atomic replace).
+- include/ytnova_cmd.h — addressed (profile/history persistence signatures now reflect hardened load/save contracts).
+- include/ytnova_defs.h — addressed (shared atomic file helper + history callback signatures are part of the runtime contract).
+- include/ytnova.h — addressed (legacy exported declarations now match the hardened history save/load signatures).
+- src/util/history_utils.c — addressed (history load now stages full-file validation before apply, rejects malformed structured records with diagnostics, persists via atomic replace, and clears stale files when history becomes empty).
+- src/core/init.c — addressed (startup now distinguishes invalid profile/history inputs from missing files, avoids legacy fallback when the preferred file is malformed, and still recovers with built-in defaults where appropriate).
+- src/cmd/config.c — addressed (core-init history callback now propagates load status).
+- src/core/quit.c — addressed (quit-time history persistence now consumes the hardened save result and reports failures).
+- src/ui/interactions.c — addressed (quit/runtime save-history adapter now returns status).
+- src/ui/ui_edit_config.c — addressed (starter config migration/creation paths now use the shared atomic writer, so config edits and bootstrap writes share the same crash-safe replacement path).
+- src/util/atomic_file.c — addressed (new shared temp-file -> fsync -> rename helper centralizes crash-safe replacement for config/history persistence surfaces).
+- tests/test_color_parser_runtime.py — addressed (existing profile-driver coverage now links the new helper dependencies and continues proving unknown-section compatibility).
+- tests/test_archive_exit_ui.py — addressed (startup UI coverage now asserts that malformed SMALLWINDOWSKIP values invalidate the profile and fall back to the built-in default bypass behavior instead of silently preserving the old staged-navigation expectation).
+- tests/test_config_history_robustness.py — addressed (new focused regressions cover invalid profile ranges, malformed history records, interrupted atomic writes, and empty-history persistence recovery).
+- Existing commands/themes starter-file surfaces in src/ui/ui_edit_config.c — addressed (the shared atomic helper safely widened to adjacent starter-file writes because they share the same config-family persistence risk and validation path).
+
+Focused validation:
+- Red proof: `source .venv/bin/activate && pytest -q tests/test_config_history_robustness.py::test_empty_history_save_clears_previous_file_contents`
+- Red proof: `source .venv/bin/activate && pytest -q tests/test_archive_exit_ui.py::test_smallwindowskip_negative_value_falls_back_to_staged_navigation tests/test_archive_exit_ui.py::test_smallwindowskip_trailing_junk_value_falls_back_to_staged_navigation tests/test_clean_code_guard.py::test_current_repository_baseline_passes`
+- `source .venv/bin/activate && pytest -q tests/test_config_history_robustness.py`
+- `source .venv/bin/activate && pytest -q tests/test_color_parser_runtime.py::test_profile_validation_matches_startup_for_legacy_and_unknown_sections tests/test_archive_exit_ui.py::test_legacy_history_is_loaded_and_migrated_to_state_path`
+- `source .venv/bin/activate && pytest -q tests/test_archive_exit_ui.py::test_smallwindowskip_negative_value_falls_back_to_default_profile tests/test_archive_exit_ui.py::test_smallwindowskip_trailing_junk_value_falls_back_to_default_profile tests/test_clean_code_guard.py::test_current_repository_baseline_passes tests/test_config_history_robustness.py tests/test_color_parser_runtime.py::test_profile_validation_matches_startup_for_legacy_and_unknown_sections`
+- `make clean && make`
+- `make`
+- `make qa-code-quality`
+- `git diff --check`
+
+Remaining Task 11.3 work families after this slice:
+- None found after the final sweep across the roadmap entry, config/history runtime surfaces, starter-file compatibility seam, focused regression coverage, and local build/test validation.

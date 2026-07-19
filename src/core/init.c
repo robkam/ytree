@@ -56,6 +56,24 @@ static void CoreInitWbkgdSet(const ViewContext *ctx, WINDOW *win, chtype c);
 static int CoreInitUINotice(ViewContext *ctx, const char *msg);
 static void BoundaryClearPromptLine(ViewContext *ctx);
 static int CoreInitLoadDefaultProfileTemplate(ViewContext *ctx);
+static BOOL InitConfigurePanelRenderingDefaults(YtreeNovaPanel *panel);
+static int InitPrepareRuntimeDefaults(ViewContext *ctx);
+static int InitStartTerminal(ViewContext *ctx);
+static void InitRestoreEditorAndPager(ViewContext *ctx);
+static void InitLoadFallbackProfileTemplate(ViewContext *ctx,
+                                            const char *reason);
+static void InitLoadExplicitProfile(ViewContext *ctx,
+                                    const char *configuration_file);
+static void InitLoadDiscoveredProfile(ViewContext *ctx, char *buffer,
+                                      size_t buffer_size);
+static void InitLoadProfileData(ViewContext *ctx,
+                                const char *configuration_file, char *buffer,
+                                size_t buffer_size);
+static void InitLoadHistoryData(ViewContext *ctx, const char *history_file,
+                                char *buffer, size_t buffer_size);
+static int InitApplyProfileDisplaySettings(ViewContext *ctx);
+static int InitApplyProfileRuntimeFlags(ViewContext *ctx);
+static void InitStartRuntimeServices(ViewContext *ctx);
 extern int RuntimePort_MainInit(ViewContext *ctx, const char *configuration_file,
                                 const char *history_file);
 extern void RuntimePort_MainSetProfileValue(const ViewContext *ctx, char *name,
@@ -913,6 +931,270 @@ static void CoreInitCreateThemedStartupWindows(ViewContext *ctx) {
   ReCreateWindows(ctx);
 }
 
+static BOOL InitConfigurePanelRenderingDefaults(YtreeNovaPanel *panel) {
+  if (!AppStateCommitPanelDirectoryDisplayMode(panel, MODE_3))
+    return FALSE;
+  if (!AppStateCommitPanelFileDisplayMode(panel, MODE_1))
+    return FALSE;
+  if (!AppStateCommitPanelFileInfoOverlayMode(panel, FILEINFO_OVERLAY_NONE))
+    return FALSE;
+  if (!AppStateCommitPanelFixedColumnWidth(panel, 0))
+    return FALSE;
+  if (!AppStateCommitPanelSizeUnitMode(panel, FALSE))
+    return FALSE;
+  if (!AppStateCommitPanelSymlinkTargetMode(panel, FALSE))
+    return FALSE;
+  return AppStateCommitPanelFileMaxColumn(panel, 1);
+}
+
+static int InitPrepareRuntimeDefaults(ViewContext *ctx) {
+  ctx->show_stats = TRUE;
+  if (!AppStateCommitFixedColumnWidth(ctx, 0))
+    return -1;
+  if (!AppStateCommitRefreshMode(ctx, 0))
+    return -1;
+  if (!AppStateCommitPreviewMode(ctx, FALSE))
+    return -1;
+  if (!AppStateSetPreviewWindowHandle(ctx, NULL))
+    return -1;
+  if (!AppStateCommitViewMode(ctx, DISK_MODE))
+    return -1;
+  return 0;
+}
+
+static int InitStartTerminal(ViewContext *ctx) {
+  setlocale(LC_ALL, "");
+
+  ctx->user_umask = umask(0);
+  ctx->configuration_file_path[0] = '\0';
+  ctx->configuration_file_path_is_explicit = FALSE;
+  ctx->history_file_path[0] = '\0';
+  ctx->commands_file_path[0] = '\0';
+  setenv("ESCDELAY", "25", 1);
+  ctx->curses_screen = newterm(NULL, stdout, stdin);
+  if (ctx->curses_screen == NULL) {
+    fprintf(stderr, "Init: failed to initialize terminal\n");
+    return 1;
+  }
+
+  set_term(ctx->curses_screen);
+  if (!AppStateCommitTerminalGeometryCache(ctx, LINES, COLS))
+    return -1;
+  Layout_Recalculate(ctx);
+  if (ctx->core_init_ops.start_colors != NULL)
+    ctx->core_init_ops.start_colors(ctx);
+  if (ctx->core_init_ops.dialog_init != NULL)
+    ctx->core_init_ops.dialog_init();
+
+  cbreak();
+  noecho();
+  nonl();
+  raw();
+  keypad(stdscr, TRUE);
+  clearok(stdscr, TRUE);
+  leaveok(stdscr, FALSE);
+  curs_set(0);
+
+  if (baudrate() >= QUICK_BAUD_RATE)
+    typeahead(-1);
+  DEBUG_LOG("Init: typeahead done");
+  return 0;
+}
+
+static void InitRestoreEditorAndPager(ViewContext *ctx) {
+  const char *editor_env = getenv("EDITOR");
+  const char *pager_env = getenv("PAGER");
+
+  if (ctx->core_main_ops.set_profile_value == NULL)
+    return;
+
+  if (editor_env != NULL && *editor_env) {
+    char editor_key[] = "EDITOR";
+
+    ctx->core_main_ops.set_profile_value(ctx, editor_key, editor_env);
+  }
+  if (pager_env != NULL && *pager_env) {
+    char pager_key[] = "PAGER";
+
+    ctx->core_main_ops.set_profile_value(ctx, pager_key, pager_env);
+  }
+}
+
+static void InitLoadFallbackProfileTemplate(ViewContext *ctx,
+                                            const char *reason) {
+  DEBUG_LOG("%s", reason);
+  if (CoreInitLoadDefaultProfileTemplate(ctx) == 0)
+    InitRestoreEditorAndPager(ctx);
+}
+
+static void InitLoadExplicitProfile(ViewContext *ctx,
+                                    const char *configuration_file) {
+  int read_profile_result = -1;
+
+  ctx->configuration_file_path_is_explicit = TRUE;
+  (void)snprintf(ctx->configuration_file_path,
+                 sizeof(ctx->configuration_file_path), "%s",
+                 configuration_file);
+  DEBUG_LOG("Init: Reading profile %s", configuration_file);
+  if (ctx->core_init_ops.read_profile != NULL)
+    read_profile_result = ctx->core_init_ops.read_profile(ctx, configuration_file);
+  if (read_profile_result != 0) {
+    InitLoadFallbackProfileTemplate(
+        ctx, "Init: Profile invalid or unreadable, loading built-in default "
+             "profile template");
+  }
+}
+
+static void InitLoadDiscoveredProfile(ViewContext *ctx, char *buffer,
+                                      size_t buffer_size) {
+  int read_profile_result = -1;
+
+  if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_PROFILE, buffer,
+                                       buffer_size) == 0) {
+    DEBUG_LOG("Init: Reading profile %s", buffer);
+    if (ctx->core_init_ops.read_profile != NULL)
+      read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+    if (read_profile_result == 0)
+      (void)snprintf(ctx->configuration_file_path,
+                     sizeof(ctx->configuration_file_path), "%s", buffer);
+  }
+  if (read_profile_result != 0 && read_profile_result != 1) {
+    if (ConfigPaths_ResolveLegacyPath(CONFIG_SURFACE_PROFILE, buffer,
+                                      buffer_size, FALSE) == 0) {
+      DEBUG_LOG("Init: Reading legacy profile %s", buffer);
+      if (ctx->core_init_ops.read_profile != NULL)
+        read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+      if (read_profile_result == 0)
+        (void)snprintf(ctx->configuration_file_path,
+                       sizeof(ctx->configuration_file_path), "%s", buffer);
+    }
+  }
+  if (read_profile_result != 0) {
+    InitLoadFallbackProfileTemplate(
+        ctx, "Init: Profile missing or unreadable, loading built-in default "
+             "profile template");
+  }
+}
+
+static void InitLoadProfileData(ViewContext *ctx,
+                                const char *configuration_file, char *buffer,
+                                size_t buffer_size) {
+  if (configuration_file != NULL)
+    InitLoadExplicitProfile(ctx, configuration_file);
+  else if (getenv("HOME") != NULL)
+    InitLoadDiscoveredProfile(ctx, buffer, buffer_size);
+
+  DEBUG_LOG("Init: ReadProfile done");
+}
+
+static void InitLoadHistoryData(ViewContext *ctx, const char *history_file,
+                                char *buffer, size_t buffer_size) {
+  if (history_file != NULL) {
+    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
+                   history_file);
+    DEBUG_LOG("Init: Reading history %s", history_file);
+    if (ctx->core_init_ops.read_history != NULL)
+      (void)ctx->core_init_ops.read_history(ctx, history_file);
+  } else if (ResolvePreferredHistoryPath(buffer, buffer_size) == 0) {
+    char legacy_history_path[PATH_LENGTH + 1];
+    int read_history_result = -1;
+
+    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
+                   buffer);
+    DEBUG_LOG("Init: Reading history %s", buffer);
+    if (ctx->core_init_ops.read_history != NULL)
+      read_history_result = ctx->core_init_ops.read_history(ctx, buffer);
+    if (read_history_result == -1 && access(buffer, F_OK) != 0 &&
+        ResolveLegacyHistoryPath(legacy_history_path,
+                                 sizeof(legacy_history_path)) == 0) {
+      DEBUG_LOG("Init: Reading legacy history %s", legacy_history_path);
+      if (ctx->core_init_ops.read_history != NULL)
+        (void)ctx->core_init_ops.read_history(ctx, legacy_history_path);
+    }
+  } else if (ResolveLegacyHistoryPath(buffer, buffer_size) == 0) {
+    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
+                   buffer);
+    DEBUG_LOG("Init: Reading fallback history %s", buffer);
+    if (ctx->core_init_ops.read_history != NULL)
+      (void)ctx->core_init_ops.read_history(ctx, buffer);
+  }
+
+  DEBUG_LOG("Init: ReadHistory done");
+}
+
+static int InitApplyProfileDisplaySettings(ViewContext *ctx) {
+  BOOL human_size_units =
+      (strcmp(CoreInitGetProfileValue(ctx, "FILE_SIZE_UNITS"),
+              "human-readable") == 0);
+
+  if (ctx->core_init_ops.set_panel_file_mode != NULL) {
+    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->left, MODE_3);
+    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->right, MODE_3);
+  }
+  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->left, MODE_3) ||
+      !AppStateCommitPanelDirectoryDisplayMode(ctx->right, MODE_3) ||
+      !AppStateCommitDirectoryDisplayMode(ctx, MODE_3))
+    return -1;
+  if (!AppStateCommitPanelSizeUnitMode(ctx->left, human_size_units) ||
+      !AppStateCommitPanelSizeUnitMode(ctx->right, human_size_units))
+    return -1;
+
+  DEBUG_LOG("Init: SetPanelFileMode done");
+  return 0;
+}
+
+static int InitApplyProfileRuntimeFlags(ViewContext *ctx) {
+  BOOL hide_dot_files =
+      (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0)) ? TRUE
+                                                                      : FALSE;
+  struct lconv *lc;
+
+  SetKindOfSort(SORT_BY_NAME, &ctx->active->vol->vol_stats);
+  DEBUG_LOG("Init: SetKindOfSort done");
+
+  lc = localeconv();
+  if (lc != NULL && lc->thousands_sep != NULL && *lc->thousands_sep)
+    ctx->number_seperator = *lc->thousands_sep;
+  else
+    ctx->number_seperator = ',';
+  DEBUG_LOG("Init: locale fallback done");
+
+  if (!AppStateCommitSmallWindowBypass(
+          ctx,
+          ParseSmallWindowSkipValue(
+              CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"))))
+    return -1;
+  if (!AppStateCommitFullLineHighlight(
+          ctx,
+          (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
+              ? TRUE
+              : FALSE))
+    return -1;
+  if (!AppStateSeedPanelVisibilityFilter(ctx->left, hide_dot_files) ||
+      !AppStateSeedPanelVisibilityFilter(ctx->right, hide_dot_files))
+    return -1;
+
+  ctx->animation_method =
+      strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);
+  ctx->initial_directory = (char *)CoreInitGetProfileValue(ctx, "INITIALDIR");
+  if (!AppStateCommitRefreshMode(
+          ctx, strtol(CoreInitGetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0)))
+    return -1;
+
+  DEBUG_LOG("Init: Profile variables done");
+  return 0;
+}
+
+static void InitStartRuntimeServices(ViewContext *ctx) {
+  if (ctx->hook_init_clock != NULL)
+    ctx->hook_init_clock(ctx);
+  DEBUG_LOG("Init: InitClock done");
+  if ((ctx->refresh_mode & REFRESH_WATCHER) &&
+      ctx->core_storage_ops.watcher_init != NULL)
+    ctx->core_storage_ops.watcher_init(ctx);
+  DEBUG_LOG("Init: Watcher_Init done");
+}
+
 void ShutdownCurses(ViewContext *ctx) {
   SCREEN *screen = (ctx != NULL) ? ctx->curses_screen : NULL;
 
@@ -929,123 +1211,42 @@ void ShutdownCurses(ViewContext *ctx) {
 
 int Init(ViewContext *ctx, const char *configuration_file,
          const char *history_file) {
+  char buffer[PATH_LENGTH + 1];
+  struct Volume *initial_vol;
+
   InitView(ctx);
   RegisterCoreInitOps(ctx);
   InitBoundaryHooks(ctx);
   DEBUG_LOG("ENTER Init");
-  char buffer[PATH_LENGTH + 1];
 
-  /* ctx already assigned in main.c */
-
-  /* Initial Panel Defaults */
   if (!AppStateCommitSplitScreenLayout(ctx, FALSE))
     return -1;
   if (!AppStateCommitActivePanel(ctx, ctx->left))
     return -1;
-  /* Explicitly initialize panel file lists to zero */
+
   ctx->left->file_entry_list = NULL;
   ctx->left->file_entry_list_capacity = 0;
   ctx->left->file_count = 0;
-
   ctx->right->file_entry_list = NULL;
   ctx->right->file_entry_list_capacity = 0;
   ctx->right->file_count = 0;
 
-  /* Initialize Panel Defaults for Rendering */
-  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->left, MODE_3))
-    return -1;
-  if (!AppStateCommitPanelFileDisplayMode(ctx->left, MODE_1))
-    return -1;
-  if (!AppStateCommitPanelFileInfoOverlayMode(ctx->left,
-                                              FILEINFO_OVERLAY_NONE))
-    return -1;
-  if (!AppStateCommitPanelFixedColumnWidth(ctx->left, 0))
-    return -1;
-  if (!AppStateCommitPanelSizeUnitMode(ctx->left, FALSE))
-    return -1;
-  if (!AppStateCommitPanelSymlinkTargetMode(ctx->left, FALSE))
-    return -1;
-  if (!AppStateCommitPanelFileMaxColumn(ctx->left, 1))
+  if (!InitConfigurePanelRenderingDefaults(ctx->left) ||
+      !InitConfigurePanelRenderingDefaults(ctx->right))
     return -1;
 
-  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->right, MODE_3))
-    return -1;
-  if (!AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1))
-    return -1;
-  if (!AppStateCommitPanelFileInfoOverlayMode(ctx->right,
-                                              FILEINFO_OVERLAY_NONE))
-    return -1;
-  if (!AppStateCommitPanelFixedColumnWidth(ctx->right, 0))
-    return -1;
-  if (!AppStateCommitPanelSizeUnitMode(ctx->right, FALSE))
-    return -1;
-  if (!AppStateCommitPanelSymlinkTargetMode(ctx->right, FALSE))
-    return -1;
-  if (!AppStateCommitPanelFileMaxColumn(ctx->right, 1))
-    return -1;
-
-  /* Allocate and initialize the first volume using the dedicated module */
-  struct Volume *initial_vol = Volume_Create(ctx);
+  initial_vol = Volume_Create(ctx);
   if (initial_vol == NULL)
     return -1;
-  /* Assign initial volume to ActivePanel */
   if (!AppStateCommitActivePanel(ctx, ctx->left))
     return -1;
   if (!AppStateCommitPanelVolume(ctx->active, initial_vol))
     return -1;
 
-  ctx->show_stats = TRUE;
-  if (!AppStateCommitFixedColumnWidth(ctx, 0))
+  if (InitPrepareRuntimeDefaults(ctx) != 0)
     return -1;
-  /* Will be set after ReadProfile initializes profile_data. */
-  if (!AppStateCommitRefreshMode(ctx, 0))
+  if (InitStartTerminal(ctx) != 0)
     return -1;
-  if (!AppStateCommitPreviewMode(ctx, FALSE))
-    return -1;
-  if (!AppStateSetPreviewWindowHandle(ctx, NULL))
-    return -1;
-
-  /* Initialize global mode default */
-  if (!AppStateCommitViewMode(ctx, DISK_MODE))
-    return -1;
-
-  /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
-  setlocale(LC_ALL, "");
-
-  ctx->user_umask = umask(0);
-  ctx->configuration_file_path[0] = '\0';
-  ctx->configuration_file_path_is_explicit = FALSE;
-  ctx->history_file_path[0] = '\0';
-  ctx->commands_file_path[0] = '\0';
-  setenv("ESCDELAY", "25", 1);
-  ctx->curses_screen = newterm(NULL, stdout, stdin);
-  if (ctx->curses_screen == NULL) {
-    fprintf(stderr, "Init: failed to initialize terminal\n");
-    return (1);
-  }
-  set_term(ctx->curses_screen);
-  if (!AppStateCommitTerminalGeometryCache(ctx, LINES, COLS))
-    return -1;
-  Layout_Recalculate(ctx);
-  if (ctx->core_init_ops.start_colors != NULL)
-    ctx->core_init_ops.start_colors(ctx); /* even on b/w terminals... */
-
-  if (ctx->core_init_ops.dialog_init != NULL)
-    ctx->core_init_ops.dialog_init(); /* Initialize Dialog Manager */
-
-  cbreak();
-  noecho();
-  nonl();
-  raw();
-  keypad(stdscr, TRUE);
-  clearok(stdscr, TRUE);
-  leaveok(stdscr, FALSE);
-  curs_set(0);
-
-  /* Use the simpler constant value */
-  if (baudrate() >= QUICK_BAUD_RATE)
-    typeahead(-1);
-  DEBUG_LOG("Init: typeahead done");
 
   DEBUG_LOG("Init: Calling ReadGroupEntries");
   if (ctx->core_init_ops.read_group_entries != NULL &&
@@ -1063,56 +1264,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   }
   DEBUG_LOG("Init: ReadPasswdEntries done");
 
-  if (configuration_file != NULL) {
-    ctx->configuration_file_path_is_explicit = TRUE;
-    (void)snprintf(ctx->configuration_file_path,
-                   sizeof(ctx->configuration_file_path), "%s",
-                   configuration_file);
-    DEBUG_LOG("Init: Reading profile %s", configuration_file);
-    if (ctx->core_init_ops.read_profile != NULL)
-      ctx->core_init_ops.read_profile(ctx, configuration_file);
-  } else if (getenv("HOME") != NULL) {
-    int read_profile_result = -1;
-    if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_PROFILE, buffer,
-                                         sizeof(buffer)) == 0) {
-      DEBUG_LOG("Init: Reading profile %s", buffer);
-      if (ctx->core_init_ops.read_profile != NULL)
-        read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
-      if (read_profile_result == 0)
-        (void)snprintf(ctx->configuration_file_path,
-                       sizeof(ctx->configuration_file_path), "%s", buffer);
-    }
-    if (read_profile_result != 0) {
-      if (ConfigPaths_ResolveLegacyPath(CONFIG_SURFACE_PROFILE, buffer,
-                                        sizeof(buffer), FALSE) == 0) {
-        DEBUG_LOG("Init: Reading legacy profile %s", buffer);
-        if (ctx->core_init_ops.read_profile != NULL)
-          read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
-        if (read_profile_result == 0)
-          (void)snprintf(ctx->configuration_file_path,
-                         sizeof(ctx->configuration_file_path), "%s", buffer);
-      }
-    }
-    if (read_profile_result != 0) {
-      const char *editor_env = getenv("EDITOR");
-      const char *pager_env = getenv("PAGER");
-
-      DEBUG_LOG("Init: Profile missing or unreadable, loading built-in default "
-                "profile template");
-      if (CoreInitLoadDefaultProfileTemplate(ctx) == 0 &&
-          ctx->core_main_ops.set_profile_value != NULL) {
-        if (editor_env && *editor_env) {
-          char editor_key[] = "EDITOR";
-          ctx->core_main_ops.set_profile_value(ctx, editor_key, editor_env);
-        }
-        if (pager_env && *pager_env) {
-          char pager_key[] = "PAGER";
-          ctx->core_main_ops.set_profile_value(ctx, pager_key, pager_env);
-        }
-      }
-    }
-  }
-  DEBUG_LOG("Init: ReadProfile done");
+  InitLoadProfileData(ctx, configuration_file, buffer, sizeof(buffer));
 
   if (ctx->core_init_ops.load_commands != NULL &&
       ctx->core_init_ops.load_commands(ctx) != 0) {
@@ -1134,101 +1286,12 @@ int Init(ViewContext *ctx, const char *configuration_file,
   CoreInitCreateThemedStartupWindows(ctx);
   DEBUG_LOG("Init: ReCreateWindows after theme done");
 
-  if (history_file != NULL) {
-    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
-                   history_file);
-    DEBUG_LOG("Init: Reading history %s", history_file);
-    if (ctx->core_init_ops.read_history != NULL)
-      ctx->core_init_ops.read_history(ctx, history_file);
-  } else if (ResolvePreferredHistoryPath(buffer, sizeof(buffer)) == 0) {
-    char legacy_history_path[PATH_LENGTH + 1];
-
-    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
-                   buffer);
-    DEBUG_LOG("Init: Reading history %s", buffer);
-    if (ctx->core_init_ops.read_history != NULL)
-      ctx->core_init_ops.read_history(ctx, buffer);
-    if (access(buffer, F_OK) != 0 &&
-        ResolveLegacyHistoryPath(legacy_history_path,
-                                 sizeof(legacy_history_path)) == 0) {
-      DEBUG_LOG("Init: Reading legacy history %s", legacy_history_path);
-      if (ctx->core_init_ops.read_history != NULL)
-        ctx->core_init_ops.read_history(ctx, legacy_history_path);
-    }
-  } else if (ResolveLegacyHistoryPath(buffer, sizeof(buffer)) == 0) {
-    (void)snprintf(ctx->history_file_path, sizeof(ctx->history_file_path), "%s",
-                   buffer);
-    DEBUG_LOG("Init: Reading fallback history %s", buffer);
-    if (ctx->core_init_ops.read_history != NULL)
-      ctx->core_init_ops.read_history(ctx, buffer);
-  }
-  DEBUG_LOG("Init: ReadHistory done");
-
-  /* Startup always begins in the plain shared Name view. */
-  BOOL human_size_units =
-      (strcmp(CoreInitGetProfileValue(ctx, "FILE_SIZE_UNITS"),
-              "human-readable") == 0);
-
-  if (ctx->core_init_ops.set_panel_file_mode != NULL) {
-    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->left, MODE_3);
-    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->right, MODE_3);
-  }
-  if (!AppStateCommitPanelDirectoryDisplayMode(ctx->left, MODE_3) ||
-      !AppStateCommitPanelDirectoryDisplayMode(ctx->right, MODE_3) ||
-      !AppStateCommitDirectoryDisplayMode(ctx, MODE_3))
+  InitLoadHistoryData(ctx, history_file, buffer, sizeof(buffer));
+  if (InitApplyProfileDisplaySettings(ctx) != 0)
     return -1;
-  if (!AppStateCommitPanelSizeUnitMode(ctx->left, human_size_units) ||
-      !AppStateCommitPanelSizeUnitMode(ctx->right, human_size_units))
+  if (InitApplyProfileRuntimeFlags(ctx) != 0)
     return -1;
-  DEBUG_LOG("Init: SetPanelFileMode done");
-
-  SetKindOfSort(SORT_BY_NAME, &ctx->active->vol->vol_stats);
-  DEBUG_LOG("Init: SetKindOfSort done");
-
-  /* Use System Locale for number separator */
-  struct lconv *lc = localeconv();
-  if (lc && lc->thousands_sep && *lc->thousands_sep)
-    ctx->number_seperator = *lc->thousands_sep;
-  else
-    ctx->number_seperator = ','; /* Fallback to English/Comma */
-  DEBUG_LOG("Init: locale fallback done");
-
-  if (!AppStateCommitSmallWindowBypass(
-          ctx,
-          ParseSmallWindowSkipValue(
-              CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"))))
-    return -1;
-  if (!AppStateCommitFullLineHighlight(
-          ctx,
-          (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
-              ? TRUE
-              : FALSE))
-    return -1;
-  {
-    BOOL hide_dot_files =
-        (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0))
-            ? TRUE
-            : FALSE;
-    if (!AppStateSeedPanelVisibilityFilter(ctx->left, hide_dot_files) ||
-        !AppStateSeedPanelVisibilityFilter(ctx->right, hide_dot_files))
-      return -1;
-  }
-  ctx->animation_method =
-      strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);
-  ctx->initial_directory = (char *)CoreInitGetProfileValue(ctx, "INITIALDIR");
-
-  if (!AppStateCommitRefreshMode(
-          ctx, strtol(CoreInitGetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0)))
-    return -1;
-  DEBUG_LOG("Init: Profile variables done");
-
-  if (ctx->hook_init_clock != NULL)
-    ctx->hook_init_clock(ctx);
-  DEBUG_LOG("Init: InitClock done");
-  if ((ctx->refresh_mode & REFRESH_WATCHER) &&
-      ctx->core_storage_ops.watcher_init != NULL)
-    ctx->core_storage_ops.watcher_init(ctx);
-  DEBUG_LOG("Init: Watcher_Init done");
+  InitStartRuntimeServices(ctx);
 
   DEBUG_LOG("EXIT Init");
   return (0);

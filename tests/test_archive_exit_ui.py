@@ -912,7 +912,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
         tui.quit()
 
 
-def test_smallwindowskip_negative_value_falls_back_to_staged_navigation(
+def test_smallwindowskip_negative_value_falls_back_to_default_profile(
     tmp_path, ytnova_binary
 ):
     root = tmp_path / "smallwindowskip_negative_value"
@@ -930,18 +930,22 @@ def test_smallwindowskip_negative_value_falls_back_to_staged_navigation(
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
         footer = _footer_text(tui).lower()
-        assert "file" in footer and "tree" not in footer, (
-            "SMALLWINDOWSKIP=-1 should be treated as staged navigation "
-            "(same as SMALLWINDOWSKIP=0), not bypass mode.\n"
+        footer_lines = [line.strip().lower() for line in _footer_lines(tui)]
+        assert (
+            footer_lines
+            and footer_lines[0].startswith("file")
+        ), (
+            "SMALLWINDOWSKIP=-1 should invalidate the startup profile and "
+            "fall back to the built-in default profile (SMALLWINDOWSKIP=1), "
+            "which bypasses the intermediate directory view on Enter.\n"
             f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
         )
     finally:
         tui.quit()
 
 
-def test_smallwindowskip_trailing_junk_value_falls_back_to_staged_navigation(
+def test_smallwindowskip_trailing_junk_value_falls_back_to_default_profile(
     tmp_path, ytnova_binary
 ):
     root = tmp_path / "smallwindowskip_trailing_junk_value"
@@ -959,11 +963,15 @@ def test_smallwindowskip_trailing_junk_value_falls_back_to_staged_navigation(
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
         footer = _footer_text(tui).lower()
-        assert "file" in footer and "tree" not in footer, (
-            "SMALLWINDOWSKIP=1junk should be treated as staged navigation "
-            "(same as SMALLWINDOWSKIP=0), not bypass mode.\n"
+        footer_lines = [line.strip().lower() for line in _footer_lines(tui)]
+        assert (
+            footer_lines
+            and footer_lines[0].startswith("file")
+        ), (
+            "SMALLWINDOWSKIP=1junk should invalidate the startup profile and "
+            "fall back to the built-in default profile (SMALLWINDOWSKIP=1), "
+            "which bypasses the intermediate directory view on Enter.\n"
             f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
         )
     finally:

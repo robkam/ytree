@@ -18,6 +18,7 @@
 #define FILECMD_SECTION 5
 #define DIRMAP_SECTION 6
 #define DIRCMD_SECTION 7
+#define AUTO_REFRESH_MAX_MASK 7
 
 typedef struct {
   char *name;
@@ -97,9 +98,23 @@ static Profile profile[] = {
 static int Compare(const void *s1, const void *s2);
 static int ChCode(const char *s);
 static int WriteProfileKey(FILE *fp, int chcode);
-static char *TrimInPlace(char *text);
 static int ProfileSectionFromHeader(const char *name);
 static BOOL ParseProfileAssignment(char *line, char **name, char **value);
+static int ProfileValidationError(ViewContext *ctx, const char *filename,
+                                  int line_number, const char *detail);
+static BOOL ParseProfileLongValue(const char *value, long *parsed_value);
+static BOOL ValidateProfileBooleanValue(const char *name, const char *value,
+                                        char *detail, size_t detail_size);
+static BOOL ValidateProfileGlobalValue(const char *name, const char *value,
+                                       char *detail, size_t detail_size);
+static const char *NormalizeSmallWindowSkipValue(const char *value);
+static void AssignProfileEntryValue(Profile *entry, const char *value);
+static void ApplyProfileSectionEntry(const ViewContext *ctx, int section,
+                                     char *name, char *value,
+                                     Viewer **viewer_tail,
+                                     Dirmenu **dir_tail,
+                                     Filemenu **file_tail);
+static int LoadProfileFile(ViewContext *ctx, const char *filename);
 static Viewer *CloneViewerList(const Viewer *head);
 static Dirmenu *CloneDirmenuList(const Dirmenu *head);
 static Filemenu *CloneFilemenuList(const Filemenu *head);
@@ -592,75 +607,348 @@ void ProfileRuntimeSnapshot_Free(ProfileRuntimeSnapshot *snapshot) {
   free(snapshot);
 }
 
-int ValidateProfileFile(ViewContext *ctx, const char *filename) {
-  FILE *f;
-  char buffer[1024];
-  int section = NO_SECTION;
-  BOOL invalid = FALSE;
-  BOOL read_failed;
+static int ProfileValidationError(ViewContext *ctx, const char *filename,
+                                  int line_number, const char *detail) {
+  char message[256];
 
-  BindProfileRuntimeData(ctx);
-
+  if (detail == NULL)
+    detail = "invalid config entry";
   if (filename == NULL)
-    return -1;
+    filename = "(unknown)";
 
-  f = fopen(filename, "r");
-  if (f == NULL)
-    return -1;
-
-  while (fgets(buffer, sizeof(buffer), f) != NULL) {
-    char *comment;
-    char *line;
-    char *name;
-    char *value;
-
-    comment = strchr(buffer, '#');
-    if (comment != NULL)
-      *comment = '\0';
-
-    line = TrimInPlace(buffer);
-    if (line == NULL || *line == '\0')
-      continue;
-
-    if (*line == '[') {
-      section = ProfileSectionFromHeader(line);
-      if (section == -1)
-        section = NO_SECTION;
-      continue;
-    }
-
-    if (section == NO_SECTION)
-      continue;
-
-    if (!ParseProfileAssignment(line, &name, &value)) {
-      invalid = TRUE;
-      break;
-    }
-
-    (void)name;
+  if (line_number > 0) {
+    (void)snprintf(message, sizeof(message), "Invalid config \"%s\": line %d: %s",
+                   filename, line_number, detail);
+  } else {
+    (void)snprintf(message, sizeof(message), "Invalid config \"%s\": %s",
+                   filename, detail);
   }
-
-  read_failed = ferror(f) ? TRUE : FALSE;
-  fclose(f);
-  if (read_failed)
-    return -1;
-  return invalid ? 1 : 0;
+  UI_Message(ctx, "%s", message);
+  return 1;
 }
 
-int ReadProfile(ViewContext *ctx, const char *filename) {
+static BOOL ParseProfileLongValue(const char *value, long *parsed_value) {
+  char *end_ptr;
+  long parsed;
+
+  if (value == NULL || *value == '\0' || parsed_value == NULL)
+    return FALSE;
+
+  errno = 0;
+  parsed = strtol(value, &end_ptr, 10);
+  if (errno != 0 || end_ptr == value)
+    return FALSE;
+  while (end_ptr != NULL && *end_ptr != '\0') {
+    if (!isspace((unsigned char)*end_ptr))
+      return FALSE;
+    ++end_ptr;
+  }
+
+  *parsed_value = parsed;
+  return TRUE;
+}
+
+static BOOL ValidateProfileBooleanValue(const char *name, const char *value,
+                                        char *detail, size_t detail_size) {
+  long parsed_value;
+
+  if (!ParseProfileLongValue(value, &parsed_value) ||
+      (parsed_value != 0 && parsed_value != 1)) {
+    (void)snprintf(detail, detail_size, "%s must be 0 or 1", name);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+static BOOL ValidateProfileGlobalValue(const char *name, const char *value,
+                                       char *detail, size_t detail_size) {
+  long parsed_value;
+
+  if (name == NULL || value == NULL)
+    return FALSE;
+
+  if (!strcmp(name, "ANIMATION"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "AUDIBLEERROR"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "CONFIRMQUIT"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "HIDEDOTFILES"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "HIGHLIGHT_FULL_LINE"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "LISTJUMPSEARCH"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "SEPARATE_DIR_FILE_VIEWS"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+  if (!strcmp(name, "SMALLWINDOWSKIP"))
+    return TRUE;
+  if (!strcmp(name, "VI_KEYS"))
+    return ValidateProfileBooleanValue(name, value, detail, detail_size);
+
+  if (!strcmp(name, "AUTO_REFRESH")) {
+    if (!ParseProfileLongValue(value, &parsed_value) || parsed_value < 0 ||
+        parsed_value > AUTO_REFRESH_MAX_MASK) {
+      (void)snprintf(detail, detail_size,
+                     "AUTO_REFRESH must be a bitmask from 0 to %d",
+                     AUTO_REFRESH_MAX_MASK);
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  if (!strcmp(name, "TREEDEPTH")) {
+    if (!ParseProfileLongValue(value, &parsed_value) || parsed_value < 0) {
+      (void)snprintf(detail, detail_size,
+                     "TREEDEPTH must be a non-negative integer");
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  if (!strcmp(name, "FILE_SIZE_UNITS")) {
+    if (strcmp(value, "human-readable") != 0 && strcmp(value, "binary") != 0) {
+      (void)snprintf(detail, detail_size,
+                     "FILE_SIZE_UNITS must be human-readable or binary");
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  if (!strcmp(name, "HEXEDITOFFSET")) {
+    if (strcmp(value, "HEX") != 0 && strcmp(value, "DECIMAL") != 0) {
+      (void)snprintf(detail, detail_size,
+                     "HEXEDITOFFSET must be HEX or DECIMAL");
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  if (!strcmp(name, "INITIALDIR")) {
+    if (value[0] != '\0' && !String_HasNonWhitespace(value)) {
+      (void)snprintf(detail, detail_size,
+                     "INITIALDIR must not be empty or whitespace-only");
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  return TRUE;
+}
+
+static const char *NormalizeSmallWindowSkipValue(const char *value) {
+  long parsed_value;
+
+  if (!ParseProfileLongValue(value, &parsed_value) || parsed_value != 1)
+    return "0";
+  return "1";
+}
+
+static void AssignProfileEntryValue(Profile *entry, const char *value) {
+  if (entry == NULL || value == NULL)
+    return;
+
+  if (entry->value != NULL)
+    free(entry->value);
+  entry->value = xstrdup(value);
+}
+
+static void ApplyProfileSectionEntry(const ViewContext *ctx, int section,
+                                     char *name, char *value,
+                                     Viewer **viewer_tail,
+                                     Dirmenu **dir_tail,
+                                     Filemenu **file_tail) {
+  char *old;
+  const char *token;
+  Profile *p;
+  Profile key = {0};
+  Viewer *new_v;
+  Filemenu *new_m;
+  Dirmenu *new_d;
+
+  if (ctx == NULL || name == NULL || value == NULL)
+    return;
+
+  if (section == GLOBAL_SECTION) {
+    const char *stored_value = value;
+
+    if (!strcmp(name, "SMALLWINDOWSKIP"))
+      stored_value = NormalizeSmallWindowSkipValue(value);
+
+    key.name = name;
+    p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES, sizeof(*p),
+                Compare);
+    if (p != NULL)
+      AssignProfileEntryValue(p, stored_value);
+    return;
+  }
+
+  if (section == MENU_SECTION) {
+    if (IsMenuProfileName(name)) {
+      char *menu_dst = value;
+      int menu_len = 0;
+
+      key.name = name;
+      p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES, sizeof(*p),
+                  Compare);
+      if (p == NULL)
+        return;
+      for (; *menu_dst; ++menu_dst) {
+        if (*menu_dst != '(' && *menu_dst != ')')
+          ++menu_len;
+      }
+      while (menu_len++ < COLS - 1)
+        *menu_dst++ = ' ';
+      *menu_dst = '\0';
+      AssignProfileEntryValue(p, value);
+    }
+    return;
+  }
+
+  if (section == FILEMAP_SECTION) {
+    while (*value && isspace((unsigned char)*value))
+      ++value;
+    token = strtok_r(name, ",", &old);
+    while (token != NULL) {
+      for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
+           new_m = new_m->next) {
+        if (new_m->chkey == ChCode(token)) {
+          new_m->chremap = ChCode(value);
+          if (new_m->chremap == 0)
+            new_m->chremap = -1;
+          break;
+        }
+      }
+      if (new_m == NULL) {
+        new_m = xmalloc(sizeof(*new_m));
+        new_m->chkey = ChCode(token);
+        new_m->chremap = ChCode(value);
+        new_m->cmd = NULL;
+        new_m->next = NULL;
+        (*file_tail)->next = new_m;
+        *file_tail = new_m;
+      }
+      token = strtok_r(NULL, ",", &old);
+    }
+    return;
+  }
+
+  if (section == FILECMD_SECTION) {
+    while (*value && isspace((unsigned char)*value))
+      ++value;
+    for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
+         new_m = new_m->next) {
+      if (new_m->chkey == ChCode(name)) {
+        if (new_m->cmd != NULL)
+          free(new_m->cmd);
+        new_m->cmd = xstrdup(value);
+        if (new_m->chremap == 0)
+          new_m->chremap = -1;
+        break;
+      }
+    }
+    if (new_m == NULL) {
+      new_m = xmalloc(sizeof(*new_m));
+      new_m->chkey = ChCode(name);
+      new_m->chremap = new_m->chkey;
+      new_m->cmd = xstrdup(value);
+      new_m->next = NULL;
+      (*file_tail)->next = new_m;
+      *file_tail = new_m;
+    }
+    return;
+  }
+
+  if (section == DIRMAP_SECTION) {
+    while (*value && isspace((unsigned char)*value))
+      ++value;
+    token = strtok_r(name, ",", &old);
+    while (token != NULL) {
+      for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
+           new_d = new_d->next) {
+        if (new_d->chkey == ChCode(token)) {
+          new_d->chremap = ChCode(value);
+          if (new_d->chremap == 0)
+            new_d->chremap = -1;
+          break;
+        }
+      }
+      if (new_d == NULL) {
+        new_d = xmalloc(sizeof(*new_d));
+        new_d->chkey = ChCode(token);
+        new_d->chremap = ChCode(value);
+        new_d->cmd = NULL;
+        new_d->next = NULL;
+        (*dir_tail)->next = new_d;
+        *dir_tail = new_d;
+      }
+      token = strtok_r(NULL, ",", &old);
+    }
+    return;
+  }
+
+  if (section == DIRCMD_SECTION) {
+    while (*value && isspace((unsigned char)*value))
+      ++value;
+    for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
+         new_d = new_d->next) {
+      if (new_d->chkey == ChCode(name)) {
+        if (new_d->cmd != NULL)
+          free(new_d->cmd);
+        new_d->cmd = xstrdup(value);
+        if (new_d->chremap == 0)
+          new_d->chremap = -1;
+        break;
+      }
+    }
+    if (new_d == NULL) {
+      new_d = xmalloc(sizeof(*new_d));
+      new_d->chkey = ChCode(name);
+      new_d->chremap = new_d->chkey;
+      new_d->cmd = xstrdup(value);
+      new_d->next = NULL;
+      (*dir_tail)->next = new_d;
+      *dir_tail = new_d;
+    }
+    return;
+  }
+
+  if (section == VIEWER_SECTION) {
+    token = strtok_r(name, ",", &old);
+    while (token != NULL) {
+      new_v = xmalloc(sizeof(*new_v));
+      new_v->ext = xstrdup(token);
+      new_v->cmd = xstrdup(value);
+      new_v->next = NULL;
+      if (new_v->ext == NULL || new_v->cmd == NULL) {
+        if (new_v->ext != NULL)
+          free(new_v->ext);
+        if (new_v->cmd != NULL)
+          free(new_v->cmd);
+        free(new_v);
+      } else {
+        (*viewer_tail)->next = new_v;
+        *viewer_tail = new_v;
+      }
+      token = strtok_r(NULL, ",", &old);
+    }
+  }
+}
+
+static int LoadProfileFile(ViewContext *ctx, const char *filename) {
   int result = -1;
-  char buffer[1024], *old;
-  const char *n;
-  char *name, *value;
+  char buffer[1024];
+  char *name;
   int section;
-  Profile *p, key;
-  Viewer *v, *new_v;
-  Filemenu *m, *new_m;
-  Dirmenu *d, *new_d;
+  Viewer *v;
+  Filemenu *m;
+  Dirmenu *d;
   FILE *f;
+  int line_number = 0;
 
+  if (ctx == NULL || filename == NULL)
+    return -1;
   BindProfileRuntimeData(ctx);
-
   FreeProfileRuntimeData(ctx);
 
   section = NO_SECTION;
@@ -673,229 +961,91 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
   }
 
   while (fgets(buffer, sizeof(buffer), f)) {
-    char *cptr;
+    char detail[128];
+    char *value;
     int l;
 
-    if ((cptr = strchr(buffer, '#'))) {
-      *cptr = '\0';
+    ++line_number;
+    if (strchr(buffer, '\n') == NULL && !feof(f)) {
+      result = ProfileValidationError(ctx, filename, line_number,
+                                      "line is too long");
+      goto finish;
     }
+
+    name = strchr(buffer, '#');
+    if (name != NULL)
+      *name = '\0';
 
     l = strlen(buffer);
-    while (l > 0 && isspace((unsigned char)buffer[l - 1])) {
+    while (l > 0 && isspace((unsigned char)buffer[l - 1]))
       buffer[--l] = '\0';
-    }
-
     if (l == 0)
       continue;
 
-    for (name = buffer; isspace(*name); name++)
+    for (name = buffer; isspace((unsigned char)*name); ++name)
       ;
-
     if (*name == '\0')
       continue;
 
-    for (cptr = name; *cptr && !isspace((unsigned char)*cptr) && *cptr != '=';
-         cptr++)
-      ;
-
     if (*name == '[') {
-      if (!strcmp(name, "[GLOBAL]"))
-        section = GLOBAL_SECTION;
-      else if (!strcmp(name, "[VIEWER]"))
-        section = VIEWER_SECTION;
-      else if (!strcmp(name, "[MENU]"))
-        section = MENU_SECTION;
-      else if (!strcmp(name, "[FILEMAP]"))
-        section = FILEMAP_SECTION;
-      else if (!strcmp(name, "[FILECMD]"))
-        section = FILECMD_SECTION;
-      else if (!strcmp(name, "[DIRMAP]"))
-        section = DIRMAP_SECTION;
-      else if (!strcmp(name, "[DIRCMD]"))
-        section = DIRCMD_SECTION;
-      else
+      section = ProfileSectionFromHeader(name);
+      if (section < 0)
         section = NO_SECTION;
-
       continue;
     }
 
-    value = cptr;
-    if (*value == '=') {
-      *value++ = '\0';
-    } else if (*value != '\0') {
-      *value++ = '\0';
-      while (*value && isspace((unsigned char)*value))
-        ++value;
-      if (*value == '=')
-        *value++ = '\0';
-      else
-        value = NULL;
-    } else {
-      value = NULL;
+    detail[0] = '\0';
+    if (!ParseProfileAssignment(name, &name, &value)) {
+      result = ProfileValidationError(ctx, filename, line_number,
+                                      "expected KEY=VALUE assignment");
+      goto finish;
     }
-    if (value != NULL) {
-      while (*value && isspace((unsigned char)*value))
-        ++value;
+    if (section == GLOBAL_SECTION &&
+        !ValidateProfileGlobalValue(name, value, detail, sizeof(detail))) {
+      result = ProfileValidationError(ctx, filename, line_number, detail);
+      goto finish;
     }
-
-    if (section == GLOBAL_SECTION) {
-      if (value) {
-        key.name = name;
-        if ((p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES,
-                         sizeof(*p), Compare))) {
-          if (p->value)
-            free(p->value);
-          p->value = xstrdup(value);
-        }
-      }
-    } else if (section == MENU_SECTION) {
-      if (value) {
-        if (!strcmp(name, "DIR1") || !strcmp(name, "DIR2") ||
-            !strcmp(name, "FILE1") || !strcmp(name, "FILE2")) {
-          key.name = name;
-          if ((p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES,
-                           sizeof(*p), Compare))) {
-            int menu_len = 0;
-            char *menu_dst = value;
-            for (; *menu_dst; ++menu_dst) {
-              if (*menu_dst != '(' && *menu_dst != ')') {
-                ++menu_len;
-              }
-            }
-            while (menu_len++ < COLS - 1)
-              *menu_dst++ = ' ';
-            *menu_dst = '\0';
-            p->value = xstrdup(value);
-          }
-        }
-      }
-    } else if (section == FILEMAP_SECTION) {
-      if (value) {
-        while (*value && isspace(*value))
-          value++;
-        n = strtok_r(name, ",", &old);
-        while (n) {
-          for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
-               new_m = new_m->next) {
-            if (new_m->chkey == ChCode(n)) {
-              new_m->chremap = ChCode(value);
-              if (new_m->chremap == 0)
-                new_m->chremap = -1;
-              break;
-            }
-          }
-          if (new_m == NULL) {
-            new_m = xmalloc(sizeof(*new_m));
-            new_m->chkey = ChCode(n);
-            new_m->chremap = ChCode(value);
-            new_m->cmd = NULL;
-            new_m->next = NULL;
-            m->next = new_m;
-            m = new_m;
-          }
-          n = strtok_r(NULL, ",", &old);
-        }
-      }
-    } else if (section == FILECMD_SECTION) {
-      if (value) {
-        while (*value && isspace(*value))
-          value++;
-        for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
-             new_m = new_m->next) {
-          if (new_m->chkey == ChCode(name)) {
-            new_m->cmd = xstrdup(value);
-            if (new_m->chremap == 0)
-              new_m->chremap = -1;
-            break;
-          }
-        }
-        if (new_m == NULL) {
-          new_m = xmalloc(sizeof(*new_m));
-          new_m->chkey = ChCode(name);
-          new_m->chremap = new_m->chkey;
-          new_m->cmd = xstrdup(value);
-          new_m->next = NULL;
-          m->next = new_m;
-          m = new_m;
-        }
-      }
-    } else if (section == DIRMAP_SECTION) {
-      if (value) {
-        while (*value && isspace(*value))
-          value++;
-        n = strtok_r(name, ",", &old);
-        while (n) {
-          for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
-               new_d = new_d->next) {
-            if (new_d->chkey == ChCode(n)) {
-              new_d->chremap = ChCode(value);
-              if (new_d->chremap == 0)
-                new_d->chremap = -1;
-              break;
-            }
-          }
-          if (new_d == NULL) {
-            new_d = xmalloc(sizeof(*new_d));
-            new_d->chkey = ChCode(n);
-            new_d->chremap = ChCode(value);
-            new_d->cmd = NULL;
-            new_d->next = NULL;
-            d->next = new_d;
-            d = new_d;
-          }
-          n = strtok_r(NULL, ",", &old);
-        }
-      }
-    } else if (section == DIRCMD_SECTION) {
-      if (value) {
-        while (*value && isspace(*value))
-          value++;
-        for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
-             new_d = new_d->next) {
-          if (new_d->chkey == ChCode(name)) {
-            new_d->cmd = xstrdup(value);
-            if (new_d->chremap == 0)
-              new_d->chremap = -1;
-            break;
-          }
-        }
-        if (new_d == NULL) {
-          new_d = xmalloc(sizeof(*new_d));
-          new_d->chkey = ChCode(name);
-          new_d->chremap = new_d->chkey;
-          new_d->cmd = xstrdup(value);
-          new_d->next = NULL;
-          d->next = new_d;
-          d = new_d;
-        }
-      }
-    } else if (section == VIEWER_SECTION) {
-      if (value) {
-        n = strtok_r(name, ",", &old);
-        while (n) {
-          new_v = xmalloc(sizeof(*new_v));
-          new_v->ext = xstrdup(n);
-          new_v->cmd = xstrdup(value);
-          new_v->next = NULL;
-          if (new_v->ext == NULL || new_v->cmd == NULL) {
-            if (new_v->ext)
-              free(new_v->ext);
-            if (new_v->cmd)
-              free(new_v->cmd);
-            free(new_v);
-          } else {
-            v->next = new_v;
-            v = new_v;
-          }
-          n = strtok_r(NULL, ",", &old);
-        }
-      }
-    }
+    ApplyProfileSectionEntry(ctx, section, name, value, &v, &d, &m);
+  }
+  if (ferror(f)) {
+    result = -1;
+    goto finish;
   }
   result = 0;
-  if (f)
+
+finish:
+  if (f != NULL)
     fclose(f);
-  return (result);
+  return result;
+}
+
+int ValidateProfileFile(ViewContext *ctx, const char *filename) {
+  ProfileRuntimeSnapshot *snapshot;
+  int result;
+
+  if (ctx == NULL || filename == NULL)
+    return -1;
+
+  snapshot = ProfileRuntimeSnapshot_Create(ctx);
+  result = LoadProfileFile(ctx, filename);
+  ProfileRuntimeSnapshot_Restore(ctx, snapshot);
+  ProfileRuntimeSnapshot_Free(snapshot);
+  return result;
+}
+
+int ReadProfile(ViewContext *ctx, const char *filename) {
+  ProfileRuntimeSnapshot *snapshot;
+  int result;
+
+  if (ctx == NULL || filename == NULL)
+    return -1;
+
+  snapshot = ProfileRuntimeSnapshot_Create(ctx);
+  result = LoadProfileFile(ctx, filename);
+  if (result != 0)
+    ProfileRuntimeSnapshot_Restore(ctx, snapshot);
+  ProfileRuntimeSnapshot_Free(snapshot);
+  return result;
 }
 
 void SetProfileValue(const ViewContext *ctx, char *name, const char *value) {
@@ -1231,62 +1381,22 @@ static int WriteRenderedProfileTemplate(ViewContext *ctx, FILE *fp) {
   return 0;
 }
 
-int WriteProfileFromRuntimeState(ViewContext *ctx, const char *filename) {
-  FILE *fp;
+static int WriteProfileFromRuntimeStateFile(FILE *fp, void *user_data) {
+  return WriteRenderedProfileTemplate((ViewContext *)user_data, fp);
+}
 
+int WriteProfileFromRuntimeState(ViewContext *ctx, const char *filename) {
   if (ctx == NULL || filename == NULL || *filename == '\0')
     return -1;
-
-  fp = fopen(filename, "w");
-  if (fp == NULL)
-    return -1;
-
-  if (WriteRenderedProfileTemplate(ctx, fp) != 0) {
-    fclose(fp);
-    return -1;
-  }
-
-  if (fclose(fp) != 0)
-    return -1;
-  return 0;
+  return AtomicFileWrite(filename, WriteProfileFromRuntimeStateFile, ctx);
 }
 
 int CreateProfileFromRuntimeState(ViewContext *ctx, const char *filename) {
-  int fd;
-  FILE *fp;
-
   if (ctx == NULL || filename == NULL || *filename == '\0')
     return -1;
-
-  fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-  if (fd == -1) {
-    if (errno == EEXIST)
-      return 0;
-    return -1;
-  }
-
-  fp = fdopen(fd, "w");
-  if (fp == NULL) {
-    int saved_errno = errno;
-
-    close(fd);
-    unlink(filename);
-    errno = saved_errno;
-    return -1;
-  }
-
-  if (WriteRenderedProfileTemplate(ctx, fp) != 0) {
-    fclose(fp);
-    unlink(filename);
-    return -1;
-  }
-
-  if (fclose(fp) != 0) {
-    unlink(filename);
-    return -1;
-  }
-
-  return 1;
+  if (access(filename, F_OK) == 0)
+    return 0;
+  return WriteProfileFromRuntimeState(ctx, filename) == 0 ? 1 : -1;
 }
 
 static int ChCode(const char *s) {
@@ -1294,22 +1404,6 @@ static int ChCode(const char *s) {
     return ((int)((*(s + 1)) & 0x1F));
   else
     return ((int)(*s));
-}
-
-static char *TrimInPlace(char *text) {
-  char *end;
-
-  if (text == NULL)
-    return NULL;
-
-  while (*text && isspace((unsigned char)*text))
-    ++text;
-
-  end = text + strlen(text);
-  while (end > text && isspace((unsigned char)end[-1]))
-    *--end = '\0';
-
-  return text;
 }
 
 static int ProfileSectionFromHeader(const char *name) {

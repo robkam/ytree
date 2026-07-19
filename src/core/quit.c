@@ -47,8 +47,9 @@ static void PerformQuit(ViewContext *ctx) {
         (void)ResolveLegacyHistoryPath(path_for_history,
                                        sizeof(path_for_history));
       }
-      if (path_for_history[0] != '\0' && quit_ops->save_history != NULL)
-        quit_ops->save_history(ctx, path_for_history);
+      if (path_for_history[0] != '\0' && quit_ops->save_history != NULL &&
+          quit_ops->save_history(ctx, path_for_history) != 0)
+        WARNING(ctx, "Failed to save history*\"%s\"", path_for_history);
     }
     if (quit_ops->close_watcher != NULL)
       quit_ops->close_watcher(ctx);

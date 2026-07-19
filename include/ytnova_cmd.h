@@ -185,8 +185,8 @@ extern int ReadThemeFile(const ViewContext *ctx, const char *filename,
 extern int LoadConfiguredTheme(ViewContext *ctx);
 
 /* history.c */
-extern void ReadHistory(ViewContext *ctx, const char *filename);
-extern void SaveHistory(ViewContext *ctx, const char *filename);
+extern int ReadHistory(ViewContext *ctx, const char *filename);
+extern int SaveHistory(ViewContext *ctx, const char *filename);
 extern void InsHistory(ViewContext *ctx, const char *new_hst, int type);
 extern void BuildHistoryViewList(ViewContext *ctx, int type);
 extern char *PrepareCompletionMatches(ViewContext *ctx, char *base,

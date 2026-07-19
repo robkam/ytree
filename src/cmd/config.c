@@ -11,8 +11,8 @@ static int CoreInit_ReadGroupEntries(void) { return ReadGroupEntries(); }
 
 static int CoreInit_ReadPasswdEntries(void) { return ReadPasswdEntries(); }
 
-static void CoreInit_ReadHistory(ViewContext *ctx, const char *filename) {
-  ReadHistory(ctx, filename);
+static int CoreInit_ReadHistory(ViewContext *ctx, const char *filename) {
+  return ReadHistory(ctx, filename);
 }
 
 void CoreInitOps_RegisterCmdConfig(CoreInitOps *ops) {

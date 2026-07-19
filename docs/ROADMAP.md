@@ -283,7 +283,7 @@ Ordering policy (for all editors, including AI editors):
 *   Corrupted or malformed config/history input does not crash runtime and does not leave partial in-memory state.
 *   Persistence writes are crash-safe and do not produce truncated/half-written files.
 *   Regression tests cover malformed input, invalid value ranges, interrupted-write simulation, and recovery behavior.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 #### **Task 11.4: Implement In-App Configuration Editor (F10)**
 *   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for the split config, commands, and theme surfaces.

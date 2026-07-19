@@ -196,8 +196,8 @@ extern char *xstrdup(const char *s);
 
 extern int(ReadProfile)(ViewContext *ctx, const char *filename);
 extern void(FreeProfileRuntimeData)(ViewContext *ctx);
-extern void(ReadHistory)(ViewContext *ctx, const char *filename);
-extern void(SaveHistory)(ViewContext *ctx, const char *filename);
+extern int(ReadHistory)(ViewContext *ctx, const char *filename);
+extern int(SaveHistory)(ViewContext *ctx, const char *filename);
 extern void(InsHistory)(ViewContext *ctx, const char *NewHst, int type);
 extern char *(GetHistory)(ViewContext * ctx, int type);
 
