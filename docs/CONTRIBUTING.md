@@ -247,6 +247,22 @@ Individual gates:
 - `make fuzz` (builds all fuzz binaries under `build/fuzz/`)
 - `make fuzz-smoke` (runs bounded libFuzzer smoke passes for all harnesses)
 
+### Recurring code-quality burn-down cadence
+
+When you are doing deliberate debt burn-down work rather than a one-off bugfix, run the recurring cadence described in `docs/AUDIT.md` and `docs/ai/CODE_QUALITY.md`.
+
+The minimum evidence set is:
+
+```bash
+python3 scripts/report_code_quality_hotspots.py --format json > /tmp/ytnova-hotspots-before.json
+python3 scripts/report_code_quality_hotspots.py --baseline /tmp/ytnova-hotspots-before.json --format markdown --top 5
+make
+source .venv/bin/activate && pytest -q tests/path/to/focused_test.py
+make qa-module-boundaries
+```
+
+Also run the matching bundled QA gates for the surfaces you changed (`make qa-code-quality`, `make qa-fileops-integrity`, `make qa-split-panel-gates`, and so on). Record which hotspots shrank, which stayed flat, and any explicitly deferred items.
+
 ---
 
 ## Architectural Decisions & Constraints

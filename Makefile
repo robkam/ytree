@@ -93,6 +93,7 @@ COMMANDS_CATALOG_SCRIPT = scripts/generate_default_commands_catalog.py
 COMMAND_PRESETS_SRC_DIR = etc/commands
 COMMAND_PRESETS_HDR = src/core/default_command_presets_catalog.h
 COMMAND_PRESETS_SCRIPT = scripts/generate_default_command_presets_catalog.py
+CODE_QUALITY_HOTSPOT_SCRIPT = scripts/report_code_quality_hotspots.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
@@ -181,7 +182,8 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 		test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
 		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-code-quality qa-all \
 		ci-baseline mcp-doctor py-requirements \
-		qa-all-log qa-deep theme-catalog profile-template commands-catalog command-presets-catalog
+		qa-all-log qa-deep theme-catalog profile-template commands-catalog command-presets-catalog \
+		code-quality-hotspots
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -450,6 +452,9 @@ qa-appstate-contract:
 
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
+
+code-quality-hotspots:
+	$(PYTHON) $(CODE_QUALITY_HOTSPOT_SCRIPT) $(HOTSPOT_ARGS)
 
 qa-theme-catalog:
 	$(PYTHON) $(THEME_CATALOG_SCRIPT) --source $(THEME_CATALOG_SRC) \

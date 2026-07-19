@@ -133,7 +133,7 @@ Cross-cutting skill auto-load:
 *   Manpage/usage doc sync tasks -> `manpage-sync`
 *   UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
 *   UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
-*   Code-quality audit/remediation (clean-code/deslop-style) -> `code-quality` (prompt guide: [CODE_QUALITY.md](CODE_QUALITY.md))
+*   Code-quality audit/remediation (clean-code/deslop-style) -> `code-quality` (blueprint: [CODE_QUALITY.md](CODE_QUALITY.md))
 *   AI-writing-tell and prose de-slop tasks -> `ai-writing-tells`
 
 Skill precedence (highest to lowest):

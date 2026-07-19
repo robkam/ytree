@@ -10,6 +10,29 @@ This document defines the mandatory quality process for the YtreeNova modernizat
 - Always run the merge/release gate before merge/release.
 - Do not run the full gate after every prompt-level micro-edit unless risk justifies it.
 
+### 1.1.1 Recurring Code-Quality Burn-Down Cadence
+
+Task 6 recurring burn-down passes are mandatory on this cadence:
+
+1. After every **five merged structural PRs** that touch `src/`, `include/`, or code-quality guard scripts under `scripts/`.
+2. Before any milestone or release tag.
+3. When a PR intentionally lowers a controller/file/function budget or retires a documented legacy boundary exception.
+
+Each burn-down pass must attach measurable before/after evidence for the same hotspot rows:
+
+```bash
+python3 scripts/report_code_quality_hotspots.py --format json > /tmp/ytnova-hotspots-before.json
+python3 scripts/report_code_quality_hotspots.py --baseline /tmp/ytnova-hotspots-before.json --format markdown --top 5
+```
+
+Required local evidence for the pass:
+
+- `make`
+- focused `pytest` for the touched behavior
+- `make qa-module-boundaries`
+
+Add the other bundled gates that match the changed risk surface (`make qa-code-quality`, `make qa-fileops-integrity`, `make qa-split-panel-gates`, and so on). The detailed smell taxonomy, simplicity contract, and burn-down checklist live in `docs/ai/CODE_QUALITY.md`.
+
 ## 1.2 QA Layers
 
 The project uses seven QA layers with increasing depth and cost:
