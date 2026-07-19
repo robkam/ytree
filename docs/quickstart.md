@@ -67,6 +67,7 @@ Use these commands to check the repo after changes:
 
 ```bash
 pytest
+make qa-clean-code
 make qa-code-quality
 make qa-all
 ```

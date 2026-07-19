@@ -4,7 +4,14 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from clean_code_allowlist import load_allowlist, section_records
 
 LAYER_ORDER = ("core", "cmd", "fs", "ui", "util")
 
@@ -38,11 +45,36 @@ POLICY_ALLOWED_DEPENDENCIES = {
 # Any new exception requires explicit architecture review.
 LEGACY_POLICY_EXCEPTIONS = set()
 
+ALLOWLIST_DOCUMENT, ALLOWLIST_LOAD_FAILURES = load_allowlist()
+
+
+def _controller_file_line_budget() -> dict[str, int]:
+    budgets: dict[str, int] = {}
+    for record in section_records(ALLOWLIST_DOCUMENT, "controller_file_line_budgets"):
+        relpath = record.get("path")
+        budget = record.get("budget")
+        if isinstance(relpath, str) and isinstance(budget, int):
+            budgets[relpath] = budget
+    return budgets
+
+
+def _controller_function_line_budget() -> dict[str, dict[str, int]]:
+    budgets: dict[str, dict[str, int]] = {}
+    for record in section_records(ALLOWLIST_DOCUMENT, "controller_function_line_budgets"):
+        relpath = record.get("path")
+        symbol = record.get("symbol")
+        budget = record.get("budget")
+        if not isinstance(relpath, str) or not isinstance(symbol, str) or not isinstance(
+            budget,
+            int,
+        ):
+            continue
+        budgets.setdefault(relpath, {})[symbol] = budget
+    return budgets
+
+
 # Prevent regression of known "god module" hotspots.
-CONTROLLER_FILE_LINE_BUDGET = {
-    "src/ui/ctrl_dir.c": 1988,
-    "src/ui/ctrl_file.c": 1883,
-}
+CONTROLLER_FILE_LINE_BUDGET = _controller_file_line_budget()
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
 FUNCTION_DEF_RE = re.compile(
@@ -81,10 +113,7 @@ CONTROLLER_TOP_LEVEL_ALLOWLIST = {
     },
 }
 
-CONTROLLER_GOD_FUNCTION_LINE_BUDGET = {
-    "src/ui/ctrl_dir.c": {"HandleDirWindow": 1376},
-    "src/ui/ctrl_file.c": {"HandleFileWindow": 1274},
-}
+CONTROLLER_GOD_FUNCTION_LINE_BUDGET = _controller_function_line_budget()
 
 
 def parse_includes(text: str) -> list[str]:
@@ -330,7 +359,7 @@ def check_controller_budgets(root: Path) -> list[str]:
 def main() -> int:
     root = Path(__file__).resolve().parent.parent
     src_root = root / "src"
-    failures: list[str] = []
+    failures: list[str] = list(ALLOWLIST_LOAD_FAILURES)
 
     for path in sorted(src_root.rglob("*.c")):
         failures.extend(check_source_file(path, root))

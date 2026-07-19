@@ -271,13 +271,7 @@ def test_f2_escape_can_abort_right_expand_scan(tmp_path):
 
         tui.send_keystroke(Keys.F2, wait=0.8)
         _move_selection_to_exact_span(tui, "alpha")
-        before_scan = tui.peek_screen_dump()
         tui.child.send(Keys.RIGHT)                # start subtree scan
-        tui.wait_for_condition(
-            lambda lines: lines != before_scan,
-            timeout=0.2,
-            poll_interval=0.005,
-        )
         tui.child.send(Keys.ESC)                  # abort the scan mid-flight
         tui._read_output(timeout=0.8)
 

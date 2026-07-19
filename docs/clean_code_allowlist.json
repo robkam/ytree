@@ -1,0 +1,1658 @@
+{
+  "controller_file_line_budgets": [
+    {
+      "id": "ui-controller-dir-window-file-budget",
+      "path": "src/ui/ctrl_dir.c",
+      "budget": 1988,
+      "owner": "ui",
+      "removal_plan": "Shrink the directory controller through the guarded hotspot burn-down and the remaining controller decomposition roadmap work."
+    },
+    {
+      "id": "ui-controller-file-window-file-budget",
+      "path": "src/ui/ctrl_file.c",
+      "budget": 1883,
+      "owner": "ui",
+      "removal_plan": "Shrink the file controller through the guarded hotspot burn-down and the remaining controller decomposition roadmap work."
+    }
+  ],
+  "controller_function_line_budgets": [
+    {
+      "id": "ui-controller-dir-window-dispatch-budget",
+      "path": "src/ui/ctrl_dir.c",
+      "symbol": "HandleDirWindow",
+      "budget": 1376,
+      "owner": "ui",
+      "removal_plan": "Continue extracting directory-window business logic into dedicated modules so the controller only dispatches."
+    },
+    {
+      "id": "ui-controller-file-window-dispatch-budget",
+      "path": "src/ui/ctrl_file.c",
+      "symbol": "HandleFileWindow",
+      "budget": 1274,
+      "owner": "ui",
+      "removal_plan": "Continue extracting file-window business logic into dedicated modules so the controller only dispatches."
+    }
+  ],
+  "single_letter_identifier_exceptions": [
+    {
+      "id": "single-letter-src-cmd-copy",
+      "path_regex": "^src/cmd/copy\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-delete",
+      "path_regex": "^src/cmd/delete\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-execute",
+      "path_regex": "^src/cmd/execute\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-filter",
+      "path_regex": "^src/cmd/filter\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-mkdir",
+      "path_regex": "^src/cmd/mkdir\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-mkfile",
+      "path_regex": "^src/cmd/mkfile\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-pipe",
+      "path_regex": "^src/cmd/pipe\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-profile",
+      "path_regex": "^src/cmd/profile\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-system",
+      "path_regex": "^src/cmd/system\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-cmd-usermode",
+      "path_regex": "^src/cmd/usermode\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in cmd-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-core-init",
+      "path_regex": "^src/core/init\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "c"
+      ],
+      "owner": "core",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in core-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-core-volume",
+      "path_regex": "^src/core/volume\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "core",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in core-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-archive_read",
+      "path_regex": "^src/fs/archive_read\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-archive_write",
+      "path_regex": "^src/fs/archive_write\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "r",
+        "w"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-filter_core",
+      "path_regex": "^src/fs/filter_core\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-freesp",
+      "path_regex": "^src/fs/freesp\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-storage_ports",
+      "path_regex": "^src/fs/storage_ports\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-tree_read",
+      "path_regex": "^src/fs/tree_read\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-fs-tree_utils",
+      "path_regex": "^src/fs/tree_utils\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "fs",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in fs-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-animate",
+      "path_regex": "^src/ui/animate\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-color",
+      "path_regex": "^src/ui/color\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "c",
+        "w"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-completion_dialog",
+      "path_regex": "^src/ui/completion_dialog\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-ctrl_dir",
+      "path_regex": "^src/ui/ctrl_dir\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-ctrl_file",
+      "path_regex": "^src/ui/ctrl_file\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-ctrl_file_ops",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-dir_list",
+      "path_regex": "^src/ui/dir_list\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "p"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-dir_nav",
+      "path_regex": "^src/ui/dir_nav\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "p"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-dir_ops",
+      "path_regex": "^src/ui/dir_ops\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "p",
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-dir_tags",
+      "path_regex": "^src/ui/dir_tags\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "p"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-display",
+      "path_regex": "^src/ui/display\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-display_utils",
+      "path_regex": "^src/ui/display_utils\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "x",
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-error",
+      "path_regex": "^src/ui/error\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-file_tags",
+      "path_regex": "^src/ui/file_tags\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-fileinfo_band",
+      "path_regex": "^src/ui/fileinfo_band\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-help_popup",
+      "path_regex": "^src/ui/help_popup\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-history_dialog",
+      "path_regex": "^src/ui/history_dialog\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-input_line",
+      "path_regex": "^src/ui/input_line\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-interactions",
+      "path_regex": "^src/ui/interactions\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-key_engine",
+      "path_regex": "^src/ui/key_engine\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "c"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-render_dir",
+      "path_regex": "^src/ui/render_dir\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-render_file",
+      "path_regex": "^src/ui/render_file\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "p",
+        "x",
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-runtime_ports",
+      "path_regex": "^src/ui/runtime_ports\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "c",
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-stats",
+      "path_regex": "^src/ui/stats\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "d",
+        "s",
+        "y"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-tagged_view",
+      "path_regex": "^src/ui/tagged_view\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-ui-view_internal",
+      "path_regex": "^src/ui/view_internal\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "l",
+        "r",
+        "v"
+      ],
+      "owner": "ui",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in ui-owned surfaces during the next hotspot burn-down that touches these call paths."
+    },
+    {
+      "id": "single-letter-src-util-memory_utils",
+      "path_regex": "^src/util/memory_utils\\.c$",
+      "symbol_regex": ".*",
+      "identifiers": [
+        "s"
+      ],
+      "owner": "util",
+      "removal_plan": "Rename the legacy single-letter parameter shorthands in util-owned surfaces during the next hotspot burn-down that touches these call paths."
+    }
+  ],
+  "function_size_exceptions": [
+    {
+      "id": "function-size-src-cmd-copy-CopyFile",
+      "path_regex": "^src/cmd/copy\\.c$",
+      "symbol_regex": "^CopyFile$",
+      "max_lines": 573,
+      "owner": "cmd",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next cmd-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-cmd-log-LogDisk",
+      "path_regex": "^src/cmd/log\\.c$",
+      "symbol_regex": "^LogDisk$",
+      "max_lines": 292,
+      "owner": "cmd",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next cmd-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-cmd-move-MoveFile",
+      "path_regex": "^src/cmd/move\\.c$",
+      "symbol_regex": "^MoveFile$",
+      "max_lines": 267,
+      "owner": "cmd",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next cmd-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-cmd-profile-ReadProfile",
+      "path_regex": "^src/cmd/profile\\.c$",
+      "symbol_regex": "^ReadProfile$",
+      "max_lines": 250,
+      "owner": "cmd",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next cmd-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-core-init-Layout_Recalculate",
+      "path_regex": "^src/core/init\\.c$",
+      "symbol_regex": "^Layout_Recalculate$",
+      "max_lines": 202,
+      "owner": "core",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next core-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-core-init-ReCreateWindows",
+      "path_regex": "^src/core/init\\.c$",
+      "symbol_regex": "^ReCreateWindows$",
+      "max_lines": 350,
+      "owner": "core",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next core-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-core-init-Init",
+      "path_regex": "^src/core/init\\.c$",
+      "symbol_regex": "^Init$",
+      "max_lines": 306,
+      "owner": "core",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next core-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-core-main-main",
+      "path_regex": "^src/core/main\\.c$",
+      "symbol_regex": "^main$",
+      "max_lines": 365,
+      "owner": "core",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next core-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-fs-tree_read-ReadTree",
+      "path_regex": "^src/fs/tree_read\\.c$",
+      "symbol_regex": "^ReadTree$",
+      "max_lines": 282,
+      "owner": "fs",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next fs-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-completion_dialog-GetMatches",
+      "path_regex": "^src/ui/completion_dialog\\.c$",
+      "symbol_regex": "^GetMatches$",
+      "max_lines": 251,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-ctrl_dir-HandleDirWindow",
+      "path_regex": "^src/ui/ctrl_dir\\.c$",
+      "symbol_regex": "^HandleDirWindow$",
+      "max_lines": 759,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-ctrl_file-HandleFileWindow",
+      "path_regex": "^src/ui/ctrl_file\\.c$",
+      "symbol_regex": "^HandleFileWindow$",
+      "max_lines": 558,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-ctrl_file_ops-handle_file_window_command_action",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^handle_file_window_command_action$",
+      "max_lines": 335,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-ctrl_file_ops-handle_file_window_misc_dispatch_action",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^handle_file_window_misc_dispatch_action$",
+      "max_lines": 323,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-ctrl_file_ops-HandleTaggedFileOpDispatchAction",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^HandleTaggedFileOpDispatchAction$",
+      "max_lines": 390,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-f2_picker-KeyF2Get",
+      "path_regex": "^src/ui/f2_picker\\.c$",
+      "symbol_regex": "^KeyF2Get$",
+      "max_lines": 456,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-history_dialog-GetHistory",
+      "path_regex": "^src/ui/history_dialog\\.c$",
+      "symbol_regex": "^GetHistory$",
+      "max_lines": 321,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-input_line-UI_ReadStringInternal",
+      "path_regex": "^src/ui/input_line\\.c$",
+      "symbol_regex": "^UI_ReadStringInternal$",
+      "max_lines": 557,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-key_engine-GetKeyAction",
+      "path_regex": "^src/ui/key_engine\\.c$",
+      "symbol_regex": "^GetKeyAction$",
+      "max_lines": 282,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-render_dir-PrintDirEntry",
+      "path_regex": "^src/ui/render_dir\\.c$",
+      "symbol_regex": "^PrintDirEntry$",
+      "max_lines": 311,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-render_file-PrintFileEntry",
+      "path_regex": "^src/ui/render_file\\.c$",
+      "symbol_regex": "^PrintFileEntry$",
+      "max_lines": 473,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-split_transition-SplitTransition_HandleFileWindowAction",
+      "path_regex": "^src/ui/split_transition\\.c$",
+      "symbol_regex": "^SplitTransition_HandleFileWindowAction$",
+      "max_lines": 221,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-split_transition-SplitTransition_HandleDirWindowAction",
+      "path_regex": "^src/ui/split_transition\\.c$",
+      "symbol_regex": "^SplitTransition_HandleDirWindowAction$",
+      "max_lines": 313,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-tagged_view-UI_ViewTaggedFiles",
+      "path_regex": "^src/ui/tagged_view\\.c$",
+      "symbol_regex": "^UI_ViewTaggedFiles$",
+      "max_lines": 216,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-view_internal-hex_edit",
+      "path_regex": "^src/ui/view_internal\\.c$",
+      "symbol_regex": "^hex_edit$",
+      "max_lines": 217,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-view_preview-RenderFilePreview",
+      "path_regex": "^src/ui/view_preview\\.c$",
+      "symbol_regex": "^RenderFilePreview$",
+      "max_lines": 267,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    },
+    {
+      "id": "function-size-src-ui-volume_menu-SelectLoadedVolume",
+      "path_regex": "^src/ui/volume_menu\\.c$",
+      "symbol_regex": "^SelectLoadedVolume$",
+      "max_lines": 415,
+      "owner": "ui",
+      "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
+    }
+  ],
+  "long_argument_exceptions": [
+    {
+      "id": "long-args-src-cmd-commands-ProcessCommandsColumns",
+      "path_regex": "^src/cmd/commands\\.c$",
+      "symbol_regex": "^ProcessCommandsColumns$",
+      "max_args": 8,
+      "owner": "cmd",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-cmd-copy-CopyFile",
+      "path_regex": "^src/cmd/copy\\.c$",
+      "symbol_regex": "^CopyFile$",
+      "max_args": 11,
+      "owner": "cmd",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-cmd-move-MoveFile",
+      "path_regex": "^src/cmd/move\\.c$",
+      "symbol_regex": "^MoveFile$",
+      "max_args": 10,
+      "owner": "cmd",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-core-main-AppStateDiffHarnessRefsReady",
+      "path_regex": "^src/core/main\\.c$",
+      "symbol_regex": "^AppStateDiffHarnessRefsReady$",
+      "max_args": 9,
+      "owner": "core",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next core-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-appstate_panel-AppStateCommitPanelVolumeFileSnapshot",
+      "path_regex": "^src/ui/appstate_panel\\.c$",
+      "symbol_regex": "^AppStateCommitPanelVolumeFileSnapshot$",
+      "max_args": 10,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-ctrl_file_ops-handle_file_window_preview_action",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^handle_file_window_preview_action$",
+      "max_args": 11,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-ctrl_file_ops-handle_file_window_navigation_action",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^handle_file_window_navigation_action$",
+      "max_args": 11,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-ctrl_file_ops-handle_file_window_misc_dispatch_action",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^handle_file_window_misc_dispatch_action$",
+      "max_args": 12,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-ctrl_file_ops-HandleTaggedFileOpDispatchAction",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^HandleTaggedFileOpDispatchAction$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-ctrl_file_ops-HandleTaggedSelectionDispatchAction",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^HandleTaggedSelectionDispatchAction$",
+      "max_args": 9,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-ctrl_file_ops-handle_tag_file_action",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "symbol_regex": "^handle_tag_file_action$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-dir_compare-ShouldTagComparedFile",
+      "path_regex": "^src/ui/dir_compare\\.c$",
+      "symbol_regex": "^ShouldTagComparedFile$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-dir_ops-HandleDirWindowPanelAction",
+      "path_regex": "^src/ui/dir_ops\\.c$",
+      "symbol_regex": "^HandleDirWindowPanelAction$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-dir_ops-HandleDirWindowEnterAction",
+      "path_regex": "^src/ui/dir_ops\\.c$",
+      "symbol_regex": "^HandleDirWindowEnterAction$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-display_utils-CommandStripRenderKeySequence",
+      "path_regex": "^src/ui/display_utils\\.c$",
+      "symbol_regex": "^CommandStripRenderKeySequence$",
+      "max_args": 9,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-display_utils-CommandStripRenderMnemonicLabel",
+      "path_regex": "^src/ui/display_utils\\.c$",
+      "symbol_regex": "^CommandStripRenderMnemonicLabel$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-fileinfo_band-FileInfoHandleFileAction",
+      "path_regex": "^src/ui/fileinfo_band\\.c$",
+      "symbol_regex": "^FileInfoHandleFileAction$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-input_line-UI_ReadStringInternal",
+      "path_regex": "^src/ui/input_line\\.c$",
+      "symbol_regex": "^UI_ReadStringInternal$",
+      "max_args": 11,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-input_line-UI_ReadStringWithHelp",
+      "path_regex": "^src/ui/input_line\\.c$",
+      "symbol_regex": "^UI_ReadStringWithHelp$",
+      "max_args": 11,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-render_file-PrintFileEntry",
+      "path_regex": "^src/ui/render_file\\.c$",
+      "symbol_regex": "^PrintFileEntry$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-ui-split_transition-SplitTransition_HandleDirWindowAction",
+      "path_regex": "^src/ui/split_transition\\.c$",
+      "symbol_regex": "^SplitTransition_HandleDirWindowAction$",
+      "max_args": 8,
+      "owner": "ui",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "long-args-src-util-path_utils-Path_BuildCommandLine",
+      "path_regex": "^src/util/path_utils\\.c$",
+      "symbol_regex": "^Path_BuildCommandLine$",
+      "max_args": 8,
+      "owner": "util",
+      "removal_plan": "Split the parameter contract into a named context or helper structure during the next util-owned hotspot pass."
+    }
+  ],
+  "flag_argument_exceptions": [
+    {
+      "id": "flag-args-src-cmd-commands",
+      "path_regex": "^src/cmd/commands\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "allow_selector"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-cmd-print_ops",
+      "path_regex": "^src/cmd/print_ops\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "is_first",
+        "is_last",
+        "is_pipe"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-cmd-profile",
+      "path_regex": "^src/cmd/profile\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "is_dir"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-cmd-system",
+      "path_regex": "^src/cmd/system\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "enable_clock"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next cmd-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-core-config_paths",
+      "path_regex": "^src/core/config_paths\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "allow_cwd_fallback"
+      ],
+      "owner": "core",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next core-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-fs-archive_write",
+      "path_regex": "^src/fs/archive_write\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "is_dir"
+      ],
+      "owner": "fs",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next fs-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-appstate_layout",
+      "path_regex": "^src/ui/appstate_layout\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "is_split_screen"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-appstate_panel",
+      "path_regex": "^src/ui/appstate_panel\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "has_selected_dir_path",
+        "has_top_dir_path",
+        "show_symlink_targets",
+        "update_userview"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-archive_payload",
+      "path_regex": "^src/ui/archive_payload\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "has_files",
+        "is_directory"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-attr_actions",
+      "path_regex": "^src/ui/attr_actions\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "allow_date"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-compare_request",
+      "path_regex": "^src/ui/compare_request\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "include_compare_prompts"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-ctrl_dir",
+      "path_regex": "^src/ui/ctrl_dir\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "move_dir"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-dir_compare",
+      "path_regex": "^src/ui/dir_compare\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "has_target",
+        "is_error",
+        "is_type_mismatch",
+        "is_unique"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-display",
+      "path_regex": "^src/ui/display\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "is_dir"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-ui-render_dir",
+      "path_regex": "^src/ui/render_dir\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "is_active"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next ui-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-util-completion_utils",
+      "path_regex": "^src/util/completion_utils\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "show_dialog"
+      ],
+      "owner": "util",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next util-owned hotspot pass."
+    },
+    {
+      "id": "flag-args-src-util-path_utils",
+      "path_regex": "^src/util/path_utils\\.c$",
+      "symbol_regex": ".*",
+      "parameters": [
+        "append_path"
+      ],
+      "owner": "util",
+      "removal_plan": "Replace the flag-style parameters with explicit wrapper entrypoints or a named request object during the next util-owned hotspot pass."
+    }
+  ],
+  "magic_number_exceptions": [
+    {
+      "id": "magic-src-cmd-commands",
+      "path_regex": "^src/cmd/commands\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-copy",
+      "path_regex": "^src/cmd/copy\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "100",
+        "10240"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-delete",
+      "path_regex": "^src/cmd/delete\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0777"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-group",
+      "path_regex": "^src/cmd/group\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "4"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-mkdir",
+      "path_regex": "^src/cmd/mkdir\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0755"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-passwd",
+      "path_regex": "^src/cmd/passwd\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "4"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-print_ops",
+      "path_regex": "^src/cmd/print_ops\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "40"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-cmd-theme",
+      "path_regex": "^src/cmd/theme\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "-2",
+        "4"
+      ],
+      "owner": "cmd",
+      "removal_plan": "Replace these literal thresholds with named constants during the next cmd-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-core-clock",
+      "path_regex": "^src/core/clock\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "50"
+      ],
+      "owner": "core",
+      "removal_plan": "Replace these literal thresholds with named constants during the next core-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-core-init",
+      "path_regex": "^src/core/init\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "16",
+        "26",
+        "3",
+        "4",
+        "6"
+      ],
+      "owner": "core",
+      "removal_plan": "Replace these literal thresholds with named constants during the next core-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-fs-archive_read",
+      "path_regex": "^src/fs/archive_read\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "100",
+        "20",
+        "50"
+      ],
+      "owner": "fs",
+      "removal_plan": "Replace these literal thresholds with named constants during the next fs-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-fs-archive_write",
+      "path_regex": "^src/fs/archive_write\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "10240",
+        "50"
+      ],
+      "owner": "fs",
+      "removal_plan": "Replace these literal thresholds with named constants during the next fs-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-fs-tree_read",
+      "path_regex": "^src/fs/tree_read\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "20"
+      ],
+      "owner": "fs",
+      "removal_plan": "Replace these literal thresholds with named constants during the next fs-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-animate",
+      "path_regex": "^src/ui/animate\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0.0",
+        "0.5",
+        "1.0",
+        "1.5",
+        "2.0",
+        "3.0",
+        "4"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-attr_actions",
+      "path_regex": "^src/ui/attr_actions\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "01000",
+        "02000",
+        "04000",
+        "10",
+        "12",
+        "23",
+        "3",
+        "31",
+        "4",
+        "5",
+        "59",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-color",
+      "path_regex": "^src/ui/color\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "15",
+        "255",
+        "256",
+        "64",
+        "8"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-completion_dialog",
+      "path_regex": "^src/ui/completion_dialog\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-ctrl_dir",
+      "path_regex": "^src/ui/ctrl_dir\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "127",
+        "9"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-ctrl_file",
+      "path_regex": "^src/ui/ctrl_file\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "127",
+        "9"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-ctrl_file_ops",
+      "path_regex": "^src/ui/ctrl_file_ops\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "-3",
+        "3"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-dir_compare",
+      "path_regex": "^src/ui/dir_compare\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "126",
+        "127"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-dir_list",
+      "path_regex": "^src/ui/dir_list\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "16"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-dir_ops",
+      "path_regex": "^src/ui/dir_ops\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "999"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-display",
+      "path_regex": "^src/ui/display\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3",
+        "4"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-display_utils",
+      "path_regex": "^src/ui/display_utils\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3",
+        "32",
+        "4"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-error",
+      "path_regex": "^src/ui/error\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-file_compare",
+      "path_regex": "^src/ui/file_compare\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "126",
+        "127"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-fileinfo_band",
+      "path_regex": "^src/ui/fileinfo_band\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-fileinfo_git",
+      "path_regex": "^src/ui/fileinfo_git\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3",
+        "4",
+        "8192"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-help_popup",
+      "path_regex": "^src/ui/help_popup\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "4"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-history_dialog",
+      "path_regex": "^src/ui/history_dialog\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-input_line",
+      "path_regex": "^src/ui/input_line\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "01000",
+        "02000",
+        "04000",
+        "10",
+        "127",
+        "19",
+        "3",
+        "4",
+        "6"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-key_engine",
+      "path_regex": "^src/ui/key_engine\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "-2",
+        "10",
+        "126",
+        "16",
+        "27",
+        "28",
+        "32",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-progress",
+      "path_regex": "^src/ui/progress\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0.0",
+        "10",
+        "100",
+        "1024.0",
+        "40",
+        "60"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-render_dir",
+      "path_regex": "^src/ui/render_dir\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "3",
+        "4",
+        "5",
+        "999.5"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-render_file",
+      "path_regex": "^src/ui/render_file\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0111",
+        "10",
+        "12",
+        "16",
+        "24",
+        "3",
+        "39",
+        "4",
+        "43",
+        "47",
+        "48",
+        "5",
+        "51",
+        "52",
+        "7",
+        "999.5"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-stats",
+      "path_regex": "^src/ui/stats\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0.0",
+        "100.0",
+        "11",
+        "12",
+        "14",
+        "17",
+        "18",
+        "26",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "999.5"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-tagged_view",
+      "path_regex": "^src/ui/tagged_view\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "0700",
+        "100",
+        "20",
+        "2000000000",
+        "3",
+        "6",
+        "7"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-view_internal",
+      "path_regex": "^src/ui/view_internal\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "10",
+        "13",
+        "20",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-ui-view_preview",
+      "path_regex": "^src/ui/view_preview\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "16"
+      ],
+      "owner": "ui",
+      "removal_plan": "Replace these literal thresholds with named constants during the next ui-owned readability pass for this file."
+    },
+    {
+      "id": "magic-src-util-path_utils",
+      "path_regex": "^src/util/path_utils\\.c$",
+      "line_regex": ".*",
+      "literals": [
+        "256",
+        "3",
+        "4"
+      ],
+      "owner": "util",
+      "removal_plan": "Replace these literal thresholds with named constants during the next util-owned readability pass for this file."
+    }
+  ],
+  "test_fixture_scope_exceptions": [
+    {
+      "id": "fixture-scope-tests-test_archive_backend-archive_backend_driver",
+      "path_regex": "^tests/test_archive_backend\\.py$",
+      "fixture_regex": "^archive_backend_driver$",
+      "owner": "tests",
+      "removal_plan": "Collapse these driver fixtures to function scope or a helper factory when the surrounding tests are next reworked."
+    },
+    {
+      "id": "fixture-scope-tests-test_core-archive_payload_driver",
+      "path_regex": "^tests/test_core\\.py$",
+      "fixture_regex": "^archive_payload_driver$",
+      "owner": "tests",
+      "removal_plan": "Collapse these driver fixtures to function scope or a helper factory when the surrounding tests are next reworked."
+    },
+    {
+      "id": "fixture-scope-tests-test_normpath_fail_safe-normpath_fail_safe_driver",
+      "path_regex": "^tests/test_normpath_fail_safe\\.py$",
+      "fixture_regex": "^normpath_fail_safe_driver$",
+      "owner": "tests",
+      "removal_plan": "Collapse these driver fixtures to function scope or a helper factory when the surrounding tests are next reworked."
+    },
+    {
+      "id": "fixture-scope-tests-test_runtime_exit_paths-runtime_exit_edit_driver",
+      "path_regex": "^tests/test_runtime_exit_paths\\.py$",
+      "fixture_regex": "^runtime_exit_edit_driver$",
+      "owner": "tests",
+      "removal_plan": "Collapse these driver fixtures to function scope or a helper factory when the surrounding tests are next reworked."
+    },
+    {
+      "id": "fixture-scope-tests-test_runtime_exit_paths-runtime_exit_normpath_driver",
+      "path_regex": "^tests/test_runtime_exit_paths\\.py$",
+      "fixture_regex": "^runtime_exit_normpath_driver$",
+      "owner": "tests",
+      "removal_plan": "Collapse these driver fixtures to function scope or a helper factory when the surrounding tests are next reworked."
+    }
+  ],
+  "test_mutable_global_exceptions": []
+}
