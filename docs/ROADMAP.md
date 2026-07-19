@@ -131,7 +131,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 5.3: Smell Gate Evidence as Merge Prerequisite**
 *   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
 *   **Mechanism:** Require successful smell checks in QA artifacts and block integration on unresolved unapproved violations.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 6: Recurring Code-Quality Burn-Down + Lean Simplicity Contract**
 *   **Goal:** Run ongoing debt burn-down passes (not only one-off cleanup) while enforcing a durable simplicity contract: code should stay lean, readable, and non-obfuscated.
@@ -147,7 +147,7 @@ Ordering policy (for all editors, including AI editors):
 *   Each cadence run produces measurable debt deltas (before/after hotspot list).
 *   No regressions in behavior or UX semantics for touched paths.
 *   `make qa-module-boundaries` and required bundled QA gates remain green for each pass.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ## **Phase 3: Build System, Documentation, and CI**
 *This phase focuses on project infrastructure, developer experience, and release readiness.*
@@ -343,7 +343,7 @@ Ordering policy (for all editors, including AI editors):
 *   Validation catches collisions and unresolved actions after preset + override resolution.
 *   Preset files carry concise comment headers explaining their role and constraints.
 *   `docs/SPECIFICATION.md`, `docs/ARCHITECTURE.md`, and F10/help docs describe command presets as read-only packaged data layered under one active commands file.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ---
 
@@ -1775,21 +1775,28 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** A stronger built-in viewer would make ytnova more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
 *   - [ ] **Status:** Not Started.
 
-
-### **Idea FE-38: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
-*   **Goal:** Investigate a runtime path where ytnova's TUI is not tightly coupled to ncurses.
-*   **Input-protocol spike:** As part of this investigation, evaluate opt-in enhanced keyboard protocols, starting with kitty keyboard protocol, to determine whether ytnova can distinguish collided control inputs such as `^M` versus `Enter` without breaking the portable terminal path.
-*   **Fallback contract:** If enhanced keyboard negotiation is unavailable, rejected, or stripped by the active terminal path, keep the current portable bindings and help semantics (for example `^N` for tagged move) rather than making kitty-only input a requirement.
-*   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytnova interaction semantics.
+### **Idea FE-38: Investigate Optional Enhanced Terminal Input Protocols**
+*   **Goal:** Investigate whether opt-in enhanced keyboard/input protocols can safely improve ytnova's TUI input model without replacing the portable baseline path.
+*   **Input-protocol spike:** Start with kitty keyboard protocol and evaluate whether richer key events can distinguish collided control inputs such as `^M` versus `Enter`.
+*   **Fallback contract:** If enhanced keyboard negotiation is unavailable, rejected, or stripped by the active terminal path, keep the current portable bindings and help semantics (for example `^N` for tagged move) rather than making any enhanced protocol a requirement.
+*   **Scope boundary:** Treat this as an optional capability layered above the normal terminal path, not as a prerequisite for core navigation or command workflows.
+*   **Rationale:** This is an input-capability investigation intended to determine whether optional terminal features can relieve current control-key collisions while keeping ytnova portable.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-39: Implement "Safe Delete" (Trash Can)**
+### **Idea FE-39: Investigate Replacing ncurses with a Better TUI Backend**
+*   **Goal:** Investigate whether ytnova should replace or meaningfully decouple from ncurses in favor of a better TUI/runtime layer while preserving current interaction semantics.
+*   **Investigation scope:** Evaluate candidate backends on portability, rendering/control over redraw behavior, input handling, testability, packaging friction, and migration risk for the current architecture.
+*   **Compatibility contract:** Any replacement path must preserve the portable baseline terminal workflow and must not require a single terminal family or GUI-specific runtime stack.
+*   **Rationale:** This is a platform/runtime architecture effort intended to determine whether ncurses remains the right long-term foundation for ytnova's TUI.
+*   - [ ] **Status:** Not Started.
+
+### **Idea FE-40: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
 *   **Config:** Add a `ytnova.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-40: Port to other platforms**
+### **Idea FE-41: Port to other platforms**
 *   **Validation:** Currently practical via WSL and QEMU
 *   **Possible:** OmniOS (illumos), GNU Hurd, FreeBSD
 *   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris, Redox OS
