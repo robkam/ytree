@@ -59,6 +59,15 @@ HISTORY_QUALIFIER_WORDS = {
     "original",
     "previous",
 }
+MIGRATION_CONTEXT_WORDS = {
+    "compat",
+    "compatibility",
+    "migration",
+    "migrate",
+    "refactor",
+    "rewrite",
+    "split",
+}
 WORD_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_./-]*")
 COMMENTED_OUT_DECL_RE = re.compile(
     r"^\s*(?:static\s+)?(?:extern\s+)?(?:const\s+)?"
@@ -115,6 +124,15 @@ def _word_list(text: str) -> list[str]:
 
 def _looks_like_source_path(word: str) -> bool:
     return bool(re.search(r"\.(?:c|h|py|sh|md)$", word))
+
+
+def _has_history_context(words: list[str]) -> bool:
+    return any(
+        word in HISTORY_QUALIFIER_WORDS
+        or word in MIGRATION_CONTEXT_WORDS
+        or _looks_like_source_path(word)
+        for word in words
+    )
 
 
 def _iter_c_comments(text: str, relpath: str) -> Iterable[Comment]:
@@ -265,7 +283,8 @@ def _has_used_to_history(lowered: str) -> bool:
     while start != -1:
         previous_words = _word_list(lowered[:start])
         previous_word = previous_words[-1] if previous_words else ""
-        if previous_word not in BE_VERBS:
+        tail_words = _word_list(lowered[start + len(marker) :])[:10]
+        if previous_word not in BE_VERBS and _has_history_context(tail_words):
             return True
         start = lowered.find(marker, start + len(marker))
     return False
@@ -276,20 +295,13 @@ def _has_moved_to_history(lowered: str) -> bool:
     start = lowered.find(marker)
     while start != -1:
         tail_words = _word_list(lowered[start + len(marker) :])[:8]
-        if any(word in CODE_ARTIFACT_WORDS or _looks_like_source_path(word) for word in tail_words):
+        if any(_looks_like_source_path(word) for word in tail_words):
             return True
         start = lowered.find(marker, start + len(marker))
     return False
 
 
 def _has_obsolete_history(lowered: str) -> bool:
-    marker = "obsolete"
-    start = lowered.find(marker)
-    while start != -1:
-        tail_words = _word_list(lowered[start + len(marker) :])[:6]
-        if any(word in CODE_ARTIFACT_WORDS or _looks_like_source_path(word) for word in tail_words):
-            return True
-        start = lowered.find(marker, start + len(marker))
     return False
 
 
@@ -301,12 +313,7 @@ def _has_removal_history(lowered: str) -> bool:
         return True
     if stripped.startswith("removed "):
         tail_words = _word_list(stripped[len("removed ") :])[:8]
-        if any(
-            word in CODE_ARTIFACT_WORDS
-            or word in HISTORY_QUALIFIER_WORDS
-            or _looks_like_source_path(word)
-            for word in tail_words
-        ):
+        if _has_history_context(tail_words):
             return True
 
     words = _word_list(lowered)
@@ -314,7 +321,8 @@ def _has_removal_history(lowered: str) -> bool:
         if word != "removed":
             continue
         previous_word = words[index - 1]
-        if previous_word in CODE_ARTIFACT_WORDS:
+        tail_words = words[index + 1 : index + 9]
+        if previous_word in CODE_ARTIFACT_WORDS and _has_history_context(tail_words):
             return True
     return False
 
