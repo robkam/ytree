@@ -16,15 +16,15 @@ YtreeNova logs filesystem hierarchies into memory, so you can work across whole 
 
 ## Background
 
-YtreeNova is an independent fork of [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. The fork began in October 2025 and now has its own name, release line, command (`ytnova`), and repository.
+YtreeNova is a separate Unix-like XTreeGold tribute project with Ytree v2.10 lineage. It began from Werner Bregulla's Ytree codebase in October 2025 and now has its own name, command (`ytnova`), repository, and release history.
 
-It remains in the [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm)/Ytree family of full-tree logging and tagging file managers: scan a hierarchy first, then navigate, filter, tag, view, and operate across the logged set as a whole. The YtreeNova line focuses on feature completeness for Unix power users, adding split-screen work, integrated preview/autoview, archive-as-directory operations, and modernized internals.
+It remains in the [XTree](https://www.xtreefanpage.org/lowres/x10dirja.htm)/Ytree family of full-tree logging and tagging file managers: scan a hierarchy first, then navigate, filter, tag, view, and operate across the logged set as a whole. YtreeNova focuses on feature completeness for Unix power users, with split-screen work, integrated preview/autoview, archive-as-directory operations, and contemporary POSIX-oriented internals rather than old-system portability.
 
 Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. YtreeNova keeps the logger model: it scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
 ## Development Methodology
 
-This modernization is an experiment in AI-assisted systems engineering. The codebase was not simply "ported"; it was systematically disassembled and re-architected toward feature completeness and maintainability.
+This project is an experiment in AI-assisted systems engineering. The codebase was not simply "ported"; it has been reworked toward feature completeness and maintainability.
 
 In practice, the human maintains design ownership and quality control, while AI is used as an implementation assistant. This requires substantial iteration, verification, and architectural guardrails for each meaningful change. The goal is to show that LLM-assisted development can still meet normal project standards when the process is disciplined, specification-driven, and strongly validated.
 
@@ -39,7 +39,7 @@ v1.0.0-alpha is being published early so people can use the program, inspect the
 
 ## Features (v1.0.0-alpha)
 
-*   **Classic XTree™ Interface:** Directory Tree + File List layout.
+*   **Classic XTree Interface:** Directory Tree + File List layout.
 *   **Split Screen Mode (F8):** Manage two independent file panels side-by-side.
 *   **File Preview (F7):** Instant view of file contents without launching external tools.
 *   **Multi-Volume Support:** Log multiple drives or archives simultaneously and switch instantly.

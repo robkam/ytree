@@ -49,7 +49,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 | **Stats Panel** | Right Column (**Fixed 26**) | Metadata, Filters, Disk Stats | Context-aware. Always visible in Standard Mode. |
 | **Command Area** | Bottom 3 Rows | Menu, Prompts, Messages | Handles all user interaction feedback. |
 
-### 2.3 Visual Grammar (The "XTree&trade; Look")
+### 2.3 Visual Grammar (The "XTree Look")
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) must **only** be used for horizontal boundary lines. Vertical separators must remain clean, unbroken lines to avoid visual clutter.
 *   **Empty State:** If a directory contains no files, the File View window must display the text: `** No files **`.
 *   **Small-Window Name Column Alignment:** In the small File View, reserve the first post-border cell for tag (`*` or space), the second as a spacer, and start all row text at the same column. This applies to regular names, symlink labels, and placeholders (e.g., `No files`, `Unlogged`).

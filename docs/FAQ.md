@@ -27,19 +27,19 @@ The alpha is published early so users and contributors can inspect the code, tes
 
 In short: the project is usable now, but not stable yet. Expect rough edges, occasional regressions, and evolving UX details until beta and then stable release.
 
-### Why fork Ytree v2.10 instead of starting from scratch?
+### What is YtreeNova's relationship to Ytree?
 
-YtreeNova began as a fork of Werner Bregulla’s Ytree v2.10. The original intention was to develop a major enhanced line from that codebase, but the project was renamed to YtreeNova to avoid confusion with Werner’s continuing Ytree 2.x work. The name keeps the Ytree lineage visible while the Nova suffix marks it as a separate enhanced fork rather than the next official Ytree release.
+YtreeNova started from Werner Bregulla’s Ytree v2.10 codebase, but it is now a separate line with its own name, command, repository, and release history. The aim is to build a Unix-like XTreeGold tribute that keeps the logged-tree workflow and extends it in its own direction.
 
-A clean-slate implementation could have copied the same UI/UX, but it would still have meant rebuilding existing behaviour before adding the missing features. Starting from Ytree preserved the working baseline and made it possible to focus on extending the program with split-screen workflows, integrated preview/autoview, archive-as-directory operations, and a more modular C99/POSIX codebase.
+A clean-slate implementation could have copied the same UI/UX, but it would still have meant rebuilding existing behaviour before adding the missing features. Starting from Ytree preserved a working logged-tree baseline and made it possible to focus on split-screen workflows, integrated preview/autoview, archive-as-directory operations, and a more modular C99/POSIX codebase instead of first rebuilding those foundations from scratch.
 
-Werner’s Ytree continues to value portability across a broad range of Unix systems, including older environments. YtreeNova currently targets contemporary POSIX-style Unix systems and, so far, has mainly been tested only on a small number of recent Linux distributions.
+Werner’s Ytree continues to value portability across a broad range of Unix systems, including older environments. YtreeNova does not promise the same portability target; it currently aims at contemporary POSIX-style Unix systems and, so far, has mainly been tested only on a small number of recent Linux distributions.
 
 ### Why is this not written in Rust?
 
 The primary objective of this phase was architectural cleanup and feature completion in the existing C codebase.
 
-Switching languages immediately would constitute a total rewrite rather than a modernization. However, now that the architecture has been simplified, legacy dependencies removed, and the project stabilized, a port to a modern memory-safe language like Rust is a possibility for a future version.
+Switching languages immediately would have turned this phase into a total rewrite instead of continuing the existing codebase. However, now that the architecture has been simplified, legacy dependencies removed, and the project stabilized, a port to a modern memory-safe language like Rust is a possibility for a future version.
 
 ### Why ncurses, why not termbox2 or notcurses?
 
@@ -51,7 +51,7 @@ YtreeNova only needs fast, reliable text/line-box terminal UI for file and VFS b
 
 ### How is YtreeNova different from UnixTree?
 
-YtreeNova and UnixTree are separate XTree&trade;-inspired projects with different histories, codebases, and design choices. They overlap in several user-facing goals, including logged-tree navigation, tagging, split-screen operation, preview/autoview, and archive handling, but they differ substantially in architecture and maintenance approach.
+YtreeNova and UnixTree are separate XTree-inspired projects with different histories, codebases, and design choices. They overlap in several user-facing goals, including logged-tree navigation, tagging, split-screen operation, preview/autoview, and archive handling, but they differ substantially in architecture and maintenance approach.
 
 #### How do the YtreeNova and UnixTree architectures compare?
 
@@ -84,6 +84,6 @@ Yes. While graphical file managers are standard for desktop users, TUI (Text Use
 ### Who is the target audience?
 
 YtreeNova specifically targets:
-1.  **XTree&trade; Veterans:** Users who developed "muscle memory" for the XTree&trade; layout and keybindings in the DOS era and find the Midnight Commander style unintuitive.
+1.  **XTree Veterans:** Users who developed "muscle memory" for the XTree layout and keybindings in the DOS era and find the Midnight Commander style unintuitive.
 2.  **Terminal Power Users:** Developers and Admins who want a fast, lightweight file manager that integrates seamlessly with their shell history and standard CLI tools.
 3.  **Open Source Archivists:** Those interested in keeping classic Unix tools alive, compilable, and secure on modern hardware.
