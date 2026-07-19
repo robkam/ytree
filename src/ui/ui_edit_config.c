@@ -42,51 +42,65 @@ typedef struct {
   int refresh_mode;
 } ReloadableProfileState;
 
-static int WriteAll(int fd, const char *buf, size_t len) {
-  size_t written_total = 0;
+typedef struct {
+  const char *contents;
+} StarterFileWriteContext;
 
-  while (written_total < len) {
-    ssize_t written_now =
-        write(fd, buf + written_total, len - written_total);
-    if (written_now <= 0)
+typedef struct {
+  int source_fd;
+} StarterFileCopyContext;
+
+static int WriteStarterFileContents(FILE *fp, const void *user_data) {
+  const StarterFileWriteContext *write_ctx =
+      (const StarterFileWriteContext *)user_data;
+  size_t template_len;
+
+  if (fp == NULL || write_ctx == NULL || write_ctx->contents == NULL)
+    return -1;
+
+  template_len = strlen(write_ctx->contents);
+  if (template_len == 0)
+    return 0;
+  return fwrite(write_ctx->contents, 1, template_len, fp) == template_len ? 0 : -1;
+}
+
+static int CopyStarterFileContents(FILE *fp, const void *user_data) {
+  const StarterFileCopyContext *copy_ctx =
+      (const StarterFileCopyContext *)user_data;
+  char buffer[4096];
+
+  if (fp == NULL || copy_ctx == NULL || copy_ctx->source_fd == -1)
+    return -1;
+
+  for (;;) {
+    ssize_t read_now = read(copy_ctx->source_fd, buffer, sizeof(buffer));
+
+    if (read_now == 0)
+      break;
+    if (read_now < 0)
       return -1;
-    written_total += (size_t)written_now;
+    if (fwrite(buffer, 1, (size_t)read_now, fp) != (size_t)read_now)
+      return -1;
   }
   return 0;
 }
 
 static int WriteStarterFile(ViewContext *ctx, const char *path,
                             const char *contents, const char *label) {
-  int fd;
-  size_t template_len;
-  int write_status;
-  int write_errno;
-  int close_status;
+  StarterFileWriteContext write_ctx;
 
   if (path == NULL || *path == '\0' || contents == NULL || label == NULL)
     return -1;
+  if (access(path, F_OK) == 0)
+    return 0;
 
-  fd = open(path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-  if (fd == -1) {
-    if (errno == EEXIST)
-      return 0;
+  write_ctx.contents = contents;
+  if (AtomicFileWrite(path, (AtomicFileWriteCallback)WriteStarterFileContents,
+                      &write_ctx) != 0) {
     MESSAGE(ctx, "Can't create default %s \"%s\"*%s", label, path,
             strerror(errno));
     return -1;
   }
-
-  template_len = strlen(contents);
-  write_status = WriteAll(fd, contents, template_len);
-  write_errno = errno;
-  close_status = close(fd);
-  if (write_status != 0 || close_status != 0) {
-    int saved_errno = (write_status != 0) ? write_errno : errno;
-    unlink(path);
-    MESSAGE(ctx, "Can't create default %s \"%s\"*%s", label, path,
-            strerror(saved_errno));
-    return -1;
-  }
-
   return 1;
 }
 
@@ -104,64 +118,31 @@ static int IsPreferredProfilePath(const char *profile_path) {
 
 static int CopyStarterFile(ViewContext *ctx, const char *source_path,
                            const char *target_path, const char *label) {
-  int source_fd;
-  int target_fd;
-  char buffer[4096];
+  StarterFileCopyContext copy_ctx;
+  int result;
 
   if (source_path == NULL || *source_path == '\0' || target_path == NULL ||
       *target_path == '\0' || label == NULL)
     return -1;
 
-  source_fd = open(source_path, O_RDONLY);
-  if (source_fd == -1) {
+  if (access(target_path, F_OK) == 0)
+    return 0;
+
+  copy_ctx.source_fd = open(source_path, O_RDONLY);
+  if (copy_ctx.source_fd == -1) {
     MESSAGE(ctx, "Can't migrate %s \"%s\"*%s", label, source_path,
             strerror(errno));
     return -1;
   }
 
-  target_fd = open(target_path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-  if (target_fd == -1) {
+  result = AtomicFileWrite(target_path,
+                           (AtomicFileWriteCallback)CopyStarterFileContents,
+                           &copy_ctx);
+  if (close(copy_ctx.source_fd) != 0 && result == 0)
+    result = -1;
+  if (result != 0) {
     int saved_errno = errno;
 
-    close(source_fd);
-    if (saved_errno == EEXIST)
-      return 0;
-    MESSAGE(ctx, "Can't create migrated %s \"%s\"*%s", label, target_path,
-            strerror(saved_errno));
-    return -1;
-  }
-
-  for (;;) {
-    ssize_t read_now = read(source_fd, buffer, sizeof(buffer));
-
-    if (read_now == 0)
-      break;
-    if (read_now < 0) {
-      int saved_errno = errno;
-
-      close(source_fd);
-      close(target_fd);
-      unlink(target_path);
-      MESSAGE(ctx, "Can't migrate %s \"%s\"*%s", label, source_path,
-              strerror(saved_errno));
-      return -1;
-    }
-    if (WriteAll(target_fd, buffer, (size_t)read_now) != 0) {
-      int saved_errno = errno;
-
-      close(source_fd);
-      close(target_fd);
-      unlink(target_path);
-      MESSAGE(ctx, "Can't create migrated %s \"%s\"*%s", label, target_path,
-              strerror(saved_errno));
-      return -1;
-    }
-  }
-
-  if (close(source_fd) != 0 || close(target_fd) != 0) {
-    int saved_errno = errno;
-
-    unlink(target_path);
     MESSAGE(ctx, "Can't create migrated %s \"%s\"*%s", label, target_path,
             strerror(saved_errno));
     return -1;

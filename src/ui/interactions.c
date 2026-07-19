@@ -186,8 +186,8 @@ int UI_CoreQuitConfirm(ViewContext *ctx, const char *msg, const char *choices) {
   return InputChoice(ctx, msg, choices);
 }
 
-void UI_CoreQuitSaveHistory(ViewContext *ctx, const char *path_for_history) {
-  SaveHistory(ctx, path_for_history);
+int UI_CoreQuitSaveHistory(ViewContext *ctx, const char *path_for_history) {
+  return SaveHistory(ctx, path_for_history);
 }
 
 void UI_CoreQuitCloseWatcher(ViewContext *ctx) { Watcher_Close(ctx); }

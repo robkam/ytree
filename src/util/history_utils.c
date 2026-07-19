@@ -15,9 +15,18 @@
 #include <unistd.h>
 
 #define MAX_HST_FILE_LINES 200
+#define HISTORY_ENTRY_INITIAL_CAPACITY 16
 
 void InsHistory(ViewContext *ctx, const char *NewHst, int type);
 static int EnsureParentDirectoryExists(const char *filename);
+static int HistoryValidationError(ViewContext *ctx, const char *filename,
+                                  int line_number, const char *detail);
+static void FreeHistoryDiskEntries(char **entries, int count);
+static BOOL ParseHistoryLongValue(const char *text, long *parsed_value);
+static int ParseHistoryLine(ViewContext *ctx, const char *filename,
+                            int line_number, char *line, int *type,
+                            int *pinned, char **content);
+static int WriteHistoryFile(FILE *fp, void *user_data);
 
 int ResolvePreferredHistoryPath(char *path, size_t path_size) {
   const char *xdg_state_home;
@@ -158,74 +167,195 @@ void BuildHistoryViewList(ViewContext *ctx, int type) {
   }
 }
 
-void ReadHistory(ViewContext *ctx, const char *Filename) {
-  FILE *HstFile;
-  char buffer[BUFSIZ];
-  char *cptr;
-  char *content;
+static int HistoryValidationError(ViewContext *ctx, const char *filename,
+                                  int line_number, const char *detail) {
+  char message[256];
 
-  if ((HstFile = fopen(Filename, "r")) != NULL) {
-    while (fgets(buffer, sizeof(buffer), HstFile)) {
-      if (strlen(buffer) > 0) {
-        /* Strip newline */
-        if (buffer[strlen(buffer) - 1] == '\n')
-          buffer[strlen(buffer) - 1] = '\0';
+  if (detail == NULL)
+    detail = "invalid history entry";
+  if (filename == NULL)
+    filename = "(unknown)";
 
-        if (strlen(buffer) == 0)
-          continue;
-
-        /* Try to parse format T:P:Content */
-        /* Find first colon */
-        cptr = strchr(buffer, ':');
-        if (cptr && isdigit((unsigned char)buffer[0])) {
-          *cptr = '\0';
-
-          /* Find second colon */
-          content = cptr + 1;
-          cptr = strchr(content, ':');
-          if (cptr && isdigit((unsigned char)content[0])) {
-            *cptr = '\0';
-            int type = atoi(buffer);
-            int pinned = atoi(content);
-            content = cptr + 1;
-
-            InsHistory(ctx, content, type);
-            /* Apply pinned flag to the newly inserted item (which is at Hist)
-             */
-            if (ctx->history_head &&
-                strcmp(ctx->history_head->hst, content) == 0) {
-              ctx->history_head->pinned = pinned;
-            }
-          } else {
-            /* Malformed or legacy line containing colons */
-            /* Restore first colon */
-            *(--content) = ':';
-            InsHistory(ctx, buffer, HST_GENERAL);
-          }
-        } else {
-          /* Legacy format */
-          InsHistory(ctx, buffer, HST_GENERAL);
-        }
-      }
-    }
-    fclose(HstFile);
-  }
-  return;
+  (void)snprintf(message, sizeof(message), "Invalid history \"%s\": line %d: %s",
+                 filename, line_number, detail);
+  UI_Message(ctx, "%s", message);
+  return 1;
 }
 
-void SaveHistory(ViewContext *ctx, const char *Filename) {
+static void FreeHistoryDiskEntries(char **entries, int count) {
+  int i;
+
+  if (entries == NULL)
+    return;
+  for (i = 0; i < count; ++i)
+    free(entries[i]);
+  free(entries);
+}
+
+static BOOL ParseHistoryLongValue(const char *text, long *parsed_value) {
+  char *end_ptr;
+  long parsed;
+
+  if (text == NULL || *text == '\0' || parsed_value == NULL)
+    return FALSE;
+
+  errno = 0;
+  parsed = strtol(text, &end_ptr, 10);
+  if (errno != 0 || end_ptr == text || *end_ptr != '\0')
+    return FALSE;
+
+  *parsed_value = parsed;
+  return TRUE;
+}
+
+static int ParseHistoryLine(ViewContext *ctx, const char *filename,
+                            int line_number, char *line, int *type,
+                            int *pinned, char **content) {
+  char *first_colon;
+  char *second_colon;
+  long parsed_type;
+  long parsed_pinned;
+
+  if (line == NULL || type == NULL || pinned == NULL || content == NULL)
+    return -1;
+
+  first_colon = strchr(line, ':');
+  if (first_colon == NULL || !isdigit((unsigned char)line[0])) {
+    *type = HST_GENERAL;
+    *pinned = 0;
+    *content = line;
+    return 0;
+  }
+
+  second_colon = strchr(first_colon + 1, ':');
+  if (second_colon == NULL) {
+    *type = HST_GENERAL;
+    *pinned = 0;
+    *content = line;
+    return 0;
+  }
+
+  *first_colon = '\0';
+  *second_colon = '\0';
+  if (!ParseHistoryLongValue(line, &parsed_type) || parsed_type < HST_GENERAL ||
+      parsed_type > HST_PRINT_FRAME) {
+    return HistoryValidationError(ctx, filename, line_number,
+                                  "history type is out of range");
+  }
+  if (!ParseHistoryLongValue(first_colon + 1, &parsed_pinned) ||
+      (parsed_pinned != 0 && parsed_pinned != 1)) {
+    return HistoryValidationError(ctx, filename, line_number,
+                                  "pinned flag must be 0 or 1");
+  }
+  if (second_colon[1] == '\0') {
+    return HistoryValidationError(ctx, filename, line_number,
+                                  "history entry content must not be empty");
+  }
+
+  *type = (int)parsed_type;
+  *pinned = (int)parsed_pinned;
+  *content = second_colon + 1;
+  return 0;
+}
+
+int ReadHistory(ViewContext *ctx, const char *Filename) {
   FILE *HstFile;
+  char buffer[BUFSIZ];
+  char **entries = NULL;
+  int *types = NULL;
+  int *pinned_values = NULL;
+  int count = 0;
+  int capacity = 0;
+  int line_number = 0;
+  int result = -1;
+
+  if (ctx == NULL || Filename == NULL)
+    return -1;
+
+  HstFile = fopen(Filename, "r");
+  if (HstFile == NULL)
+    return -1;
+
+  while (fgets(buffer, sizeof(buffer), HstFile) != NULL) {
+    char *content;
+    int type;
+    int pinned;
+    size_t length;
+
+    ++line_number;
+    if (strchr(buffer, '\n') == NULL && !feof(HstFile)) {
+      result = HistoryValidationError(ctx, Filename, line_number,
+                                      "line is too long");
+      goto cleanup;
+    }
+
+    length = strlen(buffer);
+    if (length > 0 && buffer[length - 1] == '\n')
+      buffer[length - 1] = '\0';
+    if (buffer[0] == '\0')
+      continue;
+
+    result = ParseHistoryLine(ctx, Filename, line_number, buffer, &type,
+                              &pinned, &content);
+    if (result != 0)
+      goto cleanup;
+
+    if (count == capacity) {
+      int new_capacity = capacity == 0 ? HISTORY_ENTRY_INITIAL_CAPACITY
+                                       : capacity * 2;
+
+      entries = (char **)xrealloc(entries, (size_t)new_capacity * sizeof(*entries));
+      types = (int *)xrealloc(types, (size_t)new_capacity * sizeof(*types));
+      pinned_values =
+          (int *)xrealloc(pinned_values, (size_t)new_capacity * sizeof(*pinned_values));
+      capacity = new_capacity;
+    }
+
+    entries[count] = xstrdup(content);
+    types[count] = type;
+    pinned_values[count] = pinned;
+    ++count;
+  }
+
+  if (ferror(HstFile)) {
+    result = -1;
+    goto cleanup;
+  }
+
+  {
+    int i;
+
+    for (i = 0; i < count; ++i) {
+      InsHistory(ctx, entries[i], types[i]);
+      if (ctx->history_head != NULL &&
+          strcmp(ctx->history_head->hst, entries[i]) == 0) {
+        ctx->history_head->pinned = pinned_values[i];
+      }
+    }
+  }
+
+  result = 0;
+
+cleanup:
+  if (HstFile != NULL)
+    fclose(HstFile);
+  FreeHistoryDiskEntries(entries, count);
+  free(types);
+  free(pinned_values);
+  return result;
+}
+
+static int WriteHistoryFile(FILE *fp, void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
   int i, count;
   History *hst;
   History **hst_array;
 
-  if (!ctx->history_head)
-    return;
+  if (fp == NULL || ctx == NULL)
+    return -1;
 
-  if (EnsureParentDirectoryExists(Filename) != 0)
-    return;
-  if ((HstFile = fopen(Filename, "w")) == NULL)
-    return;
+  if (!ctx->history_head)
+    return 0;
 
   hst_array = (History **)xmalloc(MAX_HST_FILE_LINES * sizeof(History *));
 
@@ -238,12 +368,29 @@ void SaveHistory(ViewContext *ctx, const char *Filename) {
 
   /* Write backwards (Oldest -> Newest) so ReadHistory restores correct order */
   for (i = count - 1; i >= 0; i--) {
-    fprintf(HstFile, "%d:%d:%s\n", hst_array[i]->type, hst_array[i]->pinned,
-            hst_array[i]->hst);
+    if (fprintf(fp, "%d:%d:%s\n", hst_array[i]->type, hst_array[i]->pinned,
+                hst_array[i]->hst) < 0) {
+      free(hst_array);
+      return -1;
+    }
   }
 
   free(hst_array);
-  fclose(HstFile);
+  return 0;
+}
+
+int SaveHistory(ViewContext *ctx, const char *Filename) {
+  if (ctx == NULL || Filename == NULL || *Filename == '\0')
+    return -1;
+  if (EnsureParentDirectoryExists(Filename) != 0) {
+    UI_Message(ctx, "Can't save history \"%s\"*%s", Filename, strerror(errno));
+    return -1;
+  }
+  if (AtomicFileWrite(Filename, WriteHistoryFile, ctx) != 0) {
+    UI_Message(ctx, "Can't save history \"%s\"*%s", Filename, strerror(errno));
+    return -1;
+  }
+  return 0;
 }
 
 void InsHistory(ViewContext *ctx, const char *NewHst, int type) {
