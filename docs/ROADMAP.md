@@ -77,7 +77,7 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 2: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
 *   **Policy:** Source comments may describe only invariants, ownership/lifetime assumptions, aliasing constraints, or non-obvious design rationale.
-*   **Forbidden Comment Classes:** "removed/obsolete/used to", "original code did X", instruction-transcript comments, and commented-out declarations retained as history.
+*   **Forbidden Comment Classes:** commented-out declarations/code blocks, instruction-transcript comments, and strong explicit dead-history phrasing; ambiguous phrases like `used to`, `moved to`, `obsolete`, or `removed` require stronger contextual evidence before they count as dead history.
 *   **Mechanism:** Add a QA guard script (wired into `qa-all`) that fails on forbidden dead-history comment patterns, with allowlist-only exceptions for migration-required cases.
 *   **Acceptance Criteria:**
 *   Existing dead-history comments in first-party code are removed or rewritten to durable design intent.

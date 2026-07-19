@@ -25,9 +25,13 @@ def _write(path: Path, content: str) -> None:
 @pytest.mark.parametrize(
     "comment",
     [
+        "/* Helper used to normalize the active path before rendering. */",
         "/* This helper is used to normalize the active path before rendering. */",
         "/* The cursor is moved to the first visible match after wrapping. */",
+        "/* The selected entry is moved to the active panel after reopening. */",
         "/* Ignore obsolete cache entries emitted by the current scanner. */",
+        "/* Ignore obsolete state files emitted by the current scanner. */",
+        "/* The panel removed from the layout keeps its cached state for redraw. */",
     ],
 )
 def test_present_day_rationale_comments_with_ambiguous_phrases_are_allowed(
@@ -57,6 +61,34 @@ def test_present_day_rationale_comments_with_ambiguous_phrases_are_allowed(
     ],
 )
 def test_clear_dead_history_comments_are_rejected(tmp_path: Path, comment: str) -> None:
+    repo_root = tmp_path
+    path = repo_root / "src" / "demo.c"
+    _write(
+        path,
+        f"""\
+        int demo(void) {{
+            {comment}
+            return 0;
+        }}
+        """,
+    )
+
+    failures = guard.check_path(path, repo_root)
+    assert failures
+
+
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "/* This helper formerly rebuilt the old footer buffer. */",
+        "/* Original code kept a second prompt path here. */",
+        "/* This fallback is no longer used after the old archive flow. */",
+        "/* This compatibility shim is now a no-op. */",
+    ],
+)
+def test_strong_explicit_dead_history_markers_are_rejected(
+    tmp_path: Path, comment: str
+) -> None:
     repo_root = tmp_path
     path = repo_root / "src" / "demo.c"
     _write(

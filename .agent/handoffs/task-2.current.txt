@@ -79,3 +79,27 @@ Refinement reconciliation:
 - src/cmd/move.c — addressed (removed lingering commented-out UI cleanup block surfaced by the refined structural detector).
 - src/fs/tree_read.c — addressed (removed lingering commented-out assignment block surfaced by the refined structural detector).
 - src/ui/volume_menu.c — addressed (removed lingering commented-out refresh block surfaced by the refined structural detector).
+
+Post-merge correction family:
+- Narrow Task 2 guard-precision correction on top of the merged PR #413 baseline.
+
+Post-merge correction inventory:
+- scripts/check_dead_history_comments.py — in scope (keep structural/instruction/strong-history enforcement while removing broad ambiguous-phrase auto-convictions).
+- tests/test_dead_history_comments_guard.py — in scope (prove the current false-positive families before the fix, then preserve the hard-fail classes).
+- docs/ROADMAP.md — in scope (clarify the durable Task 2 contract now that ambiguous phrases alone are not automatic proof).
+- .agent/handoffs/task-2.current.txt — in scope (record the corrected interpretation and reconciliation).
+- Makefile — intentionally unchanged unless the follow-up changes the QA wiring contract.
+- Current repo comments surfaced by focused validation — intentionally unchanged unless contextual review finds an actual fossil requiring cleanup.
+
+Post-merge correction reconciliation:
+- scripts/check_dead_history_comments.py — addressed (ambiguous `used to` / `moved to` / `obsolete` / `removed` detection now requires stronger history context or source-path relocation evidence; structural, instruction-transcript, and strong explicit history checks stay hard-fail).
+- tests/test_dead_history_comments_guard.py — addressed (red proof covers the current false positives across the ambiguous phrase families and green coverage preserves strong-history, instruction-transcript, commented-out declaration, commented-out code-block, vendor-exclusion, and baseline-pass behavior).
+- docs/ROADMAP.md — addressed (Task 2 now distinguishes hard-enforced fossil classes from ambiguous phrases that require contextual evidence).
+- .agent/handoffs/task-2.current.txt — addressed (records the corrected post-merge interpretation and validation evidence).
+- Makefile — intentionally unchanged with reason (target wiring did not change).
+- Current repo comments surfaced by focused validation — intentionally unchanged with reason (the focused review found no real first-party comments that needed rewrite/delete once the guard stopped broad lump matching).
+
+Post-merge correction validation:
+- Red proof: `source .venv/bin/activate && pytest -q tests/test_dead_history_comments_guard.py` (failed on four present-day rationale comments that the old guard misclassified via `used to`, `moved to`, `obsolete`, and `removed` lump matching).
+- `source .venv/bin/activate && pytest -q tests/test_dead_history_comments_guard.py`
+- `python3 scripts/check_dead_history_comments.py`
