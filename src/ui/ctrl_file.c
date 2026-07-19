@@ -806,7 +806,6 @@ file_window_done:
               : (jumped_to_owner_dir ? '\\' : ESC)); /* Return CR/ESC/ToDir */
 }
 
-/* WalkTaggedFiles moved to file_tags.c */
 
 static int FindDirIndexInVolume(const struct Volume *vol,
                                 const DirEntry *target) {
@@ -1178,9 +1177,6 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   }
 }
 
-/* Shell utilities and recursive IO moved to prompts.c */
-
-/* UI_ViewTaggedFiles moved to prompts.c */
 
 static void UpdatePreview(ViewContext *ctx, const DirEntry *dir_entry) {
   if (ctx->preview_mode && ctx->ctx_preview_window) {

@@ -170,7 +170,6 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
   return result;
 }
 
-/* GetCommandLine and GetSearchCommandLine moved to UI layer */
 
 int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
                    WalkingPackage *walking_package, Statistic *s) {

@@ -34,8 +34,7 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
   char buffer[PATH_LENGTH + 1];
   int result = -1;
 
-  /* operation mode check removed as we assume caller handles it or passes
-   * is_archive */
+  /* Caller dispatch guarantees the correct archive-vs-disk mode here. */
 
   if (dir_entry == ctx->active->vol->vol_stats.tree) {
     return -1;

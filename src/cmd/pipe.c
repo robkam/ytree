@@ -371,7 +371,6 @@ PIPE_CLOSE_FAILURE:
   return -1;
 }
 
-/* GetPipeCommand moved to UI layer */
 
 int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                     WalkingPackage *walking_package, Statistic *s) {

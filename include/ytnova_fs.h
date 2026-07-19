@@ -9,7 +9,6 @@
 
 #include "ytnova_defs.h"
 
-/* ARCHIVE_STATUS_* and ARCHIVE_CB_* moved to ytnova_defs.h */
 #define UNSUPPORTED_FORMAT_ERROR -2
 
 /* Define the progress callback type for Scans */

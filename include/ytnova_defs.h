@@ -81,7 +81,7 @@ typedef struct _ViewContext ViewContext;
 
 #define MAX_MODES 4
 #define DISK_MODE 0
-#define LL_FILE_MODE 1 /* Legacy, may be removed */
+#define LL_FILE_MODE 1
 #define ARCHIVE_MODE 2
 #define USER_MODE 3
 
@@ -1085,7 +1085,6 @@ typedef struct _ViewContext {
   /* Color State */
   BOOL color_enabled;
 
-  /* Global state moved to context */
   int animation_method;
   char number_seperator;
   BOOL is_split_screen;

@@ -9,7 +9,6 @@
 #include "ytnova_fs.h"
 #include <stdlib.h>
 
-/* SystemCall and QuerySystemCall moved to UI layer */
 
 /* Prototypes for functions defined in this file */
 int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s);

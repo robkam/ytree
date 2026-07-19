@@ -8,7 +8,6 @@
 #include "ytnova_defs.h"
 #include <unistd.h>
 
-/* Removed #include <dos.h> and #include <hurd/hurd_types.h> */
 
 /* Volume-Name und freien Plattenplatz ermitteln */
 /*-----------------------------------------------*/

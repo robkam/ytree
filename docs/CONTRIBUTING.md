@@ -240,8 +240,9 @@ Individual gates:
 - `make qa-pytest-coverage` (coverage build + pytest + gcov/lcov report)
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
+- `make qa-dead-history-comments`
 - `make qa-ai-config`
-- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`)
+- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-module-boundaries`, `qa-ai-config`)
 - `make qa-fuzz` (builds and runs all fuzz smoke targets)
 - `make qa-deep` (max-depth composite audit with per-step timing and AI-handoff artifacts)
 - `make fuzz` (builds all fuzz binaries under `build/fuzz/`)
@@ -317,7 +318,7 @@ Keep source code self-explanatory where possible. Use comments for durable, non-
 
 - Document invariants, ownership/lifetime assumptions, aliasing constraints, and rationale for unusual behavior.
 - Do not restate obvious code mechanics line-by-line.
-- Do not use source comments as temporary change history ("fixed yesterday", "changed in commit ...").
+- Do not use source comments as temporary change history ("fixed yesterday", "changed in commit ..."). Run `make qa-dead-history-comments` when you are touching comment-heavy code or guard wiring.
 - If a comment becomes stale due to a code change, update or remove it in the same change.
 
 ## Ncurses Guidelines

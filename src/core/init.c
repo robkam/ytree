@@ -277,7 +277,6 @@ void Layout_Recalculate(ViewContext *ctx) {
     }
   }
 
-  /* Removed unused stats_margin calculation */
   layout.main_win_width = (layout.stats_width > 0)
                               ? (COLS - layout.stats_width - 2)
                               : (COLS - 2);

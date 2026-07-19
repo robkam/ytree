@@ -16,7 +16,6 @@
 
 /* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is
  * sizeof/strlen */
-/* MINIMUM/MAXIMUM Moved to ytnova_defs.h */
 
 #include "config.h"
 

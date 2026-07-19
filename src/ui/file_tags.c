@@ -103,23 +103,6 @@ void FileTags_SilentWalkTaggedFiles(ViewContext *ctx,
   }
 }
 
-/*
-
-SilentTagWalkTaggedFiles.
-revision of above function to provide something like
-XTG's <search>- [x] Decouple execution: `execute.c`, `system.c`, `pipe.c`.
-- [x] Decouple remaining utilities (`filter.c`, `sort.c`, `hex.c`, `view.c`,
-etc.).
-- [x] Sanitize headers (`ytnova_defs.h`, `ytnova_fs.h`) for headless compilation.
-- [ ] Address lint errors and final verification.
-repeated calls can be used to pare down tags, each with a different
-string, until only the intended target files are tagged.
-
-ExecuteCommand must have its retval unzeroed.
-
---crb3 31dec03
-
-*/
 
 void FileTags_SilentTagWalkTaggedFiles(ViewContext *ctx,
                                        int (*fkt)(ViewContext *, FileEntry *,

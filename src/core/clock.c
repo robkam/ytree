@@ -52,7 +52,6 @@ void ClockHandler(ViewContext *ctx, int sig) {
 #endif
     wnoutrefresh(ctx->ctx_time_window);
   }
-  /* Recursive signal call removed */
 #endif
 }
 

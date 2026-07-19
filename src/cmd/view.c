@@ -96,5 +96,3 @@ cleanup:
   }
   return result;
 }
-
-/* ViewTaggedFiles removed from core view.c - moved to UI layer */
