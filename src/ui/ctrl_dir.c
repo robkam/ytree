@@ -1217,8 +1217,6 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
            action != ACTION_ESCAPE &&
            action != ACTION_LOG); /* Loop until explicit quit, escape or log */
 
-  /* Sync state back to Volume on exit */
-  /* Removed shared state sync on exit */
 
   return (ch); /* Return the last raw character that caused exit */
 }

@@ -124,7 +124,6 @@ static int normalize_prompt_escape_key(WINDOW *win, int ch) {
 }
 
 /* Helper to get visible length of string */
-/* Using extern from input.c logic (now moved here or duplicated) */
 
 /*
  * UI_ReadString

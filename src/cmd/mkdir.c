@@ -38,7 +38,7 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   (void)status;
   (void)msg;
   (void)user_data;
-  /* UI interactions removed for decoupling */
+  /* Archive callbacks stay non-interactive in this flow. */
   return ARCHIVE_CB_CONTINUE;
 }
 

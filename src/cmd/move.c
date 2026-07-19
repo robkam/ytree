@@ -288,28 +288,10 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
 
 FNC_XIT:
 
-  /*
-  move( LINES - 3, 1 ); clrtoeol();
-  move( LINES - 2, 1 ); clrtoeol();
-  move( LINES - 1, 1 ); clrtoeol();
-  */
-
   return (result);
 }
 
-/* GetMoveParameter was used by the UI directly, but we will leave it or remove
-it? For now just keep but comment out UI calls or leave it since it will be in
-ctrl_file soon. Actually get_move_parameter should be in the UI. We can comment
-it out here or leave it. Wait, if it uses UI_ReadString, it might still need
-ytnova_ui.h, which we removed. Let's comment out the whole GetMoveParameter
-function because it belongs in UI */
-
 static int Move(ViewContext *ctx, char *to_path, char *from_path) {
-  /* Statistic *s = &ctx->active->vol->vol_stats; */ /* Not needed here unless
-                                                     CopyFileContent needs it */
-  /* CopyFileContent does take a Statistic *s now. We need access to it. */
-  /* Since Move is static and called from MoveFile, we should pass it or use
-   * global ctx->active->vol */
   const Statistic *s = &ctx->active->vol->vol_stats;
 
   if (!strcmp(to_path, from_path)) {

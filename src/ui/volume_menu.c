@@ -511,8 +511,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       UI_Dialog_Close(ctx, win);
       win = NULL;
     }
-    /* touchwin(stdscr);
-    refresh(); */
 
   } while (restart_menu);
 

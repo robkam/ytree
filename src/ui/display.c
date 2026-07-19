@@ -17,20 +17,6 @@
 #include "ytnova_appstate_window.h"
 #include <assert.h>
 
-/* PrintMenuLine is removed as its functionality for drawing the static stats
- * panel is no longer needed. The stats panel is now fully managed by stats.c.
- */
-/* static void PrintLine(WINDOW *win, int y, int x, char *line, int len); //
- * Removed: PrintLine is now an external function from display_utils.c */
-/* static void DisplayVersion(void); // Removed: Unused function */
-
-/* The 'mask' array is removed as the static statistics panel it defined
- * is now entirely managed by stats.c. */
-
-/* 'extended_line' is removed as it was part of the static statistics panel
- * drawing logic, which is now obsolete. */
-
-/* Legacy border strings removed. Use ACS_* constants directly. */
 
 typedef struct {
   const char *prefix;
@@ -1704,8 +1690,6 @@ void UnmapF2Window(ViewContext *ctx) {
   wattrset(ctx->ctx_border_window, A_NORMAL);
 }
 
-/* PrintMenuLine function is removed as it is no longer used after decoupling
- * the static stats panel from display.c. */
 
 void RefreshWindow(WINDOW *win) { wnoutrefresh(win); }
 

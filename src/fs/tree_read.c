@@ -121,10 +121,6 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   /* Initialize dir_entry */
   /*--------------------------*/
 
-  /*
-    dir_entry->next           = NULL;
-    dir_entry->prev           = NULL;
-  */
   if (!AppStateCommitDirEntrySubTree(dir_entry, NULL))
     return (-1);
   if (!AppStateResetDirEntryPayloadCache(dir_entry))
@@ -180,9 +176,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     if (!strcmp(dirent->d_name, ".") || !strcmp(dirent->d_name, ".."))
       continue;
 
-    /* Removed hide_dot_files check here.
-       We load ALL files/dirs into memory now, and filter only at display time.
-     */
+    /* Scan every entry so later views can apply their own visibility rules. */
 
     if (EscapeKeyPressedWithBoundary(ctx)) {
       /* Ask whether to abort scan */

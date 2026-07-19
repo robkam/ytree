@@ -83,7 +83,7 @@ Ordering policy (for all editors, including AI editors):
 *   Existing dead-history comments in first-party code are removed or rewritten to durable design intent.
 *   New guard fails on forbidden patterns and passes on current baseline.
 *   `make qa-all` passes with the new guard enabled.
-*   - [ ] **Status:** In Progress.
+*   - [x] **Status:** Complete.
 
 ### **Task 3: Unified Clean-Code Compliance Gate**
 *   **Goal:** Enforce clean-code rules continuously through one measurable gate instead of ad-hoc review.

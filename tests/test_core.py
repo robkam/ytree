@@ -88,7 +88,7 @@ def test_rename(controller, sandbox):
     time.sleep(0.5)
     yt.child.send(Keys.RENAME)
     # Updated to match src/cmd/rename.c: "RENAME TO:"
-    # Using partial match "RENAME" for robustness as per task instructions
+    # Use a partial prompt match so wording changes do not break the flow.
     yt.child.expect("RENAME")
 
     # 3. Input New Name

@@ -180,7 +180,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 		fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 		test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-code-quality qa-all \
+		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-code-quality qa-all \
 		ci-baseline mcp-doctor py-requirements \
 		qa-all-log qa-deep theme-catalog profile-template commands-catalog command-presets-catalog \
 		code-quality-hotspots
@@ -447,6 +447,9 @@ qa-gitleaks:
 qa-module-boundaries:
 	python3 scripts/check_module_boundaries.py
 
+qa-dead-history-comments:
+	python3 scripts/check_dead_history_comments.py
+
 qa-appstate-contract:
 	python3 scripts/check_appstate_contract.py
 
@@ -488,7 +491,7 @@ command-presets-catalog:
 	$(PYTHON) $(COMMAND_PRESETS_SCRIPT) --source-dir $(COMMAND_PRESETS_SRC_DIR) \
 		--header $(COMMAND_PRESETS_HDR) --write
 
-qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog
+qa-code-quality: qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 

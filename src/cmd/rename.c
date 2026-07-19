@@ -229,17 +229,13 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
   return (result);
 }
 
-/* GetRenameParameter moved to UI layer */
 
 static int RenameDirEntry(const char *to_path, const char *from_path) {
   if (!strcmp(to_path, from_path)) {
     return (0);
   }
 
-  /*
-   * Modernized: Always use rename().
-   * Removed obsolete link()/unlink() fallback which fails on directories.
-   */
+  /* rename() keeps file and directory renames on the same POSIX path. */
   if (rename(from_path, to_path)) {
     return (-1);
   }

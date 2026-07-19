@@ -134,7 +134,6 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
       if (composed_len < 0 || (size_t)composed_len >= sizeof(to_path)) {
         return result;
       }
-      /* dest_dir_entry = NULL; removed to allow resolution */
       path_copy = FALSE;
     }
   } else {
@@ -600,16 +599,9 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
 
 FNC_XIT:
 
-  /*
-  move( LINES - 3, 1 ); clrtoeol();
-  move( LINES - 2, 1 ); clrtoeol();
-  move( LINES - 1, 1 ); clrtoeol();
-  */
-
   return (result);
 }
 
-/* GetCopyParameter moved to ctrl_file.c */
 
 int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
                     const Statistic *s) {
@@ -646,14 +638,6 @@ int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
     return (-1);
   }
 
-  // The original code had a specific mode for open, but the instruction
-  // provided a different one. I'm using the instruction's provided mode for the
-  // second open call. The instruction also implies fe_ptr->stat_struct.st_mode,
-  // which is not available in CopyFileContent. I will use the original mode
-  // from the content provided, as fe_ptr is not available here. The
-  // instruction's snippet for the second open call is also missing the
-  // `fe_ptr->stat_struct.st_mode` variable. I will use the original mode
-  // `S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH` as `fe_ptr` is not in scope here.
   if ((o = open(to_path, O_CREAT | O_TRUNC | O_WRONLY,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
     /* MESSAGE( "Can't create file*\"%s\"*%s", to_path, strerror(errno) ); */

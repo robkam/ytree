@@ -10,11 +10,7 @@
 #include <grp.h>
 #include <sys/types.h>
 
-/*
- * ReadGroupEntries
- * Legacy compatibility: Formerly read /etc/group into cache.
- * Now a no-op as we query on demand.
- */
+/* Compatibility shim for startup callers; group lookups happen on demand. */
 int ReadGroupEntries(void)
 {
   return( 0 );

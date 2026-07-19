@@ -116,7 +116,6 @@ static void ReadAllVolumesGlobalFileList(ViewContext *ctx, YtreeNovaPanel *panel
   max_visual_linkname_len = global_max_visual_linkname_len;
 }
 
-/* Removed SetKindOfSort definition - implemented in sort.c */
 
 void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no) {
   int i, n;

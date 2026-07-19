@@ -49,6 +49,3 @@
 
 #define DEFAULT_HEXDUMP    "hexdump" /* Defaulting to Linux/BSD standard */
 #define DEFAULT_PAGER      "less"    /* Defaulting to modern standard */
-
-/* Removed all specific OS #ifdef blocks for SGI, linux, __GNU__, __NeXT__, __OpenBSD__, __FreeBSD__, __NetBSD__, __DJGPP__ */
-/* Obsolete archive-specific commands have been removed as libarchive is now used. */

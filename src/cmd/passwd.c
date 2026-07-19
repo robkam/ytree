@@ -10,11 +10,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 
-/*
- * ReadPasswdEntries
- * Legacy compatibility: Formerly read /etc/passwd into cache.
- * Now a no-op as we query on demand.
- */
+/* Compatibility shim for startup callers; passwd lookups happen on demand. */
 int ReadPasswdEntries(void)
 {
   return( 0 );
