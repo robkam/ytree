@@ -208,12 +208,13 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-unsafe-apis`
 - `make qa-gitleaks`
 - `make qa-module-boundaries`
+- `make qa-clean-code`
 - `make qa-dead-history-comments`
 - `make qa-ai-config`
-- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-module-boundaries`, `qa-ai-config`)
+- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-clean-code`, `qa-appstate-contract`, `qa-ai-config`, and the generated catalog/template sync guards)
 - `make qa-split-panel-gates` (runs the split-panel invariants, transition-handoff, and split-authority regression subset)
 - `make qa-fuzz`
-- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz` in order; run `qa-fileops-integrity` separately when touching mutation flows)
+- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-code-quality`, `qa-gitleaks`, `qa-fuzz` in order; run `qa-fileops-integrity` separately when touching mutation flows)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - `make qa-deep` (max-depth unattended composite run; default logs in `${TMPDIR:-/tmp}/ytnova-qa-deep`; override root with `QA_DEEP_LOG_ROOT=/path`)
 

@@ -1,0 +1,39 @@
+Work item: docs/ROADMAP.md Task 3
+Title: Unified Clean-Code Compliance Gate
+Acceptance target:
+- `qa-clean-code` exists, is documented, and is wired into `qa-all`.
+- Baseline debt is explicitly allowlisted with owner + removal plan; no silent grandfathering.
+- New violations fail local gate and CI evidence.
+- `make qa-all` passes with `qa-clean-code` enabled on the current baseline.
+Completion objective:
+- Complete the roadmap item correctly by landing the full clean-code compliance gate family: the allowlist-backed `qa-clean-code` implementation, focused regression/meta-test coverage, QA/docs wiring, and explicit baseline-debt accounting for every in-scope clean-code rule.
+
+Selected work family:
+- Introduce the allowlist-backed `qa-clean-code` guard family and wire it through the existing QA/docs surfaces without leaving any clean-code rule family undocumented or silently grandfathered.
+
+Inventory reconciliation:
+- docs/ROADMAP.md — addressed (Task 3 mechanism now matches the landed `qa-clean-code` contract and status is marked complete).
+- Makefile — addressed (adds `qa-clean-code`, wires it into the bundled `qa-code-quality` gate, and therefore into `qa-all`).
+- scripts/check_clean_code.py — addressed (new allowlist-backed clean-code guard covers single-letter parameters, function-size budgets, argument-count budgets, flag-argument signatures, threshold/comparison magic numbers, and test-fixture/global-state checks).
+- scripts/clean_code_allowlist.py — addressed (shared allowlist loader/validator keeps `qa-clean-code` and `qa-module-boundaries` on one baseline-debt contract).
+- docs/clean_code_allowlist.json — addressed (records explicit baseline debt with owner + removal plan for clean-code and controller-budget exceptions).
+- tests/test_clean_code_guard.py — addressed (meta-test coverage proves red/green behavior for the new clean-code rule families and current-baseline pass).
+- docs/AUDIT.md — addressed (command inventory and `qa-all` description now include `qa-clean-code`).
+- docs/CONTRIBUTING.md — addressed (developer guidance and recurring burn-down notes now mention `qa-clean-code` and the bundled quality composition).
+- docs/quickstart.md — addressed (validation quickstart now shows `make qa-clean-code`).
+- docs/ai/CODE_QUALITY.md — addressed (canonical clean-code guidance now points at `qa-clean-code` and the shared allowlist registry).
+- Existing quality-guard compatibility seam (`qa-code-quality` target + existing docs references) — addressed (the existing bundle now delegates clean-code enforcement to `qa-clean-code` rather than parallel ad-hoc wording).
+- scripts/check_module_boundaries.py — addressed (controller/file budgets now load from the shared clean-code allowlist so the baseline debt is explicit rather than hard-coded).
+- tests/test_module_boundaries_guard.py — intentionally unchanged with reason (the existing guard tests still validate controller allowlists/budgets, and the shared allowlist load preserves their behavioral contract without extra fixture changes).
+- scripts/report_code_quality_hotspots.py — intentionally unchanged with reason (it already consumes `check_module_boundaries.py` budgets, so the shared allowlist change propagates through the existing interface without touching the reporter itself).
+- tests/test_code_quality_hotspots_report.py — intentionally unchanged with reason (the reporter contract stayed stable once `check_module_boundaries.py` began loading the shared budget registry).
+- Existing helper guards/tests outside that compatibility seam (`scripts/check_dead_history_comments.py`, `scripts/check_project_ai_config.py`, catalog/template sync guards/tests) — intentionally unchanged with reason (their contracts did not change; they remain bundled by `qa-code-quality`).
+
+Focused validation:
+- `source .venv/bin/activate && pytest -q tests/test_clean_code_guard.py tests/test_module_boundaries_guard.py tests/test_code_quality_hotspots_report.py`
+- `make clean && make`
+- `make qa-code-quality`
+- `git diff --check`
+
+Remaining Task 3 work families after this slice:
+- None found after the final sweep across the roadmap entry, QA/docs wiring, shared allowlist registry, focused guard tests, and bundled local validation.

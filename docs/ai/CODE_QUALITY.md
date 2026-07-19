@@ -148,9 +148,12 @@ Every burn-down pass must include:
 
 Add these when their surfaces change:
 
-- `make qa-code-quality` when touching guards, AI config, or generated catalog/template surfaces
+- `make qa-clean-code` when touching naming/function-budget/magic-number/test-independence guard surfaces or the clean-code allowlist
+- `make qa-code-quality` when touching the broader bundled guard set, AI config, or generated catalog/template surfaces
 - `make qa-fileops-integrity` for file/archive mutation flows
 - `make qa-split-panel-gates` for split-panel invariants
+
+`docs/clean_code_allowlist.json` is the canonical baseline-debt registry for `qa-clean-code`. Every retained exception must name the owner boundary plus a concrete removal plan; do not add silent inline waivers in scripts or tests.
 
 Local `make qa-all` remains optional unless maintainer-requested; green PR full-QA CI remains the pre-merge gate.
 

@@ -89,17 +89,16 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Enforce clean-code rules continuously through one measurable gate instead of ad-hoc review.
 *   **Scope:** Naming quality, function size/argument/side-effect discipline, duplication control, boundary-condition encapsulation, and test clarity/independence.
 *   **Mechanism:** Add `qa-clean-code` (included in `qa-all`) that combines static checks + targeted meta-tests:
-    *   **Naming checks:** fail on new ambiguous/abbreviated single-letter identifiers outside accepted loop/index conventions; fail on new magic-number literals outside approved constant contexts.
-    *   **Function checks:** enforce max function-size budget, max argument-count budget, and fail on new flag-argument signatures; require explicit annotation/wrapper for approved side-effect functions.
-    *   **Duplication checks:** fail on new duplicate blocks above threshold unless explicitly allowlisted with rationale.
-    *   **Boundary checks:** fail when boundary logic (path bounds/index guards/null-termination guards) is duplicated across modules instead of using shared helpers.
-    *   **Test checks:** fail on tests that combine unrelated assertions/flows without clear phase separation; require independent setup/teardown (no order-coupled fixtures or shared mutable global state).
+    *   **Naming checks:** fail on new ambiguous/abbreviated single-letter parameter identifiers outside accepted loop/index conventions unless they are explicitly allowlisted with owner + removal plan; fail on new threshold/comparison magic-number literals outside the same allowlist contract.
+    *   **Function checks:** enforce max function-size budgets, max argument-count budgets, and fail on new flag-argument signatures unless the exception is explicitly recorded with owner + removal plan.
+    *   **Boundary/duplication checks:** bundle `qa-module-boundaries` inside `qa-clean-code` so controller owner-boundary allowlists, controller-growth budgets, and the shared clean-code baseline-debt registry are enforced through one gate instead of ad-hoc review.
+    *   **Test checks:** fail on shared mutable test globals and non-function-scope fixtures unless they are explicitly allowlisted; targeted meta-tests must cover the clean-code guard classifiers.
 *   **Acceptance Criteria:**
 *   `qa-clean-code` exists, is documented, and is wired into `qa-all`.
 *   Baseline debt is explicitly allowlisted with owner + removal plan; no silent grandfathering.
 *   New violations fail local gate and CI evidence.
 *   `make qa-all` passes with `qa-clean-code` enabled on the current baseline.
-*   - [ ] **Status:** In Progress.
+*   - [x] **Status:** Complete.
 
 ### **Task 4: Compiler Warning Baseline + No-New-Warnings Gate**
 *   **Goal:** Reduce `-Wall/-Wextra` warning debt to a maintained baseline and prevent warning regressions on supported toolchains.

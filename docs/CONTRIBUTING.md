@@ -103,7 +103,7 @@ make hooks-install
 ```
 
 This installs a tracked pre-push gate:
-- Pushes with codebase changes (`src/`, `include/`, `tests/`, `scripts/`, `.githooks/`, `Makefile`): run `make qa-code-quality`.
+- Pushes with codebase changes (`src/`, `include/`, `tests/`, `scripts/`, `.githooks/`, `Makefile`): run `make qa-code-quality` (which now includes `make qa-clean-code`).
 - Pushes that also update `main` run `make ci-baseline` after `qa-code-quality`.
 - Pushes without codebase changes (for example docs-only updates): skip the local pre-push quality gate.
 - Set `YTNOVA_PRE_PUSH_FORCE=1` to force `make qa-code-quality`.
@@ -240,9 +240,10 @@ Individual gates:
 - `make qa-pytest-coverage` (coverage build + pytest + gcov/lcov report)
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
+- `make qa-clean-code`
 - `make qa-dead-history-comments`
 - `make qa-ai-config`
-- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-module-boundaries`, `qa-ai-config`)
+- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-clean-code`, `qa-appstate-contract`, `qa-ai-config`, and the generated catalog/template sync guards)
 - `make qa-fuzz` (builds and runs all fuzz smoke targets)
 - `make qa-deep` (max-depth composite audit with per-step timing and AI-handoff artifacts)
 - `make fuzz` (builds all fuzz binaries under `build/fuzz/`)
@@ -262,7 +263,7 @@ source .venv/bin/activate && pytest -q tests/path/to/focused_test.py
 make qa-module-boundaries
 ```
 
-Also run the matching bundled QA gates for the surfaces you changed (`make qa-code-quality`, `make qa-fileops-integrity`, `make qa-split-panel-gates`, and so on). Record which hotspots shrank, which stayed flat, and any explicitly deferred items.
+Also run the matching bundled QA gates for the surfaces you changed (`make qa-clean-code`, `make qa-code-quality`, `make qa-fileops-integrity`, `make qa-split-panel-gates`, and so on). Record which hotspots shrank, which stayed flat, and any explicitly deferred items.
 
 ---
 
