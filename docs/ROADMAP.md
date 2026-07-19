@@ -1,4 +1,4 @@
-# **Modernization Roadmap**
+# **YtreeNova Roadmap**
 
 ---
 
@@ -83,7 +83,7 @@ Ordering policy (for all editors, including AI editors):
 *   Existing dead-history comments in first-party code are removed or rewritten to durable design intent.
 *   New guard fails on forbidden patterns and passes on current baseline.
 *   `make qa-all` passes with the new guard enabled.
-*   - [ ] **Status:** In Progress. A picker-themed `F9` Applications menu shell now exists so theme surfaces can be previewed there; preset execution, user-configurable entries, and completion reporting remain open.
+*   - [ ] **Status:** In Progress.
 
 ### **Task 3: Unified Clean-Code Compliance Gate**
 *   **Goal:** Enforce clean-code rules continuously through one measurable gate instead of ad-hoc review.
@@ -1083,8 +1083,8 @@ Ordering policy (for all editors, including AI editors):
     *   The synchronize path prefers `rsync` for plain filesystem paths and does not require ytnova to own a new recursive sync engine.
 *   - [ ] **Status:** Not Started.
 
-### **Task 55: Promote Applications Menu (`F9`) with Safe Default Presets**
-*   **Goal:** Bring `F9` Applications Menu into current-delivery scope as a visible, contributor-friendly command surface with sensible default entries.
+### **Task 55: Implement Applications Menu (`F9`) with Safe Default Presets**
+*   **Goal:** Implement `F9` Applications Menu as a visible, contributor-friendly command surface with sensible default entries.
 *   **Semantics:** Entries are user commands/templates (with optional placeholders/parameters) that execute commands; this is not keystroke recording.
 *   **Default Presets (initial set):**
     *   `wget` fetch preset (option-heavy fetch with URL prompt).
@@ -1097,7 +1097,7 @@ Ordering policy (for all editors, including AI editors):
     *   User-added commands are not restricted, including commands that duplicate existing builtins.
     *   Prompt/help/F1/manpage text documents `F9` basics and preset intent in contributor-friendly language.
     *   Command completion reporting is explicit (`success` on zero exit, actionable error summary on non-zero exit).
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress. A picker-themed `F9` Applications menu shell now exists so theme surfaces can be previewed there; preset execution, user-configurable entries, and completion reporting remain open.
 
 ### **Task 56: Define Extension Surface Contract (`F9` Apps + `F7` Preview Plugins)**
 *   **Goal:** Define one explicit extension contract for external-tool integrations so command apps (`F9`) and preview plugins (`F7`) follow the same safety, UX, and fallback rules.

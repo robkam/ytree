@@ -1,7 +1,7 @@
 # AUDIT.md
 
 ## 1. Purpose
-This document defines the mandatory quality process for the YtreeNova modernization project. Auditing is an ongoing process that starts during implementation and continues through merge and release. The release gate is the final checkpoint.
+This document defines the mandatory quality process for YtreeNova. Auditing is an ongoing process that starts during implementation and continues through merge and release. The release gate is the final checkpoint.
 
 ## 1.1 Cadence
 - Use focused checks during feature-sized change or PR iteration.

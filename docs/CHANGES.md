@@ -10,12 +10,12 @@ Minor/trivial fixes are tracked in git history.
 
 ## [1.0.0-alpha] - 2026-06-10
 
-*YtreeNova alpha release line starts here after the project rebrand. Modernization Project initiated 30 Oct 2025 from Ytree v2.10. This release represents an independent fork and comprehensive architectural modernization to C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
+*YtreeNova release history starts here after the rebrand. The codebase began from Ytree v2.10 on 30 Oct 2025 and has since been developed as a separate Unix-like XTreeGold tribute with broader workflows, stronger QA, and contemporary POSIX-focused internals.*
 
 ### Lineage
-- YtreeNova is an independent fork of [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others, with its own name and release line to keep the projects distinct.
+- YtreeNova began from the [Ytree](https://www.han.de/~werner/ytree.html) v2.10 codebase by Werner Bregulla and others, but now has its own name and release history.
 
-### Core Architecture & Modernization
+### Core Architecture & Runtime
 - **Refactoring & Standardization**: Modernized the original C89-oriented codebase to C99/POSIX standards.
 - **Context-Passing Architecture**: Replaced implicit cross-module state access with explicit context parameters and ownership boundaries.
 - **Global State Removal**: Drove major mutable application state out of file-scope globals and into structured runtime state.

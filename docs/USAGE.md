@@ -8,9 +8,9 @@ ytnova - a file manager for Unix-like systems
 
 # DESCRIPTION
 
-**ytnova** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTree™**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
+**ytnova** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTree**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
 
-This version is a modern refactor of the original **ytree** by Werner Bregulla, incorporating features from XTree™ and ZTreeWin, using modern C standards (C99/POSIX), and integrating robust libraries like `libarchive`.
+It began from Ytree v2.10 but now continues as a separate Unix-like XTreeGold tribute, using contemporary POSIX/C99 code and libraries such as `libarchive`.
 
 If no command line arguments are provided, the current directory will be logged.
 

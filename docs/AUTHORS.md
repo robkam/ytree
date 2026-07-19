@@ -22,6 +22,6 @@ Originally developed by [Werner Bregulla](https://www.han.de/~werner/ytree.html)
 *   **Valere Monseur aka Dobedo** - NetBSD
 *   **Victor Vislobokov** - UTF-8 support
 
-**YtreeNova Modernization**
+**YtreeNova Development**
 
-* **Rob Kam** - Forked YtreeNova in October 2025 from Ytree v2.10. Modernized and extended the fork while making extensive use of LLMs for code generation and debugging.
+* **Rob Kam** - Started YtreeNova in October 2025 from Ytree v2.10 and developed it as a separate Unix-like XTreeGold tribute project, with extensive use of LLMs for code generation and debugging.

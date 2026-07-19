@@ -2,7 +2,7 @@
 > **Purpose:** This document defines the internal design of `ytnova`. It serves as the authoritative guide for maintaining the codebase's structural integrity.
 
 ## **1. Core Quality Principles**
-To maintain architectural stability throughout the modernization, all changes must adhere to these foundational rules:
+To maintain architectural stability throughout YtreeNova's development, all changes must adhere to these foundational rules:
 
 *   **Code Quality (DRY):** All development must adhere to the "Don't Repeat Yourself" principle. Code must be modular, reusable, and free of redundancy.
 *   **Architectural Integrity (Anti-Patching):** Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, **STOP**. Refactor the architecture to unify the logic before fixing the specific bug. It is better to break one thing to fix the system than to patch the system and break everything.
@@ -48,7 +48,7 @@ This does **not** replace architecture review. It is a fitness function: mechani
 ## **2. Architectural Overview**
 This document outlines the architectural design of `ytnova`. The codebase utilizes a modular, context-oriented C99 design.
 
-The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree&trade; lineage.
+The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree lineage.
 
 ---
 
