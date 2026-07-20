@@ -62,3 +62,6 @@ UX economy gate:
 
 QA remediation gate:
 - Fix root causes for failing QA checks; do not patch around failures or add local suppressions without explicit user approval.
+
+AI correctness gate:
+- Implement the full applicable spec correctly on the first pass. Do not break behavior, invariants, interfaces, architecture, or tests and then rely on follow-up fixes merely to recover CI; green after self-caused regressions is failure, not success.
