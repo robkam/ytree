@@ -283,11 +283,11 @@ Ordering policy (for all editors, including AI editors):
 *   Corrupted or malformed config/history input does not crash runtime and does not leave partial in-memory state.
 *   Persistence writes are crash-safe and do not produce truncated/half-written files.
 *   Regression tests cover malformed input, invalid value ranges, interrupted-write simulation, and recovery behavior.
-*   - [x] **Status:** Complete.
+*   - [x] **Status:** Completed.
 
-#### **Task 11.4: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that supports guided editing for common options while retaining expert raw-text paths for the split config, commands, and theme surfaces.
-*   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility, and gives the split config/theme/commands model one coherent in-app entry point instead of scattering file editing across ad hoc workflows.
+#### **Task 11.4: Implement F10 Configuration Hub + Raw-Text Edit Paths**
+*   **Goal:** Implement a user-friendly configuration hub (activated by `F10`) that gives the split config, commands, and theme surfaces one coherent in-app entry point while preserving the direct raw-text editing workflow.
+*   **Rationale:** Keeps configuration discoverable without forcing menu-heavy editing flows that do not fit the preferred Unix/console workflow for many users. Starter-commented text files remain the expert-friendly authority, while `F10` provides the shallow entry point and reload path.
 *   **UI Contract:** The `F10` command strip is `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Default action is config editing so `F10 -> Enter` remains the common path. Reload exists only under `F10`, not as a global/main-UI key.
 *   **File Contract:**
     *   Config editing targets the preferred runtime config at `~/.config/ytnova/ytnova.conf`; if startup loaded the legacy fallback `~/.ytnova`, `F10` acts as the migration path and should create/edit the XDG profile whenever that target path is usable, falling back to `~/.ytnova` only when the XDG-style target path cannot be used.
@@ -297,17 +297,17 @@ Ordering policy (for all editors, including AI editors):
 *   **Dependency Contract:**
     *   Sequence after Task 11.2 defines the canonical split surfaces and precedence rules.
     *   Sequence after Task 11.5 if preset selection is exposed in the UI; `F10` must not hardcode obsolete bindings/labels split assumptions.
-    *   The editor must preserve the same XDG-first/home-dotfile-fallback rules as startup and `--init`.
-    *   Guided editing must not re-collapse structured label/action data back into legacy raw `[MENU]` whole-line text.
+    *   The hub/edit flow must preserve the same XDG-first/home-dotfile-fallback rules as startup and `--init`.
+    *   Raw-text editing must not re-collapse structured label/action data back into legacy raw `[MENU]` whole-line text.
 *   **Acceptance Criteria:**
 *   `F10` exposes one coherent hub for config, commands, themes, and reload.
 *   `F10 -> Enter -> result` still opens the main config as the common path.
 *   Each `F10` action edits or creates the active runtime file for that surface using the same path-resolution rules as startup.
 *   The commands path can edit command overrides without requiring users to rewrite pre-rendered footer/menu lines, and can expose preset selection once Task 11.5 lands.
-*   Guided editing for common options is possible without blocking raw-text editing for advanced users.
+*   Starter-commented raw-text editing remains the canonical expert path for advanced users.
 *   Reload from the `F10` hub respects the atomic reload contract across config/theme/commands surfaces.
 *   Footer/F1/manpage wording for `F10` stays synchronized with the split-surface model.
-*   - [ ] **Status:** In Progress.
+*   - [x] **Status:** Completed.
 
 #### **Task 11.5: Locale/Layout-Aware Command Presets**
 *   **Goal:** Add proper locale/layout-aware command preset catalogs without reopening Task 11.2's ownership model: shipped presets live as separate packaged command-map files, `commands.conf` remains the one active user-editable command surface, and users or packagers can choose a preset without rewriting core command-dispatch code.
@@ -332,7 +332,7 @@ Ordering policy (for all editors, including AI editors):
     *   Section ownership is by stable runtime command-surface ID rather than by language or storage back-end name alone. Current canonical surfaces must cover at least directory/file and archive-directory/archive-file variants; future surfaces may add new stable IDs without changing the row grammar.
 *   **Dependency Contract:**
     *   Sequence after Task 11.2 establishes the action/label/token split.
-    *   Prefer to land before final Task 11.4 polish so `F10` can expose the final commands-surface model rather than a transient one.
+    *   Prefer to land before final F10 hub polish so `F10` can expose the final commands-surface model rather than a transient one.
     *   Task 40.2 and Task 43 consume the resolved active command state only; they should not need separate locale-specific layout logic once this task lands.
 *   **Acceptance Criteria:**
 *   Shipped command presets exist as separate packaged source files keyed by stable preset ID.
@@ -397,7 +397,7 @@ Ordering policy (for all editors, including AI editors):
 *   On creation failure (permissions/path errors), show a precise actionable error and do not continue the mutation command.
 *   Add focused regression coverage for `yes`, `no/cancel`, and failure-path behavior.
 *   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 16: Add Inline `Shift+N` Create-Link Flow (Symlink/Hardlink)**
 *   **Goal:** Add an in-app link creation command that mirrors existing `mkdir/newfile/copy` prompt ergonomics without requiring external `X` shell execution.
@@ -959,7 +959,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 47: Add Configurable Bypass for External Viewers**
 *   **Goal:** Add a configuration option to globally disable external viewers, forcing the use of the internal viewer.
-*   **UI Note:** Expose this in the planned `F10` configuration UI when that panel is implemented.
+*   **UI Note:** If a future guided `F10` config panel lands, expose this there without replacing the existing raw-text config path.
 *   **Rationale:** Provides flexibility for cases where the user wants to quickly inspect the raw bytes of a file (e.g., a PDF) without launching a heavy external application.
 *   **Coverage Clarification:** This task also covers single-file `V` parity with tagged viewing: users must be able to choose internal vs external behavior consistently for both single-file view and tagged-view workflows.
 *   - [ ] **Status:** Not Started.
@@ -1493,9 +1493,19 @@ Ordering policy (for all editors, including AI editors):
 *   **Best-practice guardrails:** Preserve a universal core of stable bindings (function keys/Ctrl/digits/arrows), allow locale mnemonic aliases where safe, and enforce strict collision/unbound-action validation with clear diagnostics.
 *   - [ ] **Status:** Not Started.
 
+### **Idea FE-6: Optional Guided Common-Options Config Panel**
+*   **Goal:** Add an optional shallow guided editor for a small set of common options without replacing the current `F10` hub or the raw-text config/theme/commands authority.
+*   **Behavior Contract:**
+    *   `F10` keeps the current common path (`F10 -> Enter -> edit config`) and the existing config/commands/themes/reload hub.
+    *   Any guided panel must stay shallow and strictly optional; it must not force menu-diving for users who prefer direct text editing.
+    *   Raw-text files remain canonical for full fidelity, comments/examples, version control, and advanced edits.
+    *   Guided edits must write back through the same split-surface files and preserve Task 11.2/11.5 structured command ownership.
+*   **Rationale:** Leaves room for a friendlier common-options surface later without replacing the current Unix-style text-edit workflow.
+*   - [ ] **Status:** Not Started.
+
 ### **Future Phase 2: UI/UX Enhancements and Cleanup**
 
-### **Idea FE-6: Configurable VCS Provider for `0` FileInfo Band**
+### **Idea FE-7: Configurable VCS Provider for `0` FileInfo Band**
 *   **Goal:** Keep `0` as one stable VCS info band while allowing users to choose which backend powers it.
 *   **Config Direction (`ytnova.conf`):** Add a single-provider selector (for example `VCS_PROVIDER=off|git|hg|svn|fossil|auto`).
 *   **Behavior Contract:**
@@ -1505,7 +1515,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Preserves key stability and avoids renumbering while keeping a path open for non-Git users.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-7: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
+### **Idea FE-8: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
 *   **Goal:** Extend file filtering with explicit typed terms while preserving today's glob-first behavior and key flow.
 *   **User-Facing Behavior:**
     *   Keep existing glob syntax as default (`*.c`, `*.c,*.h`, `-*.tmp`).
@@ -1525,18 +1535,18 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Adds regex/fuzzy power in a Unix-style, scriptable format without breaking existing wildcard workflows or adding submenu friction.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-8: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
+### **Idea FE-9: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
 *   **Goal:** Replace prompt-path manual ESC sequence parsing with curses/terminfo-first decoding, while keeping legacy manual ESC parsing as controlled fallback (or config-gated compatibility mode).
 *   **Rationale:** Reduces xterm-specific assumptions in prompt entry and improves cross-terminal correctness on older UNIX environments.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-9: Input Portability Regression Matrix (`TERM`)**
+### **Idea FE-10: Input Portability Regression Matrix (`TERM`)**
 *   **Goal:** Expand UI regression coverage with a terminal-profile matrix and action-level assertions for keyboard behavior.
 *   **Initial Matrix Target:** `xterm`, `vt100`, `screen`, `tmux`, `linux`.
 *   **Rationale:** Existing UI tests prove behavior well in xterm-like sequences, but matrix runs provide stronger evidence for old/variant terminal compatibility.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-10: Extended `sYsinfo` in Directory-Window Mode**
+### **Idea FE-11: Extended `sYsinfo` in Directory-Window Mode**
 *   **Goal:** Add an on-demand extended stats/system-info surface (`sYsinfo`) for directory-window workflows without replacing the default compact stats panel.
 *   **Rationale:** Advanced disk/system context is useful for planning operations, but should stay opt-in to avoid clutter in normal navigation.
 *   **Keybinding Direction:** Keep context-specific `Y` behavior collision-free: directory-window `Y` may expose `sYsinfo`; file-window `Y` may expose sync workflow entry.
@@ -1546,12 +1556,12 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/manpage wording explicitly documents context split where `Y` differs by mode.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-11: Implement Mouse Support**
+### **Idea FE-12: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** In capable terminal environments, mouse support can improve speed and ease of use for navigation and selection without changing the keyboard-first design.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-12: Configurable Split Header Path Display (`active` or `both`)**
+### **Idea FE-13: Configurable Split Header Path Display (`active` or `both`)**
 *   **Goal:** Add a user option for split-mode header path display so users can choose active-panel-only path or both-panel paths.
 *   **Rationale:** Active-only header is cleaner by default, while dual-path header can improve orientation for users managing two distant locations.
 *   **Scope Lock:** Header display policy only; no split navigation, selection, or command behavior changes.
@@ -1562,7 +1572,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1 help and config docs are updated when option lands.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-13: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
+### **Idea FE-14: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
 *   **Goal:** Replace the current history-biased prompt input with a first-class path-entry workflow that is good enough for deep navigation, destination entry, and command prompts.
 *   **Scope:** This task subsumes the previous separate ideas for shell-style tab completion, deep path jump, and advanced ncurses-native command-line editing.
 *   **Behavior to Deliver:**
@@ -1573,7 +1583,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt entry should be strong enough that common path-based workflows stay direct: "type path -> complete/adjust -> Enter -> result" without forcing a separate browser/menu detour.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-14: Tagged-Only Results View**
+### **Idea FE-15: Tagged-Only Results View**
 *   **Goal:** Add a view mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
     *   `F4` toggles **Tagged-Only** view mode.
@@ -1583,13 +1593,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
 *   - [ ] **Status:** In Progress (tagged-only toggle shipped on `o/O`; broader workflow/key-shape refinements remain).
 
-### **Idea FE-15: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
+### **Idea FE-16: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
 *   **Rationale:** Recursive tagging may reduce steps in some trees, but can also add command ambiguity and accidental broad-selection risk.
 *   **Investigation Output:** Document concrete user workflows, interaction-depth impact, and safety tradeoffs; propose either (a) no change, or (b) a minimal, default-safe recursive tagging design with clear scope/confirmation semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-16: Richer Compare Result Views**
+### **Idea FE-17: Richer Compare Result Views**
 *   **Goal:** Extend compare workflows so the result can be viewed directly, not just turned into tags on the active side.
 *   **User-Facing Behavior:**
     *   After comparing two directories/trees, users can narrow the result to categories such as **left/source only**, **right/target only**, **newer**, **older**, **size different**, **content different**, or **identical**.
@@ -1598,7 +1608,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Current compare behavior is useful but blunt. A richer result view makes compare a practical review tool rather than only a tag generator.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-17: Recent-Directory Bookmarks and Pinned Favorites**
+### **Idea FE-18: Recent-Directory Bookmarks and Pinned Favorites**
 *   **Goal:** Add a first-class recent-directory and pinned-favorites picker for fast return to commonly visited locations.
 *   **User-Facing Behavior:**
     *   Show a compact list of recently visited directories together with user-pinned favorites.
@@ -1608,7 +1618,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt history helps when the user remembers what they typed. A dedicated recent-directory/favorites list helps when the user remembers the place, not the exact command string.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-18: Dual-Preview Split Mode**
+### **Idea FE-19: Dual-Preview Split Mode**
 *   **Goal:** Allow each `F8` split panel to enter and retain its own `F7`-style preview state independently.
 *   **User-Facing Behavior:**
     *   In split mode, each panel can independently enter preview without forcing preview state changes in the other panel.
@@ -1624,7 +1634,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves per-panel state retention, panel switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-19: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
+### **Idea FE-20: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
 *   **Goal:** In directory focus, allow `Shift+Up/Down/Page/Home/End` to scroll the small file window for the selected directory without switching to full file-window focus.
 *   **Rationale:** This gives a fast "peek and keep tree focus" workflow and mirrors the existing `Shift`-navigation feel used in `F7` preview.
 *   **Scope Lock:** Directory-focus small-file-window navigation only; no new submenu flow, no change to normal unshifted tree navigation, and no change to `F7` preview behavior.
@@ -1637,7 +1647,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for shifted small-window navigation bounds/offset behavior and isolation from directory navigation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-20: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
+### **Idea FE-21: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
 *   **Goal:** Replace the narrow `NewFile` entry point with a single explicit `Create` chooser whose available options are filtered by the active backend and context.
 *   **User-Facing Behavior:**
     *   Where creation is supported, `n`/`N` opens `Create:` with only the actions that are valid for the active backend/context.
@@ -1661,81 +1671,81 @@ Ordering policy (for all editors, including AI editors):
 *   Symlink creation is available natively where supported, with explicit prompts and focused regression coverage for both selected-target and explicit-target flows.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-21: Per-Window Filter State (Split Screen Prerequisite)**
+### **Idea FE-22: Per-Window Filter State (Split Screen Prerequisite)**
 *   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left panel versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-22: State Preservation on Reload (`^L`)**
+### **Idea FE-23: State Preservation on Reload (`^L`)**
 *   Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-23: Preserve Tree Expansion on Refresh**
+### **Idea FE-24: Preserve Tree Expansion on Refresh**
 *   Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-24: Scroll Bars**
+### **Idea FE-25: Scroll Bars**
 *   On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list (configurable to char or line).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-25: Callback API Constification Cleanup (cppcheck strict mode)**
+### **Idea FE-26: Callback API Constification Cleanup (cppcheck strict mode)**
 *   `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 3: Long-Horizon Experiments**
 
-### **Idea FE-26: Implement VFS Abstraction Layer** (Use the Architect persona here)
+### **Idea FE-27: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytnova` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 *   **Follow-on Direction:** Include remote logging backends under this VFS model (FTP/SFTP candidates), with final protocol choice deferred until security and maintenance review.
 
-### **Idea FE-27: Define VFS Interface & Volume Integration** (Use the Architect persona here)
+### **Idea FE-28: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytnova_vfs.h`.
     *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
     *   Update `include/ytnova_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 
-### **Idea FE-28: Implement VFS Registry** (Use the Architect persona here)
+### **Idea FE-29: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
     *   Implement `VFS_Init()` (registers built-in drivers).
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 
-### **Idea FE-29: Implement "Local" VFS Driver** (Use the Architect persona here)
+### **Idea FE-30: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
     *   Move logic from `src/fs/tree_read.c` into the driver's `.scan` method.
     *   Ensure it populates `DirEntry` structures exactly as before.
 
-### **Idea FE-30: Implement "Archive" VFS Driver** (Use the Architect persona here)
+### **Idea FE-31: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
     *   Move logic from `src/fs/archive_read.c` and `src/fs/archive_write.c` into the driver.
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 
-### **Idea FE-31: Switch `LogDisk` to VFS** (Use the Architect persona here)
+### **Idea FE-32: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
     *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 
-### **Idea FE-32: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
+### **Idea FE-33: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 
-### **Idea FE-33: Database Browsing and Editing via Virtual Filesystem Drivers**
+### **Idea FE-34: Database Browsing and Editing via Virtual Filesystem Drivers**
 *   **Goal:** After the driver-based VFS abstraction exists, allow ytnova to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
 *   **User-Facing Direction:** Treat a database as a structured volume (for example database -> tables -> rows/records or exported views) rather than as one opaque file blob.
 *   **Rationale:** This is a specialized extension of the VFS model, not a core file-manager requirement. Keep it as a future experiment until a clear driver design and real use-case exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-34: Implement Recursive Directory Watching**
+### **Idea FE-35: Implement Recursive Directory Watching**
 *   **Goal:** Keep visible tree and file-list state fresh by watching all currently expanded filesystem directories, not only the active cursor directory.
 *   **Rationale:** Without recursive watch coverage, edits in visible sibling/child directories can leave the UI stale until manual refresh.
 *   **Scope Lock:** Filesystem watcher behavior only; no archive-internal recursive watching.
@@ -1751,18 +1761,18 @@ Ordering policy (for all editors, including AI editors):
     *   `ENOSPC` fallback is explicit, stable, and non-fatal.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-35: Implement Shell Script Generator**
+### **Idea FE-36: Implement Shell Script Generator**
 *   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-36: Keyboard Macros (F12 Record/Playback)**
+### **Idea FE-37: Keyboard Macros (F12 Record/Playback)**
 *   **Goal:** Record and replay simple keystroke sequences.
 *   **Rationale:** Useful for repeating safe, local interaction sequences.
 *   **Status:** Deferred.
 *   **Note:** Revisit only after a safe design exists that cannot turn traces into a secret-capturing scripting surface.
 
-### **Idea FE-37: Enhance Built-In Viewer**
+### **Idea FE-38: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytnova's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
 *   **Builds On:** Current-delivery viewer work such as `Add Configurable Bypass for External Viewers` and `Standardize Internal Viewer Layout`.
 *   **Candidate Scope:**
@@ -1774,7 +1784,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** A stronger built-in viewer would make ytnova more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-38: Investigate Optional Enhanced Terminal Input Protocols**
+### **Idea FE-39: Investigate Optional Enhanced Terminal Input Protocols**
 *   **Goal:** Investigate whether opt-in enhanced keyboard/input protocols can safely improve ytnova's TUI input model without replacing the portable baseline path.
 *   **Input-protocol spike:** Start with kitty keyboard protocol and evaluate whether richer key events can distinguish collided control inputs such as `^M` versus `Enter`.
 *   **Fallback contract:** If enhanced keyboard negotiation is unavailable, rejected, or stripped by the active terminal path, keep the current portable bindings and help semantics (for example `^N` for tagged move) rather than making any enhanced protocol a requirement.
@@ -1782,20 +1792,20 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** This is an input-capability investigation intended to determine whether optional terminal features can relieve current control-key collisions while keeping ytnova portable.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-39: Investigate Replacing ncurses with a Better TUI Backend**
+### **Idea FE-40: Investigate Replacing ncurses with a Better TUI Backend**
 *   **Goal:** Investigate whether ytnova should replace or meaningfully decouple from ncurses in favor of a better TUI/runtime layer while preserving current interaction semantics.
 *   **Investigation scope:** Evaluate candidate backends on portability, rendering/control over redraw behavior, input handling, testability, packaging friction, and migration risk for the current architecture.
 *   **Compatibility contract:** Any replacement path must preserve the portable baseline terminal workflow and must not require a single terminal family or GUI-specific runtime stack.
 *   **Rationale:** This is a platform/runtime architecture effort intended to determine whether ncurses remains the right long-term foundation for ytnova's TUI.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-40: Implement "Safe Delete" (Trash Can)**
+### **Idea FE-41: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
 *   **Config:** Add a `ytnova.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-41: Port to other platforms**
+### **Idea FE-42: Port to other platforms**
 *   **Validation:** Currently practical via WSL and QEMU
 *   **Possible:** OmniOS (illumos), GNU Hurd, FreeBSD
 *   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris, Redox OS

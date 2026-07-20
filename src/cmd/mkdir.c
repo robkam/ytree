@@ -365,6 +365,8 @@ int EnsureDirectoryExists(ViewContext *ctx, char *dir_path, DirEntry *tree,
                           BOOL *created, DirEntry **result_ptr,
                           int *auto_create, ChoiceCallback choice_cb) {
   DIR *tmpdir;
+  int create_mode = 0;
+  const char *detail = NULL;
 
   if (created)
     *created = FALSE;
@@ -375,36 +377,30 @@ int EnsureDirectoryExists(ViewContext *ctx, char *dir_path, DirEntry *tree,
   if ((tmpdir = opendir(dir_path)) == NULL) {
     /* If it doesn't exist, ask the user */
     if (errno == ENOENT) {
-      int term;
       if (auto_create && *auto_create) {
-        term = 'Y';
+        create_mode = 1;
       } else {
         if (choice_cb) {
-          term = choice_cb(ctx, "Directory does not exist; create (Y/N/A) ? ",
-                           "YNA\033");
+          char prompt[PATH_LENGTH + 64];
+          (void)snprintf(prompt, sizeof(prompt),
+                         "Create missing directory? (y/N) %s", dir_path);
+          if (choice_cb(ctx, prompt, "YN\033") != 'Y')
+            return -1;
+          create_mode = 1;
         } else {
-          term = 'N'; /* Default to abort headless missing cb */
+          return -1;
         }
       }
 
-      if (term == 'A') {
-        if (auto_create)
-          *auto_create = 1;
-        term = 'Y';
-      }
-
-      if (term == 'Y') {
+      if (create_mode) {
         /* Proceed to create */
         if (created)
           *created = TRUE;
-      } else {
-        /* User said NO or Escaped */
-        return -1;
       }
     } else {
       /* Some other error opening directory (e.g. permission) */
-      /* MESSAGE("Error opening directory*\"%s\"*%s", dir_path,
-       * strerror(errno)); */
+      MESSAGE(ctx, "Can't access destination directory*%s*\"%s\"",
+              strerror(errno), dir_path);
       return -1;
     }
   } else {
@@ -412,11 +408,20 @@ int EnsureDirectoryExists(ViewContext *ctx, char *dir_path, DirEntry *tree,
     closedir(tmpdir);
   }
 
+  if (create_mode && auto_create)
+    *auto_create = 1;
+
   /*
    * Directory exists (or user wants to create it).
    * Call MakePath to resolve the DirEntry pointer.
    * MakePath will create the node in memory if it's missing (even if dir exists
    * on disk), thanks to the update in MakeDirEntry.
    */
-  return MakePath(ctx, tree, dir_path, result_ptr);
+  if (MakePath(ctx, tree, dir_path, result_ptr) == 0)
+    return 0;
+
+  detail = (errno != 0) ? strerror(errno) : "operation failed";
+  MESSAGE(ctx, "Can't create destination directory*%s*\"%s\"", detail,
+          dir_path);
+  return -1;
 }

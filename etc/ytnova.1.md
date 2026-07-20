@@ -303,6 +303,7 @@ These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
 
 *   **Up Arrow**: History (with `P` to Pin, `D` to Delete).
 *   **F2**: Directory picker for path-entry prompts.
+*   **Missing copy/move destinations**: If the resolved destination directory does not exist, ytnova shows `Create missing directory? (y/N)` with the full target path. `y` creates it before the operation continues; `N`/`Esc` returns to the destination prompt without mutating the filesystem.
 
 # CONFIGURATION
 
