@@ -154,7 +154,6 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
   char command_line[COMMAND_LINE_LENGTH + 1];
   DirEntry *dest_dir_entry = NULL;
   struct stat st;
-  BOOL created = FALSE;
   int dir_create_mode = 0;
   int cmd_res;
   DirEntry *anchor;
@@ -216,11 +215,19 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
       *need_dsp_help = TRUE;
     return dir_entry;
   }
-  if (EnsureDirectoryExists(ctx, dest_dir_path, ctx->active->vol->vol_stats.tree,
-                            &created, &dest_dir_entry, &dir_create_mode,
-                            (ChoiceCallback)UI_ChoiceResolver) == -1) {
-    /* The create-directory prompt can leave stale overlay artifacts. */
-    ReCreateWindows(ctx);
+  while (1) {
+    int ensure_result = UI_EnsureCopyMoveDestinationDirectory(
+        ctx, dest_dir_path, ctx->active->vol->vol_stats.tree, &dest_dir_entry,
+        &dir_create_mode);
+    if (ensure_result == 0)
+      break;
+    if (ensure_result < 0) {
+      ReCreateWindows(ctx);
+      RefreshView(ctx, dir_entry);
+      if (need_dsp_help)
+        *need_dsp_help = TRUE;
+      return dir_entry;
+    }
     RefreshView(ctx, dir_entry);
     if (need_dsp_help)
       *need_dsp_help = TRUE;

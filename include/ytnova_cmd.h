@@ -47,6 +47,14 @@ extern int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package);
 extern int GetCopyParameter(ViewContext *ctx, const char *from_file,
                             BOOL path_copy, char *to_file, char *to_dir);
+extern int GetDestinationDirectoryParameter(ViewContext *ctx, char *to_dir);
+extern int ResolveDestinationDirectoryPath(DirEntry *current_dir_entry,
+                                           const char *dir_path,
+                                           char *resolved_path);
+extern int UI_EnsureCopyMoveDestinationDirectory(ViewContext *ctx,
+                                                 char *dir_path, DirEntry *tree,
+                                                 DirEntry **result_ptr,
+                                                 int *auto_create);
 extern int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
                            const Statistic *s);
 

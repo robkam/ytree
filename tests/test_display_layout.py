@@ -762,7 +762,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
     tui.quit()
 
 
-def test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer(
+def test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_corruption(
     ytnova_binary, tmp_path
 ):
     root = tmp_path / "dir_copy_missing_dest_no"
@@ -786,20 +786,44 @@ def test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer(
     tui.child.expect("To Directory")
     tui.child.send("\x15")
     tui.child.send("./new_parent\r")
-    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("N")
-    tui.send_keystroke("", wait=0.6)
+
+    settled_lines = tui.wait_for_condition(
+        lambda lines: lines
+        if (
+            "To Directory:" in "\n".join(lines)
+            or "F1 help" in "\n".join(lines)
+            or "Enter OK" in "\n".join(lines)
+        )
+        else False,
+        timeout=1.5,
+    )
+    assert settled_lines, "\n".join(tui.get_screen_dump())
 
     assert not (root / "new_parent").exists()
     assert (root / "src_dir" / "nested" / "payload.txt").exists()
 
-    post = "\n".join(tui.get_screen_dump())
+    post = "\n".join(settled_lines)
     footer = _footer_text(tui).lower()
     assert "Path:" in post, "Header/path row disappeared after canceling create prompt"
-    assert "tree" in footer and "help" in footer, (
-        "Footer/help row was not restored after canceling create prompt.\n"
+    prompt_reopened = "To Directory:" in post
+    prompt_footer_ok = "enter ok" in footer and "esc cancel" in footer
+    file_footer_ok = "tree" in footer and "help" in footer
+    assert prompt_footer_ok or file_footer_ok, (
+        "Footer/help row was corrupted after canceling create prompt.\n"
         f"Footer:\n{footer}\n\nScreen:\n{post}"
     )
+    if prompt_reopened:
+        assert prompt_footer_ok, (
+            "Destination prompt returned without its expected footer controls.\n"
+            f"Footer:\n{footer}\n\nScreen:\n{post}"
+        )
+    else:
+        assert file_footer_ok, (
+            "File view returned without its expected footer/help row.\n"
+            f"Footer:\n{footer}\n\nScreen:\n{post}"
+        )
 
     tui.quit()
 
@@ -828,7 +852,7 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     tui.child.expect("To Directory")
     tui.child.send("\x15")
     tui.child.send("./new_parent\r")
-    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
     tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
@@ -899,7 +923,7 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_
     tui.child.expect("To Directory")
     tui.child.send("\x15")
     tui.child.send("../target_bucket/new_parent\r")
-    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
     tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
@@ -969,7 +993,7 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytnova_binary, t
     tui.child.expect("To Directory")
     tui.child.send("\x15")
     tui.child.send("../target_bucket/new_parent\r")
-    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
     tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
@@ -1036,7 +1060,7 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytnova_binary, tm
     tui.child.expect("To Directory")
     tui.child.send("\x15")
     tui.child.send(f"{target_bucket}/new_parent\r")
-    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
     tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")

@@ -70,6 +70,118 @@ static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   }
 }
 
+static void SeedDestinationDirectoryFromInactivePanel(ViewContext *ctx,
+                                                      char *to_dir) {
+  if (!ctx || !to_dir || to_dir[0] != '\0' || !ctx->is_split_screen ||
+      !ctx->active)
+    return;
+
+  {
+    YtreeNovaPanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+    if (target && target->vol && target->vol->total_dirs > 0) {
+      int idx = target->disp_begin_pos + target->cursor_pos;
+      if (idx < 0)
+        idx = 0;
+      if (idx >= target->vol->total_dirs)
+        idx = target->vol->total_dirs - 1;
+
+      GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
+    }
+  }
+}
+
+int GetDestinationDirectoryParameter(ViewContext *ctx, char *to_dir) {
+  if (!ctx || !to_dir)
+    return -1;
+
+  ClearHelp(ctx);
+
+  if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
+                    HST_PATH) == CR) {
+    if (to_dir[0] == '\0') {
+      CopyBoundedString(to_dir, PATH_LENGTH + 1, ".");
+    }
+    return 0;
+  }
+
+  ClearHelp(ctx);
+  return -1;
+}
+
+int ResolveDestinationDirectoryPath(DirEntry *current_dir_entry,
+                                    const char *dir_path,
+                                    char *resolved_path) {
+  char path[PATH_LENGTH + 1];
+
+  if (!current_dir_entry || !dir_path || !resolved_path)
+    return -1;
+
+  if (*dir_path == FILE_SEPARATOR_CHAR) {
+    CopyBoundedString(path, sizeof(path), dir_path);
+  } else {
+    char current_path[PATH_LENGTH + 1];
+
+    GetPath(current_dir_entry, current_path);
+    if (Path_Join(path, sizeof(path), current_path, dir_path) != 0)
+      return -1;
+  }
+
+  NormPath(path, resolved_path);
+  return (resolved_path[0] != '\0') ? 0 : -1;
+}
+
+int UI_EnsureCopyMoveDestinationDirectory(ViewContext *ctx, char *dir_path,
+                                          DirEntry *tree,
+                                          DirEntry **result_ptr,
+                                          int *auto_create) {
+  DIR *tmpdir;
+  int create_mode = 0;
+  char prompt[PATH_LENGTH + 64];
+  char normalized_path[PATH_LENGTH + 1];
+
+  if (!ctx || !dir_path)
+    return -1;
+
+  NormPath(dir_path, normalized_path);
+  if (normalized_path[0] == '\0') {
+    MESSAGE(ctx, "Invalid destination path*\"%s\"", dir_path);
+    return -1;
+  }
+  CopyBoundedString(dir_path, PATH_LENGTH + 1, normalized_path);
+
+  tmpdir = opendir(dir_path);
+  if (tmpdir != NULL) {
+    closedir(tmpdir);
+  } else if (errno == ENOENT) {
+    (void)snprintf(prompt, sizeof(prompt), "Create missing directory? (y/N) %s",
+                   dir_path);
+    if (InputChoiceLiteral(ctx, prompt, "YN\033") != 'Y')
+      return 1;
+    create_mode = 1;
+  } else {
+    MESSAGE(ctx, "Can't access destination directory*\"%s\"*%s", dir_path,
+            strerror(errno));
+    return -1;
+  }
+
+  if (auto_create) {
+    if (create_mode)
+      *auto_create = 1;
+    create_mode = *auto_create;
+  }
+
+  if (EnsureDirectoryExists(ctx, dir_path, tree, NULL, result_ptr,
+                            &create_mode, NULL) != 0) {
+    if (auto_create && create_mode)
+      *auto_create = create_mode;
+    return -1;
+  }
+
+  if (auto_create && create_mode)
+    *auto_create = create_mode;
+  return 0;
+}
+
 static void GetPromptHelpLines(PromptHelpTopic topic, const char **title,
                                const char **line_0, const char **line_1,
                                const char **line_2) {
@@ -230,27 +342,9 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
     strncpy(move_prompt_as, to_file, PATH_LENGTH);
     move_prompt_as[PATH_LENGTH] = '\0';
 
-    if (ctx->is_split_screen && ctx->active) {
-      YtreeNovaPanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
-      if (target && target->vol && target->vol->total_dirs > 0) {
-        int idx = target->disp_begin_pos + target->cursor_pos;
-        /* Safety bounds check */
-        if (idx < 0)
-          idx = 0;
-        if (idx >= target->vol->total_dirs)
-          idx = target->vol->total_dirs - 1;
-
-        GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
-      }
-    }
-
-    if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
-                      HST_PATH) == CR) {
-      if (to_dir[0] == '\0') {
-        CopyBoundedString(to_dir, PATH_LENGTH + 1, ".");
-      }
-      return (0);
-    }
+    SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
+    if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
+      return 0;
   }
   ClearHelp(ctx);
   return (-1);
@@ -279,27 +373,9 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
 
   if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
                     HST_FILE) == CR) {
-    if (ctx->is_split_screen && ctx->active) {
-      YtreeNovaPanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
-      if (target && target->vol && target->vol->total_dirs > 0) {
-        int idx = target->disp_begin_pos + target->cursor_pos;
-        /* Safety bounds check */
-        if (idx < 0)
-          idx = 0;
-        if (idx >= target->vol->total_dirs)
-          idx = target->vol->total_dirs - 1;
-
-        GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
-      }
-    }
-
-    if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
-                      HST_PATH) == CR) {
-      if (to_dir[0] == '\0') {
-        CopyBoundedString(to_dir, PATH_LENGTH + 1, ".");
-      }
-      return (0);
-    }
+    SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
+    if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
+      return 0;
   }
   ClearHelp(ctx);
   return (-1);

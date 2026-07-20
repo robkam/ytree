@@ -5653,6 +5653,18 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     start = source.index("BOOL handle_file_window_command_action(")
     end = source.index("\nBOOL handle_file_window_misc_dispatch_action(", start)
     body = source[start:end]
+    mutation_start = source.index("static BOOL HandleFileMutationDispatchAction(")
+    mutation_end = source.index("\nstatic BOOL HandleFileCommandDispatchAction(", mutation_start)
+    mutation_body = source[mutation_start:mutation_end]
+    copy_start = source.index("static void HandleSingleFileCopyAction(")
+    copy_end = source.index("\nstatic void HandleSingleFileMoveAction(", copy_start)
+    copy_body = source[copy_start:copy_end]
+    move_start = source.index("static void HandleSingleFileMoveAction(")
+    move_end = source.index("\nstatic BOOL HandleFileMutationDispatchAction(", move_start)
+    move_body = source[move_start:move_end]
+    command_start = source.index("static BOOL HandleFileCommandDispatchAction(")
+    command_end = source.index("\nBOOL handle_file_window_command_action(", command_start)
+    command_body = source[command_start:command_end]
     dir_start = dir_source.index("    case ACTION_CMD_X:")
     dir_end = dir_source.index("    case ACTION_CMD_MKFILE:", dir_start)
     dir_body = dir_source[dir_start:dir_end]
@@ -5661,20 +5673,6 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     )
     event_validation = 'if (!AppStateValidatedEvent("event.command-completion"))'
     early_return = "return FALSE;"
-    boundary_calls = [
-        "switch (action)",
-        "GetActivePanelSelectedFile(",
-        "GetCopyParameter(",
-        "GetMoveParameter(",
-        "InputChoice(",
-        "CopyFile(",
-        "MoveFile(",
-        "DeleteFile(",
-        "RenameFile(",
-        "GetPipeCommand(",
-        "GetCommandLine(",
-        "*dir_entry_ptr =",
-    ]
 
     assert 'include "ytnova_appstate_actions.h"' in source
     assert 'include "ytnova_appstate_actions.h"' in dir_source
@@ -5683,13 +5681,61 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     assert early_return in body
     validation_index = body.index(validation)
     event_validation_index = body.index(event_validation)
-    switch_index = body.index("switch (action)")
     assert validation_index < event_validation_index
     assert body.index(early_return, validation_index) < event_validation_index
-    assert body.index(early_return, event_validation_index) < switch_index
-    for call in boundary_calls:
+    assert body.index(early_return, event_validation_index) < body.index(
+        "HandleFileMutationDispatchAction("
+    )
+    for call in [
+        "HandleFileMutationDispatchAction(",
+        "HandleFileCommandDispatchAction(",
+    ]:
         assert validation_index < body.index(call)
         assert event_validation_index < body.index(call)
+
+    assert "switch (action)" in mutation_body
+    for call in [
+        "HandleSingleFileCopyAction(",
+        "HandleSingleFileMoveAction(",
+        "InputChoice(",
+        "DeleteFile(",
+        "GetRenameParameter(",
+        "RenameFile(",
+    ]:
+        assert "switch (action)" in mutation_body
+        assert mutation_body.index("switch (action)") < mutation_body.index(call)
+
+    for helper_body, boundary_calls in [
+        (
+            copy_body,
+            [
+                "GetActivePanelSelectedFile(",
+                "GetCopyParameter(",
+                "PromptCopyMoveDestination(",
+                "CopyFile(",
+            ],
+        ),
+        (
+            move_body,
+            [
+                "GetActivePanelSelectedFile(",
+                "GetMoveParameter(",
+                "PromptCopyMoveDestination(",
+                "MoveFile(",
+            ],
+        ),
+        (
+            command_body,
+            [
+                "switch (action)",
+                "GetPipeCommand(",
+                "GetCommandLine(",
+                "*dir_entry_ptr =",
+            ],
+        ),
+    ]:
+        for call in boundary_calls:
+            assert call in helper_body
 
     assert validation in dir_body
     assert event_validation in dir_body
@@ -8113,7 +8159,8 @@ def test_ctrl_file_ops_dir_entry_viewports_commit_through_appstate_helper() -> N
         "RebuildActiveFileListAfterMutation": 1,
         "handle_file_window_navigation_action": 2,
         "handle_file_window_misc_dispatch_action": 2,
-        "HandleTaggedFileOpDispatchAction": 1,
+        "HandleTaggedFileOpDispatchAction": 0,
+        "HandleTaggedMoveAction": 1,
         "HandleTaggedSelectionDispatchAction": 1,
     }
 
