@@ -65,3 +65,4 @@ QA remediation gate:
 
 AI correctness gate:
 - Implement the full applicable spec correctly on the first pass. Do not break behavior, invariants, interfaces, architecture, or tests and then rely on follow-up fixes merely to recover CI; green after self-caused regressions is failure, not success.
+- If a push introduces adjacent regressions or collateral contract breakage, treat that attempt as invalid: reset to the last green state, use a fresh AI/context, and do not spend hours repairing self-caused blast radius on top of the broken attempt.
