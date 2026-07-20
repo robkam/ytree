@@ -220,7 +220,26 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         assert tui.wait_for_content("ARCHIVE", timeout=2.0), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Archive Directory Help")
-        assert "root" in help_screen.lower() or "exit" in help_screen.lower(), help_screen
+        dir_help = help_screen.lower()
+        for label in (
+            "copy",
+            "delete",
+            "filter",
+            "global",
+            "compare",
+            "log",
+            "makedir",
+            "pipe",
+            "rename",
+            "showall",
+            "tag",
+            "untag",
+            "movedir",
+        ):
+            assert label in dir_help, help_screen
+        assert "root" in dir_help or "exit" in dir_help, help_screen
+        assert "newfile" not in dir_help, help_screen
+        assert "write" not in dir_help, help_screen
 
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("inside_dir", timeout=1.0), screen_text(tui)
@@ -228,7 +247,26 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         assert tui.wait_for_content("inside.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Archive File Help")
-        assert "rename" in help_screen.lower(), help_screen
+        file_help = help_screen.lower()
+        for label in (
+            "copy",
+            "delete",
+            "filter",
+            "hex",
+            "invert",
+            "compare",
+            "rename",
+            "sort",
+            "tag",
+            "view",
+            "move",
+            "pipe",
+            "untag",
+            "pathcopy",
+        ):
+            assert label in file_help, help_screen
+        assert "execute" not in file_help, help_screen
+        assert "write" not in file_help, help_screen
     finally:
         tui.quit()
 

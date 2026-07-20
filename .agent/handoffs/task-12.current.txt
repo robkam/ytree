@@ -1,0 +1,45 @@
+Work item: docs/ROADMAP.md Task 12
+Title: Footer Action Parity in Archive Mode (`Pipe`)
+Acceptance target:
+- In archive mode, footer/help lines accurately reflect runtime-available actions, starting with `Pipe`.
+- Archive footer/help shows `Pipe` whenever it is available in that context.
+- Actions unavailable in archive mode remain absent from archive footer/help.
+- A focused regression test (or extension of existing footer/help tests) verifies archive footer/action parity.
+Completion objective:
+- Complete the roadmap item correctly by proving archive-mode footer/help parity against the live runtime command surface, using `Pipe` as the starting example rather than the sole assertion, reconciling any missing regression coverage, and updating the roadmap status once the slice is validated.
+
+Selected work family:
+- Archive footer/help parity for runtime-available archive actions, with `Pipe` as the acceptance seed example: resolved command-strip source of truth, focused archive footer/help regression proof, and roadmap reconciliation.
+
+Inventory:
+- docs/ROADMAP.md — in scope (source-of-truth task status and acceptance record).
+- src/ui/display.c — in scope (archive footer/help command-strip source of truth; help popup currently resolves from footer specs here).
+- tests/test_archive_ui.py — in scope (existing archive footer regression coverage for visible `Pipe` and restored archive footer state).
+- tests/test_help_text_contract.py — in scope (archive F1 help regression surface; likely missing explicit broader archive action-parity assertions beyond the seed `Pipe` example).
+- src/ui/ctrl_dir.c — in scope for reconciliation only (runtime archive-directory `ACTION_CMD_P` availability path already exists; no semantics change expected).
+- src/ui/ctrl_file_ops.c — in scope for reconciliation only (runtime archive-file `ACTION_CMD_P` availability path already exists; no semantics change expected).
+- etc/ytnova.1.md — expected unchanged (task scope lock excludes command semantics/help-manpage behavior changes).
+- docs/USAGE.md — expected unchanged (generated usage docs should not change for visibility/parity proof only).
+- docs/SPECIFICATION.md — expected unchanged (no broader spec contract change beyond completing the roadmap item).
+- docs/ARCHITECTURE.md — expected unchanged (existing command-surface identity guidance already covers footer/help assembly policy).
+
+Inventory reconciliation:
+- docs/ROADMAP.md — addressed (Task 12 now marks the archive-mode `Pipe` footer/help parity slice complete).
+- src/ui/display.c — intentionally unchanged (archive footer/help already resolve from the same runtime-aware footer specs, so no visibility logic change was needed).
+- tests/test_archive_ui.py — intentionally unchanged (existing archive footer regressions already prove footer-side `Pipe` visibility and restored archive context behavior).
+- tests/test_help_text_contract.py — addressed (archive F1 help now explicitly asserts broader archive action parity, including `Pipe` plus adjacent archive-only actions, while unavailable archive actions stay absent in both archive directory and archive file help).
+- src/ui/ctrl_dir.c — intentionally unchanged (archive-directory `ACTION_CMD_P` runtime availability already exists; this slice only proves footer/help parity against that live surface).
+- src/ui/ctrl_file_ops.c — intentionally unchanged (archive-file `ACTION_CMD_P` runtime availability already exists; this slice only proves footer/help parity against that live surface).
+- etc/ytnova.1.md — intentionally unchanged (task scope lock excludes command/help-manpage semantics changes).
+- docs/USAGE.md — intentionally unchanged (generated usage docs do not change for footer/help parity proof only).
+- docs/SPECIFICATION.md — intentionally unchanged (no broader spec contract changed).
+- docs/ARCHITECTURE.md — intentionally unchanged (existing command-surface identity guidance already covers the resolved footer/help assembly path).
+
+Focused validation:
+- `source .venv/bin/activate && pytest -q tests/test_help_text_contract.py::test_archive_f1_help_uses_archive_specific_context_titles tests/test_archive_ui.py::test_archive_dir_footer_pipe_action_visible tests/test_archive_ui.py::test_archive_pipe_return_restores_ui_surfaces`
+- `git diff --check`
+
+Active handles:
+- Branch: `test/archive-pipe-help-parity`
+- PR: `https://github.com/robkam/ytreenova/pull/419`
+- Detached CI repair loop: `tmux ytnova-ci-repair-test-archive-pipe-help-parity`
