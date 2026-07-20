@@ -29,6 +29,7 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
     *   **Context Clearing:** It removes the "bad" code and the flawed logic that led to it.
     *   **New Perspective:** Rephrasing prevents the model from staying stuck in a loop of bad assumptions.
     *   **Clean Implementation:** It ensures the final code is the result of a single, clean logical flow rather than a series of ad-hoc patches.
+    *   **Collateral-breakage policy:** When a first implementation attempt causes adjacent-contract failures, invariant breakage, or other self-caused blast radius outside the intended task surface, treat that attempt as invalid and restart from the last green state with a fresh agent/context. Do not normalize hours of fix-on-fix churn as the default path to correctness.
 7.  **Minor Step Corrections Should Amend:** If the immediately preceding step only needs a small correction and should remain the same logical history unit, update it with `git commit --amend --no-edit` rather than adding a trivial follow-up fix commit. Create a new commit only when the correction is meaningfully distinct, delayed enough to matter historically, or worth preserving separately in the project history.
 8.  **Intent Over Literal Wording:** Treat the human maintainer as authoritative on goals, but not automatically on exact UI wording, naming, key choices, menu structure, or workflow details. If a requested detail does not follow convention or best practices, or conflicts with existing YtreeNova patterns, the AI must say so explicitly and recommend the stronger conventional approach before implementing it.
 
@@ -365,6 +366,7 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
     *   Do not request reviewers while checks are red unless the maintainer explicitly instructs it.
     *   Once checks are green on the current head SHA, avoid non-essential PR mutations before merge (for example PR-body edits or base-sync actions) because they may restart CI or invalidate freshness.
+    *   If the red checks show self-caused collateral regressions outside the intended task surface, do not keep stacking repair commits as routine iteration. Reset/revert to the last green state, restart from a fresh agent/context, and only resume in-place repair when the remaining issue is a narrow residual miss rather than branch-wide blast radius.
 11. **Architect/AI + Maintainer (GitHub):** If PR metadata edits, branch sync, or any other PR mutation restarts required checks, restart the wait loop and do not merge against stale earlier green results.
 12. **Maintainer (GitHub):** Merge PR to `main` only after checks are rechecked live as green on the current head SHA and review is satisfied. Never merge or close a PR while required checks are red, pending, cancelled, missing, rerunning, or freshness is stale.
 13. **Maintainer (GitHub):** Delete remote branch:
