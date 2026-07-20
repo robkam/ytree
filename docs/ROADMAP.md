@@ -359,7 +359,7 @@ Ordering policy (for all editors, including AI editors):
 *   Archive footer/help shows `Pipe` whenever it is available in that context.
 *   Actions unavailable in archive mode remain absent from archive footer/help.
 *   A focused regression test (or existing footer/help test extension) verifies archive footer/action parity.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 13: Path Message Formatting Audit (`//` Artifact Prevention)**
 *   **Goal:** Audit user-facing message/path rendering and eliminate accidental double-slash artifacts in status/error/footer output.
