@@ -82,7 +82,7 @@ jobs:
         sudo apt-get install -y cmark libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools
 
     - name: Set up Python 3
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: "3.12"
         cache: pip
@@ -121,7 +121,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up Python 3
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: "3.12"
         cache: pip
@@ -173,7 +173,7 @@ jobs:
           ${{ runner.os }}-ccache-${{ github.workflow }}-
 
     - name: Set up Python 3
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: "3.12"
         cache: pip
@@ -225,7 +225,7 @@ jobs:
           ${{ runner.os }}-ccache-${{ github.workflow }}-
 
     - name: Set up Python 3
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: "3.12"
         cache: pip
@@ -279,7 +279,7 @@ jobs:
           ${{ runner.os }}-ccache-${{ github.workflow }}-
 
     - name: Set up Python 3
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: "3.12"
         cache: pip
