@@ -184,6 +184,27 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         tui.quit()
 
 
+def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
+    root = _root_with_file(tmp_path, "integrated_help_scope_lifetime")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+
+        help_screen = _wait_for_help(tui, "Directory Help")
+        assert "compare" in help_screen.lower(), help_screen
+
+        tui.send_keystroke(Keys.ESC)
+        assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
+
+        tui.send_keystroke(Keys.ENTER)
+        assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
+        help_screen = _wait_for_help(tui, "File Help")
+        assert "pathcopy" in help_screen.lower(), help_screen
+    finally:
+        tui.quit()
+
+
 def test_picker_dialog_f1_help_covers_volume_and_applications(tmp_path):
     root = _root_with_file(tmp_path, "integrated_help_picker_dialogs")
     tui = _spawn_help_tui(root)
