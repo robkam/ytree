@@ -243,22 +243,24 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         help_screen = _wait_for_help(tui, "Archive Directory Help")
         dir_help = help_screen.lower()
         for label in (
-            "copy",
             "delete",
             "filter",
             "global",
             "compare",
+            "volume",
             "log",
             "makedir",
             "pipe",
+            "quit",
             "rename",
             "showall",
             "tag",
             "untag",
-            "movedir",
         ):
             assert label in dir_help, help_screen
         assert "root" in dir_help or "exit" in dir_help, help_screen
+        assert "copy" not in dir_help, help_screen
+        assert "movedir" not in dir_help, help_screen
         assert "newfile" not in dir_help, help_screen
         assert "write" not in dir_help, help_screen
 
@@ -276,13 +278,16 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
             "hex",
             "invert",
             "compare",
+            "volume",
+            "log",
+            "move",
+            "quit",
             "rename",
             "sort",
             "tag",
-            "view",
-            "move",
-            "pipe",
             "untag",
+            "view",
+            "pipe",
             "pathcopy",
         ):
             assert label in file_help, help_screen

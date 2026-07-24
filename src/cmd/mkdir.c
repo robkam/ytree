@@ -32,12 +32,20 @@
 static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
                               DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s);
+static DirEntry *MakeArchiveDirEntry(const ViewContext *ctx,
+                                     YtreeNovaPanel *panel,
+                                     DirEntry *father_dir_entry,
+                                     const char *dir_name, Statistic *s,
+                                     const char *parent_path);
 
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
+
+  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
+    ctx->hook_draw_spinner(ctx);
   (void)status;
   (void)msg;
-  (void)user_data;
   /* Archive callbacks stay non-interactive in this flow. */
   return ARCHIVE_CB_CONTINUE;
 }
@@ -55,6 +63,75 @@ int MakeDirectory(const ViewContext *ctx, YtreeNovaPanel *panel,
   }
 
   return (result);
+}
+
+static DirEntry *MakeArchiveDirEntry(const ViewContext *ctx,
+                                     YtreeNovaPanel *panel,
+                                     DirEntry *father_dir_entry,
+                                     const char *dir_name, Statistic *s,
+                                     const char *parent_path) {
+#ifdef HAVE_LIBARCHIVE
+  char root_path[PATH_LENGTH + 1];
+  char relative_path[PATH_LENGTH + 1];
+  char archive_path[PATH_LENGTH + 1];
+  char archive_dir_path[PATH_LENGTH + 1];
+  struct stat archive_stat;
+
+  {
+    int n = snprintf(root_path, sizeof(root_path), "%s",
+                     panel->vol->vol_stats.log_path);
+    if (n < 0 || n >= (int)sizeof(root_path)) {
+      return NULL;
+    }
+  }
+
+  if (strcmp(parent_path, root_path) == 0) {
+    relative_path[0] = '\0';
+  } else if (strncmp(parent_path, root_path, strlen(root_path)) == 0) {
+    char *ptr = (char *)parent_path + strlen(root_path);
+    if (*ptr == FILE_SEPARATOR_CHAR)
+      ptr++;
+    if (snprintf(relative_path, sizeof(relative_path), "%s", ptr) < 0) {
+      return NULL;
+    }
+  } else {
+    if (snprintf(relative_path, sizeof(relative_path), "%s", parent_path) < 0) {
+      return NULL;
+    }
+  }
+
+  if (Path_Join(archive_path, sizeof(archive_path), relative_path, dir_name) !=
+      0) {
+    return NULL;
+  }
+
+  if (ctx && ctx->hook_draw_spinner)
+    ctx->hook_draw_spinner((ViewContext *)ctx);
+
+  if (Archive_AddFile(panel->vol->vol_stats.log_path, NULL, archive_path, TRUE,
+                      ArchiveUICallback, (void *)ctx) != 0) {
+    return NULL;
+  }
+
+  (void)memset(&archive_stat, 0, sizeof(archive_stat));
+  archive_stat.st_mode = S_IFDIR;
+  if (snprintf(archive_dir_path, sizeof(archive_dir_path), "%s/", archive_path) <
+          0 ||
+      TryInsertArchiveDirEntry((ViewContext *)ctx, panel->vol->vol_stats.tree,
+                               archive_dir_path, &archive_stat, s) != 0) {
+    return NULL;
+  }
+
+  return father_dir_entry;
+#else
+  (void)ctx;
+  (void)panel;
+  (void)father_dir_entry;
+  (void)dir_name;
+  (void)s;
+  (void)parent_path;
+  return NULL;
+#endif
 }
 
 static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
@@ -81,63 +158,8 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
   if (panel && panel->vol && panel->vol->vol_stats.log_mode == ARCHIVE_MODE) {
-    char root_path[PATH_LENGTH + 1];
-    char relative_path[PATH_LENGTH + 1];
-    char archive_path[PATH_LENGTH + 1];
-
-    /* Get full path of parent directory in tree */
-    GetPath(father_dir_entry, parent_path);
-    /* Get path of the archive file itself */
-    {
-      int n = snprintf(root_path, sizeof(root_path), "%s",
-                       panel->vol->vol_stats.log_path);
-      if (n < 0 || n >= (int)sizeof(root_path)) {
-        return NULL;
-      }
-    }
-
-    /* Calculate internal parent path by stripping archive root */
-    if (strcmp(parent_path, root_path) == 0) {
-      /* Parent is root of archive */
-      relative_path[0] = '\0';
-    } else if (strncmp(parent_path, root_path, strlen(root_path)) == 0) {
-      /* Parent is subdir */
-      char *ptr = parent_path + strlen(root_path);
-      if (*ptr == FILE_SEPARATOR_CHAR)
-        ptr++;
-      {
-        int n = snprintf(relative_path, sizeof(relative_path), "%s", ptr);
-        if (n < 0 || n >= (int)sizeof(relative_path)) {
-          return NULL;
-        }
-      }
-    } else {
-      /* Fallback (should not happen if logic correct) */
-      {
-        int n = snprintf(relative_path, sizeof(relative_path), "%s", parent_path);
-        if (n < 0 || n >= (int)sizeof(relative_path)) {
-          return NULL;
-        }
-      }
-    }
-
-    if (Path_Join(archive_path, sizeof(archive_path), relative_path, dir_name) !=
-        0) {
-      return NULL;
-    }
-
-    /* Add entry */
-    if (Archive_AddFile(panel->vol->vol_stats.log_path, NULL, archive_path,
-                        TRUE, ArchiveUICallback, NULL) == 0) {
-      /* Success: Return a dummy non-NULL to indicate success.
-      The auto-refresh will reload the tree.
-      */
-      /* The caller is responsible for updating the view, we just return safely
-       */
-      return father_dir_entry;
-    } else {
-      return NULL;
-    }
+    return MakeArchiveDirEntry(ctx, panel, father_dir_entry, dir_name, s,
+                               parent_path);
   }
 #endif
 

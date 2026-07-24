@@ -27,569 +27,650 @@
 static int CopyArchiveFile(ViewContext *ctx, char *to_path,
                            const char *from_path,
                            const Statistic *s);
-
-int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
-             char *to_file, DirEntry *dest_dir_entry,
-             char *to_dir_path, /* absolute path */
-             BOOL path_copy, int *dir_create_mode, int *overwrite_mode,
-             ConflictCallback cb, ChoiceCallback choice_cb) {
-  long long file_size;
+typedef struct CopyTargetContext {
+  DirEntry *dest_dir_entry;
+  struct Volume *target_vol;
+  DirEntry *target_tree;
+  Statistic *target_stats;
+} CopyTargetContext;
+typedef struct CopyOperation {
+  ViewContext *ctx;
+  Statistic *source_stats;
+  FileEntry *source_file;
+  CopyTargetContext target;
+  const char *to_file;
+  int *dir_create_mode;
+  int *overwrite_mode;
+  ConflictCallback conflict_cb;
+  ChoiceCallback choice_cb;
+  BOOL path_copy;
   char from_path[PATH_LENGTH + 1];
   char from_dir[PATH_LENGTH + 1];
   char to_path[PATH_LENGTH + 1];
   char abs_path[PATH_LENGTH + 1];
-  FileEntry *dest_file_entry;
-  FileEntry *fen_ptr;
-  struct stat stat_struct;
-  int result;
-  int conflict_res;
+} CopyOperation;
 
-  /* Context-Aware Variables */
-  struct Volume *target_vol = NULL;
-  DirEntry *target_tree = NULL;
-  Statistic *target_stats = NULL;
+static int CopyAssignPath(char *dest, size_t dest_size, const char *src) {
+  int written = snprintf(dest, dest_size, "%s", src);
 
-  result = -1;
+  if (written < 0 || (size_t)written >= dest_size) {
+    return -1;
+  }
 
-  (void)GetFileNamePath(fe_ptr, from_path);
-  (void)GetPath(fe_ptr->dir_entry, from_dir);
+  return 0;
+}
 
-  DEBUG_LOG("CopyFile starting: from_path=%s, to_file=%s, to_dir_path=%s",
-            from_path, to_file, to_dir_path);
+static void CopyResolveTargetContext(CopyOperation *op, const char *path) {
+  op->target.target_vol = Volume_GetByPath(op->ctx, path);
+  if (op->target.target_vol) {
+    op->target.target_tree = op->target.target_vol->vol_stats.tree;
+    op->target.target_stats = &op->target.target_vol->vol_stats;
+    return;
+  }
 
-  /* Renamed usage: statistic_ptr->mode -> statistic_ptr->log_mode */
-  if (statistic_ptr->log_mode != DISK_MODE &&
-      statistic_ptr->log_mode != USER_MODE) {
-    /* Archive Mode Source */
-    if (path_copy) {
-      char root_path[PATH_LENGTH + 1];
-      char *rel_path;
-      char full_dest_path[PATH_LENGTH + 1];
+  if (op->source_stats->tree &&
+      strncmp(op->source_stats->tree->name, path,
+              strlen(op->source_stats->tree->name)) ==
+          0) {
+    op->target.target_tree = op->source_stats->tree;
+    op->target.target_stats = op->source_stats;
+  } else {
+    op->target.target_tree = NULL;
+    op->target.target_stats = NULL;
+  }
+}
+
+static int CopyPrepareArchiveSourceDestination(CopyOperation *op,
+                                               const char *to_dir_path) {
+  if (op->path_copy) {
+    char root_path[PATH_LENGTH + 1];
+    char full_dest_path[PATH_LENGTH + 1];
+    char *rel_path;
+
+    GetPath(op->source_stats->tree, root_path);
+    if (strncmp(op->from_dir, root_path, strlen(root_path)) == 0) {
+      rel_path = op->from_dir + strlen(root_path);
+      if (*rel_path == FILE_SEPARATOR_CHAR)
+        rel_path++;
+    } else {
+      rel_path = op->from_dir;
+    }
+
+    if (Path_Join(full_dest_path, sizeof(full_dest_path), to_dir_path, rel_path) !=
+        0) {
+      return -1;
+    }
+
+    CopyResolveTargetContext(op, full_dest_path);
+    if (op->target.target_stats &&
+        op->target.target_stats->log_mode == ARCHIVE_MODE) {
+      if (CopyAssignPath(op->to_path, sizeof(op->to_path), full_dest_path) != 0) {
+        return -1;
+      }
+      op->path_copy = FALSE;
+      return 0;
+    }
+
+    {
+      DirEntry *tmp_dest_dir_entry = op->target.dest_dir_entry;
       BOOL created = FALSE;
 
-      GetPath(statistic_ptr->tree, root_path);
-
-      /* Calculate relative path by stripping archive root from file's virtual
-       * directory */
-      if (strncmp(from_dir, root_path, strlen(root_path)) == 0) {
-        rel_path = from_dir + strlen(root_path);
-        /* If root path didn't end in separator but is a prefix, assume
-         * separator follows */
-        if (*rel_path == FILE_SEPARATOR_CHAR)
-          rel_path++;
-      } else {
-        /* Fallback if paths don't align as expected */
-        rel_path = from_dir;
+      if (EnsureDirectoryExists(op->ctx, full_dest_path,
+                                op->target.target_tree, &created,
+                                &tmp_dest_dir_entry, op->dir_create_mode,
+                                op->choice_cb) == -1) {
+        return -1;
       }
-
-      /* Construct full destination path for the directory */
-      {
-        if (Path_Join(full_dest_path, sizeof(full_dest_path), to_dir_path,
-                      rel_path) != 0) {
-          return result;
-        }
-      }
-
-      /* Identify Target Context for directory creation */
-      target_vol = Volume_GetByPath(ctx, full_dest_path);
-      if (target_vol) {
-        target_tree = target_vol->vol_stats.tree;
-        target_stats = &target_vol->vol_stats;
-      } else {
-        target_tree = NULL;
-        target_stats = NULL;
-      }
-
-      /* Check if target is also an archive - skip FS creation if so */
-      if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
-        /* We handle recursive dir creation inside Archive Destination Handler
-         */
-        (void)snprintf(to_path, sizeof(to_path), "%s", full_dest_path);
-        path_copy = FALSE; /* Handled manually */
-      } else {
-        /* Standard FS creation */
-        /* Create the directory structure on the filesystem */
-        /* We pass &dest_dir_entry to capture the in-memory node if available */
-        DirEntry *tmp_dest_dir_entry =
-            dest_dir_entry; // Use a temporary variable for dest_dir_entry
-        char dest_dir_sys_path[PATH_LENGTH + 1];
-        (void)snprintf(dest_dir_sys_path, sizeof(dest_dir_sys_path), "%s",
-                       full_dest_path);
-        if (EnsureDirectoryExists(ctx, dest_dir_sys_path, target_tree, &created,
-                                  &tmp_dest_dir_entry, dir_create_mode,
-                                  choice_cb) == -1) {
-          return result;
-        }
-        dest_dir_entry = tmp_dest_dir_entry; // Update original dest_dir_entry
-        /* if (created) refresh_dirwindow = TRUE; */
-
-        /* Update to_path to point to the newly created directory */
-        (void)snprintf(to_path, sizeof(to_path), "%s", full_dest_path);
-
-        /* Disable standard path_copy logic since we handled it manually */
-        path_copy = FALSE;
-      }
-    } else {
-      int composed_len = snprintf(to_path, sizeof(to_path), "%s", to_dir_path);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(to_path)) {
-        return result;
-      }
-      path_copy = FALSE;
+      op->target.dest_dir_entry = tmp_dest_dir_entry;
     }
-  } else {
-    *to_path = '\0';
-    if (strcmp(to_dir_path, FILE_SEPARATOR_STRING)) {
-      /* not ROOT */
-      /*----------*/
-      int composed_len = snprintf(to_path, sizeof(to_path), "%s", to_dir_path);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(to_path)) {
-        return result;
-      }
+
+    if (CopyAssignPath(op->to_path, sizeof(op->to_path), full_dest_path) != 0) {
+      return -1;
     }
+    op->path_copy = FALSE;
+    return 0;
   }
 
-  /* Identify Target Volume for Context-Aware Operations */
-  /* If path_copy is on, the final path is appended later, so check to_dir_path
-   * base. */
-  /* However, if we came from Archive mode path_copy, to_path is already the
-   * full dest dir. */
-  /* We re-evaluate target_vol here to ensure consistency for the file copy
-   * part. */
+  if (CopyAssignPath(op->to_path, sizeof(op->to_path), to_dir_path) != 0) {
+    return -1;
+  }
+  op->path_copy = FALSE;
+  return 0;
+}
 
-  target_vol = Volume_GetByPath(ctx, to_path);
-  if (target_vol) {
-    target_tree = target_vol->vol_stats.tree;
-    target_stats = &target_vol->vol_stats;
-  } else {
-    /* Fallback logic */
-    if (statistic_ptr->tree &&
-        strncmp(statistic_ptr->tree->name, to_path,
-                strlen(statistic_ptr->tree->name)) == 0) {
-      target_tree = statistic_ptr->tree;
-      target_stats = statistic_ptr;
-    } else {
-      target_tree = NULL; /* External path */
-      target_stats = NULL;
-    }
+static int CopyPrepareInitialDestination(CopyOperation *op,
+                                         const char *to_dir_path) {
+  if (op->source_stats->log_mode != DISK_MODE &&
+      op->source_stats->log_mode != USER_MODE) {
+    return CopyPrepareArchiveSourceDestination(op, to_dir_path);
   }
 
-  if (path_copy) {
-    /* Calculate path relative to the active volume root (statistic_ptr->tree)
-     */
+  *op->to_path = '\0';
+  if (strcmp(to_dir_path, FILE_SEPARATOR_STRING) == 0) {
+    return 0;
+  }
+
+  return CopyAssignPath(op->to_path, sizeof(op->to_path), to_dir_path);
+}
+
+static int CopyApplyPathCopy(CopyOperation *op) {
+  if (!op->path_copy) {
+    return 0;
+  }
+
+  {
     char root_path[PATH_LENGTH + 1];
     char src_path[PATH_LENGTH + 1];
     char *rel_path;
 
-    GetPath(statistic_ptr->tree, root_path);
-    GetPath(fe_ptr->dir_entry, src_path);
+    GetPath(op->source_stats->tree, root_path);
+    GetPath(op->source_file->dir_entry, src_path);
 
-    /* Check if source is inside the active volume root */
     if (strncmp(src_path, root_path, strlen(root_path)) == 0) {
       rel_path = src_path + strlen(root_path);
-      /* Skip leading separator in relative path */
       if (*rel_path == FILE_SEPARATOR_CHAR)
         rel_path++;
     } else {
-      /* Fallback: use absolute source path if outside root (legacy behavior
-       * preserved) */
       rel_path = src_path;
-      /* Ensure we don't create double root like /dest//root/path unless
-       * intended */
       if (*rel_path == FILE_SEPARATOR_CHAR)
         rel_path++;
     }
 
-    /* Append relative path and normalize with a trailing separator. */
-    {
-      if (Path_Join(abs_path, sizeof(abs_path), to_path, rel_path) != 0) {
-        return result;
-      }
-      if (Path_Join(to_path, sizeof(to_path), abs_path, "") != 0) {
-        return result;
-      }
+    if (Path_Join(op->abs_path, sizeof(op->abs_path), op->to_path, rel_path) !=
+            0 ||
+        Path_Join(op->to_path, sizeof(op->to_path), op->abs_path, "") != 0) {
+      return -1;
     }
+  }
 
-    if (*to_path != FILE_SEPARATOR_CHAR) {
-      if (Path_Join(abs_path, sizeof(abs_path), from_dir, to_path) != 0) {
-        return result;
-      }
-      (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
+  if (*op->to_path != FILE_SEPARATOR_CHAR) {
+    if (Path_Join(op->abs_path, sizeof(op->abs_path), op->from_dir,
+                  op->to_path) != 0 ||
+        CopyAssignPath(op->to_path, sizeof(op->to_path), op->abs_path) != 0) {
+      return -1;
     }
+  }
 
-    /* Re-evaluate target volume with full path if path_copy changed it? */
-    /* Usually base is enough, but to be safe: */
-    target_vol = Volume_GetByPath(ctx, to_path);
-    if (target_vol) {
-      target_tree = target_vol->vol_stats.tree;
-      target_stats = &target_vol->vol_stats;
-    }
-
-    /* Skip EnsureDirectoryExists for Archive Targets */
-    if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
-      /* No-op here, structure created during add */
-    } else {
-      /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user
-       */
-      /* Pass NULL for created flag as we handle refresh_dirwindow later if
-       * dest_dir_entry is updated */
-      DirEntry *tmp_dest_dir_entry = dest_dir_entry;
-      if (EnsureDirectoryExists(
-              ctx, to_path, target_tree ? target_tree : statistic_ptr->tree,
-              NULL, &tmp_dest_dir_entry, dir_create_mode, choice_cb) == -1) {
-        return result;
-      }
-      dest_dir_entry = tmp_dest_dir_entry;
-    }
+  CopyResolveTargetContext(op, op->to_path);
+  if (op->target.target_stats &&
+      op->target.target_stats->log_mode == ARCHIVE_MODE) {
+    return 0;
   }
 
   {
-    if (Path_Join(abs_path, sizeof(abs_path), to_path, "") != 0) {
-      return result;
+    DirEntry *tmp_dest_dir_entry = op->target.dest_dir_entry;
+
+    if (EnsureDirectoryExists(
+            op->ctx, op->to_path,
+            op->target.target_tree ? op->target.target_tree
+                                   : op->source_stats->tree,
+            NULL, &tmp_dest_dir_entry, op->dir_create_mode,
+            op->choice_cb) == -1) {
+      return -1;
     }
-    (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
+    op->target.dest_dir_entry = tmp_dest_dir_entry;
   }
 
-  /* Pre-emptively fix relative paths to ensure EnsureDirectoryExists handles
-   * them correctly */
-  if (*to_path != FILE_SEPARATOR_CHAR) {
-    if (Path_Join(abs_path, sizeof(abs_path), from_dir, to_path) != 0) {
-      return result;
-    }
-    (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
+  return 0;
+}
+
+static int CopyNormalizeDestinationPath(CopyOperation *op) {
+  if (Path_Join(op->abs_path, sizeof(op->abs_path), op->to_path, "") != 0 ||
+      CopyAssignPath(op->to_path, sizeof(op->to_path), op->abs_path) != 0) {
+    return -1;
   }
 
-/* ARCHIVE DESTINATION HANDLER */
+  if (*op->to_path == FILE_SEPARATOR_CHAR) {
+    return 0;
+  }
+
+  if (Path_Join(op->abs_path, sizeof(op->abs_path), op->from_dir,
+                op->to_path) != 0 ||
+      CopyAssignPath(op->to_path, sizeof(op->to_path), op->abs_path) != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
+static int CopyPrepareArchiveSourceFile(CopyOperation *op,
+                                        const char **archive_src_path,
+                                        char *extracted_path,
+                                        size_t extracted_path_size,
+                                        BOOL *extracted_from_archive) {
+  *archive_src_path = op->from_path;
+  *extracted_from_archive = FALSE;
+  extracted_path[0] = '\0';
+
+  if (op->source_stats->log_mode == DISK_MODE ||
+      op->source_stats->log_mode == USER_MODE) {
+    return 0;
+  }
+
 #ifdef HAVE_LIBARCHIVE
   {
-    BOOL target_is_archive = FALSE;
-    char archive_root_path[PATH_LENGTH + 1];
-    char archive_log_path[PATH_LENGTH + 1];
+    int fd_tmp;
 
-    archive_root_path[0] = '\0';
-    archive_log_path[0] = '\0';
+    if (CopyAssignPath(extracted_path, extracted_path_size,
+                       "/tmp/ytnova_copy_XXXXXX") != 0) {
+      return -1;
+    }
+    fd_tmp = mkstemp(extracted_path);
+    if (fd_tmp == -1) {
+      return -1;
+    }
+    close(fd_tmp);
+    (void)unlink(extracted_path);
 
-    if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
-      target_is_archive = TRUE;
-      (void)snprintf(archive_log_path, sizeof(archive_log_path), "%s",
-                     target_stats->log_path);
-      GetPath(target_stats->tree, archive_root_path);
-      DEBUG_LOG("CopyFile archive destination via logged volume: %s",
-                archive_log_path);
-    } else {
-      char archive_candidate[PATH_LENGTH + 1];
-      struct stat archive_stat;
-      size_t candidate_len;
+    if (ExtractArchiveNode(op->source_stats->log_path, op->from_path,
+                           extracted_path, UI_ArchiveCallback, op->ctx) != 0) {
+      (void)unlink(extracted_path);
+      return -1;
+    }
+  }
 
-      (void)snprintf(archive_candidate, sizeof(archive_candidate), "%s", to_path);
-      candidate_len = strlen(archive_candidate);
-      if (candidate_len > 1 &&
-          archive_candidate[candidate_len - 1] == FILE_SEPARATOR_CHAR) {
-        archive_candidate[candidate_len - 1] = '\0';
-      }
+  *archive_src_path = extracted_path;
+  *extracted_from_archive = TRUE;
+  return 0;
+#else
+  (void)op;
+  return -1;
+#endif
+}
 
-      if (STAT_(archive_candidate, &archive_stat) == 0 &&
-          S_ISREG(archive_stat.st_mode)) {
-        struct archive *archive_probe;
+static int CopyTryArchiveDestination(CopyOperation *op) {
+#ifdef HAVE_LIBARCHIVE
+  BOOL target_is_archive = FALSE;
+  char archive_root_path[PATH_LENGTH + 1];
+  char archive_log_path[PATH_LENGTH + 1];
 
-        archive_probe = archive_read_new();
-        if (archive_probe) {
-          archive_read_support_filter_all(archive_probe);
-          archive_read_support_format_all(archive_probe);
-          DEBUG_LOG("CopyFile probing archive destination candidate: %s",
+  archive_root_path[0] = '\0';
+  archive_log_path[0] = '\0';
+
+  if (op->target.target_stats &&
+      op->target.target_stats->log_mode == ARCHIVE_MODE) {
+    target_is_archive = TRUE;
+    (void)snprintf(archive_log_path, sizeof(archive_log_path), "%s",
+                   op->target.target_stats->log_path);
+    GetPath(op->target.target_stats->tree, archive_root_path);
+    DEBUG_LOG("CopyFile archive destination via logged volume: %s",
+              archive_log_path);
+  } else {
+    char archive_candidate[PATH_LENGTH + 1];
+    struct stat archive_stat;
+    size_t candidate_len;
+
+    if (CopyAssignPath(archive_candidate, sizeof(archive_candidate),
+                       op->to_path) != 0) {
+      return -1;
+    }
+    candidate_len = strlen(archive_candidate);
+    if (candidate_len > 1 &&
+        archive_candidate[candidate_len - 1] == FILE_SEPARATOR_CHAR) {
+      archive_candidate[candidate_len - 1] = '\0';
+    }
+
+    if (STAT_(archive_candidate, &archive_stat) == 0 &&
+        S_ISREG(archive_stat.st_mode)) {
+      struct archive *archive_probe = archive_read_new();
+
+      if (archive_probe) {
+        archive_read_support_filter_all(archive_probe);
+        archive_read_support_format_all(archive_probe);
+        DEBUG_LOG("CopyFile probing archive destination candidate: %s",
+                  archive_candidate);
+        if (archive_read_open_filename(archive_probe, archive_candidate, 10240) ==
+            ARCHIVE_OK) {
+          target_is_archive = TRUE;
+          (void)snprintf(archive_log_path, sizeof(archive_log_path), "%s",
+                         archive_candidate);
+          (void)snprintf(archive_root_path, sizeof(archive_root_path), "%s",
+                         archive_candidate);
+          DEBUG_LOG("CopyFile archive destination probe succeeded: %s",
+                    archive_log_path);
+        } else {
+          DEBUG_LOG("CopyFile archive destination probe failed: %s",
                     archive_candidate);
-          if (archive_read_open_filename(archive_probe, archive_candidate,
-                                         10240) == ARCHIVE_OK) {
-            target_is_archive = TRUE;
-            (void)snprintf(archive_log_path, sizeof(archive_log_path), "%s",
-                           archive_candidate);
-            (void)snprintf(archive_root_path, sizeof(archive_root_path), "%s",
-                           archive_candidate);
-            DEBUG_LOG("CopyFile archive destination probe succeeded: %s",
-                      archive_log_path);
-          } else {
-            DEBUG_LOG("CopyFile archive destination probe failed: %s",
-                      archive_candidate);
-          }
-          archive_read_free(archive_probe);
         }
-      }
-    }
-
-    if (target_is_archive) {
-    /* We are copying/adding a file INTO an archive */
-    char relative_path[PATH_LENGTH + 1];
-
-    /* Build path relative to archive root */
-    if (strncmp(to_path, archive_root_path, strlen(archive_root_path)) == 0) {
-      char *ptr = to_path + strlen(archive_root_path);
-      int composed_len;
-      if (*ptr == FILE_SEPARATOR_CHAR)
-        ptr++;
-      composed_len = snprintf(relative_path, sizeof(relative_path), "%s", ptr);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(relative_path)) {
-        return result;
-      }
-    } else {
-      /* Fallback */
-      int composed_len =
-          snprintf(relative_path, sizeof(relative_path), "%s", to_path);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(relative_path)) {
-        return result;
-      }
-    }
-
-    /* Ensure trailing slash is removed before appending file if present */
-    size_t rel_len = strlen(relative_path);
-    if (rel_len > 0 && relative_path[rel_len - 1] == FILE_SEPARATOR_CHAR) {
-      relative_path[rel_len - 1] = '\0';
-    }
-
-    /* If path_copy is active, we might need to create intermediate directories
-     * in the archive */
-    /* This is implicit in Archive_AddFile usually, but explicit entries help
-     * visibility */
-
-    {
-      int join_res;
-      char archive_entry_path[PATH_LENGTH + 1];
-
-      join_res = Path_Join(archive_entry_path, sizeof(archive_entry_path),
-                           relative_path, to_file);
-      if (join_res != 0) {
-        return result;
-      }
-
-      char *archive_src_path = from_path;
-      char extracted_path[PATH_LENGTH + 1];
-      BOOL extracted_from_archive = FALSE;
-
-      extracted_path[0] = '\0';
-      if (statistic_ptr->log_mode != DISK_MODE &&
-          statistic_ptr->log_mode != USER_MODE) {
-        int fd_tmp;
-        int tmp_len = snprintf(extracted_path, sizeof(extracted_path),
-                               "/tmp/ytnova_copy_XXXXXX");
-        if (tmp_len < 0 || (size_t)tmp_len >= sizeof(extracted_path)) {
-          return -1;
-        }
-
-        fd_tmp = mkstemp(extracted_path);
-        if (fd_tmp == -1) {
-          return -1;
-        }
-        close(fd_tmp);
-        (void)unlink(extracted_path);
-
-        if (ExtractArchiveNode(statistic_ptr->log_path, from_path,
-                               extracted_path, UI_ArchiveCallback, ctx) != 0) {
-          (void)unlink(extracted_path);
-          return -1;
-        }
-        archive_src_path = extracted_path;
-        extracted_from_archive = TRUE;
-      }
-
-      if (Archive_AddFile(archive_log_path, archive_src_path,
-                          archive_entry_path, FALSE, UI_ArchiveCallback,
-                          ctx) == 0) {
-        /* Success */
-        /* Caller will refresh view */
-        if (extracted_from_archive) {
-          (void)unlink(extracted_path);
-        }
-        return 0;
-      } else {
-        /* Failure */
-        DEBUG_LOG("CopyFile Archive_AddFile failed: archive=%s entry=%s",
-                  archive_log_path, archive_entry_path);
-        if (extracted_from_archive) {
-          (void)unlink(extracted_path);
-        }
-        return -1;
+        archive_read_free(archive_probe);
       }
     }
   }
-    else {
-      DEBUG_LOG("CopyFile destination treated as filesystem path: %s", to_path);
+
+  if (!target_is_archive) {
+    DEBUG_LOG("CopyFile destination treated as filesystem path: %s", op->to_path);
+    return 0;
+  }
+
+  {
+    char relative_path[PATH_LENGTH + 1];
+    char archive_entry_path[PATH_LENGTH + 1];
+    struct stat archive_entry_stat;
+    const char *archive_src_path;
+    char extracted_path[PATH_LENGTH + 1];
+    BOOL extracted_from_archive;
+
+    if (strncmp(op->to_path, archive_root_path, strlen(archive_root_path)) == 0) {
+      char *ptr = op->to_path + strlen(archive_root_path);
+      if (*ptr == FILE_SEPARATOR_CHAR)
+        ptr++;
+      if (CopyAssignPath(relative_path, sizeof(relative_path), ptr) != 0) {
+        return -1;
+      }
+    } else if (CopyAssignPath(relative_path, sizeof(relative_path), op->to_path) !=
+               0) {
+      return -1;
     }
+
+    if (*relative_path) {
+      size_t rel_len = strlen(relative_path);
+      if (relative_path[rel_len - 1] == FILE_SEPARATOR_CHAR) {
+        relative_path[rel_len - 1] = '\0';
+      }
+    }
+
+    if (Path_Join(archive_entry_path, sizeof(archive_entry_path), relative_path,
+                  op->to_file) != 0 ||
+        CopyPrepareArchiveSourceFile(op, &archive_src_path, extracted_path,
+                                     sizeof(extracted_path),
+                                     &extracted_from_archive) != 0) {
+      return -1;
+    }
+
+    if (STAT_(archive_src_path, &archive_entry_stat) != 0) {
+      if (extracted_from_archive) {
+        (void)unlink(extracted_path);
+      }
+      return -1;
+    }
+
+    if (Archive_AddFile(archive_log_path, (char *)archive_src_path,
+                        archive_entry_path, FALSE, UI_ArchiveCallback,
+                        op->ctx) != 0) {
+      DEBUG_LOG("CopyFile Archive_AddFile failed: archive=%s entry=%s",
+                archive_log_path, archive_entry_path);
+      if (extracted_from_archive) {
+        (void)unlink(extracted_path);
+      }
+      return -1;
+    }
+
+    if (op->target.target_stats && op->target.target_stats->tree &&
+        InsertArchiveFileEntry(op->ctx, op->target.target_stats->tree,
+                               archive_entry_path, &archive_entry_stat,
+                               op->target.target_stats) != 0) {
+      if (extracted_from_archive) {
+        (void)unlink(extracted_path);
+      }
+      return -1;
+    }
+
+    if (extracted_from_archive) {
+      (void)unlink(extracted_path);
+    }
+  }
+
+  return 1;
+#else
+  (void)op;
+  return 0;
+#endif
+}
+
+static int CopyEnsureFilesystemDestination(CopyOperation *op) {
+  BOOL created = FALSE;
+  DirEntry *tmp_dest_dir_entry = op->target.dest_dir_entry;
+
+  if (EnsureDirectoryExists(op->ctx, op->to_path, op->target.target_tree,
+                            &created, &tmp_dest_dir_entry, op->dir_create_mode,
+                            op->choice_cb) == -1) {
+    return -1;
+  }
+
+  op->target.dest_dir_entry = tmp_dest_dir_entry;
+  return 0;
+}
+
+static int CopyHandleConflict(CopyOperation *op) {
+  if (!(op->overwrite_mode && *op->overwrite_mode == CONFLICT_ALL) &&
+      op->conflict_cb) {
+    int conflict_res = op->conflict_cb(op->ctx, op->from_path, op->to_path,
+                                       op->overwrite_mode);
+
+    if (conflict_res == CONFLICT_ABORT) {
+      return -1;
+    }
+    if (conflict_res == CONFLICT_SKIP) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+static int CopyReplaceExistingDestination(CopyOperation *op) {
+  if (op->target.dest_dir_entry) {
+    FileEntry *dest_file_entry;
+    int conflict_res;
+
+    (void)GetFileEntry(op->target.dest_dir_entry, (char *)op->to_file,
+                       &dest_file_entry);
+    if (!dest_file_entry) {
+      return 0;
+    }
+
+    conflict_res = CopyHandleConflict(op);
+    if (conflict_res != 0) {
+      return conflict_res;
+    }
+
+    (void)DeleteFile(op->ctx, dest_file_entry, op->overwrite_mode,
+                     op->target.target_tree ? op->target.target_stats
+                                            : &op->ctx->active->vol->vol_stats,
+                     op->choice_cb);
+    return 0;
+  }
+
+  {
+    int existing_fd = open(op->to_path, O_RDONLY);
+    int conflict_res;
+
+    if (existing_fd < 0) {
+      if (errno == ENOENT) {
+        return 0;
+      }
+      return -1;
+    }
+    close(existing_fd);
+
+    conflict_res = CopyHandleConflict(op);
+    if (conflict_res != 0) {
+      return conflict_res;
+    }
+
+    if (unlink(op->to_path)) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+static void CopyApplyDestinationStats(CopyOperation *op, long long file_size,
+                                      BOOL matching) {
+  if (op->target.target_stats) {
+    op->target.target_stats->disk_total_bytes += file_size;
+    op->target.target_stats->disk_total_files++;
+  } else {
+    op->source_stats->disk_total_bytes += file_size;
+    op->source_stats->disk_total_files++;
+  }
+
+  if (!matching) {
+    return;
+  }
+
+  if (op->target.target_stats) {
+    op->target.target_stats->disk_matching_bytes += file_size;
+    op->target.target_stats->disk_matching_files++;
+  } else {
+    op->source_stats->disk_matching_bytes += file_size;
+    op->source_stats->disk_matching_files++;
+  }
+}
+
+static FileEntry *CopyCreateDestinationEntry(CopyOperation *op,
+                                             const struct stat *stat) {
+  FileEntry *fen_ptr;
+
+  if (!op->target.dest_dir_entry) {
+    return NULL;
+  }
+
+  fen_ptr = (FileEntry *)xmalloc(sizeof(FileEntry) + strlen(op->to_file) + 1);
+  {
+    size_t name_capacity = strlen(op->to_file) + 1;
+    int written = snprintf(fen_ptr->name, name_capacity, "%s", op->to_file);
+    if (written < 0 || (size_t)written >= name_capacity) {
+      free(fen_ptr);
+      return NULL;
+    }
+  }
+
+  (void)memcpy(&fen_ptr->stat_struct, stat, sizeof(*stat));
+  fen_ptr->dir_entry = op->target.dest_dir_entry;
+  fen_ptr->tagged = FALSE;
+  fen_ptr->matching = Match(fen_ptr, op->source_stats);
+  return fen_ptr;
+}
+
+static void CopyLinkDestinationEntry(CopyOperation *op, FileEntry *fen_ptr) {
+  fen_ptr->next = op->target.dest_dir_entry->file;
+  fen_ptr->prev = NULL;
+  if (op->target.dest_dir_entry->file)
+    op->target.dest_dir_entry->file->prev = fen_ptr;
+  op->target.dest_dir_entry->file = fen_ptr;
+}
+
+int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
+             char *to_file, DirEntry *dest_dir_entry,
+             const char *to_dir_path, /* absolute path */
+             BOOL path_copy, int *dir_create_mode, int *overwrite_mode,
+             ConflictCallback cb, ChoiceCallback choice_cb) {
+  CopyOperation op;
+  FileEntry *fen_ptr;
+  long long file_size;
+  struct stat stat_struct;
+  int replace_result;
+  int result = -1;
+
+  op.ctx = ctx;
+  op.source_stats = statistic_ptr;
+  op.source_file = fe_ptr;
+  op.target.dest_dir_entry = dest_dir_entry;
+  op.target.target_vol = NULL;
+  op.target.target_tree = NULL;
+  op.target.target_stats = NULL;
+  op.to_file = to_file;
+  op.dir_create_mode = dir_create_mode;
+  op.overwrite_mode = overwrite_mode;
+  op.conflict_cb = cb;
+  op.choice_cb = choice_cb;
+  op.path_copy = path_copy;
+
+  (void)GetFileNamePath(fe_ptr, op.from_path);
+  (void)GetPath(fe_ptr->dir_entry, op.from_dir);
+
+  DEBUG_LOG("CopyFile starting: from_path=%s, to_file=%s, to_dir_path=%s",
+            op.from_path, to_file, to_dir_path);
+
+  if (CopyPrepareInitialDestination(&op, to_dir_path) != 0) {
+    return result;
+  }
+  CopyResolveTargetContext(&op, op.to_path);
+
+  if (CopyApplyPathCopy(&op) != 0 || CopyNormalizeDestinationPath(&op) != 0) {
+    return result;
+  }
+
+#ifdef HAVE_LIBARCHIVE
+  int archive_result = CopyTryArchiveDestination(&op);
+  if (archive_result < 0) {
+    return result;
+  }
+  if (archive_result > 0) {
+    return 0;
   }
 #endif
 
-  {
-    BOOL created = FALSE;
-    /*
-     * Pass &dest_dir_entry to EnsureDirectoryExists.
-     * Use target_tree to find the node in the correct volume.
-     * If target_tree is NULL (external path), dest_dir_entry will remain NULL
-     * (correct).
-     */
-
-    /* Skip validation if destination is archive file (not directory) */
-    /* This is handled by target_stats check above for Archive Destination */
-    DirEntry *tmp_dest_dir_entry = dest_dir_entry;
-    if (EnsureDirectoryExists(ctx, to_path, target_tree, &created,
-                              &tmp_dest_dir_entry, dir_create_mode,
-                              choice_cb) == -1) {
-      return result;
-    }
-    dest_dir_entry = tmp_dest_dir_entry;
-    /* if (created) refresh_dirwindow = TRUE; */
+  if (CopyEnsureFilesystemDestination(&op) != 0 ||
+      Path_Join(op.abs_path, sizeof(op.abs_path), op.to_path, op.to_file) != 0 ||
+      CopyAssignPath(op.to_path, sizeof(op.to_path), op.abs_path) != 0) {
+    return result;
   }
 
-  {
-    if (Path_Join(abs_path, sizeof(abs_path), to_path, to_file) != 0) {
-      return result;
-    }
-    (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
-  }
+  DEBUG_LOG("CopyFile final to_path=%s", op.to_path);
 
-  DEBUG_LOG("CopyFile final to_path=%s", to_path);
-
-  if (!strcmp(to_path, from_path)) {
+  if (!strcmp(op.to_path, op.from_path)) {
     DEBUG_LOG("CopyFile error: to_path == from_path");
     /* MESSAGE( "Can't copy file into itself" ); */
     return (result);
   }
 
-  if (dest_dir_entry) {
-    /* destination is in sub-tree */
-    /*----------------------------*/
-
-    (void)GetFileEntry(dest_dir_entry, to_file, &dest_file_entry);
-
-    if (dest_file_entry) {
-      /* file exists */
-      /*-------------*/
-      if (!(overwrite_mode && *overwrite_mode == CONFLICT_ALL) && cb) {
-        conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
-        if (conflict_res == CONFLICT_ABORT) {
-          result = -1;
-          ESCAPE;
-        }
-        if (conflict_res == CONFLICT_SKIP) {
-          result = 0; /* Treated as success but skipped */
-          ESCAPE;
-        }
-        /* CONFLICT_OVERWRITE or CONFLICT_ALL proceeds */
-      }
-
-      /* Delete the existing file in the destination. */
-      (void)DeleteFile(
-          ctx, dest_file_entry, overwrite_mode,
-          target_tree ? target_stats : &ctx->active->vol->vol_stats, choice_cb);
-    }
-  } else {
-    int existing_fd = open(to_path, O_RDONLY);
-    if (existing_fd >= 0) {
-      close(existing_fd);
-
-      if (!(overwrite_mode && *overwrite_mode == CONFLICT_ALL) && cb) {
-        conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
-        if (conflict_res == CONFLICT_ABORT) {
-          result = -1;
-          ESCAPE;
-        }
-        if (conflict_res == CONFLICT_SKIP) {
-          result = 0; /* Treated as success but skipped */
-          ESCAPE;
-        }
-        /* CONFLICT_OVERWRITE or CONFLICT_ALL proceeds */
-      }
-
-      if (unlink(to_path)) {
-        /* MESSAGE( "Can't unlink*\"%s\"*%s", to_path, strerror(errno) ); */
-        ESCAPE;
-      }
-    } else if (errno != ENOENT) {
-      ESCAPE;
-    }
+  replace_result = CopyReplaceExistingDestination(&op);
+  if (replace_result < 0) {
+    ESCAPE;
+  }
+  if (replace_result > 0) {
+    result = 0;
+    ESCAPE;
   }
 
-  if (!CopyFileContent(ctx, to_path, from_path, statistic_ptr)) {
+  if (!CopyFileContent(ctx, op.to_path, op.from_path, statistic_ptr)) {
     /* File copied */
     /*-------------*/
 
     /* Suppress chmod for symbolic links as it targets the link destination */
     if (!S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-      if (chmod(to_path, fe_ptr->stat_struct.st_mode) == -1) {
+      if (chmod(op.to_path, fe_ptr->stat_struct.st_mode) == -1) {
         /* WARNING( "Can't chmod file*\"%s\"*to mode %s*IGNORED", to_path,
          * GetAttributes(fe_ptr->stat_struct.st_mode, buffer) ); */
       }
     }
 
-    if (dest_dir_entry) {
-      if (STAT_(to_path, &stat_struct)) {
+    if (op.target.dest_dir_entry) {
+      if (STAT_(op.to_path, &stat_struct)) {
         /* ERROR_MSG( "Stat Failed*ABORT" ); */
         exit(1);
       }
 
       file_size = stat_struct.st_size;
-
-      /* Update Total Stats using target_stats if available */
       if (!AppStateCommitDirEntryTotalPayload(
-              dest_dir_entry, dest_dir_entry->total_files + 1,
-              dest_dir_entry->total_bytes + file_size)) {
+              op.target.dest_dir_entry, op.target.dest_dir_entry->total_files + 1,
+              op.target.dest_dir_entry->total_bytes + file_size)) {
         ESCAPE;
       }
 
-      if (target_stats) {
-        target_stats->disk_total_bytes += file_size;
-        target_stats->disk_total_files++;
-      } else {
-        /* Should not happen if dest_dir_entry is set, but fallback safely */
-        statistic_ptr->disk_total_bytes += file_size;
-        statistic_ptr->disk_total_files++;
+      fen_ptr = CopyCreateDestinationEntry(&op, &stat_struct);
+      if (!fen_ptr) {
+        ESCAPE;
+      }
+      if (fen_ptr->matching &&
+          !AppStateCommitDirEntryMatchingPayload(
+              op.target.dest_dir_entry,
+              op.target.dest_dir_entry->matching_files + 1,
+              op.target.dest_dir_entry->matching_bytes + file_size)) {
+        free(fen_ptr);
+        ESCAPE;
       }
 
-      /* Create File Entry manually */
-      /* FIX: Added +1 to allocation for null terminator */
-      fen_ptr = (FileEntry *)xmalloc(sizeof(FileEntry) + strlen(to_file) + 1);
-
-      {
-        size_t name_capacity = strlen(to_file) + 1;
-        int written = snprintf(fen_ptr->name, name_capacity, "%s", to_file);
-        if (written < 0 || (size_t)written >= name_capacity) {
-          free(fen_ptr);
-          ESCAPE;
-        }
-      }
-
-      (void)memcpy(&fen_ptr->stat_struct, &stat_struct, sizeof(stat_struct));
-
-      fen_ptr->dir_entry = dest_dir_entry;
-      fen_ptr->tagged = FALSE;
-      fen_ptr->matching = Match(fen_ptr, statistic_ptr);
-
-      /* Update Matching Stats */
-      if (fen_ptr->matching) {
-        if (!AppStateCommitDirEntryMatchingPayload(
-                dest_dir_entry, dest_dir_entry->matching_files + 1,
-                dest_dir_entry->matching_bytes + file_size)) {
-          free(fen_ptr);
-          ESCAPE;
-        }
-        if (target_stats) {
-          target_stats->disk_matching_bytes += file_size;
-          target_stats->disk_matching_files++;
-        } else {
-          statistic_ptr->disk_matching_bytes += file_size;
-          statistic_ptr->disk_matching_files++;
-        }
-      }
-
-      /* Link into list (Head) */
-      fen_ptr->next = dest_dir_entry->file;
-      fen_ptr->prev = NULL;
-      if (dest_dir_entry->file)
-        dest_dir_entry->file->prev = fen_ptr;
-      dest_dir_entry->file = fen_ptr;
-
-      /* Force refresh if we modified the tree structure or contents */
-      /* refresh_dirwindow = TRUE; */
+      CopyApplyDestinationStats(&op, file_size, fen_ptr->matching);
+      CopyLinkDestinationEntry(&op, fen_ptr);
     }
 
-    if (target_stats) {
-      (void)GetAvailBytes(&target_stats->disk_space, target_stats);
+    if (op.target.target_stats) {
+      (void)GetAvailBytes(&op.target.target_stats->disk_space,
+                          op.target.target_stats);
     } else {
       (void)GetAvailBytes(&statistic_ptr->disk_space, statistic_ptr);
     }
@@ -677,7 +758,7 @@ int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                     WalkingPackage *walking_package) {
   Statistic *s = walking_package->function_data.copy.statistic_ptr;
   BOOL path_copy = walking_package->function_data.copy.path_copy;
-  char *to_path = walking_package->function_data.copy.to_path;
+  const char *to_path = walking_package->function_data.copy.to_path;
   DirEntry *dest_dir_entry = walking_package->function_data.copy.dest_dir_entry;
   int *dir_create_mode = &walking_package->function_data.copy.dir_create_mode;
   int *overwrite_mode = &walking_package->function_data.copy.overwrite_mode;

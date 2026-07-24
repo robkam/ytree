@@ -21,9 +21,12 @@
 #endif
 
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
+
+  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
+    ctx->hook_draw_spinner(ctx);
   (void)status;
   (void)msg;
-  (void)user_data;
   return ARCHIVE_CB_CONTINUE;
 }
 
@@ -52,7 +55,7 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
 #ifdef HAVE_LIBARCHIVE
   if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
     if (Archive_RenameEntry(ctx->active->vol->vol_stats.log_path, from_path,
-                            new_name, ArchiveUICallback, NULL) == 0) {
+                            new_name, ArchiveUICallback, ctx) == 0) {
       return 0;
     }
     return -1;

@@ -397,6 +397,18 @@ def test_navigation_help_lists_f9_apps_between_split_and_config():
     assert '{UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL}' in display_source
 
 
+def test_manpage_and_usage_document_f9_applications_menu():
+    man_source = _read("etc/ytnova.1.md")
+    usage_source = _read("docs/USAGE.md")
+
+    for source in (man_source, usage_source):
+        assert "**F8**: Toggle Split Screen Mode." in source
+        assert "**F9**: Open the Applications menu shell." in source
+        assert source.index("**F8**: Toggle Split Screen Mode.") < source.index(
+            "**F9**: Open the Applications menu shell."
+        ) < source.index("**F10**: Open the configuration command surface:")
+
+
 def test_f9_applications_menu_is_wired_in_tree_and_file_controllers():
     dir_source = _read("src/ui/ctrl_dir.c")
     file_source = _read("src/ui/ctrl_file.c")

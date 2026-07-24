@@ -33,6 +33,21 @@ def _create_tar(path, entries):
             tf.addfile(info, io.BytesIO(payload))
 
 
+def _create_tar_with_empty_dir(path, empty_dir_name, extra_file_count=0):
+    with tarfile.open(path, "w") as tf:
+        dir_info = tarfile.TarInfo(name=f"{empty_dir_name}/")
+        dir_info.type = tarfile.DIRTYPE
+        dir_info.mode = 0o755
+        tf.addfile(dir_info)
+
+        for index in range(extra_file_count):
+            payload = f"payload-{index}\n".encode("utf-8")
+            info = tarfile.TarInfo(name=f"bulk_{index:04d}.txt")
+            info.size = len(payload)
+            info.mode = 0o644
+            tf.addfile(info, io.BytesIO(payload))
+
+
 def _enter_archive_from_selected_file(tui):
     tui.send_keystroke(Keys.ENTER, wait=0.5)
     tui.send_keystroke(Keys.LOG, wait=0.3)
@@ -598,3 +613,180 @@ def test_archive_create_unsupported_format_shows_and_clears_status_error(
         assert not destination.exists()
     finally:
         tui.quit()
+
+
+def test_archive_create_rejects_suffix_without_basename(ytnova_binary, tmp_path):
+    root = tmp_path / "archive_suffix_only"
+    root.mkdir()
+    (root / "source.txt").write_text("payload", encoding="utf-8")
+    destination = root / ".tar.gz"
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert tui.wait_for_content("source.txt", timeout=3.0)
+
+        tui.send_keystroke("Z", wait=0.2)
+        assert tui.wait_for_content("Create archive:", timeout=3.0)
+        tui.send_keystroke(f"{destination}\r", wait=0.4)
+        assert tui.wait_for_content("Archive name required before suffix", timeout=3.0)
+        assert not destination.exists()
+    finally:
+        tui.quit()
+
+
+def test_archive_file_move_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
+    root = tmp_path / "archive_move_prompt_as"
+    root.mkdir()
+    archive_path = root / "move_prompt.tar"
+    _create_tar(archive_path, {"inside.txt": "payload"})
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("inside.txt", timeout=3.0)
+
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert tui.wait_for_condition(
+            lambda lines: any("1..9 file view" in line for line in lines[-3:]),
+            timeout=1.5,
+            poll_interval=0.05,
+        ), "\n".join(tui.get_screen_dump())
+        tui.child.send("m")
+        tui.child.expect(r"MOVE:\s+inside\.txt\s+AS:", timeout=2.0)
+        tui.child.send(Keys.ESC)
+    finally:
+        tui.quit()
+
+
+def test_archive_makedir_updates_visible_view_without_manual_refresh(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "archive_mkdir_refresh"
+    root.mkdir()
+    archive_path = root / "mkdir_refresh.tar"
+    _create_tar(archive_path, {"inside.txt": "payload"})
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=3.0)
+
+        tui.send_keystroke("m", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=2.0)
+        tui.send_keystroke("new_dir\r", wait=0.4)
+        assert tui.wait_for_content("new_dir", timeout=3.0)
+    finally:
+        tui.quit()
+
+
+def test_split_copy_to_archive_destination_uses_inactive_archive_panel(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "split_copy_to_archive"
+    root.mkdir()
+    archive_path = root / "a_target.tar"
+    _create_tar(archive_path, {"existing.txt": "archive payload"})
+    (root / "b_source.txt").write_text("source payload\n", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert tui.wait_for_content("b_source.txt", timeout=2.0)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.UP, wait=0.2)
+        tui.send_keystroke(Keys.LOG, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.8)
+        assert tui.wait_for_content("ARCHIVE", timeout=3.0)
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        assert tui.wait_for_condition(
+            lambda lines: any("1..9 file view" in line for line in lines[-3:]),
+            timeout=1.5,
+            poll_interval=0.05,
+        ), "\n".join(tui.get_screen_dump())
+        tui.child.send("c")
+        tui.child.expect(r"COPY:\s+b_source\.txt\s+AS:", timeout=2.0)
+        tui.child.send("copied.txt\r")
+        tui.child.expect("To Directory:", timeout=2.0)
+        tui.child.send("\r")
+
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("copied.txt" in line for line in lines)
+            else False,
+            timeout=3.0,
+            poll_interval=0.05,
+        ), "\n".join(tui.get_screen_dump())
+        assert not tui.wait_for_content("Not a directory", timeout=0.5)
+    finally:
+        tui.quit()
+
+
+def test_archive_delete_directory_restores_footer_shows_spinner_and_updates_view(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "archive_delete_dir_refresh"
+    root.mkdir()
+    archive_path = root / "delete_dir_refresh.tar"
+    with tarfile.open(archive_path, "w") as tf:
+        dir_info = tarfile.TarInfo(name="emptydir/")
+        dir_info.type = tarfile.DIRTYPE
+        dir_info.mode = 0o755
+        tf.addfile(dir_info)
+
+        sibling_dir = tarfile.TarInfo(name="otherdir/")
+        sibling_dir.type = tarfile.DIRTYPE
+        sibling_dir.mode = 0o755
+        tf.addfile(sibling_dir)
+
+        for name, data in {
+            "otherdir/keep.txt": "keep",
+            "root_keep.txt": "keep",
+        }.items():
+            payload = data.encode("utf-8")
+            info = tarfile.TarInfo(name=name)
+            info.size = len(payload)
+            info.mode = 0o644
+            tf.addfile(info, io.BytesIO(payload))
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=3.0)
+        assert tui.wait_for_content("emptydir", timeout=3.0)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+        tui.send_keystroke("d", wait=0.2)
+        assert tui.wait_for_content("Delete this directory", timeout=2.0)
+        tui.send_keystroke("Y", wait=0.1)
+        assert tui.wait_for_condition(
+            lambda lines: not any("emptydir" in line for line in lines),
+            timeout=5.0,
+            poll_interval=0.05,
+        ), "\n".join(tui.get_screen_dump())
+
+        footer_lines = [line.lower() for line in _footer_lines(tui)]
+        assert footer_lines[0].strip(), "\n".join(footer_lines)
+        assert "archive" in footer_lines[0], "\n".join(footer_lines)
+    finally:
+        tui.quit()
+
+
+def test_archive_mutations_pre_draw_spinner_and_restore_footer_context_contract():
+    mkdir_source = open("src/cmd/mkdir.c", "r", encoding="utf-8").read()
+    delete_source = open("src/cmd/delete.c", "r", encoding="utf-8").read()
+    rmdir_source = open("src/cmd/rmdir.c", "r", encoding="utf-8").read()
+    dir_ops_source = open("src/ui/dir_ops.c", "r", encoding="utf-8").read()
+
+    assert "ctx->hook_draw_spinner((ViewContext *)ctx);" in mkdir_source
+    assert "if (ctx && ctx->hook_draw_spinner)\n      ctx->hook_draw_spinner(ctx);" in delete_source
+    assert "RefreshView(ctx, dir_entry);" in rmdir_source
+    assert "if (ctx->hook_draw_spinner)\n        ctx->hook_draw_spinner(ctx);" in rmdir_source
+    assert (
+        "if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {\n      RefreshView(ctx, dir_entry);\n    }"
+        in dir_ops_source
+    )

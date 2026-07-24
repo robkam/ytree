@@ -102,23 +102,27 @@ Ordering policy (for all editors, including AI editors):
     *   `docs/SPECIFICATION.md` §5.2 **State Persistence**
 *   **Impact**: Breaks tree-state predictability and can silently discard user navigation context during ordinary directory creation.
 *   **Remediation**: Treat mkdir as an incremental tree mutation and restrict any repair to minimal bounds/selection clamping only when the current cursor or viewport offset would otherwise become invalid.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
-### **BUG-2.5: Split-Panel Filter State Leaks Across Panels on Volume Cycle**
-*   **Description**: In split mode, a filespec filter set in one panel can appear in the other panel after that panel cycles to the same logged volume, instead of preserving panel-local filter state.
+### **BUG-2.5: Split-Panel Filter State Leaks Across Panels on Shared Volumes and Volume Cycle**
+*   **Description**: In split mode, a filespec filter set in one panel can appear in the other panel when both panels share the same volume, and it can also leak after the target panel cycles back to the same logged volume, instead of preserving panel-local filter state.
 *   **Repro (manual, 2026-05-22)**:
     *   In left panel on volume 1, set a filter.
     *   `Tab` to right panel on volume 2 (no filter change observed there).
     *   In right panel, cycle to volume 1.
-*   **Expected**: Right panel restores its own saved filter state for that panel/volume context (panel-local isolation), not the left panel’s filter.
-*   **Actual**: Right panel on volume 1 shows the left panel’s filter without being set in that panel.
+*   **Extension (manual, 2026-07-24)**:
+    *   Enter split mode with `F8` so both panels are on the same drive.
+    *   Set a filter in one panel.
+    *   Press `Tab` to the other panel without cycling volumes.
+*   **Expected**: The target panel restores its own saved filter state for that panel/volume context (panel-local isolation), not the other panel’s filter.
+*   **Actual**: The target panel shows the other panel’s filter even without a volume cycle.
 *   **Spec Violations**:
     *   `docs/SPECIFICATION.md` §5.1 **Active-Only Mutation Rule**
     *   `docs/SPECIFICATION.md` §5.2 **Filter (Filespec): Independent search/filter strings**
 *   **Impact**: Cross-panel state leakage can silently narrow file lists and increase wrong-target risk.
 *   **Remediation**:
     *   Make filter ownership panel-local for split state (panel + volume context), not volume-global.
-    *   On `Tab` and volume-cycle transitions, restore filter from the target panel snapshot only; do not import from the opposite panel.
+    *   On `F8`, `Tab`, and volume-cycle transitions, restore filter from the target panel snapshot only; do not import from the opposite panel.
     *   Remove shared-buffer/aliasing paths that let both panels read/write one filter instance.
     *   Enforce active-only mutation and inactive freeze semantics for filter state.
 *   **Status**: Confirmed.
@@ -132,7 +136,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Actual**: The jump resolves to a hidden-prefix path such as `/home/rob/.local/src` instead of the visible `~/ytreenova/src`.
 *   **Impact**: Demonstrates a broader architectural defect in hidden-item accounting and visible-tree authority, not just a one-off wrong row. It can misdirect routine navigation and make hidden entries behave as if they were still visible.
 *   **Remediation**: Make hidden-from-UI entries non-participants in the normal visible-tree resolver paths unless explicitly requested, and keep the visible-tree contract authoritative for jump, selection, and restore logic. Add regression coverage that distinguishes visible-tree targets from hidden-prefix matches.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
 *   **Description**: In `F8` split mode, toggling dotfiles visibility (`` ` `` do/undo) in the active panel can apply the same visibility change to the inactive panel.
@@ -204,7 +208,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks context-local view-state persistence and makes display-mode controls feel unreliable.
 *   **Remediation**: Persist dir-context display mode independently across focus/context transitions, and preserve it when file-context display mode changes.
 *   **Related**: `ROADMAP` Task 44 (`1..9 FileInfo` ownership contract).
-*   **Status**: Confirmed.
+*   **Status**: No longer relevant.
 
 ### **BUG-7: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
@@ -272,7 +276,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Increases wrong-target risk and slows high-frequency copy/move workflows because users must infer prompt semantics from field behavior.
 *   **Remediation**: Make rename intent explicit in prompt text for all three flows (for example `COPY: <source> AS: <target>`), keep one-flow interaction depth, and keep destination-dir prompt behavior unchanged. Add focused regression coverage for prompt text/flow parity in `Copy`, `Move`, and `PathCopy`. Keep `F1` help, manpage/USAGE text, and specification wording synchronized with final prompt contract.
 *   **Related**: `ROADMAP` Task 42 (prompt/help clarity).
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-12: File-View Focus Leak After Parent Jump (`\\`)**
 *   **Description**: After entering parent-directory context from file view using `\\`, navigation keys affect the directory pane before explicit mode switch.
@@ -322,7 +326,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Creates false-failure perception and high-friction workflow confusion because users may repeat operations that already succeeded.
 *   **Remediation**: After any successful archive mutation, update the archive view in-place so users immediately see the effect in the same archive context, with no manual refresh/re-entry/relog required. Preserve cursor/selection when possible.
 *   **Related**: `BUG-17` (copy outcome clarity).
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-19: Attributes Name Truncation Can Hide File Identity**
 *   **Description**: In attributes/stat contexts, long file names can be truncated using a tail-only style (for example `...fy_xml_integrity.sh`) that hides too much distinguishing information and makes similarly named files harder to differentiate at a glance.
@@ -419,3 +423,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Unify frame redraw ownership so stats and main panes are rendered from one layout snapshot in one update cycle, and force full-surface invalidation/redraw on resize/recovery/error paths.
 *   **Related**: `ROADMAP` Task 21 (unified frame redraw contract).
 *   **Status**: Confirmed (intermittent; no deterministic repro sequence yet).
+
+### **BUG-29: Stats Panel Lacks a Single Coherent State/Render Owner**
+*   **Description**: The stats area does not behave like one consolidated UI component with one authoritative state/render path. In broken states, one subsection (for example `ATTRIBUTES`) can remain visible while the rest of the stats surface is blank or stale, which makes the panel look like multiple historical fragments glued together instead of one coherent unit.
+*   **Example symptom**: During prompt-driven flows such as `Write`, the right-side panel can show only the lower `ATTRIBUTES` subsection while upper stats sections disappear, even though the outer frame and surrounding panes remain on screen.
+*   **Expected**: Stats should be one complete component in the appstate architecture: one explicit owner for its projection, one layout contract, one redraw/invalidation path, and deterministic all-or-nothing rendering of its subsections.
+*   **Impact**: Breaks trust in the appstate architecture, makes redraw bugs harder to reason about, and creates a visibly kludged UI impression because users can see that different stats subsections are not being treated as one unit.
+*   **Remediation**: Define stats as a first-class appstate/render component with one authoritative projection boundary. Consolidate subsection visibility, titles, values, and borders under one render contract so prompt/modal flows cannot partially orphan or preserve only one subsection. Regression coverage should verify that stats either renders as one complete valid unit or is intentionally hidden as one unit.
+*   **Related**: `BUG-28` (split-brain redraw), `docs/ARCHITECTURE.md` §4.2.3 (`AppState` transition contract), `ROADMAP` Task 21.1 (unified stats + main-pane redraw contract).
+*   **Status**: Confirmed.

@@ -40,7 +40,8 @@ extern int SetFileOwner(ViewContext *ctx, FileEntry *fe_ptr,
 /* copy.c */
 extern int CopyFile(ViewContext *ctx, Statistic *statistic_ptr,
                     FileEntry *fe_ptr, char *to_file, DirEntry *dest_dir_entry,
-                    char *to_dir_path, BOOL path_copy, int *dir_create_mode,
+                    const char *to_dir_path, BOOL path_copy,
+                    int *dir_create_mode,
                     int *overwrite_mode, ConflictCallback cb,
                     ChoiceCallback choice_cb);
 extern int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,

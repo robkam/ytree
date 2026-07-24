@@ -139,6 +139,7 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
             "Wide dir footer second row should begin with the balanced overflow command.\n"
             + "\n".join(dir_lines)
         )
+        assert "K volume" in dir_footer, dir_footer
         assert dir_footer.index("Write") < dir_footer.index("eXecute"), dir_footer
         assert dir_lines[2].find("F9 apps") < dir_lines[2].find("F10 config"), dir_lines[2]
         assert dir_lines[2].rstrip().endswith("Esc cancel"), dir_lines[2]
@@ -151,19 +152,23 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "C/^K Copy" not in file_footer
         assert "M/^N move" in file_footer
         assert "M/^N Move" not in file_footer
+        assert "K volume" in file_footer, file_footer
+        assert "Tag" in file_footer, file_footer
+        assert "Untag" in file_footer, file_footer
+        assert "View" in file_footer, file_footer
         _assert_single_space_after_nav_glyphs(file_lines[2], "Tree", "F1 help")
         assert "Only tagged" in file_lines[1], (
             "Wide file footer should balance later key-ordered actions onto the second row.\n"
             + "\n".join(file_lines)
         )
-        assert file_lines[1].startswith("COMMANDS Newfile"), (
+        assert file_lines[1].startswith("COMMANDS Only tagged"), (
             "Wide file footer second row should begin with the balanced overflow command.\n"
             + "\n".join(file_lines)
         )
         assert file_footer.index("Write") < file_footer.index("eXecute"), file_footer
         assert file_lines[2].find("F9 apps") < file_lines[2].find("F10 config"), file_lines[2]
         assert file_lines[2].rstrip().endswith("Esc cancel"), file_lines[2]
-        _assert_footer_column_alignment(file_lines, "1..9 file view", "Newfile", "F1 help")
+        _assert_footer_column_alignment(file_lines, "1..9 file view", "Only tagged", "F1 help")
     finally:
         tui.quit()
 
