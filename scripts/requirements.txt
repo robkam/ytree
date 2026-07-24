@@ -6,7 +6,7 @@
 #
 annotated-types==0.7.0
     # via pydantic
-certifi==2026.6.17
+certifi==2026.7.22
     # via requests
 cffi==2.1.0
     # via cryptography
@@ -16,14 +16,14 @@ cryptography==49.0.0
     # via google-auth
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
-google-api-core[grpc]==2.31.0
+google-api-core[grpc]==2.32.0
     # via
     #   google-ai-generativelanguage
     #   google-api-python-client
     #   google-generativeai
 google-api-python-client==2.198.0
     # via google-generativeai
-google-auth==2.56.0
+google-auth==2.56.2
     # via
     #   google-ai-generativelanguage
     #   google-api-core
@@ -99,7 +99,7 @@ requests==2.34.2
     # via google-api-core
 temporalio==1.30.0
     # via -r scripts/requirements.in
-tqdm==4.68.4
+tqdm==4.69.0
     # via google-generativeai
 types-protobuf==7.34.1.20260518
     # via temporalio
