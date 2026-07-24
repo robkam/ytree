@@ -15,7 +15,7 @@ static const char default_theme_catalog[] =
     "# first matching selector wins. Omitted backgrounds inherit from the active\n"
     "# filename/window background.\n"
     "\n"
-    "[theme orthodox-blue]\n"
+    "[theme norton-blue]\n"
     "background = blue\n"
     "static_text = white\n"
     "dynamic_text = +white\n"

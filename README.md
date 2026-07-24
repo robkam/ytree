@@ -16,7 +16,7 @@ YtreeNova logs filesystem hierarchies into memory, so you can work across whole 
 
 ## Background
 
-YtreeNova is a separate Unix-like XTreeGold tribute project with Ytree v2.10 lineage. It began from Werner Bregulla's Ytree codebase in October 2025 and now has its own name, command (`ytnova`), repository, and release history.
+YtreeNova is a Unix-like XTreeGold tribute project with Ytree v2.10 lineage. It began from Werner Bregulla's Ytree codebase in October 2025 and now has its own name, command (`ytnova`), repository, and release history.
 
 It remains in the [XTree](https://www.xtreefanpage.org/lowres/x10dirja.htm)/Ytree family of full-tree logging and tagging file managers: scan a hierarchy first, then navigate, filter, tag, view, and operate across the logged set as a whole. YtreeNova focuses on feature completeness for Unix power users, with split-screen work, integrated preview/autoview, archive-as-directory operations, and contemporary POSIX-oriented internals rather than old-system portability.
 

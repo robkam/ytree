@@ -114,7 +114,7 @@ static const char default_profile_template[] =
     "# Edit semantic roles and file-type palette rules there.\n"
     "# Built-in starter themes (leave one uncommented):\n"
     "THEME=quiet-blue\n"
-    "# THEME=orthodox-blue\n"
+    "# THEME=norton-blue\n"
     "# THEME=bash-black\n"
     "\n"
     "[VIEWER]\n"

@@ -14,7 +14,7 @@
 # first matching selector wins. Omitted backgrounds inherit from the active
 # filename/window background.
 
-[theme orthodox-blue]
+[theme norton-blue]
 background = blue
 static_text = white
 dynamic_text = +white
