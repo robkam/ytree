@@ -1444,6 +1444,8 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   size_t row_count = 0;
   const char *title;
   ViewFocus active_focus;
+  ResolvedFooterCommand resolved[32];
+  UICommandStripCommand commands[32];
 
   if (ctx == NULL)
     return -1;
@@ -1463,8 +1465,6 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   }
 
   if (active_focus == FOCUS_TREE) {
-    ResolvedFooterCommand resolved[32];
-    UICommandStripCommand commands[32];
     const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
     const FooterCommandSpec *specs;
     const char *line0_signpost;
@@ -1480,8 +1480,6 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
                                          line1_signpost, commands, spec_count);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
   } else {
-    ResolvedFooterCommand resolved[32];
-    UICommandStripCommand commands[32];
     const HelpCommandStrip *nav_strip;
     const FooterCommandSpec *specs;
     const char *line0_signpost;
