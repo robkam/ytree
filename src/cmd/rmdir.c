@@ -23,9 +23,12 @@ static int DeleteSingleDirectory(ViewContext *ctx, DirEntry *dir_entry,
                                  ChoiceCallback choice_cb);
 
 static int RmdirProgressCallback(int status, const char *msg, void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
+
+  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
+    ctx->hook_draw_spinner(ctx);
   (void)status;
   (void)msg;
-  (void)user_data;
   return ARCHIVE_CB_CONTINUE;
 }
 
@@ -45,11 +48,24 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
       return -1;
     } else if (choice_cb && choice_cb(ctx, "Delete this directory (Y/N) ? ",
                                       "YN\033") == 'Y') {
+      RefreshView(ctx, dir_entry);
+      if (ctx->hook_draw_spinner)
+        ctx->hook_draw_spinner(ctx);
       GetPath(dir_entry, buffer);
 
       if (Archive_DeleteEntry(ctx->active->vol->vol_stats.log_path, buffer,
-                              RmdirProgressCallback, NULL) == 0) {
-        /* Success - The UI must handle refreshing */
+                              RmdirProgressCallback, ctx) == 0) {
+        ctx->active->vol->vol_stats.disk_total_directories--;
+
+        if (dir_entry->prev)
+          dir_entry->prev->next = dir_entry->next;
+        else
+          dir_entry->up_tree->sub_tree = dir_entry->next;
+
+        if (dir_entry->next)
+          dir_entry->next->prev = dir_entry->prev;
+
+        free(dir_entry);
         result = 0;
       }
     }

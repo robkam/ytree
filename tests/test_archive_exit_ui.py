@@ -2142,44 +2142,49 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     assert tui.wait_for_content("ARCHIVE", timeout=2.0), (
         "Expected archive mode after logging into tar file."
     )
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
 
     footer_rows = _footer_lines(tui)
     assert footer_rows[0].startswith("ARCHIVE"), (
         "Archive file footer prefix should render plain ARCHIVE text without box-art noise.\n"
         f"{footer_rows[0]!r}"
     )
-    assert footer_rows[2][3:].startswith(" File F1 help"), (
+    assert footer_rows[2][3:].startswith(" Tree F1 help"), (
         "Archive file footer should use exactly one space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
-    assert not footer_rows[2][3:].startswith("  File"), (
+    assert not footer_rows[2][3:].startswith("  Tree"), (
         "Archive file footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
     top_footer = "  ".join(footer_rows[:2])
     _assert_footer_segments_in_order(
         top_footer,
-        "1..9 dir view",
-        "Copy",
+        "1..9 file view",
+        "C/^K copy",
         "Delete",
         "Filter",
-        "Global",
+        "Hex",
+        "Invert",
         "J compare",
+        "K volume",
         "Log",
-        "Makedir",
+        "M/^N move",
         "Pipe",
         "Quit",
         "Rename",
-        "Showall",
+        "Sort",
         "Tag",
         "Untag",
-        "moVedir",
+        "View",
+        "pathcopY",
         "/ jump",
         "` dotfiles",
     )
     _assert_footer_segments_in_order(
         footer_rows[1],
-        "moVedir",
+        "View",
+        "pathcopY",
         "/ jump",
         "` dotfiles",
     )
@@ -2235,11 +2240,11 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
     _assert_footer_segments_in_order(
         top_footer,
         "1..9 dir view",
-        "Copy",
         "Delete",
         "Filter",
         "Global",
         "J compare",
+        "K volume",
         "Log",
         "Makedir",
         "Pipe",
@@ -2248,7 +2253,6 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "Showall",
         "Tag",
         "Untag",
-        "moVedir",
         "/ jump",
         "` dotfiles",
     )
@@ -2257,7 +2261,6 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
     assert "compare (J)" not in footer_rows[0]
     _assert_footer_segments_in_order(
         footer_rows[1],
-        "moVedir",
         "/ jump",
         "` dotfiles",
     )

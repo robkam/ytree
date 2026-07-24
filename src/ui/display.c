@@ -33,6 +33,7 @@ static const UICommandStripCommand dir_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL},
@@ -61,21 +62,20 @@ static const UICommandStripCommand dir_help_ll_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
 static const UICommandStripCommand dir_help_archive_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL}};
 static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
@@ -89,6 +89,7 @@ static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
     {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N"}};
 static const UICommandStripCommand file_help_disk_mode_1_commands[] = {
@@ -98,6 +99,9 @@ static const UICommandStripCommand file_help_disk_mode_1_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL},
@@ -115,20 +119,23 @@ static const UICommandStripCommand file_help_ll_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
 static const UICommandStripCommand file_help_archive_mode_0_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K"},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N"}};
+static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL}};
-static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Move", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
@@ -524,6 +531,8 @@ static const FooterCommandSpec dir_footer_standard_specs[] = {
                   "ACTION_INVERT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
                   "ACTION_COMPARE_DIR"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL,
+                  "ACTION_VOL_MENU"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL,
                   "ACTION_CMD_M"),
@@ -571,8 +580,6 @@ static const FooterCommandSpec dir_footer_ll_specs[] = {
 
 static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
-                  "ACTION_CMD_C"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -581,11 +588,15 @@ static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
                   "ACTION_CMD_G"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
                   "ACTION_COMPARE_DIR"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL,
+                  "ACTION_VOL_MENU"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL,
                   "ACTION_CMD_M"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
                   "ACTION_CMD_P"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
                   "ACTION_CMD_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
@@ -593,10 +604,6 @@ static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
                   "ACTION_UNTAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
-                  "ACTION_CMD_V"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
-                  "ACTION_QUIT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL),
@@ -605,8 +612,6 @@ static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
 
 static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
-                  "ACTION_CMD_C"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -615,6 +620,8 @@ static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
                   "ACTION_CMD_G"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
                   "ACTION_COMPARE_DIR"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL,
+                  "ACTION_VOL_MENU"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL,
                   "ACTION_CMD_M"),
@@ -629,8 +636,6 @@ static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
                   "ACTION_UNTAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
-                  "ACTION_CMD_V"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL),
@@ -655,6 +660,8 @@ static const FooterCommandSpec file_footer_standard_specs[] = {
                   "ACTION_INVERT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
                   "ACTION_COMPARE_FILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL,
+                  "ACTION_VOL_MENU"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N",
                    "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
@@ -670,6 +677,11 @@ static const FooterCommandSpec file_footer_standard_specs[] = {
                   "ACTION_CMD_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
                   "ACTION_CMD_S"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL,
+                  "ACTION_CMD_V"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL,
                   "ACTION_CMD_PRINT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
@@ -699,8 +711,8 @@ static const FooterCommandSpec file_footer_ll_specs[] = {
 
 static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
-                  "ACTION_CMD_C"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
+                   "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -711,18 +723,24 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
                   "ACTION_INVERT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
                   "ACTION_COMPARE_FILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL,
+                  "ACTION_VOL_MENU"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N",
+                   "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
+                  "ACTION_CMD_P"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
+                  "ACTION_QUIT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
                   "ACTION_CMD_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
                   "ACTION_CMD_S"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Move", "M", NULL,
-                  "ACTION_CMD_M"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
-                  "ACTION_CMD_P"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
                   "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL,
+                  "ACTION_CMD_V"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
                   "ACTION_CMD_Y"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
@@ -907,10 +925,12 @@ static void ResolveFooterCommandSpec(const ViewContext *ctx, BOOL is_dir,
 
 static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands,
                                            size_t command_count,
-                                           int available_width, size_t rows) {
+                                           int available_width, size_t rows,
+                                           BOOL prefer_newfile_split) {
   FooterPackResult result;
   size_t split_index;
   size_t best_split = 0;
+  size_t preferred_split = 0;
   FooterRowFit best_row1_fit;
   BOOL best_found = FALSE;
   size_t best_full_visible = 0;
@@ -943,10 +963,38 @@ static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands
   }
 
   memset(&best_row1_fit, 0, sizeof(best_row1_fit));
+  for (preferred_split = 0; preferred_split < command_count; ++preferred_split) {
+    if (strcmp(commands[preferred_split].label,
+               prefer_newfile_split ? "Newfile" : "Only tagged") == 0) {
+      break;
+    }
+  }
+  if (preferred_split >= command_count) {
+    for (preferred_split = 0; preferred_split < command_count;
+         ++preferred_split) {
+      if (strcmp(commands[preferred_split].label,
+                 prefer_newfile_split ? "Only tagged" : "Newfile") == 0) {
+        break;
+      }
+    }
+  }
+  if (preferred_split >= command_count) {
+    for (preferred_split = 0; preferred_split < command_count;
+         ++preferred_split) {
+      if (strcmp(commands[preferred_split].label, "Pipe") == 0) {
+        break;
+      }
+    }
+  }
+  if (preferred_split == 0 || preferred_split >= command_count)
+    preferred_split = 0;
+
   for (split_index = 1; split_index <= command_count; ++split_index) {
     FooterRowFit row1_fit;
     int row0_width = UI_CommandStripVisualLength(commands, split_index);
     int balance_delta;
+    int preferred_delta;
+    int best_preferred_delta;
     size_t full_visible;
     size_t represented;
 
@@ -958,10 +1006,17 @@ static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands
     full_visible = split_index + row1_fit.fit_count;
     represented = split_index + row1_fit.represented_count;
     balance_delta = abs(row0_width - row1_fit.used_width);
+    preferred_delta =
+        preferred_split > 0 ? abs((int)split_index - (int)preferred_split) : 0;
+    best_preferred_delta =
+        preferred_split > 0 ? abs((int)best_split - (int)preferred_split) : 0;
 
     if (!best_found || represented > best_represented ||
         (represented == best_represented && full_visible > best_full_visible) ||
         (represented == best_represented && full_visible == best_full_visible &&
+         preferred_split > 0 && preferred_delta < best_preferred_delta) ||
+        (represented == best_represented && full_visible == best_full_visible &&
+         preferred_delta == best_preferred_delta &&
          balance_delta < best_balance_delta)) {
       best_found = TRUE;
       best_split = split_index;
@@ -1264,7 +1319,8 @@ static size_t AppendResolvedFooterRows(UIHelpPopupRow *rows, size_t row_count,
                                        const char *prefix_0,
                                        const char *prefix_1,
                                        const UICommandStripCommand *commands,
-                                       size_t command_count) {
+                                       size_t command_count,
+                                       BOOL prefer_newfile_split) {
   HelpCommandStrip strip_0;
   HelpCommandStrip strip_1;
   size_t split_index;
@@ -1275,10 +1331,24 @@ static size_t AppendResolvedFooterRows(UIHelpPopupRow *rows, size_t row_count,
   split_index = command_count;
   if (prefix_1 != NULL && prefix_1[0] != '\0') {
     for (split_index = 0; split_index < command_count; ++split_index) {
-      if (strcmp(commands[split_index].label, "Only tagged") == 0 ||
-          strcmp(commands[split_index].label, "Newfile") == 0 ||
-          strcmp(commands[split_index].label, "Pipe") == 0) {
+      if (strcmp(commands[split_index].label,
+                 prefer_newfile_split ? "Newfile" : "Only tagged") == 0) {
         break;
+      }
+    }
+    if (split_index >= command_count) {
+      for (split_index = 0; split_index < command_count; ++split_index) {
+        if (strcmp(commands[split_index].label,
+                   prefer_newfile_split ? "Only tagged" : "Newfile") == 0) {
+          break;
+        }
+      }
+    }
+    if (split_index >= command_count) {
+      for (split_index = 0; split_index < command_count; ++split_index) {
+        if (strcmp(commands[split_index].label, "Pipe") == 0) {
+          break;
+        }
       }
     }
     if (split_index == 0 || split_index >= command_count)
@@ -1301,17 +1371,18 @@ static size_t AppendResolvedFooterRows(UIHelpPopupRow *rows, size_t row_count,
   return row_count;
 }
 
-static void RenderFooterTopRows(ViewContext *ctx, const char *line0_signpost,
-                                const char *line1_signpost,
-                                const UICommandStripCommand *commands,
-                                size_t command_count) {
+static void RenderFooterTopRowsWithSplitPreference(
+    ViewContext *ctx, const char *line0_signpost, const char *line1_signpost,
+    const UICommandStripCommand *commands, size_t command_count,
+    BOOL prefer_newfile_split) {
   FooterPackResult pack;
   int available_width;
 
   available_width = getmaxx(ctx->ctx_menu_window) - FOOTER_COMMAND_COLUMN;
   if (available_width < 0)
     available_width = 0;
-  pack = PackFooterCommands(commands, command_count, available_width, 2);
+  pack = PackFooterCommands(commands, command_count, available_width, 2,
+                            prefer_newfile_split);
 
   RenderPackedFooterLine(ctx->ctx_menu_window, 0, line0_signpost, commands,
                          pack.line_counts[0], NULL, 0);
@@ -1323,6 +1394,14 @@ static void RenderFooterTopRows(ViewContext *ctx, const char *line0_signpost,
                          pack.truncated && pack.truncated_row == 1
                              ? pack.truncated_width
                              : 0);
+}
+
+static void RenderFooterTopRows(ViewContext *ctx, const char *line0_signpost,
+                                const char *line1_signpost,
+                                const UICommandStripCommand *commands,
+                                size_t command_count) {
+  RenderFooterTopRowsWithSplitPreference(ctx, line0_signpost, line1_signpost,
+                                         commands, command_count, FALSE);
 }
 
 static void RenderFooterNavRow(ViewContext *ctx, const char *signpost,
@@ -1338,7 +1417,7 @@ static void RenderFooterNavRow(ViewContext *ctx, const char *signpost,
   available_width = getmaxx(ctx->ctx_menu_window) - FOOTER_COMMAND_COLUMN;
   if (available_width < 0)
     available_width = 0;
-  pack = PackFooterCommands(commands, spec_count, available_width, 1);
+  pack = PackFooterCommands(commands, spec_count, available_width, 1, FALSE);
   RenderPackedFooterLine(ctx->ctx_menu_window, 2, signpost, commands,
                          pack.line_counts[0],
                          pack.truncated ? &commands[pack.truncated_index] : NULL,
@@ -1388,7 +1467,13 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   specs =
       GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
   ResolveFooterCommandList(ctx, FALSE, specs, spec_count, resolved, commands);
-  RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);
+  if (dir_entry != NULL && dir_entry->global_flag) {
+    RenderFooterTopRowsWithSplitPreference(ctx, line0_signpost,
+                                           line1_signpost, commands, spec_count,
+                                           TRUE);
+  } else {
+    RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);
+  }
   nav_specs = GetFileFooterNavSpecs(dir_entry, &nav_count, &nav_signpost);
   RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);
   UI_RenderStatusLineError(ctx);
@@ -1477,7 +1562,8 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
                               &line1_signpost);
     ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
     row_count = AppendResolvedFooterRows(rows, row_count, line0_signpost,
-                                         line1_signpost, commands, spec_count);
+                                         line1_signpost, commands, spec_count,
+                                         FALSE);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
   } else {
     const HelpCommandStrip *nav_strip;
@@ -1500,8 +1586,9 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     specs =
         GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
     ResolveFooterCommandList(ctx, FALSE, specs, spec_count, resolved, commands);
-    row_count = AppendResolvedFooterRows(rows, row_count, line0_signpost,
-                                         line1_signpost, commands, spec_count);
+    row_count = AppendResolvedFooterRows(
+        rows, row_count, line0_signpost, line1_signpost, commands, spec_count,
+        dir_entry != NULL && dir_entry->global_flag);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
   }
 

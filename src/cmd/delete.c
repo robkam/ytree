@@ -24,9 +24,12 @@
 
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
+
+  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
+    ctx->hook_draw_spinner(ctx);
   (void)status;
   (void)msg;
-  (void)user_data;
   return ARCHIVE_CB_CONTINUE;
 }
 
@@ -45,14 +48,15 @@ int DeleteFile(ViewContext *ctx, FileEntry *fe_ptr, int *auto_override,
     /* In archive mode, permissions are virtual. We skip access checks and
      * unlink. We rely on the Rewrite Engine to handle the deletion.
      */
-    if (Archive_DeleteEntry(s->log_path, filepath, ArchiveUICallback, NULL) ==
+    if (ctx && ctx->hook_draw_spinner)
+      ctx->hook_draw_spinner(ctx);
+    if (Archive_DeleteEntry(s->log_path, filepath, ArchiveUICallback, ctx) ==
         0) {
       /* Success. The archive container has been rewritten.
-      /* Success. The archive container has been rewritten.
-      * The UI must handle refreshing.
-      */
-
-      return 0;
+       * Remove the in-memory file entry now so the caller's refresh sees the
+       * updated archive view immediately.
+       */
+      return RemoveFile(ctx, fe_ptr, s);
     } else {
       return -1;
     }

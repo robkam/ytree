@@ -892,6 +892,30 @@ def test_dir_copy_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
     tui.quit()
 
 
+def test_file_move_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
+    root = tmp_path / "file_move_prompt_as"
+    root.mkdir()
+    (root / "src.txt").write_text("payload\n", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
+    assert tui.wait_for_condition(
+        lambda lines: any("1..9 file view" in line for line in lines[-3:]),
+        timeout=1.5,
+        poll_interval=0.05,
+    ), "\n".join(tui.get_screen_dump())
+    tui.child.send("m")
+    tui.child.expect(r"MOVE:\s+src\.txt\s+AS:", timeout=2.0)
+    tui.child.send(Keys.ESC)
+    tui.send_keystroke("", wait=0.2)
+    tui.quit()
+
+
 def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_path):
     root = tmp_path / "dir_copy_cross_branch_refresh"
     root.mkdir()

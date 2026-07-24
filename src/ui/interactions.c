@@ -28,9 +28,6 @@
 #include <unistd.h>
 #include <utime.h>
 
-static char move_prompt_header[PATH_LENGTH + 50];
-static char move_prompt_as[PATH_LENGTH + 1];
-
 typedef enum {
   PROMPT_HELP_EXECUTE_DIRECTORY = 0,
   PROMPT_HELP_EXECUTE_FILE,
@@ -324,6 +321,8 @@ void UI_CoreQuitShutdownTerminal(ViewContext *ctx) {
 
 int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                      char *to_dir) {
+  char prompt_header[PATH_LENGTH + 50];
+
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
     CopyBoundedString(to_file, PATH_LENGTH + 1, "*");
@@ -331,17 +330,13 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
     CopyBoundedString(to_file, PATH_LENGTH + 1, from_file);
   }
 
-  (void)snprintf(move_prompt_header, sizeof(move_prompt_header), "MOVE: %s",
+  (void)snprintf(prompt_header, sizeof(prompt_header), "MOVE: %s AS:",
                  from_file);
 
   ClearHelp(ctx);
 
-  if (UI_ReadString(ctx, ctx->active, move_prompt_header, to_file, PATH_LENGTH,
+  if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
                     HST_FILE) == CR) {
-
-    strncpy(move_prompt_as, to_file, PATH_LENGTH);
-    move_prompt_as[PATH_LENGTH] = '\0';
-
     SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
     if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
       return 0;
@@ -617,13 +612,21 @@ int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload)
     return -1;
   }
 
-  if (lstat(destination_path, &dest_stat) == 0) {
-    filename = strrchr(destination_path, FILE_SEPARATOR_CHAR);
-    if (filename && filename[1] != '\0')
-      filename++;
-    else
-      filename = destination_path;
+  filename = strrchr(destination_path, FILE_SEPARATOR_CHAR);
+  if (filename && filename[1] != '\0')
+    filename++;
+  else
+    filename = destination_path;
+  if (filename[0] == '\0' ||
+      !strcasecmp(filename, ".tar") || !strcasecmp(filename, ".tar.gz") ||
+      !strcasecmp(filename, ".tgz") || !strcasecmp(filename, ".tar.bz2") ||
+      !strcasecmp(filename, ".tbz2") || !strcasecmp(filename, ".tar.xz") ||
+      !strcasecmp(filename, ".txz") || !strcasecmp(filename, ".zip")) {
+    UI_ShowStatusLineError(ctx, "Archive name required before suffix");
+    return -1;
+  }
 
+  if (lstat(destination_path, &dest_stat) == 0) {
     prompt_written = snprintf(overwrite_prompt, sizeof(overwrite_prompt),
                               "Overwrite %s? (y/n)", filename);
     if (prompt_written < 0 || (size_t)prompt_written >= sizeof(overwrite_prompt))

@@ -971,6 +971,9 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                     HST_FILE) == CR) {
     DEBUG_LOG("HandleDirMakeDirectory:requested='%s'", dir_name);
     DebugLogSplitState("HandleDirMakeDirectory:before_make", ctx);
+    if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
+      RefreshView(ctx, dir_entry);
+    }
   if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
       DebugLogSplitState("HandleDirMakeDirectory:after_make_before_rebuild",
                          ctx);
@@ -1024,8 +1027,11 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
         DebugLogSplitState("HandleDirMakeDirectory:after_inactive_restore",
                            ctx);
       }
-      RefreshView(ctx, dir_entry);
-      DebugLogSplitState("HandleDirMakeDirectory:after_refresh", ctx);
+      dir_entry = ResolveActiveDirEntry(ctx, s);
+      if (dir_entry) {
+        RefreshView(ctx, dir_entry);
+        DebugLogSplitState("HandleDirMakeDirectory:after_refresh", ctx);
+      }
     }
   }
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);

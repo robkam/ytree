@@ -591,8 +591,34 @@ static int PromptCopyMoveDestination(ViewContext *ctx,
                                      char *to_path,
                                      DirEntry **dest_dir_entry) {
   while (1) {
+    char candidate_path[PATH_LENGTH + 1];
     BOOL target_is_regular_file = FALSE;
+    const struct Volume *target_vol = NULL;
     struct stat target_stat;
+
+    candidate_path[0] = '\0';
+    if (current_dir_entry != NULL &&
+        ResolveDestinationDirectoryPath(current_dir_entry, to_dir,
+                                        candidate_path) == 0) {
+      target_vol = Volume_GetByPath(ctx, candidate_path);
+    } else if (to_dir[0] == FILE_SEPARATOR_CHAR) {
+      int copied_len =
+          snprintf(candidate_path, sizeof(candidate_path), "%s", to_dir);
+      if (copied_len < 0 || (size_t)copied_len >= sizeof(candidate_path)) {
+        MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long", to_dir);
+        return -1;
+      }
+      target_vol = Volume_GetByPath(ctx, candidate_path);
+    }
+    if (target_vol != NULL && target_vol->vol_stats.log_mode == ARCHIVE_MODE) {
+      int copied_len = snprintf(to_path, PATH_LENGTH + 1, "%s", candidate_path);
+      if (copied_len < 0 || copied_len >= PATH_LENGTH + 1) {
+        MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long", to_dir);
+        return -1;
+      }
+      *dest_dir_entry = NULL;
+      return 0;
+    }
 
     if (use_realpath) {
       if (realpath(to_dir, to_path) == NULL) {
