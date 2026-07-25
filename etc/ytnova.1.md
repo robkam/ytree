@@ -83,24 +83,37 @@ See also: Navigation, File mode, Output.
 
 Showall help explains the single-volume aggregated file view and the commands
 or caveats that differ from ordinary file mode.
+Press `Esc` to return to the previously selected directory.
+Press `\\` to jump to the owner directory of the selected file inside the
+current logged volume.
 
 See also: Navigation, File mode, Global.
 ### Global Mode
 
 Global help explains the multi-volume aggregated file view, including how it
 returns to owner directories and how its scope differs from ordinary file mode.
+Press `Esc` to return to the previously selected directory.
+Press `\\` to jump to the owner directory of the selected file even when that
+owner lives under a different logged volume root.
 
 See also: Navigation, File mode, Showall.
 ### File Preview Mode
 
-F7 help explains preview ownership, allowed keys, blocked keys, and how the
-preview overlay interacts with the underlying directory or file context.
+F7 help explains preview ownership and how the preview overlay interacts with
+the underlying directory or file context.
+Use `Shift+Up/Down` or `^P/^N` to scroll preview contents line by line.
+Use `Shift+PgUp/PgDn` for pages and `Shift+Home/End` to jump to the top or
+bottom of the current preview.
 
 See also: Navigation, File mode.
 ### Split Screen Mode
 
 F8 help explains split-view ownership, inactive-panel defaults, and the keys
 or caveats that only appear while split mode is active.
+Press `Tab` to switch the active panel while leaving the passive panel's state
+intact.
+Copy, move, and compare prompts default to the inactive panel as the
+destination/target while split mode is active.
 
 See also: Navigation, Directory mode, File mode.
 # KEY BINDINGS

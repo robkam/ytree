@@ -35,9 +35,9 @@ def test_shared_help_popup_uses_help_palette():
     compare_source = _read_source("src/ui/compare_request.c")
     compare_block = _extract_function_block(
         compare_source,
-        "static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {",
+        "static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {",
     )
-    assert "UI_ShowHelpPopupDismissAnyKey(ctx, title, rows," in compare_block
+    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_block
 
     prompt_source = _read_source("src/ui/interactions.c")
     prompt_block = _extract_function_block(

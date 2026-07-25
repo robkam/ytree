@@ -284,7 +284,7 @@ def test_help_surfaces_use_help_role():
     assert '"" , history_help_commands' not in display_source
     assert '        "", history_help_commands,' in display_source
     assert "Updated:" not in display_source
-    assert "UI_ShowHelpPopupDismissAnyKey" in compare_source
+    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in help_popup_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in help_popup_source
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in help_popup_source
@@ -307,7 +307,8 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "static const UICommandStripCommand compare_tag_result_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_scope_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_external_scope_commands[]" in compare_source
-    assert "UI_ShowHelpPopupDismissAnyKey(ctx, title, rows," in compare_source
+    assert "static const CompareGeneratedHelpSpec compare_target_help_spec" in compare_source
+    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_source
     assert "static const UICommandStripCommand help_popup_close_commands[]" in (
         help_popup_source
     )

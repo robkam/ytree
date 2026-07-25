@@ -120,6 +120,28 @@ def test_search_tagged_prompt_f1_help_explains_tag_scope(tmp_path):
         tui.quit()
 
 
+def test_filter_prompt_f1_help_uses_generated_runtime_topic(tmp_path):
+    root = _root_with_file(tmp_path, "filter_prompt_help")
+    tui = _spawn_help_tui(root)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke("f", wait=0.2)
+
+        assert tui.wait_for_content("FILTER:", timeout=1.0), screen_text(tui)
+        prompt_screen = screen_text(tui).lower()
+        assert "f1 help" in prompt_screen, prompt_screen
+
+        filter_help = _wait_for_help(tui, "Filter Help")
+        assert "Use normal glob-like patterns such as `*.c`" in filter_help, filter_help
+        assert "Extended selectors such as `:r`, `:x`, `>2023-01-01`, and `>1M`" in filter_help, filter_help
+
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("FILTER:", timeout=1.0), screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_archive_prompt_f1_help_explains_suffixes_and_selection_scope(tmp_path):
     root = _root_with_file(tmp_path, "archive_prompt_help")
     tui = _spawn_help_tui(root)
@@ -159,7 +181,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
 
         tui.send_keystroke(Keys.F8)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
-        help_screen = _wait_for_help(tui, "Directory Help")
+        help_screen = _wait_for_help(tui, "F8 Split Help")
         assert "Tab" in help_screen, help_screen
         assert "inactive panel" in help_screen, help_screen
 
@@ -177,9 +199,70 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
 
         tui.send_keystroke(Keys.F7)
-        preview_screen = _wait_for_help(tui, "Preview Help")
+        preview_screen = _wait_for_help(tui, "F7 Preview Help")
         assert "^P/^N" in preview_screen, preview_screen
         assert "Shift+PgUp/PgDn" in preview_screen, preview_screen
+    finally:
+        tui.quit()
+
+
+def test_showall_help_links_to_global_help_via_generated_footer_navigation(tmp_path):
+    root = _root_with_file(tmp_path, "showall_global_help_navigation")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        tui.send_keystroke("s", wait=0.4)
+
+        showall_help = _wait_for_help(tui, "Showall Help")
+        assert "single-volume aggregated file view" in showall_help, showall_help
+        assert "Press `Esc` to return to the previously selected directory." in showall_help, showall_help
+
+        global_help_screen = tui.send_and_wait_for_condition(
+            "g",
+            lambda lines: lines if any("Global Help" in line for line in lines) else False,
+            timeout=1.5,
+        )
+        assert global_help_screen, screen_text(tui)
+        global_help = "\n".join(global_help_screen)
+        assert "multi-volume aggregated file view" in global_help, global_help
+        assert "different logged volume root" in global_help, global_help
+    finally:
+        tui.quit()
+
+
+def test_output_prompt_f1_help_uses_generated_runtime_topics(tmp_path):
+    root = _root_with_file(tmp_path, "output_prompt_help")
+    tui = _spawn_help_tui(root)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke("w", wait=0.2)
+
+        assert tui.wait_for_content("Format:", timeout=1.0), screen_text(tui)
+        format_help = _wait_for_help(tui, "Output Format Help")
+        assert "Raw writes content without frame headings." in format_help, format_help
+        assert "Page break inserts a separator" in format_help, format_help
+        assert "between successive files" in format_help, format_help
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("Format:", timeout=1.0), screen_text(tui)
+
+        tui.send_keystroke("P", wait=0.2)
+        assert tui.wait_for_content("Page break separator", timeout=1.0), screen_text(tui)
+        separator_help = _wait_for_help(tui, "Output Separator Help")
+        assert "accept the default triple-backtick fence" in separator_help, separator_help
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("Page break separator", timeout=1.0), screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+
+        assert tui.wait_for_content("Destination:", timeout=1.0), screen_text(tui)
+        destination_help = _wait_for_help(tui, "Output Destination Help")
+        assert "goes to a file path" in destination_help, destination_help
+        assert "external" in destination_help, destination_help
+        assert "command." in destination_help, destination_help
+        assert "final target" in destination_help, destination_help
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("Destination:", timeout=1.0), screen_text(tui)
     finally:
         tui.quit()
 
@@ -348,11 +431,16 @@ def test_integrated_help_source_covers_archive_showall_and_history_surfaces():
     integrated_block = _extract_function_block(
         display_source, "int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {"
     )
-    assert '"Archive Directory Help"' in integrated_block
-    assert '"Archive File Help"' in integrated_block
-    assert '"Showall/Global File Help"' in integrated_block
-    assert '"Preview Help"' in integrated_block
+    assert "UI_ShowGeneratedContextHelp" in integrated_block
+    assert '"overlay.f7-dir"' in integrated_block
+    assert '"overlay.f8-dir"' in integrated_block
+    assert '"main.global"' in integrated_block
+    assert '"Showall/Global File Help"' not in integrated_block
     assert "split_help_commands" in display_source
+
+    runtime_help_source = _read_source("src/ui/runtime_help.c")
+    assert "generated_help_topics.h" in runtime_help_source
+    assert "FindGeneratedTopicByContext" in runtime_help_source
 
     history_source = _read_source("src/ui/history_dialog.c")
     assert "case KEY_F(1):" in history_source

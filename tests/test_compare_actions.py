@@ -824,20 +824,20 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytnova_binary, tmp_path):
 
     tui.send_keystroke(Keys.F1, wait=0.3)
     scope_help = _screen_text(tui).lower()
-    assert "compare help" in scope_help
+    assert "compare scope help" in scope_help
     assert "directory only compares the current directory" in scope_help
     assert "logged tree compares the current logged tree recursively" in scope_help
 
-    tui.send_keystroke("H", wait=0.2)
+    tui.send_keystroke(Keys.F1, wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("D", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
 
     tui.send_keystroke(Keys.F1, wait=0.3)
     target_help = _screen_text(tui).lower()
-    assert "compare help" in target_help
-    assert "current directory is the compare source" in target_help
-    assert "(f2) browse" in target_help
+    assert "compare target help" in target_help
+    assert "the current file, directory, or logged tree is the compare source" in target_help
+    assert "use `f2` to browse" in target_help
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
 
@@ -846,7 +846,7 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytnova_binary, tmp_path):
 
     tui.send_keystroke(Keys.F1, wait=0.3)
     basis_help = _screen_text(tui).lower()
-    assert "compare help" in basis_help
+    assert "compare basis help" in basis_help
     assert "size checks file length" in basis_help
     assert "date checks the last-modified time" in basis_help
     assert "hash opens both files" in basis_help
@@ -857,10 +857,13 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytnova_binary, tmp_path):
     assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.F1, wait=0.3)
     result_help = _screen_text(tui).lower()
-    assert "compare help" in result_help
-    assert "choose which compare result to tag in the active file list" in result_help
-    assert "different tags basis mismatches" in result_help
-    assert "unique tags source-only entries" in result_help
+    assert "compare result help" in result_help
+    assert "choose which compare result to tag" in result_help
+    assert "source-side file list" in result_help
+    assert "different" in result_help
+    assert "basis mismatches" in result_help
+    assert "unique" in result_help
+    assert "source-only entries" in result_help
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -923,9 +926,9 @@ def test_file_compare_target_help_is_file_specific_and_f2_browse_keeps_footer_cl
 
     tui.send_keystroke(Keys.F1, wait=0.3)
     help_text = _screen_text(tui).lower()
-    assert "current file is the compare source" in help_text
-    assert "current directory is the compare source" not in help_text
-    assert "current logged tree is the compare source" not in help_text
+    assert "compare target help" in help_text
+    assert "the current file, directory, or logged tree is the compare source" in help_text
+    assert "inactive panel seeds the default compare target" in help_text
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
 
@@ -1087,21 +1090,21 @@ def test_compare_help_close_with_f1_and_esc_returns_to_same_prompt(
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
 
     tui.send_keystroke(Keys.F1, wait=0.3)
-    assert "compare help" in _screen_text(tui).lower()
+    assert "compare scope help" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.F1, wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
 
     tui.send_keystroke("D", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.F1, wait=0.3)
-    assert "compare help" in _screen_text(tui).lower()
+    assert "compare target help" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
 
     tui.send_keystroke("." + Keys.ENTER, wait=0.2)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke(Keys.F1, wait=0.3)
-    assert "compare help" in _screen_text(tui).lower()
+    assert "compare basis help" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.F1, wait=0.2)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
 

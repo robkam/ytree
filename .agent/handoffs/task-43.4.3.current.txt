@@ -1,0 +1,48 @@
+Work item: docs/ROADMAP.md Task 43.4.3
+Title: Wire Runtime Context-to-Topic Help Loading
+Acceptance target:
+- Directory, file, archive-dir, archive-file, Filter, Compare, Output, Showall, Global, F7, and F8 `F1` paths all resolve through generated topic data.
+- Adding a new `F1` context requires adding a topic block plus one mapping entry, not hand-writing new prose in code.
+- Focused regression/audit coverage proves runtime help is generated-content driven rather than duplicated literal text.
+Completion objective:
+- Complete the roadmap item by replacing the remaining in-code first-pass `F1` prose for the listed main/prompt/overlay surfaces with generated topic data, preserving footer/help parity and runtime popup navigation through canonical help topics.
+
+Selected work family:
+- Generated runtime help consumption: canonical topic expansion where the current first-pass prompt topics are too coarse, runtime topic lookup plus explainer-link navigation, and wiring the listed main/prompt/overlay `F1` surfaces onto generated help rows with focused proof.
+
+Inventory:
+- docs/ROADMAP.md — addressed (Task 43.4.3 marked completed after runtime/generated help loading landed).
+- docs/SPECIFICATION.md — addressed (documents generated runtime resolution and popup footer navigation rules).
+- docs/ARCHITECTURE.md — addressed (documents `src/ui/runtime_help.c` as the sole runtime consumer boundary).
+- etc/help/help.en.md — addressed (added prompt-specific compare/output topics, expanded Filter/Showall/Global/F7/F8 contextual help, and kept shared explainers link-only where appropriate).
+- scripts/generate_help_assets.py — intentionally unchanged (existing generator schema/runtime asset format already supported the required context/topic metadata).
+- src/core/generated_help_topics.h — addressed (regenerated from canonical help source).
+- src/ui/help_popup.c — addressed (custom footer commands + key handler support for generated popup navigation).
+- src/ui/display.c — addressed (main/file/archive/showall/global/preview/split `F1` entrypoints route through generated context help with runtime parity rows).
+- src/ui/compare_request.c — addressed (compare prompts now resolve generated help topics and retain prompt command-strip parity rows).
+- src/ui/interactions.c — addressed (Filter prompt routed through generated context help for both normal and tagged variants).
+- src/ui/print_controller.c — addressed (output prompts route through generated help topics).
+- src/ui/input_line.c — intentionally unchanged (existing `UI_ReadStringWithHelp` plumbing already supported generated callback injection).
+- src/ui/key_engine.c — addressed (added `InputChoiceWithHelp` helper for output prompt `F1` support).
+- include/ytnova_ui.h — addressed (declares runtime help popup/choice APIs).
+- tests/test_help_text_contract.py — addressed (runtime help coverage updated; assertions made layout-resilient for generated prompt content).
+- tests/test_compare_actions.py — addressed (compare prompt help coverage updated for generated topic text and close semantics).
+- tests/test_print_feature.py — intentionally unchanged (existing output-flow regression tests remained valid; focused rerun passed without fixture changes).
+- tests/test_help_generator.py — addressed (generator/runtime header expectations updated for new runtime topics/contexts).
+- tests/test_help_source_schema.py — intentionally unchanged (source schema remained stable; focused rerun passed unchanged).
+- src/ui/application_menu.c, src/ui/volume_menu.c, src/ui/history_dialog.c — intentionally unchanged (adjacent help surfaces are outside Task 43.4.3 acceptance and do not share the same focused validation path).
+- Execute/search/archive prompt help in src/ui/interactions.c — deferred (outside Task 43.4.3 acceptance; still manual help paths, but a separate work family because they widen prompt-surface scope beyond the listed first-pass runtime targets).
+
+Validation:
+- `make`
+- `make qa-code-quality qa-fileops-integrity`
+- `make qa-scan`
+- `source .venv/bin/activate && pytest -q tests/test_help_generator.py tests/test_help_source_schema.py tests/test_help_text_contract.py tests/test_compare_actions.py::test_compare_prompt_labels_and_result_text tests/test_compare_actions.py::test_compare_help_f1_open_close_and_prompt_restore tests/test_compare_actions.py::test_file_compare_target_help_is_file_specific_and_f2_browse_keeps_footer_clean tests/test_compare_actions.py::test_compare_help_close_with_f1_and_esc_returns_to_same_prompt tests/test_print_feature.py`
+- `source .venv/bin/activate && pytest -q tests/test_help_text_contract.py::test_filter_prompt_f1_help_uses_generated_runtime_topic tests/test_help_text_contract.py::test_output_prompt_f1_help_uses_generated_runtime_topics tests/test_compare_actions.py::test_compare_help_f1_open_close_and_prompt_restore tests/test_print_feature.py::test_page_break_prompt_is_not_reused_from_framed_mode`
+- `source .venv/bin/activate && pytest -q tests/test_modal_color_taxonomy.py::test_shared_help_popup_uses_help_palette tests/test_theme_ui_contract.py::test_help_surfaces_use_help_role tests/test_theme_ui_contract.py::test_task_sixty_touched_surfaces_use_structured_command_strips`
+- `git diff --check`
+
+Current state:
+- PR opened at https://github.com/robkam/ytreenova/pull/428.
+- Local validation is green, including `make qa-scan`, the same code-quality and file-mutation gate commands that failed in CI on July 25, 2026 before the footer-API refactor, and the targeted prompt/help regressions rerun after the July 26, 2026 static-analyzer fixes in `UI_ReadFilter` and `InputChoiceWithHelp`.
+- Remaining work: amend/push the source-contract test updates for the refreshed compare-help architecture, then wait for refreshed CI on the new head SHA.

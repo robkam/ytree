@@ -862,16 +862,26 @@ int QuerySystemCall(ViewContext *ctx, const char *command_line, Statistic *s) {
 }
 
 int UI_ReadFilter(ViewContext *ctx) {
+  const char *help_context = "prompt.filter";
   int result = -1;
   char buffer[FILE_SPEC_LENGTH * 2 + 1];
+  const DirEntry *dir_entry;
+
+  if (!ctx || !ctx->active || !ctx->active->vol)
+    return -1;
 
   ClearHelp(ctx);
+  dir_entry = GetSelectedDirEntry(ctx, ctx->active->vol);
+  if (dir_entry != NULL && dir_entry->tagged_flag)
+    help_context = "prompt.filter-tagged";
   /* Pre-fill with current filter value */
   CopyBoundedString(buffer, sizeof(buffer),
                     ctx->active->vol->vol_stats.file_spec);
 
-  if (UI_ReadString(ctx, ctx->active, "FILTER:", buffer, FILE_SPEC_LENGTH,
-                    HST_FILTER) == CR) {
+  if (UI_ReadStringWithHelp(ctx, ctx->active, "FILTER:", buffer,
+                            FILE_SPEC_LENGTH, HST_FILTER, NULL, 0,
+                            UI_ShowGeneratedContextHelpCallback,
+                            (void *)help_context) == CR) {
     if (SetFilter(buffer, &ctx->active->vol->vol_stats)) {
       UI_Message(ctx, "Invalid Filter Spec");
     } else {

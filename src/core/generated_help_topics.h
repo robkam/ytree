@@ -111,6 +111,42 @@ static const GeneratedHelpLongFormSection generated_help_sections_compare[] = {
     {"Compare rules", "*   Internal compare tags matches on the active/source side only.\n*   Logged-tree compare uses logged content only; it does not auto-log unopened\n    subdirectories.\n*   There is no separate \"compare tagged files\" mode."},
 };
 
+static const GeneratedHelpLink generated_help_links_compare_target[] = {
+    {"Navigation", "navigation"},
+    {"Compare overview", "compare"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_compare_target[] = {
+    {"Runtime scope", "This runtime-only topic keeps the compare-target popup concise while the shared\ncompare explainer continues to own the broader compare documentation bundle."},
+};
+
+static const GeneratedHelpLink generated_help_links_compare_scope[] = {
+    {"Navigation", "navigation"},
+    {"Compare overview", "compare"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_compare_scope[] = {
+    {"Runtime scope", "This runtime-only topic explains the compare-scope chooser without duplicating\nthe full compare documentation into prompt-local code."},
+};
+
+static const GeneratedHelpLink generated_help_links_compare_basis[] = {
+    {"Navigation", "navigation"},
+    {"Compare overview", "compare"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_compare_basis[] = {
+    {"Runtime scope", "This runtime-only topic keeps the compare-basis chooser generated-content\ndriven without widening the long-form command reference."},
+};
+
+static const GeneratedHelpLink generated_help_links_compare_results[] = {
+    {"Navigation", "navigation"},
+    {"Compare overview", "compare"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_compare_results[] = {
+    {"Runtime scope", "This runtime-only topic keeps the compare-result chooser generated-content\ndriven while the shared compare explainer owns the durable long-form docs."},
+};
+
 static const GeneratedHelpLink generated_help_links_output[] = {
     {"Navigation", "navigation"},
     {"File mode", "file"},
@@ -120,6 +156,33 @@ static const GeneratedHelpLink generated_help_links_output[] = {
 static const GeneratedHelpLongFormSection generated_help_sections_output[] = {
     {"Output destinations", "Write/output flows may send content to a file path or to an external command.\nThe canonical prompt sequence explains the distinction between ordinary file\noutput and hardcopy-oriented command entry so the same authored text can serve\nfilesystem, archive, and prompt-local help."},
     {"Output formats", "The output dialog owns the format choices used by write/export flows, including\nRaw, Framed, and Page Break variants plus any separator prompt that follows.\nIf the runtime later narrows a contextual slice, the generated long-form docs\nmust still come from this one authored topic."},
+};
+
+static const GeneratedHelpLink generated_help_links_output_format[] = {
+    {"Navigation", "navigation"},
+    {"Output overview", "output"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_output_format[] = {
+    {"Runtime scope", "This runtime-only topic keeps the format chooser generated-content driven while\nthe shared output explainer owns the durable long-form docs."},
+};
+
+static const GeneratedHelpLink generated_help_links_output_destination[] = {
+    {"Navigation", "navigation"},
+    {"Output overview", "output"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_output_destination[] = {
+    {"Runtime scope", "This runtime-only topic keeps the destination chooser generated-content driven\nwithout duplicating prompt prose in print/output controllers."},
+};
+
+static const GeneratedHelpLink generated_help_links_output_separator[] = {
+    {"Navigation", "navigation"},
+    {"Output overview", "output"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_output_separator[] = {
+    {"Runtime scope", "This runtime-only topic keeps the separator prompt generated-content driven\nwhile the shared output explainer remains the canonical long-form reference."},
 };
 
 static const GeneratedHelpLink generated_help_links_showall[] = {
@@ -230,7 +293,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "filter",
         "Filter Help",
         "prompt.filter,prompt.filter-tagged",
-        "Filter help stays prompt-local: it explains accepted filter syntax, the default\n`*` behavior, and any scope toggles that belong to the active filter prompt.",
+        "Use normal glob-like patterns such as `*.c`, comma-separated unions such as\n`*.c,*.h`, and exclusions such as `-*.o`.\nExtended selectors such as `:r`, `:x`, `>2023-01-01`, and `>1M` stay valid in\nthe runtime prompt, and an empty entry falls back to `*`.\nFilter prompts stay scoped to the active file-list family, including tagged\naggregates when the current prompt came from a tagged-only view.",
         3,
         generated_help_links_filter,
         2,
@@ -239,28 +302,98 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "compare",
         "Compare Help",
-        "prompt.compare-target,prompt.compare-scope,prompt.compare-basis,prompt.compare-results",
-        "Compare help explains the compare flow currently in progress: target entry,\nscope selection, comparison basis, or result tagging. The runtime chooses the\nrelevant excerpt by context mapping, not by duplicating prose in each prompt.",
+        NULL,
+        "Compare help is split into prompt-local runtime topics plus this shared long-form\nexplainer. Runtime `F1` pages stay focused on the active compare step, then link\nback here for the broader compare model.",
         3,
         generated_help_links_compare,
         2,
         generated_help_sections_compare,
     },
     {
+        "compare-target",
+        "Compare Target Help",
+        "prompt.compare-target",
+        "The current file, directory, or logged tree is the compare source.\nEnter the target path directly, or use `F2` to browse and `Up` for prompt\nhistory.\nIn split view, the inactive panel seeds the default compare target.",
+        2,
+        generated_help_links_compare_target,
+        1,
+        generated_help_sections_compare_target,
+    },
+    {
+        "compare-scope",
+        "Compare Scope Help",
+        "prompt.compare-scope",
+        "Directory only compares the current directory.\nLogged tree compares the current logged tree recursively and never auto-logs\nunopened `+` subdirectories.\nExternal viewer launches `DIRDIFF` or `TREEDIFF` helpers instead of tagging\nruntime compare results.",
+        2,
+        generated_help_links_compare_scope,
+        1,
+        generated_help_sections_compare_scope,
+    },
+    {
+        "compare-basis",
+        "Compare Basis Help",
+        "prompt.compare-basis",
+        "Size checks file length and Date checks the last-modified time.\n`siZe+date` marks a difference when either size or modification time differs.\nHash opens both files and compares their content exactly, so it is slower than\nmetadata-only checks.",
+        2,
+        generated_help_links_compare_basis,
+        1,
+        generated_help_sections_compare_basis,
+    },
+    {
+        "compare-results",
+        "Compare Result Help",
+        "prompt.compare-results",
+        "Choose which compare result to tag in the active/source-side file list.\n`diFferent` tags basis mismatches and `Unique` tags source-only entries.\nMatch, Newer, Older, Type-mismatch, and Error each tag only that one outcome.",
+        2,
+        generated_help_links_compare_results,
+        1,
+        generated_help_sections_compare_results,
+    },
+    {
         "output",
         "Output Help",
-        "prompt.output-format,prompt.output-destination,prompt.output-separator",
-        "Output help explains the active output step: format choice, file destination,\nhardcopy command, or separator prompt. Later runtime mapping chooses the\nrelevant slice without scattering separate authored prose stores.",
+        NULL,
+        "Output help is split into runtime prompt topics plus this shared long-form\nexplainer. Runtime `F1` pages stay focused on the active output step, then link\nback here for the durable write/export model.",
         3,
         generated_help_links_output,
         2,
         generated_help_sections_output,
     },
     {
+        "output-format",
+        "Output Format Help",
+        "prompt.output-format",
+        "Raw writes content without frame headings.\nFramed adds per-file heading/footer framing, and Page break inserts a separator\nbetween successive files without leaving a trailing separator at the end.\nChoose the format first; later prompts gather separators and destinations.",
+        2,
+        generated_help_links_output_format,
+        1,
+        generated_help_sections_output_format,
+    },
+    {
+        "output-destination",
+        "Output Destination Help",
+        "prompt.output-destination",
+        "Destination chooses whether write/output goes to a file path or to an external\ncommand.\nWhen the prompt asks for the final target, enter either the destination file or\nthe command line exactly as you want it run.\nLeave the destination blank only to cancel and return without writing.",
+        2,
+        generated_help_links_output_destination,
+        1,
+        generated_help_sections_output_destination,
+    },
+    {
+        "output-separator",
+        "Output Separator Help",
+        "prompt.output-separator",
+        "Framed and Page break modes prompt for a separator string before the\ndestination step.\nLeave the separator blank to accept the default triple-backtick fence.\nThe separator text is reused between files only for the selected framed/page\nformat; Raw output skips this prompt entirely.",
+        2,
+        generated_help_links_output_separator,
+        1,
+        generated_help_sections_output_separator,
+    },
+    {
         "showall",
         "Showall Help",
         "main.showall",
-        "Showall help explains the single-volume aggregated file view and the commands\nor caveats that differ from ordinary file mode.",
+        "Showall help explains the single-volume aggregated file view and the commands\nor caveats that differ from ordinary file mode.\nPress `Esc` to return to the previously selected directory.\nPress `\\\\` to jump to the owner directory of the selected file inside the\ncurrent logged volume.",
         3,
         generated_help_links_showall,
         2,
@@ -270,7 +403,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "global",
         "Global Help",
         "main.global",
-        "Global help explains the multi-volume aggregated file view, including how it\nreturns to owner directories and how its scope differs from ordinary file mode.",
+        "Global help explains the multi-volume aggregated file view, including how it\nreturns to owner directories and how its scope differs from ordinary file mode.\nPress `Esc` to return to the previously selected directory.\nPress `\\\\` to jump to the owner directory of the selected file even when that\nowner lives under a different logged volume root.",
         3,
         generated_help_links_global,
         2,
@@ -280,7 +413,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f7",
         "F7 Preview Help",
         "overlay.f7-dir,overlay.f7-file",
-        "F7 help explains preview ownership, allowed keys, blocked keys, and how the\npreview overlay interacts with the underlying directory or file context.",
+        "F7 help explains preview ownership and how the preview overlay interacts with\nthe underlying directory or file context.\nUse `Shift+Up/Down` or `^P/^N` to scroll preview contents line by line.\nUse `Shift+PgUp/PgDn` for pages and `Shift+Home/End` to jump to the top or\nbottom of the current preview.",
         2,
         generated_help_links_f7,
         2,
@@ -290,7 +423,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f8",
         "F8 Split Help",
         "overlay.f8-dir,overlay.f8-file",
-        "F8 help explains split-view ownership, inactive-panel defaults, and the keys\nor caveats that only appear while split mode is active.",
+        "F8 help explains split-view ownership, inactive-panel defaults, and the keys\nor caveats that only appear while split mode is active.\nPress `Tab` to switch the active panel while leaving the passive panel's state\nintact.\nCopy, move, and compare prompts default to the inactive panel as the\ndestination/target while split mode is active.",
         3,
         generated_help_links_f8,
         2,
@@ -298,4 +431,4 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     },
 };
 
-static const size_t generated_help_topic_count = 13;
+static const size_t generated_help_topic_count = 20;
