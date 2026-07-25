@@ -78,9 +78,14 @@ Navigation is shared vocabulary. Context-specific help should assume this
 baseline and document only the keys, limits, and ownership changes that are
 special to that surface.
 
-#### Projection notes
-Generated man/usage output may expand this topic into the common navigation
-reference instead of duplicating the same movement text under every mode.
+#### Common keys
+*   **Up/Down** move the active selection.
+*   **Page Up/Page Down** scroll by pages in list-oriented surfaces.
+*   **Home/End** jump to the start or end of the current list.
+*   **Enter** accepts the current selection or toggles between paired views
+    such as tree/file or preview on/off when that context owns Enter.
+*   **Esc** backs out of temporary overlays and prompt/dialog flows without
+    committing the pending action.
 
 ## topic:dir
 ```ytnova-help-meta
@@ -97,13 +102,72 @@ behavior, and any mode-specific caveats that do not fit in the footer strip.
 - [F8 split](topic:f8)
 
 ### Long form
-#### Scope
-This topic owns the normal filesystem directory surface. It is the canonical
-place for directory-mode footer parity and directory-specific caveats.
+#### Directory commands
+*   **A** (Attributes): Open attributes submenu for directory metadata changes:
+    mode (chmod), owner, group, date.
+*   **C** (Copy): Copy the selected directory branch.
+*   **D** (Delete): Delete selected directory.
+*   **F** (Filter): Set file filter. Supports regex patterns (e.g., `*.c`),
+    exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and
+    sizes (`>1M`).
+*   **G** (Global): Show all files across all logged volumes in one global
+    list.
+*   **I** (Invert Tags): Toggle tag state for files in the selected/current
+    directory scope.
+*   **J** (Compare): Open the compare submenu (directory, logged tree, or
+    external viewer). With `VI_KEYS=1`, use uppercase `J` for this action.
+*   **L** (Log): Log a new directory or archive file. Logging an already logged
+    volume/path performs a fresh reload and reanchors selection at the volume
+    root.
+*   **M** (Makedir): Create a new directory.
+*   **N** (New File): Create a new empty file.
+*   **O** (Only tagged): Toggle tagged-only file-list view for the current
+    directory scope.
+*   **P** (Pipe, or **|**): Pipe the selected directory to a command (stdin).
+*   **R** (Rename): Rename selected directory.
+*   **S** (Showall): Show all files in all directories of the current volume.
+*   **T** (Tag): Tag all files in the selected directory.
+*   **U** (Untag): Untag all files in the selected directory.
+*   **V** (MoveDir): Move the selected directory branch.
+*   **W** (Write): Export files in the selected directory to a command or file
+    using a formatting dialog (Raw, Framed, Page Break).
+*   **X** (eXecute): Execute a shell command. Leave `{}` unquoted; ytnova
+    replaces it with the current directory path and shell-quotes the expanded
+    path. Prompt **F1** also explains the tagged-file `^X` repeat path.
+*   **Z** (archive): Create an archive from the current selection. If one or
+    more files are tagged, ytnova archives the tagged files. If nothing is
+    tagged, ytnova archives the selected file or selected directory. Directory
+    sources are archived recursively. Supported destination suffixes: `.tar`,
+    `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
+*   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
+*   **1 .. 4** (Dir Mode): Select the active panel's base directory/file view
+    while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner, `4` Times.
+    `5`, `7`, `8`, and `9` update the panel's file projection; `6` toggles
+    panel-wide row size units; `0` is unused; `9` is a silent no-op outside
+    Git worktrees.
 
-#### Projection notes
-Generated long-form docs may merge this topic with adjacent shared explainers,
-but the authored prose remains rooted here.
+#### Tree navigation
+*   **Enter**: On logged directories, switch to File Mode (focus the file
+    window). On unlogged/not-yet-scanned directories, perform one-level
+    log/reveal (same behavior as `+`) and stay in Directory Mode.
+*   **-**: State-based collapse/release. First press collapses an expanded
+    node. Second press on a collapsed logged node evicts the file list (sets
+    `+` status) and marks the directory as Unlogged. At root, use `-` to
+    release logged contents.
+*   **Tree status marker**: Unlogged directories use `+` in the left status
+    margin column. Directory names do not carry a `+` suffix; an unlogged
+    directory may still show `/` when it has subdirectories.
+*   **Left Arrow**: If the selected directory is expanded, collapse it.
+    Otherwise move selection to its parent directory. Repeated `Left` keeps
+    ascending (and collapsing where needed). At filesystem root, `Left` is a
+    no-op.
+*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed:
+    expand one level. If already expanded: move cursor to the first child. It
+    does not jump to siblings.
+*   **+** (or **=**): One-level log/reveal only (no cursor movement). `=` is a
+    convenience alias (unshifted `+` on most keyboards).
+*   **\*** (Asterisk): Recursively expand the current directory and all its
+    subdirectories.
 
 ## topic:file
 ```ytnova-help-meta
@@ -120,13 +184,74 @@ file-specific caveats that are not obvious from the command strip alone.
 - [F7 preview](topic:f7)
 
 ### Long form
-#### Scope
-This topic owns the normal filesystem file surface and any file-only caveats
-that should not be repeated in directory-mode help.
+#### File commands
+*   **A** (Attributes): Open attributes submenu for selected file metadata:
+    mode, owner, group, date.
+*   **C** (Copy): Copy the selected file.
+*   **^K**: Copy all tagged files.
+*   **D** (Delete): Delete selected file. *(With `VI_KEYS=1`, use lowercase
+    `d` for this action and uppercase `D` for Delete Tagged.)*
+*   **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
+*   **F** (Filter): Set file filter.
+*   **H** (Hex): View selected file in hex mode.
+*   **I** (Invert Tags): Toggle the tag state of all visible files.
+*   **J** (Compare): Compare the selected file with a target file.
+*   **L** (Log): Log a new directory or archive file. Logging an already logged
+    volume/path performs a fresh reload and reanchors selection at the volume
+    root.
+*   **M** (Move): Move the selected file.
+*   **^N**: Move all tagged files.
+*   **N** (New File): Create a new empty file.
+*   **O** (Only tagged): Toggle tagged-only file-list view (show tagged files
+    only).
+*   **P** (Pipe, or **|**): Pipe content of file to a command (stdin).
+*   **R** (Rename): Rename the selected file.
+*   **S** (Sort): Sort filelist (Access time, Change time, Extension, Group,
+    Modification time, Name, Owner, Size).
+*   **^S** (Search): Execute grep on tagged files. The prompt expects search
+    text, not a full grep command; ytnova builds `grep -i -- PATTERN {}`
+    internally and untags files that do not match. Prompt **F1** summarizes
+    the tagged-scope behavior.
+*   **T** (Tag): Tag selected file.
+*   **^T**: Tag all displayed files.
+*   **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase `u`
+    for this action.)*
+*   **^U**: Untag all displayed files. *(With `VI_KEYS=1`, `^U` is page-up
+    navigation and uppercase `U` becomes Untag All.)*
+*   **V** (View): View file with the pager defined in the main config (default:
+    less).
+*   **^V**: **View Tagged**. View all tagged files sequentially.
+*   **W** (Write): Export the selected file to a command or file using a
+    formatting dialog (Raw, Framed, Page Break).
+*   **X** (eXecute): Execute a shell command. Leave `{}` unquoted; ytnova
+    replaces it with the selected file path and shell-quotes the expanded path.
+    Prompt **F1** also explains the tagged-file `^X` repeat path.
+*   **Y**: (Pathcopy): Copy selected file, replicating its directory structure
+    relative to the current volume root.
+*   **Z** (archive): Create an archive from tagged files, or from the selected
+    file/directory when nothing is tagged. Directory sources are archived
+    recursively.
 
-#### Projection notes
-Long-form outputs may place this beside directory help while preserving the
-shared link targets for repeated explanations.
+#### File-window navigation
+*   **1 .. 4** (Base View): Select the file or directory base view for the
+    active panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`,
+    `3`, or `4` again to return to `1`.
+*   **5**: Toggle the compact Name/full-width file rendering variant when the
+    current base view is `1` / Name.
+*   **6**: Toggle binary vs human-readable size units for directory/file rows
+    on the active panel.
+*   **7**: Toggle Mini preview detail in the file window.
+*   **8**: Toggle File detail in the file window.
+*   **9**: Toggle the Git status band for filesystem file lists when the
+    current directory is inside a Git worktree.
+*   **0**: Currently unused; silent no-op.
+*   **Enter**: Switch to Full Screen File Mode / Directory Mode.
+*   **Left Arrow**: Move to the previous visible file column; in one-column
+    layouts this performs page-up navigation.
+*   **Right Arrow**: Move to the next visible file column; in one-column
+    layouts this performs page-down navigation.
+*   **Date Changes:** Date actions change Accessed time, Modified time, or both
+    (POSIX does not allow setting creation/birth time here).
 
 ## topic:archive-dir
 ```ytnova-help-meta
@@ -143,13 +268,42 @@ archive-specific caveats that differ from normal filesystem directory behavior.
 - [Output](topic:output)
 
 ### Long form
-#### Scope
-This topic owns archive-directory guidance. Shared directory semantics should
-be linked instead of copied when archive mode only adds a small caveat set.
+#### Archive directory commands
+*   **J** (Compare): Open compare flow. With `VI_KEYS=1`, use uppercase `J`
+    for this action.
+*   **D** (Delete): Delete selected archive directory entry.
+*   **F** (Filter): Set file filter.
+*   **G** (Global): Show all files across all logged volumes in one global
+    list.
+*   **I** (Invert Tags): Toggle tag state for files in the selected/current
+    archive directory scope.
+*   **L** (Log): Log a new directory or archive. Logging an already logged
+    volume/path performs a fresh reload and reanchors selection at the volume
+    root.
+*   **M** (Makedir): Create directory in archive context where supported.
+*   **O** (Only tagged): Toggle tagged-only file-list view for the current
+    archive directory scope.
+*   **R** (Rename): Rename selected archive directory entry.
+*   **S** (Showall): Show all files in the archive.
+*   **T** (Tag): Tag all files in current virtual directory.
+*   **U** (Untag): Untag all files in current virtual directory.
+*   **1 .. 4** (Dir Mode): Select the active panel's base archive-directory/
+    file view while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner,
+    `4` Times. `5`, `7`, `8`, and `9` update the panel's file projection; `6`
+    toggles panel-wide row size units; `0` is unused; `9` is a silent no-op in
+    archives.
 
-#### Projection notes
-Generated long-form docs may group archive guidance near normal directory help,
-but the authored archive-specific text stays here.
+#### Archive directory navigation
+*   **Enter**: Switch to Archive-File Mode.
+*   **-**: State-based collapse/release. Expanded nodes collapse; collapsed
+    logged nodes (or logged leaves) unlog/release.
+*   **Left Arrow**: Collapse the current archive directory when expanded;
+    otherwise move selection to its parent directory.
+*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed:
+    expand one level. If already expanded: move cursor to the first child.
+*   **+** (or **=**): Expand the current archive directory by one level.
+*   **\\**: At archive non-root, jump to archive root. At archive root, exit
+    to parent physical directory.
 
 ## topic:archive-file
 ```ytnova-help-meta
@@ -166,13 +320,49 @@ differences between archive file actions and normal filesystem file actions.
 - [Output](topic:output)
 
 ### Long form
-#### Scope
-This topic owns archive-file guidance and keeps archive-only caveats out of the
-normal file help page.
+#### Archive file commands
+*   **C** (Copy): Copy selected file (including extract/copy paths).
+*   **^K** (Copy Tagged): Copy all tagged files.
+*   **D** (Delete): Delete selected archive file entry.
+*   **F** (Filter): Set file filter.
+*   **H** (Hex): View file in hex mode.
+*   **I** (Invert Tags): Toggle the tag state of all visible files.
+*   **M** (Move): Move selected file using archive-aware semantics.
+*   **O** (Only tagged): Toggle tagged-only file-list view (show tagged files
+    only).
+*   **P** (Pipe, or **|**): Pipe content to command.
+*   **R** (Rename): Rename selected archive file entry.
+*   **S** (Sort): Sort file list.
+*   **^S** (Search): Search tagged files for a string. The prompt expects
+    search text, not a full grep command; ytnova builds `grep -i -- PATTERN {}`
+    internally and untags files that do not match. Prompt **F1** summarizes
+    the tagged-scope behavior.
+*   **T** (Tag): Tag selected file.
+*   **^T**: Tag all files.
+*   **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase `u`
+    for this action.)*
+*   **^U**: Untag all files. *(With `VI_KEYS=1`, `^U` is page-up navigation and
+    uppercase `U` becomes Untag All.)*
+*   **V** (View): View file.
+*   **^V**: **View Tagged**. View all tagged files sequentially.
+*   **W** (Write): Export file content to a command or file.
+*   **Y** (Pathcopy): Copy selected file with relative path preservation.
 
-#### Projection notes
-Long-form outputs may place archive and filesystem file topics together while
-still preserving distinct topic IDs and authored ownership.
+#### Archive file navigation
+*   **1 .. 4** (Base View): Select the archive-file base view for the active
+    panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`, `3`, or
+    `4` again to return to `1`.
+*   **5**: Toggle the compact Name/full-width file rendering variant when the
+    current base view is `1` / Name.
+*   **6**: Toggle binary vs human-readable size units for archive rows.
+*   **7**: Toggle Mini preview detail in the file window.
+*   **8**: Toggle File detail in the file window.
+*   **9**: Silent no-op in archive file lists.
+*   **0**: Currently unused; silent no-op.
+*   **Enter**: Switch to Archive-Dir Mode.
+*   **\\**: No-op.
+*   Archive file-window status text uses `Unlogged` when the selected directory
+    is unlogged and `No files` when the selected directory is logged and empty.
 
 ## topic:filter
 ```ytnova-help-meta
@@ -189,14 +379,16 @@ Filter help stays prompt-local: it explains accepted filter syntax, the default
 - [Global](topic:global)
 
 ### Long form
-#### Syntax ownership
-This topic is the canonical authored home for filter syntax, examples, and
-scope rules. Updating filter semantics here must be enough to refresh runtime
-prompt help and later long-form outputs.
+#### Filter syntax
+Use normal glob-like patterns such as `*.c`, comma-separated unions such as
+`*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as
+attributes (`:r`, `:x`), dates (`>2023-01-01`), or sizes (`>1M`). If the
+shell would expand the pattern, quote it before launching ytnova.
 
-#### Projection notes
-Because filter help is one of the strongest drift risks, later generators
-should prefer this topic over duplicated prompt literals.
+#### Scope rules
+Filter prompts stay scoped to the active file-list family. Directory/File,
+archive, Showall, and Global contexts may share syntax while still applying the
+result to their own current scope and tagged/untagged conventions.
 
 ## topic:compare
 ```ytnova-help-meta
@@ -214,14 +406,22 @@ relevant excerpt by context mapping, not by duplicating prose in each prompt.
 - [File mode](topic:file)
 
 ### Long form
-#### Flow ownership
-This topic owns compare guidance for both filesystem and logged-tree flows. A
-later generator/runtime mapper may project only the needed subsection for the
-active compare step.
+#### Compare flows
+*   **File compare (`J` in File Mode):** Compare the selected file against a
+    target file. ytnova can use an external file-diff helper if configured.
+    *   `FILEDIFF` may use `%1` (source) and `%2` (target) placeholders; when
+        omitted, ytnova appends source and target paths to the helper command.
+*   **Directory compare (`J` in Directory Mode):**
+    *   `D`: compare the current directory.
+    *   `T`: compare the current logged tree.
+    *   `X`: launch an external directory/tree compare viewer.
+    *(With `VI_KEYS=1`, use uppercase `J` for this action.)*
 
-#### Projection notes
-The authored source stays in one topic even when the runtime ultimately maps
-several compare-step contexts into distinct contextual slices.
+#### Compare rules
+*   Internal compare tags matches on the active/source side only.
+*   Logged-tree compare uses logged content only; it does not auto-log unopened
+    subdirectories.
+*   There is no separate "compare tagged files" mode.
 
 ## topic:output
 ```ytnova-help-meta
@@ -239,14 +439,17 @@ relevant slice without scattering separate authored prose stores.
 - [Archive file](topic:archive-file)
 
 ### Long form
-#### Flow ownership
-This topic is the canonical home for output/export guidance, including format
-terms, destination wording, and the distinction between file output and
-hardcopy-oriented command entry.
+#### Output destinations
+Write/output flows may send content to a file path or to an external command.
+The canonical prompt sequence explains the distinction between ordinary file
+output and hardcopy-oriented command entry so the same authored text can serve
+filesystem, archive, and prompt-local help.
 
-#### Projection notes
-Long-form projections may reuse this topic for the dedicated output/reference
-section without requiring a separate authored prose file.
+#### Output formats
+The output dialog owns the format choices used by write/export flows, including
+Raw, Framed, and Page Break variants plus any separator prompt that follows.
+If the runtime later narrows a contextual slice, the generated long-form docs
+must still come from this one authored topic.
 
 ## topic:showall
 ```ytnova-help-meta
@@ -263,13 +466,14 @@ or caveats that differ from ordinary file mode.
 - [Global](topic:global)
 
 ### Long form
-#### Scope
-This topic owns Showall-specific guidance. Shared file-view text should be
-linked, not duplicated, when Showall only adds a few scope caveats.
+#### Showall behavior
+Showall toggles file-list mode for all files in the current logged volume.
+Press **Esc** to return to the previously selected directory. Press **\\** to
+jump to the owner directory of the selected file.
 
-#### Projection notes
-Showall and Global may later share generated fragments, but they keep separate
-topic IDs so Global-only multi-volume notes remain possible.
+#### Scope notes
+Shared file-view commands still behave like ordinary file mode unless the
+aggregated single-volume scope changes the ownership of the current result set.
 
 ## topic:global
 ```ytnova-help-meta
@@ -286,13 +490,14 @@ returns to owner directories and how its scope differs from ordinary file mode.
 - [Showall](topic:showall)
 
 ### Long form
-#### Scope
-This topic owns Global-specific guidance and preserves room for multi-volume
-behavior that Showall does not need to explain.
+#### Global behavior
+Global toggles file-list mode for all files across all logged volumes. Press
+**Esc** to return to the previously selected directory. Press **\\** to jump
+to the owner directory of the selected file.
 
-#### Projection notes
-The schema allows Global to share some generated output with Showall while still
-retaining its own authored topic ID and distinct caveats.
+#### Multi-volume scope
+Global shares the aggregated-file mental model with Showall but keeps room for
+multi-volume caveats such as owner-directory jumps that cross volume roots.
 
 ## topic:f7
 ```ytnova-help-meta
@@ -308,13 +513,18 @@ preview overlay interacts with the underlying directory or file context.
 - [File mode](topic:file)
 
 ### Long form
-#### Scope
-This topic owns F7 overlay guidance across directory-preview and file-preview
-entry paths.
+#### Preview behavior
+File Preview Mode is activated by **F7**. The screen layout changes to show
+the file list on the left (or active pane) and the file contents on the right.
+Press **F7** again to leave preview mode.
 
-#### Projection notes
-Later runtime mapping may choose narrower contextual excerpts, but those slices
-still derive from this single authored topic.
+#### Preview controls
+*   Use **Up/Down**, **Page Up/Down**, and **Home/End** to move the selection
+    in the file list. The preview pane updates immediately.
+*   Use **Shift+Up/Down** (or **^P** / **^N**) to scroll the preview contents
+    line by line.
+*   Use **Shift+Page Up/Down** to scroll by pages.
+*   Use **Shift+Home/End** to jump to the beginning or end of the file.
 
 ## topic:f8
 ```ytnova-help-meta
@@ -331,10 +541,14 @@ or caveats that only appear while split mode is active.
 - [File mode](topic:file)
 
 ### Long form
-#### Scope
-This topic owns split-view guidance and keeps split-specific caveats out of the
-base directory and file pages.
+#### Split behavior
+Split Screen Mode is activated by **F8**. The screen is divided vertically into
+two independent file manager panels. Press **F8** again to return to
+single-panel mode.
 
-#### Projection notes
-Generated long-form docs may project this beside directory/file help while
-preserving one authored split topic as the source of truth.
+#### Split controls
+*   Press **Tab** to switch active control between the Left and Right panels.
+*   Copy, move, and compare prompts default to the inactive (passive) panel as
+    the destination/target when split mode is active.
+*   Split mode keeps panel-local selection, view, tag, and volume state
+    isolated so the passive panel remains a real target rather than a mirror.

@@ -9,7 +9,7 @@ You **MUST** use the MCP semantic tools (`serena` and `jcodemunch`) for all sear
 Canonical Codex instructions: `./.ai/codex.md`
 Shared instructions for all agents: `./.ai/shared.md`
 
-Docs note: `docs/USAGE.md` is generated from `etc/ytnova.1.md`; edit `etc/ytnova.1.md` as source.
+Docs note: `etc/ytnova.1.md`, `docs/USAGE.md`, and the runtime help asset are generated from `etc/help/help.en.md`; run `make help-assets` after editing the canonical help source.
 
 Commit messages: see `./.ai/shared.md` rule 8 (enforced by `.githooks/commit-msg`).
 

@@ -891,7 +891,7 @@ Ordering policy (for all editors, including AI editors):
 *   One generator command regenerates all canonical help outputs from `etc/help/help.en.md`.
 *   Output generation is deterministic and suitable for CI/audit drift checks.
 *   The generator fails loudly on malformed topic blocks rather than silently dropping help content.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 43.4.3: Wire Runtime Context-to-Topic Help Loading**
 *   **Goal:** Make runtime `F1` surfaces load generated help content by context/topic ID instead of embedding ad-hoc prose in code.
