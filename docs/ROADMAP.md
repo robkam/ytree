@@ -901,7 +901,7 @@ Ordering policy (for all editors, including AI editors):
 *   Directory, file, archive-dir, archive-file, Filter, Compare, Output, Showall, Global, F7, and F8 `F1` paths all resolve through generated topic data.
 *   Adding a new `F1` context requires adding a topic block plus one mapping entry, not hand-writing new prose in code.
 *   Focused regression/audit coverage proves runtime help is generated-content driven rather than duplicated literal text.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.

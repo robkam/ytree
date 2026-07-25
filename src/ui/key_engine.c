@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <curses.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +31,12 @@
 /* Wrapper function to satisfy tputs(..., int (*putc_func)(int)) signature */
 /* It writes the character 'c' to standard output. */
 static int term_putc(int c) { return fputc(c, stdout); }
+
+static int NormalizeChoiceKey(int c) {
+  if (c >= 0 && c <= UCHAR_MAX && islower((unsigned char)c))
+    return toupper((unsigned char)c);
+  return c;
+}
 
 char *StrLeft(const char *str, size_t visible_count) {
   char *result;
@@ -254,12 +261,70 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
     if (c == ESC)
       break;
     if (c >= 0)
-      if (islower(c))
-        c = toupper(c);
+      c = NormalizeChoiceKey(c);
   } while (c != -1 && !strchr(term, c));
 
   mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  wnoutrefresh(ctx->ctx_border_window);
+  leaveok(ctx->ctx_border_window, TRUE);
+  curs_set(0);
+  doupdate();
+
+  return (c);
+}
+
+int InputChoiceWithHelp(ViewContext *ctx, const char *msg, const char *term,
+                        int (*help_callback)(ViewContext *, void *),
+                        void *help_data) {
+  int c;
+
+  if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
+    return ERR;
+  if (!AppStateValidatedDispatchSurface("surface.modal-completion-event"))
+    return ERR;
+  if (!AppStateValidatedEvent("event.modal-completion"))
+    return ERR;
+
+  ClearHelp(ctx);
+
+  curs_set(1);
+  leaveok(ctx->ctx_border_window, FALSE);
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  mvwhline(ctx->ctx_border_window, ctx->layout.status_y, 1, ' ', COLS - 2);
+  PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
+                   UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  if (help_callback != NULL) {
+    static const UICommandStripCommand help_commands[] = {
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+
+    UI_RenderAdaptiveCommandStrip(
+        ctx->ctx_border_window, ctx->layout.status_y, 1, help_commands,
+        sizeof(help_commands) / sizeof(help_commands[0]), UI_ROLE_STATIC_TEXT,
+        UI_ROLE_KEYBIND);
+  }
+  wnoutrefresh(ctx->ctx_border_window);
+  doupdate();
+  do {
+    c = WGetch(ctx, ctx->ctx_border_window);
+    if (c == KEY_F(1) && help_callback != NULL) {
+      curs_set(0);
+      (void)help_callback(ctx, help_data);
+      curs_set(1);
+      touchwin(ctx->ctx_border_window);
+      wnoutrefresh(ctx->ctx_border_window);
+      doupdate();
+      continue;
+    }
+    if (c == ESC)
+      break;
+    if (c >= 0)
+      c = NormalizeChoiceKey(c);
+  } while (c != -1 && !strchr(term, c));
+
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  mvwhline(ctx->ctx_border_window, ctx->layout.status_y, 1, ' ', COLS - 2);
   wnoutrefresh(ctx->ctx_border_window);
   leaveok(ctx->ctx_border_window, TRUE);
   curs_set(0);
@@ -292,8 +357,7 @@ int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
     if (c == ESC)
       break;
     if (c >= 0)
-      if (islower(c))
-        c = toupper(c);
+      c = NormalizeChoiceKey(c);
   } while (c != -1 && !strchr(term, c));
 
   mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
@@ -333,8 +397,7 @@ int InputChoiceCommandStrip(ViewContext *ctx,
     if (c == ESC)
       break;
     if (c >= 0)
-      if (islower(c))
-        c = toupper(c);
+      c = NormalizeChoiceKey(c);
   } while (c != -1 && !strchr(term, c));
 
   mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");

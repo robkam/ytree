@@ -1552,8 +1552,8 @@ void DisplayPreviewHelp(ViewContext *ctx) {
 
 int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   UIHelpPopupRow rows[8];
+  const char *context_id = NULL;
   size_t row_count = 0;
-  const char *title;
   ViewFocus active_focus;
   ResolvedFooterCommand resolved[32];
   UICommandStripCommand commands[32];
@@ -1563,16 +1563,11 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
 
   active_focus = AppStateResolveActivePanelFocus(ctx);
   if (ctx->preview_mode) {
-    title = "Preview Help";
+    context_id = (active_focus == FOCUS_TREE) ? "overlay.f7-dir"
+                                              : "overlay.f7-file";
     row_count = AppendPopupStripRow(rows, row_count, &preview_help_builtin[0]);
     row_count = AppendPopupStripRow(rows, row_count, &preview_help_builtin[1]);
-    row_count = AppendPopupTextRow(
-        rows, row_count,
-        "Shift+Up/Down or ^P/^N scroll preview contents line by line.");
-    row_count = AppendPopupTextRow(
-        rows, row_count,
-        "Shift+PgUp/PgDn pages the preview; Shift+Home/End jumps to top/bottom.");
-    return UI_ShowHelpPopup(ctx, title, rows, row_count);
+    return UI_ShowGeneratedContextHelp(ctx, context_id, rows, row_count);
   }
 
   if (active_focus == FOCUS_TREE) {
@@ -1582,8 +1577,6 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     const char *line1_signpost;
     size_t spec_count;
 
-    title = (ctx->view_mode == ARCHIVE_MODE) ? "Archive Directory Help"
-                                             : "Directory Help";
     specs = GetDirFooterSpecs(ctx, dir_entry, &spec_count, &line0_signpost,
                               &line1_signpost);
     ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
@@ -1591,6 +1584,16 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
                                          line1_signpost, commands, spec_count,
                                          FALSE);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
+    if (ctx->is_split_screen) {
+      row_count = AppendPopupCommandRow(
+          rows, row_count, "", split_help_commands,
+          sizeof(split_help_commands) / sizeof(split_help_commands[0]));
+      context_id = "overlay.f8-dir";
+    } else if (ctx->view_mode == ARCHIVE_MODE) {
+      context_id = "main.archive-dir";
+    } else {
+      context_id = "main.dir";
+    }
   } else {
     const HelpCommandStrip *nav_strip;
     const FooterCommandSpec *specs;
@@ -1599,14 +1602,15 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     size_t spec_count;
 
     if (dir_entry != NULL && dir_entry->global_flag) {
-      title = "Showall/Global File Help";
       nav_strip = &file_help_nav_builtin[1];
+      context_id = dir_entry->global_all_volumes ? "main.global"
+                                                 : "main.showall";
     } else if (ctx->view_mode == ARCHIVE_MODE) {
-      title = "Archive File Help";
       nav_strip = &file_help_nav_builtin[0];
+      context_id = "main.archive-file";
     } else {
-      title = "File Help";
       nav_strip = &file_help_nav_builtin[0];
+      context_id = "main.file";
     }
 
     specs =
@@ -1616,24 +1620,15 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
         rows, row_count, line0_signpost, line1_signpost, commands, spec_count,
         dir_entry != NULL && dir_entry->global_flag);
     row_count = AppendPopupStripRow(rows, row_count, nav_strip);
+    if (ctx->is_split_screen) {
+      row_count = AppendPopupCommandRow(
+          rows, row_count, "", split_help_commands,
+          sizeof(split_help_commands) / sizeof(split_help_commands[0]));
+      context_id = "overlay.f8-file";
+    }
   }
 
-  if (ctx->is_split_screen) {
-    row_count = AppendPopupCommandRow(
-        rows, row_count, "",
-        split_help_commands,
-        sizeof(split_help_commands) / sizeof(split_help_commands[0]));
-    row_count = AppendPopupTextRow(
-        rows, row_count,
-        "Copy/move/compare prompts default to the inactive panel when split mode is active.");
-  }
-  if (active_focus == FOCUS_FILE && dir_entry != NULL && dir_entry->global_flag) {
-    row_count = AppendPopupTextRow(
-        rows, row_count,
-        "Esc returns to the previous directory view; \\ jumps to the owner directory.");
-  }
-
-  return UI_ShowHelpPopup(ctx, title, rows, row_count);
+  return UI_ShowGeneratedContextHelp(ctx, context_id, rows, row_count);
 }
 
 void ClearHelp(ViewContext *ctx) {

@@ -234,6 +234,12 @@ typedef struct {
   const UICommandStripCommand *commands;
   size_t command_count;
 } UIHelpPopupRow;
+typedef struct {
+  const UICommandStripCommand *commands;
+  size_t command_count;
+  int (*key_handler)(ViewContext *, int, void *);
+  void *key_data;
+} UIHelpPopupFooterSpec;
 extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
                                        size_t command_count);
 extern int UI_FormatCommandStripEntryText(const UICommandStripCommand *command,
@@ -246,6 +252,10 @@ extern int UI_RenderAdaptiveCommandStrip(WINDOW *win, int y, int x,
                                          const UICommandStripCommand *commands,
                                          size_t command_count, int ncolor,
                                          int hcolor);
+extern int
+UI_ShowHelpPopupWithFooter(ViewContext *ctx, const char *title,
+                           const UIHelpPopupRow *rows, size_t row_count,
+                           const UIHelpPopupFooterSpec *footer_spec);
 extern int UI_ShowHelpPopup(ViewContext *ctx, const char *title,
                             const UIHelpPopupRow *rows, size_t row_count);
 extern int UI_ShowHelpPopupDismissAnyKey(ViewContext *ctx, const char *title,
@@ -350,6 +360,10 @@ extern void FileInfoGitDescribe(const YtreeNovaPanel *panel,
 extern int Getch(ViewContext *ctx);
 extern void HitReturnToContinue(void);
 extern int InputChoice(ViewContext *ctx, const char *msg, const char *term);
+extern int InputChoiceWithHelp(ViewContext *ctx, const char *msg,
+                               const char *term,
+                               int (*help_callback)(ViewContext *, void *),
+                               void *help_data);
 extern int InputChoiceLiteral(ViewContext *ctx, const char *msg,
                               const char *term);
 extern int InputChoiceCommandStrip(ViewContext *ctx,
@@ -369,6 +383,11 @@ extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                                  size_t hints_override_count,
                                  int (*help_callback)(ViewContext *, void *),
                                  void *help_data);
+extern int UI_ShowGeneratedContextHelp(ViewContext *ctx, const char *context_id,
+                                       const UIHelpPopupRow *prefix_rows,
+                                       size_t prefix_row_count);
+extern int UI_ShowGeneratedContextHelpCallback(ViewContext *ctx,
+                                               void *help_data);
 
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);

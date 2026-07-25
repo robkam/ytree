@@ -11,6 +11,12 @@
 #include <string.h>
 #include <unistd.h>
 
+static const char output_format_help_context[] = "prompt.output-format";
+static const char output_destination_help_context[] =
+    "prompt.output-destination";
+static const char output_separator_help_context[] =
+    "prompt.output-separator";
+
 static void ClearPrintPrompt(ViewContext *ctx) {
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
   wclrtoeol(ctx->ctx_border_window);
@@ -46,8 +52,10 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
 
   ClearHelp(ctx);
 
-  term = InputChoice(
-      ctx, "Format: (R)aw, (F)ramed, (P)age break  (Esc) cancel  ", "RFP\033");
+  term = InputChoiceWithHelp(ctx,
+                             "Format: (R)aw, (F)ramed, (P)age break  (Esc) cancel  ",
+                             "RFP\033", UI_ShowGeneratedContextHelpCallback,
+                             (void *)output_format_help_context);
   if (term == ESC) {
     ClearPrintPrompt(ctx);
     return;
@@ -67,9 +75,10 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
         (config.format == PRINT_FORMAT_PAGEBREAK)
             ? "Page break separator (default: ```): "
             : "Frame separator (default: ```): ";
-    if (UI_ReadString(ctx, ctx->active,
-                      separator_prompt, frame_sep,
-                      sizeof(frame_sep) - 1, HST_PRINT_FRAME) == ESC) {
+    if (UI_ReadStringWithHelp(ctx, ctx->active, separator_prompt, frame_sep,
+                              sizeof(frame_sep) - 1, HST_PRINT_FRAME, NULL, 0,
+                              UI_ShowGeneratedContextHelpCallback,
+                              (void *)output_separator_help_context) == ESC) {
       ClearPrintPrompt(ctx);
       return;
     }
@@ -80,9 +89,11 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
              frame_sep);
   }
 
-  term = InputChoice(ctx,
-                     "Destination: (F)ile, (C)ommand  (Esc) cancel  ",
-                     "FC\033");
+  term = InputChoiceWithHelp(ctx,
+                             "Destination: (F)ile, (C)ommand  (Esc) cancel  ",
+                             "FC\033",
+                             UI_ShowGeneratedContextHelpCallback,
+                             (void *)output_destination_help_context);
   if (term == ESC) {
     ClearPrintPrompt(ctx);
     return;
@@ -101,10 +112,12 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
       snprintf(prompt, sizeof(prompt), "Write file: ");
     }
 
-    if (UI_ReadString(ctx, ctx->active, prompt, config.print_to, PATH_LENGTH,
-                      config.destination == PRINT_DESTINATION_COMMAND
-                          ? HST_PIPE
-                          : HST_FILE) != CR) {
+    if (UI_ReadStringWithHelp(
+            ctx, ctx->active, prompt, config.print_to, PATH_LENGTH,
+            config.destination == PRINT_DESTINATION_COMMAND ? HST_PIPE
+                                                            : HST_FILE,
+            NULL, 0, UI_ShowGeneratedContextHelpCallback,
+            (void *)output_destination_help_context) != CR) {
       ClearPrintPrompt(ctx);
       return;
     }

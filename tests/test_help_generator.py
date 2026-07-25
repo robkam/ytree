@@ -35,6 +35,8 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file." in usage
     assert "generated_help_topic_count" in header
     assert '"main.dir"' in header
+    assert '"prompt.compare-target"' in header
+    assert '"prompt.output-format"' in header
     assert 'generated_help_links_filter' in header
 
 

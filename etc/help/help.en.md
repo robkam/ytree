@@ -370,8 +370,12 @@ title: Filter Help
 contexts: prompt.filter,prompt.filter-tagged
 ```
 ### Contextual F1
-Filter help stays prompt-local: it explains accepted filter syntax, the default
-`*` behavior, and any scope toggles that belong to the active filter prompt.
+Use normal glob-like patterns such as `*.c`, comma-separated unions such as
+`*.c,*.h`, and exclusions such as `-*.o`.
+Extended selectors such as `:r`, `:x`, `>2023-01-01`, and `>1M` stay valid in
+the runtime prompt, and an empty entry falls back to `*`.
+Filter prompts stay scoped to the active file-list family, including tagged
+aggregates when the current prompt came from a tagged-only view.
 
 ### Explainer links
 - [Navigation](topic:navigation)
@@ -393,12 +397,12 @@ result to their own current scope and tagged/untagged conventions.
 ## topic:compare
 ```ytnova-help-meta
 title: Compare Help
-contexts: prompt.compare-target,prompt.compare-scope,prompt.compare-basis,prompt.compare-results
+contexts: none
 ```
 ### Contextual F1
-Compare help explains the compare flow currently in progress: target entry,
-scope selection, comparison basis, or result tagging. The runtime chooses the
-relevant excerpt by context mapping, not by duplicating prose in each prompt.
+Compare help is split into prompt-local runtime topics plus this shared long-form
+explainer. Runtime `F1` pages stay focused on the active compare step, then link
+back here for the broader compare model.
 
 ### Explainer links
 - [Navigation](topic:navigation)
@@ -423,15 +427,95 @@ relevant excerpt by context mapping, not by duplicating prose in each prompt.
     subdirectories.
 *   There is no separate "compare tagged files" mode.
 
+## topic:compare-target
+```ytnova-help-meta
+title: Compare Target Help
+contexts: prompt.compare-target
+```
+### Contextual F1
+The current file, directory, or logged tree is the compare source.
+Enter the target path directly, or use `F2` to browse and `Up` for prompt
+history.
+In split view, the inactive panel seeds the default compare target.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Compare overview](topic:compare)
+
+### Long form
+#### Runtime scope
+This runtime-only topic keeps the compare-target popup concise while the shared
+compare explainer continues to own the broader compare documentation bundle.
+
+## topic:compare-scope
+```ytnova-help-meta
+title: Compare Scope Help
+contexts: prompt.compare-scope
+```
+### Contextual F1
+Directory only compares the current directory.
+Logged tree compares the current logged tree recursively and never auto-logs
+unopened `+` subdirectories.
+External viewer launches `DIRDIFF` or `TREEDIFF` helpers instead of tagging
+runtime compare results.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Compare overview](topic:compare)
+
+### Long form
+#### Runtime scope
+This runtime-only topic explains the compare-scope chooser without duplicating
+the full compare documentation into prompt-local code.
+
+## topic:compare-basis
+```ytnova-help-meta
+title: Compare Basis Help
+contexts: prompt.compare-basis
+```
+### Contextual F1
+Size checks file length and Date checks the last-modified time.
+`siZe+date` marks a difference when either size or modification time differs.
+Hash opens both files and compares their content exactly, so it is slower than
+metadata-only checks.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Compare overview](topic:compare)
+
+### Long form
+#### Runtime scope
+This runtime-only topic keeps the compare-basis chooser generated-content
+driven without widening the long-form command reference.
+
+## topic:compare-results
+```ytnova-help-meta
+title: Compare Result Help
+contexts: prompt.compare-results
+```
+### Contextual F1
+Choose which compare result to tag in the active/source-side file list.
+`diFferent` tags basis mismatches and `Unique` tags source-only entries.
+Match, Newer, Older, Type-mismatch, and Error each tag only that one outcome.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Compare overview](topic:compare)
+
+### Long form
+#### Runtime scope
+This runtime-only topic keeps the compare-result chooser generated-content
+driven while the shared compare explainer owns the durable long-form docs.
+
 ## topic:output
 ```ytnova-help-meta
 title: Output Help
-contexts: prompt.output-format,prompt.output-destination,prompt.output-separator
+contexts: none
 ```
 ### Contextual F1
-Output help explains the active output step: format choice, file destination,
-hardcopy command, or separator prompt. Later runtime mapping chooses the
-relevant slice without scattering separate authored prose stores.
+Output help is split into runtime prompt topics plus this shared long-form
+explainer. Runtime `F1` pages stay focused on the active output step, then link
+back here for the durable write/export model.
 
 ### Explainer links
 - [Navigation](topic:navigation)
@@ -451,6 +535,68 @@ Raw, Framed, and Page Break variants plus any separator prompt that follows.
 If the runtime later narrows a contextual slice, the generated long-form docs
 must still come from this one authored topic.
 
+## topic:output-format
+```ytnova-help-meta
+title: Output Format Help
+contexts: prompt.output-format
+```
+### Contextual F1
+Raw writes content without frame headings.
+Framed adds per-file heading/footer framing, and Page break inserts a separator
+between successive files without leaving a trailing separator at the end.
+Choose the format first; later prompts gather separators and destinations.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Output overview](topic:output)
+
+### Long form
+#### Runtime scope
+This runtime-only topic keeps the format chooser generated-content driven while
+the shared output explainer owns the durable long-form docs.
+
+## topic:output-destination
+```ytnova-help-meta
+title: Output Destination Help
+contexts: prompt.output-destination
+```
+### Contextual F1
+Destination chooses whether write/output goes to a file path or to an external
+command.
+When the prompt asks for the final target, enter either the destination file or
+the command line exactly as you want it run.
+Leave the destination blank only to cancel and return without writing.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Output overview](topic:output)
+
+### Long form
+#### Runtime scope
+This runtime-only topic keeps the destination chooser generated-content driven
+without duplicating prompt prose in print/output controllers.
+
+## topic:output-separator
+```ytnova-help-meta
+title: Output Separator Help
+contexts: prompt.output-separator
+```
+### Contextual F1
+Framed and Page break modes prompt for a separator string before the
+destination step.
+Leave the separator blank to accept the default triple-backtick fence.
+The separator text is reused between files only for the selected framed/page
+format; Raw output skips this prompt entirely.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Output overview](topic:output)
+
+### Long form
+#### Runtime scope
+This runtime-only topic keeps the separator prompt generated-content driven
+while the shared output explainer remains the canonical long-form reference.
+
 ## topic:showall
 ```ytnova-help-meta
 title: Showall Help
@@ -459,6 +605,9 @@ contexts: main.showall
 ### Contextual F1
 Showall help explains the single-volume aggregated file view and the commands
 or caveats that differ from ordinary file mode.
+Press `Esc` to return to the previously selected directory.
+Press `\\` to jump to the owner directory of the selected file inside the
+current logged volume.
 
 ### Explainer links
 - [Navigation](topic:navigation)
@@ -483,6 +632,9 @@ contexts: main.global
 ### Contextual F1
 Global help explains the multi-volume aggregated file view, including how it
 returns to owner directories and how its scope differs from ordinary file mode.
+Press `Esc` to return to the previously selected directory.
+Press `\\` to jump to the owner directory of the selected file even when that
+owner lives under a different logged volume root.
 
 ### Explainer links
 - [Navigation](topic:navigation)
@@ -505,8 +657,11 @@ title: F7 Preview Help
 contexts: overlay.f7-dir,overlay.f7-file
 ```
 ### Contextual F1
-F7 help explains preview ownership, allowed keys, blocked keys, and how the
-preview overlay interacts with the underlying directory or file context.
+F7 help explains preview ownership and how the preview overlay interacts with
+the underlying directory or file context.
+Use `Shift+Up/Down` or `^P/^N` to scroll preview contents line by line.
+Use `Shift+PgUp/PgDn` for pages and `Shift+Home/End` to jump to the top or
+bottom of the current preview.
 
 ### Explainer links
 - [Navigation](topic:navigation)
@@ -534,6 +689,10 @@ contexts: overlay.f8-dir,overlay.f8-file
 ### Contextual F1
 F8 help explains split-view ownership, inactive-panel defaults, and the keys
 or caveats that only appear while split mode is active.
+Press `Tab` to switch the active panel while leaving the passive panel's state
+intact.
+Copy, move, and compare prompts default to the inactive panel as the
+destination/target while split mode is active.
 
 ### Explainer links
 - [Navigation](topic:navigation)

@@ -18,15 +18,8 @@ static const UICommandStripCommand help_popup_scroll_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "F1", "Esc"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL}};
 
-static int HelpPopupFooterWidth(BOOL scrollable) {
-  const UICommandStripCommand *commands =
-      scrollable ? help_popup_scroll_commands : help_popup_close_commands;
-  size_t command_count = scrollable
-                             ? sizeof(help_popup_scroll_commands) /
-                                   sizeof(help_popup_scroll_commands[0])
-                             : sizeof(help_popup_close_commands) /
-                                   sizeof(help_popup_close_commands[0]);
-
+static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
+                                size_t command_count) {
   return UI_CommandStripVisualLength(commands, command_count);
 }
 
@@ -80,9 +73,16 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int content_width,
 
 static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                  const UIHelpPopupRow *rows, size_t row_count,
-                                 BOOL dismiss_any_key) {
+                                 BOOL dismiss_any_key,
+                                 const UIHelpPopupFooterSpec *footer_spec) {
+  static const UICommandStripCommand *const default_close_commands =
+      help_popup_close_commands;
+  static const UICommandStripCommand *const default_scroll_commands =
+      help_popup_scroll_commands;
   WINDOW *win;
   int content_width;
+  const UICommandStripCommand *effective_footer_commands;
+  size_t effective_footer_count;
   int footer_width;
   int height;
   int i;
@@ -120,7 +120,18 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     visible_rows = max_visible_rows;
 
   scrollable = ((int)row_count > visible_rows);
-  footer_width = HelpPopupFooterWidth(scrollable);
+  effective_footer_commands = footer_spec != NULL && footer_spec->commands != NULL
+                                  ? footer_spec->commands
+                                  : (scrollable ? default_scroll_commands
+                                                : default_close_commands);
+  effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
+                               ? footer_spec->command_count
+                               : (scrollable ? sizeof(help_popup_scroll_commands) /
+                                                   sizeof(help_popup_scroll_commands[0])
+                                             : sizeof(help_popup_close_commands) /
+                                                   sizeof(help_popup_close_commands[0]));
+  footer_width =
+      HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
   if (footer_width + 4 > width)
     width = MINIMUM(footer_width + 4, COLS - 4);
 
@@ -131,7 +142,18 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   if (visible_rows < 1)
     visible_rows = 1;
   scrollable = ((int)row_count > visible_rows);
-  footer_width = HelpPopupFooterWidth(scrollable);
+  effective_footer_commands = footer_spec != NULL && footer_spec->commands != NULL
+                                  ? footer_spec->commands
+                                  : (scrollable ? default_scroll_commands
+                                                : default_close_commands);
+  effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
+                               ? footer_spec->command_count
+                               : (scrollable ? sizeof(help_popup_scroll_commands) /
+                                                   sizeof(help_popup_scroll_commands[0])
+                                             : sizeof(help_popup_close_commands) /
+                                                   sizeof(help_popup_close_commands[0]));
+  footer_width =
+      HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
 
   content_width = width - 4;
   win_x = MAXIMUM(1, (COLS - width) / 2);
@@ -148,13 +170,17 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
 
   while (1) {
     int ch;
-    const UICommandStripCommand *footer_commands =
-        scrollable ? help_popup_scroll_commands : help_popup_close_commands;
-    size_t footer_command_count =
-        scrollable ? sizeof(help_popup_scroll_commands) /
-                         sizeof(help_popup_scroll_commands[0])
-                   : sizeof(help_popup_close_commands) /
-                         sizeof(help_popup_close_commands[0]);
+
+    effective_footer_commands =
+        footer_spec != NULL && footer_spec->commands != NULL
+            ? footer_spec->commands
+            : (scrollable ? default_scroll_commands : default_close_commands);
+    effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
+                                 ? footer_spec->command_count
+                                 : (scrollable ? sizeof(help_popup_scroll_commands) /
+                                                     sizeof(help_popup_scroll_commands[0])
+                                               : sizeof(help_popup_close_commands) /
+                                                     sizeof(help_popup_close_commands[0]));
 
     werase(win);
 #ifdef COLOR_SUPPORT
@@ -172,13 +198,18 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
 
     UI_RenderCommandStrip(win, height - 2,
                           MAXIMUM(2, (width - footer_width) / 2),
-                          footer_commands, footer_command_count, UI_ROLE_HELP,
-                          UI_ROLE_KEYBIND);
+                          effective_footer_commands, effective_footer_count,
+                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
     wrefresh(win);
 
     ch = WGetch(ctx, win);
     if (ch == ERR)
       continue;
+
+    if (footer_spec != NULL && footer_spec->key_handler != NULL &&
+        footer_spec->key_handler(ctx, ch, footer_spec->key_data)) {
+      break;
+    }
 
     if (ch == KEY_F(1) || ch == ESC || ch == CR || ch == LF)
       break;
@@ -226,13 +257,20 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   return 0;
 }
 
+int UI_ShowHelpPopupWithFooter(ViewContext *ctx, const char *title,
+                               const UIHelpPopupRow *rows, size_t row_count,
+                               const UIHelpPopupFooterSpec *footer_spec) {
+  return ShowHelpPopupInternal(ctx, title, rows, row_count, FALSE,
+                               footer_spec);
+}
+
 int UI_ShowHelpPopup(ViewContext *ctx, const char *title,
                      const UIHelpPopupRow *rows, size_t row_count) {
-  return ShowHelpPopupInternal(ctx, title, rows, row_count, FALSE);
+  return ShowHelpPopupInternal(ctx, title, rows, row_count, FALSE, NULL);
 }
 
 int UI_ShowHelpPopupDismissAnyKey(ViewContext *ctx, const char *title,
                                   const UIHelpPopupRow *rows,
                                   size_t row_count) {
-  return ShowHelpPopupInternal(ctx, title, rows, row_count, TRUE);
+  return ShowHelpPopupInternal(ctx, title, rows, row_count, TRUE, NULL);
 }

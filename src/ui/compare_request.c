@@ -11,15 +11,12 @@
 #include <ctype.h>
 #include <string.h>
 
-typedef enum {
-  COMPARE_HELP_FILE_TARGET = 0,
-  COMPARE_HELP_DIRECTORY_TARGET,
-  COMPARE_HELP_TREE_TARGET,
-  COMPARE_HELP_SCOPE,
-  COMPARE_HELP_EXTERNAL_SCOPE,
-  COMPARE_HELP_BASIS,
-  COMPARE_HELP_RESULTS
-} CompareHelpTopic;
+typedef struct {
+  const char *context_id;
+  const char *prefix;
+  const UICommandStripCommand *commands;
+  size_t command_count;
+} CompareGeneratedHelpSpec;
 
 static const UICommandStripCommand compare_status_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "context help", "F1", NULL},
@@ -49,6 +46,23 @@ static const UICommandStripCommand compare_target_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+static const CompareGeneratedHelpSpec compare_target_help_spec = {
+    "prompt.compare-target", "COMMANDS ", compare_target_hint_commands,
+    sizeof(compare_target_hint_commands) / sizeof(compare_target_hint_commands[0])};
+static const CompareGeneratedHelpSpec compare_scope_help_spec = {
+    "prompt.compare-scope", "COMMANDS ", compare_scope_commands,
+    sizeof(compare_scope_commands) / sizeof(compare_scope_commands[0])};
+static const CompareGeneratedHelpSpec compare_external_scope_help_spec = {
+    "prompt.compare-scope", "COMMANDS ", compare_external_scope_commands,
+    sizeof(compare_external_scope_commands) /
+        sizeof(compare_external_scope_commands[0])};
+static const CompareGeneratedHelpSpec compare_basis_help_spec = {
+    "prompt.compare-basis", "COMMANDS ", compare_basis_commands,
+    sizeof(compare_basis_commands) / sizeof(compare_basis_commands[0])};
+static const CompareGeneratedHelpSpec compare_results_help_spec = {
+    "prompt.compare-results", "COMMANDS ", compare_tag_result_commands,
+    sizeof(compare_tag_result_commands) /
+        sizeof(compare_tag_result_commands[0])};
 
 static void ClearComparePromptArea(ViewContext *ctx) {
   if (!ctx || !ctx->ctx_border_window)
@@ -112,89 +126,21 @@ static void DrawComparePrompt(ViewContext *ctx, const char *title,
   doupdate();
 }
 
-static void GetCompareHelpLines(CompareHelpTopic topic, const char **title,
-                                const char **line_0, const char **line_1,
-                                const char **line_2) {
-  if (!title || !line_0 || !line_1 || !line_2)
-    return;
-
-  *title = "Compare Help";
-
-  switch (topic) {
-  case COMPARE_HELP_FILE_TARGET:
-    *line_0 = "Current file is the compare source.";
-    *line_1 = "Enter the target path, or use (F2) browse and (Up) history.";
-    *line_2 = "In split view, the inactive panel provides the default target.";
-    break;
-  case COMPARE_HELP_DIRECTORY_TARGET:
-    *line_0 = "Current directory is the compare source.";
-    *line_1 = "Enter the target path, or use (F2) browse and (Up) history.";
-    *line_2 = "In split view, the inactive panel provides the default target.";
-    break;
-  case COMPARE_HELP_TREE_TARGET:
-    *line_0 = "Current logged tree is the compare source.";
-    *line_1 = "Enter the target path, or use (F2) browse and (Up) history.";
-    *line_2 = "In split view, the inactive panel provides the default target.";
-    break;
-  case COMPARE_HELP_SCOPE:
-    *line_0 = "Directory only compares the current directory.";
-    *line_1 = "Logged tree compares the current logged tree recursively.";
-    *line_2 = "Tree compare never auto-logs unopened '+' subdirectories.";
-    break;
-  case COMPARE_HELP_EXTERNAL_SCOPE:
-    *line_0 = "External compare launches DIRDIFF/TREEDIFF viewer commands.";
-    *line_1 = "It does not tag files and does not replace internal compare.";
-    *line_2 = "Choose directory or logged tree source scope for launch.";
-    break;
-  case COMPARE_HELP_BASIS:
-    *line_0 = "Size checks file length. Date checks the last-modified time.";
-    *line_1 =
-        "siZe+date marks a difference if size or modification time differs.";
-    *line_2 = "Hash opens both files and compares their content exactly, so it "
-              "is slower.";
-    break;
-  case COMPARE_HELP_RESULTS:
-  default:
-    *line_0 = "Choose which compare result to tag in the active file list.";
-    *line_1 =
-        "diFferent tags basis mismatches. Unique tags source-only entries.";
-    *line_2 =
-        "Match/Newer/Older/Type-mismatch/Error each tag only that outcome.";
-    break;
-  }
-}
-
-static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
-  const char *title = NULL;
-  const char *line_0 = NULL;
-  const char *line_1 = NULL;
-  const char *line_2 = NULL;
-  UIHelpPopupRow rows[3];
-
-  if (!ctx)
-    return;
-
-  GetCompareHelpLines(topic, &title, &line_0, &line_1, &line_2);
-  rows[0].kind = UI_HELP_POPUP_TEXT;
-  rows[0].prefix = NULL;
-  rows[0].text = line_0;
-  rows[0].commands = NULL;
-  rows[0].command_count = 0;
-  rows[1] = rows[0];
-  rows[1].text = line_1;
-  rows[2] = rows[0];
-  rows[2].text = line_2;
-  (void)UI_ShowHelpPopupDismissAnyKey(ctx, title, rows,
-                                      sizeof(rows) / sizeof(rows[0]));
-}
-
 static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {
-  CompareHelpTopic topic = COMPARE_HELP_FILE_TARGET;
+  const CompareGeneratedHelpSpec *spec =
+      (const CompareGeneratedHelpSpec *)help_data;
+  UIHelpPopupRow rows[1];
 
-  if (help_data != NULL)
-    topic = *(CompareHelpTopic *)help_data;
+  if (ctx == NULL || spec == NULL)
+    return 0;
 
-  ShowCompareHelpPopup(ctx, topic);
+  rows[0].kind = UI_HELP_POPUP_COMMAND_STRIP;
+  rows[0].prefix = spec->prefix;
+  rows[0].text = NULL;
+  rows[0].commands = spec->commands;
+  rows[0].command_count = spec->command_count;
+  (void)UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows,
+                                    sizeof(rows) / sizeof(rows[0]));
   return 0;
 }
 
@@ -202,7 +148,7 @@ static int InputCompareChoice(ViewContext *ctx, const char *title,
                               const UICommandStripCommand *commands,
                               size_t command_count, const char *valid_terms,
                               int default_choice,
-                              CompareHelpTopic help_topic) {
+                              const CompareGeneratedHelpSpec *help_spec) {
   if (!ctx || !title || !valid_terms)
     return ESC;
 
@@ -216,7 +162,7 @@ static int InputCompareChoice(ViewContext *ctx, const char *title,
       continue;
 
     if (ch == KEY_F(1)) {
-      ShowCompareHelpPopup(ctx, help_topic);
+      (void)ShowCompareHelpCallback(ctx, (void *)help_spec);
       continue;
     }
     if (ch == ESC) {
@@ -244,7 +190,7 @@ static int InputCompareChoice(ViewContext *ctx, const char *title,
 
 static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
                                    const char *default_path, char *target_path,
-                                   CompareHelpTopic help_topic) {
+                                   const CompareGeneratedHelpSpec *help_spec) {
   if (!ctx || !prompt || !target_path)
     return -1;
 
@@ -265,7 +211,7 @@ static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
                             HST_PATH, compare_target_hint_commands,
                             sizeof(compare_target_hint_commands) /
                                 sizeof(compare_target_hint_commands[0]),
-                            ShowCompareHelpCallback, &help_topic) != CR) {
+                            ShowCompareHelpCallback, (void *)help_spec) != CR) {
     return -1;
   }
 
@@ -284,7 +230,7 @@ static int PromptCompareBasis(ViewContext *ctx, CompareBasis *basis) {
   ch = InputCompareChoice(
       ctx, "COMPARE BASIS:", compare_basis_commands,
       sizeof(compare_basis_commands) / sizeof(compare_basis_commands[0]), "SDZH",
-      0, COMPARE_HELP_BASIS);
+      0, &compare_basis_help_spec);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -317,7 +263,7 @@ static int PromptCompareTagResult(ViewContext *ctx,
       ctx, "TAG FILE LIST:", compare_tag_result_commands,
       sizeof(compare_tag_result_commands) /
           sizeof(compare_tag_result_commands[0]),
-      "FMNOUTE", 0, COMPARE_HELP_RESULTS);
+      "FMNOUTE", 0, &compare_results_help_spec);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -428,7 +374,7 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
   ch = InputCompareChoice(
       ctx, "COMPARE SCOPE:", compare_scope_commands,
       sizeof(compare_scope_commands) / sizeof(compare_scope_commands[0]), "DTX",
-      'D', COMPARE_HELP_SCOPE);
+      'D', &compare_scope_help_spec);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -445,7 +391,7 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
         ctx, "EXTERNAL VIEWER:", compare_external_scope_commands,
         sizeof(compare_external_scope_commands) /
             sizeof(compare_external_scope_commands[0]),
-        "DT", 'D', COMPARE_HELP_EXTERNAL_SCOPE);
+        "DT", 'D', &compare_external_scope_help_spec);
     if (scope_ch == ESC || scope_ch < 0)
       return -1;
     *choice = (scope_ch == 'T') ? COMPARE_MENU_EXTERNAL_TREE
@@ -484,7 +430,7 @@ int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
   if (PromptCompareTargetPath(
           ctx, "COMPARE TARGET:",
           default_target ? default_target : request->source_path,
-          request->target_path, COMPARE_HELP_FILE_TARGET) != 0) {
+          request->target_path, &compare_target_help_spec) != 0) {
     return -1;
   }
 
@@ -539,9 +485,7 @@ static int BuildDirectoryCompareRequestInternal(ViewContext *ctx,
                               default_target ? default_target
                                              : request->source_path,
                               request->target_path,
-                              flow_type == COMPARE_FLOW_DIRECTORY
-                                  ? COMPARE_HELP_DIRECTORY_TARGET
-                                  : COMPARE_HELP_TREE_TARGET) != 0) {
+                              &compare_target_help_spec) != 0) {
     return -1;
   }
   request->target_path[PATH_LENGTH] = '\0';
