@@ -228,6 +228,37 @@ def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytnova_binary, t
     tui.quit()
 
 
+def test_split_top_borders_show_current_filter(ytnova_binary, tmp_path):
+    d = tmp_path / "split_filter_header"
+    d.mkdir()
+    for name in ("alpha.c", "beta.h", "gamma.txt"):
+        (d / name).write_text("x", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
+    assert tui.wait_for_text("Path:", timeout=2.0), "Initial header did not render."
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke("f", wait=0.2)
+    assert tui.wait_for_content("FILTER:", timeout=1.0), "Filter prompt missing."
+    tui.send_keystroke(Keys.CTRL_U + "*.c,*.h" + Keys.ENTER, wait=0.5)
+
+    lines = tui.send_and_wait_for_condition(
+        Keys.F8,
+        lambda dump: (
+            dump
+            if len(dump) > 1
+            and _detect_panel_split_x(dump) is not None
+            and "<*.c,*.h>" in dump[1][:_detect_panel_split_x(dump)]
+            and "<*.c,*.h>" in dump[1][_detect_panel_split_x(dump) + 1 :]
+            else False
+        ),
+        timeout=2.0,
+    )
+    assert lines, "Split header did not show the current filter on both borders."
+
+    tui.quit()
+
+
 def test_file_window_left_right_edge_no_wrap(ytnova_binary, tmp_path):
     """
     REGRESSION:
