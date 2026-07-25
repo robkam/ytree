@@ -229,18 +229,18 @@ Ordering policy (for all editors, including AI editors):
 *   **Status**: Confirmed.
 
 ### **BUG-9: Footer/Help/Prompt Trust Family**
-*   **Description**: BUG-9 is the root footer/help/prompt trust family. BUG-9.1 through BUG-9.4 are visible effects of the same underlying discoverability problem.
+*   **Description**: BUG-9 is the root footer keybinding/F1/prompt trust family. BUG-9.1 through BUG-9.4 are visible effects of the same underlying discoverability problem.
 *   **Family contract**: footer, F1 help, and prompt text must report the same available actions and context; help surfaces must not imply unavailable actions; cancel/exit paths must restore the normal context footer; archive-specific messages must report the actual attempted shortcut; archive tree rendering must stay structurally honest.
 *   **Related**: `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract) and Task 43.1 (Add Contextual F1 Hyperlinks and Shared Explainer Pages).
 *   **Status**: Fixed.
 
 ### **BUG-9.1: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
-*   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave footer/help lines blank instead of restoring the normal context footer.
+*   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave the footer keybinding lines blank instead of restoring the normal context footer.
 *   **Findings**:
     *   Deterministic repro under sanitizer gate (`make qa-sanitize`) on 2026-05-16: `tests/test_display_layout.py::test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer` fails with `AssertionError: Header/path row disappeared after canceling create prompt`.
     *   The failing path is directory copy to a missing destination where the create-directory prompt is canceled with `No`.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.
-*   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer/help ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
+*   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer keybinding/F1 ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
 *   **Related**: `BUG-21` (footer restore consistency during input flows), `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract).
 *   **Status**: Confirmed.
 
@@ -265,9 +265,9 @@ Ordering policy (for all editors, including AI editors):
 *   **Status**: Confirmed.
 
 ### **BUG-10: Progress Spinner Can Overwrite Footer/Prompt Help Surfaces**
-*   **Description**: During long-running operations, spinner/progress rendering can overwrite footer/prompt help text instead of using a non-obtrusive status area.
+*   **Description**: During long-running operations, spinner/progress rendering can overwrite footer keybinding or prompt text instead of using a non-obtrusive status area.
 *   **Impact**: Hides available actions and makes active workflows look unstable or hung.
-*   **Remediation**: Preserve footer/prompt/F1 ownership during progress updates. Render progress in a dedicated non-obtrusive status surface, and degrade to a compact indicator when space is constrained rather than overwriting help text.
+*   **Remediation**: Preserve footer keybinding/prompt/F1 ownership during progress updates. Render progress in a dedicated non-obtrusive status surface, and degrade to a compact indicator when space is constrained rather than overwriting user guidance text.
 *   **Related**: `ROADMAP` Task 20 (Progress Indicators for Copy/Move/Delete/Archive Workflows), `ROADMAP` Task 43 (Refine Contextual F1 Content and Footer-Parity Contract), and `ROADMAP` Task 43.2 (Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance).
 *   **Status**: Confirmed.
 
@@ -342,10 +342,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Related**: `F7` preview and internal `^V` tagged viewer should be treated as one defect family.
 *   **Status**: Confirmed.
 
-### **BUG-21: `/` Jump Replaces Footer Help with Prompt UI**
-*   **Description**: Pressing `/` currently switches footer content to a `Jump to:` prompt UI instead of keeping the normal footer help text visible while incremental jump runs.
+### **BUG-21: `/` Jump Replaces Footer Keybinding Hints with Prompt UI**
+*   **Description**: Pressing `/` currently switches footer content to a `Jump to:` prompt UI instead of keeping the normal footer keybinding text visible while incremental jump runs.
 *   **Impact**: Breaks the expected inline jump flow and creates avoidable UI churn during frequent navigation.
-*   **Remediation**: Keep footer help text unchanged during `/` incremental jump and apply immediate selection movement as characters are typed (for example `/y` jumps to the first matching entry) without footer prompt takeover.
+*   **Remediation**: Keep footer keybinding text unchanged during `/` incremental jump and apply immediate selection movement as characters are typed (for example `/y` jumps to the first matching entry) without footer prompt takeover.
 *   **Status**: Confirmed.
 
 ### **BUG-22: Color Configuration Roles Are Misrouted Across Unrelated UI Surfaces**
@@ -359,7 +359,7 @@ Ordering policy (for all editors, including AI editors):
     *   `BORDERS_COLOR` affects line art, but also appears to affect the dynamic path part of the header, stats box titles, static+dynamic text in volume sections, current-dir/attributes path text, and all text in the attributes box.
     *   `MENU_COLOR` affects footer menu text and also the clock color.
     *   Neutral interaction surfaces are inconsistent: footer prompts can turn grey wholesale, history can remain cyan-on-blue when it should be neutral dialog styling, and F2 option/help text mixes prompt, menu, and content roles.
-*   **Expected**: Color keys should map to coherent semantic roles. Borders/box lines, static labels, dynamic values, keybinding text, neutral dialog/history surfaces, prompt input fields, preview text, and footer/help text must be independently predictable enough that changing one role does not unexpectedly recolor unrelated UI surfaces.
+*   **Expected**: Color keys should map to coherent semantic roles. Borders/box lines, static labels, dynamic values, keybinding text, neutral dialog/history surfaces, prompt input fields, preview text, footer keybinding text, and F1 help text must be independently predictable enough that changing one role does not unexpectedly recolor unrelated UI surfaces.
 *   **Impact**: Makes theme tuning unreliable and confusing; users cannot produce a restrained, readable theme because color controls behave like cross-wired chimeras rather than intentional UI roles.
 *   **Remediation**:
     *   Audit all uses of semantic role pairs, `WbkgdSet`, `wattr*`, and `COLOR_PAIR` in the header, stats panel, footer/prompt, F2/history, autoview/preview, and dialog paths.
@@ -396,7 +396,7 @@ Ordering policy (for all editors, including AI editors):
     *   `j` maps to both `ACTION_MOVE_DOWN` (via `VI_KEY_DOWN`) and historically to `ACTION_LOG_VOLUME` (though currently `l/L` is the log volume key, older documentation/muscle memory remains confused).
     *   `k/K` is used for `ACTION_VOL_MENU`. In VI mode, lowercase `k` is stolen for `Up`, making the volume menu reachable only via uppercase `K`.
 *   **Impact**: Inconsistent UI accessibility for power users.
-*   **Remediation**: Audit all `VI_KEY` remappings in `key_engine.c` and ensure the footer help lines (`display.c`) dynamically update to show the uppercase variants when `VI_KEYS=1`.
+*   **Remediation**: Audit all `VI_KEY` remappings in `key_engine.c` and ensure the footer keybinding lines (`display.c`) dynamically update to show the uppercase variants when `VI_KEYS=1`.
 *   **Status**: Confirmed.
 
 ### **BUG-26: Incremental Search Legacy Mapping (`F12`)**

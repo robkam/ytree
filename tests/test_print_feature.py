@@ -89,7 +89,7 @@ def test_print_and_pipe_feature():
         ytnova.child.send("W") # Tagged Write
         ytnova.child.expect(r"cancel", timeout=10)
         ytnova.child.send("P") # Page break mode
-        ytnova.child.expect(r"Frame separator", timeout=5)
+        ytnova.child.expect(r"Page break separator", timeout=5)
         ytnova.input_text("---SEP---")
         _select_write_destination(ytnova, "F")
         ytnova.input_text(out_file_multi)
@@ -163,5 +163,39 @@ def test_write_command_failure_shows_error_without_crash():
         ytnova.input_text("false")
         ytnova.child.expect(r"execution of command", timeout=10)
         assert ytnova.child.isalive(), "ytnova crashed after write command failure"
+
+        ytnova.quit()
+
+
+def test_page_break_prompt_is_not_reused_from_framed_mode():
+    with tempfile.TemporaryDirectory() as td:
+        file_path = os.path.join(td, "source.txt")
+        with open(file_path, "w") as f:
+            f.write("page-break-prompt\n")
+
+        binary = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "build",
+            "ytnova",
+        )
+        ytnova = YtreeNovaController(binary, td)
+        ytnova.wait_for_startup()
+        ytnova.child.send(Keys.ENTER)
+        ytnova.wait_for_refresh()
+        ytnova.wait_for_refresh()
+
+        format_prompt = ytnova.send_and_wait_for_condition(
+            "w",
+            lambda screen: screen
+            if any("Format:" in line and "Page break" in line for line in screen)
+            else False,
+            timeout=2.0,
+        )
+        assert format_prompt, "Write format prompt did not appear"
+
+        ytnova.child.send("P")
+        assert ytnova.wait_for_text("Page break separator", timeout=2.0), (
+            "\n".join(ytnova.get_screen_dump())
+        )
 
         ytnova.quit()

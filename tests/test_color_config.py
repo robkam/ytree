@@ -10,11 +10,14 @@ THEME_ROLES = {
     "static_text",
     "dynamic_text",
     "keybind",
+    "footer",
     "selection",
     "dialog",
     "picker",
     "picker_selection",
     "help",
+    "help_link",
+    "help_link_selection",
     "info",
     "warning",
     "error",
@@ -130,6 +133,10 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "dialog = white\n" in classic
     assert "picker = black on cyan\n" in classic
     assert "picker_selection = selection\n" in classic
+    assert "footer = white\n" in classic
+    assert "help = white\n" in classic
+    assert "help_link = cyan\n" in classic
+    assert "help_link_selection = yellow\n" in classic
     assert "disabled =" not in classic
     assert "box_lines = cyan on blue" not in classic
     assert "dynamic_text = +white on blue" not in classic
@@ -137,6 +144,10 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "keybind = +white\n" in bash_black
     assert "picker = black on grey\n" in bash_black
     assert "picker_selection = selection\n" in bash_black
+    assert "footer = white\n" in bash_black
+    assert "help = white\n" in bash_black
+    assert "help_link = cyan\n" in bash_black
+    assert "help_link_selection = yellow\n" in bash_black
     assert "info = white on blue\n" in bash_black
     assert "error = white on red\n" in bash_black
 
@@ -234,6 +245,9 @@ def test_spec_documents_user_visible_theme_contract():
         "Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`"
         in spec_source
     )
+    assert "`footer`" in spec_source
+    assert "`help_link`" in spec_source
+    assert "`help_link_selection`" in spec_source
     assert "`disabled`" not in spec_source
     assert "`grey`/`gray`" in spec_source
     assert "bright black" not in spec_source.lower()

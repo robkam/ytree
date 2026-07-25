@@ -463,10 +463,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = +white on red
@@ -641,10 +644,13 @@ tree_lines = +white on blue
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = +white on red
@@ -767,10 +773,13 @@ margin = dynamic_text
 static_text = white
 dynamic_text = +white
 keybind = +white
+footer = white
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white
+help_link = cyan
+help_link_selection = yellow
 info = +white
 warning = black on yellow
 error = +white on red
@@ -902,10 +911,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = +white on red
@@ -1000,10 +1012,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = +white on red
@@ -1121,10 +1136,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white
 keybind = +white
+footer = white
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white
+help_link = cyan
+help_link_selection = yellow
 info = +white
 warning = black on yellow
 error = +white on red
@@ -1228,10 +1246,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = {'white' + (' ' * 200) + 'on blue'}
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = +white on red
@@ -1268,6 +1289,94 @@ int main(int argc, char **argv) {
 
   if (ReadThemeFile(&ctx, argv[1], "sample") == 0) {
     fprintf(stderr, "overlong theme role unexpectedly loaded\n");
+    return 1;
+  }
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/core/config_paths.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
+def test_theme_loader_requires_footer_and_help_link_roles(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_missing_help_footer_roles_driver.c"
+    binary = tmp_path / "theme_missing_help_footer_roles_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan
+tree_lines = +white
+margin = dynamic_text
+static_text = white
+dynamic_text = +white
+keybind = +white
+selection = black on white
+dialog = white
+picker = black on cyan
+picker_selection = selection
+help = white
+info = black on cyan
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = ParseColorString;
+  ctx.hook_update_ui_color = UpdateUIColor;
+  ctx.hook_add_file_color_rule = AddFileColorRule;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") == 0) {
+    fprintf(stderr, "theme missing footer/help-link roles unexpectedly loaded\n");
     return 1;
   }
 
@@ -1411,10 +1520,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = white on not-a-color
@@ -1436,10 +1548,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = white on red
@@ -1461,10 +1576,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = white on -1
@@ -1597,10 +1715,13 @@ tree_lines = +white on blue
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = white on red
@@ -1800,10 +1921,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = white on black
 keybind = +white on black
+footer = white on black
 selection = black on white
 dialog = white on black
 picker = black on white
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = white on black
 warning = black on yellow
 error = white on red
@@ -1822,10 +1946,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = white on black
 keybind = +white on black
+footer = white on black
 selection = black on white
 dialog = white on black
 picker = black on cyan
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = white on black
 warning = black on yellow
 error = white on red
@@ -2126,10 +2253,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = white on black
 keybind = +white on black
+footer = white on black
 selection = black on white
 dialog = white on black
 picker = black on white
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = white on black
 warning = black on yellow
 error = white on red
@@ -2148,10 +2278,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = white on black
 keybind = +white on black
+footer = white on black
 selection = black on white
 dialog = white on black
 picker = black on white
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = white on black
 warning = black on yellow
 error = white on red
@@ -2488,10 +2621,13 @@ margin = dynamic_text
 static_text = white on blue
 dynamic_text = +white on blue
 keybind = +white on blue
+footer = white on blue
 selection = black on +grey
 dialog = black on +grey
 picker = black on +grey
 help = white on blue
+help_link = cyan on blue
+help_link_selection = yellow on blue
 info = +white on blue
 warning = black on yellow
 error = +white on red
@@ -2513,10 +2649,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = +white on black
 keybind = +white on black
+footer = white on black
 selection = black on yellow
 dialog = white on black
 picker = black on yellow
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = +white on black
 warning = black on yellow
 error = +white on red
@@ -2552,10 +2691,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = white on black
 keybind = +white on black
+footer = white on black
 selection = black on white
 dialog = white on black
 picker = black on cyan
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = white on black
 warning = black on yellow
 error = white on red
@@ -2678,10 +2820,13 @@ margin = dynamic_text
 static_text = white on black
 dynamic_text = white on black
 keybind = +white on black
+footer = white on black
 selection = black on white
 dialog = white on black
 picker = black on white
 help = white on black
+help_link = cyan on black
+help_link_selection = yellow on black
 info = white on black
 warning = black on yellow
 error = white on red
@@ -2855,11 +3000,14 @@ margin = dynamic_text
 static_text = white
 dynamic_text = +white
 keybind = +white
+footer = white
 selection = black on cyan
 dialog = white
 picker = white on cyan
 picker_selection = black on white
 help = white
+help_link = cyan
+help_link_selection = yellow
 info = +white on blue
 warning = black on yellow
 error = +white on red

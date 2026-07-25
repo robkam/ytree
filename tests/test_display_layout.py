@@ -786,7 +786,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
         assert not src.exists()
 
     post = "\n".join(tui.get_screen_dump())
-    assert "File F1 help" in post, "Footer/help row disappeared after dir copy/move"
+    assert "File F1 help" in post, "Footer keybinding row disappeared after dir copy/move"
     assert "Path:" in post, "Header/border row disappeared after dir copy/move"
 
     tui.quit()
@@ -841,7 +841,7 @@ def test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_co
     prompt_footer_ok = "enter ok" in footer and "esc cancel" in footer
     file_footer_ok = "tree" in footer and "help" in footer
     assert prompt_footer_ok or file_footer_ok, (
-        "Footer/help row was corrupted after canceling create prompt.\n"
+        "Footer keybinding row was corrupted after canceling create prompt.\n"
         f"Footer:\n{footer}\n\nScreen:\n{post}"
     )
     if prompt_reopened:
@@ -851,7 +851,7 @@ def test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_co
         )
     else:
         assert file_footer_ok, (
-            "File view returned without its expected footer/help row.\n"
+            "File view returned without its expected footer keybinding row.\n"
             f"Footer:\n{footer}\n\nScreen:\n{post}"
         )
 
@@ -895,7 +895,7 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     footer = _footer_text(tui).lower()
     assert "Path:" in post, "Header/path row disappeared after create+copy flow"
     assert "tree" in footer and "f1" in footer and "help" in footer, (
-        "Footer/help row was not restored after create+copy flow.\n"
+        "Footer keybinding row was not restored after create+copy flow.\n"
         f"Footer:\n{footer}\n\nScreen:\n{post}"
     )
 

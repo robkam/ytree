@@ -1088,14 +1088,14 @@ static void RenderFooterSignpost(WINDOW *win, int y, const char *signpost) {
   if (strncmp(signpost, "9-4", 3) == 0) {
 #ifdef COLOR_SUPPORT
     PrintSpecialString(win, y, 0, "9-4", UI_ROLE_KEYBIND);
-    PrintSpecialString(win, y, 3, padded + 3, UI_ROLE_HELP);
+    PrintSpecialString(win, y, 3, padded + 3, UI_ROLE_FOOTER);
 #else
     PrintSpecialString(win, y, 0, "9-4", A_BOLD);
     PrintSpecialString(win, y, 3, padded + 3, A_NORMAL);
 #endif
   } else {
 #ifdef COLOR_SUPPORT
-    PrintSpecialString(win, y, 0, padded, UI_ROLE_HELP);
+    PrintSpecialString(win, y, 0, padded, UI_ROLE_FOOTER);
 #else
     PrintSpecialString(win, y, 0, padded, A_NORMAL);
 #endif
@@ -1122,14 +1122,14 @@ static void RenderPackedFooterLine(WINDOW *win, int y, const char *signpost,
     RenderFooterSignpost(win, y, signpost);
   if (commands != NULL && command_count > 0) {
     UI_RenderCommandStrip(win, y, FOOTER_COMMAND_COLUMN, commands, command_count,
-                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
+                          UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
     x += UI_CommandStripVisualLength(commands, command_count);
   }
   if (truncated_command == NULL || truncated_width <= 0)
     return;
 
   if (command_count > 0) {
-    PrintSpecialString(win, y, x, "  ", UI_ROLE_HELP);
+    PrintSpecialString(win, y, x, "  ", UI_ROLE_FOOTER);
     x += 2;
   }
 
@@ -1143,7 +1143,7 @@ static void RenderPackedFooterLine(WINDOW *win, int y, const char *signpost,
                  truncated_text, dots, "...");
 #ifdef COLOR_SUPPORT
   wmove(win, y, x);
-  (void)WAttrAddStr(win, COLOR_PAIR(UI_ROLE_HELP), clipped);
+  (void)WAttrAddStr(win, COLOR_PAIR(UI_ROLE_FOOTER), clipped);
 #else
   (void)MvWAddStr(win, y, x, clipped);
 #endif
@@ -1161,7 +1161,7 @@ static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
 #ifdef COLOR_SUPPORT
     PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", UI_ROLE_KEYBIND);
     PrintSpecialString(ctx->ctx_menu_window, y, 3, (char *)strip->prefix + 3,
-                       UI_ROLE_HELP);
+                       UI_ROLE_FOOTER);
 #else
     PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", A_BOLD);
     PrintSpecialString(ctx->ctx_menu_window, y, 3, (char *)strip->prefix + 3,
@@ -1170,7 +1170,7 @@ static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
   } else {
 #ifdef COLOR_SUPPORT
     PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix,
-                       UI_ROLE_HELP);
+                       UI_ROLE_FOOTER);
 #else
     PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix,
                        A_NORMAL);
@@ -1179,7 +1179,7 @@ static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
 
   prefix_width = StrVisualLength((char *)strip->prefix);
   UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width, strip->commands,
-                        strip->command_count, UI_ROLE_HELP, UI_ROLE_KEYBIND);
+                        strip->command_count, UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
 }
 
 static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
@@ -1192,7 +1192,7 @@ static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
 
 #ifdef COLOR_SUPPORT
   PrintSpecialString(ctx->ctx_border_window, y, 0, (char *)strip->prefix,
-                     UI_ROLE_HELP);
+                     UI_ROLE_FOOTER);
 #else
   PrintSpecialString(ctx->ctx_border_window, y, 0, (char *)strip->prefix,
                      A_NORMAL);
@@ -1200,7 +1200,7 @@ static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
 
   prefix_width = StrVisualLength((char *)strip->prefix);
   UI_RenderCommandStrip(ctx->ctx_border_window, y, prefix_width, strip->commands,
-                        strip->command_count, UI_ROLE_HELP, UI_ROLE_KEYBIND);
+                        strip->command_count, UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
 }
 
 static size_t AppendPopupStripRow(UIHelpPopupRow *rows, size_t row_count,

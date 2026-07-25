@@ -60,7 +60,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 *   **Static Text Rule:** Truncated UI labels are static and stable while focused; marquee/auto-scrolling text is not permitted for core list and attribute surfaces.
 *   **Motion-Only-When-Informative Rule:** UI animation is avoided by default. Motion is permitted only when it conveys live operational state (for example scanning/copying progress, spinner/ETA/progress counter) rather than decorative movement.
 *   **Progress Indicator Selection Rule:** Use a spinner when duration is unknown (default). Use a progress bar/percent/ETA when total work is measurable.
-*   **Progress Surface Ownership Rule:** Progress/spinner updates MUST NOT overwrite or hide footer help, active prompt text, or F1 help surfaces. If layout is constrained, degrade to a compact indicator instead of replacing those surfaces.
+*   **Progress Surface Ownership Rule:** Progress/spinner updates MUST NOT overwrite or hide footer keybinding hints, active prompt text, or F1 help surfaces. If layout is constrained, degrade to a compact indicator instead of replacing those surfaces.
 *   **Regression Guard:** No-wrap/truncate behavior is a required regression-test contract across normal and archive view modes.
 *   **Micro-Consistency:** UI state flags (e.g., `big_window`, `split_mode`) must be synchronized with the internal state machine before any call to `doupdate()`.
 *   **Viewport Ownership Rule:** Each panel owns its own tree viewport (`disp_begin_pos` and `cursor_pos`). Split, tab, and Home/End navigation MUST only mutate the active panel's viewport; the inactive panel's tree viewport must remain unchanged.
@@ -345,14 +345,14 @@ A bordered pop-up box that overlays the center of the screen, used for:
 `ytnova` interaction is completely silent. Navigation boundaries, unsupported keys, and input validation must remain silent. If an event is expected during ordinary workflow, it must not trigger an audible cue.
 
 ### 6.4 Context Help Contract (Footer <-> F1)
-*   **Parity Rule:** For any active context, commands shown in footer help MUST appear in that context's F1 help set. Missing footer commands in F1 are defects.
+*   **Parity Rule:** For any active context, commands shown in the footer keybinding hints MUST appear in that context's F1 help set. Missing footer commands in F1 are defects.
 *   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytnova.1.md` and generated `docs/USAGE.md`.
 *   **Visual Rule:** Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place. Literal key tokens such as `Esc`, `Enter`, `Up`, `Down`, and function keys render as key tokens, not as synthetic words.
 *   **Text-Notation Rule:** In plain-text docs and tests, `(K)eyword` notation is the durable way to describe that in-place highlight when color cannot be shown directly.
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, tagged workflows, and active picker/prompt/dialog surfaces such as history, volumes, applications, compare prompts, and syntax-bearing command prompts.
 *   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and for prompt flows that document Ctrl-only tagged/search actions without requiring a modifier-state footer variant.
-*   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
-*   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
+*   **i18n Readiness Rule:** Footer keybinding/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
+*   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer keybinding/prompt/F1 guidance and must not seize ownership of those surfaces.
 
 ### 6.5 Modal/Dialog Color Taxonomy Contract
 `ytnova` modal and dialog surfaces are split into two classes:
@@ -362,7 +362,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 Routing contract:
 *   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
 *   Severity modal headers, body text, frames, and prompts MUST retain the active severity role pair. They MUST NOT use raw reverse/blink styling that swaps foreground/background away from the configured severity colors.
-*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; the always-visible footer guidance strip uses `footer`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
 *   Tree status-marker columns use `margin`; tree guide glyphs use `tree_lines`; tree directory names and attributes use `dynamic_text`. File-type palette rules do not style directory tree rows.
 *   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
@@ -401,7 +401,7 @@ Themes are plain-text user-editable files separate from the main configuration. 
 *   `THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned.
 
 ### 7.2 Semantic Roles
-Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `info`, `warning`, `error`, and `search_hit`.
+Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `help_link`, `help_link_selection`, `info`, `warning`, `error`, and `search_hit`.
 
 Role meanings:
 *   `background`: default application background.
@@ -411,11 +411,14 @@ Role meanings:
 *   `static_text`: fixed labels and captions.
 *   `dynamic_text`: filenames, paths, counts, sizes, timestamps, current mode values, tree names, and file names.
 *   `keybind`: footer/menu key tokens only.
+*   `footer`: the always-visible footer guidance strip and other inline command-hint rows.
 *   `selection`: active highlighted row/bar.
 *   `dialog`: neutral prompt/dialog surfaces.
 *   `picker`: selectable-list surfaces. The shipped starter themes keep picker-family surfaces on a different background so F2, history, volume, and applications menus stand out from the main content area.
 *   `picker_selection`: picker-family highlighted row/bar override. When omitted, picker-family selection falls back to `selection`.
 *   `help`: F1/context help reading surfaces.
+*   `help_link`: linked text inside F1/context help when hyperlink-capable help is enabled.
+*   `help_link_selection`: the active linked target inside F1/context help when hyperlink-capable help is enabled.
 *   `info`, `warning`, `error`: severity road-sign roles.
 *   `search_hit`: search/current-hit standout highlight.
 
@@ -445,7 +448,7 @@ Required contract:
 *   Section headers name the stable runtime command surface that owns the following rows; they are not language names. Current canonical surface IDs include at least `[DIR]`, `[FILE]`, `[ARCHIVE_DIR]`, and `[ARCHIVE_FILE]`. Future command surfaces may add new stable section IDs without changing the row grammar.
 *   `preset` names one packaged command preset by stable untranslated ID. If present, runtime loads that preset first and then applies local section-row overrides from `commands.conf`. If absent, runtime uses the packaged default active command map from `etc/ytnova.commands`.
 *   `binding` names the exact key inputs. Uppercase and lowercase letters may be bound separately. `Ctrl+letter` bindings are case-insensitive: `Ctrl+n` and `Ctrl+N` mean the same chord, so only one command may use a given `Ctrl+letter` chord. Alias bindings may be comma-separated only when they share the same section, shown token, label, action ID, and command payload.
-*   `shown` names the token text rendered in footer/help surfaces. It is separate from the real binding so localized labels and display mnemonics do not need to mirror the raw input key exactly.
+*   `shown` names the token text rendered in footer keybinding/F1 surfaces. It is separate from the real binding so localized labels and display mnemonics do not need to mirror the raw input key exactly.
 *   `label` stores plain user-visible text only. Users must not encode binding markup into the label column.
 *   `action` stores the stable internal action ID (for example `copy`, `move`, `delete`, `compare`, `user-command`). Starter comments must state that users must not translate or rename action IDs.
 *   `command` is blank for built-in actions. Custom shell-command bindings set `action` to `user-command` and store the shell command in `command`.
@@ -490,7 +493,7 @@ Required contract:
     *   that action IDs must remain untranslated.
 *   Preset files may provide labels, shown tokens, bindings, and custom command payloads using the same `binding | shown | label | action | command` grammar as `commands.conf`.
 *   Preset files must not require users to comment/uncomment language blocks inside the active user file.
-*   Preset files do not own whole rendered footer/help/menu lines; runtime still assembles visible command entries from the resolved active action table.
+*   Preset files do not own whole rendered footer keybinding/F1/menu lines; runtime still assembles visible command entries from the resolved active action table.
 
 Example packaged preset header:
 

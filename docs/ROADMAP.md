@@ -202,7 +202,7 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.2: Split Command Customization into `commands.conf` (i18n/l10n-Safe Layout)**
 *   **Goal:** Separate user-visible command labels, displayed key tokens, input/action customization, and custom shell-command bindings from the main runtime profile using one XDG-first companion command surface, while keeping the canonical design safe for future gettext/i18n/l10n work.
-*   **Rationale:** The current main profile still mixes core runtime settings with menu-text overrides and input/action customization. That blocks clean ownership boundaries and makes future localization fragile because whole rendered footer/menu lines are not stable translation units. Canonical user-editable command data must be keyed by stable action identity, while rendered footer/help/menu lines must be assembled at runtime from localized labels plus current key tokens.
+*   **Rationale:** The current main profile still mixes core runtime settings with menu-text overrides and input/action customization. That blocks clean ownership boundaries and makes future localization fragile because whole rendered footer/menu lines are not stable translation units. Canonical user-editable command data must be keyed by stable action identity, while rendered footer keybinding/F1/menu lines must be assembled at runtime from localized labels plus current key tokens.
 *   **Pre-Implementation Clarification Gate (mandatory):** A stateless AI or fresh maintainer pass must not jump straight to code on this task. Before implementation, stop and explicitly confirm the following decisions with the maintainer so the split is not inferred differently by different agents:
     *   the canonical home of command customization;
     *   the exact precedence order between `commands.conf`, legacy sections in `ytnova.conf`, and built-in defaults;
@@ -218,7 +218,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Canonical Ownership Rules:**
     *   `ytnova.conf` must not remain the canonical home for `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
     *   `commands.conf` is the canonical user-editable command-customization surface.
-    *   No canonical user-editable file may store fully rendered footer/help/menu lines as the primary data model.
+    *   No canonical user-editable file may store fully rendered footer keybinding/F1/menu lines as the primary data model.
     *   Action IDs, localized/default labels, displayed key tokens, disabled-state logic, and line layout must remain separate concerns.
     *   Custom shell-command bindings must live in the same `commands.conf` surface rather than in an unrelated side file.
 *   **Localization Contract:**
@@ -249,7 +249,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Concrete Decisions This Task Must Lock Down:**
     *   **Canonical home:** `commands.conf` is the canonical editable home of command customization.
     *   **Precedence:** `commands.conf` -> legacy `ytnova.conf` section -> built-in default.
-    *   **Runtime assembly model:** render footer/help/menu/prompt command entries from `(action_id, label, key_token, availability_state)` rather than from pre-rendered line text.
+    *   **Runtime assembly model:** render footer keybinding/F1/menu/prompt command entries from `(action_id, label, key_token, availability_state)` rather than from pre-rendered line text.
     *   **Starter-file model:** `commands.conf` uses canonical per-context section headers such as `[DIR]` and `[FILE]`; inside each section entries use the canonical row columns `binding | shown | label | action | command`; alias bindings may be comma-separated only when they share the same section, shown token, label, action, and command payload.
     *   **`--init` contract:** generate/bootstrap the active starter files for config, themes, and commands using the same discovery policy and deterministic source/generated pipeline.
     *   **`F10` contract:** edit/create the active file for config, themes, and commands independently rather than routing command edits back through monolithic `ytnova.conf` text.
@@ -311,13 +311,13 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.5: Locale/Layout-Aware Command Presets**
 *   **Goal:** Add proper locale/layout-aware command preset catalogs without reopening Task 11.2's ownership model: shipped presets live as separate packaged command-map files, `commands.conf` remains the one active user-editable command surface, and users or packagers can choose a preset without rewriting core command-dispatch code.
-*   **Rationale:** The structured `commands.conf` model from Task 11.2 solves ownership and footer/help assembly, but it does not by itself provide a conventional way to ship German/Lithuanian/Hindi-friendly mnemonic sets. Locale-aware command presets should be packaged like read-only data, selected by stable preset ID, and overridden locally only where needed.
+*   **Rationale:** The structured `commands.conf` model from Task 11.2 solves ownership and footer keybinding/F1 assembly, but it does not by itself provide a conventional way to ship German/Lithuanian/Hindi-friendly mnemonic sets. Locale-aware command presets should be packaged like read-only data, selected by stable preset ID, and overridden locally only where needed.
 *   **Scope Lock:** Preset discovery, selection, validation, and override layering only. Do not add automatic locale remapping, physical-scancode assumptions, or a second user-editable bindings/labels surface.
 *   **Preset Catalog Contract:**
     *   Packaged preset sources live as separate files (for example `etc/commands/en.conf`, `etc/commands/de.conf`, `etc/commands/lt.conf`, `etc/commands/hi-latin.conf`) rather than as one giant multilingual catalog embedded in the active user file.
     *   Installed presets are read-only shared data (for example `/usr/share/ytnova/commands/<preset>.conf`); `commands.conf` remains the sole canonical user-editable commands surface.
     *   Preset IDs are stable untranslated identifiers such as `en`, `de`, `lt`, and `hi-latin`; translator-facing prose belongs in labels/help text, not in preset IDs.
-    *   Each preset file uses the same action-based row model as Task 11.2 (`binding | shown | label | action | command`) so footer/help/menu rendering still resolves from stable action IDs plus current key tokens and labels.
+    *   Each preset file uses the same action-based row model as Task 11.2 (`binding | shown | label | action | command`) so footer keybinding/F1/menu rendering still resolves from stable action IDs plus current key tokens and labels.
     *   Every preset file begins with concise explanatory comment headers naming the preset ID, intended locale/layout, that the file is packaged read-only data selected from `commands.conf`, and that action IDs must remain untranslated.
 *   **Selection and Override Contract:**
     *   `commands.conf` may select zero or one preset with a single stable selector line (for example `preset = en`) and may then apply local per-action overrides in the canonical sectioned row format.
@@ -352,13 +352,13 @@ Ordering policy (for all editors, including AI editors):
 ### **Immediate Quick Wins**
 
 ### **Task 12: Footer Action Parity in Archive Mode (`Pipe`)**
-*   **Goal:** Make archive-mode footer/help lines accurately reflect runtime-available actions, starting with `Pipe`.
+*   **Goal:** Make archive-mode footer keybinding/F1 lines accurately reflect runtime-available actions, starting with `Pipe`.
 *   **Rationale:** Footer/help is the primary discoverability surface; available actions must not be hidden.
 *   **Scope Lock:** No command semantics or keybinding behavior changes; visibility/alignment only.
 *   **Acceptance Criteria:**
-*   Archive footer/help shows `Pipe` whenever it is available in that context.
-*   Actions unavailable in archive mode remain absent from archive footer/help.
-*   A focused regression test (or existing footer/help test extension) verifies archive footer/action parity.
+*   Archive footer keybinding hints and F1 help show `Pipe` whenever it is available in that context.
+*   Actions unavailable in archive mode remain absent from archive footer keybinding hints and F1 help.
+*   A focused regression test (or existing footer keybinding/F1 test extension) verifies archive footer/action parity.
 *   - [x] **Status:** Completed.
 
 ### **Task 13: Path Message Formatting Audit (`//` Artifact Prevention)**
@@ -437,7 +437,7 @@ Ordering policy (for all editors, including AI editors):
 *   `]` increases file-column width in fixed-width list layouts.
 *   `{` / `}` resets to default auto-layout behavior.
 *   Behavior is deterministic and static (no marquee/auto-scrolling text).
-*   Footer/F1 help documents these keys in file contexts where they apply.
+*   Footer keybinding hints and F1 help document these keys in file contexts where they apply.
 *   Add focused regression coverage for width adjust left/right/reset behavior and bounds handling.
 *   **Related:** Task 22 (F7 pane-width tuning).
 *   - [ ] **Status:** Not Started.
@@ -451,7 +451,7 @@ Ordering policy (for all editors, including AI editors):
 *   Divider movement direction is explicit and intuitive: `[` always reduces file-list width and `]` always increases file-list width, regardless of which border visually moves.
 *   Width changes preserve current file selection and preview scroll context.
 *   Behavior is deterministic and static (no marquee/auto-scrolling text).
-*   Footer/F1 help and config docs are updated when behavior lands.
+*   Footer keybinding hints, F1 help, and config docs are updated when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 20: Progress Indicators for Copy/Move/Delete/Archive Workflows**
@@ -461,7 +461,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:**
 *   For measurable work totals, show progress bar + percent (and ETA where stable) for copy/move/delete/archive operations.
 *   When total work is initially indeterminate, show spinner by default; transition to bar/percent/ETA only if total becomes measurable.
-*   Progress rendering must not overwrite footer/prompt/F1 help surfaces; on constrained layouts, degrade to a compact indicator while preserving help readability.
+*   Progress rendering must not overwrite footer keybinding/prompt/F1 help surfaces; on constrained layouts, degrade to a compact indicator while preserving help readability.
 *   Behavior follows the specification conventions for informative motion and static/non-decorative UI.
 *   Footer/F1/manpage wording is updated where needed so behavior is discoverable and consistent.
 *   Add focused regression coverage for progress-state selection (indeterminate vs measurable) and completion/error transitions.
@@ -487,7 +487,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Scope Lock:** Redraw ordering and invalidation only; no keybinding or command behavior changes.
 *   **Acceptance Criteria:**
 *   Footer/help/prompt are rendered from the same frame snapshot as content panes.
-*   Resize and mode transitions must not leave footer/help stale relative to active context.
+*   Resize and mode transitions must not leave footer keybinding/F1 surfaces stale relative to the active context.
 *   Focused regression coverage proves synchronized redraw across normal, split, and overlay transitions.
 *   - [ ] **Status:** Not Started.
 
@@ -500,37 +500,36 @@ Ordering policy (for all editors, including AI editors):
 *   Keep `Space` and page keys as page movement only.
 *   Add hit navigation within current file set as `/` next-hit and `?` previous-hit.
 *   In `TAGGEDVIEWER=external` mode, hit traversal remains pager-native (for example `less` keys) and is not remapped by ytnova.
-*   Footer and F1 help in internal `^V` mode explicitly show file-nav keys and hit-nav keys.
+*   Footer keybinding hints and F1 help in internal `^V` mode explicitly show file-nav keys and hit-nav keys.
 *   `^S` remains the tagged-list search/filter action outside viewer mode and is documented distinctly.
 *   Add focused regression coverage for key behavior and help discoverability in this mode.
 *   - [ ] **Status:** Not Started.
 
-### **Task 23: Harden `Write` Destination UX (Least Surprise)**
-*   **Goal:** Make `Write` destination handling explicit and predictable for both Unix power users and new users, while keeping the interaction path shallow.
-*   **Rationale:** Current destination parsing is ambiguous and error-prone; users should not need hidden syntax to perform a basic file write.
-*   **Scope Lock:** Keep key as `W` labeled `Write`; no extra submenu layers.
+### **Task 23: Replace `Write` with an Explicit `Output` / Hardcopy Flow**
+*   **Goal:** Make file-output and hardcopy behavior immediately understandable by moving tagged-only discovery under `Filter` and repurposing `O` as an explicit `Output` action.
+*   **Rationale:** `Write` reads like in-place save/edit, while the current destination chooser hides the core distinction users care about: file output versus hardcopy.
+*   **Scope Lock:** Keep the interaction shallow: no more than one chooser before the final destination prompt.
 *   **Acceptance Criteria:**
-*   `Write` keeps a one-flow path: `W -> format key -> destination type -> destination -> Enter`.
-*   Destination type is explicit (`File` / `Command`, plus `Device` if retained), with sensible defaults and history.
-*   Plain filename/path input in File destination mode writes to file output by default (no hidden marker required).
-*   Command destination mode accepts direct command input (for example printer command `lp`) with explicit prompt wording/examples.
-*   Expert shortcuts remain accepted where safe (for example `>path`), but are optional.
-*   Destination prompt text avoids unclear jargon (for example prefer user-facing wording over raw `CWD` shorthand).
-*   `W` remains labeled `Write`; F1 help clarifies that `Write` includes print/device workflows.
-*   No crash on command-not-found or destination-open failures.
-*   - [ ] **Status:** Not Started.
-
-### **Task 24: Enforce `Write` Context-Valid Option Matrix + Regression Gate**
-*   **Goal:** Ensure `Write` offers only valid formats/actions per active context (`dir`/`file`/`archive`/`tagged`) and that prompt/help always match runtime behavior.
-*   **Rationale:** UI option surfaces must be truthful to reduce friction and prevent hidden-feature drift.
-*   **Scope Lock:** Behavior alignment and tests only; no new keybindings in this task.
-*   **Acceptance Criteria:**
-*   A documented matrix defines valid `Write` options by context.
-*   Runtime UI exposes only matrix-valid options in each context.
+*   Tagged-only discoverability moves under `Filter`, so `O` can be reassigned without losing the feature.
+*   The command strip, footer, F1 help, prompts, manpage, and generated usage docs relabel the current output/export action from `Write` to `Output`.
+*   `O` becomes `Output`; user-facing wording for this feature uses `Output`, `File`, and `Hardcopy` rather than the misleading `Write` label.
+*   The common path becomes `O -> Output to: File / Hardcopy -> destination prompt -> Enter`.
+*   `Filter` keeps `*` as the established default meaning "all files" / no filter; blank input does not replace that contract.
+*   The default filter prompt remains `FILTER: *`.
+*   Pressing `Tab` inside the filter prompt toggles the scope between all files and tagged-only without opening another submenu.
+*   The tagged-only state reuses the same prompt surface as `FILTER [tagged only]: *`.
+*   File output still begins with the existing format chooser: `Format: Raw, Framed, Page break  Esc cancel`.
+*   File output uses explicit prompts such as `Output file:` and defaults plain filename/path input to file output.
+*   Hardcopy uses an explicit prompt such as `Printer command:` with examples/history suited to printer workflows.
+*   Top-level `Output` wording does not reintroduce a competing generic `Command` destination label when `Pipe` and `eXecute` already own that mental model.
+*   Expert shortcuts remain accepted where safe (for example `>path` or command aliases), but they are optional rather than required for discovery.
+*   Runtime UI exposes only context-valid `Output` options in each context.
+*   `Framed` and `Page break` prompts/options remain distinct and truthful; they must not reuse misleading wording.
 *   Regression tests verify option visibility/behavior parity across at least filesystem + archive contexts.
-*   Regression tests verify destination semantics (plain filename file-output default, command destination behavior, and no-crash error paths).
-*   F1/help text stays synchronized with the same matrix contract.
+*   Regression tests verify destination semantics (plain filename file-output default, hardcopy prompt behavior, and no-crash error paths).
+*   F1/help text, footer labels, prompt text, and runtime behavior stay synchronized with the same contract.
 *   `docs/SPECIFICATION.md`, `etc/ytnova.1.md`, and generated `docs/USAGE.md` are updated in the same delivery so docs match runtime behavior.
+*   No crash on printer-command failure or destination-open failure.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 25: Add `Catalog` Output Mode to `Write`**
@@ -549,8 +548,8 @@ Ordering policy (for all editors, including AI editors):
 *   Rationale: Current search semantics already work; only the footer prompt is unnecessary UI churn.
 *   Requirements:
 *   Preserve current semantics: incremental match while typing, Enter confirms jump, Esc cancels.
-*   Typing `/y` must keep the footer help text unchanged and move selection immediately to the first directory/file whose name starts with `y`.
-*   Do not redraw/replace footer help lines during / search.
+*   Typing `/y` must keep the footer keybinding text unchanged and move selection immediately to the first directory/file whose name starts with `y`.
+*   Do not redraw/replace footer keybinding lines during / search.
 *   Use a non-footer inline input/render path for search text and match feedback.
 *   Status: Not Started
 
@@ -575,7 +574,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Dependency:** Sequence after Task 30 prompt-chain simplification baseline.
 *   **Scope Lock:** Compare flow only (`j/J` entry behavior); no unrelated keybinding or footer redesign.
 *   **Acceptance Criteria:**
-*   Compare remains a modal state and compare footer/help owns the footer while active.
+*   Compare remains a modal state and the compare footer keybinding/F1 surface owns the footer while active.
 *   In compare mode, only compare keys are active; non-compare keys are silent no-ops.
 *   No conflicting quick-key mappings are permitted in compare mode.
 *   Keep explicit compare target prompt (no implicit target execution).
@@ -671,7 +670,7 @@ Ordering policy (for all editors, including AI editors):
 *   In `F7`, `^T` tag-all, `^S` search, and `^V` tagged/search-result view flows work without exiting preview mode.
 *   Tagged search hits/results are visibly highlighted in `F7` preview.
 *   `F8` and `Tab` are explicit no-ops in `F7` mode.
-*   Footer/F1 help in `F7` accurately reflects allowed actions and blocked keys.
+*   Footer keybinding hints and F1 help in `F7` accurately reflect allowed actions and blocked keys.
 *   Add focused regression tests for allowed-command execution in `F7` and blocked-key enforcement (`F8`, `Tab`).
 *   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` when behavior lands.
 *   - [ ] **Status:** Not Started.
@@ -744,7 +743,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Replace hardcoded footer-line command placement with a structured, self-organizing footer layout engine that assembles command entries at runtime and keeps the function-key band fitting cleanly on the bottom footer line.
 *   **Rationale:** The current footer model is too position-bound and too brittle for context changes, responsive width changes, and future localization. Footer content must be assembled from stable action entries rather than handwritten line strings so that key tokens, translated/default labels, disabled-state logic, and line packing can evolve independently.
 *   **Scope:** Footer layout/packing/rendering only. This task defines how footer command entries are assembled, prioritized, wrapped, truncated, and fitted into the available footer area. Footer/F1 parity and wording accuracy remain coordinated with the dedicated parity task rather than being left implicit here.
-*   **Architecture note:** Treat the left mode/toggle signpost and the footer help-command strip as separate render regions. The left label (for example `DIR`, `FILE`, `ARCHIVE`, `←─┘ File`, `←─┘ Tree`) is a context signpost, not part of the command-layout string. The help-command strip must start at an explicit command column determined by layout rules rather than by the rendered width of the left label text. Label wording, glyph rendering, and toggle/context naming must never silently shift the help-command alignment.
+*   **Architecture note:** Treat the left mode/toggle signpost and the footer command strip as separate render regions. The left label (for example `DIR`, `FILE`, `ARCHIVE`, `←─┘ File`, `←─┘ Tree`) is a context signpost, not part of the command-layout string. The footer command strip must start at an explicit command column determined by layout rules rather than by the rendered width of the left label text. Label wording, glyph rendering, and toggle/context naming must never silently shift the footer-command alignment.
 *   **Self-Organizing Footer Contract:**
     *   The footer is built from structured command entries, not hardcoded rendered lines.
     *   The top footer lines must self-organize according to available width, command priority, context, and availability state.
@@ -767,7 +766,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 40.1: Footer Auto-Fit Line Layout (No Hardcoded Per-Line Bindings)**
 *   **Goal:** Define and implement the structured footer-entry model and the auto-fit packing rules for the shared runtime footer layout so every standard footer context reuses the same self-organizing top rows and bottom function-key band.
 *   **Mechanism:** Introduce footer entries keyed by stable action identity, with independently resolved label, key token, visibility, enabled/disabled state, and priority; then pack those entries into available footer lines deterministically by rendered keybinding token order, including natural function-key sequencing and `Esc` after the function-key run, regardless of whether the active footer is directory, file, archive, or another context-specific variant of the shared footer surface. The two top command rows must choose wrap points that try to use the available width evenly rather than greedily filling row 1 first.
-*   **Explicit render split:** The implementation must model and render the left footer signpost separately from the command strip it precedes. The signpost owns only context/toggle labeling and its own glyph/text rendering; the command strip owns only command packing and starts from a declared layout column, not from the measured width of the signpost string.
+*   **Explicit render split:** The implementation must model and render the left footer signpost separately from the footer command strip it precedes. The signpost owns only context/toggle labeling and its own glyph/text rendering; the footer command strip owns only command packing and starts from a declared layout column, not from the measured width of the signpost string.
 *   **Cross-Reference:** Labels must resolve through the Task 11.2 label architecture from stable action IDs plus current binding state, not from footer-line text assembly.
 *   **Coverage note:** This shared footer layout applies wherever the runtime presents the standard footer surface; context changes swap signposts and command sets, not footer-line formatting rules.
 *   - [ ] **Status:** In Progress.
@@ -783,13 +782,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   **Context Contract:** `F1` help must be contextual by active runtime surface, not a single generic command dump. The help surface must resolve against the currently active directory/tree view, file view, archive view, Showall/Global view, split/preview layout, and prompt/dialog state.
-*   **Sequencing Note:** Prefer to land Task 42's final portable footer/help wording contract before this task so the integrated help system documents the intended low-noise runtime guidance surfaces rather than an abandoned transient-footer idea.
+*   **Sequencing Note:** Prefer to land Task 42's final portable footer keybinding/F1 wording contract before this task so the integrated help system documents the intended low-noise runtime guidance surfaces rather than an abandoned transient-footer idea.
 *   **Delivered Scope:** Shared modal help now opens from the main runtime surfaces plus active picker/prompt/dialog flows, stays brief enough for in-task consultation, and leaves longer semantics/examples to `etc/ytnova.1.md` and generated `docs/USAGE.md`.
 *   - [x] **Status:** Completed.
 
 ### **Task 42: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good; redundant duplicate bindings should not be listed).
-*   **VI Mode Signaling**: Ensure footer help lines dynamically reflect uppercase commands (e.g., `(K) Vol` instead of `(k) Vol`) when `VI_KEYS=1` is active to avoid navigation collisions.
+*   **VI Mode Signaling**: Ensure footer keybinding lines dynamically reflect uppercase commands (e.g., `(K) Vol` instead of `(k) Vol`) when `VI_KEYS=1` is active to avoid navigation collisions.
 *   **Footer Stability Decision:** The canonical live footer must stay stable across supported terminal paths and must not depend on transient modifier-state telemetry that terminals, multiplexers, and remote sessions may fail to expose consistently.
 *   **Noise Budget Decision:** Do **not** replace the clean footer with permanently noisy fallback forms such as `Copy/^Copy`, `C/^Copy`, or a tagged-state footer variant that appears only after tagging. The common footer must stay clean enough for new users to operate without help-menu friction.
 *   **Discoverability Contract:** Keep the live footer focused on always-relevant, low-noise bindings plus non-redundant alternates (for example `(C)opy/(^K)` and `(M)ove/(^N)` where the alternate actually differs). Put Ctrl-only tagged/search-oriented operations and their semantics in `F1` help and prompt wording instead of trying to surface every one of them in the footer.
@@ -799,9 +798,9 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 43: Refine Contextual F1 Content and Footer-Parity Contract (gettext-ready)**
 *   **Goal:** Ensure each contextual `F1` surface is concise, useful, and complete: it must cover every footer command for the active surface while also clarifying the non-obvious behavior the footer cannot carry.
 *   **Rationale:** Footer and `F1` are the primary in-app guidance surfaces. Pure parity without added clarification degenerates into "the footer again," while essay-length help steals attention from the task at hand. `F1` should be the quick explainer and `etc/ytnova.1.md`/`docs/USAGE.md` should remain the long-form reference.
-*   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer/help/prompt mismatch (discoverability + confidence).
+*   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer keybinding/F1/prompt mismatch (discoverability + confidence).
 *   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
-*   **Sequencing Note:** Land Task 42's portable low-noise footer/help wording decisions before this task so parity is enforced against the final portable footer contract rather than a transient modifier-held variant.
+*   **Sequencing Note:** Land Task 42's portable low-noise footer keybinding/F1 wording decisions before this task so parity is enforced against the final portable footer contract rather than a transient modifier-held variant.
 *   **Scope Lock:** Base help wording/structure, coverage matrix, and text-organization readiness only; no command-behavior changes. Hyperlink/index-style help navigation is tracked separately under Task 43.1, and progress/help coexistence is tracked separately under Task 43.2.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching `F1` help set, but `F1` need not mirror the footer verbatim if a clearer concise explanation is better.
@@ -818,13 +817,15 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 43.1: Add Contextual F1 Hyperlinks and Shared Explainer Pages**
 *   **Goal:** Let `F1` help reuse shared explanations through navigable links so repeated topics (for example useful command-line editing, tagged-flow semantics, or numeric FileInfo meanings) do not have to be duplicated verbatim on every page.
 *   **Rationale:** As contextual help grows, repeated prose becomes harder to keep consistent. A lightweight mc-style link model keeps `F1` brief while still allowing a user to drill into a short explainer without leaving the modal help surface.
-*   **Interaction Contract:** Keep `F1` modal and task-focused, not a separate browser. When a page exposes links, navigation follows a simple mc-like pattern: link focus moves within the help page, `Enter` follows the selected link, a back action returns to the previous help page, and `Esc` closes the help surface.
+*   **Interaction Contract:** Keep `F1` modal and task-focused, not a separate browser. Link navigation must stay shallow: follow as few links as possible, with a hard cap of one or two link hops from the original contextual page before the user returns/backtracks. `Enter` follows the selected link, `Right` may also follow, `Left` goes back one page, and `Esc` closes the help surface from anywhere. Normal reading/navigation keys remain available inside the page: `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End`.
 *   **Theme/Config Contract:** Help-surface styling remains part of the theme catalog (`themes.conf` / runtime theme data), not `ytnova.conf`. Base help text continues to use the `help` reading surface, while hyperlink-capable help may add narrower theme roles such as `help_link` and `help_link_selection` for linked text and the active linked target.
 *   **Orthodox Default Direction:** For the default orthodox-blue theme, prefer a restrained reading surface with distinct linked-text and active-link colors rather than picker-style row highlighting. If hyperlinks need dedicated colors, keep the defaults conservative (for example black-on-blue links and yellow-on-blue active-link emphasis) and avoid turning the whole help page into a loud picker.
 *   **Acceptance Criteria:**
 *   Shared topics can be linked from multiple contextual pages without copying the same explanation string into each page body.
 *   Link navigation stays shallow and predictable inside the modal help surface; users do not have to enter a separate browser/workspace to read a linked explainer.
 *   Linked explainer pages can be reached and exited without losing the original contextual-help entry point.
+*   The link model never grows into an unbounded history/browser stack; at most one or two explainer hops are reachable before the user backtracks.
+*   `Enter` (and optionally `Right`) follows, `Left` backs out one page, `Esc` closes from anywhere, and `Up`/`Down`/`PgUp`/`PgDn`/`Home`/`End` continue to serve page navigation/reading.
 *   Theme support for linked text and linked-target emphasis is defined in the theme catalog path, not as one-off `[COLORS]` or `ytnova.conf` knobs.
 *   Add focused regression coverage for link focus, follow, back, and close behavior.
 *   - [ ] **Status:** Not Started.
@@ -832,7 +833,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 43.2: Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance**
 *   **Goal:** Preserve footer, prompt, and `F1` help ownership while long-running operations update progress/spinner state.
 *   **Rationale:** Help/trust regressions are not limited to static wording; progress rendering that overwrites guidance surfaces creates the same "UI is lying to me" failure mode during active work.
-*   **Related Bug:** `BUG-10` — progress spinner can overwrite footer/prompt help surfaces.
+*   **Related Bug:** `BUG-10` — progress spinner can overwrite footer keybinding/prompt/F1 surfaces.
 *   **Acceptance Criteria:**
 *   Progress updates render in a dedicated non-obtrusive status surface and never overwrite active footer/prompt/F1 guidance.
 *   When `F1` help is open, progress state degrades gracefully to a compact indicator or deferred repaint rather than seizing the help surface.
@@ -842,7 +843,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 43.3: Theme the Contextual F1 Reading Surface and Separate Footer Guidance Role**
 *   **Goal:** Define and implement distinct theme-role behavior for the contextual `F1` reading surface and the always-visible footer guidance surface now that the base role-based theme system exists.
 *   **Rationale:** Task 60 established the general theme architecture, but it intentionally left `help` overloaded across the footer and the `F1` reading surface. Contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes while the footer keeps an independently tunable low-noise scheme.
-*   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, introduce a dedicated `footer` role for the footer/help strip, and allow narrower roles such as `help_link` and `help_link_selection` if hyperlink help needs them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
+*   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, introduce a dedicated `footer` role for the footer keybinding strip, and allow narrower roles such as `help_link` and `help_link_selection` if hyperlink help needs them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
 *   **Orthodox Default Direction:** Keep the help page readable and quiet on the orthodox-blue theme: black-on-grey, black-on-cyan linked text is acceptable, active-link emphasis may use yellow-on-blue, and ordinary body text must remain easier to read than navigation chrome.
 *   The footer should remain concise and lower-noise than modal help while still allowing its own color treatment.
 *   **Acceptance Criteria:**
@@ -851,6 +852,55 @@ Ordering policy (for all editors, including AI editors):
 *   If hyperlink help is enabled, linked text and active-link emphasis resolve through dedicated theme roles rather than hardcoded colors.
 *   Built-in themes document and ship coherent footer and `F1` help styling without requiring user edits to `ytnova.conf`.
 *   Focused tests or source-contract checks prove footer and `F1` help can use different theme roles and do not fall back to picker/dialog styling.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.4: Unify Manpage, Usage, and Contextual F1 Help Authorship**
+*   **Goal:** Establish one canonical authored help source so the manpage, generated `docs/USAGE.md`, and contextual `F1` help are all derived projections instead of separately maintained prose.
+*   **Rationale:** Footer/F1 parity checks reduce runtime drift, but authoring still drifts when the same semantics are copied across docs and in-app help. The filter path is the clearest example: pressing `F`/`f` for filter and then `F1` to learn the available filter syntax/options should come from the same canonical description that also feeds the manpage and usage docs.
+*   **Canonical-source contract:** The canonical authored help source must be `etc/help/help.en.md`. The single-source help system must replace the old manpage-source workflow outright; no compatibility shim, dual-source period, or fallback authored source is permitted.
+*   **Projection contract:** The canonical source must support both concise context-specific `F1` excerpts and long-form man/usage output. Every `F1` slice, popup page, and long-form help output must be generated from canonical authored text rather than duplicated ad-hoc C literals.
+*   **Editability contract:** The canonical source must be easy to extend by inserting a new topic block in one file whenever a new `F1` surface or prompt explainer is needed. Adding missing help for a new surface such as `XYZ` must mean adding one adjacent topic block to `etc/help/help.en.md`, not editing multiple prose stores.
+*   **Context/topic contract:** The authored help source is organized by stable topics/blocks (for example `intro`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`) and the runtime maps active contexts/prompts to those topic IDs. Shared fragments are permitted where contexts differ only by scope (for example Showall vs Global), but the shared text must still come from the same canonical source.
+*   **Concise-help contract:** Contextual `F1` must remain intentionally short and task-local. Prompt `F1` surfaces such as Filter/Compare/Output must show only the relevant syntax/options/examples for that prompt, while the main directory/file/archive/F7/F8 surfaces must explain the active footer commands and only the non-obvious caveats needed in that context. The help popup footer must support a simple fixed navigation row using combined keybind+word labels when the keybind exists in the word (for example `Intro` and `Navigation`, with only the mnemonic letter highlighted by the renderer rather than stored as literal parentheses) and `key space lowercase action` wording when it does not (for example `Esc close`), while staying brief enough for in-task use.
+*   **Generator portability contract:** Essential help generation must not depend on external markdown tooling that may be missing on supported targets. The project must ship a small in-repo Python generator (Python is already a project requirement for tests) that runs on Linux, BSD, GNU Hurd, and illumos and produces man/usage/help assets from the same canonical source. External tools are not part of the correctness path.
+*   **Ownership split:** User `commands.conf` remains a user override/customization surface for labels/bindings and is not the canonical source of translated help prose. Shipped canonical help data owns explanatory text; key tokens and displayed command labels continue to resolve through keymap/command-preset/runtime rendering rules.
+*   **Acceptance Criteria:**
+*   Updating the filter help in one authored place is sufficient to refresh the manpage, generated `docs/USAGE.md`, and the prompt/runtime `F1` explainer for filter syntax/options.
+*   A maintained context-to-source mapping exists for the first-pass `F1` surfaces (directory, file, archive, Showall, Global, F7, F8, and prompt/dialog help including Filter/Compare/Output).
+*   Build/docs tooling can regenerate `docs/USAGE.md`, manpage output, and the runtime `F1` help assets from the canonical source without manual copy editing and without requiring `cmark` for correctness.
+*   Parity/audit coverage detects drift between active runtime keybindings, generated `F1` slices, and manpage/usage text.
+*   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated in the same delivery so the canonical help-source model, generator path, and runtime context/topic mapping contract are documented as first-class architecture/spec behavior.
+*   The chosen single-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.4.1: Define the Canonical Help-Source Topic Schema**
+*   **Goal:** Define the exact `etc/help/help.en.md` topic-block format so new help pages can be added by inserting one new block in the master file.
+*   **Schema contract:** Each topic block must carry a stable topic ID, declared runtime contexts/prompts, concise body text for contextual `F1`, optional shared explainer links, and long-form sections needed for man/usage projection.
+*   **Authoring contract:** The file layout must stay easy to scan and edit in a normal text editor; maintainers must not need to touch multiple files or update fragile offsets/index tables by hand when adding a new topic block.
+*   **Acceptance Criteria:**
+*   The schema is strict enough for deterministic generation and simple enough for maintainers to extend manually.
+*   Topic IDs exist for the first-pass surfaces `intro`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, and `f8`.
+*   The schema documents how shared blocks are reused without creating duplicate prose stores and how explainer links are declared without creating deep help trees.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.4.2: Implement the Python Help Generator**
+*   **Goal:** Implement the in-repo Python generator that reads `etc/help/help.en.md` and emits long-form docs plus runtime help assets.
+*   **Generator contract:** The generator must be the sole correctness path for producing manpage output, generated `docs/USAGE.md`, and runtime `F1` help assets from the canonical source.
+*   **Portability contract:** The generator must use only Python facilities acceptable on the supported target set and must not require `cmark` or other external markdown tooling to succeed.
+*   **Acceptance Criteria:**
+*   One generator command regenerates all canonical help outputs from `etc/help/help.en.md`.
+*   Output generation is deterministic and suitable for CI/audit drift checks.
+*   The generator fails loudly on malformed topic blocks rather than silently dropping help content.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.4.3: Wire Runtime Context-to-Topic Help Loading**
+*   **Goal:** Make runtime `F1` surfaces load generated help content by context/topic ID instead of embedding ad-hoc prose in code.
+*   **Runtime contract:** Each supported `F1` surface and prompt must resolve through a maintained context -> topic mapping table, including the popup footer navigation entries rendered as combined keybind+word labels where the keybind exists in the word (for example `Intro` and `Navigation`, with the mnemonic letter highlighted by UI styling rather than literal stored parentheses) and as `key space lowercase action` where it does not (for example `Esc close`). Generated help must also carry the shallow shared-explainer links permitted by Task 43.1 and respect the one-or-two-hop maximum depth.
+*   **Scope-sharing contract:** Showall and Global may share generated topic content where behavior matches, but the mapping layer must still allow a distinct Global-only explainer for multi-volume behavior.
+*   **Acceptance Criteria:**
+*   Directory, file, archive-dir, archive-file, Filter, Compare, Output, Showall, Global, F7, and F8 `F1` paths all resolve through generated topic data.
+*   Adding a new `F1` context requires adding a topic block plus one mapping entry, not hand-writing new prose in code.
+*   Focused regression/audit coverage proves runtime help is generated-content driven rather than duplicated literal text.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
@@ -882,7 +932,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `human-readable`) as the seed for `6`.
 *   Add `SEPARATE_DIR_FILE_VIEWS=0|1` profile setting (default `0`) to switch between shared and split `1..4` panel views.
 *   **Keybinding Policy:** Remove `^F` and `B` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 39 scope lock.
-*   **UX/Help Policy:** Footer stays concise (`1..9 dir view` / `1..9 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics live in F1 help/manpage. Unassigned `0` remains a silent no-op but is not advertised in the footer/help band.
+*   **UX/Help Policy:** Footer stays concise (`1..9 dir view` / `1..9 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics live in F1 help/manpage. Unassigned `0` remains a silent no-op but is not advertised in the footer command band or F1 help.
 *   **Spec/Docs Sync Policy:** When delivered, update `docs/SPECIFICATION.md` and `etc/ytnova.1.md` (and regenerated `docs/USAGE.md`) with the same grouped ownership contract.
 *   - [x] **Status:** Completed.
 
@@ -1321,18 +1371,19 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
-*   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytnova.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
+*   **Documentation i18n split:** Use `po4a` for help/manpage/doc translation workflow from the canonical authored help source defined by Task 43.4 (for example `etc/help/help.en.md`); generated man/usage/help assets stay derived artifacts. Use gettext for runtime UI surfaces (footer labels/help, prompts, status/error/info text) that are not emitted from the canonical help-source pipeline.
 *   **Keybinding token contract:** Translate human command labels only. Key tokens come from the active keymap and punctuation comes from the renderer. For example, English can render key token `C` + label `Copy` as `(C)opy`, while German can render key token `K` + label `Kopieren` as `(K)opieren`. Translators must not be required to preserve raw strings like `(C)opy` for shortcut visibility.
-*   **Translator workflow contract:** Contributors should be able to add or update a language by editing standard translation assets (`.po` for runtime UI, `po4a` inputs for docs) without touching C source, renderer punctuation, or mnemonic/key-token wiring.
-*   **Runtime help-text organization:** Short contextual help/footer/prompt prose should flow through a small predictable set of gettext contexts/catalog entries rather than remaining scattered ad-hoc literals, so translators can find related strings together and keep repeated explanations consistent.
+*   **Translator workflow contract:** Contributors should be able to add or update a language by editing standard translation assets (`.po` for runtime UI, `po4a` inputs for docs/help) without touching C source, renderer punctuation, or mnemonic/key-token wiring.
+*   **Translator-guide contract:** Ship a translator-facing guide that explains the split between canonical help-source translation, runtime gettext strings, and command/keymap preset data; the guide must also explain how locale-specific mnemonic/keybinding conflicts are resolved in shipped presets/keymaps rather than by manually rewriting rendered shortcut prose.
+*   **Runtime help-text organization:** Contextual `F1` help prose should come primarily from the canonical help-source pipeline in Task 43.4 rather than scattered ad-hoc C literals; remaining non-generated footer/prompt/help text should flow through a small predictable set of gettext contexts/catalog entries so translators can find related strings together and keep repeated explanations consistent.
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
-*   **Pilot locale:** Ship one non-English reference locale (for example German) as a contributor template proving end-to-end UI + manpage translation workflow, while keeping English fallback automatic for untranslated strings.
+*   **Pilot locale:** Ship German (`de`) as the first non-English reference locale and use it as the contributor template/test bed proving end-to-end UI + manpage/help translation workflow, while keeping English fallback automatic for untranslated strings.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 62: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
-*   **Sequencing dependency:** Implement after Task 42's portable footer/help wording cleanup. Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
+*   **Sequencing dependency:** Implement after Task 42's portable footer keybinding/F1 wording cleanup. Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
 *   **Config contract:** Select a keymap profile via `ytnova.conf` (opt-in). Locale-oriented profiles are allowed as explicit user choices, for example an English mnemonic profile can bind `C` to `Copy`, while a German mnemonic profile can bind `K` to `Kopieren` and `L` to `Löschen`. The shipped default keymap must remain portable and internally consistent, but compatibility with old confusing UI wording is not a reason to preserve that wording.
 *   **Display contract:** Footer/help text must render active key tokens plus localized command labels together (for example active binding `C` + translated label `Copy` -> `(C)opy`) so runtime hints always match active bindings. Key tokens are data from the keymap, labels are data from localization, and punctuation/styling are renderer-owned.
 *   **Legacy menu override contract:** The existing `[MENU]` text override only changes displayed text and does not change keyboard behavior. It may remain as an expert display override during migration, but it is not the final localization/keybinding model and must not be used as a substitute for real keymap-driven labels.
@@ -1569,7 +1620,7 @@ Ordering policy (for all editors, including AI editors):
 *   Default mode remains `active` (current behavior).
 *   Optional mode `both` renders left/right panel paths in split mode with deterministic truncation/clipping and no wrapping.
 *   Active panel remains visually obvious in both modes.
-*   Footer/F1 help and config docs are updated when option lands.
+*   Footer keybinding hints, F1 help, and config docs are updated when the option lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-14: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
@@ -1667,7 +1718,7 @@ Ordering policy (for all editors, including AI editors):
 *   In local filesystem contexts, `Enter` at the chooser behaves as `f` and preserves current file-creation semantics.
 *   `M` still performs direct directory creation.
 *   The chooser shows only backend-valid create options; unavailable create types are omitted rather than advertised and rejected later.
-*   Read-only backends expose no `N Create` entry in footer/help.
+*   Read-only backends expose no `N Create` entry in the footer keybinding hints or F1 help.
 *   Symlink creation is available natively where supported, with explicit prompts and focused regression coverage for both selected-target and explicit-target flows.
 *   - [ ] **Status:** Not Started.
 

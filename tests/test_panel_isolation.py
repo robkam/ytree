@@ -4321,7 +4321,7 @@ def test_split_panels_keep_independent_file_focus_states(tmp_path, ytnova_binary
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Returning to the left panel did not restore its file view.\n{screen}"
-    assert "hex invert j compare" in _footer_text(tui), f"Returning to the left panel did not restore file footer/help.\n{screen}"
+    assert "hex invert j compare" in _footer_text(tui), f"Returning to the left panel did not restore the file footer keybinding hints.\n{screen}"
 
     tui.quit()
 
@@ -4585,7 +4585,7 @@ def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytnova_bin
         "Cancelling volume menu from dir view should immediately restore dir footer.",
     )
     assert "f1 help" in footer, (
-        "Cancelling volume menu from dir view left footer/help blank until next key."
+        "Cancelling volume menu from dir view left the footer keybinding hints blank until next key."
     )
 
     tui.quit()
@@ -4610,7 +4610,7 @@ def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytnova_bi
         "Cancelling volume menu from file view should immediately restore file footer."
     )
     assert "f1 help" in footer, (
-        "Cancelling volume menu from file view left footer/help blank until next key."
+        "Cancelling volume menu from file view left the footer keybinding hints blank until next key."
     )
 
     tui.quit()
