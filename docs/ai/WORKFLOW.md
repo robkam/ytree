@@ -353,6 +353,8 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 7.  **Architect/AI:** Commit, push branch, and open/update a regular PR.
     *   PR title must use Conventional Commit format and describe the current atomic unit's durable aim, not a volatile task/bug number or the whole roadmap initiative.
     *   PR body should be concise: summary, scope, and local validation evidence. Do not duplicate obvious CI output or paste check transcripts into the body/comments.
+    *   Do not use draft PRs by default. Use a draft PR only when the maintainer explicitly asks for draft status first, or when no reviewable unit exists yet and the AI has first warned that changing draft to ready later may restart long required CI.
+    *   Before making or requesting any PR mutation that may restart required checks (for example draft/ready transitions, PR-body/title edits, base syncs, or similar GitHub-side actions), warn about the rerun cost and obtain explicit maintainer consent.
 8.  **Maintainer (GitHub):** Review PR scope and evidence.
 9.  **Architect/AI + Maintainer (GitHub):** Monitor PR CI full gate proactively (for example `gh pr checks <pr-number> --watch`). Do not wait passively for a separate reminder when checks change state.
     *   To avoid branch-CI babysitting during active implementation, use the branch repair loop. It watches the current branch head, writes a live GitHub failure packet, and launches a fresh Codex repair pass on each red run until checks go green or the retry budget is exhausted.
@@ -365,9 +367,9 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   Detached mode uses `tmux` when available; otherwise it starts a plain detached background process. In both cases the loop keeps running after you close the terminal, and writes state/log artifacts under `.agent/handoffs/`.
 10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
     *   Do not request reviewers while checks are red unless the maintainer explicitly instructs it.
-    *   Once checks are green on the current head SHA, avoid non-essential PR mutations before merge (for example PR-body edits or base-sync actions) because they may restart CI or invalidate freshness.
+    *   Once checks are green on the current head SHA, avoid non-essential PR mutations before merge (for example draft/ready transitions, PR-body/title edits, or base-sync actions) because they may restart CI or invalidate freshness.
     *   If the red checks show self-caused collateral regressions outside the intended task surface, do not keep stacking repair commits as routine iteration. Reset/revert to the last green state, restart from a fresh agent/context, and only resume in-place repair when the remaining issue is a narrow residual miss rather than branch-wide blast radius.
-11. **Architect/AI + Maintainer (GitHub):** If PR metadata edits, branch sync, or any other PR mutation restarts required checks, restart the wait loop and do not merge against stale earlier green results.
+11. **Architect/AI + Maintainer (GitHub):** If a draft/ready transition, PR metadata edit, branch sync, or any other PR mutation restarts required checks, restart the wait loop and do not merge against stale earlier green results.
 12. **Maintainer (GitHub):** Merge PR to `main` only after checks are rechecked live as green on the current head SHA and review is satisfied. Never merge or close a PR while required checks are red, pending, cancelled, missing, rerunning, or freshness is stale.
 13. **Maintainer (GitHub):** Delete remote branch:
     *   `git push origin --delete <branch>`

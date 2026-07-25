@@ -162,7 +162,7 @@ static const UICommandStripCommand history_nav_commands[] = {
 static const UICommandStripCommand dir_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
@@ -171,7 +171,7 @@ static const UICommandStripCommand dir_help_nav_commands[] = {
 static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
@@ -180,7 +180,7 @@ static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
 static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
@@ -190,7 +190,7 @@ static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
 static const UICommandStripCommand file_help_nav_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
@@ -199,7 +199,7 @@ static const UICommandStripCommand file_help_nav_commands[] = {
 static const UICommandStripCommand file_help_nav_to_dir_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
@@ -367,6 +367,25 @@ static int FooterCommandKeyNaturalNumber(const char *key) {
   return i > 0 ? value : -1;
 }
 
+static BOOL FooterCommandKeyIsNumericRange(const char *key) {
+  const char *cursor;
+
+  if (key == NULL || !isdigit((unsigned char)key[0]))
+    return FALSE;
+
+  cursor = key;
+  while (isdigit((unsigned char)*cursor))
+    ++cursor;
+  if (cursor[0] != '.' || cursor[1] != '.')
+    return FALSE;
+  cursor += 2;
+  if (!isdigit((unsigned char)*cursor))
+    return FALSE;
+  while (isdigit((unsigned char)*cursor))
+    ++cursor;
+  return *cursor == '\0';
+}
+
 static int CompareFooterCommandKeys(const char *left, const char *right) {
   int left_group;
   int right_group;
@@ -390,10 +409,15 @@ static int CompareFooterCommandKeys(const char *left, const char *right) {
       return left_number - right_number;
   } else if (left_group == 0 && isdigit((unsigned char)left[0]) &&
              isdigit((unsigned char)right[0])) {
+    BOOL left_is_range = FooterCommandKeyIsNumericRange(left);
+    BOOL right_is_range = FooterCommandKeyIsNumericRange(right);
     int left_number = 0;
     int right_number = 0;
     const char *left_end = left;
     const char *right_end = right;
+
+    if (left_is_range != right_is_range)
+      return left_is_range ? -1 : 1;
 
     while (isdigit((unsigned char)*left_end)) {
       left_number = left_number * 10 + (*left_end - '0');
@@ -517,6 +541,7 @@ static void SortResolvedFooterCommands(ResolvedFooterCommand *resolved,
 
 static const FooterCommandSpec dir_footer_standard_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
                   "ACTION_CMD_A"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
@@ -580,6 +605,7 @@ static const FooterCommandSpec dir_footer_ll_specs[] = {
 
 static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -612,6 +638,7 @@ static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
 
 static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -644,6 +671,7 @@ static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
 
 static const FooterCommandSpec file_footer_standard_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
                   "ACTION_CMD_A"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
@@ -711,6 +739,7 @@ static const FooterCommandSpec file_footer_ll_specs[] = {
 
 static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
@@ -751,7 +780,6 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
 static const FooterCommandSpec dir_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -761,7 +789,6 @@ static const FooterCommandSpec dir_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -771,7 +798,6 @@ static const FooterCommandSpec file_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),

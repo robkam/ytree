@@ -360,7 +360,9 @@ def test_ctrl_u_untags_all(test_dir_with_files, ytnova_binary):
 def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     """
     BUG: Footer can drift away from the advertised numeric FileInfo band.
-    EXPECTED: Footer should show "1..9 file view" and should not show Brief/About.
+    EXPECTED: Footer should show "1..9 file view  0 stats" in the main file
+    command band, keep the function-key footer row for F-keys, and should not
+    show Brief/About.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
 
@@ -373,6 +375,25 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
 
     if "1..9 file view" not in footer:
         pytest.fail(f"BUG: Footer missing unified FileInfo band\nFooter:\n{footer}\n\nFull screen:\n{screen}")
+
+    if "0 stats" not in footer:
+        pytest.fail(f"BUG: Footer missing stats toggle on 0\nFooter:\n{footer}\n\nFull screen:\n{screen}")
+
+    if "F6 stats" in footer:
+        pytest.fail(f"BUG: Footer still advertises the old F6 stats binding\nFooter:\n{footer}")
+
+    footer_lines = lines[-3:]
+    if "0 stats" not in footer_lines[0].lower():
+        pytest.fail(
+            "BUG: Footer should advertise 0 stats in the main file command band\n"
+            f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
+        )
+
+    if "0 stats" in footer_lines[2].lower():
+        pytest.fail(
+            "BUG: Function-key footer row should not contain 0 stats\n"
+            f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
+        )
 
     if "brief" in footer or "compact" in footer:
         pytest.fail(f"BUG: Footer still shows obsolete Brief command\nFooter:\n{footer}")
@@ -981,8 +1002,8 @@ def test_compact_key_is_ignored_in_dense_dir_views(tmp_path, ytnova_binary):
     tui.quit()
 
 
-def test_zero_is_unused_and_one_resets_back_to_name(tmp_path, ytnova_binary):
-    test_root = tmp_path / "fileinfo_zero_unused"
+def test_zero_toggles_stats_panel_and_one_resets_back_to_name(tmp_path, ytnova_binary):
+    test_root = tmp_path / "stats_toggle_zero"
     test_root.mkdir()
     with (test_root / "alpha.bin").open("wb") as handle:
         handle.truncate(12_345)
@@ -1000,14 +1021,21 @@ def test_zero_is_unused_and_one_resets_back_to_name(tmp_path, ytnova_binary):
 
     _send_and_wait(tui, "0", timeout=0.4)
     screen = "\n".join(tui.get_screen_dump())
-    unchanged_line = _line_with_text(screen.split("\n"), "alpha.bin")
-    assert _stats_view_value(screen) == "Compact", (
-        "Key 0 should currently be a silent no-op.\n"
+    assert _stats_area(screen) == [], (
+        "Key 0 should hide the stats panel.\n"
         + screen
     )
-    assert _line_tokens(unchanged_line) == _line_tokens(compact_line), (
-        "Key 0 should not change the visible file-row tokens.\n"
-        f"Before: {compact_line}\nAfter:  {unchanged_line}\n\nFull screen:\n{screen}"
+
+    _send_and_wait(tui, "0", timeout=0.4)
+    screen = "\n".join(tui.get_screen_dump())
+    restored_line = _line_with_text(screen.split("\n"), "alpha.bin")
+    assert _stats_view_value(screen) == "Compact", (
+        "Key 0 should restore the stats panel without losing the current file view.\n"
+        + screen
+    )
+    assert _line_tokens(restored_line) == _line_tokens(compact_line), (
+        "Toggling stats should not change the visible file-row tokens.\n"
+        f"Before: {compact_line}\nAfter:  {restored_line}\n\nFull screen:\n{screen}"
     )
 
     _send_and_wait(tui, "1", timeout=0.4)
