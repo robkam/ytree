@@ -34,9 +34,11 @@ static void ExpandPath(const char *src, char *dest, size_t dest_size) {
 }
 
 /* Write a single file to out_fp.
- * is_first / is_last control whether to emit the frame separator as a
- * between-files divider: separator appears AFTER each file except the last.
- * A heading (### filename) is always emitted for Framed mode.
+ * is_first / is_last control whether to emit the page-break separator between
+ * files: the separator appears AFTER each file except the last.
+ * Framed mode wraps the filename with the configured separator. Page-break
+ * mode emits a simple heading and uses the configured separator only between
+ * tagged outputs.
  */
 static int PrintFileContent(const ViewContext *ctx, FileEntry *file_entry,
                             FILE *out_fp, const PrintConfig *config, BOOL is_first,

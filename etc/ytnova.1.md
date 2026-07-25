@@ -27,7 +27,7 @@ If no command line arguments are provided, the current directory will be logged.
 # CONCEPTS
 
 ### The Display
-The screen is divided into three panes plus a footer help line: the **Directory Tree** (upper-left), the **File Window** (below the tree), and the **Statistics/Info** pane (right, spanning both left panes). The footer shows context-sensitive keybinding hints.
+The screen is divided into three panes plus a footer keybinding line: the **Directory Tree** (upper-left), the **File Window** (below the tree), and the **Statistics/Info** pane (right, spanning both left panes). The footer shows context-sensitive keybinding hints.
 
 ### Logging
 Unlike file managers that rescan directories on demand, ytnova "logs" (scans) directory structures into memory. This allows instant navigation and searching without disk lag. Use the **l** command to log new paths or archives.
@@ -328,13 +328,16 @@ uses the installed packaged catalog or compiled-in defaults without creating a
 user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
-`selection`, `dialog`, `picker`, `picker_selection`, `help`, `warning`,
-`error`, and `search_hit`. When `picker_selection` is omitted it falls back to
+`footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
+`help_link`, `help_link_selection`, `warning`, `error`, and `search_hit`.
+`footer` owns the always-visible keybinding strip, while `help` owns the F1
+reading surface. When `picker_selection` is omitted it falls back to
 `selection`, so existing themes keep the same picker highlight behavior. The
-bundled starter themes keep `picker` on a different background so F2, history,
-volume, and applications menus stand out from the main content background.
-Color values accept names or numbers, `grey`/`gray`, bright prefixes such as
-`+white` or `+grey`, and optional backgrounds such as `+white on blue`.
+bundled starter themes keep `picker` on a different background so F2,
+history, volume, and applications menus stand out from the main content
+background. Color values accept names or numbers, `grey`/`gray`, bright
+prefixes such as `+white` or `+grey`, and optional backgrounds such as
+`+white on blue`.
 
 Theme-local file-type palettes use compact grouped rules, for example
 `archives = red: tar,tgz,zip` or `scripts = +cyan: sh,bash,py`. Rules are

@@ -892,7 +892,7 @@ void ReCreateWindows(ViewContext *ctx) {
     }
   }
   if (ctx->ctx_menu_window) {
-    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_HELP));
+    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_FOOTER));
 
     leaveok(ctx->ctx_menu_window, TRUE);
   }

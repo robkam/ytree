@@ -27,7 +27,7 @@ static const char default_commands_catalog[] =
     "# - section headers are stable runtime command-surface IDs, not locale names.\n"
     "# - preset selects one packaged read-only preset by stable ID before local rows.\n"
     "# - binding is the real input key (single keys or Ctrl+letter chords).\n"
-    "# - shown is the token rendered in footer/help surfaces.\n"
+    "# - shown is the token rendered in footer keybinding/F1 surfaces.\n"
     "# - label is plain user-visible text only; do not encode key markup here.\n"
     "# - action is the stable internal action ID; do not translate or rename it.\n"
     "# - command is blank for built-ins. Use action user-command for custom shell\n"

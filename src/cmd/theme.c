@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
-#define THEME_ROLE_COUNT 17
+#define THEME_ROLE_COUNT 20
 
 typedef enum {
   THEME_SECTION_NONE = 0,
@@ -50,9 +50,11 @@ typedef struct {
 
 static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
-    "static_text", "dynamic_text", "keybind",   "selection",
-    "dialog",      "picker",    "picker_selection", "help", "info",
-    "warning",     "error",     "search_hit",  "disabled"};
+    "static_text", "dynamic_text", "keybind",   "footer",
+    "selection",   "dialog",    "picker",      "picker_selection",
+    "help",        "help_link", "help_link_selection",
+    "info",        "warning",   "error",       "search_hit",
+    "disabled"};
 
 static const char *legacy_starter_background_roles[] = {
     "box_lines", "tree_lines", "static_text", "dynamic_text",

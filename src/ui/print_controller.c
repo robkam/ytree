@@ -63,8 +63,12 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
   if (config.format == PRINT_FORMAT_FRAMED ||
       config.format == PRINT_FORMAT_PAGEBREAK) {
     char frame_sep[32] = "";
+    const char *separator_prompt =
+        (config.format == PRINT_FORMAT_PAGEBREAK)
+            ? "Page break separator (default: ```): "
+            : "Frame separator (default: ```): ";
     if (UI_ReadString(ctx, ctx->active,
-                      "Frame separator (default: ```): ", frame_sep,
+                      separator_prompt, frame_sep,
                       sizeof(frame_sep) - 1, HST_PRINT_FRAME) == ESC) {
       ClearPrintPrompt(ctx);
       return;
