@@ -1646,6 +1646,44 @@ void DisplayHeaderPath(ViewContext *ctx, const char *path) {
   wnoutrefresh(ctx->ctx_path_window);
 }
 
+static void DisplaySplitTopFilter(ViewContext *ctx, const YtreeNovaPanel *panel,
+                                  int start_x, int available_width) {
+  char filter_label[FILE_SPEC_LENGTH + 3];
+  char display_buffer[sizeof(filter_label)];
+  const char *file_spec;
+
+  if (!ctx || !ctx->ctx_border_window || !panel || !panel->vol ||
+      available_width <= 0)
+    return;
+
+  file_spec = panel->vol->vol_stats.file_spec;
+  if (!file_spec[0])
+    file_spec = DEFAULT_FILE_SPEC;
+
+  snprintf(filter_label, sizeof(filter_label), "<%s>", file_spec);
+  CutName(display_buffer, filter_label, available_width);
+
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
+  mvwaddstr(ctx->ctx_border_window, 1, start_x, display_buffer);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+}
+
+static void DisplaySplitTopFilters(ViewContext *ctx) {
+  int split_x;
+  int data_right_x;
+
+  if (!ctx || !ctx->ctx_border_window || !ctx->is_split_screen || !ctx->left ||
+      !ctx->right)
+    return;
+
+  split_x = ctx->left->dir_x + ctx->left->dir_w;
+  data_right_x = COLS - ctx->layout.stats_width - 1;
+
+  DisplaySplitTopFilter(ctx, ctx->left, 1, split_x - 1);
+  DisplaySplitTopFilter(ctx, ctx->right, split_x + 1,
+                        data_right_x - split_x - 1);
+}
+
 void DisplayMenu(ViewContext *ctx) {
   const int L_BORDER_FOR_DISPLAY = COLS - ctx->layout.stats_width - 1;
   int bottom_y = ctx->layout.bottom_border_y;
@@ -1696,6 +1734,8 @@ void DisplayMenu(ViewContext *ctx) {
   }
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
   wattrset(ctx->ctx_border_window, A_NORMAL);
+
+  DisplaySplitTopFilters(ctx);
 }
 
 void SwitchToSmallFileWindow(ViewContext *ctx) {
