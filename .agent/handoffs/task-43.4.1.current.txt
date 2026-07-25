@@ -1,0 +1,55 @@
+Work item: docs/ROADMAP.md Task 43.4.1
+Title: Define the Canonical Help-Source Topic Schema
+Acceptance target:
+- Define a strict but manually maintainable `etc/help/help.en.md` topic-block schema.
+- Ensure topic IDs exist for the first-pass surfaces `intro`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, and `f8`.
+- Document how shared blocks/explainer links are declared without creating duplicate prose stores or deep help trees.
+Completion objective:
+- Complete the roadmap item by defining the exact canonical help-source block format, seeding the canonical English help source with the required first-pass topics, and documenting the schema contract in the canonical architecture/specification surfaces.
+
+Selected work family:
+- Canonical help-source schema definition: seed `etc/help/help.en.md`, document the deterministic block grammar and first-pass topic IDs, and reconcile the schema contract across roadmap/spec/architecture without implementing the generator/runtime loader yet.
+
+Inventory:
+- docs/ROADMAP.md — in scope (source-of-truth task status and acceptance record for Task 43.4.1).
+- etc/help/help.en.md — in scope (new canonical English help-source file; must define the topic-block schema and include the first-pass topics).
+- docs/SPECIFICATION.md — in scope (must define the help-source schema contract, required sections, topic IDs, and explainer-link rules as product behavior).
+- docs/ARCHITECTURE.md — in scope (must define ownership/generation boundaries for the canonical help source and its context/topic metadata).
+- tests/test_help_source_schema.py — in scope (focused schema-contract regression covering block grammar and required first-pass topic IDs).
+- src/ui/display.c — reconciliation only (current integrated help context surfaces that will map to schema topics in later tasks; no runtime loader change expected in this task).
+- src/ui/interactions.c — reconciliation only (current prompt-help surfaces that motivate `filter`/prompt topic metadata; no runtime loader change expected in this task).
+- src/ui/compare_request.c — reconciliation only (current compare-help surfaces that motivate `compare` topic metadata; no runtime loader change expected in this task).
+- src/ui/help_popup.c — reconciliation only (current popup rendering surface; unchanged while this task defines authored source shape only).
+- etc/ytnova.1.md — expected unchanged (long-form docs remain authored from the existing path until Task 43.4.2 implements generation).
+- docs/USAGE.md — expected unchanged (generated usage doc remains on the existing path until Task 43.4.2 implements generation).
+
+Inventory reconciliation:
+- docs/ROADMAP.md — addressed (Task 43.4 parent status now reflects active progress and Task 43.4.1 is marked completed).
+- etc/help/help.en.md — addressed (new canonical English help source defines the exact topic-block grammar, required sections, link syntax, and first-pass topic set).
+- docs/SPECIFICATION.md — addressed (documents the canonical help-source schema as product behavior, including block structure, context metadata, and shallow explainer-link rules).
+- docs/ARCHITECTURE.md — addressed (documents the ownership and mapping boundaries for canonical help authorship versus runtime/generated projections).
+- tests/test_help_source_schema.py — addressed (locks the schema shape and required first-pass topic IDs with a focused regression).
+- src/ui/display.c — intentionally unchanged (runtime topic loading is deferred to Task 43.4.3; this task only defines the authored schema those contexts will map to).
+- src/ui/interactions.c — intentionally unchanged (prompt help remains literal until Task 43.4.3 wires prompt contexts to generated topic data).
+- src/ui/compare_request.c — intentionally unchanged (compare help remains literal until Task 43.4.3 wires compare-step contexts to generated topic data).
+- src/ui/help_popup.c — intentionally unchanged (popup rendering already supports contextual pages; schema definition alone does not change the renderer).
+- etc/ytnova.1.md — intentionally unchanged (generator migration is deferred to Task 43.4.2).
+- docs/USAGE.md — intentionally unchanged (generator migration is deferred to Task 43.4.2).
+
+Focused validation:
+- `source .venv/bin/activate && pytest -q tests/test_help_source_schema.py`
+- `git diff --check`
+
+CI repair family:
+- Archive-exit theme fixture updates for the footer/help role contract: keep the stricter runtime theme-role requirement and update archive-exit theme fixtures so they seed `footer`, `help_link`, and `help_link_selection` instead of relying on omitted-role compatibility.
+
+CI repair inventory:
+- `tests/test_archive_exit_ui.py::test_f10_reload_repaints_theme_from_tree_focus` — addressed by extending the helper theme catalog to include the newly required roles.
+- `tests/test_archive_exit_ui.py::test_f10_reload_repaints_theme_from_file_focus` — addressed by the same helper fixture update.
+- `tests/test_archive_exit_ui.py::test_f10_themes_edits_active_home_dotfile_fallback` — addressed by extending the fallback `~/.ytnova.themes` seed to include the newly required roles.
+- `tests/test_archive_exit_ui.py::_write_test_theme_catalog` — addressed (quiet-blue and bash-black fixtures now include `footer`, `help_link`, and `help_link_selection`).
+- `tests/test_theme_ui_contract.py::test_theme_loader_does_not_preserve_old_help_footer_role_contract` — intentionally unchanged (the runtime/docs contract still forbids omitted-role compatibility).
+- `src/cmd/theme.c` — intentionally unchanged (the stricter role requirement remains the desired runtime behavior).
+
+Active handles:
+- Branch: `docs/help-topic-schema`

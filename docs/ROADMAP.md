@@ -871,7 +871,7 @@ Ordering policy (for all editors, including AI editors):
 *   Parity/audit coverage detects drift between active runtime keybindings, generated `F1` slices, and manpage/usage text.
 *   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated in the same delivery so the canonical help-source model, generator path, and runtime context/topic mapping contract are documented as first-class architecture/spec behavior.
 *   The chosen single-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress.
 
 #### **Task 43.4.1: Define the Canonical Help-Source Topic Schema**
 *   **Goal:** Define the exact `etc/help/help.en.md` topic-block format so new help pages can be added by inserting one new block in the master file.
@@ -881,7 +881,7 @@ Ordering policy (for all editors, including AI editors):
 *   The schema is strict enough for deterministic generation and simple enough for maintainers to extend manually.
 *   Topic IDs exist for the first-pass surfaces `intro`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, and `f8`.
 *   The schema documents how shared blocks are reused without creating duplicate prose stores and how explainer links are declared without creating deep help trees.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 43.4.2: Implement the Python Help Generator**
 *   **Goal:** Implement the in-repo Python generator that reads `etc/help/help.en.md` and emits long-form docs plus runtime help assets.
