@@ -25,7 +25,6 @@ BIN_DIR     = .
 # -------------------------------------------------------------------------
 CC          ?= cc
 FUZZ_CC     ?= clang
-CMARK       ?= cmark
 MAKE_CMD    ?= $(MAKE)
 
 # -------------------------------------------------------------------------
@@ -93,6 +92,11 @@ COMMANDS_CATALOG_SCRIPT = scripts/generate_default_commands_catalog.py
 COMMAND_PRESETS_SRC_DIR = etc/commands
 COMMAND_PRESETS_HDR = src/core/default_command_presets_catalog.h
 COMMAND_PRESETS_SCRIPT = scripts/generate_default_command_presets_catalog.py
+HELP_SOURCE = etc/help/help.en.md
+HELP_MAN_MD = etc/ytnova.1.md
+HELP_USAGE_MD = docs/USAGE.md
+HELP_RUNTIME_HDR = src/core/generated_help_topics.h
+HELP_GENERATOR_SCRIPT = scripts/generate_help_assets.py
 CODE_QUALITY_HOTSPOT_SCRIPT = scripts/report_code_quality_hotspots.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
@@ -133,7 +137,7 @@ endif
 # -------------------------------------------------------------------------
 MAIN        = ytnova
 MAIN_BIN    = $(BUILD_DIR)/$(MAIN)
-MANSRC      = etc/ytnova.1.md
+MANSRC      = $(HELP_MAN_MD)
 MANPAGE     = $(BUILD_DIR)/ytnova.1
 MAN_TH      = .TH "YTNOVA" "1" "$(VERSIONDATE)" "ytnova $(VERSION)" "User Commands"
 
@@ -180,9 +184,10 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 		fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 		test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-code-quality qa-all \
+		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-help-assets qa-code-quality qa-all \
 		ci-baseline mcp-doctor py-requirements \
 		qa-all-log qa-deep theme-catalog profile-template commands-catalog command-presets-catalog \
+		help-assets \
 		code-quality-hotspots
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -201,28 +206,19 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Generate USAGE.md from the man page source
-docs:
-	$(CMARK) --to commonmark $(MANSRC) | \
-		sed 's/Authors and contributors are listed in the AUTHORS.md file\./Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file./' \
-		> $(DOC_DIR)/USAGE.md
+# Generate tracked help projections and the build manpage from the canonical help source.
+help-assets: | $(BUILD_DIR)
+	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --source $(HELP_SOURCE) \
+		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
+		--runtime-header $(HELP_RUNTIME_HDR) --man-roff $(MANPAGE) \
+		--version "$(VERSION)" --versiondate "$(VERSIONDATE)" --write
+
+docs: help-assets
 
 # Generate the roff man page
-$(MANPAGE): $(MANSRC) | $(BUILD_DIR)
-	@tmp=$@.tmp; \
-	$(CMARK) --to man $(MANSRC) > "$$tmp"; \
-	first_line=$$(sed -n '1p' "$$tmp"); \
-	if [ "$$first_line" = '$(MAN_TH)' ]; then \
-		mv "$$tmp" "$@"; \
-	else \
-		{ printf '%s\n' '$(MAN_TH)'; \
-		  case $$first_line in \
-		    '.TH '*) sed '1d' "$$tmp" ;; \
-		    *) cat "$$tmp" ;; \
-		  esac; \
-		} > "$@"; \
-		rm -f "$$tmp"; \
-	fi
+$(MANPAGE): $(HELP_SOURCE) $(HELP_GENERATOR_SCRIPT) | $(BUILD_DIR)
+	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --source $(HELP_SOURCE) \
+		--man-roff $@ --version "$(VERSION)" --versiondate "$(VERSIONDATE)" --write
 
 # Install binary, man page, and documentation
 install: $(MAIN_BIN) $(MANPAGE) docs
@@ -494,7 +490,12 @@ command-presets-catalog:
 	$(PYTHON) $(COMMAND_PRESETS_SCRIPT) --source-dir $(COMMAND_PRESETS_SRC_DIR) \
 		--header $(COMMAND_PRESETS_HDR) --write
 
-qa-code-quality: qa-unsafe-apis qa-dead-history-comments qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog
+qa-help-assets:
+	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --source $(HELP_SOURCE) \
+		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
+		--runtime-header $(HELP_RUNTIME_HDR) --check
+
+qa-code-quality: qa-unsafe-apis qa-dead-history-comments qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-help-assets
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 

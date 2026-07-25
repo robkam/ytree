@@ -1,0 +1,721 @@
+#!/usr/bin/env python3
+
+"""Generate or verify canonical help outputs from etc/help/help.en.md."""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+import difflib
+from pathlib import Path
+import re
+import sys
+from typing import Iterable
+
+
+BANNER = (
+    "<!-- Auto-generated from etc/help/help.en.md by "
+    "scripts/generate_help_assets.py; do not edit directly. -->"
+)
+
+MANPAGE_STATIC_HEAD = """# NAME
+
+ytnova - a file manager for Unix-like systems
+
+# SYNOPSIS
+
+`ytnova` [`--init`] [`-v`|`-V`|`--version`] [`-p` *config_file*] [`-h` *history_file*] [`-d` *depth*] [`-f` *filter*] [*directory*|*archive*]...
+
+# DESCRIPTION
+
+**ytnova** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTree**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
+
+It began from Ytree v2.10 but now continues as a separate Unix-like XTreeGold tribute, using contemporary POSIX/C99 code and libraries such as `libarchive`.
+
+If no command line arguments are provided, the current directory will be logged.
+
+# OPTIONS
+
+*   **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
+*   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
+*   **-h** *history_file*: Use *history_file* instead of the default `~/.ytnova-hst`.
+*   **--init**: Create missing starter profile, commands, and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, and `~/.config/ytnova/themes.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. Use `-p` to target a different profile file.
+*   **-p** *config_file*: Use *config_file* instead of the default `~/.config/ytnova/ytnova.conf`.
+*   **-v**, **-V**, **--version**: Print ytnova version information and exit.
+*   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
+
+# CONCEPTS
+
+### The Display
+The screen is divided into three panes plus a footer keybinding line: the **Directory Tree** (upper-left), the **File Window** (below the tree), and the **Statistics/Info** pane (right, spanning both left panes). The footer shows context-sensitive keybinding hints.
+
+### Logging
+Unlike file managers that rescan directories on demand, ytnova "logs" (scans) directory structures into memory. This allows instant navigation and searching without disk lag. Use the **l** command to log new paths or archives.
+
+### Auto-Refresh
+ytnova monitors the **currently selected directory** for changes (created/deleted/modified files) and updates the file list automatically.
+
+**Note:** This monitoring is **active only for the current directory**. Changes occurring in parent or sibling directories while they are not selected will not be detected automatically. Use **^L** (Reload) or **F5** to refresh the view when navigating back to previously modified areas. Additionally, auto-refresh relies on kernel notifications. It may not function on network shares (NFS, SMB) or non-native mounts (e.g., WSL Windows drives) where the operating system does not propagate change events.
+"""
+
+MANPAGE_STATIC_GLOBAL_KEYS = """# KEY BINDINGS
+
+**Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-`Ctrl` footer variant, and Ctrl-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
+
+### Global Commands
+These commands work in most modes:
+
+*   **F1**: Help. Opens a context-sensitive popup for the active runtime surface: directory/file/archive views, Showall/Global lists, `F7` preview, split-panel targeting notes, picker dialogs, and prompt-specific syntax such as `{}` placeholders or tagged-flow semantics.
+*   **F5**: Refresh (same as **^L**).
+*   **F7**: Toggle File Preview Pane.
+*   **F8**: Toggle Split Screen Mode.
+*   **F9**: Open the Applications menu shell. This picker-themed surface is the home for user-configurable external app presets/commands; in the current alpha it is primarily a visible shell while preset execution/reporting is still in progress.
+*   **F10**: Open the configuration command surface: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **M** to edit `commands.conf`, **T** to edit themes, or **R** to reload the current config/theme/commands set. The commands path owns preset selection plus local command overrides; packaged command presets stay read-only shared data. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
+*   **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
+*   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
+*   **1 .. 9**: File or directory info band for the active panel (disabled in `F7` preview).
+    *   In tree/directory focus the footer shows `1..9 dir view`.
+    *   In file focus the footer shows `1..9 file view`.
+    *   The current file/directory stats section shows the active view by name (for example `View: Name`, `View: Compact`, or `View: Git`).
+    *   `1`: Name only. This is the plain default/baseline view, startup always begins here, and pressing `1` also resets temporary compact/overlay state back to Name.
+    *   `2`: Attributes, including `name -> target` symlink rows in file projections.
+    *   `3`: Owner.
+    *   `4`: Times.
+    *   By default, `1..4` are shared per panel, so changing the tree/directory view also changes the file-window view for that panel.
+    *   Selecting `1..4` returns that file projection to its named base view and clears temporary extra view state there.
+    *   Pressing the already-active `2`, `3`, or `4` again resets that context back to `1` / Name.
+    *   Set `SEPARATE_DIR_FILE_VIEWS=1` to make tree/directory and file-window `1..4` views independent again.
+    *   `5`: Toggle the compact Name/full-width file rendering variant when the current `1` / Name base view is active.
+    *   `6`: Toggle binary vs human-readable size units for directory/file rows only. Stats stay human-readable.
+    *   `7`: Toggle Mini preview detail (start of readable file contents on every visible file row). This leaves Compact so the detail is visible.
+    *   `8`: Toggle File detail (`file`-style type-summary text on every visible file row). This leaves Compact so the detail is visible.
+    *   `9`: Toggle the Git status band in filesystem file lists when the current directory is inside a Git worktree.
+    *   `5` only works from the current `1` / Name base view; it always uses the Name file projection and is a silent no-op from `2`, `3`, or `4`.
+    *   `5`, `7`, `8`, and `9` do not change tree rows; they change the panel's file projection instead, so in tree focus they update the small file window and in file focus they update the file window.
+    *   Extra view states do not stack in the stats label; it names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`).
+*   **0**: Toggle the stats panel itself on and off. This does not change the current file or directory view selection.
+*   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
+*   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
+*   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
+*   **^Q**: **Quit to Directory**. If you exit ytnova with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
+*   **Q**: **Quit**. Exit ytnova.
+
+### VI Keys Mode (Profile Option)
+When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
+`h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
+
+*   Use **H/L/K/J** for **Hex/Log/Volume Menu/Compare**.
+*   In file-view contexts, use **D** for **Delete Tagged** and **U** for
+    **Untag All**.
+*   Lowercase **d/u** keep the regular context action (single item / current
+    scope untag).
+"""
+
+MANPAGE_STATIC_COMMAND_LINE = """# COMMAND LINE EDITING
+
+### Line Editing Keys
+
+Input prompts support standard text-editing shortcuts:
+
+*   **^A / Home**: Start of line.
+*   **^E / End**: End of line.
+*   **^K**: Delete to end of line.
+*   **^U**: Delete to start of line.
+*   **^W**: Delete word left.
+*   **^D / Del**: Delete character.
+*   **^H / Backspace**: Backspace.
+
+### Prompt Navigation Keys
+
+These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
+
+*   **Up Arrow**: History (with `P` to Pin, `D` to Delete).
+*   **F2**: Directory picker for path-entry prompts.
+*   **Missing copy/move destinations**: If the resolved destination directory does not exist, ytnova shows `Create missing directory? (y/N)` with the full target path. `y` creates it before the operation continues; `N`/`Esc` returns to the destination prompt without mutating the filesystem.
+"""
+
+MANPAGE_STATIC_TAIL = """# CONFIGURATION
+
+ytnova reads its main configuration from `~/.config/ytnova/ytnova.conf` by
+default. The home-directory fallback path is `~/.ytnova` when the XDG target
+cannot be used. Passing `-p` *config_file*
+uses that explicit main config path instead.
+
+Use `ytnova --init` to create the preferred main config when it is missing.
+Existing files are never overwritten by `--init`.
+Example: `ytnova --init`
+
+The file created by `--init` is a fully annotated profile template. It selects
+the default semantic theme; role definitions and file-type palette rules live
+in theme files, not in the main config.
+
+Theme catalogs are plain text. ytnova loads user themes from
+`$XDG_CONFIG_HOME/ytnova/themes.conf` or `~/.config/ytnova/themes.conf`, falls
+back to `~/.ytnova.themes` only when the XDG-style target cannot be used, then
+uses the installed packaged catalog or compiled-in defaults without creating a
+user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
+
+Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
+`footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
+`help_link`, `help_link_selection`, `warning`, `error`, and `search_hit`.
+`footer` owns the always-visible keybinding strip, while `help` owns the F1
+reading surface. When `picker_selection` is omitted it falls back to
+`selection`, so existing themes keep the same picker highlight behavior. The
+bundled starter themes keep `picker` on a different background so F2,
+history, volume, and applications menus stand out from the main content
+background. Color values accept names or numbers, `grey`/`gray`, bright
+prefixes such as `+white` or `+grey`, and optional backgrounds such as
+`+white on blue`.
+
+Theme-local file-type palettes use compact grouped rules, for example
+`archives = red: tar,tgz,zip` or `scripts = +cyan: sh,bash,py`. Rules are
+evaluated top to bottom; the first matching extension or special selector wins.
+Special selectors may include `LINK` and `EXEC`; directory tree rows use theme
+roles rather than file-type palette rules. When a rule omits a background, it
+inherits the active filename/window background. Starter themes should also omit
+redundant backgrounds on ordinary content roles when they are meant to follow
+the theme background, so changing `background = ...` repaints the shared
+surface intuitively.
+
+Command customization lives in `commands.conf`. ytnova loads user command
+overrides from `$XDG_CONFIG_HOME/ytnova/commands.conf` or
+`~/.config/ytnova/commands.conf`, falls back to `~/.ytnova.commands` only when
+the XDG-style target cannot be used, then uses the installed packaged active
+command map or compiled-in defaults without creating a user command file.
+`commands.conf` may optionally start with `preset = <id>` to select one
+packaged read-only command preset before local per-action overrides are
+applied. Packaged preset catalogs live under the shared app-data commands
+directory (for example `/usr/share/ytnova/commands/<preset>.conf`); `F10`
+edits only `commands.conf`, not the packaged preset files.
+
+# QUIT TO DIRECTORY
+
+To allow `^Q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
+
+```bash
+yt() {
+    ytnova "$@"
+    local tmpfile="$HOME/.ytnova-$$.chdir"
+    if [ -f "$tmpfile" ]; then
+        source "$tmpfile"
+        rm "$tmpfile"
+    fi
+}
+```
+
+# FILES
+
+*   `$XDG_CONFIG_HOME/ytnova/ytnova.conf` or `~/.config/ytnova/ytnova.conf`: Preferred main configuration file.
+*   `$XDG_CONFIG_HOME/ytnova/commands.conf` or `~/.config/ytnova/commands.conf`: Preferred user command map and preset-selection file.
+*   `$XDG_CONFIG_HOME/ytnova/themes.conf` or `~/.config/ytnova/themes.conf`: Preferred user theme catalog.
+*   `$XDG_STATE_HOME/ytnova/ytnova.hst` or `~/.local/state/ytnova/ytnova.hst`: Preferred command history path.
+*   `~/.ytnova`: Legacy fallback main configuration file.
+*   `~/.ytnova.commands`: Legacy fallback user command map file.
+*   `~/.ytnova.themes`: Legacy fallback user theme catalog.
+*   `~/.ytnova-hst`: Legacy fallback command history path.
+*   `/usr/share/ytnova/ytnova.commands`: Installed packaged active command map.
+*   `/usr/share/ytnova/commands/*.conf`: Installed packaged read-only command presets.
+
+### Reporting problems
+
+If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytreenova/issues).
+
+It will help us to address the issue if you include the following:
+
+*   **OS & Configuration:** (Distro, Terminal type, etc.)
+*   **YtreeNova Version:**
+*   **Steps to Reproduce:**
+*   **Expected Behavior:**
+*   **Actual Behavior:**
+
+# AUTHORS
+
+{authors_line}
+
+# SEE ALSO
+
+**bash**(1), **glob**(7), **grep**(1), **less**(1), **regex**(7), **vi**(1)
+"""
+
+MODE_TOPIC_ORDER = [
+    ("intro", "Help System"),
+    ("navigation", "Navigation"),
+    ("dir", "Directory Mode"),
+    ("file", "File Mode"),
+    ("archive-dir", "Archive-Dir Mode"),
+    ("archive-file", "Archive-File Mode"),
+    ("showall", "Showall Mode"),
+    ("global", "Global Mode"),
+    ("f7", "File Preview Mode"),
+    ("f8", "Split Screen Mode"),
+]
+
+KEYBIND_TOPIC_ORDER = [
+    ("dir", "Directory Mode"),
+    ("file", "File Mode"),
+    ("archive-dir", "Archive-Dir Mode"),
+    ("archive-file", "Archive-File Mode"),
+]
+
+PROMPT_TOPIC_ORDER = [
+    ("filter", "Filter Help"),
+    ("output", "Output Help"),
+]
+
+
+@dataclass(frozen=True)
+class HelpLink:
+    label: str
+    target_topic_id: str
+
+
+@dataclass(frozen=True)
+class LongFormSection:
+    title: str
+    body: str
+
+
+@dataclass(frozen=True)
+class HelpTopic:
+    topic_id: str
+    title: str
+    contexts: tuple[str, ...]
+    contextual_f1: str
+    explainer_links: tuple[HelpLink, ...]
+    long_form_sections: tuple[LongFormSection, ...]
+
+
+class HelpSourceError(ValueError):
+    pass
+
+
+TOPIC_ID_RE = re.compile(r"^[a-z0-9-]+$")
+CONTEXTS_RE = re.compile(r"^[a-z0-9.-]+(?:,[a-z0-9.-]+)*$")
+LINK_RE = re.compile(r"^- \[([^\]]+)\]\(topic:([a-z0-9-]+)\)$")
+
+
+def parse_help_source(source_text: str) -> list[HelpTopic]:
+    lines = source_text.splitlines()
+    topic_lines = [idx for idx, line in enumerate(lines) if line.startswith("## topic:")]
+    if not topic_lines:
+        raise HelpSourceError("canonical help source does not define any topic blocks")
+
+    topics: list[HelpTopic] = []
+    seen_topics: set[str] = set()
+
+    for index, start in enumerate(topic_lines):
+        end = topic_lines[index + 1] if index + 1 < len(topic_lines) else len(lines)
+        block = lines[start:end]
+        topic_id = block[0][len("## topic:") :].strip()
+        line_no = start + 1
+        if not TOPIC_ID_RE.fullmatch(topic_id):
+            raise HelpSourceError(f"line {line_no}: invalid topic id {topic_id!r}")
+        if topic_id in seen_topics:
+            raise HelpSourceError(f"line {line_no}: duplicate topic id {topic_id!r}")
+        seen_topics.add(topic_id)
+
+        if len(block) < 6:
+            raise HelpSourceError(f"line {line_no}: topic {topic_id!r} is incomplete")
+        if block[1] != "```ytnova-help-meta":
+            raise HelpSourceError(
+                f"line {line_no + 1}: topic {topic_id!r} must start metadata with ```ytnova-help-meta"
+            )
+        if not block[2].startswith("title: "):
+            raise HelpSourceError(f"line {line_no + 2}: topic {topic_id!r} is missing title:")
+        if not block[3].startswith("contexts: "):
+            raise HelpSourceError(f"line {line_no + 3}: topic {topic_id!r} is missing contexts:")
+        if block[4] != "```":
+            raise HelpSourceError(f"line {line_no + 4}: topic {topic_id!r} metadata fence is not closed")
+        if block[5] != "### Contextual F1":
+            raise HelpSourceError(f"line {line_no + 5}: topic {topic_id!r} must declare ### Contextual F1")
+
+        title = block[2][len("title: ") :].strip()
+        contexts_raw = block[3][len("contexts: ") :].strip()
+        if not title:
+            raise HelpSourceError(f"line {line_no + 2}: topic {topic_id!r} has an empty title")
+        if contexts_raw != "none" and not CONTEXTS_RE.fullmatch(contexts_raw):
+            raise HelpSourceError(
+                f"line {line_no + 3}: topic {topic_id!r} has invalid contexts list {contexts_raw!r}"
+            )
+        contexts = tuple() if contexts_raw == "none" else tuple(contexts_raw.split(","))
+
+        pos = 6
+        contextual_lines: list[str] = []
+        while pos < len(block) and block[pos] not in {"### Explainer links", "### Long form"}:
+            contextual_lines.append(block[pos])
+            pos += 1
+        contextual_f1 = "\n".join(contextual_lines).strip()
+        if not contextual_f1:
+            raise HelpSourceError(f"line {line_no + 5}: topic {topic_id!r} has an empty Contextual F1 section")
+
+        links: list[HelpLink] = []
+        if pos < len(block) and block[pos] == "### Explainer links":
+            pos += 1
+            link_lines: list[str] = []
+            while pos < len(block) and block[pos] != "### Long form":
+                link_lines.append(block[pos])
+                pos += 1
+            for offset, link_line in enumerate(link_lines, start=1):
+                stripped = link_line.strip()
+                if not stripped:
+                    continue
+                match = LINK_RE.fullmatch(stripped)
+                if not match:
+                    raise HelpSourceError(
+                        f"line {line_no + pos - len(link_lines) + offset - 1}: topic {topic_id!r} has invalid explainer link {stripped!r}"
+                    )
+                links.append(HelpLink(match.group(1), match.group(2)))
+
+        if pos >= len(block) or block[pos] != "### Long form":
+            raise HelpSourceError(f"line {line_no}: topic {topic_id!r} is missing ### Long form")
+        pos += 1
+        long_form_lines = block[pos:]
+        sections = _parse_long_form_sections(topic_id, line_no + pos, long_form_lines)
+        topics.append(
+            HelpTopic(
+                topic_id=topic_id,
+                title=title,
+                contexts=contexts,
+                contextual_f1=contextual_f1,
+                explainer_links=tuple(links),
+                long_form_sections=tuple(sections),
+            )
+        )
+
+    known_topics = {topic.topic_id for topic in topics}
+    for topic in topics:
+        for link in topic.explainer_links:
+            if link.target_topic_id not in known_topics:
+                raise HelpSourceError(
+                    f"topic {topic.topic_id!r} links to unknown topic {link.target_topic_id!r}"
+                )
+
+    return topics
+
+
+def _parse_long_form_sections(topic_id: str, start_line: int, lines: list[str]) -> list[LongFormSection]:
+    sections: list[LongFormSection] = []
+    current_title: str | None = None
+    current_lines: list[str] = []
+
+    for offset, line in enumerate(lines):
+        if line.startswith("#### "):
+            if current_title is not None:
+                body = "\n".join(current_lines).strip()
+                if not body:
+                    raise HelpSourceError(
+                        f"line {start_line + offset - len(current_lines)}: topic {topic_id!r} subsection {current_title!r} is empty"
+                    )
+                sections.append(LongFormSection(current_title, body))
+            current_title = line[len("#### ") :].strip()
+            current_lines = []
+            if not current_title:
+                raise HelpSourceError(f"line {start_line + offset}: topic {topic_id!r} has an empty #### heading")
+        else:
+            current_lines.append(line)
+
+    if current_title is None:
+        raise HelpSourceError(
+            f"line {start_line}: topic {topic_id!r} long-form section needs at least one #### subsection"
+        )
+
+    body = "\n".join(current_lines).strip()
+    if not body:
+        raise HelpSourceError(f"topic {topic_id!r} subsection {current_title!r} is empty")
+    sections.append(LongFormSection(current_title, body))
+    return sections
+
+
+def render_manpage_markdown(topics: list[HelpTopic], *, usage_mode: bool) -> str:
+    topic_map = {topic.topic_id: topic for topic in topics}
+    authors_line = (
+        "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file."
+        if usage_mode
+        else "Authors and contributors are listed in the AUTHORS.md file."
+    )
+    parts = [BANNER, "", MANPAGE_STATIC_HEAD.strip(), "", "# MODES AND NAVIGATION", ""]
+    for topic_id, heading in MODE_TOPIC_ORDER:
+        parts.append(render_contextual_projection(topic_map[topic_id], heading))
+    parts.extend([MANPAGE_STATIC_GLOBAL_KEYS.strip(), ""])
+    for topic_id, heading in KEYBIND_TOPIC_ORDER:
+        parts.append(render_long_form_projection(topic_map[topic_id], heading))
+    parts.extend(["# COMPARE", "", render_long_form_projection(topic_map["compare"], topic_map["compare"].title, include_heading=False), ""])
+    parts.extend([MANPAGE_STATIC_COMMAND_LINE.strip(), ""])
+    for topic_id, heading in PROMPT_TOPIC_ORDER:
+        parts.append(render_long_form_projection(topic_map[topic_id], heading))
+    parts.extend([MANPAGE_STATIC_TAIL.replace("{authors_line}", authors_line).strip(), ""])
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def render_contextual_projection(topic: HelpTopic, heading: str) -> str:
+    lines = [f"### {heading}", "", topic.contextual_f1.strip()]
+    if topic.explainer_links:
+        link_text = ", ".join(link.label for link in topic.explainer_links)
+        lines.extend(["", f"See also: {link_text}."])
+    return "\n".join(lines)
+
+
+def render_long_form_projection(topic: HelpTopic, heading: str, *, include_heading: bool = True) -> str:
+    lines: list[str] = []
+    if include_heading:
+        lines.append(f"### {heading}")
+        lines.append("")
+    for index, section in enumerate(topic.long_form_sections):
+        if index:
+            lines.append("")
+        lines.append(f"#### {section.title}")
+        lines.append(section.body.strip())
+    return "\n".join(lines)
+
+
+def render_runtime_header(topics: list[HelpTopic]) -> str:
+    lines = [
+        "/* Auto-generated from etc/help/help.en.md by scripts/generate_help_assets.py. */",
+        "#include <stddef.h>",
+        "",
+        "typedef struct {",
+        "    const char *label;",
+        "    const char *target_topic_id;",
+        "} GeneratedHelpLink;",
+        "",
+        "typedef struct {",
+        "    const char *title;",
+        "    const char *body;",
+        "} GeneratedHelpLongFormSection;",
+        "",
+        "typedef struct {",
+        "    const char *topic_id;",
+        "    const char *title;",
+        "    const char *contexts_csv;",
+        "    const char *contextual_f1;",
+        "    size_t explainer_link_count;",
+        "    const GeneratedHelpLink *explainer_links;",
+        "    size_t long_form_section_count;",
+        "    const GeneratedHelpLongFormSection *long_form_sections;",
+        "} GeneratedHelpTopic;",
+        "",
+    ]
+
+    for topic in topics:
+        stem = topic.topic_id.replace("-", "_")
+        if topic.explainer_links:
+            lines.append(f"static const GeneratedHelpLink generated_help_links_{stem}[] = {{")
+            for link in topic.explainer_links:
+                lines.append(
+                    f"    {{{c_literal(link.label)}, {c_literal(link.target_topic_id)}}},"
+                )
+            lines.append("};")
+            lines.append("")
+        lines.append(
+            f"static const GeneratedHelpLongFormSection generated_help_sections_{stem}[] = {{"
+        )
+        for section in topic.long_form_sections:
+            lines.append(
+                f"    {{{c_literal(section.title)}, {c_literal(section.body)}}},"
+            )
+        lines.append("};")
+        lines.append("")
+
+    lines.append("static const GeneratedHelpTopic generated_help_topics[] = {")
+    for topic in topics:
+        stem = topic.topic_id.replace("-", "_")
+        contexts_csv = ",".join(topic.contexts)
+        link_array = f"generated_help_links_{stem}" if topic.explainer_links else "NULL"
+        lines.append("    {")
+        lines.append(f"        {c_literal(topic.topic_id)},")
+        lines.append(f"        {c_literal(topic.title)},")
+        lines.append(
+            f"        {c_literal(contexts_csv) if contexts_csv else 'NULL'},"
+        )
+        lines.append(f"        {c_literal(topic.contextual_f1)},")
+        lines.append(f"        {len(topic.explainer_links)},")
+        lines.append(f"        {link_array},")
+        lines.append(f"        {len(topic.long_form_sections)},")
+        lines.append(f"        generated_help_sections_{stem},")
+        lines.append("    },")
+    lines.append("};")
+    lines.append("")
+    lines.append(
+        f"static const size_t generated_help_topic_count = {len(topics)};"
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_roff_document(markdown: str, *, version: str, versiondate: str) -> str:
+    lines = [f'.TH "YTNOVA" "1" "{escape_roff_text(versiondate)}" "ytnova {escape_roff_text(version)}" "User Commands"']
+    paragraph: list[str] = []
+    in_code = False
+
+    def flush_paragraph() -> None:
+        nonlocal paragraph
+        if not paragraph:
+            return
+        text = " ".join(part.strip() for part in paragraph).strip()
+        if text:
+            lines.append(".PP")
+            lines.append(format_roff_inline(text))
+        paragraph = []
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.rstrip()
+        if line.startswith("<!--"):
+            continue
+        if in_code:
+            if line.startswith("```"):
+                lines.append(".fi")
+                in_code = False
+            else:
+                literal = line.replace("\\", r"\\")
+                if literal.startswith((".", "'")):
+                    literal = r"\&" + literal
+                lines.append(literal)
+            continue
+        if line.startswith("```"):
+            flush_paragraph()
+            lines.append(".nf")
+            in_code = True
+            continue
+        if not line.strip():
+            flush_paragraph()
+            continue
+        if line.startswith("# "):
+            flush_paragraph()
+            lines.append(f'.SH "{escape_roff_text(line[2:].strip())}"')
+            continue
+        if line.startswith("### "):
+            flush_paragraph()
+            lines.append(f'.SS "{escape_roff_text(line[4:].strip())}"')
+            continue
+        if line.startswith("#### "):
+            flush_paragraph()
+            lines.append(f'.SS "{escape_roff_text(line[5:].strip())}"')
+            continue
+        stripped = line.lstrip()
+        if stripped.startswith("*   ") or stripped.startswith("- "):
+            flush_paragraph()
+            bullet_text = stripped[4:] if stripped.startswith("*   ") else stripped[2:]
+            lines.append('.IP "\\[bu]" 2')
+            lines.append(format_roff_inline(bullet_text))
+            continue
+        paragraph.append(line)
+
+    flush_paragraph()
+    if in_code:
+        lines.append(".fi")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def format_roff_inline(text: str) -> str:
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", lambda m: f"{m.group(1)} ({m.group(2)})", text)
+    text = re.sub(r"`([^`]+)`", lambda m: rf"\\fB{escape_roff_text(m.group(1))}\\fR", text)
+    text = re.sub(r"\*\*([^*]+)\*\*", lambda m: rf"\\fB{escape_roff_text(m.group(1))}\\fR", text)
+    text = re.sub(r"\*([^*]+)\*", lambda m: rf"\\fI{escape_roff_text(m.group(1))}\\fR", text)
+    text = escape_roff_leading(text)
+    return text
+
+
+def escape_roff_text(text: str) -> str:
+    return text.replace("\\", r"\\")
+
+
+def escape_roff_leading(text: str) -> str:
+    return r"\&" + text if text.startswith((".", "'")) else text
+
+
+def c_literal(text: str) -> str:
+    escaped = (
+        text.replace("\\", r"\\")
+        .replace('"', r'\"')
+        .replace("\n", r"\n")
+    )
+    return f'"{escaped}"'
+
+
+def build_outputs(source_path: Path, man_md: str | None, usage_md: str | None, runtime_header: str | None, man_roff: str | None, version: str, versiondate: str) -> dict[str, str]:
+    topics = parse_help_source(source_path.read_text(encoding="utf-8"))
+    outputs: dict[str, str] = {}
+    if man_md:
+        outputs[man_md] = render_manpage_markdown(topics, usage_mode=False)
+    if usage_md:
+        outputs[usage_md] = render_manpage_markdown(topics, usage_mode=True)
+    if runtime_header:
+        outputs[runtime_header] = render_runtime_header(topics)
+    if man_roff:
+        man_markdown = outputs.get(man_md) or render_manpage_markdown(topics, usage_mode=False)
+        outputs[man_roff] = render_roff_document(
+            man_markdown, version=version, versiondate=versiondate
+        )
+    return outputs
+
+
+def verify_outputs(outputs: dict[str, str]) -> int:
+    status = 0
+    for output_path, generated in outputs.items():
+        path = Path(output_path)
+        current = path.read_text(encoding="utf-8") if path.exists() else ""
+        if current == generated:
+            continue
+        diff = difflib.unified_diff(
+            current.splitlines(),
+            generated.splitlines(),
+            fromfile=str(path),
+            tofile="generated",
+            lineterm="",
+        )
+        sys.stderr.write(f"help asset drift detected for {path}\n")
+        sys.stderr.write("\n".join(diff))
+        sys.stderr.write("\n")
+        status = 1
+    return status
+
+
+def write_outputs(outputs: dict[str, str]) -> int:
+    for output_path, generated in outputs.items():
+        path = Path(output_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(generated, encoding="utf-8")
+    return 0
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate or verify canonical help outputs from etc/help/help.en.md.",
+    )
+    parser.add_argument("--source", default="etc/help/help.en.md", help="Canonical help source to read.")
+    parser.add_argument("--man-md", help="Tracked long-form markdown manpage projection path.")
+    parser.add_argument("--usage-md", help="Tracked docs/USAGE.md projection path.")
+    parser.add_argument("--runtime-header", help="Generated runtime help header path.")
+    parser.add_argument("--man-roff", help="Generated roff manpage output path.")
+    parser.add_argument("--version", default="", help="Version string for roff projection.")
+    parser.add_argument("--versiondate", default="", help="Version date for roff projection.")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--write", action="store_true", help="Write generated outputs.")
+    mode.add_argument("--check", action="store_true", help="Verify generated outputs match the checked-in copies.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    outputs = build_outputs(
+        source_path=Path(args.source),
+        man_md=args.man_md,
+        usage_md=args.usage_md,
+        runtime_header=args.runtime_header,
+        man_roff=args.man_roff,
+        version=args.version,
+        versiondate=args.versiondate,
+    )
+    if not outputs:
+        raise HelpSourceError("no output paths were provided")
+    if args.check:
+        return verify_outputs(outputs)
+    return write_outputs(outputs)
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except HelpSourceError as exc:
+        sys.stderr.write(f"help generation failed: {exc}\n")
+        raise SystemExit(1)
