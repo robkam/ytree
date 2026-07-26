@@ -67,6 +67,7 @@ These commands work in most modes:
 
 *   **F1**: Help. Opens a context-sensitive popup for the active runtime surface: directory/file/archive views, Showall/Global lists, `F7` preview, split-panel targeting notes, picker dialogs, and prompt-specific syntax such as `{}` placeholders or tagged-flow semantics.
 *   **F5**: Refresh (same as **^L**).
+*   **F6**: Toggle the stats panel itself on and off. This does not change the current file or directory view selection.
 *   **F7**: Toggle File Preview Pane.
 *   **F8**: Toggle Split Screen Mode.
 *   **F9**: Open the Applications menu shell. This picker-themed surface is the home for user-configurable external app presets/commands; in the current alpha it is primarily a visible shell while preset execution/reporting is still in progress.
@@ -93,7 +94,7 @@ These commands work in most modes:
     *   `5` only works from the current `1` / Name base view; it always uses the Name file projection and is a silent no-op from `2`, `3`, or `4`.
     *   `5`, `7`, `8`, and `9` do not change tree rows; they change the panel's file projection instead, so in tree focus they update the small file window and in file focus they update the file window.
     *   Extra view states do not stack in the stats label; it names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`).
-*   **0**: Toggle the stats panel itself on and off. This does not change the current file or directory view selection.
+    *   `0`: Currently unused; silent no-op.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
