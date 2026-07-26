@@ -59,6 +59,20 @@ def _send_and_wait(tui, keys, timeout=1.0):
     return lines or tui.get_screen_dump()
 
 
+def _send_and_expect_noop(tui, keys, predicate, timeout=0.4, message=None):
+    lines = tui.send_and_wait_for_condition(
+        keys,
+        lambda current_lines: current_lines if predicate(current_lines) else False,
+        timeout=timeout,
+    )
+    lines = lines or tui.get_screen_dump()
+    assert predicate(lines), (
+        message
+        or f"Key {keys!r} should be an unassigned no-op.\n{_screen_text(lines)}"
+    )
+    return lines
+
+
 def _footer_text(screen_or_lines):
     return _footer_text_from_lines(_screen_lines(screen_or_lines))
 
@@ -360,9 +374,9 @@ def test_ctrl_u_untags_all(test_dir_with_files, ytnova_binary):
 def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     """
     BUG: Footer can drift away from the advertised numeric FileInfo band.
-    EXPECTED: Footer should show "1..9 file view  0 stats" in the main file
-    command band, keep the function-key footer row for F-keys, and should not
-    show Brief/About.
+    EXPECTED: Footer should keep "1..9 file view" in the main file command
+    band, advertise "F6 stats" in the function-key footer row, keep 0
+    unassigned, and should not show Brief/About.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
 
@@ -376,22 +390,28 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     if "1..9 file view" not in footer:
         pytest.fail(f"BUG: Footer missing unified FileInfo band\nFooter:\n{footer}\n\nFull screen:\n{screen}")
 
-    if "0 stats" not in footer:
-        pytest.fail(f"BUG: Footer missing stats toggle on 0\nFooter:\n{footer}\n\nFull screen:\n{screen}")
+    if "f6 stats" not in footer:
+        pytest.fail(f"BUG: Footer missing F6 stats binding\nFooter:\n{footer}\n\nFull screen:\n{screen}")
 
-    if "F6 stats" in footer:
-        pytest.fail(f"BUG: Footer still advertises the old F6 stats binding\nFooter:\n{footer}")
+    if "0 stats" in footer:
+        pytest.fail(f"BUG: Footer still advertises stats on 0\nFooter:\n{footer}")
 
     footer_lines = lines[-3:]
-    if "0 stats" not in footer_lines[0].lower():
+    if "0 stats" in footer_lines[0].lower():
         pytest.fail(
-            "BUG: Footer should advertise 0 stats in the main file command band\n"
+            "BUG: Main file command band should keep 0 unassigned\n"
+            f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
+        )
+
+    if "f6 stats" not in footer_lines[2].lower():
+        pytest.fail(
+            "BUG: Function-key footer row should advertise F6 stats\n"
             f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
         )
 
     if "0 stats" in footer_lines[2].lower():
         pytest.fail(
-            "BUG: Function-key footer row should not contain 0 stats\n"
+            "BUG: Function-key footer row should not advertise 0 stats\n"
             f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
         )
 
@@ -1002,8 +1022,8 @@ def test_compact_key_is_ignored_in_dense_dir_views(tmp_path, ytnova_binary):
     tui.quit()
 
 
-def test_zero_toggles_stats_panel_and_one_resets_back_to_name(tmp_path, ytnova_binary):
-    test_root = tmp_path / "stats_toggle_zero"
+def test_f6_toggles_stats_panel_and_zero_remains_noop(tmp_path, ytnova_binary):
+    test_root = tmp_path / "stats_toggle_f6"
     test_root.mkdir()
     with (test_root / "alpha.bin").open("wb") as handle:
         handle.truncate(12_345)
@@ -1019,18 +1039,44 @@ def test_zero_toggles_stats_panel_and_one_resets_back_to_name(tmp_path, ytnova_b
         "Precondition failed: key 5 should first enable Compact.\n" + screen
     )
 
-    _send_and_wait(tui, "0", timeout=0.4)
+    _send_and_expect_noop(
+        tui,
+        "0",
+        lambda lines: _stats_view_value(lines) == "Compact"
+        and _line_tokens(_line_with_text(lines, "alpha.bin"))
+        == _line_tokens(compact_line),
+        message="Key 0 should be an unassigned no-op while stats are visible.",
+    )
     screen = "\n".join(tui.get_screen_dump())
-    assert _stats_area(screen) == [], (
-        "Key 0 should hide the stats panel.\n"
+    assert _stats_view_value(screen) == "Compact", (
+        "Key 0 should leave the visible stats view unchanged.\n"
         + screen
     )
 
-    _send_and_wait(tui, "0", timeout=0.4)
+    _send_and_wait(tui, Keys.F6, timeout=0.4)
+    screen = "\n".join(tui.get_screen_dump())
+    assert _stats_area(screen) == [], (
+        "F6 should hide the stats panel.\n"
+        + screen
+    )
+
+    _send_and_expect_noop(
+        tui,
+        "0",
+        lambda lines: _stats_area(lines) == [],
+        message="Key 0 should remain an unassigned no-op while stats are hidden.",
+    )
+    screen = "\n".join(tui.get_screen_dump())
+    assert _stats_area(screen) == [], (
+        "Key 0 should remain a no-op while stats are hidden.\n"
+        + screen
+    )
+
+    _send_and_wait(tui, Keys.F6, timeout=0.4)
     screen = "\n".join(tui.get_screen_dump())
     restored_line = _line_with_text(screen.split("\n"), "alpha.bin")
     assert _stats_view_value(screen) == "Compact", (
-        "Key 0 should restore the stats panel without losing the current file view.\n"
+        "F6 should restore the stats panel without losing the current file view.\n"
         + screen
     )
     assert _line_tokens(restored_line) == _line_tokens(compact_line), (

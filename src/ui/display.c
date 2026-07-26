@@ -541,7 +541,6 @@ static void SortResolvedFooterCommands(ResolvedFooterCommand *resolved,
 
 static const FooterCommandSpec dir_footer_standard_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
                   "ACTION_CMD_A"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL,
@@ -605,7 +604,6 @@ static const FooterCommandSpec dir_footer_ll_specs[] = {
 
 static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -638,7 +636,6 @@ static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
 
 static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
                   "ACTION_CMD_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -671,7 +668,6 @@ static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
 
 static const FooterCommandSpec file_footer_standard_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
                   "ACTION_CMD_A"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
@@ -739,7 +735,6 @@ static const FooterCommandSpec file_footer_ll_specs[] = {
 
 static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
@@ -780,6 +775,7 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
 static const FooterCommandSpec dir_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -789,6 +785,7 @@ static const FooterCommandSpec dir_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -798,6 +795,7 @@ static const FooterCommandSpec file_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
