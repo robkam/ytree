@@ -22,13 +22,19 @@ def test_shared_help_popup_uses_help_palette():
         help_source,
         "static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,",
     )
+    footer_block = _extract_function_block(
+        help_source,
+        "static void RenderHelpPopupFooter(",
+    )
 
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_HELP));" in popup_block
     assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in popup_block
-    assert "UI_RenderCommandStrip(win, height - 2," in popup_block
-    assert "UI_ROLE_HELP," in popup_block
-    assert "UI_ROLE_KEYBIND" in popup_block
+    assert "RenderHelpPopupFooter(win, height - 2," in popup_block
+    assert "UI_RenderCommandStrip(win, y, x, commands, command_count, UI_ROLE_HELP," in footer_block
+    assert "UI_ROLE_KEYBIND" in footer_block
+    assert "UI_ROLE_HELP_LINK" in footer_block
+    assert "UI_ROLE_HELP_LINK_SELECTION" in footer_block
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in popup_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in popup_block
 

@@ -23,6 +23,43 @@ static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
   return UI_CommandStripVisualLength(commands, command_count);
 }
 
+static void RenderHelpPopupFooter(
+    WINDOW *win, int y, int start_x, const UICommandStripCommand *commands,
+    size_t command_count, const UIHelpPopupFooterSpec *footer_spec) {
+  size_t i;
+  int x = start_x;
+
+  if (win == NULL || commands == NULL)
+    return;
+
+  if (footer_spec == NULL || footer_spec->link_command_count == 0 ||
+      footer_spec->active_command_index >= footer_spec->link_command_count) {
+    UI_RenderCommandStrip(win, y, x, commands, command_count, UI_ROLE_HELP,
+                          UI_ROLE_KEYBIND);
+    return;
+  }
+
+  for (i = 0; i < command_count; ++i) {
+    int normal_role = UI_ROLE_HELP;
+    int key_role = UI_ROLE_KEYBIND;
+
+    if (i > 0) {
+      PrintSpecialString(win, y, x, "  ", UI_ROLE_HELP);
+      x += 2;
+    }
+
+    if (i < footer_spec->link_command_count) {
+      normal_role = i == footer_spec->active_command_index
+                        ? UI_ROLE_HELP_LINK_SELECTION
+                        : UI_ROLE_HELP_LINK;
+      key_role = normal_role;
+    }
+
+    x = UI_RenderCommandStripEntry(win, y, x, &commands[i], normal_role,
+                                   key_role);
+  }
+}
+
 static int HelpPopupRowWidth(const UIHelpPopupRow *row) {
   int width = 0;
 
@@ -196,19 +233,23 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     for (i = 0; i < visible_rows && scroll_offset + i < (int)row_count; ++i)
       RenderHelpPopupRow(win, 2 + i, content_width, &rows[scroll_offset + i]);
 
-    UI_RenderCommandStrip(win, height - 2,
+    RenderHelpPopupFooter(win, height - 2,
                           MAXIMUM(2, (width - footer_width) / 2),
                           effective_footer_commands, effective_footer_count,
-                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
+                          footer_spec);
     wrefresh(win);
 
     ch = WGetch(ctx, win);
     if (ch == ERR)
       continue;
 
-    if (footer_spec != NULL && footer_spec->key_handler != NULL &&
-        footer_spec->key_handler(ctx, ch, footer_spec->key_data)) {
-      break;
+    if (footer_spec != NULL && footer_spec->key_handler != NULL) {
+      int handled = footer_spec->key_handler(ctx, ch, footer_spec->key_data);
+
+      if (handled > 0)
+        break;
+      if (handled < 0)
+        continue;
     }
 
     if (ch == KEY_F(1) || ch == ESC || ch == CR || ch == LF)
