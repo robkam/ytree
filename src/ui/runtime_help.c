@@ -10,14 +10,20 @@
 #include <ctype.h>
 #include <string.h>
 
-#define GENERATED_HELP_MAX_FOOTER_COMMANDS 8
+#define GENERATED_HELP_MAX_FOOTER_COMMANDS 10
+#define GENERATED_HELP_MAX_HISTORY 2
+#define GENERATED_HELP_NO_SELECTION ((size_t)-1)
 #define GENERATED_HELP_MAX_ROWS 16
 #define GENERATED_HELP_MAX_TEXT_LINES 8
 #define GENERATED_HELP_MAX_TEXT_WIDTH 256
 
 typedef struct {
   const GeneratedHelpTopic *topic;
+  size_t history_count;
   const char *next_topic_id;
+  size_t link_command_count;
+  size_t active_link_index;
+  BOOL back_requested;
   UICommandStripCommand footer_commands[GENERATED_HELP_MAX_FOOTER_COMMANDS];
   char footer_keys[GENERATED_HELP_MAX_FOOTER_COMMANDS][2];
   UIHelpPopupRow rows[GENERATED_HELP_MAX_ROWS];
@@ -114,15 +120,17 @@ static char PickFooterMnemonic(const char *label, const char used_keys[],
 
 static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
   char used_keys[GENERATED_HELP_MAX_FOOTER_COMMANDS];
+  size_t reserved_tail;
   size_t command_count = 0;
   size_t i;
 
   if (state == NULL || state->topic == NULL)
     return 0;
 
+  reserved_tail = state->history_count > 0 ? 2 : 1;
   memset(used_keys, 0, sizeof(used_keys));
   for (i = 0; i < state->topic->explainer_link_count &&
-              command_count + 1 < GENERATED_HELP_MAX_FOOTER_COMMANDS;
+              command_count + reserved_tail < GENERATED_HELP_MAX_FOOTER_COMMANDS;
        ++i) {
     char key =
         PickFooterMnemonic(state->topic->explainer_links[i].label, used_keys,
@@ -136,6 +144,18 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
         state->topic->explainer_links[i].label;
     state->footer_commands[command_count].primary_key =
         state->footer_keys[command_count];
+    state->footer_commands[command_count].secondary_key = NULL;
+    command_count++;
+  }
+
+  state->link_command_count = command_count;
+  state->active_link_index =
+      command_count > 0 ? 0 : GENERATED_HELP_NO_SELECTION;
+
+  if (state->history_count > 0) {
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+    state->footer_commands[command_count].label = "back";
+    state->footer_commands[command_count].primary_key = "Left";
     state->footer_commands[command_count].secondary_key = NULL;
     command_count++;
   }
@@ -204,12 +224,33 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
   if (state == NULL || state->topic == NULL)
     return 0;
 
+  if (ch == KEY_LEFT) {
+    if (state->history_count > 0) {
+      state->back_requested = TRUE;
+      return 1;
+    }
+    return 0;
+  }
+
+  if (ch == KEY_RIGHT || ch == CR || ch == LF) {
+    if (state->link_command_count == 0)
+      return 0;
+    if (state->history_count >= GENERATED_HELP_MAX_HISTORY)
+      return -1;
+
+    state->next_topic_id =
+        state->topic->explainer_links[state->active_link_index]
+            .target_topic_id;
+    return 1;
+  }
+
   key = islower(ch) ? toupper(ch) : ch;
-  for (i = 0; i < state->topic->explainer_link_count &&
-              i < state->footer_command_count;
-       ++i) {
+  for (i = 0; i < state->link_command_count; ++i) {
     if (state->footer_commands[i].primary_key != NULL &&
         state->footer_commands[i].primary_key[0] == key) {
+      if (state->history_count >= GENERATED_HELP_MAX_HISTORY)
+        return -1;
+      state->active_link_index = i;
       state->next_topic_id = state->topic->explainer_links[i].target_topic_id;
       return 1;
     }
@@ -221,6 +262,8 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
 int UI_ShowGeneratedContextHelp(ViewContext *ctx, const char *context_id,
                                 const UIHelpPopupRow *prefix_rows,
                                 size_t prefix_row_count) {
+  const GeneratedHelpTopic *history[GENERATED_HELP_MAX_HISTORY];
+  size_t history_count = 0;
   const GeneratedHelpTopic *topic;
 
   if (ctx == NULL || context_id == NULL || context_id[0] == '\0')
@@ -233,24 +276,43 @@ int UI_ShowGeneratedContextHelp(ViewContext *ctx, const char *context_id,
   while (topic != NULL) {
     RuntimeHelpPopupState state;
     UIHelpPopupFooterSpec footer_spec;
+    const GeneratedHelpTopic *next_topic;
 
     memset(&state, 0, sizeof(state));
     state.topic = topic;
+    state.history_count = history_count;
     state.footer_command_count = BuildFooterCommands(&state);
     state.row_count = BuildTextRows(&state, prefix_rows, prefix_row_count);
     if (state.row_count == 0)
       return -1;
 
+    memset(&footer_spec, 0, sizeof(footer_spec));
     footer_spec.commands = state.footer_commands;
     footer_spec.command_count = state.footer_command_count;
+    footer_spec.link_command_count = state.link_command_count;
+    footer_spec.active_command_index = state.active_link_index;
     footer_spec.key_handler = HandleGeneratedHelpFooterKey;
     footer_spec.key_data = &state;
 
     (void)UI_ShowHelpPopupWithFooter(ctx, topic->title, state.rows,
                                      state.row_count, &footer_spec);
+
+    if (state.back_requested) {
+      if (history_count == 0)
+        break;
+      topic = history[history_count - 1];
+      history_count--;
+      continue;
+    }
+
     if (state.next_topic_id == NULL)
       break;
-    topic = FindGeneratedTopicById(state.next_topic_id);
+    next_topic = FindGeneratedTopicById(state.next_topic_id);
+    if (next_topic == NULL)
+      break;
+    if (history_count < GENERATED_HELP_MAX_HISTORY)
+      history[history_count++] = topic;
+    topic = next_topic;
   }
 
   return 0;

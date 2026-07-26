@@ -828,7 +828,7 @@ Ordering policy (for all editors, including AI editors):
 *   `Enter` (and optionally `Right`) follows, `Left` backs out one page, `Esc` closes from anywhere, and `Up`/`Down`/`PgUp`/`PgDn`/`Home`/`End` continue to serve page navigation/reading.
 *   Theme support for linked text and linked-target emphasis is defined in the theme catalog path, not as one-off `[COLORS]` or `ytnova.conf` knobs.
 *   Add focused regression coverage for link focus, follow, back, and close behavior.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 43.2: Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance**
 *   **Goal:** Preserve footer, prompt, and `F1` help ownership while long-running operations update progress/spinner state.

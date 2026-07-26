@@ -1226,6 +1226,34 @@ static void CommandStripRenderCommandFull(WINDOW *win, int y, int *x, int max_x,
   }
 }
 
+int UI_RenderCommandStripEntry(WINDOW *win, int y, int x,
+                               const UICommandStripCommand *command,
+                               int ncolor, int hcolor) {
+  int max_x;
+  int normal_attr;
+  int key_attr;
+
+  if (win == NULL || command == NULL || x < 0 || y < 0)
+    return x;
+
+  max_x = getmaxx(win);
+  if (max_x <= 0 || x >= max_x)
+    return x;
+
+#ifdef COLOR_SUPPORT
+  normal_attr = COLOR_PAIR(ncolor);
+  key_attr = UIKeybindAttrForBase(hcolor, ncolor);
+#else
+  normal_attr = A_NORMAL;
+  key_attr = A_BOLD;
+#endif
+
+  CommandStripRenderCommandFull(win, y, &x, max_x, command, normal_attr,
+                                key_attr);
+  wattrset(win, 0);
+  return x;
+}
+
 void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                            const UICommandStripCommand *commands,
                            size_t command_count, int ncolor, int hcolor) {

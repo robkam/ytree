@@ -218,6 +218,36 @@ def test_showall_help_links_to_global_help_via_generated_footer_navigation(tmp_p
         assert "single-volume aggregated file view" in showall_help, showall_help
         assert "Press `Esc` to return to the previously selected directory." in showall_help, showall_help
 
+        navigation_help_screen = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("Navigation" in line for line in lines) else False,
+            timeout=1.5,
+        )
+        assert navigation_help_screen, screen_text(tui)
+        navigation_help = "\n".join(navigation_help_screen)
+        assert "Arrow keys, paging keys, `Home`, `End`, and `Enter`" in navigation_help
+
+        showall_again = tui.send_and_wait_for_condition(
+            Keys.LEFT,
+            lambda lines: lines if any("Showall Help" in line for line in lines) else False,
+            timeout=1.5,
+        )
+        assert showall_again, screen_text(tui)
+
+        navigation_again = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines if any("Navigation" in line for line in lines) else False,
+            timeout=1.5,
+        )
+        assert navigation_again, screen_text(tui)
+
+        showall_again = tui.send_and_wait_for_condition(
+            Keys.LEFT,
+            lambda lines: lines if any("Showall Help" in line for line in lines) else False,
+            timeout=1.5,
+        )
+        assert showall_again, screen_text(tui)
+
         global_help_screen = tui.send_and_wait_for_condition(
             "g",
             lambda lines: lines if any("Global Help" in line for line in lines) else False,
@@ -227,6 +257,16 @@ def test_showall_help_links_to_global_help_via_generated_footer_navigation(tmp_p
         global_help = "\n".join(global_help_screen)
         assert "multi-volume aggregated file view" in global_help, global_help
         assert "different logged volume root" in global_help, global_help
+
+        showall_again = tui.send_and_wait_for_condition(
+            Keys.LEFT,
+            lambda lines: lines if any("Showall Help" in line for line in lines) else False,
+            timeout=1.5,
+        )
+        assert showall_again, screen_text(tui)
+
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
     finally:
         tui.quit()
 

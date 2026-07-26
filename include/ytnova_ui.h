@@ -237,6 +237,8 @@ typedef struct {
 typedef struct {
   const UICommandStripCommand *commands;
   size_t command_count;
+  size_t link_command_count;
+  size_t active_command_index;
   int (*key_handler)(ViewContext *, int, void *);
   void *key_data;
 } UIHelpPopupFooterSpec;
@@ -244,6 +246,9 @@ extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
                                        size_t command_count);
 extern int UI_FormatCommandStripEntryText(const UICommandStripCommand *command,
                                           char *buf, size_t buf_size);
+extern int UI_RenderCommandStripEntry(WINDOW *win, int y, int x,
+                                      const UICommandStripCommand *command,
+                                      int ncolor, int hcolor);
 extern void UI_RenderCommandStrip(WINDOW *win, int y, int x,
                                   const UICommandStripCommand *commands,
                                   size_t command_count, int ncolor,
