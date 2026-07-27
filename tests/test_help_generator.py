@@ -107,3 +107,19 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
 
     assert check_result.returncode != 0
     assert "drift" in (check_result.stdout + check_result.stderr).lower()
+
+
+def test_help_generator_roff_preserves_option_keywords_and_literal_globs():
+    topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "help.en.md").read_text(encoding="utf-8")
+    )
+
+    roff = helpgen.render_roff_document(
+        helpgen.render_manpage_markdown(topics, usage_mode=False),
+        version="1.0.0-alpha",
+        versiondate="June 2026",
+    )
+
+    assert r"\\fBmin\\fR/\\fBroot\\fR (0), \\fBmax\\fR/\\fBall\\fR (100)." in roff
+    assert r"\\fB*.c\\fR" in roff
+    assert r"\\fB*.c,*.h\\fR" in roff
