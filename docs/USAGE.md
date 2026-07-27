@@ -57,8 +57,9 @@ normal navigation baseline.
 See also: Directory mode, File mode, F7 preview, F8 split.
 ### Directory Mode
 
-Directory help explains the live directory footer commands, tree/logging
-behavior, and any mode-specific caveats that do not fit in the footer strip.
+Directory Help is the directory-specific command page. Use Navigation for the
+shared movement keys; this page keeps the focus on directory actions,
+tree/logging behavior, and directory-only caveats.
 
 See also: Navigation, Filter, F8 split.
 ### File Mode
@@ -172,6 +173,11 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 ### Directory Mode
 
 #### Directory commands
+*   **1..9 view**: Select the active panel's base directory/file view while
+    tree-focused. `1` resets to Name, `2` shows Attributes, `3` shows Owner,
+    `4` shows Times, `5`, `7`, `8`, and `9` change the file projection, `6`
+    toggles panel-wide row size units, `0` is unused, and `9` is a silent
+    no-op outside Git worktrees.
 *   **A** (Attributes): Open attributes submenu for directory metadata changes:
     mode (chmod), owner, group, date.
 *   **C** (Copy): Copy the selected directory branch.
@@ -185,6 +191,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
     directory scope.
 *   **J** (Compare): Open the compare submenu (directory, logged tree, or
     external viewer). With `VI_KEYS=1`, use uppercase `J` for this action.
+*   **K** (volume): Open the volume picker.
 *   **L** (Log): Log a new directory or archive file. Logging an already logged
     volume/path performs a fresh reload and reanchors selection at the volume
     root.
@@ -193,6 +200,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 *   **O** (Only tagged): Toggle tagged-only file-list view for the current
     directory scope.
 *   **P** (Pipe, or **|**): Pipe the selected directory to a command (stdin).
+*   **Q** (Quit): Quit ytnova.
 *   **R** (Rename): Rename selected directory.
 *   **S** (Showall): Show all files in all directories of the current volume.
 *   **T** (Tag): Tag all files in the selected directory.
@@ -208,12 +216,8 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
     tagged, ytnova archives the selected file or selected directory. Directory
     sources are archived recursively. Supported destination suffixes: `.tar`,
     `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
+*   **/** (jump): Jump to a file or directory by name within the current list.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
-*   **1 .. 4** (Dir Mode): Select the active panel's base directory/file view
-    while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner, `4` Times.
-    `5`, `7`, `8`, and `9` update the panel's file projection; `6` toggles
-    panel-wide row size units; `0` is unused; `9` is a silent no-op outside
-    Git worktrees.
 
 #### Tree navigation
 *   **Enter**: On logged directories, switch to File Mode (focus the file

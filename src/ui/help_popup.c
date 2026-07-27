@@ -26,38 +26,12 @@ static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
 static void RenderHelpPopupFooter(
     WINDOW *win, int y, int start_x, const UICommandStripCommand *commands,
     size_t command_count, const UIHelpPopupFooterSpec *footer_spec) {
-  size_t i;
-  int x = start_x;
-
   if (win == NULL || commands == NULL)
     return;
 
-  if (footer_spec == NULL || footer_spec->link_command_count == 0 ||
-      footer_spec->active_command_index >= footer_spec->link_command_count) {
-    UI_RenderCommandStrip(win, y, x, commands, command_count, UI_ROLE_HELP,
-                          UI_ROLE_KEYBIND);
-    return;
-  }
-
-  for (i = 0; i < command_count; ++i) {
-    int normal_role = UI_ROLE_HELP;
-    int key_role = UI_ROLE_KEYBIND;
-
-    if (i > 0) {
-      PrintSpecialString(win, y, x, "  ", UI_ROLE_HELP);
-      x += 2;
-    }
-
-    if (i < footer_spec->link_command_count) {
-      normal_role = i == footer_spec->active_command_index
-                        ? UI_ROLE_HELP_LINK_SELECTION
-                        : UI_ROLE_HELP_LINK;
-      key_role = normal_role;
-    }
-
-    x = UI_RenderCommandStripEntry(win, y, x, &commands[i], normal_role,
-                                   key_role);
-  }
+  (void)footer_spec;
+  UI_RenderCommandStrip(win, y, start_x, commands, command_count, UI_ROLE_HELP,
+                        UI_ROLE_KEYBIND);
 }
 
 static int HelpPopupRowWidth(const UIHelpPopupRow *row) {
