@@ -69,6 +69,7 @@ normal navigation baseline.
 ### Explainer links
 - [Directory mode](topic:dir)
 - [File mode](topic:file)
+- [Shared commands](topic:shared-commands)
 - [F7 preview](topic:f7)
 - [F8 split](topic:f8)
 
@@ -87,6 +88,34 @@ special to that surface.
 *   **Esc** backs out of temporary overlays and prompt/dialog flows without
     committing the pending action.
 
+## topic:shared-commands
+```ytnova-help-meta
+title: Shared Commands
+contexts: none
+```
+### Contextual F1
+Shared Commands explains the cross-context help keys and overlays that can
+appear from multiple main views. Use it for the shared function-key family
+(`F1`, `F5`, `F6`, `F7`, `F8`, `F9`, `F10`) instead of repeating those hints
+on every context page.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [F7 preview](topic:f7)
+- [F8 split](topic:f8)
+
+### Long form
+#### Shared commands
+*   **F1** (help): Open contextual help for the active surface.
+*   **F5** (refresh): Refresh the current view.
+*   **F6** (stats): Switch the stats/details presentation for the active view.
+*   **F7** (autoview): Toggle preview/autoview for the active file context.
+*   **F8** (split): Toggle split-screen mode.
+*   **F9** (apps): Open the applications menu shell.
+*   **F10** (config): Open the configuration command surface.
+*   **Esc** (cancel): Close the current help popup or cancel the active
+    overlay/prompt.
+
 ## topic:dir
 ```ytnova-help-meta
 title: Directory Help
@@ -99,8 +128,7 @@ tree/logging behavior, and directory-only caveats.
 
 ### Explainer links
 - [Navigation](topic:navigation)
-- [Filter](topic:filter)
-- [F8 split](topic:f8)
+- [Shared commands](topic:shared-commands)
 
 ### Long form
 #### Directory commands
@@ -185,7 +213,7 @@ file-specific caveats that are not obvious from the command strip alone.
 ### Explainer links
 - [Navigation](topic:navigation)
 - [Output](topic:output)
-- [F7 preview](topic:f7)
+- [Shared commands](topic:shared-commands)
 
 ### Long form
 #### File commands

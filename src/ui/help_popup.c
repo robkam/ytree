@@ -8,14 +8,14 @@
 #include "ytnova_ui.h"
 
 static const UICommandStripCommand help_popup_close_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "F1", "Esc"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "Esc", "Q"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL}};
 
 static const UICommandStripCommand help_popup_scroll_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "scroll", "Up", "Down"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "PgUp", "PgDn"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "Home", "End"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "F1", "Esc"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "Esc", "Q"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL}};
 
 static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
@@ -123,7 +123,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   width = MAXIMUM(width, 48);
   width = MINIMUM(width, COLS - 4);
 
-  max_visible_rows = LINES - 6;
+  max_visible_rows = LINES - 5;
   if (max_visible_rows < 1)
     max_visible_rows = 1;
   visible_rows = (int)row_count;
@@ -146,10 +146,10 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   if (footer_width + 4 > width)
     width = MINIMUM(footer_width + 4, COLS - 4);
 
-  height = visible_rows + 4;
-  height = MAXIMUM(height, 7);
+  height = visible_rows + 3;
+  height = MAXIMUM(height, 6);
   height = MINIMUM(height, LINES - 2);
-  visible_rows = height - 4;
+  visible_rows = height - 3;
   if (visible_rows < 1)
     visible_rows = 1;
   scrollable = ((int)row_count > visible_rows);
@@ -207,7 +207,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     for (i = 0; i < visible_rows && scroll_offset + i < (int)row_count; ++i)
       RenderHelpPopupRow(win, 2 + i, content_width, &rows[scroll_offset + i]);
 
-    RenderHelpPopupFooter(win, height - 2,
+    RenderHelpPopupFooter(win, height - 1,
                           MAXIMUM(2, (width - footer_width) / 2),
                           effective_footer_commands, effective_footer_count,
                           footer_spec);
@@ -226,7 +226,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
         continue;
     }
 
-    if (ch == KEY_F(1) || ch == ESC || ch == CR || ch == LF)
+    if (ch == KEY_F(1) || ch == ESC || ch == CR || ch == LF || ch == 'q' ||
+        ch == 'Q')
       break;
     if (dismiss_any_key)
       break;

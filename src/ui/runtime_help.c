@@ -16,7 +16,7 @@
 #define GENERATED_HELP_MAX_ROWS 128
 #define GENERATED_HELP_MAX_TEXT_LINES 128
 #define GENERATED_HELP_MAX_TEXT_WIDTH 256
-#define GENERATED_HELP_WRAP_WIDTH 72
+#define GENERATED_HELP_WRAP_WIDTH 58
 
 typedef struct {
   const GeneratedHelpTopic *topic;
@@ -169,7 +169,7 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
   state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
   state->footer_commands[command_count].label = "close";
   state->footer_commands[command_count].primary_key = "Esc";
-  state->footer_commands[command_count].secondary_key = NULL;
+  state->footer_commands[command_count].secondary_key = "Q";
   command_count++;
 
   return command_count;
@@ -216,6 +216,7 @@ static void AppendHelpTextFragment(char *dest, size_t dest_size,
 
 static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size) {
   size_t out = 0;
+  BOOL in_code = FALSE;
 
   if (dest == NULL || dest_size == 0)
     return;
@@ -224,17 +225,23 @@ static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size) 
     return;
 
   while (*source != '\0' && out + 1 < dest_size) {
-    if (source[0] == '*' && source[1] == '*') {
+    if (*source == '\\' && source[1] != '\0') {
+      source++;
+      dest[out++] = *source++;
+      continue;
+    }
+    if (*source == '`') {
+      in_code = !in_code;
+      source++;
+      continue;
+    }
+    if (!in_code && source[0] == '*' && source[1] == '*') {
       source += 2;
       continue;
     }
-    if (*source == '*' || *source == '`') {
+    if (!in_code && *source == '*') {
       source++;
       continue;
-    }
-    if (*source == '\\' && source[1] != '\0' &&
-        (source[1] == '*' || source[1] == '`')) {
-      source++;
     }
     dest[out++] = *source++;
   }
@@ -290,10 +297,13 @@ static void AppendWrappedHelpText(RuntimeHelpPopupState *state, size_t *row_coun
 
 static void FlushSectionParagraph(RuntimeHelpPopupState *state, size_t *row_count,
                                   size_t *line_index, char *paragraph) {
+  char stripped[GENERATED_HELP_MAX_TEXT_WIDTH * 4];
+
   if (paragraph == NULL || paragraph[0] == '\0')
     return;
 
-  AppendWrappedHelpText(state, row_count, line_index, paragraph);
+  StripHelpMarkdown(paragraph, stripped, sizeof(stripped));
+  AppendWrappedHelpText(state, row_count, line_index, stripped);
   paragraph[0] = '\0';
 }
 
@@ -311,9 +321,7 @@ static size_t BuildLongFormRows(RuntimeHelpPopupState *state, size_t row_count,
        ++section_index) {
     const GeneratedHelpLongFormSection *section =
         &state->topic->long_form_sections[section_index];
-    char line[GENERATED_HELP_MAX_TEXT_WIDTH];
     char paragraph[GENERATED_HELP_MAX_TEXT_WIDTH * 4];
-    char stripped[GENERATED_HELP_MAX_TEXT_WIDTH];
     const char *cursor;
 
     paragraph[0] = '\0';
@@ -328,8 +336,9 @@ static size_t BuildLongFormRows(RuntimeHelpPopupState *state, size_t row_count,
       const char *line_break = strchr(cursor, '\n');
       size_t len =
           line_break != NULL ? (size_t)(line_break - cursor) : strlen(cursor);
-      const char *content = cursor;
-      BOOL continuation = (BOOL)(isspace((unsigned char)cursor[0]) != 0);
+      char line[GENERATED_HELP_MAX_TEXT_WIDTH];
+      char *content = line;
+      BOOL is_bullet;
 
       if (len >= sizeof(line))
         len = sizeof(line) - 1;
@@ -341,29 +350,21 @@ static size_t BuildLongFormRows(RuntimeHelpPopupState *state, size_t row_count,
 
       if (*content == '\0') {
         FlushSectionParagraph(state, &row_count, line_index, paragraph);
-      } else if (content[0] == '*' && isspace((unsigned char)content[1])) {
-        FlushSectionParagraph(state, &row_count, line_index, paragraph);
-        while (*content != '\0' && !isspace((unsigned char)*content))
-          content++;
-        while (*content != '\0' && isspace((unsigned char)*content))
-          content++;
-        StripHelpMarkdown(content, stripped, sizeof(stripped));
-        AppendHelpTextFragment(paragraph, sizeof(paragraph), stripped);
-      } else if (content[0] == '-' && isspace((unsigned char)content[1])) {
-        FlushSectionParagraph(state, &row_count, line_index, paragraph);
-        while (*content != '\0' && !isspace((unsigned char)*content))
-          content++;
-        while (*content != '\0' && isspace((unsigned char)*content))
-          content++;
-        StripHelpMarkdown(content, stripped, sizeof(stripped));
-        AppendHelpTextFragment(paragraph, sizeof(paragraph), stripped);
       } else {
-        StripHelpMarkdown(content, stripped, sizeof(stripped));
-        if (!continuation)
+        is_bullet = ((content[0] == '*' || content[0] == '-') &&
+                     isspace((unsigned char)content[1]));
+        if (is_bullet) {
           FlushSectionParagraph(state, &row_count, line_index, paragraph);
-        if (paragraph[0] != '\0')
-          AppendHelpTextFragment(paragraph, sizeof(paragraph), " ");
-        AppendHelpTextFragment(paragraph, sizeof(paragraph), stripped);
+          content += 2;
+          while (*content != '\0' && isspace((unsigned char)*content))
+            content++;
+          paragraph[0] = '\0';
+          AppendHelpTextFragment(paragraph, sizeof(paragraph), content);
+        } else {
+          if (paragraph[0] != '\0')
+            AppendHelpTextFragment(paragraph, sizeof(paragraph), " ");
+          AppendHelpTextFragment(paragraph, sizeof(paragraph), content);
+        }
       }
 
       if (line_break == NULL)

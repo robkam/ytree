@@ -175,9 +175,17 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         help_screen = _wait_for_help(tui, "Directory Help")
         assert "1..9 view:" in help_screen, help_screen
         assert "A (Attributes):" in help_screen, help_screen
+        assert "*.c" in help_screen, help_screen
+        assert "-*.o" in help_screen, help_screen
         assert "Directory help explains the live directory footer commands" not in help_screen, help_screen
+        footer_line = next(
+            line for line in help_screen.splitlines() if "Esc/Q close" in line
+        )
+        assert "Navigation" in footer_line, footer_line
+        assert "Shared commands" in footer_line, footer_line
+        assert "F8 split" not in footer_line, footer_line
 
-        tui.send_keystroke(Keys.ESC)
+        tui.send_keystroke("q")
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
 
         tui.send_keystroke(Keys.F8)
@@ -318,6 +326,11 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         help_screen = _wait_for_help(tui, "Directory Help")
         assert "1..9 view:" in help_screen, help_screen
         assert "A (Attributes):" in help_screen, help_screen
+        footer_line = next(
+            line for line in help_screen.splitlines() if "Esc/Q close" in line
+        )
+        assert "Shared commands" in footer_line, footer_line
+        assert "F8 split" not in footer_line, footer_line
 
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
