@@ -546,6 +546,7 @@ def render_runtime_header(topics: list[HelpTopic]) -> str:
 def render_roff_document(markdown: str, *, version: str, versiondate: str) -> str:
     lines = [f'.TH "YTNOVA" "1" "{escape_roff_text(versiondate)}" "ytnova {escape_roff_text(version)}" "User Commands"']
     paragraph: list[str] = []
+    bullet: list[str] = []
     in_code = False
 
     def flush_paragraph() -> None:
@@ -558,12 +559,23 @@ def render_roff_document(markdown: str, *, version: str, versiondate: str) -> st
             lines.append(format_roff_inline(text))
         paragraph = []
 
+    def flush_bullet() -> None:
+        nonlocal bullet
+        if not bullet:
+            return
+        text = " ".join(part.strip() for part in bullet).strip()
+        if text:
+            lines.append('.IP "\\[bu]" 2')
+            lines.append(format_roff_inline(text))
+        bullet = []
+
     for raw_line in markdown.splitlines():
         line = raw_line.rstrip()
         if line.startswith("<!--"):
             continue
         if in_code:
             if line.startswith("```"):
+                flush_bullet()
                 lines.append(".fi")
                 in_code = False
             else:
@@ -574,44 +586,70 @@ def render_roff_document(markdown: str, *, version: str, versiondate: str) -> st
             continue
         if line.startswith("```"):
             flush_paragraph()
+            flush_bullet()
             lines.append(".nf")
             in_code = True
             continue
         if not line.strip():
             flush_paragraph()
+            flush_bullet()
             continue
         if line.startswith("# "):
             flush_paragraph()
+            flush_bullet()
             lines.append(f'.SH "{escape_roff_text(line[2:].strip())}"')
             continue
         if line.startswith("### "):
             flush_paragraph()
+            flush_bullet()
             lines.append(f'.SS "{escape_roff_text(line[4:].strip())}"')
             continue
         if line.startswith("#### "):
             flush_paragraph()
+            flush_bullet()
             lines.append(f'.SS "{escape_roff_text(line[5:].strip())}"')
             continue
         stripped = line.lstrip()
         if stripped.startswith("*   ") or stripped.startswith("- "):
             flush_paragraph()
-            bullet_text = stripped[4:] if stripped.startswith("*   ") else stripped[2:]
-            lines.append('.IP "\\[bu]" 2')
-            lines.append(format_roff_inline(bullet_text))
+            flush_bullet()
+            bullet.append(stripped[4:] if stripped.startswith("*   ") else stripped[2:])
             continue
+        if bullet and line[:1].isspace():
+            bullet.append(stripped)
+            continue
+        flush_bullet()
         paragraph.append(line)
 
     flush_paragraph()
+    flush_bullet()
     if in_code:
         lines.append(".fi")
     return "\n".join(lines).rstrip() + "\n"
 
 
 def format_roff_inline(text: str) -> str:
+    placeholders: list[str] = []
+
+    def stash(replacement: str) -> str:
+        token = f"\x00{len(placeholders)}\x00"
+        placeholders.append(replacement)
+        return token
+
     text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", lambda m: f"{m.group(1)} ({m.group(2)})", text)
-    text = re.sub(r"`([^`]+)`", lambda m: rf"\\fB{escape_roff_text(m.group(1))}\\fR", text)
-    text = re.sub(r"\*\*([^*]+)\*\*", lambda m: rf"\\fB{escape_roff_text(m.group(1))}\\fR", text)
+    text = re.sub(
+        r"`([^`]+)`",
+        lambda m: stash(rf"\\fB{escape_roff_text(m.group(1))}\\fR"),
+        text,
+    )
+    text = re.sub(
+        r"\*\*([^*]+)\*\*",
+        lambda m: stash(rf"\\fB{escape_roff_text(m.group(1))}\\fR"),
+        text,
+    )
     text = re.sub(r"\*([^*]+)\*", lambda m: rf"\\fI{escape_roff_text(m.group(1))}\\fR", text)
+    for index, replacement in enumerate(placeholders):
+        text = text.replace(f"\x00{index}\x00", replacement)
     text = escape_roff_leading(text)
     return text
 
