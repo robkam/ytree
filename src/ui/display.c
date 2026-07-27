@@ -1575,6 +1575,9 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     const char *line1_signpost;
     size_t spec_count;
 
+    if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE)
+      return UI_ShowGeneratedContextHelp(ctx, "main.dir", NULL, 0);
+
     specs = GetDirFooterSpecs(ctx, dir_entry, &spec_count, &line0_signpost,
                               &line1_signpost);
     ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
@@ -1589,8 +1592,6 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
       context_id = "overlay.f8-dir";
     } else if (ctx->view_mode == ARCHIVE_MODE) {
       context_id = "main.archive-dir";
-    } else {
-      context_id = "main.dir";
     }
   } else {
     const HelpCommandStrip *nav_strip;

@@ -173,8 +173,9 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "DIR" in help_screen, help_screen
-        assert "compare" in help_screen.lower(), help_screen
+        assert "1..9 view:" in help_screen, help_screen
+        assert "A (Attributes):" in help_screen, help_screen
+        assert "Directory help explains the live directory footer commands" not in help_screen, help_screen
 
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -315,7 +316,8 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "compare" in help_screen.lower(), help_screen
+        assert "1..9 view:" in help_screen, help_screen
+        assert "A (Attributes):" in help_screen, help_screen
 
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
