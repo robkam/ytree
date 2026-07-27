@@ -36,6 +36,7 @@ static const GeneratedHelpLongFormSection generated_help_sections_intro[] = {
 static const GeneratedHelpLink generated_help_links_navigation[] = {
     {"Directory mode", "dir"},
     {"File mode", "file"},
+    {"Shared commands", "shared-commands"},
     {"F7 preview", "f7"},
     {"F8 split", "f8"},
 };
@@ -45,10 +46,19 @@ static const GeneratedHelpLongFormSection generated_help_sections_navigation[] =
     {"Common keys", "*   **Up/Down** move the active selection.\n*   **Page Up/Page Down** scroll by pages in list-oriented surfaces.\n*   **Home/End** jump to the start or end of the current list.\n*   **Enter** accepts the current selection or toggles between paired views\n    such as tree/file or preview on/off when that context owns Enter.\n*   **Esc** backs out of temporary overlays and prompt/dialog flows without\n    committing the pending action."},
 };
 
+static const GeneratedHelpLink generated_help_links_shared_commands[] = {
+    {"Navigation", "navigation"},
+    {"F7 preview", "f7"},
+    {"F8 split", "f8"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_shared_commands[] = {
+    {"Shared commands", "*   **F1** (help): Open contextual help for the active surface.\n*   **F5** (refresh): Refresh the current view.\n*   **F6** (stats): Switch the stats/details presentation for the active view.\n*   **F7** (autoview): Toggle preview/autoview for the active file context.\n*   **F8** (split): Toggle split-screen mode.\n*   **F9** (apps): Open the applications menu shell.\n*   **F10** (config): Open the configuration command surface.\n*   **Esc** (cancel): Close the current help popup or cancel the active\n    overlay/prompt."},
+};
+
 static const GeneratedHelpLink generated_help_links_dir[] = {
     {"Navigation", "navigation"},
-    {"Filter", "filter"},
-    {"F8 split", "f8"},
+    {"Shared commands", "shared-commands"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_dir[] = {
@@ -59,7 +69,7 @@ static const GeneratedHelpLongFormSection generated_help_sections_dir[] = {
 static const GeneratedHelpLink generated_help_links_file[] = {
     {"Navigation", "navigation"},
     {"Output", "output"},
-    {"F7 preview", "f7"},
+    {"Shared commands", "shared-commands"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_file[] = {
@@ -244,17 +254,27 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "Navigation",
         NULL,
         "Arrow keys, paging keys, `Home`, `End`, and `Enter` keep their usual ownership.\nContextual pages explain only the extra keys or caveats that differ from the\nnormal navigation baseline.",
-        4,
+        5,
         generated_help_links_navigation,
         2,
         generated_help_sections_navigation,
+    },
+    {
+        "shared-commands",
+        "Shared Commands",
+        NULL,
+        "Shared Commands explains the cross-context help keys and overlays that can\nappear from multiple main views. Use it for the shared function-key family\n(`F1`, `F5`, `F6`, `F7`, `F8`, `F9`, `F10`) instead of repeating those hints\non every context page.",
+        3,
+        generated_help_links_shared_commands,
+        1,
+        generated_help_sections_shared_commands,
     },
     {
         "dir",
         "Directory Help",
         "main.dir",
         "Directory Help is the directory-specific command page. Use Navigation for the\nshared movement keys; this page keeps the focus on directory actions,\ntree/logging behavior, and directory-only caveats.",
-        3,
+        2,
         generated_help_links_dir,
         2,
         generated_help_sections_dir,
@@ -431,4 +451,4 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     },
 };
 
-static const size_t generated_help_topic_count = 20;
+static const size_t generated_help_topic_count = 21;

@@ -252,6 +252,7 @@ MODE_TOPIC_ORDER = [
 ]
 
 KEYBIND_TOPIC_ORDER = [
+    ("shared-commands", "Shared Commands"),
     ("dir", "Directory Mode"),
     ("file", "File Mode"),
     ("archive-dir", "Archive-Dir Mode"),
@@ -639,15 +640,19 @@ def format_roff_inline(text: str) -> str:
     text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", lambda m: f"{m.group(1)} ({m.group(2)})", text)
     text = re.sub(
         r"`([^`]+)`",
-        lambda m: stash(rf"\\fB{escape_roff_text(m.group(1))}\\fR"),
+        lambda m: stash(r"\fB" + escape_roff_text(m.group(1)) + r"\fR"),
         text,
     )
     text = re.sub(
         r"\*\*([^*]+)\*\*",
-        lambda m: stash(rf"\\fB{escape_roff_text(m.group(1))}\\fR"),
+        lambda m: stash(r"\fB" + escape_roff_text(m.group(1)) + r"\fR"),
         text,
     )
-    text = re.sub(r"\*([^*]+)\*", lambda m: rf"\\fI{escape_roff_text(m.group(1))}\\fR", text)
+    text = re.sub(
+        r"\*([^*]+)\*",
+        lambda m: r"\fI" + escape_roff_text(m.group(1)) + r"\fR",
+        text,
+    )
     for index, replacement in enumerate(placeholders):
         text = text.replace(f"\x00{index}\x00", replacement)
     text = escape_roff_leading(text)

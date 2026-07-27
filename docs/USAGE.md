@@ -54,20 +54,20 @@ Arrow keys, paging keys, `Home`, `End`, and `Enter` keep their usual ownership.
 Contextual pages explain only the extra keys or caveats that differ from the
 normal navigation baseline.
 
-See also: Directory mode, File mode, F7 preview, F8 split.
+See also: Directory mode, File mode, Shared commands, F7 preview, F8 split.
 ### Directory Mode
 
 Directory Help is the directory-specific command page. Use Navigation for the
 shared movement keys; this page keeps the focus on directory actions,
 tree/logging behavior, and directory-only caveats.
 
-See also: Navigation, Filter, F8 split.
+See also: Navigation, Shared commands.
 ### File Mode
 
 File help explains the live file footer commands, file-view operations, and
 file-specific caveats that are not obvious from the command strip alone.
 
-See also: Navigation, Output, F7 preview.
+See also: Navigation, Output, Shared commands.
 ### Archive-Dir Mode
 
 Archive directory help mirrors the live archive-directory footer, then adds the
@@ -170,6 +170,18 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 *   Lowercase **d/u** keep the regular context action (single item / current
     scope untag).
 
+### Shared Commands
+
+#### Shared commands
+*   **F1** (help): Open contextual help for the active surface.
+*   **F5** (refresh): Refresh the current view.
+*   **F6** (stats): Switch the stats/details presentation for the active view.
+*   **F7** (autoview): Toggle preview/autoview for the active file context.
+*   **F8** (split): Toggle split-screen mode.
+*   **F9** (apps): Open the applications menu shell.
+*   **F10** (config): Open the configuration command surface.
+*   **Esc** (cancel): Close the current help popup or cancel the active
+    overlay/prompt.
 ### Directory Mode
 
 #### Directory commands

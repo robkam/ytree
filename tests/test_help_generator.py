@@ -120,6 +120,7 @@ def test_help_generator_roff_preserves_option_keywords_and_literal_globs():
         versiondate="June 2026",
     )
 
-    assert r"\\fBmin\\fR/\\fBroot\\fR (0), \\fBmax\\fR/\\fBall\\fR (100)." in roff
-    assert r"\\fB*.c\\fR" in roff
-    assert r"\\fB*.c,*.h\\fR" in roff
+    assert r"\fBmin\fR/\fBroot\fR (0), \fBmax\fR/\fBall\fR (100)." in roff
+    assert r"\fB*.c\fR" in roff
+    assert r"\fB*.c,*.h\fR" in roff
+    assert r"\\fB-h\\fR" not in roff
