@@ -33,7 +33,7 @@ contextual page is the maximum intended depth.
 
 ## topic:intro
 ```ytnova-help-meta
-title: Intro
+title: Help Contents
 contexts: none
 ```
 ### Contextual F1
@@ -43,18 +43,27 @@ background.
 
 ### Explainer links
 - [Navigation](topic:navigation)
-- [Directory mode](topic:dir)
-- [File mode](topic:file)
+- [Shared commands](topic:shared-commands)
+- [F10 config](topic:f10)
+- [Command-line editing](topic:command-line-editing)
 
 ### Long form
 #### Purpose
 This link-only topic introduces the canonical help set and explains why the
 help system is split into concise contextual pages plus shared explainers.
 
-#### Projection notes
-Long-form outputs may use this topic as the introduction to the generated help
-bundle without forcing every runtime `F1` page to repeat the same orientation
-text.
+#### Contents
+*   Start with **Navigation** for the shared movement baseline.
+*   Use **Shared commands** for the cross-context function-key family,
+    including **F10 config**.
+*   Use **Directory mode**, **File mode**, **Archive directory**, **Archive
+    file**, **Showall**, **Global**, **F7 preview**, and **F8 split** for
+    context-specific command pages.
+*   Use **Filter**, **Compare overview**, and **Output overview** when one
+    command family needs more detail than a one-line definition can hold.
+*   Use **Command-line editing**, **VI keys**, **Theming**, and **F10
+    config** for shared operator/reference topics that apply across multiple
+    prompts or configuration surfaces.
 
 ## topic:navigation
 ```ytnova-help-meta
@@ -103,6 +112,7 @@ on every context page.
 - [Navigation](topic:navigation)
 - [F7 preview](topic:f7)
 - [F8 split](topic:f8)
+- [F10 config](topic:f10)
 
 ### Long form
 #### Shared commands
@@ -115,6 +125,108 @@ on every context page.
 *   **F10** (config): Open the configuration command surface.
 *   **Esc** (cancel): Close the current help popup or cancel the active
     overlay/prompt.
+
+## topic:command-line-editing
+```ytnova-help-meta
+title: Command-line Editing
+contexts: none
+```
+### Contextual F1
+Prompt editing is shared across filter, compare, output, shell-command, and
+path-entry prompts. Learn it once here instead of re-reading it in every
+prompt-local page.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [VI keys](topic:vi-keys)
+
+### Long form
+#### Editing keys
+*   **Left/Right** move within the current prompt buffer.
+*   **Home/End** jump to the start or end of the current prompt buffer.
+*   **Backspace/Delete** erase the character to the left/right of the cursor.
+*   **Enter** accepts the current prompt value.
+*   **Esc** cancels the prompt without committing it.
+
+#### Shared helpers
+*   **Up** opens or cycles prompt history when that prompt keeps history.
+*   **F2** opens a browser/picker when the active prompt supports browsing a
+    path or reusable choice list.
+*   Prompt-local `F1` explains only syntax and scope that are specific to that
+    prompt; it should not re-teach the shared editing baseline.
+
+## topic:vi-keys
+```ytnova-help-meta
+title: VI Keys
+contexts: none
+```
+### Contextual F1
+`VI_KEYS=1` changes command ownership to preserve lowercase vi-style
+navigation. This explainer keeps the mode shift separate from ordinary
+navigation help so users do not mix the two models.
+
+### Explainer links
+- [Navigation](topic:navigation)
+- [Command-line editing](topic:command-line-editing)
+
+### Long form
+#### Navigation remap
+With `VI_KEYS=1`, lowercase **h/j/k/l** become Left/Down/Up/Right and **^U**
+/**^D** become page-up/page-down.
+
+#### Command collisions
+Commands that would collide with lowercase vi navigation move to uppercase or a
+non-conflicting fallback. Examples include **J** for Compare, **K** for Volume
+Menu, **D** for Delete Tagged, and **U** for Untag All where applicable.
+
+## topic:f10
+```ytnova-help-meta
+title: F10 Config Help
+contexts: none
+```
+### Contextual F1
+F10 opens the configuration command surface for profile, commands, themes, and
+other persistent setup changes. Use this page for the high-level map, then
+follow Theming when the change is color/layout specific.
+
+### Explainer links
+- [Shared commands](topic:shared-commands)
+- [Theming](topic:theming)
+
+### Long form
+#### Config surface
+Use **F10** to reach configuration-oriented commands instead of treating them
+as per-directory actions. Persistent changes belong here, not in the active
+file or directory command pages.
+
+#### Related areas
+Theme selection, semantic colors, and presentation tweaks are covered by
+**Theming**. Prompt-edit/history behavior that appears inside config flows is
+still owned by **Command-line Editing**.
+
+## topic:theming
+```ytnova-help-meta
+title: Theming
+contexts: none
+```
+### Contextual F1
+Themes control semantic UI roles such as footer, picker, help, selection, and
+severity colors. This topic keeps color-system explanation separate from the
+day-to-day command pages.
+
+### Explainer links
+- [F10 config](topic:f10)
+
+### Long form
+#### Theme model
+Themes are role-based: users configure semantic roles rather than styling each
+surface with ad-hoc colors. Help popups, pickers, and the footer command strip
+each have their own dedicated roles.
+
+#### Editing path
+Use **F10** and the theme/config files to change theme selection or role
+definitions. Keep contrasts readable for help, picker, and selection surfaces;
+those are high-frequency navigation aids.
 
 ## topic:dir
 ```ytnova-help-meta
@@ -413,6 +525,7 @@ aggregates when the current prompt came from a tagged-only view.
 - [Navigation](topic:navigation)
 - [Showall](topic:showall)
 - [Global](topic:global)
+- [Command-line editing](topic:command-line-editing)
 
 ### Long form
 #### Filter syntax

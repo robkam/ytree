@@ -47,7 +47,7 @@ YtreeNova keeps `F1` short and task-local. Use the contextual page for the
 active surface, then follow shared explainer links only when you need more
 background.
 
-See also: Navigation, Directory mode, File mode.
+See also: Navigation, Shared commands, F10 config, Command-line editing.
 ### Navigation
 
 Arrow keys, paging keys, `Home`, `End`, and `Enter` keep their usual ownership.
@@ -472,6 +472,55 @@ The output dialog owns the format choices used by write/export flows, including
 Raw, Framed, and Page Break variants plus any separator prompt that follows.
 If the runtime later narrows a contextual slice, the generated long-form docs
 must still come from this one authored topic.
+# SUPPORT TOPICS
+
+### Command-line Editing
+
+#### Editing keys
+*   **Left/Right** move within the current prompt buffer.
+*   **Home/End** jump to the start or end of the current prompt buffer.
+*   **Backspace/Delete** erase the character to the left/right of the cursor.
+*   **Enter** accepts the current prompt value.
+*   **Esc** cancels the prompt without committing it.
+
+#### Shared helpers
+*   **Up** opens or cycles prompt history when that prompt keeps history.
+*   **F2** opens a browser/picker when the active prompt supports browsing a
+    path or reusable choice list.
+*   Prompt-local `F1` explains only syntax and scope that are specific to that
+    prompt; it should not re-teach the shared editing baseline.
+### VI Keys
+
+#### Navigation remap
+With `VI_KEYS=1`, lowercase **h/j/k/l** become Left/Down/Up/Right and **^U**
+/**^D** become page-up/page-down.
+
+#### Command collisions
+Commands that would collide with lowercase vi navigation move to uppercase or a
+non-conflicting fallback. Examples include **J** for Compare, **K** for Volume
+Menu, **D** for Delete Tagged, and **U** for Untag All where applicable.
+### F10 Config
+
+#### Config surface
+Use **F10** to reach configuration-oriented commands instead of treating them
+as per-directory actions. Persistent changes belong here, not in the active
+file or directory command pages.
+
+#### Related areas
+Theme selection, semantic colors, and presentation tweaks are covered by
+**Theming**. Prompt-edit/history behavior that appears inside config flows is
+still owned by **Command-line Editing**.
+### Theming
+
+#### Theme model
+Themes are role-based: users configure semantic roles rather than styling each
+surface with ad-hoc colors. Help popups, pickers, and the footer command strip
+each have their own dedicated roles.
+
+#### Editing path
+Use **F10** and the theme/config files to change theme selection or role
+definitions. Keep contrasts readable for help, picker, and selection surfaces;
+those are high-frequency navigation aids.
 # CONFIGURATION
 
 ytnova reads its main configuration from `~/.config/ytnova/ytnova.conf` by

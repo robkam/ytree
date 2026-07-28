@@ -264,6 +264,13 @@ PROMPT_TOPIC_ORDER = [
     ("output", "Output Help"),
 ]
 
+SUPPORT_TOPIC_ORDER = [
+    ("command-line-editing", "Command-line Editing"),
+    ("vi-keys", "VI Keys"),
+    ("f10", "F10 Config"),
+    ("theming", "Theming"),
+]
+
 
 @dataclass(frozen=True)
 class HelpLink:
@@ -444,6 +451,9 @@ def render_manpage_markdown(topics: list[HelpTopic], *, usage_mode: bool) -> str
     parts.extend(["# COMPARE", "", render_long_form_projection(topic_map["compare"], topic_map["compare"].title, include_heading=False), ""])
     parts.extend([MANPAGE_STATIC_COMMAND_LINE.strip(), ""])
     for topic_id, heading in PROMPT_TOPIC_ORDER:
+        parts.append(render_long_form_projection(topic_map[topic_id], heading))
+    parts.extend(["# SUPPORT TOPICS", ""])
+    for topic_id, heading in SUPPORT_TOPIC_ORDER:
         parts.append(render_long_form_projection(topic_map[topic_id], heading))
     parts.extend([MANPAGE_STATIC_TAIL.replace("{authors_line}", authors_line).strip(), ""])
     return "\n".join(parts).rstrip() + "\n"

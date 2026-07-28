@@ -34,6 +34,22 @@ def _create_tar(path, entries):
             tf.addfile(info, io.BytesIO(payload))
 
 
+def _popup_frame(screen, title, footer_hint="Esc/Q close"):
+    lines = screen.splitlines()
+    title_row = next(i for i, line in enumerate(lines) if title in line)
+    title_line = lines[title_row]
+    title_col = title_line.index(title)
+    left = title_line.rfind("x", 0, title_col)
+    right = title_line.find("x", title_col + len(title))
+    footer_row = next(i for i, line in enumerate(lines) if footer_hint in line)
+    return {
+        "title_row": title_row,
+        "footer_row": footer_row,
+        "left": left,
+        "right": right,
+    }
+
+
 def _enter_archive_from_selected_file(tui):
     tui.send_keystroke(Keys.ENTER, wait=0.5)
     tui.send_keystroke(Keys.LOG, wait=0.3)
@@ -184,6 +200,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "Navigation" in footer_line, footer_line
         assert "Shared commands" in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
+        directory_frame = _popup_frame(help_screen, "Directory Help")
 
         tui.send_keystroke("q")
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -193,6 +210,11 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         help_screen = _wait_for_help(tui, "F8 Split Help")
         assert "Tab" in help_screen, help_screen
         assert "inactive panel" in help_screen, help_screen
+        split_frame = _popup_frame(help_screen, "F8 Split Help")
+        assert split_frame["title_row"] == directory_frame["title_row"], help_screen
+        assert split_frame["footer_row"] == directory_frame["footer_row"], help_screen
+        assert split_frame["left"] == directory_frame["left"], help_screen
+        assert split_frame["right"] >= directory_frame["right"], help_screen
 
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -203,6 +225,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
         help_screen = _wait_for_help(tui, "File Help")
         assert "pathcopy" in help_screen.lower(), help_screen
+        assert _popup_frame(help_screen, "File Help") == directory_frame, help_screen
 
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -210,6 +233,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         tui.send_keystroke(Keys.F7)
         preview_screen = _wait_for_help(tui, "F7 Preview Help")
         assert "^P/^N" in preview_screen, preview_screen
+        assert _popup_frame(preview_screen, "F7 Preview Help") == split_frame, preview_screen
         assert "Shift+PgUp/PgDn" in preview_screen, preview_screen
     finally:
         tui.quit()
