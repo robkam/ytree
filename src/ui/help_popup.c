@@ -34,6 +34,32 @@ static void RenderHelpPopupFooter(
                         UI_ROLE_KEYBIND);
 }
 
+static void SyncHelpPopupActiveRowScroll(
+    const UIHelpPopupFooterSpec *footer_spec, int visible_rows, int row_count,
+    int *scroll_offset) {
+  int active_row;
+
+  if (footer_spec == NULL || footer_spec->active_row_handler == NULL ||
+      scroll_offset == NULL || visible_rows <= 0 || row_count <= 0)
+    return;
+
+  active_row = footer_spec->active_row_handler(footer_spec->key_data);
+  if (active_row < 0 || active_row >= row_count)
+    return;
+
+  if (active_row < *scroll_offset)
+    *scroll_offset = active_row;
+  else if (active_row >= *scroll_offset + visible_rows)
+    *scroll_offset = active_row - visible_rows + 1;
+
+  if (*scroll_offset < 0)
+    *scroll_offset = 0;
+  if (*scroll_offset + visible_rows > row_count)
+    *scroll_offset = row_count - visible_rows;
+  if (*scroll_offset < 0)
+    *scroll_offset = 0;
+}
+
 static int HelpPopupRowWidth(const UIHelpPopupRow *row) {
   int width = 0;
 
@@ -46,6 +72,12 @@ static int HelpPopupRowWidth(const UIHelpPopupRow *row) {
   switch (row->kind) {
   case UI_HELP_POPUP_COMMAND_STRIP:
     width += UI_CommandStripVisualLength(row->commands, row->command_count);
+    break;
+  case UI_HELP_POPUP_LINK_TEXT:
+    if (row->prefix != NULL)
+      width += StrVisualLength(row->prefix);
+    if (row->text != NULL && row->text[0] != '\0')
+      width += 2 + StrVisualLength(row->text);
     break;
   case UI_HELP_POPUP_TEXT:
   default:
@@ -60,12 +92,24 @@ static int HelpPopupRowWidth(const UIHelpPopupRow *row) {
 static void RenderHelpPopupRow(WINDOW *win, int y, int content_width,
                                const UIHelpPopupRow *row) {
   int x = 2;
+  int max_text;
 
   if (win == NULL || row == NULL)
     return;
 
+  max_text = content_width - (x - 2);
+  if (max_text < 0)
+    max_text = 0;
+
   if (row->prefix != NULL && row->prefix[0] != '\0') {
-    PrintSpecialString(win, y, x, (char *)row->prefix, UI_ROLE_HELP);
+    if (row->kind == UI_HELP_POPUP_LINK_TEXT) {
+      wattrset(win, COLOR_PAIR(row->selected ? UI_ROLE_HELP_LINK_SELECTION
+                                             : UI_ROLE_HELP_LINK));
+      mvwprintw(win, y, x, "%s", row->prefix);
+      wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
+    } else {
+      PrintSpecialString(win, y, x, (char *)row->prefix, UI_ROLE_HELP);
+    }
     x += StrVisualLength(row->prefix);
   }
 
@@ -74,10 +118,18 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int content_width,
     UI_RenderCommandStrip(win, y, x, row->commands, row->command_count,
                           UI_ROLE_HELP, UI_ROLE_KEYBIND);
     break;
+  case UI_HELP_POPUP_LINK_TEXT:
+    if (row->text != NULL && row->text[0] != '\0' && x < content_width + 2) {
+      mvwprintw(win, y, x, ": ");
+      x += 2;
+      if (x < content_width + 2)
+        mvwprintw(win, y, x, "%.*s", content_width - (x - 2), row->text);
+    }
+    break;
   case UI_HELP_POPUP_TEXT:
   default:
     if (row->text != NULL)
-      mvwprintw(win, y, x, "%.*s", content_width - (x - 2), row->text);
+      mvwprintw(win, y, x, "%.*s", max_text, row->text);
     break;
   }
 }
@@ -202,6 +254,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                                      sizeof(help_popup_scroll_commands[0])
                                                : sizeof(help_popup_close_commands) /
                                                      sizeof(help_popup_close_commands[0]));
+    SyncHelpPopupActiveRowScroll(footer_spec, visible_rows, (int)row_count,
+                                 &scroll_offset);
 
     werase(win);
 #ifdef COLOR_SUPPORT
@@ -217,10 +271,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     for (i = 0; i < visible_rows && scroll_offset + i < (int)row_count; ++i)
       RenderHelpPopupRow(win, 2 + i, content_width, &rows[scroll_offset + i]);
 
-    RenderHelpPopupFooter(win, height - 1,
-                          MAXIMUM(2, (width - footer_width) / 2),
-                          effective_footer_commands, effective_footer_count,
-                          footer_spec);
+    RenderHelpPopupFooter(win, height - 1, 2, effective_footer_commands,
+                          effective_footer_count, footer_spec);
     wrefresh(win);
 
     ch = WGetch(ctx, win);

@@ -300,6 +300,11 @@ typedef struct {
 } FooterPackResult;
 
 typedef struct {
+  const char *canonical_label;
+  const char *action_id;
+} HelpLabelOverrideSpec;
+
+typedef struct {
   size_t fit_count;
   BOOL truncated;
   size_t truncated_index;
@@ -947,6 +952,54 @@ static void ResolveFooterCommandSpec(const ViewContext *ctx, BOOL is_dir,
                                        sizeof(resolved->rendered_text));
 }
 
+static const FooterCommandSpec *
+FindFooterSpecByPrimaryAction(const FooterCommandSpec *specs, size_t spec_count,
+                              const char *action_id) {
+  size_t index;
+
+  if (specs == NULL || action_id == NULL)
+    return NULL;
+
+  for (index = 0; index < spec_count; ++index) {
+    if (specs[index].primary_action_id != NULL &&
+        strcmp(specs[index].primary_action_id, action_id) == 0)
+      return &specs[index];
+  }
+
+  return NULL;
+}
+
+static size_t BuildHelpLabelOverrides(
+    const ViewContext *ctx, BOOL is_dir, const FooterCommandSpec *specs,
+    size_t spec_count, const HelpLabelOverrideSpec *override_specs,
+    size_t override_spec_count, UIHelpLabelOverride *overrides,
+    char labels[][COMMAND_PRESENTATION_LABEL_LENGTH], size_t max_overrides) {
+  size_t count = 0;
+  size_t index;
+
+  if (ctx == NULL || specs == NULL || override_specs == NULL || overrides == NULL ||
+      labels == NULL)
+    return 0;
+
+  for (index = 0; index < override_spec_count && count < max_overrides; ++index) {
+    const FooterCommandSpec *spec = FindFooterSpecByPrimaryAction(
+        specs, spec_count, override_specs[index].action_id);
+
+    if (spec != NULL) {
+      ResolvedFooterCommand resolved;
+
+      ResolveFooterCommandSpec(ctx, is_dir, spec, &resolved);
+      snprintf(labels[count], COMMAND_PRESENTATION_LABEL_LENGTH, "%s",
+               resolved.label);
+      overrides[count].canonical_label = override_specs[index].canonical_label;
+      overrides[count].display_label = labels[count];
+      count++;
+    }
+  }
+
+  return count;
+}
+
 static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands,
                                            size_t command_count,
                                            int available_width, size_t rows,
@@ -1550,6 +1603,41 @@ void DisplayPreviewHelp(ViewContext *ctx) {
 
 int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   UIHelpPopupRow rows[8];
+  static const HelpLabelOverrideSpec file_help_label_specs[] = {
+      {"Attributes", "ACTION_CMD_A"},
+      {"Copy", "ACTION_CMD_C"},
+      {"Copy tagged", "ACTION_CMD_C"},
+      {"Delete", "ACTION_CMD_D"},
+      {"Edit", "ACTION_CMD_E"},
+      {"Filter", "ACTION_FILTER"},
+      {"Hex", "ACTION_CMD_H"},
+      {"Invert Tags", "ACTION_INVERT"},
+      {"Compare", "ACTION_COMPARE_FILE"},
+      {"Volume", "ACTION_VOL_MENU"},
+      {"Log", "ACTION_LOG"},
+      {"Move", "ACTION_CMD_M"},
+      {"Move tagged", "ACTION_CMD_M"},
+      {"New File", "ACTION_CMD_MKFILE"},
+      {"Only tagged", "ACTION_TOGGLE_TAGGED_MODE"},
+      {"Pipe", "ACTION_CMD_P"},
+      {"Quit", "ACTION_QUIT"},
+      {"Rename", "ACTION_CMD_R"},
+      {"Sort", "ACTION_CMD_S"},
+      {"Tag", "ACTION_TAG"},
+      {"Tag all", "ACTION_TAG"},
+      {"Untag", "ACTION_UNTAG"},
+      {"Untag all", "ACTION_UNTAG"},
+      {"View", "ACTION_CMD_V"},
+      {"Write", "ACTION_CMD_PRINT"},
+      {"Execute", "ACTION_CMD_X"},
+      {"Pathcopy", "ACTION_CMD_Y"},
+      {"Archive", "ACTION_CMD_I"},
+      {"Jump", "ACTION_LIST_JUMP"},
+      {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
+  enum {
+    FILE_HELP_LABEL_SPEC_COUNT =
+        sizeof(file_help_label_specs) / sizeof(file_help_label_specs[0])
+  };
   const char *context_id = NULL;
   size_t row_count = 0;
   ViewFocus active_focus;
@@ -1598,7 +1686,22 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     const FooterCommandSpec *specs;
     const char *line0_signpost;
     const char *line1_signpost;
+    UIHelpLabelOverride label_overrides[FILE_HELP_LABEL_SPEC_COUNT];
+    char label_text[FILE_HELP_LABEL_SPEC_COUNT][COMMAND_PRESENTATION_LABEL_LENGTH];
+    size_t label_override_count;
     size_t spec_count;
+
+    if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE &&
+        (dir_entry == NULL || !dir_entry->global_flag)) {
+      specs =
+          GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
+      label_override_count = BuildHelpLabelOverrides(
+          ctx, FALSE, specs, spec_count, file_help_label_specs,
+          FILE_HELP_LABEL_SPEC_COUNT, label_overrides, label_text,
+          FILE_HELP_LABEL_SPEC_COUNT);
+      return UI_ShowGeneratedContextHelpWithOverrides(
+          ctx, "main.file", NULL, 0, label_overrides, label_override_count);
+    }
 
     if (dir_entry != NULL && dir_entry->global_flag) {
       nav_strip = &file_help_nav_builtin[1];

@@ -34,7 +34,7 @@ def _create_tar(path, entries):
             tf.addfile(info, io.BytesIO(payload))
 
 
-def _popup_frame(screen, title, footer_hint="Esc/Q close"):
+def _popup_frame(screen, title, footer_hint="Esc/Quit"):
     lines = screen.splitlines()
     title_row = next(i for i, line in enumerate(lines) if title in line)
     title_line = lines[title_row]
@@ -190,17 +190,21 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
 
         help_screen = _wait_for_help(tui, "Directory Help")
         assert "1..9 view:" in help_screen, help_screen
-        assert "A (Attributes):" in help_screen, help_screen
-        assert "*.c" in help_screen, help_screen
-        assert "-*.o" in help_screen, help_screen
+        assert "Attributes:" in help_screen, help_screen
+        assert "A (Attributes):" not in help_screen, help_screen
+        assert "Directory commands" not in help_screen, help_screen
+        assert "Tree navigation" not in help_screen, help_screen
+        assert "Left Arrow:" in help_screen, help_screen
         assert "Directory help explains the live directory footer commands" not in help_screen, help_screen
         footer_line = next(
-            line for line in help_screen.splitlines() if "Esc/Q close" in line
+            line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
+        assert "Contents" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
-        assert "Shared commands" in footer_line, footer_line
+        assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
         directory_frame = _popup_frame(help_screen, "Directory Help")
+        assert footer_line.index("Contents") - directory_frame["left"] <= 3, footer_line
 
         tui.send_keystroke("q")
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -224,6 +228,8 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
         help_screen = _wait_for_help(tui, "File Help")
+        assert "File commands" not in help_screen, help_screen
+        assert "Left Arrow:" in help_screen, help_screen
         assert "pathcopy" in help_screen.lower(), help_screen
         assert _popup_frame(help_screen, "File Help") == directory_frame, help_screen
 
@@ -349,11 +355,12 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
 
         help_screen = _wait_for_help(tui, "Directory Help")
         assert "1..9 view:" in help_screen, help_screen
-        assert "A (Attributes):" in help_screen, help_screen
+        assert "Attributes:" in help_screen, help_screen
         footer_line = next(
-            line for line in help_screen.splitlines() if "Esc/Q close" in line
+            line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
-        assert "Shared commands" in footer_line, footer_line
+        assert "Contents" in footer_line, footer_line
+        assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
 
         tui.send_keystroke(Keys.ESC)

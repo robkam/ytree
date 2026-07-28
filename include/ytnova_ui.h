@@ -225,7 +225,8 @@ typedef struct {
 } UICommandStripCommand;
 typedef enum {
   UI_HELP_POPUP_TEXT,
-  UI_HELP_POPUP_COMMAND_STRIP
+  UI_HELP_POPUP_COMMAND_STRIP,
+  UI_HELP_POPUP_LINK_TEXT
 } UIHelpPopupRowKind;
 typedef struct {
   UIHelpPopupRowKind kind;
@@ -233,13 +234,19 @@ typedef struct {
   const char *text;
   const UICommandStripCommand *commands;
   size_t command_count;
+  BOOL selected;
 } UIHelpPopupRow;
+typedef struct {
+  const char *canonical_label;
+  const char *display_label;
+} UIHelpLabelOverride;
 typedef struct {
   const UICommandStripCommand *commands;
   size_t command_count;
   size_t link_command_count;
   size_t active_command_index;
   int (*key_handler)(ViewContext *, int, void *);
+  int (*active_row_handler)(const void *);
   void *key_data;
 } UIHelpPopupFooterSpec;
 extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,
@@ -391,6 +398,10 @@ extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
 extern int UI_ShowGeneratedContextHelp(ViewContext *ctx, const char *context_id,
                                        const UIHelpPopupRow *prefix_rows,
                                        size_t prefix_row_count);
+extern int UI_ShowGeneratedContextHelpWithOverrides(
+    ViewContext *ctx, const char *context_id, const UIHelpPopupRow *prefix_rows,
+    size_t prefix_row_count, const UIHelpLabelOverride *label_overrides,
+    size_t label_override_count);
 extern int UI_ShowGeneratedContextHelpCallback(ViewContext *ctx,
                                                void *help_data);
 
