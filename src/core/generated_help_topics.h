@@ -24,13 +24,14 @@ typedef struct {
 
 static const GeneratedHelpLink generated_help_links_intro[] = {
     {"Navigation", "navigation"},
-    {"Directory mode", "dir"},
-    {"File mode", "file"},
+    {"Shared commands", "shared-commands"},
+    {"F10 config", "f10"},
+    {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_intro[] = {
     {"Purpose", "This link-only topic introduces the canonical help set and explains why the\nhelp system is split into concise contextual pages plus shared explainers."},
-    {"Projection notes", "Long-form outputs may use this topic as the introduction to the generated help\nbundle without forcing every runtime `F1` page to repeat the same orientation\ntext."},
+    {"Contents", "*   Start with **Navigation** for the shared movement baseline.\n*   Use **Shared commands** for the cross-context function-key family,\n    including **F10 config**.\n*   Use **Directory mode**, **File mode**, **Archive directory**, **Archive\n    file**, **Showall**, **Global**, **F7 preview**, and **F8 split** for\n    context-specific command pages.\n*   Use **Filter**, **Compare overview**, and **Output overview** when one\n    command family needs more detail than a one-line definition can hold.\n*   Use **Command-line editing**, **VI keys**, **Theming**, and **F10\n    config** for shared operator/reference topics that apply across multiple\n    prompts or configuration surfaces."},
 };
 
 static const GeneratedHelpLink generated_help_links_navigation[] = {
@@ -50,10 +51,50 @@ static const GeneratedHelpLink generated_help_links_shared_commands[] = {
     {"Navigation", "navigation"},
     {"F7 preview", "f7"},
     {"F8 split", "f8"},
+    {"F10 config", "f10"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_shared_commands[] = {
     {"Shared commands", "*   **F1** (help): Open contextual help for the active surface.\n*   **F5** (refresh): Refresh the current view.\n*   **F6** (stats): Switch the stats/details presentation for the active view.\n*   **F7** (autoview): Toggle preview/autoview for the active file context.\n*   **F8** (split): Toggle split-screen mode.\n*   **F9** (apps): Open the applications menu shell.\n*   **F10** (config): Open the configuration command surface.\n*   **Esc** (cancel): Close the current help popup or cancel the active\n    overlay/prompt."},
+};
+
+static const GeneratedHelpLink generated_help_links_command_line_editing[] = {
+    {"Navigation", "navigation"},
+    {"VI keys", "vi-keys"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_command_line_editing[] = {
+    {"Editing keys", "*   **Left/Right** move within the current prompt buffer.\n*   **Home/End** jump to the start or end of the current prompt buffer.\n*   **Backspace/Delete** erase the character to the left/right of the cursor.\n*   **Enter** accepts the current prompt value.\n*   **Esc** cancels the prompt without committing it."},
+    {"Shared helpers", "*   **Up** opens or cycles prompt history when that prompt keeps history.\n*   **F2** opens a browser/picker when the active prompt supports browsing a\n    path or reusable choice list.\n*   Prompt-local `F1` explains only syntax and scope that are specific to that\n    prompt; it should not re-teach the shared editing baseline."},
+};
+
+static const GeneratedHelpLink generated_help_links_vi_keys[] = {
+    {"Navigation", "navigation"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_vi_keys[] = {
+    {"Navigation remap", "With `VI_KEYS=1`, lowercase **h/j/k/l** become Left/Down/Up/Right and **^U**\n/**^D** become page-up/page-down."},
+    {"Command collisions", "Commands that would collide with lowercase vi navigation move to uppercase or a\nnon-conflicting fallback. Examples include **J** for Compare, **K** for Volume\nMenu, **D** for Delete Tagged, and **U** for Untag All where applicable."},
+};
+
+static const GeneratedHelpLink generated_help_links_f10[] = {
+    {"Shared commands", "shared-commands"},
+    {"Theming", "theming"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_f10[] = {
+    {"Config surface", "Use **F10** to reach configuration-oriented commands instead of treating them\nas per-directory actions. Persistent changes belong here, not in the active\nfile or directory command pages."},
+    {"Related areas", "Theme selection, semantic colors, and presentation tweaks are covered by\n**Theming**. Prompt-edit/history behavior that appears inside config flows is\nstill owned by **Command-line Editing**."},
+};
+
+static const GeneratedHelpLink generated_help_links_theming[] = {
+    {"F10 config", "f10"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_theming[] = {
+    {"Theme model", "Themes are role-based: users configure semantic roles rather than styling each\nsurface with ad-hoc colors. Help popups, pickers, and the footer command strip\neach have their own dedicated roles."},
+    {"Editing path", "Use **F10** and the theme/config files to change theme selection or role\ndefinitions. Keep contrasts readable for help, picker, and selection surfaces;\nthose are high-frequency navigation aids."},
 };
 
 static const GeneratedHelpLink generated_help_links_dir[] = {
@@ -103,6 +144,7 @@ static const GeneratedHelpLink generated_help_links_filter[] = {
     {"Navigation", "navigation"},
     {"Showall", "showall"},
     {"Global", "global"},
+    {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_filter[] = {
@@ -241,10 +283,10 @@ static const GeneratedHelpLongFormSection generated_help_sections_f8[] = {
 static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "intro",
-        "Intro",
+        "Help Contents",
         NULL,
         "YtreeNova keeps `F1` short and task-local. Use the contextual page for the\nactive surface, then follow shared explainer links only when you need more\nbackground.",
-        3,
+        4,
         generated_help_links_intro,
         2,
         generated_help_sections_intro,
@@ -264,10 +306,50 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "Shared Commands",
         NULL,
         "Shared Commands explains the cross-context help keys and overlays that can\nappear from multiple main views. Use it for the shared function-key family\n(`F1`, `F5`, `F6`, `F7`, `F8`, `F9`, `F10`) instead of repeating those hints\non every context page.",
-        3,
+        4,
         generated_help_links_shared_commands,
         1,
         generated_help_sections_shared_commands,
+    },
+    {
+        "command-line-editing",
+        "Command-line Editing",
+        NULL,
+        "Prompt editing is shared across filter, compare, output, shell-command, and\npath-entry prompts. Learn it once here instead of re-reading it in every\nprompt-local page.",
+        2,
+        generated_help_links_command_line_editing,
+        2,
+        generated_help_sections_command_line_editing,
+    },
+    {
+        "vi-keys",
+        "VI Keys",
+        NULL,
+        "`VI_KEYS=1` changes command ownership to preserve lowercase vi-style\nnavigation. This explainer keeps the mode shift separate from ordinary\nnavigation help so users do not mix the two models.",
+        2,
+        generated_help_links_vi_keys,
+        2,
+        generated_help_sections_vi_keys,
+    },
+    {
+        "f10",
+        "F10 Config Help",
+        NULL,
+        "F10 opens the configuration command surface for profile, commands, themes, and\nother persistent setup changes. Use this page for the high-level map, then\nfollow Theming when the change is color/layout specific.",
+        2,
+        generated_help_links_f10,
+        2,
+        generated_help_sections_f10,
+    },
+    {
+        "theming",
+        "Theming",
+        NULL,
+        "Themes control semantic UI roles such as footer, picker, help, selection, and\nseverity colors. This topic keeps color-system explanation separate from the\nday-to-day command pages.",
+        1,
+        generated_help_links_theming,
+        2,
+        generated_help_sections_theming,
     },
     {
         "dir",
@@ -314,7 +396,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "Filter Help",
         "prompt.filter,prompt.filter-tagged",
         "Use normal glob-like patterns such as `*.c`, comma-separated unions such as\n`*.c,*.h`, and exclusions such as `-*.o`.\nExtended selectors such as `:r`, `:x`, `>2023-01-01`, and `>1M` stay valid in\nthe runtime prompt, and an empty entry falls back to `*`.\nFilter prompts stay scoped to the active file-list family, including tagged\naggregates when the current prompt came from a tagged-only view.",
-        3,
+        4,
         generated_help_links_filter,
         2,
         generated_help_sections_filter,
@@ -451,4 +533,4 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     },
 };
 
-static const size_t generated_help_topic_count = 21;
+static const size_t generated_help_topic_count = 25;

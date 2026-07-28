@@ -797,38 +797,44 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 43: Refine Contextual F1 Content and Footer-Parity Contract (gettext-ready)**
 *   **Goal:** Ensure each contextual `F1` surface is concise, useful, and complete: it must cover every footer command for the active surface while also clarifying the non-obvious behavior the footer cannot carry.
-*   **Rationale:** Footer and `F1` are the primary in-app guidance surfaces. Pure parity without added clarification degenerates into "the footer again," while essay-length help steals attention from the task at hand. `F1` should be the quick explainer and `etc/ytnova.1.md`/`docs/USAGE.md` should remain the long-form reference.
+*   **Rationale:** Footer and `F1` are the primary in-app guidance surfaces. Pure parity without added clarification degenerates into "the footer again," while essay-length help steals attention from the task at hand. `F1` should stay contextual, plain-English, and newcomer-friendly; `etc/ytnova.1.md`/`docs/USAGE.md` remain the terser reference path.
 *   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer keybinding/F1/prompt mismatch (discoverability + confidence).
 *   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
 *   **Sequencing Note:** Land Task 42's portable low-noise footer keybinding/F1 wording decisions before this task so parity is enforced against the final portable footer contract rather than a transient modifier-held variant.
 *   **Scope Lock:** Base help wording/structure, coverage matrix, and text-organization readiness only; no command-behavior changes. Hyperlink/index-style help navigation is tracked separately under Task 43.1, and progress/help coexistence is tracked separately under Task 43.2.
+*   **Surface-Naming Contract:** Keep the help surfaces distinct in roadmap/spec/runtime language: the always-visible bottom strip is the **footer command strip**; the modal opened by `F1` is the **help popup**; the minimal action row inside that popup is the **help-popup hint line**; and any command/topic entry that exists mainly to branch into deeper explanation is a **help popup link**.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching `F1` help set, but `F1` need not mirror the footer verbatim if a clearer concise explanation is better.
 *   `F1` adds short clarification for behaviors the footer cannot explain cleanly, especially Ctrl-only tagged/search flows, prompt syntax such as `{}`, numeric `1..9` display/info-band meanings, and split/archive/Showall/Global caveats that affect the current surface.
+*   Main contextual help popups use a minimal hint line shaped like `Contents  Navigation  Esc/Quit` rather than restating the full footer command strip.
 *   For active prompt contexts, footer lists currently available prompt actions; `F1` may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, prompt flows with Ctrl-only tagged/search semantics, and `VI_KEYS=1` variants.
 *   Numeric FileInfo band coverage is explicit: when the footer compresses `1..9 dir view` / `1..9 file view`, the matching `F1` help must briefly decode the active-surface semantics for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, and Git, while keeping the hidden unassigned `0` behavior out of the advertised band.
 *   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, useful command-line editing, and archive/compress format behavior).
+*   Shared operator topics such as command-line editing, `VI_KEYS=1`, `F10` config, and theming are explained once and linked from local `F1` pages instead of being re-taught on every page.
+*   In contextual command lists, every listed command term is a help popup link to a brief plain-English explainer page; the user must not be sent into a maze of recursive definitions.
 *   Help text paths are structured for gettext extraction/reuse and future deduplication (no duplicated ad-hoc strings per view path, and no translator-facing requirement to edit C literals just to keep related help prose aligned).
 *   Add regression checks that detect footer/F1 parity drift in covered contexts.
 *   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytnova.1.md`/`docs/USAGE.md`.
-*   - [ ] **Status:** Not Started.
+*   - [~] **Status:** In Progress.
 
 #### **Task 43.1: Add Contextual F1 Hyperlinks and Shared Explainer Pages**
-*   **Goal:** Let `F1` help reuse shared explanations through navigable links so repeated topics (for example useful command-line editing, tagged-flow semantics, or numeric FileInfo meanings) do not have to be duplicated verbatim on every page.
+*   **Goal:** Let contextual `F1` help treat every listed command term as a navigable link so repeated topics (for example useful command-line editing, tagged-flow semantics, or numeric FileInfo meanings) do not have to be duplicated verbatim on every page.
 *   **Rationale:** As contextual help grows, repeated prose becomes harder to keep consistent. A lightweight mc-style link model keeps `F1` brief while still allowing a user to drill into a short explainer without leaving the modal help surface.
 *   **Interaction Contract:** Keep `F1` modal and task-focused, not a separate browser. Link navigation must stay shallow: follow as few links as possible, with a hard cap of one or two link hops from the original contextual page before the user returns/backtracks. `Enter` follows the selected link, `Right` may also follow, `Left` goes back one page, and `Esc` closes the help surface from anywhere. Normal reading/navigation keys remain available inside the page: `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End`.
 *   **Theme/Config Contract:** Help-surface styling remains part of the theme catalog (`themes.conf` / runtime theme data), not `ytnova.conf`. Base help text continues to use the `help` reading surface, while hyperlink-capable help may add narrower theme roles such as `help_link` and `help_link_selection` for linked text and the active linked target.
 *   **Orthodox Default Direction:** For the default orthodox-blue theme, prefer a restrained reading surface with distinct linked-text and active-link colors rather than picker-style row highlighting. If hyperlinks need dedicated colors, keep the defaults conservative (for example black-on-blue links and yellow-on-blue active-link emphasis) and avoid turning the whole help page into a loud picker.
 *   **Acceptance Criteria:**
+*   Each listed command term in a contextual `F1` command list can be followed as a help popup link.
 *   Shared topics can be linked from multiple contextual pages without copying the same explanation string into each page body.
 *   Link navigation stays shallow and predictable inside the modal help surface; users do not have to enter a separate browser/workspace to read a linked explainer.
 *   Linked explainer pages can be reached and exited without losing the original contextual-help entry point.
 *   The link model never grows into an unbounded history/browser stack; at most one or two explainer hops are reachable before the user backtracks.
+*   Linked explainer pages use brief plain English and remain short enough to hold attention instead of becoming dense reference pages.
 *   `Enter` (and optionally `Right`) follows, `Left` backs out one page, `Esc` closes from anywhere, and `Up`/`Down`/`PgUp`/`PgDn`/`Home`/`End` continue to serve page navigation/reading.
 *   Theme support for linked text and linked-target emphasis is defined in the theme catalog path, not as one-off `[COLORS]` or `ytnova.conf` knobs.
 *   Add focused regression coverage for link focus, follow, back, and close behavior.
-*   - [x] **Status:** Completed.
+*   - [~] **Status:** In Progress.
 
 #### **Task 43.2: Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance**
 *   **Goal:** Preserve footer, prompt, and `F1` help ownership while long-running operations update progress/spinner state.
@@ -854,54 +860,58 @@ Ordering policy (for all editors, including AI editors):
 *   Focused tests or source-contract checks prove footer and `F1` help can use different theme roles and do not fall back to picker/dialog styling.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 43.4: Unify Manpage, Usage, and Contextual F1 Help Authorship**
-*   **Goal:** Establish one canonical authored help source so the manpage, generated `docs/USAGE.md`, and contextual `F1` help are all derived projections instead of separately maintained prose.
-*   **Rationale:** Footer/F1 parity checks reduce runtime drift, but authoring still drifts when the same semantics are copied across docs and in-app help. The filter path is the clearest example: pressing `F`/`f` for filter and then `F1` to learn the available filter syntax/options should come from the same canonical description that also feeds the manpage and usage docs.
-*   **Canonical-source contract:** The canonical authored help source must be `etc/help/help.en.md`. The single-source help system must replace the old manpage-source workflow outright; no compatibility shim, dual-source period, or fallback authored source is permitted.
-*   **Projection contract:** The canonical source must support both concise context-specific `F1` excerpts and long-form man/usage output. Every `F1` slice, popup page, and long-form help output must be generated from canonical authored text rather than duplicated ad-hoc C literals.
-*   **Editability contract:** The canonical source must be easy to extend by inserting a new topic block in one file whenever a new `F1` surface or prompt explainer is needed. Adding missing help for a new surface such as `XYZ` must mean adding one adjacent topic block to `etc/help/help.en.md`, not editing multiple prose stores.
-*   **Context/topic contract:** The authored help source is organized by stable topics/blocks (for example `intro`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`) and the runtime maps active contexts/prompts to those topic IDs. Shared fragments are permitted where contexts differ only by scope (for example Showall vs Global), but the shared text must still come from the same canonical source.
-*   **Concise-help contract:** Contextual `F1` must remain intentionally short and task-local. Prompt `F1` surfaces such as Filter/Compare/Output must show only the relevant syntax/options/examples for that prompt, while the main directory/file/archive/F7/F8 surfaces must explain the active footer commands and only the non-obvious caveats needed in that context. The help popup footer must support a simple fixed navigation row using combined keybind+word labels when the keybind exists in the word (for example `Intro` and `Navigation`, with only the mnemonic letter highlighted by the renderer rather than stored as literal parentheses) and `key space lowercase action` wording when it does not (for example `Esc close`), while staying brief enough for in-task use.
-*   **Generator portability contract:** Essential help generation must not depend on external markdown tooling that may be missing on supported targets. The project must ship a small in-repo Python generator (Python is already a project requirement for tests) that runs on Linux, BSD, GNU Hurd, and illumos and produces man/usage/help assets from the same canonical source. External tools are not part of the correctness path.
-*   **Ownership split:** User `commands.conf` remains a user override/customization surface for labels/bindings and is not the canonical source of translated help prose. Shipped canonical help data owns explanatory text; key tokens and displayed command labels continue to resolve through keymap/command-preset/runtime rendering rules.
+#### **Task 43.4: Separate Contextual F1 Help Authorship from Man/Usage Reference Authorship**
+*   **Goal:** Keep contextual `F1` help and man/USAGE reference prose in separate authored sources so each can serve its own audience without tone or structure compromises.
+*   **Rationale:** Footer/F1 parity checks reduce runtime drift, but one prose body should not be forced to serve both jobs. The filter path is the clearest example: pressing `F`/`f` for filter and then `F1` should open a short plain-English guide, while the manpage and `docs/USAGE.md` should remain terser Unix-reference material.
+*   **Separate-source contract:** The authored contextual-help source is dedicated to the help popup (`etc/help/f1.en.md` target path). The authored man/USAGE reference source is separate (`etc/help/man.en.md` target path). No compatibility shim or forced dual-purpose source remains in the final model.
+*   **Projection contract:** The F1 source drives only runtime/contextual help assets. The man source drives only the manpage and generated `docs/USAGE.md`. Shared topic IDs and mappings are allowed, but shared prose is optional rather than required.
+*   **Editability contract:** Both sources must be easy for translators and maintainers to read and edit directly as ordinary markdown. Optional reusable fragments may exist only when they are naturally helpful; translators may copy/paste by judgment, and neither file is shaped around keeping the other DRY.
+*   **Context/topic contract:** Both authored sources use the same stable topic inventory (for example `contents`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`, `command-line-editing`, `vi-keys`, `f10`, `theming`) and the runtime maps active contexts/prompts to those topic IDs. Shared facts such as keybinding ownership and context mapping stay aligned through that inventory, not through forced shared prose.
+*   **Contextual-F1 contract:** Contextual `F1` remains intentionally short and task-local. Prompt `F1` surfaces such as Filter/Compare/Output show only the relevant plain-English syntax/options/examples for that prompt, while the main directory/file/archive/F7/F8 surfaces explain the active footer commands and only the non-obvious caveats needed in that context. The help-popup hint line is a fixed minimal row for `Contents`, `Navigation`, and `Esc/Quit`, and every listed command term in the body is a help popup link to a brief explication page.
+*   **Reference-tone contract:** The man/USAGE source stays terse and reference-oriented. It is a markdown-authored Unix-style bite-sized reference, not a projection of the F1 tutorial voice.
+*   **Geometry contract:** The help popup uses a fixed frame footprint derived from the current layout topology, matching the history/up-arrow family rather than resizing to per-topic content.
+*   **Generator portability contract:** Essential help generation must not depend on external markdown tooling that may be missing on supported targets. The project must ship a small in-repo Python generator (Python is already a project requirement for tests) that runs on Linux, BSD, GNU Hurd, and illumos and produces runtime help assets from the F1 source plus man/usage outputs from the man source. External tools are not part of the correctness path.
+*   **Ownership split:** User `commands.conf` remains a user override/customization surface for labels/bindings and is not the canonical source of translated help prose. Shipped help data owns explanatory text; key tokens and displayed command labels continue to resolve through keymap/command-preset/runtime rendering rules.
 *   **Acceptance Criteria:**
-*   Updating the filter help in one authored place is sufficient to refresh the manpage, generated `docs/USAGE.md`, and the prompt/runtime `F1` explainer for filter syntax/options.
+*   Updating filter help for the tutorial popup and updating filter help for the man/USAGE reference are independent explicit edits; no hidden single-source prose coupling is required.
 *   A maintained context-to-source mapping exists for the first-pass `F1` surfaces (directory, file, archive, Showall, Global, F7, F8, and prompt/dialog help including Filter/Compare/Output).
-*   Build/docs tooling can regenerate `docs/USAGE.md`, manpage output, and the runtime `F1` help assets from the canonical source without manual copy editing and without requiring `cmark` for correctness.
+*   The shared topic inventory keeps runtime keybinding facts and context ownership aligned across both sources without forcing shared paragraphs.
+*   Build/docs tooling can regenerate `docs/USAGE.md` and manpage output from the man source and regenerate runtime `F1` help assets from the F1 source without manual copy editing and without requiring `cmark` for correctness.
 *   Parity/audit coverage detects drift between active runtime keybindings, generated `F1` slices, and manpage/usage text.
-*   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated in the same delivery so the canonical help-source model, generator path, and runtime context/topic mapping contract are documented as first-class architecture/spec behavior.
-*   The chosen single-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
+*   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated in the same delivery so the split-source help model, generator path, and runtime context/topic mapping contract are documented as first-class architecture/spec behavior.
+*   The chosen split-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
 *   - [ ] **Status:** In Progress.
 
-#### **Task 43.4.1: Define the Canonical Help-Source Topic Schema**
-*   **Goal:** Define the exact `etc/help/help.en.md` topic-block format so new help pages can be added by inserting one new block in the master file.
-*   **Schema contract:** Each topic block must carry a stable topic ID, declared runtime contexts/prompts, concise body text for contextual `F1`, optional shared explainer links, and long-form sections needed for man/usage projection.
-*   **Authoring contract:** The file layout must stay easy to scan and edit in a normal text editor; maintainers must not need to touch multiple files or update fragile offsets/index tables by hand when adding a new topic block.
+#### **Task 43.4.1: Define the Split Help-Source Topic Schemas**
+*   **Goal:** Define the exact `etc/help/f1.en.md` and `etc/help/man.en.md` topic-block formats so new help pages can be added by inserting one new block in the relevant authored file.
+*   **Schema contract:** Each topic block carries a stable topic ID and declared runtime contexts/prompts. F1 blocks own concise contextual text plus explainer links; man blocks own terse reference subsections for the same topic ID where needed.
+*   **Authoring contract:** Both files must stay easy to scan and edit in a normal text editor; maintainers must not need to touch multiple hidden fragment stores or update fragile offsets/index tables by hand when adding a new topic block.
 *   **Acceptance Criteria:**
-*   The schema is strict enough for deterministic generation and simple enough for maintainers to extend manually.
-*   Topic IDs exist for the first-pass surfaces `intro`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, and `f8`.
-*   The schema documents how shared blocks are reused without creating duplicate prose stores and how explainer links are declared without creating deep help trees.
-*   - [x] **Status:** Completed.
+*   The schemas are strict enough for deterministic generation and simple enough for maintainers and translators to extend manually.
+*   Topic IDs exist for the first-pass surfaces `contents`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`, `command-line-editing`, `vi-keys`, `f10`, and `theming`.
+*   The schemas document how F1 explainer links are declared without creating deep help trees and how the man source stays independent of F1 prose.
+*   - [ ] **Status:** In Progress.
 
 #### **Task 43.4.2: Implement the Python Help Generator**
-*   **Goal:** Implement the in-repo Python generator that reads `etc/help/help.en.md` and emits long-form docs plus runtime help assets.
-*   **Generator contract:** The generator must be the sole correctness path for producing manpage output, generated `docs/USAGE.md`, and runtime `F1` help assets from the canonical source.
+*   **Goal:** Implement the in-repo Python generator that reads the separate F1 and man help sources and emits runtime help assets plus long-form docs.
+*   **Generator contract:** The generator must be the sole correctness path for producing manpage output, generated `docs/USAGE.md`, and runtime `F1` help assets from the split authored sources.
 *   **Portability contract:** The generator must use only Python facilities acceptable on the supported target set and must not require `cmark` or other external markdown tooling to succeed.
 *   **Acceptance Criteria:**
-*   One generator command regenerates all canonical help outputs from `etc/help/help.en.md`.
+*   One generator command regenerates runtime help outputs from `etc/help/f1.en.md` and reference outputs from `etc/help/man.en.md`.
 *   Output generation is deterministic and suitable for CI/audit drift checks.
-*   The generator fails loudly on malformed topic blocks rather than silently dropping help content.
-*   - [x] **Status:** Completed.
+*   The generator fails loudly on malformed topic blocks in either source rather than silently dropping help content.
+*   - [ ] **Status:** In Progress.
 
 #### **Task 43.4.3: Wire Runtime Context-to-Topic Help Loading**
-*   **Goal:** Make runtime `F1` surfaces load generated help content by context/topic ID instead of embedding ad-hoc prose in code.
-*   **Runtime contract:** Each supported `F1` surface and prompt must resolve through a maintained context -> topic mapping table, including the popup footer navigation entries rendered as combined keybind+word labels where the keybind exists in the word (for example `Intro` and `Navigation`, with the mnemonic letter highlighted by UI styling rather than literal stored parentheses) and as `key space lowercase action` where it does not (for example `Esc close`). Generated help must also carry the shallow shared-explainer links permitted by Task 43.1 and respect the one-or-two-hop maximum depth.
+*   **Goal:** Make runtime `F1` surfaces load generated contextual help content by context/topic ID from the dedicated F1 source instead of embedding ad-hoc prose in code.
+*   **Runtime contract:** Each supported `F1` surface and prompt resolves through a maintained context -> topic mapping table backed by the F1 source, including the help-popup hint line rendered as combined keybind+word labels where the keybind exists in the word (for example `Contents` and `Navigation`, with the mnemonic letter highlighted by UI styling rather than literal stored parentheses) and as `key space lowercase action` where it does not (for example `Esc`/`Quit`). Generated help must also carry the shallow shared-explainer links permitted by Task 43.1, keep navigation topics distinct from YtreeNova command-family topics, and respect the one-or-two-hop maximum depth.
 *   **Scope-sharing contract:** Showall and Global may share generated topic content where behavior matches, but the mapping layer must still allow a distinct Global-only explainer for multi-volume behavior.
 *   **Acceptance Criteria:**
 *   Directory, file, archive-dir, archive-file, Filter, Compare, Output, Showall, Global, F7, and F8 `F1` paths all resolve through generated topic data.
+*   Help popup geometry stays layout-derived and stable within a given topology instead of resizing from page text length.
 *   Adding a new `F1` context requires adding a topic block plus one mapping entry, not hand-writing new prose in code.
 *   Focused regression/audit coverage proves runtime help is generated-content driven rather than duplicated literal text.
-*   - [x] **Status:** Completed.
+*   - [ ] **Status:** In Progress.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.

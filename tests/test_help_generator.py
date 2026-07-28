@@ -28,8 +28,11 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
 
     assert helpgen.BANNER in manpage
     assert "### Directory Mode" in manpage
+    assert "### Help System" in manpage
     assert "**A** (Attributes): Open attributes submenu for directory metadata changes:" in manpage
     assert "### Filter Help" in manpage
+    assert "### Command-line Editing" in manpage
+    assert "### F10 Config" in manpage
     assert "Use normal glob-like patterns such as `*.c`" in manpage
     assert "Authors and contributors are listed in the AUTHORS.md file." in manpage
     assert "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file." in usage

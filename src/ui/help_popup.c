@@ -105,6 +105,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   int width;
   int win_x;
   int win_y;
+  BOOL use_history_geometry;
 
   if (ctx == NULL || title == NULL || rows == NULL || row_count == 0)
     return -1;
@@ -117,38 +118,50 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
       max_row_width = row_width;
   }
 
-  width = StrVisualLength(title) + 8;
-  if (max_row_width + 4 > width)
-    width = max_row_width + 4;
-  width = MAXIMUM(width, 48);
-  width = MINIMUM(width, COLS - 4);
+  use_history_geometry =
+      ctx != NULL && ctx->layout.main_win_width >= 48 && (LINES - 6) >= 6;
+  if (use_history_geometry) {
+    width = MINIMUM(ctx->layout.main_win_width, COLS - 2);
+    height = MINIMUM(LINES - 6, LINES - 2);
+    win_x = 1;
+    win_y = 2;
+  } else {
+    width = StrVisualLength(title) + 8;
+    if (max_row_width + 4 > width)
+      width = max_row_width + 4;
+    width = MAXIMUM(width, 48);
+    width = MINIMUM(width, COLS - 4);
 
-  max_visible_rows = LINES - 5;
-  if (max_visible_rows < 1)
-    max_visible_rows = 1;
-  visible_rows = (int)row_count;
-  if (visible_rows > max_visible_rows)
-    visible_rows = max_visible_rows;
+    max_visible_rows = LINES - 5;
+    if (max_visible_rows < 1)
+      max_visible_rows = 1;
+    visible_rows = (int)row_count;
+    if (visible_rows > max_visible_rows)
+      visible_rows = max_visible_rows;
 
-  scrollable = ((int)row_count > visible_rows);
-  effective_footer_commands = footer_spec != NULL && footer_spec->commands != NULL
-                                  ? footer_spec->commands
-                                  : (scrollable ? default_scroll_commands
-                                                : default_close_commands);
-  effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
-                               ? footer_spec->command_count
-                               : (scrollable ? sizeof(help_popup_scroll_commands) /
-                                                   sizeof(help_popup_scroll_commands[0])
-                                             : sizeof(help_popup_close_commands) /
-                                                   sizeof(help_popup_close_commands[0]));
-  footer_width =
-      HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
-  if (footer_width + 4 > width)
-    width = MINIMUM(footer_width + 4, COLS - 4);
+    scrollable = ((int)row_count > visible_rows);
+    effective_footer_commands =
+        footer_spec != NULL && footer_spec->commands != NULL
+            ? footer_spec->commands
+            : (scrollable ? default_scroll_commands : default_close_commands);
+    effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
+                                 ? footer_spec->command_count
+                                 : (scrollable ? sizeof(help_popup_scroll_commands) /
+                                                     sizeof(help_popup_scroll_commands[0])
+                                               : sizeof(help_popup_close_commands) /
+                                                     sizeof(help_popup_close_commands[0]));
+    footer_width =
+        HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
+    if (footer_width + 4 > width)
+      width = MINIMUM(footer_width + 4, COLS - 4);
 
-  height = visible_rows + 3;
-  height = MAXIMUM(height, 6);
-  height = MINIMUM(height, LINES - 2);
+    height = visible_rows + 3;
+    height = MAXIMUM(height, 6);
+    height = MINIMUM(height, LINES - 2);
+    win_x = MAXIMUM(1, (COLS - width) / 2);
+    win_y = MAXIMUM(1, (LINES - height) / 2);
+  }
+
   visible_rows = height - 3;
   if (visible_rows < 1)
     visible_rows = 1;
@@ -165,10 +178,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                                    sizeof(help_popup_close_commands[0]));
   footer_width =
       HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
-
   content_width = width - 4;
-  win_x = MAXIMUM(1, (COLS - width) / 2);
-  win_y = MAXIMUM(1, (LINES - height) / 2);
 
   win = newwin(height, width, win_y, win_x);
   if (win == NULL)
