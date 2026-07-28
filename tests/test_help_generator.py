@@ -18,18 +18,28 @@ spec.loader.exec_module(helpgen)
 
 
 def test_help_generator_renders_runtime_topics_and_usage_projection():
-    topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "help.en.md").read_text(encoding="utf-8")
+    f1_topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "f1.en.md").read_text(encoding="utf-8")
+    )
+    man_topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
     )
 
-    manpage = helpgen.render_manpage_markdown(topics, usage_mode=False)
-    usage = helpgen.render_manpage_markdown(topics, usage_mode=True)
-    header = helpgen.render_runtime_header(topics)
+    helpgen.validate_topic_inventory(f1_topics, man_topics)
+    manpage = helpgen.render_manpage_markdown(
+        man_topics, usage_mode=False, source_path="etc/help/man.en.md"
+    )
+    usage = helpgen.render_manpage_markdown(
+        man_topics, usage_mode=True, source_path="etc/help/man.en.md"
+    )
+    header = helpgen.render_runtime_header(
+        f1_topics, source_path="etc/help/f1.en.md"
+    )
 
-    assert helpgen.BANNER in manpage
+    assert helpgen.generated_banner("etc/help/man.en.md") in manpage
     assert "### Directory Mode" in manpage
     assert "### Help System" in manpage
-    assert "**A** (Attributes): Open attributes submenu for directory metadata changes:" in manpage
+    assert "**Attributes**: Open the attributes submenu." in manpage
     assert "### Filter Help" in manpage
     assert "### Command-line Editing" in manpage
     assert "### F10 Config" in manpage
@@ -66,8 +76,10 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
         [
             sys.executable,
             str(SCRIPT_PATH),
-            "--source",
-            "etc/help/help.en.md",
+            "--f1-source",
+            "etc/help/f1.en.md",
+            "--man-source",
+            "etc/help/man.en.md",
             "--man-md",
             str(man_md),
             "--usage-md",
@@ -93,8 +105,10 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
         [
             sys.executable,
             str(SCRIPT_PATH),
-            "--source",
-            "etc/help/help.en.md",
+            "--f1-source",
+            "etc/help/f1.en.md",
+            "--man-source",
+            "etc/help/man.en.md",
             "--man-md",
             str(man_md),
             "--usage-md",
@@ -114,11 +128,13 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
 
 def test_help_generator_roff_preserves_option_keywords_and_literal_globs():
     topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "help.en.md").read_text(encoding="utf-8")
+        (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
     )
 
     roff = helpgen.render_roff_document(
-        helpgen.render_manpage_markdown(topics, usage_mode=False),
+        helpgen.render_manpage_markdown(
+            topics, usage_mode=False, source_path="etc/help/man.en.md"
+        ),
         version="1.0.0-alpha",
         versiondate="June 2026",
     )

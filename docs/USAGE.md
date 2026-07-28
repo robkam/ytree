@@ -1,4 +1,4 @@
-<!-- Auto-generated from etc/help/help.en.md by scripts/generate_help_assets.py; do not edit directly. -->
+<!-- Auto-generated from etc/help/man.en.md by scripts/generate_help_assets.py; do not edit directly. -->
 
 # NAME
 

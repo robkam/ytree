@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Generate or verify canonical help outputs from etc/help/help.en.md."""
+"""Generate or verify canonical help outputs from split F1/man sources."""
 
 from __future__ import annotations
 
@@ -13,10 +13,11 @@ import sys
 from typing import Iterable
 
 
-BANNER = (
-    "<!-- Auto-generated from etc/help/help.en.md by "
-    "scripts/generate_help_assets.py; do not edit directly. -->"
-)
+def generated_banner(source_path: str) -> str:
+    return (
+        f"<!-- Auto-generated from {source_path} by "
+        "scripts/generate_help_assets.py; do not edit directly. -->"
+    )
 
 MANPAGE_STATIC_HEAD = """# NAME
 
@@ -435,14 +436,23 @@ def _parse_long_form_sections(topic_id: str, start_line: int, lines: list[str]) 
     return sections
 
 
-def render_manpage_markdown(topics: list[HelpTopic], *, usage_mode: bool) -> str:
+def render_manpage_markdown(
+    topics: list[HelpTopic], *, usage_mode: bool, source_path: str
+) -> str:
     topic_map = {topic.topic_id: topic for topic in topics}
     authors_line = (
         "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file."
         if usage_mode
         else "Authors and contributors are listed in the AUTHORS.md file."
     )
-    parts = [BANNER, "", MANPAGE_STATIC_HEAD.strip(), "", "# MODES AND NAVIGATION", ""]
+    parts = [
+        generated_banner(source_path),
+        "",
+        MANPAGE_STATIC_HEAD.strip(),
+        "",
+        "# MODES AND NAVIGATION",
+        "",
+    ]
     for topic_id, heading in MODE_TOPIC_ORDER:
         parts.append(render_contextual_projection(topic_map[topic_id], heading))
     parts.extend([MANPAGE_STATIC_GLOBAL_KEYS.strip(), ""])
@@ -480,9 +490,9 @@ def render_long_form_projection(topic: HelpTopic, heading: str, *, include_headi
     return "\n".join(lines)
 
 
-def render_runtime_header(topics: list[HelpTopic]) -> str:
+def render_runtime_header(topics: list[HelpTopic], *, source_path: str) -> str:
     lines = [
-        "/* Auto-generated from etc/help/help.en.md by scripts/generate_help_assets.py. */",
+        f"/* Auto-generated from {source_path} by scripts/generate_help_assets.py. */",
         "#include <stddef.h>",
         "",
         "typedef struct {",
@@ -686,17 +696,61 @@ def c_literal(text: str) -> str:
     return f'"{escaped}"'
 
 
-def build_outputs(source_path: Path, man_md: str | None, usage_md: str | None, runtime_header: str | None, man_roff: str | None, version: str, versiondate: str) -> dict[str, str]:
-    topics = parse_help_source(source_path.read_text(encoding="utf-8"))
+def validate_topic_inventory(
+    f1_topics: list[HelpTopic], man_topics: list[HelpTopic]
+) -> None:
+    f1_ids = {topic.topic_id for topic in f1_topics}
+    man_ids = {topic.topic_id for topic in man_topics}
+
+    if f1_ids != man_ids:
+        missing_from_man = sorted(f1_ids - man_ids)
+        missing_from_f1 = sorted(man_ids - f1_ids)
+        problems: list[str] = []
+        if missing_from_man:
+            problems.append(
+                f"missing from man source: {', '.join(missing_from_man)}"
+            )
+        if missing_from_f1:
+            problems.append(
+                f"missing from f1 source: {', '.join(missing_from_f1)}"
+            )
+        raise HelpSourceError(
+            "split help sources do not share the same topic inventory: "
+            + "; ".join(problems)
+        )
+
+
+def build_outputs(
+    *,
+    f1_source_path: Path,
+    man_source_path: Path,
+    man_md: str | None,
+    usage_md: str | None,
+    runtime_header: str | None,
+    man_roff: str | None,
+    version: str,
+    versiondate: str,
+) -> dict[str, str]:
+    f1_topics = parse_help_source(f1_source_path.read_text(encoding="utf-8"))
+    man_topics = parse_help_source(man_source_path.read_text(encoding="utf-8"))
+    validate_topic_inventory(f1_topics, man_topics)
     outputs: dict[str, str] = {}
     if man_md:
-        outputs[man_md] = render_manpage_markdown(topics, usage_mode=False)
+        outputs[man_md] = render_manpage_markdown(
+            man_topics, usage_mode=False, source_path=str(man_source_path)
+        )
     if usage_md:
-        outputs[usage_md] = render_manpage_markdown(topics, usage_mode=True)
+        outputs[usage_md] = render_manpage_markdown(
+            man_topics, usage_mode=True, source_path=str(man_source_path)
+        )
     if runtime_header:
-        outputs[runtime_header] = render_runtime_header(topics)
+        outputs[runtime_header] = render_runtime_header(
+            f1_topics, source_path=str(f1_source_path)
+        )
     if man_roff:
-        man_markdown = outputs.get(man_md) or render_manpage_markdown(topics, usage_mode=False)
+        man_markdown = outputs.get(man_md) or render_manpage_markdown(
+            man_topics, usage_mode=False, source_path=str(man_source_path)
+        )
         outputs[man_roff] = render_roff_document(
             man_markdown, version=version, versiondate=versiondate
         )
@@ -734,9 +788,18 @@ def write_outputs(outputs: dict[str, str]) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate or verify canonical help outputs from etc/help/help.en.md.",
+        description="Generate or verify canonical help outputs from etc/help/f1.en.md and etc/help/man.en.md.",
     )
-    parser.add_argument("--source", default="etc/help/help.en.md", help="Canonical help source to read.")
+    parser.add_argument(
+        "--f1-source",
+        default="etc/help/f1.en.md",
+        help="Authored contextual F1 help source to read.",
+    )
+    parser.add_argument(
+        "--man-source",
+        default="etc/help/man.en.md",
+        help="Authored man/USAGE reference source to read.",
+    )
     parser.add_argument("--man-md", help="Tracked long-form markdown manpage projection path.")
     parser.add_argument("--usage-md", help="Tracked docs/USAGE.md projection path.")
     parser.add_argument("--runtime-header", help="Generated runtime help header path.")
@@ -752,7 +815,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     outputs = build_outputs(
-        source_path=Path(args.source),
+        f1_source_path=Path(args.f1_source),
+        man_source_path=Path(args.man_source),
         man_md=args.man_md,
         usage_md=args.usage_md,
         runtime_header=args.runtime_header,
