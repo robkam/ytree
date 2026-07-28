@@ -92,7 +92,8 @@ COMMANDS_CATALOG_SCRIPT = scripts/generate_default_commands_catalog.py
 COMMAND_PRESETS_SRC_DIR = etc/commands
 COMMAND_PRESETS_HDR = src/core/default_command_presets_catalog.h
 COMMAND_PRESETS_SCRIPT = scripts/generate_default_command_presets_catalog.py
-HELP_SOURCE = etc/help/help.en.md
+HELP_F1_SOURCE = etc/help/f1.en.md
+HELP_MAN_SOURCE = etc/help/man.en.md
 HELP_MAN_MD = etc/ytnova.1.md
 HELP_USAGE_MD = docs/USAGE.md
 HELP_RUNTIME_HDR = src/core/generated_help_topics.h
@@ -208,7 +209,8 @@ $(BUILD_DIR):
 
 # Generate tracked help projections and the build manpage from the canonical help source.
 help-assets: | $(BUILD_DIR)
-	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --source $(HELP_SOURCE) \
+	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --f1-source $(HELP_F1_SOURCE) \
+		--man-source $(HELP_MAN_SOURCE) \
 		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
 		--runtime-header $(HELP_RUNTIME_HDR) --man-roff $(MANPAGE) \
 		--version "$(VERSION)" --versiondate "$(VERSIONDATE)" --write
@@ -216,8 +218,9 @@ help-assets: | $(BUILD_DIR)
 docs: help-assets
 
 # Generate the roff man page
-$(MANPAGE): $(HELP_SOURCE) $(HELP_GENERATOR_SCRIPT) | $(BUILD_DIR)
-	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --source $(HELP_SOURCE) \
+$(MANPAGE): $(HELP_F1_SOURCE) $(HELP_MAN_SOURCE) $(HELP_GENERATOR_SCRIPT) | $(BUILD_DIR)
+	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --f1-source $(HELP_F1_SOURCE) \
+		--man-source $(HELP_MAN_SOURCE) \
 		--man-roff $@ --version "$(VERSION)" --versiondate "$(VERSIONDATE)" --write
 
 # Install binary, man page, and documentation
@@ -491,7 +494,8 @@ command-presets-catalog:
 		--header $(COMMAND_PRESETS_HDR) --write
 
 qa-help-assets:
-	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --source $(HELP_SOURCE) \
+	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --f1-source $(HELP_F1_SOURCE) \
+		--man-source $(HELP_MAN_SOURCE) \
 		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
 		--runtime-header $(HELP_RUNTIME_HDR) --check
 

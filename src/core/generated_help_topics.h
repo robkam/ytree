@@ -1,4 +1,4 @@
-/* Auto-generated from etc/help/help.en.md by scripts/generate_help_assets.py. */
+/* Auto-generated from etc/help/f1.en.md by scripts/generate_help_assets.py. */
 #include <stddef.h>
 
 typedef struct {

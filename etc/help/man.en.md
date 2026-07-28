@@ -1,3 +1,7 @@
+# YtreeNova man/usage reference source (English)
+
+Edit this file to improve the generated manpage and docs/USAGE.md. It is the authored source for reference prose only.
+
 # YtreeNova canonical help source (English)
 
 This temporary combined source still feeds contextual `F1` help and the
