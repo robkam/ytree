@@ -7,6 +7,11 @@
 
 #include "ytnova_ui.h"
 
+#define HELP_POPUP_HISTORY_MIN_WIDTH 48
+#define HELP_POPUP_HISTORY_VERTICAL_MARGIN 6
+#define HELP_POPUP_MIN_HEIGHT 7
+#define HELP_POPUP_CENTERED_HORIZONTAL_MARGIN 4
+
 static const UICommandStripCommand help_popup_close_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "Esc", "Q"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL}};
@@ -21,6 +26,41 @@ static const UICommandStripCommand help_popup_scroll_commands[] = {
 static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
                                 size_t command_count) {
   return UI_CommandStripVisualLength(commands, command_count);
+}
+
+static int HelpPopupVisibleRowCapacity(int height) {
+  int content_lines = height - 5;
+
+  if (content_lines < 1)
+    return 1;
+  return (content_lines + 1) / 2;
+}
+
+static int HelpPopupHeightForVisibleRows(int visible_rows) {
+  if (visible_rows < 1)
+    visible_rows = 1;
+  return (visible_rows * 2) + 5;
+}
+
+static void HelpPopupResolveFooterCommands(
+    BOOL scrollable, const UIHelpPopupFooterSpec *footer_spec,
+    const UICommandStripCommand **commands_out, size_t *command_count_out) {
+  if (commands_out == NULL || command_count_out == NULL)
+    return;
+
+  if (footer_spec != NULL && footer_spec->commands != NULL) {
+    *commands_out = footer_spec->commands;
+    *command_count_out = footer_spec->command_count;
+    return;
+  }
+
+  *commands_out = scrollable ? help_popup_scroll_commands
+                             : help_popup_close_commands;
+  *command_count_out =
+      scrollable ? sizeof(help_popup_scroll_commands) /
+                       sizeof(help_popup_scroll_commands[0])
+                 : sizeof(help_popup_close_commands) /
+                       sizeof(help_popup_close_commands[0]);
 }
 
 static void RenderHelpPopupFooter(
@@ -97,7 +137,7 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int content_width,
   if (win == NULL || row == NULL)
     return;
 
-  max_text = content_width - (x - 2);
+  max_text = content_width;
   if (max_text < 0)
     max_text = 0;
 
@@ -138,10 +178,6 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                  const UIHelpPopupRow *rows, size_t row_count,
                                  BOOL dismiss_any_key,
                                  const UIHelpPopupFooterSpec *footer_spec) {
-  static const UICommandStripCommand *const default_close_commands =
-      help_popup_close_commands;
-  static const UICommandStripCommand *const default_scroll_commands =
-      help_popup_scroll_commands;
   WINDOW *win;
   int content_width;
   const UICommandStripCommand *effective_footer_commands;
@@ -171,65 +207,52 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   }
 
   use_history_geometry =
-      ctx != NULL && ctx->layout.main_win_width >= 48 && (LINES - 6) >= 6;
+      ctx->layout.main_win_width >= HELP_POPUP_HISTORY_MIN_WIDTH &&
+      (LINES - HELP_POPUP_HISTORY_VERTICAL_MARGIN) >=
+          HELP_POPUP_HISTORY_VERTICAL_MARGIN;
   if (use_history_geometry) {
     width = MINIMUM(ctx->layout.main_win_width, COLS - 2);
-    height = MINIMUM(LINES - 6, LINES - 2);
+    height = MINIMUM(LINES - HELP_POPUP_HISTORY_VERTICAL_MARGIN, LINES - 2);
+    if ((height % 2) == 0)
+      height--;
+    if (height < HELP_POPUP_MIN_HEIGHT)
+      height = HELP_POPUP_MIN_HEIGHT;
     win_x = 1;
     win_y = 2;
   } else {
     width = StrVisualLength(title) + 8;
     if (max_row_width + 4 > width)
       width = max_row_width + 4;
-    width = MAXIMUM(width, 48);
-    width = MINIMUM(width, COLS - 4);
+    width = MAXIMUM(width, HELP_POPUP_HISTORY_MIN_WIDTH);
+    width = MINIMUM(width, COLS - HELP_POPUP_CENTERED_HORIZONTAL_MARGIN);
 
-    max_visible_rows = LINES - 5;
-    if (max_visible_rows < 1)
-      max_visible_rows = 1;
+    max_visible_rows = HelpPopupVisibleRowCapacity(LINES - 2);
     visible_rows = (int)row_count;
     if (visible_rows > max_visible_rows)
       visible_rows = max_visible_rows;
 
     scrollable = ((int)row_count > visible_rows);
-    effective_footer_commands =
-        footer_spec != NULL && footer_spec->commands != NULL
-            ? footer_spec->commands
-            : (scrollable ? default_scroll_commands : default_close_commands);
-    effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
-                                 ? footer_spec->command_count
-                                 : (scrollable ? sizeof(help_popup_scroll_commands) /
-                                                     sizeof(help_popup_scroll_commands[0])
-                                               : sizeof(help_popup_close_commands) /
-                                                     sizeof(help_popup_close_commands[0]));
+    HelpPopupResolveFooterCommands(scrollable, footer_spec,
+                                   &effective_footer_commands,
+                                   &effective_footer_count);
     footer_width =
         HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
     if (footer_width + 4 > width)
-      width = MINIMUM(footer_width + 4, COLS - 4);
+      width = MINIMUM(footer_width + 4,
+                      COLS - HELP_POPUP_CENTERED_HORIZONTAL_MARGIN);
 
-    height = visible_rows + 3;
-    height = MAXIMUM(height, 6);
+    height = HelpPopupHeightForVisibleRows(visible_rows);
+    height = MAXIMUM(height, HELP_POPUP_MIN_HEIGHT);
     height = MINIMUM(height, LINES - 2);
     win_x = MAXIMUM(1, (COLS - width) / 2);
     win_y = MAXIMUM(1, (LINES - height) / 2);
   }
 
-  visible_rows = height - 3;
-  if (visible_rows < 1)
-    visible_rows = 1;
+  visible_rows = HelpPopupVisibleRowCapacity(height);
   scrollable = ((int)row_count > visible_rows);
-  effective_footer_commands = footer_spec != NULL && footer_spec->commands != NULL
-                                  ? footer_spec->commands
-                                  : (scrollable ? default_scroll_commands
-                                                : default_close_commands);
-  effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
-                               ? footer_spec->command_count
-                               : (scrollable ? sizeof(help_popup_scroll_commands) /
-                                                   sizeof(help_popup_scroll_commands[0])
-                                             : sizeof(help_popup_close_commands) /
-                                                   sizeof(help_popup_close_commands[0]));
-  footer_width =
-      HelpPopupFooterWidth(effective_footer_commands, effective_footer_count);
+  HelpPopupResolveFooterCommands(scrollable, footer_spec,
+                                 &effective_footer_commands,
+                                 &effective_footer_count);
   content_width = width - 4;
 
   win = newwin(height, width, win_y, win_x);
@@ -244,34 +267,28 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   while (1) {
     int ch;
 
-    effective_footer_commands =
-        footer_spec != NULL && footer_spec->commands != NULL
-            ? footer_spec->commands
-            : (scrollable ? default_scroll_commands : default_close_commands);
-    effective_footer_count = footer_spec != NULL && footer_spec->commands != NULL
-                                 ? footer_spec->command_count
-                                 : (scrollable ? sizeof(help_popup_scroll_commands) /
-                                                     sizeof(help_popup_scroll_commands[0])
-                                               : sizeof(help_popup_close_commands) /
-                                                     sizeof(help_popup_close_commands[0]));
+    HelpPopupResolveFooterCommands(scrollable, footer_spec,
+                                   &effective_footer_commands,
+                                   &effective_footer_count);
     SyncHelpPopupActiveRowScroll(footer_spec, visible_rows, (int)row_count,
                                  &scroll_offset);
 
     werase(win);
 #ifdef COLOR_SUPPORT
-    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+    wattron(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));
 #endif
     box(win, 0, 0);
 #ifdef COLOR_SUPPORT
-    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+    wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));
 #endif
     mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength(title)) / 2), "%s",
               title);
 
     for (i = 0; i < visible_rows && scroll_offset + i < (int)row_count; ++i)
-      RenderHelpPopupRow(win, 2 + i, content_width, &rows[scroll_offset + i]);
+      RenderHelpPopupRow(win, 3 + (i * 2), content_width,
+                         &rows[scroll_offset + i]);
 
-    RenderHelpPopupFooter(win, height - 1, 2, effective_footer_commands,
+    RenderHelpPopupFooter(win, height - 2, 2, effective_footer_commands,
                           effective_footer_count, footer_spec);
     wrefresh(win);
 

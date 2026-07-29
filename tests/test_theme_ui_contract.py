@@ -246,16 +246,19 @@ def test_help_surfaces_use_help_role():
     assert "UI_ROLE_FOOTER" in defs_source
     assert "UI_ROLE_HELP_LINK" in defs_source
     assert "UI_ROLE_HELP_LINK_SELECTION" in defs_source
+    assert "UI_ROLE_HELP_BOX_LINES" in defs_source
     assert "CPAIR_HELP" not in defs_source
     assert "UI_ROLE_KEYBIND" in defs_source
     assert '{"footer", UI_ROLE_FOOTER, 7, 0}' in color_source
     assert '{"help", UI_ROLE_HELP, 7, 0}' in color_source
     assert '{"help_link", UI_ROLE_HELP_LINK, 6, 0}' in color_source
     assert '{"help_link_selection", UI_ROLE_HELP_LINK_SELECTION, 3, 0}' in color_source
+    assert '{"help_box_lines", UI_ROLE_HELP_BOX_LINES, 7, 0}' in color_source
     assert '"footer"' in theme_source
     assert '"help"' in theme_source
     assert '"help_link"' in theme_source
     assert '"help_link_selection"' in theme_source
+    assert '"help_box_lines"' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_FOOTER)" in init_source
     assert "UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width," in display_source
     assert "static const UICommandStripCommand dir_help_disk_mode_0_commands[]" in (
@@ -286,8 +289,8 @@ def test_help_surfaces_use_help_role():
     assert "Updated:" not in display_source
     assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in help_popup_source
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in help_popup_source
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in help_popup_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in help_popup_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in help_popup_source
     assert "UI_ROLE_HELP, UI_ROLE_KEYBIND" in help_popup_source
 
 

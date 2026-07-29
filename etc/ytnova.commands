@@ -1,6 +1,12 @@
 ######################################
 # commands.conf starter for YtreeNova command customization.
 #
+# This is the package's default command set.
+# YtreeNova uses it when commands.conf does not select a preset.
+# If you want to change what ships by default, edit this file.
+# If you want to change what "preset = en" means, edit etc/commands/en.conf
+# instead.
+#
 # Only --init and explicit F10 Commands create this file. When the file is
 # missing, YtreeNova falls back to the packaged active command map without
 # creating a user copy.

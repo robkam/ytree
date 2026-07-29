@@ -378,7 +378,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 Routing contract:
 *   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
 *   Severity modal headers, body text, frames, and prompts MUST retain the active severity role pair. They MUST NOT use raw reverse/blink styling that swaps foreground/background away from the configured severity colors.
-*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; the always-visible footer guidance strip uses `footer`; F1/context help surfaces use the `help` role; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; the always-visible footer guidance strip uses `footer`; F1/context help surfaces use the `help` role, with `help_box_lines` available for the popup frame when a theme wants an explicit override; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
 *   Tree status-marker columns use `margin`; tree guide glyphs use `tree_lines`; tree directory names and attributes use `dynamic_text`. File-type palette rules do not style directory tree rows.
 *   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
@@ -417,7 +417,7 @@ Themes are plain-text user-editable files separate from the main configuration. 
 *   `THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned.
 
 ### 7.2 Semantic Roles
-Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `help_link`, `help_link_selection`, `info`, `warning`, `error`, and `search_hit`.
+Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `help_link`, `help_link_selection`, `help_box_lines`, `info`, `warning`, `error`, and `search_hit`.
 
 Role meanings:
 *   `background`: default application background.
@@ -435,6 +435,7 @@ Role meanings:
 *   `help`: F1/context help reading surfaces.
 *   `help_link`: linked text inside F1/context help when hyperlink-capable help is enabled.
 *   `help_link_selection`: the active linked target inside F1/context help when hyperlink-capable help is enabled.
+*   `help_box_lines`: F1/context help popup frame lines. When omitted, runtime inherits the `help` foreground and background.
 *   `info`, `warning`, `error`: severity road-sign roles.
 *   `search_hit`: search/current-hit standout highlight.
 

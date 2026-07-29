@@ -305,6 +305,13 @@ typedef struct {
 } HelpLabelOverrideSpec;
 
 typedef struct {
+  const FooterCommandSpec *specs;
+  size_t spec_count;
+  const HelpLabelOverrideSpec *override_specs;
+  size_t override_spec_count;
+} HelpLabelOverridePlan;
+
+typedef struct {
   size_t fit_count;
   BOOL truncated;
   size_t truncated_index;
@@ -970,20 +977,20 @@ FindFooterSpecByPrimaryAction(const FooterCommandSpec *specs, size_t spec_count,
 }
 
 static size_t BuildHelpLabelOverrides(
-    const ViewContext *ctx, BOOL is_dir, const FooterCommandSpec *specs,
-    size_t spec_count, const HelpLabelOverrideSpec *override_specs,
-    size_t override_spec_count, UIHelpLabelOverride *overrides,
+    const ViewContext *ctx, BOOL is_dir, const HelpLabelOverridePlan *plan,
+    UIHelpLabelOverride *overrides,
     char labels[][COMMAND_PRESENTATION_LABEL_LENGTH], size_t max_overrides) {
   size_t count = 0;
   size_t index;
 
-  if (ctx == NULL || specs == NULL || override_specs == NULL || overrides == NULL ||
-      labels == NULL)
+  if (ctx == NULL || plan == NULL || plan->specs == NULL ||
+      plan->override_specs == NULL || overrides == NULL || labels == NULL)
     return 0;
 
-  for (index = 0; index < override_spec_count && count < max_overrides; ++index) {
+  for (index = 0;
+       index < plan->override_spec_count && count < max_overrides; ++index) {
     const FooterCommandSpec *spec = FindFooterSpecByPrimaryAction(
-        specs, spec_count, override_specs[index].action_id);
+        plan->specs, plan->spec_count, plan->override_specs[index].action_id);
 
     if (spec != NULL) {
       ResolvedFooterCommand resolved;
@@ -991,7 +998,8 @@ static size_t BuildHelpLabelOverrides(
       ResolveFooterCommandSpec(ctx, is_dir, spec, &resolved);
       snprintf(labels[count], COMMAND_PRESENTATION_LABEL_LENGTH, "%s",
                resolved.label);
-      overrides[count].canonical_label = override_specs[index].canonical_label;
+      overrides[count].canonical_label =
+          plan->override_specs[index].canonical_label;
       overrides[count].display_label = labels[count];
       count++;
     }
@@ -1638,6 +1646,11 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     FILE_HELP_LABEL_SPEC_COUNT =
         sizeof(file_help_label_specs) / sizeof(file_help_label_specs[0])
   };
+  static const HelpLabelOverridePlan file_help_label_plan = {
+      file_footer_standard_specs,
+      sizeof(file_footer_standard_specs) / sizeof(file_footer_standard_specs[0]),
+      file_help_label_specs,
+      FILE_HELP_LABEL_SPEC_COUNT};
   const char *context_id = NULL;
   size_t row_count = 0;
   ViewFocus active_focus;
@@ -1686,18 +1699,19 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
     const FooterCommandSpec *specs;
     const char *line0_signpost;
     const char *line1_signpost;
-    UIHelpLabelOverride label_overrides[FILE_HELP_LABEL_SPEC_COUNT];
-    char label_text[FILE_HELP_LABEL_SPEC_COUNT][COMMAND_PRESENTATION_LABEL_LENGTH];
-    size_t label_override_count;
     size_t spec_count;
 
     if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE &&
         (dir_entry == NULL || !dir_entry->global_flag)) {
-      specs =
-          GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
+      UIHelpLabelOverride label_overrides[FILE_HELP_LABEL_SPEC_COUNT];
+      char label_text[FILE_HELP_LABEL_SPEC_COUNT]
+                     [COMMAND_PRESENTATION_LABEL_LENGTH];
+      size_t label_override_count;
+
+      (void)GetFileFooterSpecs(ctx, &spec_count, &line0_signpost,
+                               &line1_signpost);
       label_override_count = BuildHelpLabelOverrides(
-          ctx, FALSE, specs, spec_count, file_help_label_specs,
-          FILE_HELP_LABEL_SPEC_COUNT, label_overrides, label_text,
+          ctx, FALSE, &file_help_label_plan, label_overrides, label_text,
           FILE_HELP_LABEL_SPEC_COUNT);
       return UI_ShowGeneratedContextHelpWithOverrides(
           ctx, "main.file", NULL, 0, label_overrides, label_override_count);
