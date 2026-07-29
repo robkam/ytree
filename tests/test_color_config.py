@@ -18,6 +18,7 @@ THEME_ROLES = {
     "help",
     "help_link",
     "help_link_selection",
+    "help_box_lines",
     "info",
     "warning",
     "error",
@@ -115,6 +116,8 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     classic = _theme_section(source, "theme quiet-blue")
     bash_black = _theme_section(source, "theme bash-black")
 
+    assert "help = black on grey\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\nhelp_box_lines = black on grey\n" in source
+
     for section in (classic, bash_black):
         assert _theme_role_names(section) == THEME_ROLES
 
@@ -137,8 +140,9 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "help = white\n" in classic
     assert "help_link = cyan\n" in classic
     assert "help_link_selection = yellow\n" in classic
+    assert "help_box_lines = cyan on blue\n" in classic
     assert "disabled =" not in classic
-    assert "box_lines = cyan on blue" not in classic
+    assert "\nbox_lines = cyan on blue\n" not in classic
     assert "dynamic_text = +white on blue" not in classic
     assert "background = black" in bash_black
     assert "keybind = +white\n" in bash_black
@@ -148,6 +152,7 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "help = white\n" in bash_black
     assert "help_link = cyan\n" in bash_black
     assert "help_link_selection = yellow\n" in bash_black
+    assert "help_box_lines = grey on black\n" in bash_black
     assert "info = white on blue\n" in bash_black
     assert "error = white on red\n" in bash_black
 
@@ -248,6 +253,7 @@ def test_spec_documents_user_visible_theme_contract():
     assert "`footer`" in spec_source
     assert "`help_link`" in spec_source
     assert "`help_link_selection`" in spec_source
+    assert "`help_box_lines`" in spec_source
     assert "`disabled`" not in spec_source
     assert "`grey`/`gray`" in spec_source
     assert "bright black" not in spec_source.lower()

@@ -893,6 +893,134 @@ int main(int argc, char **argv) {
     subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
 
 
+def test_theme_help_box_lines_default_to_help_colors(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    theme_file = tmp_path / "themes.conf"
+    driver = tmp_path / "theme_help_box_lines_default_driver.c"
+    binary = tmp_path / "theme_help_box_lines_default_driver"
+
+    theme_file.write_text(
+        """
+[theme sample]
+background = blue
+box_lines = cyan
+tree_lines = +white
+margin = dynamic_text
+static_text = white
+dynamic_text = +white
+keybind = +white
+footer = white
+selection = black on +grey
+dialog = black on +grey
+picker = black on +grey
+help = white on red
+help_link = cyan
+help_link_selection = yellow
+info = +white
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+""",
+        encoding="utf-8",
+    )
+
+    driver.write_text(
+        r'''
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+  char name[32];
+  int fg;
+  int bg;
+} CapturedColor;
+
+static CapturedColor colors[32];
+static int color_count;
+
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
+  (void)ctx;
+  (void)fmt;
+  return 0;
+}
+
+static void capture_parse_color(const char *color_str, int *fg, int *bg) {
+  ParseColorString(color_str, fg, bg);
+}
+
+static void capture_update_color(const char *name, int fg, int bg) {
+  if (color_count >= 32)
+    return;
+  snprintf(colors[color_count].name, sizeof(colors[color_count].name), "%s",
+           name);
+  colors[color_count].fg = fg;
+  colors[color_count].bg = bg;
+  ++color_count;
+}
+
+static int expect_color(const char *name, int fg, int bg) {
+  int i;
+
+  for (i = 0; i < color_count; ++i) {
+    if (strcmp(colors[i].name, name) == 0 && colors[i].fg == fg &&
+        colors[i].bg == bg)
+      return 0;
+  }
+
+  fprintf(stderr, "missing color %s %d,%d\n", name, fg, bg);
+  return 1;
+}
+
+int main(int argc, char **argv) {
+  ViewContext ctx;
+
+  if (argc != 2)
+    return 1;
+
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.hook_parse_color = capture_parse_color;
+  ctx.hook_update_ui_color = capture_update_color;
+
+  if (ReadThemeFile(&ctx, argv[1], "sample") != 0) {
+    fprintf(stderr, "ReadThemeFile failed\n");
+    return 1;
+  }
+
+    if (expect_color("help_box_lines", COLOR_WHITE, COLOR_RED) != 0)
+    return 1;
+
+  return 0;
+}
+''',
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            "cc",
+            "-D_GNU_SOURCE",
+            "-DCOLOR_SUPPORT",
+            "-Iinclude",
+            str(driver),
+            "src/cmd/theme.c",
+            "src/core/config_paths.c",
+            "src/ui/color.c",
+            "src/util/memory_utils.c",
+            "-lncursesw",
+            "-ltinfo",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    subprocess.run([str(binary), str(theme_file)], cwd=repo_root, check=True)
+
+
 def test_theme_palette_omitted_background_inherits_theme_filename_background(
     tmp_path,
 ):

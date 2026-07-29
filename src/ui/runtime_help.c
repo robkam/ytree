@@ -19,6 +19,9 @@
 #define GENERATED_HELP_MAX_ITEMS 64
 #define GENERATED_HELP_MAX_ITEM_LABEL 64
 #define GENERATED_HELP_MAX_ITEM_DETAIL 1024
+#define GENERATED_HELP_DEFAULT_WRAP_WIDTH 72
+#define GENERATED_HELP_MIN_MAIN_WIDTH 8
+#define GENERATED_HELP_WRAP_PADDING 4
 
 typedef struct {
   char label[GENERATED_HELP_MAX_ITEM_LABEL];
@@ -252,7 +255,8 @@ static void AppendWrappedHelpText(RuntimeHelpPopupState *state, size_t *row_coun
   if (state == NULL || row_count == NULL || line_index == NULL || text == NULL)
     return;
 
-  wrap_width = state->wrap_width > 0 ? state->wrap_width : 72;
+  wrap_width = state->wrap_width > 0 ? state->wrap_width
+                                     : GENERATED_HELP_DEFAULT_WRAP_WIDTH;
   while (*cursor != '\0' && *row_count < GENERATED_HELP_MAX_ROWS &&
          *line_index < GENERATED_HELP_MAX_TEXT_LINES) {
     char wrapped[GENERATED_HELP_MAX_TEXT_WIDTH];
@@ -290,25 +294,11 @@ static void AppendWrappedHelpText(RuntimeHelpPopupState *state, size_t *row_coun
   }
 }
 
-static void FlushSectionParagraph(RuntimeHelpPopupState *state, size_t *row_count,
-                                  size_t *line_index, char *paragraph) {
-  char stripped[GENERATED_HELP_MAX_TEXT_WIDTH * 4];
-
-  if (paragraph == NULL || paragraph[0] == '\0')
-    return;
-
-  StripHelpMarkdown(paragraph, stripped, sizeof(stripped));
-  TrimWhitespaceInPlace(stripped);
-  AppendWrappedHelpText(state, row_count, line_index, stripped);
-  paragraph[0] = '\0';
-}
-
 static void ExtractItemLabel(const char *heading, char *label,
                              size_t label_size) {
   char stripped[GENERATED_HELP_MAX_TEXT_WIDTH];
   char *open;
   char *close;
-  char *comma;
   size_t len;
 
   if (label == NULL || label_size == 0) {
@@ -327,6 +317,8 @@ static void ExtractItemLabel(const char *heading, char *label,
   close = open != NULL ? strchr(open + 1, ')') : NULL;
   if (open != NULL && close != NULL &&
       !isdigit((unsigned char)stripped[0])) {
+    char *comma;
+
     *close = '\0';
     open++;
     comma = strchr(open, ',');
@@ -572,77 +564,6 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
   command_count++;
 
   return command_count;
-}
-
-static size_t BuildLongFormRows(RuntimeHelpPopupState *state, size_t row_count,
-                                size_t *line_index) {
-  size_t section_index;
-
-  if (state == NULL || state->topic == NULL || line_index == NULL)
-    return row_count;
-
-  for (section_index = 0;
-       section_index < state->topic->long_form_section_count &&
-       row_count < GENERATED_HELP_MAX_ROWS &&
-       *line_index < GENERATED_HELP_MAX_TEXT_LINES;
-       ++section_index) {
-    const GeneratedHelpLongFormSection *section =
-        &state->topic->long_form_sections[section_index];
-    char paragraph[GENERATED_HELP_MAX_TEXT_WIDTH * 4];
-    const char *cursor;
-
-    paragraph[0] = '\0';
-    if (section_index > 0)
-      AppendHelpText(state, &row_count, line_index, "");
-    AppendHelpText(state, &row_count, line_index, section->title);
-
-    cursor = section->body;
-    while (cursor != NULL && *cursor != '\0' &&
-           row_count < GENERATED_HELP_MAX_ROWS &&
-           *line_index < GENERATED_HELP_MAX_TEXT_LINES) {
-      const char *line_break = strchr(cursor, '\n');
-      size_t len =
-          line_break != NULL ? (size_t)(line_break - cursor) : strlen(cursor);
-      char line[GENERATED_HELP_MAX_TEXT_WIDTH];
-      char *content = line;
-      BOOL is_bullet;
-
-      if (len >= sizeof(line))
-        len = sizeof(line) - 1;
-      memcpy(line, cursor, len);
-      line[len] = '\0';
-
-      while (*content != '\0' && isspace((unsigned char)*content))
-        content++;
-
-      if (*content == '\0') {
-        FlushSectionParagraph(state, &row_count, line_index, paragraph);
-      } else {
-        is_bullet = ((content[0] == '*' || content[0] == '-') &&
-                     isspace((unsigned char)content[1]));
-        if (is_bullet) {
-          FlushSectionParagraph(state, &row_count, line_index, paragraph);
-          content += 2;
-          while (*content != '\0' && isspace((unsigned char)*content))
-            content++;
-          paragraph[0] = '\0';
-          AppendHelpTextFragment(paragraph, sizeof(paragraph), content);
-        } else {
-          if (paragraph[0] != '\0')
-            AppendHelpTextFragment(paragraph, sizeof(paragraph), " ");
-          AppendHelpTextFragment(paragraph, sizeof(paragraph), content);
-        }
-      }
-
-      if (line_break == NULL)
-        break;
-      cursor = line_break + 1;
-    }
-
-    FlushSectionParagraph(state, &row_count, line_index, paragraph);
-  }
-
-  return row_count;
 }
 
 static size_t BuildContextListRows(RuntimeHelpPopupState *state,
@@ -892,9 +813,10 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     state.selected_item_index = current_view.selected_item_index;
     state.current_detail_index = current_view.current_detail_index;
     state.next_detail_index = GENERATED_HELP_NO_SELECTION;
-    state.wrap_width = ctx->layout.main_win_width > 8
-                           ? ctx->layout.main_win_width - 4
-                           : 72;
+    state.wrap_width =
+        ctx->layout.main_win_width > GENERATED_HELP_MIN_MAIN_WIDTH
+            ? ctx->layout.main_win_width - GENERATED_HELP_WRAP_PADDING
+            : GENERATED_HELP_DEFAULT_WRAP_WIDTH;
     state.contextual_list_mode =
         TopicUsesContextualItemList(current_view.topic, prefix_row_count);
     if (state.contextual_list_mode) {

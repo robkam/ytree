@@ -42,9 +42,15 @@ def _popup_frame(screen, title, footer_hint="Esc/Quit"):
     left = title_line.rfind("x", 0, title_col)
     right = title_line.find("x", title_col + len(title))
     footer_row = next(i for i, line in enumerate(lines) if footer_hint in line)
+    bottom_row = next(
+        i
+        for i, line in enumerate(lines[footer_row:], start=footer_row)
+        if len(line) > right and line[left] == "m" and line[right] == "j"
+    )
     return {
         "title_row": title_row,
         "footer_row": footer_row,
+        "bottom_row": bottom_row,
         "left": left,
         "right": right,
     }
@@ -205,6 +211,23 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "F8 split" not in footer_line, footer_line
         directory_frame = _popup_frame(help_screen, "Directory Help")
         assert footer_line.index("Contents") - directory_frame["left"] <= 3, footer_line
+        assert directory_frame["bottom_row"] == directory_frame["footer_row"] + 1, help_screen
+        help_lines = help_screen.splitlines()
+        title_gap = help_lines[directory_frame["title_row"] + 1][
+            directory_frame["left"] + 1 : directory_frame["right"]
+        ]
+        assert title_gap.strip() == "", help_screen
+        first_help_row = next(
+            i for i, line in enumerate(help_lines) if "1..9 view:" in line
+        )
+        blank_gap = help_lines[first_help_row + 1][
+            directory_frame["left"] + 1 : directory_frame["right"]
+        ]
+        assert blank_gap.strip() == "", help_screen
+        footer_gap = help_lines[directory_frame["footer_row"] - 1][
+            directory_frame["left"] + 1 : directory_frame["right"]
+        ]
+        assert footer_gap.strip() == "", help_screen
 
         tui.send_keystroke("q")
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -486,7 +509,7 @@ def test_command_preset_help_layers_packaged_selection_under_local_overrides(tmp
         help_screen = _wait_for_help(tui, "File Help")
         lower_help = help_screen.lower()
         assert "copy" in lower_help, help_screen
-        assert "verschieben" in lower_help, help_screen
+        assert "datei loeschen" in lower_help, help_screen
         assert "kopieren" not in lower_help, help_screen
     finally:
         tui.quit()

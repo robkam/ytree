@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
-#define THEME_ROLE_COUNT 20
+#define THEME_ROLE_COUNT 21
 
 typedef enum {
   THEME_SECTION_NONE = 0,
@@ -52,7 +52,7 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "footer",
     "selection",   "dialog",    "picker",      "picker_selection",
-    "help",        "help_link", "help_link_selection",
+    "help",        "help_link", "help_link_selection", "help_box_lines",
     "info",        "warning",   "error",       "search_hit",
     "disabled"};
 
@@ -207,6 +207,7 @@ static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name) {
 static BOOL ThemeRoleIsOptional(const char *name) {
   return name != NULL &&
          (strcmp(name, "picker_selection") == 0 ||
+          strcmp(name, "help_box_lines") == 0 ||
           strcmp(name, "disabled") == 0);
 }
 
@@ -326,6 +327,23 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
 
     if (ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
       ApplySemanticRole(ctx, roles[i].name, fg, bg);
+  }
+
+  {
+    const ThemeRoleValue *help_box_lines_role =
+        FindRole(roles, "help_box_lines");
+    const ThemeRoleValue *help_role = FindRole(roles, "help");
+
+    if (help_box_lines_role != NULL && !help_box_lines_role->is_set &&
+        help_role != NULL) {
+      int help_fg;
+      int help_bg;
+
+      if (ParseThemeStyle(ctx, roles, help_role->value, background, &help_fg,
+                          &help_bg)) {
+        ApplySemanticRole(ctx, "help_box_lines", help_fg, help_bg);
+      }
+    }
   }
 #endif
 }

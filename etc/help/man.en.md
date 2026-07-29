@@ -2,12 +2,6 @@
 
 Edit this file to improve the generated manpage and docs/USAGE.md. It is the authored source for reference prose only.
 
-# YtreeNova canonical help source (English)
-
-This temporary combined source still feeds contextual `F1` help and the
-long-form projections while the authored F1/man source split from Task 43.4 is
-in progress.
-
 ## Topic-block schema
 
 Every topic block in this file follows the same parser-facing contract:

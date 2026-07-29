@@ -159,9 +159,11 @@ user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
-`help_link`, `help_link_selection`, `warning`, `error`, and `search_hit`.
-`footer` owns the always-visible keybinding strip, while `help` owns the F1
-reading surface. When `picker_selection` is omitted it falls back to
+`help_link`, `help_link_selection`, `help_box_lines`, `warning`, `error`, and
+`search_hit`. `footer` owns the always-visible keybinding strip, while `help`
+owns the F1 reading surface. `help_box_lines` owns the F1 popup frame; when it
+is omitted, runtime inherits the `help` foreground and background. When
+`picker_selection` is omitted it falls back to
 `selection`, so existing themes keep the same picker highlight behavior. The
 bundled starter themes keep `picker` on a different background so F2,
 history, volume, and applications menus stand out from the main content
