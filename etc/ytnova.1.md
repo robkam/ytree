@@ -43,81 +43,62 @@ ytnova monitors the **currently selected directory** for changes (created/delete
 
 ### Help System
 
-YtreeNova keeps `F1` short and task-local. Use the contextual page for the
-active surface, then follow shared explainer links only when you need more
-background.
+This manual is the fuller reference path for ytnova modes, commands, prompts, and support topics.
+The in-app `F1` popup provides the shorter contextual version for the active surface.
 
-See also: Navigation, Shared commands, F10 config, Command-line editing.
+See also: Navigation, Tagged, Shared commands, F2 picker, F10 config.
 ### Navigation
 
-This page keeps help-popup navigation distinct from ordinary YtreeNova
-navigation. Learn the shared popup keys once here, then return to the active
-context page for tree-only or file-only movement.
-Arrow keys, paging keys, `Home`, `End`, and `Enter` keep their usual
-ownership.
+The help popup uses list-style navigation.
+`Up` and `Down` move, `Enter` or `Right` follow, `Left` goes back, and `Esc` or `Q` closes.
 
-See also: Directory mode, File mode, Shared commands, F7 preview, F8 split.
+See also: Directory mode, File mode, F7 preview, F8 split, F2 picker.
 ### Directory Mode
 
-Directory Help keeps the focus on directory commands plus tree-only navigation.
-Use the shared Navigation page for popup controls and generic movement you only
-need to learn once.
+Directory mode is the logged tree view.
+It owns directory navigation, tree expansion, and directory-scoped commands.
 
 See also: Navigation, Shared commands.
 ### File Mode
 
-File Help keeps the focus on file commands plus file-window navigation. Use the
-shared Navigation page for popup controls and generic movement you only need to
-learn once.
+File mode is the main file-list view.
+It owns file navigation, file-scoped commands, tagged actions, and export entry points.
 
-See also: Navigation, Output, Shared commands.
+See also: Navigation, Tagged, Output.
 ### Archive-Dir Mode
 
-Archive directory help mirrors the live archive-directory footer, then adds the
-archive-specific caveats that differ from normal filesystem directory behavior.
+Archive-Dir mode is the tree-style view inside a logged archive.
+It mirrors directory work where the archive format permits it.
 
-See also: Navigation, Directory mode, Output.
+See also: Navigation, Directory mode.
 ### Archive-File Mode
 
-Archive file help mirrors the live archive-file footer and documents the
-differences between archive file actions and normal filesystem file actions.
+Archive-File mode is the file-list view for archive-backed content.
+Some filesystem commands are unavailable or become archive-aware here.
 
-See also: Navigation, File mode, Output.
+See also: Navigation, File mode, Tagged.
 ### Showall Mode
 
-Showall help explains the single-volume aggregated file view and the commands
-or caveats that differ from ordinary file mode.
-Press `Esc` to return to the previously selected directory.
-Press `\\` to jump to the owner directory of the selected file inside the
-current logged volume.
+Showall lists every file inside the current logged volume in one aggregated file list.
+It keeps single-volume scope while flattening directory boundaries.
 
-See also: Navigation, File mode, Global.
+See also: Navigation, File mode, Tagged.
 ### Global Mode
 
-Global help explains the multi-volume aggregated file view, including how it
-returns to owner directories and how its scope differs from ordinary file mode.
-Press `Esc` to return to the previously selected directory.
-Press `\\` to jump to the owner directory of the selected file even when that
-owner lives under a different logged volume root.
+Global lists files from every logged volume in one aggregated file list.
+It keeps multi-volume scope while flattening directory boundaries.
 
-See also: Navigation, File mode, Showall.
+See also: Navigation, File mode, Tagged.
 ### File Preview Mode
 
-F7 help explains preview ownership and how the preview overlay interacts with
-the underlying directory or file context.
-Use `Shift+Up/Down` or `^P/^N` to scroll preview contents line by line.
-Use `Shift+PgUp/PgDn` for pages and `Shift+Home/End` to jump to the top or
-bottom of the current preview.
+F7 preview overlays file preview controls on top of the underlying file-selection context.
+The preview owns scrolling while the underlying selection still owns the file target.
 
 See also: Navigation, File mode.
 ### Split Screen Mode
 
-F8 help explains split-view ownership, inactive-panel defaults, and the keys
-or caveats that only appear while split mode is active.
-Press `Tab` to switch the active panel while leaving the passive panel's state
-intact.
-Copy, move, and compare prompts default to the inactive panel as the
-destination/target while split mode is active.
+F8 split mode gives each panel independent state and uses the inactive panel as the default target for multi-panel actions.
+Its topic covers only split-specific rules.
 
 See also: Navigation, Directory mode, File mode.
 # KEY BINDINGS
@@ -175,240 +156,163 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 
 ### Shared Commands
 
-#### Shared commands
-*   **F1** (help): Open contextual help for the active surface.
-*   **F5** (refresh): Refresh the current view.
-*   **F6** (stats): Switch the stats/details presentation for the active view.
-*   **F7** (autoview): Toggle preview/autoview for the active file context.
-*   **F8** (split): Toggle split-screen mode.
-*   **F9** (apps): Open the applications menu shell.
-*   **F10** (config): Open the configuration command surface.
-*   **Esc** (cancel): Close the current help popup or cancel the active
-    overlay/prompt.
+#### Shared function keys
+* **F1**: Open contextual help for the active surface.
+* **F5**: Refresh the current view.
+* **F6**: Change the stats/details presentation for the active view.
+* **F7**: Toggle preview for the active file context.
+* **F8**: Toggle split-screen mode.
+* **F9**: Open the Applications menu.
+* **F10**: Open the configuration command surface.
+* **Esc**: Back out of the current overlay, prompt, or popup.
 ### Directory Mode
 
 #### Directory navigation
-*   **Enter**: Open the file window, or log/reveal one level when the selected
-    directory is still unlogged. Logged directories switch to File Mode.
-*   **Collapse**: Collapse or release the selected directory. `-` first
-    collapses an expanded node; pressing it again on a collapsed logged node
-    evicts the file list and marks that node unlogged.
-*   **Tree marker**: Show logged state in the left margin. Unlogged
-    directories use `+`; directory names themselves do not gain a `+` suffix.
-*   **Left Arrow**: Collapse the current node or move selection to its parent.
-    At filesystem root, Left is a no-op.
-*   **Right Arrow**: Expand one level or move to the first child. It does not
-    jump across siblings.
-*   **Plus**: Log or reveal one level without moving the cursor. `=` is the
-    unshifted alias on many keyboards.
-*   **Asterisk**: Recursively expand the selected directory and its
-    subdirectories.
+* **Enter**: Open the file window. If the selected directory is still unlogged, `Enter` logs or reveals one level first.
+* **Collapse**: Collapse the current branch. Press `-` again on a collapsed logged node to release it and mark it unlogged.
+* **Left Arrow**: Collapse the current node or move to its parent.
+* **Right Arrow**: Expand one level first, then move to the first child.
+* **Plus**: Log or reveal one level without moving the cursor.
+* **Asterisk**: Recursively expand the selected directory and its subdirectories.
 
 #### Directory commands
-*   **1..9 view**: Select the active panel's base directory and file view. `1`
-    resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times,
-    `5`, `7`, `8`, and `9` change the file projection, `6` toggles panel-wide
-    row size units, and `9` is a silent no-op outside Git worktrees.
-*   **Attributes**: Open the attributes submenu. Change mode (chmod), owner,
-    group, or date.
-*   **Copy**: Copy the selected directory branch.
-*   **Delete**: Delete the selected directory.
-*   **Filter**: Set file filter. Supports patterns such as `*.c`, exclusions
-    such as `-*.o`, attributes such as `:r` and `:x`, dates such as
-    `>2023-01-01`, and sizes such as `>1M`.
-*   **Global**: Show all files across all logged volumes in one list.
-*   **Invert Tags**: Toggle tag state for the current directory scope.
-*   **Compare**: Open the compare submenu. Choose directory, logged-tree, or
-    external-viewer compare modes. With `VI_KEYS=1`, use uppercase `J`.
-*   **Volume**: Open the volume picker.
-*   **Log**: Log a new directory or archive file. Logging an already logged
-    path performs a fresh reload and reanchors selection at the volume root.
-*   **Makedir**: Create a new directory.
-*   **New File**: Create a new empty file.
-*   **Only tagged**: Toggle tagged-only view for the current directory scope.
-*   **Pipe**: Pipe the selected directory to a command on stdin. `|` is the
-    alternate key.
-*   **Quit**: Quit ytnova.
-*   **Rename**: Rename the selected directory.
-*   **Showall**: Show all files in all directories of the current volume.
-*   **Tag**: Tag all files in the selected directory.
-*   **Untag**: Untag all files in the selected directory.
-*   **MoveDir**: Move the selected directory branch.
-*   **Write**: Export files in the selected directory to a command or file.
-    The formatter dialog offers Raw, Framed, and Page Break output.
-*   **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand
-    it to the current directory path and shell-quote the result. Prompt `F1`
-    also explains the tagged-file `^X` repeat path.
-*   **Archive**: Create an archive from the current selection. Tagged files win;
-    otherwise ytnova archives the selected file or directory recursively.
-    Supported suffixes are `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`,
-    `.tar.xz`/`.txz`, and `.zip`.
-*   **Jump**: Jump to a file or directory name in the current list.
-*   **Dotfiles**: Toggle hidden dot-files and dot-directories.
+* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to the default Name view, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` affect the file projection, and `6` toggles size units.
+* **Attributes**: Open the attributes submenu. Change mode, owner, group, or date.
+* **Copy**: Copy the selected directory branch.
+* **Delete**: Delete the selected directory.
+* **Filter**: Filter the current file-list scope. Use globs such as `*.c`, comma lists such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `>2023-01-01`, or `>1M`.
+* **Global**: Show files from every logged volume in one list.
+* **Invert Tags**: Flip the tag state inside the current visible scope.
+* **Compare**: Compare the current directory, the current logged tree, or an external viewer target.
+* **Volume**: Open the volume picker.
+* **Log**: Log a new directory or archive file. Logging an already logged path reloads it from the top.
+* **Makedir**: Create a new directory.
+* **New File**: Create a new empty file.
+* **Only tagged**: Show only tagged files for the current scope without changing the tag state.
+* **Pipe**: Send the selected directory to a command on standard input.
+* **Quit**: Quit ytnova.
+* **Rename**: Rename the selected directory.
+* **Showall**: Show every file inside the current logged volume.
+* **Tag**: Tag the files in the selected directory scope.
+* **Untag**: Untag the files in the selected directory scope.
+* **MoveDir**: Move the selected directory branch.
+* **Write**: Export the current selection to a file or command through the output prompts.
+* **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.
+* **Archive**: Create an archive from the tagged set first, or from the current selection when nothing is tagged.
+* **Jump**: Jump to a matching name in the current list.
+* **Dotfiles**: Toggle hidden dot-files and dot-directories.
 ### File Mode
 
-#### File-window navigation
-*   **1..9 view**: Select the active panel's file view. `1` resets to Name,
-    `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles
-    Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles
-    File detail, and `9` toggles the Git band inside Git worktrees.
-*   **Enter**: Switch between the file window and full-screen file mode.
-*   **Left Arrow**: Move to the previous visible file column. In one-column
-    layouts, Left performs page-up navigation.
-*   **Right Arrow**: Move to the next visible file column. In one-column
-    layouts, Right performs page-down navigation.
-*   **Date changes**: Date actions change Accessed time, Modified time, or
-    both. POSIX does not offer creation/birth time updates here.
+#### File navigation
+* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.
+* **Enter**: Switch between the embedded file window and full-screen file mode.
+* **Left Arrow**: Move to the previous visible file column. In one-column layouts it behaves like page up.
+* **Right Arrow**: Move to the next visible file column. In one-column layouts it behaves like page down.
 
 #### File commands
-*   **Attributes**: Open the file attributes submenu. Change mode, owner,
-    group, or date.
-*   **Copy**: Copy the selected file.
-*   **Pathcopy**: Copy the selected file while preserving its path relative to
-    the current volume root.
-*   **Copy tagged**: Copy all tagged files.
-*   **Delete**: Delete the selected file. With `VI_KEYS=1`, lowercase `d`
-    keeps this action and uppercase `D` becomes Delete Tagged.
-*   **Edit**: Edit the selected file with `$EDITOR`. The default editor is
-    `vi`.
-*   **Filter**: Set file filter.
-*   **Hex**: View the selected file in hex mode.
-*   **Invert Tags**: Toggle the tag state of all visible files.
-*   **Compare**: Compare the selected file with a target file.
-*   **Volume**: Open the volume picker.
-*   **Log**: Log a new directory or archive file. Logging an already logged
-    path performs a fresh reload and reanchors selection at the volume root.
-*   **Move**: Move the selected file.
-*   **Move tagged**: Move all tagged files.
-*   **New File**: Create a new empty file.
-*   **Only tagged**: Toggle tagged-only file view.
-*   **Pipe**: Pipe the selected file to a command on stdin. `|` is the
-    alternate key.
-*   **Rename**: Rename the selected file.
-*   **Sort**: Sort the file list. Choose Access time, Change time, Extension,
-    Group, Modification time, Name, Owner, or Size.
-*   **Search tagged**: Search tagged files with grep. The prompt expects plain
-    search text, builds `grep -i -- PATTERN {}` internally, and untags files
-    that do not match.
-*   **Tag**: Tag the selected file.
-*   **Tag all**: Tag all displayed files.
-*   **Untag**: Untag the selected file. With `VI_KEYS=1`, lowercase `u` keeps
-    this action.
-*   **Untag all**: Untag all displayed files. With `VI_KEYS=1`, `^U` stays
-    page-up navigation and uppercase `U` becomes Untag All.
-*   **View**: View the selected file with the configured pager. The default is
-    View file with the pager defined in the main config. The default is
-    `less`.
-*   **View tagged**: View all tagged files sequentially.
-*   **Write**: Export the selected file to a command or file. The formatter
-    dialog offers Raw, Framed, and Page Break output.
-*   **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand
-    it to the selected file path and shell-quote the result. Prompt `F1` also
-    explains the tagged-file `^X` repeat path.
-*   **Archive**: Create an archive from tagged files, or from the selected
-    file/directory when nothing is tagged. Directory sources are archived
-    recursively.
+* **Attributes**: Open the attributes submenu for the selected file.
+* **Copy**: Copy the selected file.
+* **Copy tagged**: Copy the tagged set to one destination.
+* **Delete**: Delete the selected file.
+* **Edit**: Open the selected file in the configured editor.
+* **Filter**: Filter the current file-list scope with globs, exclusions, and extended selectors.
+* **Hex**: View the selected file in hex mode.
+* **Invert Tags**: Flip the tag state inside the current visible scope.
+* **Compare**: Compare the selected file against another file.
+* **Volume**: Open the volume picker.
+* **Log**: Log a new directory or archive file without leaving file mode.
+* **Move**: Move the selected file.
+* **Move tagged**: Move the tagged set to one destination.
+* **New File**: Create a new empty file.
+* **Only tagged**: Show only tagged files in the current scope without changing the tag state.
+* **Pipe**: Send the selected file to a command on standard input.
+* **Quit**: Quit ytnova.
+* **Rename**: Rename the selected file.
+* **Sort**: Change the current file-list sort order.
+* **Tag**: Tag the selected file.
+* **Tag all**: Tag every visible file in the current scope.
+* **Untag**: Remove the tag from the selected file.
+* **Untag all**: Remove every tag in the current scope.
+* **View**: View the selected file with the configured pager.
+* **View tagged**: View the tagged files one after another.
+* **Write**: Export the selected file or tagged set through the output prompts.
+* **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely. `Ctrl-X` reruns the command for each tagged file.
+* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.
+* **Search tagged**: Search only the tagged files, then untag files that do not match.
+* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.
+* **Jump**: Jump to a matching name in the current list.
+* **Dotfiles**: Toggle hidden dot-files in the current scope.
 ### Archive-Dir Mode
 
-#### Archive directory commands
-*   **J** (Compare): Open compare flow. With `VI_KEYS=1`, use uppercase `J`
-    for this action.
-*   **D** (Delete): Delete selected archive directory entry.
-*   **F** (Filter): Set file filter.
-*   **G** (Global): Show all files across all logged volumes in one global
-    list.
-*   **I** (Invert Tags): Toggle tag state for files in the selected/current
-    archive directory scope.
-*   **L** (Log): Log a new directory or archive. Logging an already logged
-    volume/path performs a fresh reload and reanchors selection at the volume
-    root.
-*   **M** (Makedir): Create directory in archive context where supported.
-*   **O** (Only tagged): Toggle tagged-only file-list view for the current
-    archive directory scope.
-*   **R** (Rename): Rename selected archive directory entry.
-*   **S** (Showall): Show all files in the archive.
-*   **T** (Tag): Tag all files in current virtual directory.
-*   **U** (Untag): Untag all files in current virtual directory.
-*   **1 .. 4** (Dir Mode): Select the active panel's base archive-directory/
-    file view while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner,
-    `4` Times. `5`, `7`, `8`, and `9` update the panel's file projection; `6`
-    toggles panel-wide row size units; `0` is unused; `9` is a silent no-op in
-    archives.
-
 #### Archive directory navigation
-*   **Enter**: Switch to Archive-File Mode.
-*   **-**: State-based collapse/release. Expanded nodes collapse; collapsed
-    logged nodes (or logged leaves) unlog/release.
-*   **Left Arrow**: Collapse the current archive directory when expanded;
-    otherwise move selection to its parent directory.
-*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed:
-    expand one level. If already expanded: move cursor to the first child.
-*   **+** (or **=**): Expand the current archive directory by one level.
-*   **\\**: At archive non-root, jump to archive root. At archive root, exit
-    to parent physical directory.
+* **Enter**: Switch to Archive File Mode for the selected archive directory.
+* **Left Arrow**: Collapse the current archive node or move to its parent.
+* **Right Arrow**: Expand one level first, then move to the first child.
+* **Root**: `\` jumps to archive root when you are below it.
+* **Exit archive**: `\` leaves the archive when you are already at archive root.
+
+#### Archive directory commands
+* **1..9 view**: `1..4` choose the base archive directory/file view. `5`, `7`, and `8` still affect the paired file projection, `6` toggles row-size units, and `9` stays a no-op inside archives.
+* **Delete**: Delete the selected archive directory entry.
+* **Filter**: Filter the current archive-backed file-list scope.
+* **Global**: Show archive-backed results together with other logged volumes.
+* **Compare**: Compare the current archive directory or logged tree view.
+* **Volume**: Open the volume picker.
+* **Log**: Log another directory or archive file.
+* **Makedir**: Create a directory where the archive format supports it.
+* **Pipe**: Send the selected archive path to a command on standard input.
+* **Quit**: Quit ytnova.
+* **Rename**: Rename the selected archive directory entry.
+* **Showall**: Show every file in the current archive.
+* **Tag**: Tag the files in the current virtual directory scope.
+* **Untag**: Untag the files in the current virtual directory scope.
+* **Jump**: Jump to a matching name in the current list.
+* **Dotfiles**: Toggle hidden entries when the archive view exposes them.
 ### Archive-File Mode
 
-#### Archive file commands
-*   **C** (Copy): Copy selected file (including extract/copy paths).
-*   **^K** (Copy Tagged): Copy all tagged files.
-*   **D** (Delete): Delete selected archive file entry.
-*   **F** (Filter): Set file filter.
-*   **H** (Hex): View file in hex mode.
-*   **I** (Invert Tags): Toggle the tag state of all visible files.
-*   **M** (Move): Move selected file using archive-aware semantics.
-*   **O** (Only tagged): Toggle tagged-only file-list view (show tagged files
-    only).
-*   **P** (Pipe, or **|**): Pipe content to command.
-*   **R** (Rename): Rename selected archive file entry.
-*   **S** (Sort): Sort file list.
-*   **^S** (Search): Search tagged files for a string. The prompt expects
-    search text, not a full grep command; ytnova builds `grep -i -- PATTERN {}`
-    internally and untags files that do not match. Prompt **F1** summarizes
-    the tagged-scope behavior.
-*   **T** (Tag): Tag selected file.
-*   **^T**: Tag all files.
-*   **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase `u`
-    for this action.)*
-*   **^U**: Untag all files. *(With `VI_KEYS=1`, `^U` is page-up navigation and
-    uppercase `U` becomes Untag All.)*
-*   **V** (View): View file.
-*   **^V**: **View Tagged**. View all tagged files sequentially.
-*   **W** (Write): Export file content to a command or file.
-*   **Y** (Pathcopy): Copy selected file with relative path preservation.
-
 #### Archive file navigation
-*   **1 .. 4** (Base View): Select the archive-file base view for the active
-    panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`, `3`, or
-    `4` again to return to `1`.
-*   **5**: Toggle the compact Name/full-width file rendering variant when the
-    current base view is `1` / Name.
-*   **6**: Toggle binary vs human-readable size units for archive rows.
-*   **7**: Toggle Mini preview detail in the file window.
-*   **8**: Toggle File detail in the file window.
-*   **9**: Silent no-op in archive file lists.
-*   **0**: Currently unused; silent no-op.
-*   **Enter**: Switch to Archive-Dir Mode.
-*   **\\**: No-op.
-*   Archive file-window status text uses `Unlogged` when the selected directory
-    is unlogged and `No files` when the selected directory is logged and empty.
+* **1..9 view**: `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, and `8` toggles File detail. `9` stays a no-op inside archives.
+* **Enter**: Switch back to Archive Directory Mode.
+* **Jump**: Jump to a matching name in the current list.
+
+#### Archive file commands
+* **Copy**: Copy the selected archive entry through archive-aware extract/copy paths.
+* **Copy tagged**: Copy the tagged archive entries to one destination.
+* **Delete**: Delete the selected archive entry.
+* **Filter**: Filter the current archive-backed file-list scope.
+* **Hex**: View the selected archive entry in hex mode.
+* **Invert Tags**: Flip the tag state inside the current visible scope.
+* **Compare**: Compare the selected archive entry against another file.
+* **Volume**: Open the volume picker.
+* **Log**: Log another directory or archive file.
+* **Move**: Move the selected archive entry through archive-aware paths.
+* **Move tagged**: Move the tagged archive entries to one destination.
+* **Pipe**: Send the selected archive entry to a command on standard input.
+* **Quit**: Quit ytnova.
+* **Rename**: Rename the selected archive entry.
+* **Sort**: Change the current file-list sort order.
+* **Tag**: Tag the selected archive entry.
+* **Untag**: Remove the tag from the selected archive entry.
+* **View**: View the selected archive entry.
+* **View tagged**: View the tagged archive entries one after another.
+* **Pathcopy**: Copy the selected archive entry while keeping its relative path.
+* **Search tagged**: Search only the tagged archive entries, then untag non-matches.
+* **Execute**: Not available in archive file mode.
+* **Write**: Not available in archive file mode.
+* **Dotfiles**: Toggle hidden entries when the archive view exposes them.
 # COMPARE
 
-#### Compare flows
-*   **File compare (`J` in File Mode):** Compare the selected file against a
-    target file. ytnova can use an external file-diff helper if configured.
-    *   `FILEDIFF` may use `%1` (source) and `%2` (target) placeholders; when
-        omitted, ytnova appends source and target paths to the helper command.
-*   **Directory compare (`J` in Directory Mode):**
-    *   `D`: compare the current directory.
-    *   `T`: compare the current logged tree.
-    *   `X`: launch an external directory/tree compare viewer.
-    *(With `VI_KEYS=1`, use uppercase `J` for this action.)*
+#### Compare flow
+Choose the target first.
+Then choose the compare scope when the source is a directory.
+Then choose the compare basis when the runtime offers more than one basis.
+Finally choose which result class to tag on the source side.
 
 #### Compare rules
-*   Internal compare tags matches on the active/source side only.
-*   Logged-tree compare uses logged content only; it does not auto-log unopened
-    subdirectories.
-*   There is no separate "compare tagged files" mode.
+* Logged-tree compare uses logged content only. It does not auto-log unopened `+` subdirectories.
+* `FILEDIFF` may use `%1` and `%2`. When those placeholders are missing, ytnova appends source and target paths to the helper command.
+* External directory/tree compare launches `DIRDIFF` or `TREEDIFF` instead of tagging runtime results.
+* There is no separate compare-tagged-files mode.
 
 # COMMAND LINE EDITING
 
@@ -434,78 +338,67 @@ These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
 
 ### Filter Help
 
-#### Filter syntax
-Use normal glob-like patterns such as `*.c`, comma-separated unions such as
-`*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as
-attributes (`:r`, `:x`), dates (`>2023-01-01`), or sizes (`>1M`). If the
-shell would expand the pattern, quote it before launching ytnova.
+#### Syntax
+Use normal glob-like patterns such as `*.c`, comma-separated unions such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `:x`, `>2023-01-01`, or `>1M`.
+If your shell would expand the pattern before ytnova sees it, quote it at the shell prompt.
 
-#### Scope rules
-Filter prompts stay scoped to the active file-list family. Directory/File,
-archive, Showall, and Global contexts may share syntax while still applying the
-result to their own current scope and tagged/untagged conventions.
+#### Scope
+The filter always applies to the current file-list family.
+That may be an ordinary file list, an archive file list, Showall, Global, or a tagged-only view built from one of those scopes.
 ### Output Help
 
-#### Output destinations
-Write/output flows may send content to a file path or to an external command.
-The canonical prompt sequence explains the distinction between ordinary file
-output and hardcopy-oriented command entry so the same authored text can serve
-filesystem, archive, and prompt-local help.
+#### Output model
+`Write` is an export flow.
+It can write plain content, framed content, or page-break-separated content.
+It can also send that output to a command instead of a file path.
 
-#### Output formats
-The output dialog owns the format choices used by write/export flows, including
-Raw, Framed, and Page Break variants plus any separator prompt that follows.
-If the runtime later narrows a contextual slice, the generated long-form docs
-must still come from this one authored topic.
+#### Output order
+Choose the format first.
+Choose the separator only when the format asks for one.
+Then choose the final destination.
 # SUPPORT TOPICS
 
 ### Command-line Editing
 
 #### Editing keys
-*   **Left/Right** move within the current prompt buffer.
-*   **Home/End** jump to the start or end of the current prompt buffer.
-*   **Backspace/Delete** erase the character to the left/right of the cursor.
-*   **Enter** accepts the current prompt value.
-*   **Esc** cancels the prompt without committing it.
+* **Left/Right**: Move inside the current prompt text.
+* **Home/End**: Jump to the start or end of the prompt text.
+* **Backspace/Delete**: Delete the character to the left or right of the cursor.
+* **Enter**: Accept the current value.
+* **Esc**: Cancel without committing the prompt.
 
 #### Shared helpers
-*   **Up** opens or cycles prompt history when that prompt keeps history.
-*   **F2** opens a browser/picker when the active prompt supports browsing a
-    path or reusable choice list.
-*   Prompt-local `F1` explains only syntax and scope that are specific to that
-    prompt; it should not re-teach the shared editing baseline.
+* **Up**: Open or cycle prompt history when that prompt keeps history.
+* **F2**: Open a browser or picker when the current prompt supports browsing.
+* **F1**: Show syntax or scope rules that matter only to the current prompt.
 ### VI Keys
 
 #### Navigation remap
-With `VI_KEYS=1`, lowercase **h/j/k/l** become Left/Down/Up/Right and **^U**
-/**^D** become page-up/page-down.
+With `VI_KEYS=1`, lowercase `h`, `j`, `k`, and `l` become `Left`, `Down`, `Up`, and `Right`.
+`Ctrl-U` and `Ctrl-D` become page up and page down.
 
 #### Command collisions
-Commands that would collide with lowercase vi navigation move to uppercase or a
-non-conflicting fallback. Examples include **J** for Compare, **K** for Volume
-Menu, **D** for Delete Tagged, and **U** for Untag All where applicable.
+Commands that would steal those lowercase keys move out of the way.
+Examples include `J compare`, `K volume`, `D delete tagged`, and `U untag all` where those actions exist.
 ### F10 Config
 
 #### Config surface
-Use **F10** to reach configuration-oriented commands instead of treating them
-as per-directory actions. Persistent changes belong here, not in the active
-file or directory command pages.
+Use `F10` when you want to change persistent behavior instead of doing one one-off file or directory action.
+Profile settings, command labels, themes, and reload all live here.
 
-#### Related areas
-Theme selection, semantic colors, and presentation tweaks are covered by
-**Theming**. Prompt-edit/history behavior that appears inside config flows is
-still owned by **Command-line Editing**.
+#### Related files
+`ytnova.conf` owns profile settings.
+`commands.conf` owns user command labels and bindings.
+`themes.conf` owns theme selection and theme-role overrides.
 ### Theming
 
 #### Theme model
-Themes are role-based: users configure semantic roles rather than styling each
-surface with ad-hoc colors. Help popups, pickers, and the footer command strip
-each have their own dedicated roles.
+Themes set semantic roles such as `footer`, `help`, `help_link`, `selection`, `picker`, and `warning`.
+This keeps one theme change consistent across the whole UI.
 
 #### Editing path
-Use **F10** and the theme/config files to change theme selection or role
-definitions. Keep contrasts readable for help, picker, and selection surfaces;
-those are high-frequency navigation aids.
+Use `F10` to open the theme or config editing path.
+Keep high-frequency navigation surfaces readable first: selection, picker, footer, and help.
 # CONFIGURATION
 
 ytnova reads its main configuration from `~/.config/ytnova/ytnova.conf` by
@@ -529,10 +422,12 @@ user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
-`help_link`, `help_link_selection`, `help_box_lines`, `warning`, `error`, and
-`search_hit`. `footer` owns the always-visible keybinding strip, while `help`
-owns the F1 reading surface. `help_box_lines` owns the F1 popup frame; when it
-is omitted, runtime inherits the `help` foreground and background. When
+`help_keybind`, `help_link`, `help_link_selection`, `help_box_lines`,
+`warning`, `error`, and `search_hit`. `footer` owns the always-visible
+keybinding strip, while `help` owns the F1 reading surface. `help_keybind`
+owns help-popup mnemonic emphasis; when it is omitted, runtime falls back to
+`keybind` on the `help` background. `help_box_lines` owns the F1 popup frame;
+when it is omitted, runtime inherits the `help` foreground and background. When
 `picker_selection` is omitted it falls back to
 `selection`, so existing themes keep the same picker highlight behavior. The
 bundled starter themes keep `picker` on a different background so F2,

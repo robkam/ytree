@@ -41,14 +41,14 @@ def test_shared_help_popup_uses_help_palette():
         compare_source,
         "static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {",
     )
-    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_block
+    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);" in compare_block
 
     prompt_source = _read_source("src/ui/interactions.c")
     prompt_block = _extract_function_block(
         prompt_source,
         "static void ShowPromptHelpPopup(ViewContext *ctx, PromptHelpTopic topic) {",
     )
-    assert "UI_ShowHelpPopup(ctx, title, rows," in prompt_block
+    assert "UI_ShowGeneratedContextHelp(ctx, context_id, NULL, 0);" in prompt_block
 
 
 def test_prompt_uses_dialog_and_volume_uses_picker_palette():

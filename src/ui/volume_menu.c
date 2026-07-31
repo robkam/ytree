@@ -19,35 +19,10 @@ static const UICommandStripCommand volume_command_strip[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL}};
 
 static int ShowVolumeHelpPopup(ViewContext *ctx) {
-  static const UICommandStripCommand volume_navigation_commands[] = {
-      {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Up", "Down"},
-      {UI_COMMAND_LAYOUT_KEY_PREFIX, "switch", "Enter", NULL},
-      {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
-      {UI_COMMAND_LAYOUT_KEY_PREFIX, "quit", "Esc", NULL}};
-  UIHelpPopupRow rows[3];
-
   if (ctx == NULL)
     return -1;
 
-  rows[0].kind = UI_HELP_POPUP_COMMAND_STRIP;
-  rows[0].prefix = "";
-  rows[0].text = NULL;
-  rows[0].commands = volume_navigation_commands;
-  rows[0].command_count =
-      sizeof(volume_navigation_commands) / sizeof(volume_navigation_commands[0]);
-  rows[1].kind = UI_HELP_POPUP_TEXT;
-  rows[1].prefix = NULL;
-  rows[1].text =
-      "Selecting the active volume preserves its current in-memory state.";
-  rows[1].commands = NULL;
-  rows[1].command_count = 0;
-  rows[2].kind = UI_HELP_POPUP_TEXT;
-  rows[2].prefix = NULL;
-  rows[2].text = "Delete releases a loaded volume unless it is the last one.";
-  rows[2].commands = NULL;
-  rows[2].command_count = 0;
-  return UI_ShowHelpPopup(ctx, "Volume Help", rows,
-                          sizeof(rows) / sizeof(rows[0]));
+  return UI_ShowGeneratedContextHelp(ctx, "dialog.volume-menu", NULL, 0);
 }
 
 static void PaintVolumeRow(const ViewContext *ctx, WINDOW *win, int y_pos,

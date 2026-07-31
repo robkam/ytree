@@ -13,9 +13,6 @@
 
 typedef struct {
   const char *context_id;
-  const char *prefix;
-  const UICommandStripCommand *commands;
-  size_t command_count;
 } CompareGeneratedHelpSpec;
 
 static const UICommandStripCommand compare_status_commands[] = {
@@ -47,22 +44,15 @@ static const UICommandStripCommand compare_target_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const CompareGeneratedHelpSpec compare_target_help_spec = {
-    "prompt.compare-target", "COMMANDS ", compare_target_hint_commands,
-    sizeof(compare_target_hint_commands) / sizeof(compare_target_hint_commands[0])};
+    "prompt.compare-target"};
 static const CompareGeneratedHelpSpec compare_scope_help_spec = {
-    "prompt.compare-scope", "COMMANDS ", compare_scope_commands,
-    sizeof(compare_scope_commands) / sizeof(compare_scope_commands[0])};
+    "prompt.compare-scope"};
 static const CompareGeneratedHelpSpec compare_external_scope_help_spec = {
-    "prompt.compare-scope", "COMMANDS ", compare_external_scope_commands,
-    sizeof(compare_external_scope_commands) /
-        sizeof(compare_external_scope_commands[0])};
+    "prompt.compare-scope"};
 static const CompareGeneratedHelpSpec compare_basis_help_spec = {
-    "prompt.compare-basis", "COMMANDS ", compare_basis_commands,
-    sizeof(compare_basis_commands) / sizeof(compare_basis_commands[0])};
+    "prompt.compare-basis"};
 static const CompareGeneratedHelpSpec compare_results_help_spec = {
-    "prompt.compare-results", "COMMANDS ", compare_tag_result_commands,
-    sizeof(compare_tag_result_commands) /
-        sizeof(compare_tag_result_commands[0])};
+    "prompt.compare-results"};
 
 static void ClearComparePromptArea(ViewContext *ctx) {
   if (!ctx || !ctx->ctx_border_window)
@@ -129,18 +119,11 @@ static void DrawComparePrompt(ViewContext *ctx, const char *title,
 static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {
   const CompareGeneratedHelpSpec *spec =
       (const CompareGeneratedHelpSpec *)help_data;
-  UIHelpPopupRow rows[1];
 
   if (ctx == NULL || spec == NULL)
     return 0;
 
-  rows[0].kind = UI_HELP_POPUP_COMMAND_STRIP;
-  rows[0].prefix = spec->prefix;
-  rows[0].text = NULL;
-  rows[0].commands = spec->commands;
-  rows[0].command_count = spec->command_count;
-  (void)UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows,
-                                    sizeof(rows) / sizeof(rows[0]));
+  (void)UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);
   return 0;
 }
 

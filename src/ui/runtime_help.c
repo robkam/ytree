@@ -499,7 +499,13 @@ static BOOL TopicUsesContextualItemList(const GeneratedHelpTopic *topic,
 
   return topic->topic_id != NULL &&
          (strcmp(topic->topic_id, "dir") == 0 ||
-          strcmp(topic->topic_id, "file") == 0);
+          strcmp(topic->topic_id, "file") == 0 ||
+          strcmp(topic->topic_id, "archive-dir") == 0 ||
+          strcmp(topic->topic_id, "archive-file") == 0 ||
+          strcmp(topic->topic_id, "showall") == 0 ||
+          strcmp(topic->topic_id, "global") == 0 ||
+          strcmp(topic->topic_id, "f7") == 0 ||
+          strcmp(topic->topic_id, "f8") == 0);
 }
 
 static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {

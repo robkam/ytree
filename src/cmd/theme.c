@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
-#define THEME_ROLE_COUNT 21
+#define THEME_ROLE_COUNT 22
 
 typedef enum {
   THEME_SECTION_NONE = 0,
@@ -52,7 +52,8 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "footer",
     "selection",   "dialog",    "picker",      "picker_selection",
-    "help",        "help_link", "help_link_selection", "help_box_lines",
+    "help",        "help_keybind", "help_link", "help_link_selection",
+    "help_box_lines",
     "info",        "warning",   "error",       "search_hit",
     "disabled"};
 
@@ -207,6 +208,7 @@ static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name) {
 static BOOL ThemeRoleIsOptional(const char *name) {
   return name != NULL &&
          (strcmp(name, "picker_selection") == 0 ||
+          strcmp(name, "help_keybind") == 0 ||
           strcmp(name, "help_box_lines") == 0 ||
           strcmp(name, "disabled") == 0);
 }
@@ -312,27 +314,43 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
 #else
   int i;
   int background;
+  int help_background;
+  const ThemeRoleValue *help_role;
 
   if (ctx == NULL || roles == NULL)
     return;
 
   background = ThemeBackground(ctx, roles);
+  help_background = background;
+  help_role = FindRole(roles, "help");
+  if (help_role != NULL && help_role->is_set) {
+    int help_fg;
+    int help_bg;
+
+    if (ParseThemeStyle(ctx, roles, help_role->value, background, &help_fg,
+                        &help_bg)) {
+      help_background = help_bg;
+    }
+  }
 
   for (i = 0; i < THEME_ROLE_COUNT; ++i) {
     int fg;
     int bg;
+    int role_background = background;
 
     if (!roles[i].is_set || strcmp(roles[i].name, "background") == 0)
       continue;
 
-    if (ParseThemeStyle(ctx, roles, roles[i].value, background, &fg, &bg))
+    if (strcmp(roles[i].name, "help_keybind") == 0)
+      role_background = help_background;
+
+    if (ParseThemeStyle(ctx, roles, roles[i].value, role_background, &fg, &bg))
       ApplySemanticRole(ctx, roles[i].name, fg, bg);
   }
 
   {
     const ThemeRoleValue *help_box_lines_role =
         FindRole(roles, "help_box_lines");
-    const ThemeRoleValue *help_role = FindRole(roles, "help");
 
     if (help_box_lines_role != NULL && !help_box_lines_role->is_set &&
         help_role != NULL) {
@@ -737,6 +755,7 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
     ThemeRoleValue *margin_role = FindRole(roles, "margin");
     ThemeRoleValue *picker_selection_role =
         FindRole(roles, "picker_selection");
+    ThemeRoleValue *help_keybind_role = FindRole(roles, "help_keybind");
 
     if (margin_role != NULL) {
       snprintf(margin_role->value, sizeof(margin_role->value), "%s",
@@ -747,6 +766,11 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
       snprintf(picker_selection_role->value,
                sizeof(picker_selection_role->value), "%s", "selection");
       picker_selection_role->is_set = TRUE;
+    }
+    if (help_keybind_role != NULL) {
+      snprintf(help_keybind_role->value, sizeof(help_keybind_role->value),
+               "%s", "keybind");
+      help_keybind_role->is_set = TRUE;
     }
   }
 

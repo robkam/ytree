@@ -179,61 +179,36 @@ int UI_EnsureCopyMoveDestinationDirectory(ViewContext *ctx, char *dir_path,
   return 0;
 }
 
-static void GetPromptHelpLines(PromptHelpTopic topic, const char **title,
-                               const char **line_0, const char **line_1,
-                               const char **line_2) {
-  if (!title || !line_0 || !line_1 || !line_2)
+static void GetPromptHelpContext(PromptHelpTopic topic, const char **context_id) {
+  if (!context_id)
     return;
-
-  *title = "Prompt Help";
 
   switch (topic) {
   case PROMPT_HELP_EXECUTE_DIRECTORY:
-    *line_0 = "Use {} where the current directory path should be inserted.";
-    *line_1 = "Leave {} unquoted; ytnova shell-quotes the expanded path.";
-    *line_2 = "^X reruns the command for each tagged file in the active list.";
+    *context_id = "prompt.execute-dir";
     break;
   case PROMPT_HELP_EXECUTE_FILE:
-    *line_0 = "{} expands to the selected file path.";
-    *line_1 = "Leave {} unquoted; ytnova shell-quotes the expanded path.";
-    *line_2 = "^X reruns the command for each tagged file.";
+    *context_id = "prompt.execute-file";
     break;
   case PROMPT_HELP_SEARCH_TAGGED:
-    *line_0 = "Enter text only; ytnova runs grep -i -- PATTERN {}.";
-    *line_1 = "Only tagged files are searched, and non-matches are untagged.";
-    *line_2 = "This prompt documents the Ctrl-only tagged search path.";
+    *context_id = "prompt.search-tagged";
     break;
   case PROMPT_HELP_CREATE_ARCHIVE:
   default:
-    *line_0 = "Use .tar, .tar.gz/.tgz, .tar.bz2/.tbz2, .tar.xz/.txz, or .zip.";
-    *line_1 =
-        "Tagged files win; otherwise ytnova archives the current selection.";
-    *line_2 = "Directory selections are archived recursively.";
+    *context_id = "prompt.create-archive";
     break;
   }
 }
 
 static void ShowPromptHelpPopup(ViewContext *ctx, PromptHelpTopic topic) {
-  const char *title = NULL;
-  const char *line_0 = NULL;
-  const char *line_1 = NULL;
-  const char *line_2 = NULL;
-  UIHelpPopupRow rows[3];
+  const char *context_id = NULL;
 
   if (!ctx)
     return;
 
-  GetPromptHelpLines(topic, &title, &line_0, &line_1, &line_2);
-  rows[0].kind = UI_HELP_POPUP_TEXT;
-  rows[0].prefix = NULL;
-  rows[0].text = line_0;
-  rows[0].commands = NULL;
-  rows[0].command_count = 0;
-  rows[1] = rows[0];
-  rows[1].text = line_1;
-  rows[2] = rows[0];
-  rows[2].text = line_2;
-  (void)UI_ShowHelpPopup(ctx, title, rows, sizeof(rows) / sizeof(rows[0]));
+  GetPromptHelpContext(topic, &context_id);
+  if (context_id != NULL)
+    (void)UI_ShowGeneratedContextHelp(ctx, context_id, NULL, 0);
 }
 
 static int ShowPromptHelpCallback(ViewContext *ctx, void *help_data) {

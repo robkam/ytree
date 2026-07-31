@@ -24,121 +24,6 @@ typedef struct {
   size_t command_count;
 } HelpCommandStrip;
 
-static const UICommandStripCommand dir_help_disk_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Copy", "C", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL}};
-static const UICommandStripCommand dir_help_disk_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
-static const UICommandStripCommand dir_help_ll_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "reload", "^L", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
-static const UICommandStripCommand dir_help_archive_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dir view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Global", "G", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Makedir", "M", NULL}};
-static const UICommandStripCommand dir_help_archive_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
-static const UICommandStripCommand file_help_disk_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K"},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Edit", "E", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N"}};
-static const UICommandStripCommand file_help_disk_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
-static const UICommandStripCommand file_help_ll_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL}};
-static const UICommandStripCommand file_help_archive_mode_0_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K"},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "volume", "K", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N"}};
-static const UICommandStripCommand file_help_archive_mode_1_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
 static const UICommandStripCommand history_help_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
@@ -152,128 +37,11 @@ static const UICommandStripCommand preview_help_commands[] = {
 static const UICommandStripCommand preview_command_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Navigate Preview", "Shift", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Exit Preview", "F7", NULL}};
-static const UICommandStripCommand split_help_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "switch panel", "Tab", NULL}};
-static const UICommandStripCommand history_nav_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scroll entry", "Left", "Right"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "PgUp", "PgDn"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "Home", "End"}};
-static const UICommandStripCommand dir_help_nav_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
-static const UICommandStripCommand dir_help_nav_archive_to_root_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
-static const UICommandStripCommand dir_help_nav_archive_exit_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
-static const UICommandStripCommand file_help_nav_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
-static const UICommandStripCommand file_help_nav_to_dir_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "0", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "to dir", "\\", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
-static const HelpCommandStrip dir_help_nav_builtin[] = {
-    {"9-4 File ", dir_help_nav_commands,
-     sizeof(dir_help_nav_commands) / sizeof(dir_help_nav_commands[0])},
-    {"9-4 File ", dir_help_nav_archive_to_root_commands,
-     sizeof(dir_help_nav_archive_to_root_commands) /
-         sizeof(dir_help_nav_archive_to_root_commands[0])},
-    {"9-4 File ", dir_help_nav_archive_exit_commands,
-     sizeof(dir_help_nav_archive_exit_commands) /
-         sizeof(dir_help_nav_archive_exit_commands[0])}};
-static const HelpCommandStrip file_help_nav_builtin[] = {
-    {"9-4 Tree ", file_help_nav_commands,
-     sizeof(file_help_nav_commands) / sizeof(file_help_nav_commands[0])},
-    {"9-4 Tree ", file_help_nav_to_dir_commands,
-     sizeof(file_help_nav_to_dir_commands) /
-         sizeof(file_help_nav_to_dir_commands[0])}};
 static const HelpCommandStrip preview_help_builtin[] = {
     {"PREVIEW   ", preview_help_commands,
      sizeof(preview_help_commands) / sizeof(preview_help_commands[0])},
     {"COMMANDS  ", preview_command_commands,
      sizeof(preview_command_commands) / sizeof(preview_command_commands[0])}};
-
-static const HelpCommandStrip dir_help_builtin[MAX_MODES][2] = {
-    {{ "DIR      ", dir_help_disk_mode_0_commands,
-       sizeof(dir_help_disk_mode_0_commands) /
-           sizeof(dir_help_disk_mode_0_commands[0]) },
-     { "COMMANDS ", dir_help_disk_mode_1_commands,
-       sizeof(dir_help_disk_mode_1_commands) /
-           sizeof(dir_help_disk_mode_1_commands[0]) }},
-    {{ "DIR      ", dir_help_ll_mode_0_commands,
-       sizeof(dir_help_ll_mode_0_commands) /
-           sizeof(dir_help_ll_mode_0_commands[0]) },
-     { "", NULL, 0 }},
-    {{ "ARCHIVE  ", dir_help_archive_mode_0_commands,
-       sizeof(dir_help_archive_mode_0_commands) /
-           sizeof(dir_help_archive_mode_0_commands[0]) },
-     { "COMMANDS ", dir_help_archive_mode_1_commands,
-       sizeof(dir_help_archive_mode_1_commands) /
-           sizeof(dir_help_archive_mode_1_commands[0]) }},
-    {{ "DIR      ", dir_help_disk_mode_0_commands,
-       sizeof(dir_help_disk_mode_0_commands) /
-           sizeof(dir_help_disk_mode_0_commands[0]) },
-     { "COMMANDS ", dir_help_disk_mode_1_commands,
-       sizeof(dir_help_disk_mode_1_commands) /
-           sizeof(dir_help_disk_mode_1_commands[0]) }}};
-
-static const HelpCommandStrip file_help_builtin[MAX_MODES][2] = {
-    {{ "FILE     ", file_help_disk_mode_0_commands,
-       sizeof(file_help_disk_mode_0_commands) /
-           sizeof(file_help_disk_mode_0_commands[0]) },
-     { "COMMANDS ", file_help_disk_mode_1_commands,
-       sizeof(file_help_disk_mode_1_commands) /
-           sizeof(file_help_disk_mode_1_commands[0]) }},
-    {{ "FILE     ", file_help_ll_mode_0_commands,
-       sizeof(file_help_ll_mode_0_commands) /
-           sizeof(file_help_ll_mode_0_commands[0]) },
-     { "", NULL, 0 }},
-    {{ "ARCHIVE  ", file_help_archive_mode_0_commands,
-       sizeof(file_help_archive_mode_0_commands) /
-           sizeof(file_help_archive_mode_0_commands[0]) },
-     { "COMMANDS ", file_help_archive_mode_1_commands,
-       sizeof(file_help_archive_mode_1_commands) /
-           sizeof(file_help_archive_mode_1_commands[0]) }},
-    {{ "FILE     ", file_help_disk_mode_0_commands,
-       sizeof(file_help_disk_mode_0_commands) /
-           sizeof(file_help_disk_mode_0_commands[0]) },
-     { "COMMANDS ", file_help_disk_mode_1_commands,
-       sizeof(file_help_disk_mode_1_commands) /
-           sizeof(file_help_disk_mode_1_commands[0]) }}};
 
 typedef struct {
   UICommandStripCommand command;
@@ -1262,48 +1030,6 @@ static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
                         strip->command_count, UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
 }
 
-static size_t AppendPopupStripRow(UIHelpPopupRow *rows, size_t row_count,
-                                  const HelpCommandStrip *strip) {
-  if (rows == NULL || strip == NULL || strip->commands == NULL ||
-      strip->command_count == 0)
-    return row_count;
-
-  rows[row_count].kind = UI_HELP_POPUP_COMMAND_STRIP;
-  rows[row_count].prefix = strip->prefix;
-  rows[row_count].text = NULL;
-  rows[row_count].commands = strip->commands;
-  rows[row_count].command_count = strip->command_count;
-  return row_count + 1;
-}
-
-static size_t AppendPopupCommandRow(UIHelpPopupRow *rows, size_t row_count,
-                                    const char *prefix,
-                                    const UICommandStripCommand *commands,
-                                    size_t command_count) {
-  if (rows == NULL || commands == NULL || command_count == 0)
-    return row_count;
-
-  rows[row_count].kind = UI_HELP_POPUP_COMMAND_STRIP;
-  rows[row_count].prefix = prefix;
-  rows[row_count].text = NULL;
-  rows[row_count].commands = commands;
-  rows[row_count].command_count = command_count;
-  return row_count + 1;
-}
-
-static size_t AppendPopupTextRow(UIHelpPopupRow *rows, size_t row_count,
-                                 const char *text) {
-  if (rows == NULL || text == NULL || text[0] == '\0')
-    return row_count;
-
-  rows[row_count].kind = UI_HELP_POPUP_TEXT;
-  rows[row_count].prefix = NULL;
-  rows[row_count].text = text;
-  rows[row_count].commands = NULL;
-  rows[row_count].command_count = 0;
-  return row_count + 1;
-}
-
 static const FooterCommandSpec *GetDirFooterSpecs(const ViewContext *ctx,
                                                   const DirEntry *dir_entry,
                                                   size_t *command_count,
@@ -1398,62 +1124,6 @@ static void ResolveFooterCommandList(const ViewContext *ctx, BOOL is_dir,
     commands[index] = resolved[index].command;
   }
   SortResolvedFooterCommands(resolved, commands, spec_count);
-}
-
-static size_t AppendResolvedFooterRows(UIHelpPopupRow *rows, size_t row_count,
-                                       const char *prefix_0,
-                                       const char *prefix_1,
-                                       const UICommandStripCommand *commands,
-                                       size_t command_count,
-                                       BOOL prefer_newfile_split) {
-  HelpCommandStrip strip_0;
-  HelpCommandStrip strip_1;
-  size_t split_index;
-
-  if (rows == NULL || commands == NULL || command_count == 0)
-    return row_count;
-
-  split_index = command_count;
-  if (prefix_1 != NULL && prefix_1[0] != '\0') {
-    for (split_index = 0; split_index < command_count; ++split_index) {
-      if (strcmp(commands[split_index].label,
-                 prefer_newfile_split ? "Newfile" : "Only tagged") == 0) {
-        break;
-      }
-    }
-    if (split_index >= command_count) {
-      for (split_index = 0; split_index < command_count; ++split_index) {
-        if (strcmp(commands[split_index].label,
-                   prefer_newfile_split ? "Only tagged" : "Newfile") == 0) {
-          break;
-        }
-      }
-    }
-    if (split_index >= command_count) {
-      for (split_index = 0; split_index < command_count; ++split_index) {
-        if (strcmp(commands[split_index].label, "Pipe") == 0) {
-          break;
-        }
-      }
-    }
-    if (split_index == 0 || split_index >= command_count)
-      split_index = (command_count + 1) / 2;
-  }
-
-  strip_0.prefix = prefix_0 != NULL ? prefix_0 : "";
-  strip_0.commands = commands;
-  strip_0.command_count = prefix_1 != NULL && prefix_1[0] != '\0' ? split_index
-                                                                   : command_count;
-  row_count = AppendPopupStripRow(rows, row_count, &strip_0);
-
-  if (prefix_1 != NULL && prefix_1[0] != '\0' && split_index < command_count) {
-    strip_1.prefix = prefix_1;
-    strip_1.commands = commands + split_index;
-    strip_1.command_count = command_count - split_index;
-    row_count = AppendPopupStripRow(rows, row_count, &strip_1);
-  }
-
-  return row_count;
 }
 
 static void RenderFooterTopRowsWithSplitPreference(
@@ -1579,22 +1249,7 @@ void DisplayHistoryHelp(ViewContext *ctx) {
 }
 
 int UI_ShowHistoryHelpPopup(ViewContext *ctx) {
-  UIHelpPopupRow rows[4];
-  size_t row_count = 0;
-  static const HelpCommandStrip history_help_strip = {
-      "", history_help_commands,
-      sizeof(history_help_commands) / sizeof(history_help_commands[0])};
-
-  row_count = AppendPopupStripRow(rows, row_count, &history_help_strip);
-  row_count = AppendPopupCommandRow(
-      rows, row_count, "",
-      history_nav_commands, sizeof(history_nav_commands) /
-                                sizeof(history_nav_commands[0]));
-  row_count = AppendPopupTextRow(
-      rows, row_count,
-      "Pinned entries stay at the top of the current history list.");
-
-  return UI_ShowHelpPopup(ctx, "History Help", rows, row_count);
+  return UI_ShowGeneratedContextHelp(ctx, "dialog.history", NULL, 0);
 }
 
 void DisplayPreviewHelp(ViewContext *ctx) {
@@ -1610,7 +1265,6 @@ void DisplayPreviewHelp(ViewContext *ctx) {
 }
 
 int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
-  UIHelpPopupRow rows[8];
   static const HelpLabelOverrideSpec file_help_label_specs[] = {
       {"Attributes", "ACTION_CMD_A"},
       {"Copy", "ACTION_CMD_C"},
@@ -1651,100 +1305,51 @@ int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
       sizeof(file_footer_standard_specs) / sizeof(file_footer_standard_specs[0]),
       file_help_label_specs,
       FILE_HELP_LABEL_SPEC_COUNT};
-  const char *context_id = NULL;
-  size_t row_count = 0;
   ViewFocus active_focus;
-  ResolvedFooterCommand resolved[32];
-  UICommandStripCommand commands[32];
 
   if (ctx == NULL)
     return -1;
 
   active_focus = AppStateResolveActivePanelFocus(ctx);
   if (ctx->preview_mode) {
-    context_id = (active_focus == FOCUS_TREE) ? "overlay.f7-dir"
-                                              : "overlay.f7-file";
-    row_count = AppendPopupStripRow(rows, row_count, &preview_help_builtin[0]);
-    row_count = AppendPopupStripRow(rows, row_count, &preview_help_builtin[1]);
-    return UI_ShowGeneratedContextHelp(ctx, context_id, rows, row_count);
+    return UI_ShowGeneratedContextHelp(
+        ctx, (active_focus == FOCUS_TREE) ? "overlay.f7-dir" : "overlay.f7-file",
+        NULL, 0);
   }
 
   if (active_focus == FOCUS_TREE) {
-    const HelpCommandStrip *nav_strip = &dir_help_nav_builtin[0];
-    const FooterCommandSpec *specs;
-    const char *line0_signpost;
-    const char *line1_signpost;
-    size_t spec_count;
-
-    if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE)
-      return UI_ShowGeneratedContextHelp(ctx, "main.dir", NULL, 0);
-
-    specs = GetDirFooterSpecs(ctx, dir_entry, &spec_count, &line0_signpost,
-                              &line1_signpost);
-    ResolveFooterCommandList(ctx, TRUE, specs, spec_count, resolved, commands);
-    row_count = AppendResolvedFooterRows(rows, row_count, line0_signpost,
-                                         line1_signpost, commands, spec_count,
-                                         FALSE);
-    row_count = AppendPopupStripRow(rows, row_count, nav_strip);
-    if (ctx->is_split_screen) {
-      row_count = AppendPopupCommandRow(
-          rows, row_count, "", split_help_commands,
-          sizeof(split_help_commands) / sizeof(split_help_commands[0]));
-      context_id = "overlay.f8-dir";
-    } else if (ctx->view_mode == ARCHIVE_MODE) {
-      context_id = "main.archive-dir";
-    }
-  } else {
-    const HelpCommandStrip *nav_strip;
-    const FooterCommandSpec *specs;
-    const char *line0_signpost;
-    const char *line1_signpost;
-    size_t spec_count;
-
-    if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE &&
-        (dir_entry == NULL || !dir_entry->global_flag)) {
-      UIHelpLabelOverride label_overrides[FILE_HELP_LABEL_SPEC_COUNT];
-      char label_text[FILE_HELP_LABEL_SPEC_COUNT]
-                     [COMMAND_PRESENTATION_LABEL_LENGTH];
-      size_t label_override_count;
-
-      (void)GetFileFooterSpecs(ctx, &spec_count, &line0_signpost,
-                               &line1_signpost);
-      label_override_count = BuildHelpLabelOverrides(
-          ctx, FALSE, &file_help_label_plan, label_overrides, label_text,
-          FILE_HELP_LABEL_SPEC_COUNT);
-      return UI_ShowGeneratedContextHelpWithOverrides(
-          ctx, "main.file", NULL, 0, label_overrides, label_override_count);
-    }
-
-    if (dir_entry != NULL && dir_entry->global_flag) {
-      nav_strip = &file_help_nav_builtin[1];
-      context_id = dir_entry->global_all_volumes ? "main.global"
-                                                 : "main.showall";
-    } else if (ctx->view_mode == ARCHIVE_MODE) {
-      nav_strip = &file_help_nav_builtin[0];
-      context_id = "main.archive-file";
-    } else {
-      nav_strip = &file_help_nav_builtin[0];
-      context_id = "main.file";
-    }
-
-    specs =
-        GetFileFooterSpecs(ctx, &spec_count, &line0_signpost, &line1_signpost);
-    ResolveFooterCommandList(ctx, FALSE, specs, spec_count, resolved, commands);
-    row_count = AppendResolvedFooterRows(
-        rows, row_count, line0_signpost, line1_signpost, commands, spec_count,
-        dir_entry != NULL && dir_entry->global_flag);
-    row_count = AppendPopupStripRow(rows, row_count, nav_strip);
-    if (ctx->is_split_screen) {
-      row_count = AppendPopupCommandRow(
-          rows, row_count, "", split_help_commands,
-          sizeof(split_help_commands) / sizeof(split_help_commands[0]));
-      context_id = "overlay.f8-file";
-    }
+    if (ctx->is_split_screen)
+      return UI_ShowGeneratedContextHelp(ctx, "overlay.f8-dir", NULL, 0);
+    return UI_ShowGeneratedContextHelp(
+        ctx, (ctx->view_mode == ARCHIVE_MODE) ? "main.archive-dir" : "main.dir",
+        NULL, 0);
   }
 
-  return UI_ShowGeneratedContextHelp(ctx, context_id, rows, row_count);
+  if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE &&
+      (dir_entry == NULL || !dir_entry->global_flag)) {
+    UIHelpLabelOverride label_overrides[FILE_HELP_LABEL_SPEC_COUNT];
+    char label_text[FILE_HELP_LABEL_SPEC_COUNT]
+                   [COMMAND_PRESENTATION_LABEL_LENGTH];
+    size_t label_override_count;
+
+    label_override_count = BuildHelpLabelOverrides(
+        ctx, FALSE, &file_help_label_plan, label_overrides, label_text,
+        FILE_HELP_LABEL_SPEC_COUNT);
+    return UI_ShowGeneratedContextHelpWithOverrides(
+        ctx, "main.file", NULL, 0, label_overrides, label_override_count);
+  }
+
+  if (ctx->view_mode == ARCHIVE_MODE)
+    return UI_ShowGeneratedContextHelp(ctx, "main.archive-file", NULL, 0);
+  if (ctx->is_split_screen)
+    return UI_ShowGeneratedContextHelp(ctx, "overlay.f8-file", NULL, 0);
+  if (dir_entry != NULL && dir_entry->global_flag) {
+    return UI_ShowGeneratedContextHelp(
+        ctx, dir_entry->global_all_volumes ? "main.global" : "main.showall",
+        NULL, 0);
+  }
+
+  return UI_ShowGeneratedContextHelp(ctx, "main.file", NULL, 0);
 }
 
 void ClearHelp(ViewContext *ctx) {
