@@ -243,6 +243,7 @@ def test_help_surfaces_use_help_role():
     help_popup_source = _read("src/ui/help_popup.c")
 
     assert "UI_ROLE_HELP" in defs_source
+    assert "UI_ROLE_HELP_KEYBIND" in defs_source
     assert "UI_ROLE_FOOTER" in defs_source
     assert "UI_ROLE_HELP_LINK" in defs_source
     assert "UI_ROLE_HELP_LINK_SELECTION" in defs_source
@@ -251,22 +252,20 @@ def test_help_surfaces_use_help_role():
     assert "UI_ROLE_KEYBIND" in defs_source
     assert '{"footer", UI_ROLE_FOOTER, 7, 0}' in color_source
     assert '{"help", UI_ROLE_HELP, 7, 0}' in color_source
+    assert '{"help_keybind", UI_ROLE_HELP_KEYBIND, 15, 0}' in color_source
     assert '{"help_link", UI_ROLE_HELP_LINK, 6, 0}' in color_source
     assert '{"help_link_selection", UI_ROLE_HELP_LINK_SELECTION, 3, 0}' in color_source
     assert '{"help_box_lines", UI_ROLE_HELP_BOX_LINES, 7, 0}' in color_source
     assert '"footer"' in theme_source
     assert '"help"' in theme_source
+    assert '"help_keybind"' in theme_source
     assert '"help_link"' in theme_source
     assert '"help_link_selection"' in theme_source
     assert '"help_box_lines"' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_FOOTER)" in init_source
     assert "UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width," in display_source
-    assert "static const UICommandStripCommand dir_help_disk_mode_0_commands[]" in (
-        display_source
-    )
-    assert "static const UICommandStripCommand file_help_disk_mode_0_commands[]" in (
-        display_source
-    )
+    assert "typedef struct {" in display_source
+    assert "} HelpCommandStrip;" in display_source
     assert "static const UICommandStripCommand history_help_commands[]" in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, dir_help" not in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, file_help" not in display_source
@@ -282,16 +281,16 @@ def test_help_surfaces_use_help_role():
     assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' not in display_source
-    assert '{{ "DIR      ", dir_help_disk_mode_0_commands,' in display_source
-    assert '{ "COMMANDS ", file_help_disk_mode_1_commands,' in display_source
-    assert '"" , history_help_commands' not in display_source
-    assert '        "", history_help_commands,' in display_source
+    assert 'static const HelpCommandStrip history_help_strip = {' in display_source
+    assert 'DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);' in display_source
     assert "Updated:" not in display_source
-    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_source
+    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);" in compare_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in help_popup_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in help_popup_source
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in help_popup_source
-    assert "UI_ROLE_HELP, UI_ROLE_KEYBIND" in help_popup_source
+    assert "UI_RenderCommandStrip(win, y, start_x, commands, command_count, UI_ROLE_HELP," in help_popup_source
+    assert "UI_ROLE_KEYBIND);" in help_popup_source
+    assert "UI_ROLE_HELP, UI_ROLE_HELP_KEYBIND" in help_popup_source
 
 
 def test_task_sixty_touched_surfaces_use_structured_command_strips():
@@ -303,15 +302,15 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     tagged_source = _read("src/ui/tagged_view.c")
     internal_view_source = _read("src/ui/view_internal.c")
 
-    assert "static const HelpCommandStrip dir_help_nav_builtin[]" in display_source
-    assert "static const HelpCommandStrip file_help_nav_builtin[]" in display_source
+    assert "} HelpCommandStrip;" in display_source
+    assert "DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);" in display_source
     assert "static const UICommandStripCommand compare_status_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_basis_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_tag_result_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_scope_commands[]" in compare_source
     assert "static const UICommandStripCommand compare_external_scope_commands[]" in compare_source
     assert "static const CompareGeneratedHelpSpec compare_target_help_spec" in compare_source
-    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, rows," in compare_source
+    assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);" in compare_source
     assert "static const UICommandStripCommand help_popup_close_commands[]" in (
         help_popup_source
     )
@@ -328,8 +327,8 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "RenderFooterTopRows(ctx, line0_signpost, line1_signpost, commands, spec_count);" in display_source
     assert "RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);" in display_source
     assert "PrintMenuOptions(ctx->ctx_border_window, ctx->layout.status_y, 1," not in compare_source
-    assert '"9-4 File "' in display_source
-    assert '"9-4 Tree "' in display_source
+    assert '*signpost = "9-4 File";' in display_source
+    assert '*signpost = "9-4 Tree";' in display_source
     assert '"(F1)/(Esc) close help"' not in compare_source
     assert '"(F2) browse  (Up) history  (Enter) OK  (Esc) cancel"' not in input_line_source
     assert '"(Up) history  (Enter) OK  (Esc) cancel"' not in input_line_source
@@ -409,7 +408,7 @@ def test_picker_family_selection_supports_optional_picker_selection_role():
 def test_navigation_help_lists_f9_apps_between_split_and_config():
     display_source = _read("src/ui/display.c")
 
-    assert '{UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL}' in display_source
+    assert 'FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL)' in display_source
 
 
 def test_manpage_and_usage_document_f9_applications_menu():

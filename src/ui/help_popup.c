@@ -156,7 +156,7 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int content_width,
   switch (row->kind) {
   case UI_HELP_POPUP_COMMAND_STRIP:
     UI_RenderCommandStrip(win, y, x, row->commands, row->command_count,
-                          UI_ROLE_HELP, UI_ROLE_KEYBIND);
+                          UI_ROLE_HELP, UI_ROLE_HELP_KEYBIND);
     break;
   case UI_HELP_POPUP_LINK_TEXT:
     if (row->text != NULL && row->text[0] != '\0' && x < content_width + 2) {

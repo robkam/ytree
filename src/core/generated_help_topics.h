@@ -24,48 +24,61 @@ typedef struct {
 
 static const GeneratedHelpLink generated_help_links_intro[] = {
     {"Navigation", "navigation"},
+    {"Tagged", "tagged"},
     {"Shared commands", "shared-commands"},
+    {"F2 picker", "f2-picker"},
     {"F10 config", "f10"},
-    {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_intro[] = {
-    {"Purpose", "This link-only topic introduces the canonical help set and explains why the\nhelp system is split into concise contextual pages plus shared explainers."},
-    {"Contents", "*   Start with **Navigation** for the shared movement baseline.\n*   Use **Shared commands** for the cross-context function-key family,\n    including **F10 config**.\n*   Use **Directory mode**, **File mode**, **Archive directory**, **Archive\n    file**, **Showall**, **Global**, **F7 preview**, and **F8 split** for\n    context-specific command pages.\n*   Use **Filter**, **Compare overview**, and **Output overview** when one\n    command family needs more detail than a one-line definition can hold.\n*   Use **Command-line editing**, **VI keys**, **Theming**, and **F10\n    config** for shared operator/reference topics that apply across multiple\n    prompts or configuration surfaces."},
+    {"Purpose", "Use `F1` for the thing you are doing now, not as one giant manual.\nShort local pages keep the first answer on screen. Shared topics carry the rules that repeat across more than one place."},
+    {"Contents", "* **Navigation**: Learn the help-popup keys, list movement, and back/close rules.\n* **Tagged**: Learn how ytnova treats a tagged set as one working group.\n* **Shared commands**: Learn the function-key family that appears in more than one mode.\n* **Directory Help**: Learn tree-mode commands and directory-only rules.\n* **File Help**: Learn file-list commands, tagged actions, and file-only rules.\n* **Archive Directory Help**: Learn what changes inside an archive tree.\n* **Archive File Help**: Learn what changes inside an archive file list.\n* **Showall** and **Global**: Learn the aggregated file-list modes.\n* **F7 Preview** and **F8 Split**: Learn overlay-only controls and caveats.\n* **Filter**, **Compare**, and **Output**: Learn the option-heavy command families.\n* **Command-line Editing**, **VI Keys**, **F2 picker**, **F10 config**, and **Theming**: Learn the shared operator rules."},
 };
 
 static const GeneratedHelpLink generated_help_links_navigation[] = {
     {"Directory mode", "dir"},
     {"File mode", "file"},
-    {"Shared commands", "shared-commands"},
     {"F7 preview", "f7"},
     {"F8 split", "f8"},
+    {"F2 picker", "f2-picker"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_navigation[] = {
-    {"Help popup navigation", "*   **Up/Down**: Move between help popup links when the current page offers a\n    selectable list.\n*   **Page Up/Page Down**: Scroll longer help pages.\n*   **Home/End**: Jump to the start or end of the current help page.\n*   **Enter/Right**: Follow the selected help popup link.\n*   **Left Arrow**: Go back one help page when you followed a link.\n*   **Esc/Quit**: Close the help popup from anywhere."},
-    {"Shared YtreeNova navigation", "*   **Up/Down**: Move the active selection.\n*   **Page Up/Page Down**: Scroll by pages in list-oriented surfaces.\n*   **Home/End**: Jump to the start or end of the current list.\n*   **Enter**: Accept the current selection or toggle between paired views\n    when that surface owns Enter.\n*   **Esc**: Back out of temporary overlays and prompts without committing the\n    pending action."},
+    {"Help popup keys", "* **Up/Down**: Move between selectable rows or links.\n* **Page Up/Page Down**: Scroll longer help pages.\n* **Home/End**: Jump to the top or bottom of the current help page.\n* **Enter/Right**: Open the selected help item or linked topic.\n* **Left**: Go back one step.\n* **Esc/Quit**: Close the popup."},
+    {"Shared list movement", "* **Up/Down**: Move the active selection.\n* **Page Up/Page Down**: Move by pages.\n* **Home/End**: Jump to the start or end of the current list.\n* **Enter**: Accept the current row or switch between paired views when that surface owns `Enter`.\n* **Esc**: Cancel the current prompt, dialog, or overlay."},
 };
 
 static const GeneratedHelpLink generated_help_links_shared_commands[] = {
-    {"Navigation", "navigation"},
     {"F7 preview", "f7"},
     {"F8 split", "f8"},
+    {"Applications menu", "applications-menu"},
     {"F10 config", "f10"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_shared_commands[] = {
-    {"Shared commands", "*   **F1** (help): Open contextual help for the active surface.\n*   **F5** (refresh): Refresh the current view.\n*   **F6** (stats): Switch the stats/details presentation for the active view.\n*   **F7** (autoview): Toggle preview/autoview for the active file context.\n*   **F8** (split): Toggle split-screen mode.\n*   **F9** (apps): Open the applications menu shell.\n*   **F10** (config): Open the configuration command surface.\n*   **Esc** (cancel): Close the current help popup or cancel the active\n    overlay/prompt."},
+    {"Shared function keys", "* **F1**: Open contextual help for the active surface.\n* **F5**: Refresh the current view.\n* **F6**: Change the stats/details presentation for the active view.\n* **F7**: Toggle preview for the active file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface.\n* **Esc**: Back out of the current overlay, prompt, or popup."},
+};
+
+static const GeneratedHelpLink generated_help_links_tagged[] = {
+    {"File mode", "file"},
+    {"Showall", "showall"},
+    {"Search tagged", "search-tagged"},
+    {"Filter help", "filter"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_tagged[] = {
+    {"Tagged basics", "Tags are a working set. They are not a second clipboard and not a saved search.\nYou can build a set, act on it, narrow it, then clear or invert it."},
+    {"Common tagged flows", "* **Tag** and **Untag**: Add or remove the current row from the working set.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Only tagged**: Show only the tagged rows inside the current scope.\n* **Copy tagged** and **Move tagged**: Send the whole tagged set to one destination.\n* **View tagged**: Open the tagged files one after another.\n* **Search tagged**: Search only the tagged files, then untag non-matches.\n* **Archive**: Archive the tagged set first. When nothing is tagged, archive falls back to the current selection."},
 };
 
 static const GeneratedHelpLink generated_help_links_command_line_editing[] = {
-    {"Navigation", "navigation"},
     {"VI keys", "vi-keys"},
+    {"F2 picker", "f2-picker"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_command_line_editing[] = {
-    {"Editing keys", "*   **Left/Right** move within the current prompt buffer.\n*   **Home/End** jump to the start or end of the current prompt buffer.\n*   **Backspace/Delete** erase the character to the left/right of the cursor.\n*   **Enter** accepts the current prompt value.\n*   **Esc** cancels the prompt without committing it."},
-    {"Shared helpers", "*   **Up** opens or cycles prompt history when that prompt keeps history.\n*   **F2** opens a browser/picker when the active prompt supports browsing a\n    path or reusable choice list.\n*   Prompt-local `F1` explains only syntax and scope that are specific to that\n    prompt; it should not re-teach the shared editing baseline."},
+    {"Editing keys", "* **Left/Right**: Move inside the current prompt text.\n* **Home/End**: Jump to the start or end of the prompt text.\n* **Backspace/Delete**: Delete the character to the left or right of the cursor.\n* **Enter**: Accept the current value.\n* **Esc**: Cancel without committing the prompt."},
+    {"Shared helpers", "* **Up**: Open or cycle prompt history when that prompt keeps history.\n* **F2**: Open a browser or picker when the current prompt supports browsing.\n* **F1**: Show syntax or scope rules that matter only to the current prompt."},
 };
 
 static const GeneratedHelpLink generated_help_links_vi_keys[] = {
@@ -74,18 +87,18 @@ static const GeneratedHelpLink generated_help_links_vi_keys[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_vi_keys[] = {
-    {"Navigation remap", "With `VI_KEYS=1`, lowercase **h/j/k/l** become Left/Down/Up/Right and **^U**\n/**^D** become page-up/page-down."},
-    {"Command collisions", "Commands that would collide with lowercase vi navigation move to uppercase or a\nnon-conflicting fallback. Examples include **J** for Compare, **K** for Volume\nMenu, **D** for Delete Tagged, and **U** for Untag All where applicable."},
+    {"Navigation remap", "With `VI_KEYS=1`, lowercase `h`, `j`, `k`, and `l` become `Left`, `Down`, `Up`, and `Right`.\n`Ctrl-U` and `Ctrl-D` become page up and page down."},
+    {"Command collisions", "Commands that would steal those lowercase keys move out of the way.\nExamples include `J compare`, `K volume`, `D delete tagged`, and `U untag all` where those actions exist."},
 };
 
 static const GeneratedHelpLink generated_help_links_f10[] = {
-    {"Shared commands", "shared-commands"},
     {"Theming", "theming"},
+    {"Shared commands", "shared-commands"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f10[] = {
-    {"Config surface", "Use **F10** to reach configuration-oriented commands instead of treating them\nas per-directory actions. Persistent changes belong here, not in the active\nfile or directory command pages."},
-    {"Related areas", "Theme selection, semantic colors, and presentation tweaks are covered by\n**Theming**. Prompt-edit/history behavior that appears inside config flows is\nstill owned by **Command-line Editing**."},
+    {"Config surface", "Use `F10` when you want to change persistent behavior instead of doing one one-off file or directory action.\nProfile settings, command labels, themes, and reload all live here."},
+    {"Related files", "`ytnova.conf` owns profile settings.\n`commands.conf` owns user command labels and bindings.\n`themes.conf` owns theme selection and theme-role overrides."},
 };
 
 static const GeneratedHelpLink generated_help_links_theming[] = {
@@ -93,8 +106,8 @@ static const GeneratedHelpLink generated_help_links_theming[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_theming[] = {
-    {"Theme model", "Themes are role-based: users configure semantic roles rather than styling each\nsurface with ad-hoc colors. Help popups, pickers, and the footer command strip\neach have their own dedicated roles."},
-    {"Editing path", "Use **F10** and the theme/config files to change theme selection or role\ndefinitions. Keep contrasts readable for help, picker, and selection surfaces;\nthose are high-frequency navigation aids."},
+    {"Theme model", "Themes set semantic roles such as `footer`, `help`, `help_link`, `selection`, `picker`, and `warning`.\nThis keeps one theme change consistent across the whole UI."},
+    {"Editing path", "Use `F10` to open the theme or config editing path.\nKeep high-frequency navigation surfaces readable first: selection, picker, footer, and help."},
 };
 
 static const GeneratedHelpLink generated_help_links_dir[] = {
@@ -103,160 +116,188 @@ static const GeneratedHelpLink generated_help_links_dir[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_dir[] = {
-    {"Directory navigation", "*   **Enter**: Open the file window, or log/reveal one level when the selected\n    directory is still unlogged. Logged directories switch to File Mode.\n*   **Collapse**: Collapse or release the selected directory. `-` first\n    collapses an expanded node; pressing it again on a collapsed logged node\n    evicts the file list and marks that node unlogged.\n*   **Tree marker**: Show logged state in the left margin. Unlogged\n    directories use `+`; directory names themselves do not gain a `+` suffix.\n*   **Left Arrow**: Collapse the current node or move selection to its parent.\n    At filesystem root, Left is a no-op.\n*   **Right Arrow**: Expand one level or move to the first child. It does not\n    jump across siblings.\n*   **Plus**: Log or reveal one level without moving the cursor. `=` is the\n    unshifted alias on many keyboards.\n*   **Asterisk**: Recursively expand the selected directory and its\n    subdirectories."},
-    {"Directory commands", "*   **1..9 view**: Select the active panel's base directory and file view. `1`\n    resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times,\n    `5`, `7`, `8`, and `9` change the file projection, `6` toggles panel-wide\n    row size units, and `9` is a silent no-op outside Git worktrees.\n*   **Attributes**: Open the attributes submenu. Change mode (chmod), owner,\n    group, or date.\n*   **Copy**: Copy the selected directory branch.\n*   **Delete**: Delete the selected directory.\n*   **Filter**: Set file filter. Supports patterns such as `*.c`, exclusions\n    such as `-*.o`, attributes such as `:r` and `:x`, dates such as\n    `>2023-01-01`, and sizes such as `>1M`.\n*   **Global**: Show all files across all logged volumes in one list.\n*   **Invert Tags**: Toggle tag state for the current directory scope.\n*   **Compare**: Open the compare submenu. Choose directory, logged-tree, or\n    external-viewer compare modes. With `VI_KEYS=1`, use uppercase `J`.\n*   **Volume**: Open the volume picker.\n*   **Log**: Log a new directory or archive file. Logging an already logged\n    path performs a fresh reload and reanchors selection at the volume root.\n*   **Makedir**: Create a new directory.\n*   **New File**: Create a new empty file.\n*   **Only tagged**: Toggle tagged-only view for the current directory scope.\n*   **Pipe**: Pipe the selected directory to a command on stdin. `|` is the\n    alternate key.\n*   **Quit**: Quit ytnova.\n*   **Rename**: Rename the selected directory.\n*   **Showall**: Show all files in all directories of the current volume.\n*   **Tag**: Tag all files in the selected directory.\n*   **Untag**: Untag all files in the selected directory.\n*   **MoveDir**: Move the selected directory branch.\n*   **Write**: Export files in the selected directory to a command or file.\n    The formatter dialog offers Raw, Framed, and Page Break output.\n*   **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand\n    it to the current directory path and shell-quote the result. Prompt `F1`\n    also explains the tagged-file `^X` repeat path.\n*   **Archive**: Create an archive from the current selection. Tagged files win;\n    otherwise ytnova archives the selected file or directory recursively.\n    Supported suffixes are `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`,\n    `.tar.xz`/`.txz`, and `.zip`.\n*   **Jump**: Jump to a file or directory name in the current list.\n*   **Dotfiles**: Toggle hidden dot-files and dot-directories."},
+    {"Directory navigation", "* **Enter**: Open the file window. If the selected directory is still unlogged, `Enter` logs or reveals one level first.\n* **Collapse**: Collapse the current branch. Press `-` again on a collapsed logged node to release it and mark it unlogged.\n* **Left Arrow**: Collapse the current node or move to its parent.\n* **Right Arrow**: Expand one level first, then move to the first child.\n* **Plus**: Log or reveal one level without moving the cursor.\n* **Asterisk**: Recursively expand the selected directory and its subdirectories."},
+    {"Directory commands", "* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to the default Name view, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` affect the file projection, and `6` toggles size units.\n* **Attributes**: Open the attributes submenu. Change mode, owner, group, or date.\n* **Copy**: Copy the selected directory branch.\n* **Delete**: Delete the selected directory.\n* **Filter**: Filter the current file-list scope. Use globs such as `*.c`, comma lists such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `>2023-01-01`, or `>1M`.\n* **Global**: Show files from every logged volume in one list.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the current directory, the current logged tree, or an external viewer target.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file. Logging an already logged path reloads it from the top.\n* **Makedir**: Create a new directory.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only tagged files for the current scope without changing the tag state.\n* **Pipe**: Send the selected directory to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected directory.\n* **Showall**: Show every file inside the current logged volume.\n* **Tag**: Tag the files in the selected directory scope.\n* **Untag**: Untag the files in the selected directory scope.\n* **MoveDir**: Move the selected directory branch.\n* **Write**: Export the current selection to a file or command through the output prompts.\n* **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Archive**: Create an archive from the tagged set first, or from the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files and dot-directories."},
 };
 
 static const GeneratedHelpLink generated_help_links_file[] = {
     {"Navigation", "navigation"},
+    {"Tagged", "tagged"},
     {"Output", "output"},
-    {"Shared commands", "shared-commands"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_file[] = {
-    {"File-window navigation", "*   **1..9 view**: Select the active panel's file view. `1` resets to Name,\n    `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles\n    Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles\n    File detail, and `9` toggles the Git band inside Git worktrees.\n*   **Enter**: Switch between the file window and full-screen file mode.\n*   **Left Arrow**: Move to the previous visible file column. In one-column\n    layouts, Left performs page-up navigation.\n*   **Right Arrow**: Move to the next visible file column. In one-column\n    layouts, Right performs page-down navigation.\n*   **Date changes**: Date actions change Accessed time, Modified time, or\n    both. POSIX does not offer creation/birth time updates here."},
-    {"File commands", "*   **Attributes**: Open the file attributes submenu. Change mode, owner,\n    group, or date.\n*   **Copy**: Copy the selected file.\n*   **Pathcopy**: Copy the selected file while preserving its path relative to\n    the current volume root.\n*   **Copy tagged**: Copy all tagged files.\n*   **Delete**: Delete the selected file. With `VI_KEYS=1`, lowercase `d`\n    keeps this action and uppercase `D` becomes Delete Tagged.\n*   **Edit**: Edit the selected file with `$EDITOR`. The default editor is\n    `vi`.\n*   **Filter**: Set file filter.\n*   **Hex**: View the selected file in hex mode.\n*   **Invert Tags**: Toggle the tag state of all visible files.\n*   **Compare**: Compare the selected file with a target file.\n*   **Volume**: Open the volume picker.\n*   **Log**: Log a new directory or archive file. Logging an already logged\n    path performs a fresh reload and reanchors selection at the volume root.\n*   **Move**: Move the selected file.\n*   **Move tagged**: Move all tagged files.\n*   **New File**: Create a new empty file.\n*   **Only tagged**: Toggle tagged-only file view.\n*   **Pipe**: Pipe the selected file to a command on stdin. `|` is the\n    alternate key.\n*   **Rename**: Rename the selected file.\n*   **Sort**: Sort the file list. Choose Access time, Change time, Extension,\n    Group, Modification time, Name, Owner, or Size.\n*   **Search tagged**: Search tagged files with grep. The prompt expects plain\n    search text, builds `grep -i -- PATTERN {}` internally, and untags files\n    that do not match.\n*   **Tag**: Tag the selected file.\n*   **Tag all**: Tag all displayed files.\n*   **Untag**: Untag the selected file. With `VI_KEYS=1`, lowercase `u` keeps\n    this action.\n*   **Untag all**: Untag all displayed files. With `VI_KEYS=1`, `^U` stays\n    page-up navigation and uppercase `U` becomes Untag All.\n*   **View**: View the selected file with the configured pager. The default is\n    View file with the pager defined in the main config. The default is\n    `less`.\n*   **View tagged**: View all tagged files sequentially.\n*   **Write**: Export the selected file to a command or file. The formatter\n    dialog offers Raw, Framed, and Page Break output.\n*   **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand\n    it to the selected file path and shell-quote the result. Prompt `F1` also\n    explains the tagged-file `^X` repeat path.\n*   **Archive**: Create an archive from tagged files, or from the selected\n    file/directory when nothing is tagged. Directory sources are archived\n    recursively."},
+    {"File navigation", "* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Enter**: Switch between the embedded file window and full-screen file mode.\n* **Left Arrow**: Move to the previous visible file column. In one-column layouts it behaves like page up.\n* **Right Arrow**: Move to the next visible file column. In one-column layouts it behaves like page down."},
+    {"File commands", "* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: Copy the selected file.\n* **Copy tagged**: Copy the tagged set to one destination.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current file-list scope with globs, exclusions, and extended selectors.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving file mode.\n* **Move**: Move the selected file.\n* **Move tagged**: Move the tagged set to one destination.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected file.\n* **Tag all**: Tag every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file.\n* **Untag all**: Remove every tag in the current scope.\n* **View**: View the selected file with the configured pager.\n* **View tagged**: View the tagged files one after another.\n* **Write**: Export the selected file or tagged set through the output prompts.\n* **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely. `Ctrl-X` reruns the command for each tagged file.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Search tagged**: Search only the tagged files, then untag files that do not match.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
 };
 
 static const GeneratedHelpLink generated_help_links_archive_dir[] = {
     {"Navigation", "navigation"},
     {"Directory mode", "dir"},
-    {"Output", "output"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_archive_dir[] = {
-    {"Archive directory commands", "*   **J** (Compare): Open compare flow. With `VI_KEYS=1`, use uppercase `J`\n    for this action.\n*   **D** (Delete): Delete selected archive directory entry.\n*   **F** (Filter): Set file filter.\n*   **G** (Global): Show all files across all logged volumes in one global\n    list.\n*   **I** (Invert Tags): Toggle tag state for files in the selected/current\n    archive directory scope.\n*   **L** (Log): Log a new directory or archive. Logging an already logged\n    volume/path performs a fresh reload and reanchors selection at the volume\n    root.\n*   **M** (Makedir): Create directory in archive context where supported.\n*   **O** (Only tagged): Toggle tagged-only file-list view for the current\n    archive directory scope.\n*   **R** (Rename): Rename selected archive directory entry.\n*   **S** (Showall): Show all files in the archive.\n*   **T** (Tag): Tag all files in current virtual directory.\n*   **U** (Untag): Untag all files in current virtual directory.\n*   **1 .. 4** (Dir Mode): Select the active panel's base archive-directory/\n    file view while tree-focused: `1` Name/reset, `2` Attributes, `3` Owner,\n    `4` Times. `5`, `7`, `8`, and `9` update the panel's file projection; `6`\n    toggles panel-wide row size units; `0` is unused; `9` is a silent no-op in\n    archives."},
-    {"Archive directory navigation", "*   **Enter**: Switch to Archive-File Mode.\n*   **-**: State-based collapse/release. Expanded nodes collapse; collapsed\n    logged nodes (or logged leaves) unlog/release.\n*   **Left Arrow**: Collapse the current archive directory when expanded;\n    otherwise move selection to its parent directory.\n*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed:\n    expand one level. If already expanded: move cursor to the first child.\n*   **+** (or **=**): Expand the current archive directory by one level.\n*   **\\\\**: At archive non-root, jump to archive root. At archive root, exit\n    to parent physical directory."},
+    {"Archive directory navigation", "* **Enter**: Switch to Archive File Mode for the selected archive directory.\n* **Left Arrow**: Collapse the current archive node or move to its parent.\n* **Right Arrow**: Expand one level first, then move to the first child.\n* **Root**: `\\` jumps to archive root when you are below it.\n* **Exit archive**: `\\` leaves the archive when you are already at archive root."},
+    {"Archive directory commands", "* **1..9 view**: `1..4` choose the base archive directory/file view. `5`, `7`, and `8` still affect the paired file projection, `6` toggles row-size units, and `9` stays a no-op inside archives.\n* **Delete**: Delete the selected archive directory entry.\n* **Filter**: Filter the current archive-backed file-list scope.\n* **Global**: Show archive-backed results together with other logged volumes.\n* **Compare**: Compare the current archive directory or logged tree view.\n* **Volume**: Open the volume picker.\n* **Log**: Log another directory or archive file.\n* **Makedir**: Create a directory where the archive format supports it.\n* **Pipe**: Send the selected archive path to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected archive directory entry.\n* **Showall**: Show every file in the current archive.\n* **Tag**: Tag the files in the current virtual directory scope.\n* **Untag**: Untag the files in the current virtual directory scope.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden entries when the archive view exposes them."},
 };
 
 static const GeneratedHelpLink generated_help_links_archive_file[] = {
     {"Navigation", "navigation"},
     {"File mode", "file"},
-    {"Output", "output"},
+    {"Tagged", "tagged"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_archive_file[] = {
-    {"Archive file commands", "*   **C** (Copy): Copy selected file (including extract/copy paths).\n*   **^K** (Copy Tagged): Copy all tagged files.\n*   **D** (Delete): Delete selected archive file entry.\n*   **F** (Filter): Set file filter.\n*   **H** (Hex): View file in hex mode.\n*   **I** (Invert Tags): Toggle the tag state of all visible files.\n*   **M** (Move): Move selected file using archive-aware semantics.\n*   **O** (Only tagged): Toggle tagged-only file-list view (show tagged files\n    only).\n*   **P** (Pipe, or **|**): Pipe content to command.\n*   **R** (Rename): Rename selected archive file entry.\n*   **S** (Sort): Sort file list.\n*   **^S** (Search): Search tagged files for a string. The prompt expects\n    search text, not a full grep command; ytnova builds `grep -i -- PATTERN {}`\n    internally and untags files that do not match. Prompt **F1** summarizes\n    the tagged-scope behavior.\n*   **T** (Tag): Tag selected file.\n*   **^T**: Tag all files.\n*   **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase `u`\n    for this action.)*\n*   **^U**: Untag all files. *(With `VI_KEYS=1`, `^U` is page-up navigation and\n    uppercase `U` becomes Untag All.)*\n*   **V** (View): View file.\n*   **^V**: **View Tagged**. View all tagged files sequentially.\n*   **W** (Write): Export file content to a command or file.\n*   **Y** (Pathcopy): Copy selected file with relative path preservation."},
-    {"Archive file navigation", "*   **1 .. 4** (Base View): Select the archive-file base view for the active\n    panel: `1` Name, `2` Attributes, `3` Owner, `4` Times. Press `2`, `3`, or\n    `4` again to return to `1`.\n*   **5**: Toggle the compact Name/full-width file rendering variant when the\n    current base view is `1` / Name.\n*   **6**: Toggle binary vs human-readable size units for archive rows.\n*   **7**: Toggle Mini preview detail in the file window.\n*   **8**: Toggle File detail in the file window.\n*   **9**: Silent no-op in archive file lists.\n*   **0**: Currently unused; silent no-op.\n*   **Enter**: Switch to Archive-Dir Mode.\n*   **\\\\**: No-op.\n*   Archive file-window status text uses `Unlogged` when the selected directory\n    is unlogged and `No files` when the selected directory is logged and empty."},
+    {"Archive file navigation", "* **1..9 view**: `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, and `8` toggles File detail. `9` stays a no-op inside archives.\n* **Enter**: Switch back to Archive Directory Mode.\n* **Jump**: Jump to a matching name in the current list."},
+    {"Archive file commands", "* **Copy**: Copy the selected archive entry through archive-aware extract/copy paths.\n* **Copy tagged**: Copy the tagged archive entries to one destination.\n* **Delete**: Delete the selected archive entry.\n* **Filter**: Filter the current archive-backed file-list scope.\n* **Hex**: View the selected archive entry in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected archive entry against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log another directory or archive file.\n* **Move**: Move the selected archive entry through archive-aware paths.\n* **Move tagged**: Move the tagged archive entries to one destination.\n* **Pipe**: Send the selected archive entry to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected archive entry.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected archive entry.\n* **Untag**: Remove the tag from the selected archive entry.\n* **View**: View the selected archive entry.\n* **View tagged**: View the tagged archive entries one after another.\n* **Pathcopy**: Copy the selected archive entry while keeping its relative path.\n* **Search tagged**: Search only the tagged archive entries, then untag non-matches.\n* **Execute**: Not available in archive file mode.\n* **Write**: Not available in archive file mode.\n* **Dotfiles**: Toggle hidden entries when the archive view exposes them."},
 };
 
 static const GeneratedHelpLink generated_help_links_filter[] = {
-    {"Navigation", "navigation"},
+    {"Tagged", "tagged"},
     {"Showall", "showall"},
     {"Global", "global"},
     {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_filter[] = {
-    {"Filter syntax", "Use normal glob-like patterns such as `*.c`, comma-separated unions such as\n`*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as\nattributes (`:r`, `:x`), dates (`>2023-01-01`), or sizes (`>1M`). If the\nshell would expand the pattern, quote it before launching ytnova."},
-    {"Scope rules", "Filter prompts stay scoped to the active file-list family. Directory/File,\narchive, Showall, and Global contexts may share syntax while still applying the\nresult to their own current scope and tagged/untagged conventions."},
+    {"Syntax", "Use normal glob-like patterns such as `*.c`, comma-separated unions such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `:x`, `>2023-01-01`, or `>1M`.\nIf your shell would expand the pattern before ytnova sees it, quote it at the shell prompt."},
+    {"Scope", "The filter always applies to the current file-list family.\nThat may be an ordinary file list, an archive file list, Showall, Global, or a tagged-only view built from one of those scopes."},
 };
 
 static const GeneratedHelpLink generated_help_links_compare[] = {
-    {"Navigation", "navigation"},
-    {"Directory mode", "dir"},
     {"File mode", "file"},
+    {"Directory mode", "dir"},
+    {"Navigation", "navigation"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare[] = {
-    {"Compare flows", "*   **File compare (`J` in File Mode):** Compare the selected file against a\n    target file. ytnova can use an external file-diff helper if configured.\n    *   `FILEDIFF` may use `%1` (source) and `%2` (target) placeholders; when\n        omitted, ytnova appends source and target paths to the helper command.\n*   **Directory compare (`J` in Directory Mode):**\n    *   `D`: compare the current directory.\n    *   `T`: compare the current logged tree.\n    *   `X`: launch an external directory/tree compare viewer.\n    *(With `VI_KEYS=1`, use uppercase `J` for this action.)*"},
-    {"Compare rules", "*   Internal compare tags matches on the active/source side only.\n*   Logged-tree compare uses logged content only; it does not auto-log unopened\n    subdirectories.\n*   There is no separate \"compare tagged files\" mode."},
+    {"Compare flow", "Choose the target first.\nThen choose the compare scope when the source is a directory.\nThen choose the compare basis when the runtime offers more than one basis.\nFinally choose which result class to tag on the source side."},
+    {"Compare rules", "* Logged-tree compare uses logged content only. It does not auto-log unopened `+` subdirectories.\n* `FILEDIFF` may use `%1` and `%2`. When those placeholders are missing, ytnova appends source and target paths to the helper command.\n* External directory/tree compare launches `DIRDIFF` or `TREEDIFF` instead of tagging runtime results.\n* There is no separate compare-tagged-files mode."},
 };
 
 static const GeneratedHelpLink generated_help_links_compare_target[] = {
-    {"Navigation", "navigation"},
-    {"Compare overview", "compare"},
+    {"Compare Help", "compare"},
+    {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare_target[] = {
-    {"Runtime scope", "This runtime-only topic keeps the compare-target popup concise while the shared\ncompare explainer continues to own the broader compare documentation bundle."},
+    {"Target rules", "Enter one path.\nThe compare scope decides whether that one path is treated as a file target, a directory target, or a logged-tree target."},
 };
 
 static const GeneratedHelpLink generated_help_links_compare_scope[] = {
-    {"Navigation", "navigation"},
-    {"Compare overview", "compare"},
+    {"Compare Help", "compare"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare_scope[] = {
-    {"Runtime scope", "This runtime-only topic explains the compare-scope chooser without duplicating\nthe full compare documentation into prompt-local code."},
+    {"Scope choices", "Use `Directory` for one level.\nUse `Logged tree` for the currently logged recursive tree.\nUse `External viewer` when you want an external diff tool instead of tagged compare results inside ytnova."},
 };
 
 static const GeneratedHelpLink generated_help_links_compare_basis[] = {
-    {"Navigation", "navigation"},
-    {"Compare overview", "compare"},
+    {"Compare Help", "compare"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare_basis[] = {
-    {"Runtime scope", "This runtime-only topic keeps the compare-basis chooser generated-content\ndriven without widening the long-form command reference."},
+    {"Basis choices", "Choose the cheapest basis that answers the question you actually have.\nUse `Hash` only when metadata is not trustworthy enough."},
 };
 
 static const GeneratedHelpLink generated_help_links_compare_results[] = {
-    {"Navigation", "navigation"},
-    {"Compare overview", "compare"},
+    {"Compare Help", "compare"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare_results[] = {
-    {"Runtime scope", "This runtime-only topic keeps the compare-result chooser generated-content\ndriven while the shared compare explainer owns the durable long-form docs."},
+    {"Result tagging", "The compare command never rewrites files.\nIt marks the chosen result class on the active/source side so you can inspect, copy, move, or archive that subset next."},
+};
+
+static const GeneratedHelpLink generated_help_links_execute_file[] = {
+    {"File mode", "file"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_execute_file[] = {
+    {"Placeholder rules", "`{}` stands for one selected file path.\nWhen you use the tagged rerun path, the same command is repeated once per tagged file."},
+};
+
+static const GeneratedHelpLink generated_help_links_execute_dir[] = {
+    {"Directory mode", "dir"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_execute_dir[] = {
+    {"Placeholder rules", "`{}` stands for the current directory path.\nThe tagged rerun path still walks tagged files from the active list, not tagged directories from somewhere else."},
+};
+
+static const GeneratedHelpLink generated_help_links_search_tagged[] = {
+    {"Tagged", "tagged"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_search_tagged[] = {
+    {"Tagged search rules", "Start by tagging a working set.\nThen search only that set. The result is another, narrower tagged set because files that do not match lose their tags."},
+};
+
+static const GeneratedHelpLink generated_help_links_create_archive[] = {
+    {"Tagged", "tagged"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_create_archive[] = {
+    {"Archive creation rules", "Directory selections are archived recursively.\nArchive creation picks the tagged set first because tagging is the normal way to build a custom archive batch."},
 };
 
 static const GeneratedHelpLink generated_help_links_output[] = {
-    {"Navigation", "navigation"},
     {"File mode", "file"},
     {"Archive file", "archive-file"},
+    {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_output[] = {
-    {"Output destinations", "Write/output flows may send content to a file path or to an external command.\nThe canonical prompt sequence explains the distinction between ordinary file\noutput and hardcopy-oriented command entry so the same authored text can serve\nfilesystem, archive, and prompt-local help."},
-    {"Output formats", "The output dialog owns the format choices used by write/export flows, including\nRaw, Framed, and Page Break variants plus any separator prompt that follows.\nIf the runtime later narrows a contextual slice, the generated long-form docs\nmust still come from this one authored topic."},
+    {"Output model", "`Write` is an export flow.\nIt can write plain content, framed content, or page-break-separated content.\nIt can also send that output to a command instead of a file path."},
+    {"Output order", "Choose the format first.\nChoose the separator only when the format asks for one.\nThen choose the final destination."},
 };
 
 static const GeneratedHelpLink generated_help_links_output_format[] = {
-    {"Navigation", "navigation"},
-    {"Output overview", "output"},
+    {"Output Help", "output"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_output_format[] = {
-    {"Runtime scope", "This runtime-only topic keeps the format chooser generated-content driven while\nthe shared output explainer owns the durable long-form docs."},
+    {"Format choices", "Use `Raw` when another tool will parse the output.\nUse `Framed` or `Page break` when a human will read the exported batch."},
 };
 
 static const GeneratedHelpLink generated_help_links_output_destination[] = {
-    {"Navigation", "navigation"},
-    {"Output overview", "output"},
+    {"Output Help", "output"},
+    {"Command-line editing", "command-line-editing"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_output_destination[] = {
-    {"Runtime scope", "This runtime-only topic keeps the destination chooser generated-content driven\nwithout duplicating prompt prose in print/output controllers."},
+    {"Destination choices", "A file destination writes exported text to a path.\nA command destination sends the exported text to the chosen command."},
 };
 
 static const GeneratedHelpLink generated_help_links_output_separator[] = {
-    {"Navigation", "navigation"},
-    {"Output overview", "output"},
+    {"Output Help", "output"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_output_separator[] = {
-    {"Runtime scope", "This runtime-only topic keeps the separator prompt generated-content driven\nwhile the shared output explainer remains the canonical long-form reference."},
+    {"Separator rules", "The separator is reused between files for the current framed or page-break export.\nIt is not appended after the last file."},
 };
 
 static const GeneratedHelpLink generated_help_links_showall[] = {
     {"Navigation", "navigation"},
     {"File mode", "file"},
-    {"Global", "global"},
+    {"Tagged", "tagged"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_showall[] = {
-    {"Showall behavior", "Showall toggles file-list mode for all files in the current logged volume.\nPress **Esc** to return to the previously selected directory. Press **\\\\** to\njump to the owner directory of the selected file."},
-    {"Scope notes", "Shared file-view commands still behave like ordinary file mode unless the\naggregated single-volume scope changes the ownership of the current result set."},
+    {"Showall behavior", "* **Scope**: Showall lists every file inside the current logged volume only.\n* **Esc**: Return to the previously selected directory.\n* **Open owner**: `\\` jumps to the owner directory of the selected file inside the current logged volume.\n* **Sort**: Repeating `S` changes sort; it does not leave Showall.\n* **Filter**: Filter still applies only to the current Showall result set.\n* **Only tagged**: Show only the tagged rows from the current Showall result set."},
 };
 
 static const GeneratedHelpLink generated_help_links_global[] = {
     {"Navigation", "navigation"},
     {"File mode", "file"},
-    {"Showall", "showall"},
+    {"Tagged", "tagged"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_global[] = {
-    {"Global behavior", "Global toggles file-list mode for all files across all logged volumes. Press\n**Esc** to return to the previously selected directory. Press **\\\\** to jump\nto the owner directory of the selected file."},
-    {"Multi-volume scope", "Global shares the aggregated-file mental model with Showall but keeps room for\nmulti-volume caveats such as owner-directory jumps that cross volume roots."},
+    {"Global behavior", "* **Scope**: Global lists files from every logged volume.\n* **Esc**: Return to the previously selected directory.\n* **Open owner**: `\\` jumps to the owner directory of the selected file even when it lives under another logged volume root.\n* **Global**: Repeating `G` is a no-op while you are already in Global.\n* **Filter**: Filter still applies only to the current Global result set.\n* **Only tagged**: Show only the tagged rows from the current Global result set."},
 };
 
 static const GeneratedHelpLink generated_help_links_f7[] = {
@@ -265,8 +306,7 @@ static const GeneratedHelpLink generated_help_links_f7[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f7[] = {
-    {"Preview behavior", "File Preview Mode is activated by **F7**. The screen layout changes to show\nthe file list on the left (or active pane) and the file contents on the right.\nPress **F7** again to leave preview mode."},
-    {"Preview controls", "*   Use **Up/Down**, **Page Up/Down**, and **Home/End** to move the selection\n    in the file list. The preview pane updates immediately.\n*   Use **Shift+Up/Down** (or **^P** / **^N**) to scroll the preview contents\n    line by line.\n*   Use **Shift+Page Up/Down** to scroll by pages.\n*   Use **Shift+Home/End** to jump to the beginning or end of the file."},
+    {"Preview controls", "* **Leave preview**: Press `F7` again to return to the underlying directory or file context.\n* **Move selection**: Use `Up`, `Down`, `Page Up`, `Page Down`, `Home`, and `End` to move the selected file while the preview updates.\n* **Scroll preview**: Use `Shift-Up` and `Shift-Down`, or `Ctrl-P` and `Ctrl-N`, to scroll preview text line by line.\n* **Page preview**: Use `Shift-PgUp` and `Shift-PgDn` to scroll preview text by pages.\n* **Jump in preview**: Use `Shift-Home` and `Shift-End` to jump to the start or end of the preview."},
 };
 
 static const GeneratedHelpLink generated_help_links_f8[] = {
@@ -276,8 +316,40 @@ static const GeneratedHelpLink generated_help_links_f8[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f8[] = {
-    {"Split behavior", "Split Screen Mode is activated by **F8**. The screen is divided vertically into\ntwo independent file manager panels. Press **F8** again to return to\nsingle-panel mode."},
-    {"Split controls", "*   Press **Tab** to switch active control between the Left and Right panels.\n*   Copy, move, and compare prompts default to the inactive (passive) panel as\n    the destination/target when split mode is active.\n*   Split mode keeps panel-local selection, view, tag, and volume state\n    isolated so the passive panel remains a real target rather than a mirror."},
+    {"Split controls", "* **Leave split**: Press `F8` again to return to single-panel mode.\n* **Tab**: Switch the active panel and keep the passive panel's state intact.\n* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.\n* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.\n* **Overlay ownership**: Split help shows only split-specific rules. Ordinary directory and file commands stay on their own pages."},
+};
+
+static const GeneratedHelpLink generated_help_links_history_dialog[] = {
+    {"Navigation", "navigation"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_history_dialog[] = {
+    {"History actions", "* **Select entry**: `Up` and `Down` move through the current history list.\n* **Scroll long entry**: `Left` and `Right` shift a long history line horizontally.\n* **Pin**: `P` keeps an important entry at the top of the current history list.\n* **Delete**: `D` removes the selected entry from the current history list.\n* **Accept**: `Enter` reuses the selected entry.\n* **Cancel**: `Esc` closes the dialog without reusing an entry."},
+};
+
+static const GeneratedHelpLink generated_help_links_volume_menu[] = {
+    {"Navigation", "navigation"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_volume_menu[] = {
+    {"Volume actions", "* **Select volume**: `Up` and `Down` move through the loaded-volume list.\n* **Switch volume**: `Enter` activates the selected volume.\n* **Keep state**: Selecting the already active volume keeps its current in-memory state.\n* **Release volume**: `D` unloads the selected volume unless it is the last remaining one.\n* **Cancel**: `Esc` closes the menu."},
+};
+
+static const GeneratedHelpLink generated_help_links_applications_menu[] = {
+    {"Navigation", "navigation"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_applications_menu[] = {
+    {"Applications actions", "* **Select preset**: `Up` and `Down` move through the preset list.\n* **Accept preset**: `Enter` accepts the selected row.\n* **Cancel**: `Esc` closes the menu.\n* **Current state**: The shipped Applications menu is still a lightweight placeholder surface, so treat it as a shell for future app-launch behavior."},
+};
+
+static const GeneratedHelpLink generated_help_links_f2_picker[] = {
+    {"Navigation", "navigation"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_f2_picker[] = {
+    {"Picker actions", "* **Move**: `Up` and `Down` move through the visible directory rows.\n* **Expand**: `Right` expands the current directory one level, then moves into the first child when that level is already open.\n* **Collapse**: `Left` collapses the current directory, or moves to its parent when the current row is already closed.\n* **Accept**: `Enter` uses the highlighted directory for the calling prompt.\n* **Cancel**: `Esc` closes the picker without changing the prompt."},
 };
 
 static const GeneratedHelpTopic generated_help_topics[] = {
@@ -285,8 +357,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "intro",
         "Contents",
         NULL,
-        "YtreeNova keeps `F1` short and task-local. Use the contextual page for the\nactive surface, then follow shared explainer links only when you need more\nbackground.",
-        4,
+        "Start with the page for the screen or prompt you are using now.\nUse shared topics only when you need the wider rule behind a command.\nUse `Navigation` if you forget the popup keys.",
+        5,
         generated_help_links_intro,
         2,
         generated_help_sections_intro,
@@ -295,7 +367,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "navigation",
         "Navigation",
         NULL,
-        "This page keeps help-popup navigation distinct from ordinary YtreeNova\nnavigation. Learn the shared popup keys once here, then return to the active\ncontext page for tree-only or file-only movement.\nArrow keys, paging keys, `Home`, `End`, and `Enter` keep their usual\nownership.",
+        "Use `Up` and `Down` to move.\nUse `Enter` or `Right` to follow the selected help link.\nUse `Left` to go back, and `Esc` or `Q` to close help.",
         5,
         generated_help_links_navigation,
         2,
@@ -305,17 +377,27 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "shared-commands",
         "Shared Commands",
         NULL,
-        "Shared Commands explains the cross-context help keys and overlays that can\nappear from multiple main views. Use it for the shared function-key family\n(`F1`, `F5`, `F6`, `F7`, `F8`, `F9`, `F10`) instead of repeating those hints\non every context page.",
+        "These keys keep the same high-level meaning across more than one mode.\nUse the mode page for local commands, and use this page for the shared function-key family.",
         4,
         generated_help_links_shared_commands,
         1,
         generated_help_sections_shared_commands,
     },
     {
+        "tagged",
+        "Tagged",
+        NULL,
+        "Tags let you mark more than one file, then run one command against that set.\nWhen tags exist, copy, move, view, archive, and search often work on the tagged set instead of only the current row.\n`Only tagged` turns that set into its own temporary list without changing the tags themselves.",
+        4,
+        generated_help_links_tagged,
+        2,
+        generated_help_sections_tagged,
+    },
+    {
         "command-line-editing",
         "Command-line Editing",
         NULL,
-        "Prompt editing is shared across filter, compare, output, shell-command, and\npath-entry prompts. Learn it once here instead of re-reading it in every\nprompt-local page.",
+        "Most prompts share the same editing keys.\nLearn them once here, then use the prompt page only for syntax, defaults, and scope.",
         2,
         generated_help_links_command_line_editing,
         2,
@@ -325,7 +407,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "vi-keys",
         "VI Keys",
         NULL,
-        "`VI_KEYS=1` changes command ownership to preserve lowercase vi-style\nnavigation. This explainer keeps the mode shift separate from ordinary\nnavigation help so users do not mix the two models.",
+        "`VI_KEYS=1` keeps lowercase vi navigation available.\nCommands that would collide move to uppercase or another safe key.",
         2,
         generated_help_links_vi_keys,
         2,
@@ -335,7 +417,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f10",
         "F10 Config Help",
         NULL,
-        "F10 opens the configuration command surface for profile, commands, themes, and\nother persistent setup changes. Use this page for the high-level map, then\nfollow Theming when the change is color/layout specific.",
+        "Use `F10` for configuration work.\nThat is where profile, commands, themes, reload, and similar setup actions belong.",
         2,
         generated_help_links_f10,
         2,
@@ -345,7 +427,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "theming",
         "Theming",
         NULL,
-        "Themes control semantic UI roles such as footer, picker, help, selection, and\nseverity colors. This topic keeps color-system explanation separate from the\nday-to-day command pages.",
+        "Themes style semantic roles, not one-off screen positions.\nThat keeps help, picker, selection, footer, and warning surfaces readable as one system.",
         1,
         generated_help_links_theming,
         2,
@@ -355,7 +437,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "dir",
         "Directory Help",
         "main.dir",
-        "Directory Help keeps the focus on directory commands plus tree-only navigation.\nUse the shared Navigation page for popup controls and generic movement you only\nneed to learn once.",
+        "Directory Help is the tree-mode command list.\nPick a command for the short meaning, then press `Enter` for the fuller rule.",
         2,
         generated_help_links_dir,
         2,
@@ -365,7 +447,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "file",
         "File Help",
         "main.file",
-        "File Help keeps the focus on file commands plus file-window navigation. Use the\nshared Navigation page for popup controls and generic movement you only need to\nlearn once.",
+        "File Help is the main file-list command list.\nPick a command for the short meaning, then press `Enter` for the fuller rule.",
         3,
         generated_help_links_file,
         2,
@@ -375,8 +457,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "archive-dir",
         "Archive Directory Help",
         "main.archive-dir",
-        "Archive directory help mirrors the live archive-directory footer, then adds the\narchive-specific caveats that differ from normal filesystem directory behavior.",
-        3,
+        "Archive Directory Help is the tree-style list for paths inside an archive.\nPick a command for the short meaning, then press `Enter` for the fuller rule.",
+        2,
         generated_help_links_archive_dir,
         2,
         generated_help_sections_archive_dir,
@@ -385,7 +467,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "archive-file",
         "Archive File Help",
         "main.archive-file",
-        "Archive file help mirrors the live archive-file footer and documents the\ndifferences between archive file actions and normal filesystem file actions.",
+        "Archive File Help is the file-list command list for archive-backed content.\nPick a command for the short meaning, then press `Enter` for the fuller rule.",
         3,
         generated_help_links_archive_file,
         2,
@@ -395,7 +477,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "filter",
         "Filter Help",
         "prompt.filter,prompt.filter-tagged",
-        "Use normal glob-like patterns such as `*.c`, comma-separated unions such as\n`*.c,*.h`, and exclusions such as `-*.o`.\nExtended selectors such as `:r`, `:x`, `>2023-01-01`, and `>1M` stay valid in\nthe runtime prompt, and an empty entry falls back to `*`.\nFilter prompts stay scoped to the active file-list family, including tagged\naggregates when the current prompt came from a tagged-only view.",
+        "Type a glob such as `*.c`, a comma list such as `*.c,*.h`, or an exclusion such as `-*.o`.\nUse `:r` and `:x` for attribute tests, `>2023-01-01` for date tests, and `>1M` for size tests.\nLeave the prompt empty to fall back to `*`.",
         4,
         generated_help_links_filter,
         2,
@@ -405,7 +487,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare",
         "Compare Help",
         NULL,
-        "Compare help is split into prompt-local runtime topics plus this shared long-form\nexplainer. Runtime `F1` pages stay focused on the active compare step, then link\nback here for the broader compare model.",
+        "Compare starts from the current file, directory, or logged tree on the active panel.\nFile compare checks one file against one target.\nDirectory compare can compare the current directory, the current logged tree, or an external viewer target.\nInternal compare tags results on the source side only.",
         3,
         generated_help_links_compare,
         2,
@@ -415,7 +497,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-target",
         "Compare Target Help",
         "prompt.compare-target",
-        "The current file, directory, or logged tree is the compare source.\nEnter the target path directly, or use `F2` to browse and `Up` for prompt\nhistory.\nIn split view, the inactive panel seeds the default compare target.",
+        "The current file, directory, or logged tree is the source.\nEnter the target path directly, use `F2` to browse, or use `Up` for history.\nIn split view, the inactive panel seeds the default target.",
         2,
         generated_help_links_compare_target,
         1,
@@ -425,8 +507,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-scope",
         "Compare Scope Help",
         "prompt.compare-scope",
-        "Directory only compares the current directory.\nLogged tree compares the current logged tree recursively and never auto-logs\nunopened `+` subdirectories.\nExternal viewer launches `DIRDIFF` or `TREEDIFF` helpers instead of tagging\nruntime compare results.",
-        2,
+        "`Directory` compares the current directory only.\n`Logged tree` compares the current logged tree and never auto-logs unopened branches.\n`External viewer` launches the configured external compare helper instead of tagging runtime results.",
+        1,
         generated_help_links_compare_scope,
         1,
         generated_help_sections_compare_scope,
@@ -435,8 +517,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-basis",
         "Compare Basis Help",
         "prompt.compare-basis",
-        "Size checks file length and Date checks the last-modified time.\n`siZe+date` marks a difference when either size or modification time differs.\nHash opens both files and compares their content exactly, so it is slower than\nmetadata-only checks.",
-        2,
+        "`Size` compares file length.\n`Date` compares modification time.\n`siZe+date` treats either difference as a mismatch.\n`Hash` opens both files and compares their content exactly, so it is slower.",
+        1,
         generated_help_links_compare_basis,
         1,
         generated_help_sections_compare_basis,
@@ -445,17 +527,57 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-results",
         "Compare Result Help",
         "prompt.compare-results",
-        "Choose which compare result to tag in the active/source-side file list.\n`diFferent` tags basis mismatches and `Unique` tags source-only entries.\nMatch, Newer, Older, Type-mismatch, and Error each tag only that one outcome.",
-        2,
+        "Choose which result class to tag on the source side.\n`diFferent` tags mismatches, and `Unique` tags source-only rows.\n`Match`, `Newer`, `Older`, `Type mismatch`, and `Error` each tag only that one class.",
+        1,
         generated_help_links_compare_results,
         1,
         generated_help_sections_compare_results,
     },
     {
+        "execute-file",
+        "Execute File Help",
+        "prompt.execute-file",
+        "Use `{}` where the selected file path should be inserted.\nLeave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\nUse `Ctrl-X` to rerun the command for each tagged file.",
+        2,
+        generated_help_links_execute_file,
+        1,
+        generated_help_sections_execute_file,
+    },
+    {
+        "execute-dir",
+        "Execute Directory Help",
+        "prompt.execute-dir",
+        "Use `{}` where the current directory path should be inserted.\nLeave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\nUse `Ctrl-X` to rerun the command for each tagged file in the active list.",
+        2,
+        generated_help_links_execute_dir,
+        1,
+        generated_help_sections_execute_dir,
+    },
+    {
+        "search-tagged",
+        "Search Tagged Help",
+        "prompt.search-tagged",
+        "Enter plain search text only.\nytnova builds `grep -i -- PATTERN {}` for you.\nOnly tagged files are searched, and non-matches are untagged.",
+        2,
+        generated_help_links_search_tagged,
+        1,
+        generated_help_sections_search_tagged,
+    },
+    {
+        "create-archive",
+        "Create Archive Help",
+        "prompt.create-archive",
+        "Use `.tar`, `.tar.gz` or `.tgz`, `.tar.bz2` or `.tbz2`, `.tar.xz` or `.txz`, or `.zip`.\nWhen tags exist, the tagged set wins.\nWhen nothing is tagged, ytnova archives the current file or directory selection.",
+        2,
+        generated_help_links_create_archive,
+        1,
+        generated_help_sections_create_archive,
+    },
+    {
         "output",
         "Output Help",
         NULL,
-        "Output help is split into runtime prompt topics plus this shared long-form\nexplainer. Runtime `F1` pages stay focused on the active output step, then link\nback here for the durable write/export model.",
+        "Output sends file content either to a destination file or to an external command.\nThe prompts first choose a format, then a separator when that format needs one, then the final destination.\nUse `Write` when you want exported content, not in-place editing.",
         3,
         generated_help_links_output,
         2,
@@ -465,8 +587,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "output-format",
         "Output Format Help",
         "prompt.output-format",
-        "Raw writes content without frame headings.\nFramed adds per-file heading/footer framing, and Page break inserts a separator\nbetween successive files without leaving a trailing separator at the end.\nChoose the format first; later prompts gather separators and destinations.",
-        2,
+        "`Raw` writes content with no extra framing.\n`Framed` adds per-file headings or footers.\n`Page break` inserts a separator between files and skips a trailing separator at the end.",
+        1,
         generated_help_links_output_format,
         1,
         generated_help_sections_output_format,
@@ -475,7 +597,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "output-destination",
         "Output Destination Help",
         "prompt.output-destination",
-        "Destination chooses whether write/output goes to a file path or to an external\ncommand.\nWhen the prompt asks for the final target, enter either the destination file or\nthe command line exactly as you want it run.\nLeave the destination blank only to cancel and return without writing.",
+        "Enter the final destination exactly as you want it used.\nThat may be a file path or a command line, depending on the earlier choice.\nLeave it blank only to cancel and return without writing.",
         2,
         generated_help_links_output_destination,
         1,
@@ -485,8 +607,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "output-separator",
         "Output Separator Help",
         "prompt.output-separator",
-        "Framed and Page break modes prompt for a separator string before the\ndestination step.\nLeave the separator blank to accept the default triple-backtick fence.\nThe separator text is reused between files only for the selected framed/page\nformat; Raw output skips this prompt entirely.",
-        2,
+        "This prompt appears only for formats that need a separator.\nLeave it blank to accept the default triple-backtick fence.\nRaw output skips this prompt.",
+        1,
         generated_help_links_output_separator,
         1,
         generated_help_sections_output_separator,
@@ -495,42 +617,82 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "showall",
         "Showall Help",
         "main.showall",
-        "Showall help explains the single-volume aggregated file view and the commands\nor caveats that differ from ordinary file mode.\nPress `Esc` to return to the previously selected directory.\nPress `\\\\` to jump to the owner directory of the selected file inside the\ncurrent logged volume.",
+        "Showall Help is the single-volume aggregated file-list page.\nPick a line for the short meaning, then press `Enter` for the fuller rule.",
         3,
         generated_help_links_showall,
-        2,
+        1,
         generated_help_sections_showall,
     },
     {
         "global",
         "Global Help",
         "main.global",
-        "Global help explains the multi-volume aggregated file view, including how it\nreturns to owner directories and how its scope differs from ordinary file mode.\nPress `Esc` to return to the previously selected directory.\nPress `\\\\` to jump to the owner directory of the selected file even when that\nowner lives under a different logged volume root.",
+        "Global Help is the multi-volume aggregated file-list page.\nPick a line for the short meaning, then press `Enter` for the fuller rule.",
         3,
         generated_help_links_global,
-        2,
+        1,
         generated_help_sections_global,
     },
     {
         "f7",
         "F7 Preview Help",
         "overlay.f7-dir,overlay.f7-file",
-        "F7 help explains preview ownership and how the preview overlay interacts with\nthe underlying directory or file context.\nUse `Shift+Up/Down` or `^P/^N` to scroll preview contents line by line.\nUse `Shift+PgUp/PgDn` for pages and `Shift+Home/End` to jump to the top or\nbottom of the current preview.",
+        "F7 Preview Help is the preview command list.\nPick a line for the short meaning, then press `Enter` for the fuller rule.",
         2,
         generated_help_links_f7,
-        2,
+        1,
         generated_help_sections_f7,
     },
     {
         "f8",
         "F8 Split Help",
         "overlay.f8-dir,overlay.f8-file",
-        "F8 help explains split-view ownership, inactive-panel defaults, and the keys\nor caveats that only appear while split mode is active.\nPress `Tab` to switch the active panel while leaving the passive panel's state\nintact.\nCopy, move, and compare prompts default to the inactive panel as the\ndestination/target while split mode is active.",
+        "F8 Split Help is the split-mode command list.\nPick a line for the short meaning, then press `Enter` for the fuller rule.",
         3,
         generated_help_links_f8,
-        2,
+        1,
         generated_help_sections_f8,
+    },
+    {
+        "history-dialog",
+        "History Help",
+        "dialog.history",
+        "Use `Up` and `Down` to choose an entry.\nUse `Left` and `Right` to scroll a long entry.\nUse `P` to pin or unpin, `D` to delete, `Enter` to accept, and `Esc` to cancel.",
+        1,
+        generated_help_links_history_dialog,
+        1,
+        generated_help_sections_history_dialog,
+    },
+    {
+        "volume-menu",
+        "Volume Help",
+        "dialog.volume-menu",
+        "Use `Up` and `Down` to choose a loaded volume.\nUse `Enter` to switch to it.\nUse `D` to release it, unless it is the last one.\nUse `Esc` to leave the menu.",
+        1,
+        generated_help_links_volume_menu,
+        1,
+        generated_help_sections_volume_menu,
+    },
+    {
+        "applications-menu",
+        "Applications Help",
+        "dialog.applications",
+        "Use `Up` and `Down` to choose an application preset.\nUse `Enter` to accept it.\nUse `Esc` to leave the menu.\nThe shipped menu is still a placeholder surface.",
+        1,
+        generated_help_links_applications_menu,
+        1,
+        generated_help_sections_applications_menu,
+    },
+    {
+        "f2-picker",
+        "F2 Picker Help",
+        "dialog.f2-picker",
+        "Use `Up` and `Down` to move.\nUse `Right` to expand or enter the first child, and `Left` to collapse or go to the parent.\nUse `Enter` to accept the highlighted directory, and `Esc` to cancel.",
+        2,
+        generated_help_links_f2_picker,
+        1,
+        generated_help_sections_f2_picker,
     },
 };
 
-static const size_t generated_help_topic_count = 25;
+static const size_t generated_help_topic_count = 34;

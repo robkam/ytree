@@ -25,25 +25,10 @@ static const UICommandStripCommand applications_menu_commands[] = {
 };
 
 static int ShowApplicationsHelpPopup(ViewContext *ctx) {
-  UIHelpPopupRow rows[2];
-
   if (ctx == NULL)
     return -1;
 
-  rows[0].kind = UI_HELP_POPUP_COMMAND_STRIP;
-  rows[0].prefix = "";
-  rows[0].text = NULL;
-  rows[0].commands = applications_menu_commands;
-  rows[0].command_count =
-      sizeof(applications_menu_commands) / sizeof(applications_menu_commands[0]);
-  rows[1].kind = UI_HELP_POPUP_TEXT;
-  rows[1].prefix = NULL;
-  rows[1].text =
-      "Application presets are placeholders; Enter closes the menu today.";
-  rows[1].commands = NULL;
-  rows[1].command_count = 0;
-  return UI_ShowHelpPopup(ctx, "Applications Help", rows,
-                          sizeof(rows) / sizeof(rows[0]));
+  return UI_ShowGeneratedContextHelp(ctx, "dialog.applications", NULL, 0);
 }
 
 static void PaintApplicationRow(const ViewContext *ctx, WINDOW *win, int y_pos,

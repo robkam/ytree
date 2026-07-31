@@ -16,6 +16,7 @@ THEME_ROLES = {
     "picker",
     "picker_selection",
     "help",
+    "help_keybind",
     "help_link",
     "help_link_selection",
     "help_box_lines",
@@ -116,7 +117,7 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     classic = _theme_section(source, "theme quiet-blue")
     bash_black = _theme_section(source, "theme bash-black")
 
-    assert "help = black on grey\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\nhelp_box_lines = black on grey\n" in source
+    assert "help = black on +grey\nhelp_keybind = white\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\nhelp_box_lines = black on +grey\n" in source
 
     for section in (classic, bash_black):
         assert _theme_role_names(section) == THEME_ROLES
@@ -138,6 +139,7 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "picker_selection = selection\n" in classic
     assert "footer = white\n" in classic
     assert "help = white\n" in classic
+    assert "help_keybind = keybind\n" in classic
     assert "help_link = cyan\n" in classic
     assert "help_link_selection = yellow\n" in classic
     assert "help_box_lines = cyan on blue\n" in classic
@@ -150,6 +152,7 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "picker_selection = selection\n" in bash_black
     assert "footer = white\n" in bash_black
     assert "help = white\n" in bash_black
+    assert "help_keybind = keybind\n" in bash_black
     assert "help_link = cyan\n" in bash_black
     assert "help_link_selection = yellow\n" in bash_black
     assert "help_box_lines = grey on black\n" in bash_black
@@ -262,10 +265,7 @@ def test_spec_documents_user_visible_theme_contract():
         "Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place"
         in spec_source
     )
-    assert (
-        "runtime must not capitalize the leading letter just for title-case styling"
-        in spec_source
-    )
+    assert "must not capitalize the leading letter just for title-case styling" in spec_source
     assert (
         "`THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned."
         in spec_source
@@ -286,7 +286,7 @@ def test_manpage_documents_user_visible_theme_contract():
         assert (
             "instead of the default `~/.config/ytnova/ytnova.conf`" in source
         )
-        assert "View file with the pager defined in the main config" in source
+        assert "View the selected file with the configured pager." in source
         assert "~/.config/ytnova/ytnova.conf" in source
         assert "~/.config/ytnova/commands.conf" in source
         assert "~/.config/ytnova/themes.conf" in source
