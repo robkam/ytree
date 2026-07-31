@@ -6,9 +6,16 @@ HELP_SOURCES = (
     Path("etc/help/f1.en.md"),
     Path("etc/help/man.en.md"),
 )
+LOCALE_F1_SOURCES = (Path("etc/help/f1.de.md"),)
 REQUIRED_TOPICS = {
     "intro",
     "navigation",
+    "shared-commands",
+    "tagged",
+    "command-line-editing",
+    "vi-keys",
+    "f10",
+    "theming",
     "dir",
     "file",
     "archive-dir",
@@ -20,6 +27,10 @@ REQUIRED_TOPICS = {
     "global",
     "f7",
     "f8",
+    "history-dialog",
+    "volume-menu",
+    "applications-menu",
+    "f2-picker",
 }
 
 
@@ -42,7 +53,7 @@ def _topic_blocks(source):
 
 
 def test_help_source_uses_deterministic_topic_block_schema():
-    for path in HELP_SOURCES:
+    for path in HELP_SOURCES + LOCALE_F1_SOURCES:
         source = _read_help_source(path)
         blocks = _topic_blocks(source)
 
@@ -71,10 +82,10 @@ def test_help_source_uses_deterministic_topic_block_schema():
 
 def test_help_source_defines_required_first_pass_topics():
     topic_sets = []
-    for path in HELP_SOURCES:
+    for path in HELP_SOURCES + LOCALE_F1_SOURCES:
         source = _read_help_source(path)
         topics = {match.group("topic") for match in _topic_blocks(source)}
         assert REQUIRED_TOPICS.issubset(topics)
         topic_sets.append(topics)
 
-    assert topic_sets[0] == topic_sets[1]
+    assert topic_sets[0] == topic_sets[1] == topic_sets[2]

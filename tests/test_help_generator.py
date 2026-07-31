@@ -44,6 +44,9 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert "### Command-line Editing" in manpage
     assert "### F10 Config" in manpage
     assert "Use normal glob-like patterns such as `*.c`" in manpage
+    assert "This manual is the fuller reference path for ytnova modes, commands, prompts, and support topics." in manpage
+    assert "Pick a command for the short meaning" not in manpage
+    assert "Start with the page for the screen or prompt you are using now." not in manpage
     assert "Authors and contributors are listed in the AUTHORS.md file." in manpage
     assert "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file." in usage
     assert "generated_help_topic_count" in header
