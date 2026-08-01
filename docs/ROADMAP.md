@@ -673,7 +673,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer keybinding hints and F1 help in `F7` accurately reflect allowed actions and blocked keys.
 *   Add focused regression tests for allowed-command execution in `F7` and blocked-key enforcement (`F8`, `Tab`).
 *   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` when behavior lands.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Phase Follow-On Work**
 
