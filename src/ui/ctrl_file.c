@@ -65,6 +65,38 @@ static YtreeNovaAction FilterPreviewAction(YtreeNovaAction action) {
   case ACTION_PREVIEW_END:
   case ACTION_PREVIEW_PAGE_UP:
   case ACTION_PREVIEW_PAGE_DOWN:
+  case ACTION_CMD_A:
+  case ACTION_CMD_C:
+  case ACTION_CMD_TAGGED_C:
+  case ACTION_CMD_D:
+  case ACTION_CMD_TAGGED_D:
+  case ACTION_CMD_E:
+  case ACTION_FILTER:
+  case ACTION_CMD_TAGGED_S:
+  case ACTION_INVERT:
+  case ACTION_COMPARE_FILE:
+  case ACTION_CMD_M:
+  case ACTION_CMD_TAGGED_M:
+  case ACTION_CMD_MKFILE:
+  case ACTION_CMD_R:
+  case ACTION_CMD_TAGGED_R:
+  case ACTION_TAG:
+  case ACTION_TAG_ALL:
+  case ACTION_TAG_REST:
+  case ACTION_UNTAG:
+  case ACTION_UNTAG_ALL:
+  case ACTION_UNTAG_REST:
+  case ACTION_CMD_V:
+  case ACTION_CMD_TAGGED_V:
+  case ACTION_CMD_PRINT:
+  case ACTION_CMD_TAGGED_PRINT:
+  case ACTION_CMD_X:
+  case ACTION_CMD_TAGGED_X:
+  case ACTION_CMD_Y:
+  case ACTION_CMD_TAGGED_Y:
+  case ACTION_CMD_I:
+  case ACTION_LIST_JUMP:
+  case ACTION_TOGGLE_HIDDEN:
   case ACTION_RESIZE:
     return action;
   default:

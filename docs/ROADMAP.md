@@ -161,7 +161,7 @@ Ordering policy (for all editors, including AI editors):
 *   CI fails when measured statement coverage drops below 80% (or configured threshold).
 *   Document how to run coverage locally and how threshold policy is enforced in CI.
 *   Update `docs/AUDIT.md` in the same change so audit policy reflects implemented coverage commands/gates (not planned-only wording).
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Task 8: Restructure and Expand Test Suite**
 *   **Goal:** Tidy up existing test scripts into a coherent, modular structure and thoroughly expand the regression suite for comprehensive coverage.

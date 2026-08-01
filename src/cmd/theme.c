@@ -351,7 +351,6 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
   {
     const ThemeRoleValue *help_box_lines_role =
         FindRole(roles, "help_box_lines");
-    const ThemeRoleValue *help_role = FindRole(roles, "help");
 
     if (help_box_lines_role != NULL && !help_box_lines_role->is_set &&
         help_role != NULL) {
