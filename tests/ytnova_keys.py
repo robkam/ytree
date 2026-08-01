@@ -15,8 +15,11 @@ class Keys:
     ESC = "\033"
     TAB = "\t"
     CTRL_A = "\x01"
+    CTRL_S = "\x13"
+    CTRL_T = "\x14"
     CTRL_L = "\x0c"
     CTRL_U = "\x15"
+    CTRL_V = "\x16"
 
     # Function Keys (Standard xterm/vt100)
     # Note: If these fail, try "\033OR" for F7 and "\033OS" for F8

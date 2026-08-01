@@ -1,4 +1,6 @@
 import pytest
+from pathlib import Path
+import re
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -115,13 +117,16 @@ def test_f7_vertical_separator_visibility(f7_preview_sandbox, ytnova_binary):
 def test_f7_footer_menu_persistence(f7_preview_sandbox, ytnova_binary):
     """
     Required test 2:
-    Footer command help must remain visible in preview mode.
+    Footer command help must remain visible in preview mode and should expose
+    useful file actions instead of preview-navigation reminders.
     """
     tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
     lines = tui.get_screen_dump()
-    footer = "\n".join(lines[-3:]).upper()
+    footer = "\n".join(lines[-3:])
+    footer_upper = footer.upper()
+    footer_lower = footer.lower()
 
-    if "PREVIEW" not in footer or "COMMANDS" not in footer:
+    if "PREVIEW" not in footer_upper or "COMMANDS" not in footer_upper:
         tui.quit()
         pytest.fail(
             "F7 footer menu is missing or blank.\n"
@@ -129,47 +134,131 @@ def test_f7_footer_menu_persistence(f7_preview_sandbox, ytnova_binary):
             f"Screen:\n{_screen_text(lines)}"
         )
 
+    for token in ("copy", "delete", "rename", "F7 exit preview".lower()):
+        if token not in footer_lower:
+            tui.quit()
+            pytest.fail(
+                "F7 footer should expose practical preview commands.\n"
+                f"Missing token: {token!r}\n"
+                f"Footer:\n{footer}\n"
+                f"Screen:\n{_screen_text(lines)}"
+            )
+
+    for forbidden in ("select file", "navigate preview", "scroll page"):
+        if forbidden in footer_lower:
+            tui.quit()
+            pytest.fail(
+                "F7 footer should leave preview-navigation reminders to F1.\n"
+                f"Unexpected token: {forbidden!r}\n"
+                f"Footer:\n{footer}\n"
+                f"Screen:\n{_screen_text(lines)}"
+            )
+
     tui.quit()
 
 
-def test_f7_modal_input_blocking(f7_preview_sandbox, ytnova_binary):
+def test_f7_blocks_split_and_tab_but_allows_copy_prompt(
+    f7_preview_sandbox, ytnova_binary
+):
     """
     Required test 3:
-    Preview acts as a modal state. F8, Attribute, and Copy should not trigger
-    their normal actions while preview is active.
+    Preview must still block split-mode entry, but common file actions such as
+    Copy should remain usable without leaving preview.
     """
     tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
+    preview_lines = tui.get_screen_dump()
+    preview_screen = _screen_text(preview_lines)
+
+    tui.send_keystroke(Keys.TAB, wait=0.25)
+
+    tab_lines = tui.get_screen_dump()
+    tab_screen = _screen_text(tab_lines)
+    if tab_lines[1:] != preview_lines[1:]:
+        tui.quit()
+        pytest.fail(
+            "Tab should remain a no-op while F7 preview is active.\n"
+            f"Before:\n{preview_screen}\n\nAfter:\n{tab_screen}"
+        )
 
     tui.send_keystroke(Keys.F8, wait=0.25)
-    tui.send_keystroke(Keys.ATTRIBUTE, wait=0.25)
-    tui.send_keystroke(Keys.COPY, wait=0.25)
 
     lines = tui.get_screen_dump()
     screen = _screen_text(lines)
     upper = screen.upper()
 
-    forbidden_prompts = [
-        "ATTRIBUTES:",
-        "COPY:",
-        "TO DIRECTORY:",
-    ]
-    for prompt in forbidden_prompts:
-        if prompt in upper:
-            tui.quit()
-            pytest.fail(
-                "Preview did not block modal-incompatible input.\n"
-                f"Found forbidden prompt '{prompt}'.\n"
-                f"Screen:\n{screen}"
-            )
-
     if f7_preview_sandbox["marker"] not in screen:
         tui.quit()
         pytest.fail(
-            "Preview content marker disappeared after blocked input keys.\n"
+            "Preview content marker disappeared after blocked split input.\n"
             f"Screen:\n{screen}"
         )
 
+    if "SPLIT" in upper and "SCREEN" in upper:
+        tui.quit()
+        pytest.fail(
+            "F8 should remain blocked while F7 preview is active.\n"
+            f"Screen:\n{screen}"
+        )
+
+    tui.send_keystroke(Keys.COPY, wait=0.25)
+    copy_screen = _screen_text(tui.get_screen_dump())
+    if "COPY:" not in copy_screen.upper():
+        tui.quit()
+        pytest.fail(
+            "F7 preview should allow Copy without forcing an exit first.\n"
+            f"Screen:\n{copy_screen}"
+        )
+
+    tui.send_keystroke(Keys.ESC, wait=0.25)
+    restored_screen = _screen_text(tui.get_screen_dump())
+    if f7_preview_sandbox["marker"] not in restored_screen:
+        tui.quit()
+        pytest.fail(
+            "Cancelling Copy from F7 preview should return to the preview surface.\n"
+            f"Screen:\n{restored_screen}"
+        )
+
     tui.quit()
+
+
+def test_f7_preview_action_filter_keeps_tagged_workflow_and_blocks_panel_switch():
+    source = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    match = re.search(
+        r"static YtreeNovaAction FilterPreviewAction\(YtreeNovaAction action\) \{"
+        r"(?P<body>.*?)\n\}",
+        source,
+        re.S,
+    )
+    assert match is not None
+    filter_body = match.group("body")
+
+    required_actions = (
+        "ACTION_CMD_C",
+        "ACTION_FILTER",
+        "ACTION_TAG_ALL",
+        "ACTION_CMD_TAGGED_S",
+        "ACTION_CMD_TAGGED_V",
+        "ACTION_COMPARE_FILE",
+        "ACTION_CMD_M",
+        "ACTION_CMD_R",
+    )
+
+    for action in required_actions:
+        assert action in filter_body, action
+
+    forbidden_actions = ("ACTION_SWITCH_PANEL", "ACTION_MOVE_SIBLING_NEXT")
+    for action in forbidden_actions:
+        assert action not in filter_body, action
+
+
+def test_f7_preview_search_highlight_contract_uses_tagged_matches():
+    preview_source = Path("src/ui/view_preview.c").read_text(encoding="utf-8")
+    tagged_view_source = Path("src/ui/tagged_view.c").read_text(encoding="utf-8")
+
+    assert "ctx->global_search_term[0] != '\\0'" in preview_source
+    assert "strcasestr(ptr, ctx->global_search_term)" in preview_source
+    assert "if (fe->tagged && fe->matching)" in tagged_view_source
+    assert "if (!(fe->tagged && fe->matching))" in tagged_view_source
 
 
 def test_f7_file_name_clipping_at_boundaries(f7_preview_sandbox, ytnova_binary):

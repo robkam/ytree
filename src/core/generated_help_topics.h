@@ -303,10 +303,12 @@ static const GeneratedHelpLongFormSection generated_help_sections_global[] = {
 static const GeneratedHelpLink generated_help_links_f7[] = {
     {"Navigation", "navigation"},
     {"File mode", "file"},
+    {"Applications menu", "applications-menu"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f7[] = {
-    {"Preview controls", "* **Leave preview**: Press `F7` again to return to the underlying directory or file context.\n* **Move selection**: Use `Up`, `Down`, `Page Up`, `Page Down`, `Home`, and `End` to move the selected file while the preview updates.\n* **Scroll preview**: Use `Shift-Up` and `Shift-Down`, or `Ctrl-P` and `Ctrl-N`, to scroll preview text line by line.\n* **Page preview**: Use `Shift-PgUp` and `Shift-PgDn` to scroll preview text by pages.\n* **Jump in preview**: Use `Shift-Home` and `Shift-End` to jump to the start or end of the preview."},
+    {"Preview navigation", "* **Select file**: `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End` move the live file selection.\n* **Preview lines**: `Shift-Up` and `Shift-Down`, and `Ctrl-P` and `Ctrl-N`, scroll the preview.\n* **Preview pages**: `Shift-PgUp` and `Shift-PgDn` page the preview. `Shift-Home` and `Shift-End` jump to its ends.\n* **Leave preview**: `F7` returns to the underlying file or directory view.\n* **Applications**: `F9` opens the applications menu without leaving preview.\n* **Split blocked**: `F8` split does nothing while preview is active, and `Tab` does not switch panels.\n* **Cancel**: `Esc` leaves preview immediately."},
+    {"Preview commands", "* **Copy**: Copy the selected file. `Ctrl-K` copies the tagged set.\n* **Filter**: Filter the list without leaving preview. `Ctrl-S` searches only the tagged set.\n* **File commands**: Attributes, Delete, Edit, Invert, `J compare`, `M/^N move`, Newfile, Rename, Tag/Untag, View, Write, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles `` still work."},
 };
 
 static const GeneratedHelpLink generated_help_links_f8[] = {
@@ -497,7 +499,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-target",
         "Compare Target Help",
         "prompt.compare-target",
-        "The current file, directory, or logged tree is the source.\nEnter the target path directly, use `F2` to browse, or use `Up` for history.\nIn split view, the inactive panel seeds the default target.",
+        "The current file, directory, or logged tree is the compare source.\nEnter the target path directly, use `F2` to browse, or use `Up` for history.\nIn split view, the inactive panel seeds the default compare target.",
         2,
         generated_help_links_compare_target,
         1,
@@ -507,7 +509,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-scope",
         "Compare Scope Help",
         "prompt.compare-scope",
-        "`Directory` compares the current directory only.\n`Logged tree` compares the current logged tree and never auto-logs unopened branches.\n`External viewer` launches the configured external compare helper instead of tagging runtime results.",
+        "Directory only compares the current directory.\nLogged tree compares the current logged tree recursively and never auto-logs unopened branches.\nExternal viewer launches the configured external compare helper instead of tagging runtime results.",
         1,
         generated_help_links_compare_scope,
         1,
@@ -517,7 +519,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-basis",
         "Compare Basis Help",
         "prompt.compare-basis",
-        "`Size` compares file length.\n`Date` compares modification time.\n`siZe+date` treats either difference as a mismatch.\n`Hash` opens both files and compares their content exactly, so it is slower.",
+        "Size checks file length.\nDate checks the last-modified time.\nsiZe+date treats either difference as a mismatch.\nHash opens both files and compares their content exactly, so it is slower.",
         1,
         generated_help_links_compare_basis,
         1,
@@ -527,7 +529,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-results",
         "Compare Result Help",
         "prompt.compare-results",
-        "Choose which result class to tag on the source side.\n`diFferent` tags mismatches, and `Unique` tags source-only rows.\n`Match`, `Newer`, `Older`, `Type mismatch`, and `Error` each tag only that one class.",
+        "Choose which compare result to tag in the source-side file list.\ndiFferent tags basis mismatches, and Unique tags source-only entries.\nMatch, Newer, Older, Type mismatch, and Error each tag only that one class.",
         1,
         generated_help_links_compare_results,
         1,
@@ -638,9 +640,9 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "F7 Preview Help",
         "overlay.f7-dir,overlay.f7-file",
         "F7 Preview Help is the preview command list.\nPick a line for the short meaning, then press `Enter` for the fuller rule.",
-        2,
+        3,
         generated_help_links_f7,
-        1,
+        2,
         generated_help_sections_f7,
     },
     {

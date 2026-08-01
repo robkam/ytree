@@ -505,50 +505,8 @@ static BOOL F2HandleAction(ViewContext *ctx, YtreeNovaPanel *panel,
   }
 }
 
-static int F2RestoreOriginalContext(ViewContext *ctx, YtreeNovaPanel *panel,
-                                    struct Volume *original_vol,
-                                    unsigned int original_panel_generation) {
-  if (ctx->active->vol != original_vol) {
-    if (!AppStateCommitPanelVolume(ctx->active, original_vol))
-      return -1;
-    if (!AppStateRestorePanelGeneration(ctx->active, original_panel_generation))
-      return -1;
-    if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
-      return -1;
-
-    if (ctx->active)
-      (void)RestorePanelTreeViewportSnapshot(ctx, ctx->active);
-
-    DisplayMenu(ctx);
-
-    if (ctx->ctx_file_window == ctx->ctx_big_file_window) {
-      SwitchToBigFileWindow(ctx);
-      if (ctx->active->vol->vol_stats.tree->global_flag) {
-        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
-      } else {
-        UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
-                         &ctx->active->vol->vol_stats);
-      }
-    } else {
-      SwitchToSmallFileWindow(ctx);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  panel->disp_begin_pos,
-                  panel->disp_begin_pos + panel->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
-      UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
-                       &ctx->active->vol->vol_stats);
-    }
-
-    DisplayFileWindow(ctx, ctx->active,
-                      GetSelectedDirEntry(ctx, ctx->active->vol));
-    RefreshWindow(ctx->ctx_file_window);
-    DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
-  }
-
-  return 0;
-}
-
-static void F2RebuildActiveDirEntryList(ViewContext *ctx, struct Volume *target_vol) {
+static void F2RebuildActiveDirEntryList(ViewContext *ctx,
+                                        const struct Volume *target_vol) {
   int dummy;
 
   if (ctx == NULL || ctx->active == NULL || ctx->active->vol == NULL)
@@ -562,6 +520,7 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol;
   unsigned int original_panel_generation;
   F2PickerLoopState state;
+  int local_disp_begin_pos, local_cursor_pos;
   int win_width, win_height;
   YtreeNovaAction action;
 
@@ -614,12 +573,48 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     action = GetKeyAction(ctx, ch);
   } while (F2HandleAction(ctx, panel, &state, &action, path));
 
-  if (F2RestoreOriginalContext(ctx, panel, original_vol,
-                               original_panel_generation) != 0)
-    return -1;
+  local_disp_begin_pos = state.disp_begin_pos;
+  local_cursor_pos = state.cursor_pos;
 
-  if (!AppStateCommitPanelTreeViewport(panel, state.disp_begin_pos,
-                                       state.cursor_pos))
+  if (ctx->active->vol != original_vol) {
+    if (!AppStateCommitPanelVolume(ctx->active, original_vol))
+      return -1;
+    if (!AppStateRestorePanelGeneration(ctx->active, original_panel_generation))
+      return -1;
+    if (!AppStateCommitViewMode(ctx, ctx->active->vol->vol_stats.log_mode))
+      return -1;
+
+    if (ctx->active)
+      (void)RestorePanelTreeViewportSnapshot(ctx, ctx->active);
+
+    DisplayMenu(ctx);
+
+    if (ctx->ctx_file_window == ctx->ctx_big_file_window) {
+      SwitchToBigFileWindow(ctx);
+      if (ctx->active->vol->vol_stats.tree->global_flag) {
+        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
+      } else {
+        UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
+                         &ctx->active->vol->vol_stats);
+      }
+    } else {
+      SwitchToSmallFileWindow(ctx);
+      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                  panel->disp_begin_pos,
+                  panel->disp_begin_pos + panel->cursor_pos, TRUE);
+      DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
+      UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
+                       &ctx->active->vol->vol_stats);
+    }
+
+    DisplayFileWindow(ctx, ctx->active,
+                      GetSelectedDirEntry(ctx, ctx->active->vol));
+    RefreshWindow(ctx->ctx_file_window);
+    DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
+  }
+
+  if (!AppStateCommitPanelTreeViewport(panel, local_disp_begin_pos,
+                                       local_cursor_pos))
     return -1;
 
   UnmapF2Window(ctx);
