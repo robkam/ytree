@@ -94,7 +94,7 @@ See also: Navigation, File mode, Tagged.
 F7 preview overlays file preview controls on top of the underlying file-selection context.
 The preview owns scrolling while the underlying selection still owns the file target.
 
-See also: Navigation, File mode.
+See also: Navigation, File mode, Applications menu.
 ### Split Screen Mode
 
 F8 split mode gives each panel independent state and uses the inactive panel as the default target for multi-panel actions.

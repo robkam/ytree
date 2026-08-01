@@ -30,18 +30,6 @@ static const UICommandStripCommand history_help_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cancel", "Esc", NULL}};
-static const UICommandStripCommand preview_help_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Select File", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Scroll Page", "PgUp", "PgDn"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Jump", "Home", "End"}};
-static const UICommandStripCommand preview_command_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Navigate Preview", "Shift", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Exit Preview", "F7", NULL}};
-static const HelpCommandStrip preview_help_builtin[] = {
-    {"PREVIEW   ", preview_help_commands,
-     sizeof(preview_help_commands) / sizeof(preview_help_commands[0])},
-    {"COMMANDS  ", preview_command_commands,
-     sizeof(preview_command_commands) / sizeof(preview_command_commands[0])}};
 
 typedef struct {
   UICommandStripCommand command;
@@ -552,6 +540,45 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
                   "ACTION_TOGGLE_HIDDEN")};
 
+static const FooterCommandSpec preview_footer_specs[] = {
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
+                  "ACTION_CMD_A"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
+                   "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
+                  "ACTION_CMD_D"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Edit", "E", NULL,
+                  "ACTION_CMD_E"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
+                  "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL,
+                  "ACTION_INVERT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
+                  "ACTION_COMPARE_FILE"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N",
+                   "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
+                  "ACTION_CMD_MKFILE"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
+                  "ACTION_CMD_R"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
+                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL,
+                  "ACTION_CMD_V"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Write", "W", NULL,
+                  "ACTION_CMD_PRINT"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
+                  "ACTION_CMD_X"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
+                  "ACTION_CMD_Y"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL,
+                  "ACTION_CMD_I"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
+                  "ACTION_LIST_JUMP"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
+                  "ACTION_TOGGLE_HIDDEN")};
+
 static const FooterCommandSpec dir_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
@@ -581,6 +608,12 @@ static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "config", "F10", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "to dir", "\\", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
+
+static const FooterCommandSpec preview_footer_nav_specs[] = {
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "exit preview", "F7", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "applications", "F9", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL)};
 
 static const char *FooterContextName(BOOL is_dir, int view_mode) {
@@ -1009,27 +1042,6 @@ static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
                         strip->command_count, UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
 }
 
-static void DisplayPreviewHelpLine(ViewContext *ctx, int y,
-                                   const HelpCommandStrip *strip) {
-  int prefix_width;
-
-  if (ctx == NULL || ctx->ctx_border_window == NULL || strip == NULL ||
-      strip->prefix == NULL)
-    return;
-
-#ifdef COLOR_SUPPORT
-  PrintSpecialString(ctx->ctx_border_window, y, 0, (char *)strip->prefix,
-                     UI_ROLE_FOOTER);
-#else
-  PrintSpecialString(ctx->ctx_border_window, y, 0, (char *)strip->prefix,
-                     A_NORMAL);
-#endif
-
-  prefix_width = StrVisualLength((char *)strip->prefix);
-  UI_RenderCommandStrip(ctx->ctx_border_window, y, prefix_width, strip->commands,
-                        strip->command_count, UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
-}
-
 static const FooterCommandSpec *GetDirFooterSpecs(const ViewContext *ctx,
                                                   const DirEntry *dir_entry,
                                                   size_t *command_count,
@@ -1253,15 +1265,59 @@ int UI_ShowHistoryHelpPopup(ViewContext *ctx) {
 }
 
 void DisplayPreviewHelp(ViewContext *ctx) {
-  /*
-   * Help Footer for Preview Mode (F7)
-  */
-  wmove(ctx->ctx_border_window, Y_PROMPT(ctx), 0);
-  wclrtoeol(ctx->ctx_border_window);
-  DisplayPreviewHelpLine(ctx, Y_PROMPT(ctx), &preview_help_builtin[0]);
-  wmove(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0);
-  wclrtoeol(ctx->ctx_border_window);
-  DisplayPreviewHelpLine(ctx, Y_PROMPT(ctx) + 1, &preview_help_builtin[1]);
+  ResolvedFooterCommand resolved[32];
+  ResolvedFooterCommand nav_resolved[8];
+  UICommandStripCommand commands[32];
+  UICommandStripCommand nav_commands[8];
+  FooterPackResult pack;
+  FooterPackResult nav_pack;
+  int available_width;
+  int base_y;
+  size_t spec_count =
+      sizeof(preview_footer_specs) / sizeof(preview_footer_specs[0]);
+  size_t nav_count =
+      sizeof(preview_footer_nav_specs) / sizeof(preview_footer_nav_specs[0]);
+  size_t line1_count;
+  const UICommandStripCommand *line0_truncated = NULL;
+  const UICommandStripCommand *line1_truncated = NULL;
+
+  if (ctx == NULL || ctx->ctx_border_window == NULL)
+    return;
+
+  available_width = getmaxx(ctx->ctx_border_window) - FOOTER_COMMAND_COLUMN;
+  if (available_width < 0)
+    available_width = 0;
+
+  ResolveFooterCommandList(ctx, FALSE, preview_footer_specs, spec_count, resolved,
+                           commands);
+  pack = PackFooterCommands(commands, spec_count, available_width, 2, FALSE);
+  line1_count =
+      pack.visible_count > pack.line_counts[0] ? pack.visible_count - pack.line_counts[0]
+                                               : 0;
+  if (pack.truncated) {
+    if (pack.truncated_row == 0)
+      line0_truncated = &commands[pack.truncated_index];
+    else
+      line1_truncated = &commands[pack.truncated_index];
+  }
+
+  ResolveFooterCommandList(ctx, FALSE, preview_footer_nav_specs, nav_count,
+                           nav_resolved, nav_commands);
+  nav_pack = PackFooterCommands(nav_commands, nav_count, available_width, 1, FALSE);
+  base_y = Y_PROMPT(ctx) - 1;
+
+  RenderPackedFooterLine(ctx->ctx_border_window, base_y, "PREVIEW", commands,
+                         pack.line_counts[0], line0_truncated,
+                         (line0_truncated != NULL) ? pack.truncated_width : 0);
+  RenderPackedFooterLine(ctx->ctx_border_window, base_y + 1, "COMMANDS",
+                         commands + pack.line_counts[0], line1_count,
+                         line1_truncated,
+                         (line1_truncated != NULL) ? pack.truncated_width : 0);
+  RenderPackedFooterLine(ctx->ctx_border_window, base_y + 2, "", nav_commands,
+                         nav_pack.line_counts[0],
+                         nav_pack.truncated ? &nav_commands[nav_pack.truncated_index]
+                                            : NULL,
+                         nav_pack.truncated ? nav_pack.truncated_width : 0);
 }
 
 int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {

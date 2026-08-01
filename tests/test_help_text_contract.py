@@ -292,9 +292,12 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         )
         assert "PREVIEW" not in preview_body, preview_screen
         assert "COMMANDS" not in preview_body, preview_screen
+        assert "Copy:" in preview_screen, preview_screen
+        assert "Filter:" in preview_screen, preview_screen
         assert "Ctrl-P and Ctrl-N" in preview_screen, preview_screen
         assert preview_frame == split_frame, preview_screen
         assert "Shift-PgUp and Shift-PgDn" in preview_screen, preview_screen
+        assert "F8 split does nothing" in preview_screen, preview_screen
     finally:
         tui.quit()
 

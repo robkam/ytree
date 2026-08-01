@@ -303,10 +303,12 @@ static const GeneratedHelpLongFormSection generated_help_sections_global[] = {
 static const GeneratedHelpLink generated_help_links_f7[] = {
     {"Navigation", "navigation"},
     {"File mode", "file"},
+    {"Applications menu", "applications-menu"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f7[] = {
-    {"Preview controls", "* **Leave preview**: Press `F7` again to return to the underlying directory or file context.\n* **Move selection**: Use `Up`, `Down`, `Page Up`, `Page Down`, `Home`, and `End` to move the selected file while the preview updates.\n* **Scroll preview**: Use `Shift-Up` and `Shift-Down`, or `Ctrl-P` and `Ctrl-N`, to scroll preview text line by line.\n* **Page preview**: Use `Shift-PgUp` and `Shift-PgDn` to scroll preview text by pages.\n* **Jump in preview**: Use `Shift-Home` and `Shift-End` to jump to the start or end of the preview."},
+    {"Preview navigation", "* **Select file**: `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End` move the live file selection.\n* **Preview lines**: `Shift-Up` and `Shift-Down`, and `Ctrl-P` and `Ctrl-N`, scroll the preview.\n* **Preview pages**: `Shift-PgUp` and `Shift-PgDn` page the preview. `Shift-Home` and `Shift-End` jump to its ends.\n* **Leave preview**: `F7` returns to the underlying file or directory view.\n* **Applications**: `F9` opens the applications menu without leaving preview.\n* **Split blocked**: `F8` split does nothing while preview is active, and `Tab` does not switch panels.\n* **Cancel**: `Esc` leaves preview immediately."},
+    {"Preview commands", "* **Copy**: Copy the selected file. `Ctrl-K` copies the tagged set.\n* **Filter**: Filter the list without leaving preview. `Ctrl-S` searches only the tagged set.\n* **File commands**: Attributes, Delete, Edit, Invert, `J compare`, `M/^N move`, Newfile, Rename, Tag/Untag, View, Write, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles `` still work."},
 };
 
 static const GeneratedHelpLink generated_help_links_f8[] = {
@@ -638,9 +640,9 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "F7 Preview Help",
         "overlay.f7-dir,overlay.f7-file",
         "F7 Preview Help is the preview command list.\nPick a line for the short meaning, then press `Enter` for the fuller rule.",
-        2,
+        3,
         generated_help_links_f7,
-        1,
+        2,
         generated_help_sections_f7,
     },
     {
