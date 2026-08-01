@@ -467,6 +467,16 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for progress-state selection (indeterminate vs measurable) and completion/error transitions.
 *   - [ ] **Status:** Not Started.
 
+#### **Task 20.1: Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance**
+*   **Goal:** Preserve footer, prompt, and `F1` help ownership while long-running operations update progress/spinner state.
+*   **Rationale:** Help/trust regressions are not limited to static wording; progress rendering that overwrites guidance surfaces creates the same "UI is lying to me" failure mode during active work.
+*   **Related Bug:** `BUG-10` — progress spinner can overwrite footer keybinding/prompt/F1 surfaces.
+*   **Acceptance Criteria:**
+*   Progress updates render in a dedicated non-obtrusive status surface and never overwrite active footer/prompt/F1 guidance.
+*   When `F1` help is open, progress state degrades gracefully to a compact indicator or deferred repaint rather than seizing the help surface.
+*   Focused regression coverage proves long-running operations cannot blank or corrupt contextual guidance surfaces.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 21: Redraw Coherence**
 *   **Goal:** Ensure all related redraw-synchronization work ships under one coherent umbrella with deterministic scope boundaries.
 
@@ -801,7 +811,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Related Bugs:** `BUG-9.1` / `BUG-9.2` / `BUG-9.3` / `BUG-9.4` — footer keybinding/F1/prompt mismatch (discoverability + confidence).
 *   **Dependency:** Sequence after Task 40 establishes the structured footer layout engine and after Task 11.2 establishes the structured label/key-token split.
 *   **Sequencing Note:** Land Task 42's portable low-noise footer keybinding/F1 wording decisions before this task so parity is enforced against the final portable footer contract rather than a transient modifier-held variant.
-*   **Scope Lock:** Base help wording/structure, coverage matrix, and text-organization readiness only; no command-behavior changes. Hyperlink/index-style help navigation is tracked separately under Task 43.1, and progress/help coexistence is tracked separately under Task 43.2.
+*   **Scope Lock:** Base help wording/structure, coverage matrix, and text-organization readiness only; no command-behavior changes. Hyperlink/index-style help navigation is tracked separately under Task 43.1, and progress/help coexistence is tracked separately under Task 20.1.
 *   **Surface-Naming Contract:** Keep the help surfaces distinct in roadmap/spec/runtime language: the always-visible bottom strip is the **footer command strip**; the modal opened by `F1` is the **help popup**; the minimal action row inside that popup is the **help-popup hint line**; and any command/topic entry that exists mainly to branch into deeper explanation is a **help popup link**.
 *   **Acceptance Criteria:**
 *   For each supported context, every footer command appears in the matching `F1` help set, but `F1` need not mirror the footer verbatim if a clearer concise explanation is better.
@@ -837,17 +847,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for link focus, follow, back, and close behavior.
 *   - [~] **Status:** In Progress.
 
-#### **Task 43.2: Keep Progress Indicators from Clobbering Footer/Prompt/F1 Guidance**
-*   **Goal:** Preserve footer, prompt, and `F1` help ownership while long-running operations update progress/spinner state.
-*   **Rationale:** Help/trust regressions are not limited to static wording; progress rendering that overwrites guidance surfaces creates the same "UI is lying to me" failure mode during active work.
-*   **Related Bug:** `BUG-10` — progress spinner can overwrite footer keybinding/prompt/F1 surfaces.
-*   **Acceptance Criteria:**
-*   Progress updates render in a dedicated non-obtrusive status surface and never overwrite active footer/prompt/F1 guidance.
-*   When `F1` help is open, progress state degrades gracefully to a compact indicator or deferred repaint rather than seizing the help surface.
-*   Focused regression coverage proves long-running operations cannot blank or corrupt contextual guidance surfaces.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 43.3: Theme the Contextual F1 Reading Surface and Separate Footer Guidance Role**
+#### **Task 43.2: Theme the Contextual F1 Reading Surface and Separate Footer Guidance Role**
 *   **Goal:** Define and implement distinct theme-role behavior for the contextual `F1` reading surface and the always-visible footer guidance surface now that the base role-based theme system exists.
 *   **Rationale:** Task 60 established the general theme architecture, but it intentionally left `help` overloaded across the footer and the `F1` reading surface. Contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes while the footer keeps an independently tunable low-noise scheme.
 *   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, introduce a dedicated `footer` role for the footer keybinding strip, and allow narrower roles such as `help_link` and `help_link_selection` if hyperlink help needs them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
@@ -861,7 +861,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused tests or source-contract checks prove footer and `F1` help can use different theme roles and do not fall back to picker/dialog styling.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 43.4: Separate Contextual F1 Help Authorship from Man/Usage Reference Authorship**
+#### **Task 43.3: Separate Contextual F1 Help Authorship from Man/Usage Reference Authorship**
 *   **Goal:** Keep contextual `F1` help and man/USAGE reference prose in separate authored sources so each can serve its own audience without tone or structure compromises.
 *   **Rationale:** Footer/F1 parity checks reduce runtime drift, but one prose body should not be forced to serve both jobs. The filter path is the clearest example: pressing `F`/`f` for filter and then `F1` should open a short plain-English guide, while the manpage and `docs/USAGE.md` should remain terser Unix-reference material.
 *   **Separate-source contract:** The authored contextual-help source is dedicated to the help popup (`etc/help/f1.en.md` target path). The authored man/USAGE reference source is separate (`etc/help/man.en.md` target path). No compatibility shim or forced dual-purpose source remains in the final model.
@@ -884,7 +884,7 @@ Ordering policy (for all editors, including AI editors):
 *   The chosen split-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
 *   - [ ] **Status:** In Progress.
 
-#### **Task 43.4.1: Define the Split Help-Source Topic Schemas**
+#### **Task 43.3.1: Define the Split Help-Source Topic Schemas**
 *   **Goal:** Define the exact `etc/help/f1.en.md` and `etc/help/man.en.md` topic-block formats so new help pages can be added by inserting one new block in the relevant authored file.
 *   **Schema contract:** Each topic block carries a stable topic ID and declared runtime contexts/prompts. F1 blocks own concise contextual text plus explainer links; man blocks own terse reference subsections for the same topic ID where needed.
 *   **Authoring contract:** Both files must stay easy to scan and edit in a normal text editor; maintainers must not need to touch multiple hidden fragment stores or update fragile offsets/index tables by hand when adding a new topic block.
@@ -894,7 +894,7 @@ Ordering policy (for all editors, including AI editors):
 *   The schemas document how F1 explainer links are declared without creating deep help trees and how the man source stays independent of F1 prose.
 *   - [ ] **Status:** In Progress.
 
-#### **Task 43.4.2: Implement the Python Help Generator**
+#### **Task 43.3.2: Implement the Python Help Generator**
 *   **Goal:** Implement the in-repo Python generator that reads the separate F1 and man help sources and emits runtime help assets plus long-form docs.
 *   **Generator contract:** The generator must be the sole correctness path for producing manpage output, generated `docs/USAGE.md`, and runtime `F1` help assets from the split authored sources.
 *   **Portability contract:** The generator must use only Python facilities acceptable on the supported target set and must not require `cmark` or other external markdown tooling to succeed.
@@ -904,7 +904,7 @@ Ordering policy (for all editors, including AI editors):
 *   The generator fails loudly on malformed topic blocks in either source rather than silently dropping help content.
 *   - [ ] **Status:** In Progress.
 
-#### **Task 43.4.3: Wire Runtime Context-to-Topic Help Loading**
+#### **Task 43.3.3: Wire Runtime Context-to-Topic Help Loading**
 *   **Goal:** Make runtime `F1` surfaces load generated contextual help content by context/topic ID from the dedicated F1 source instead of embedding ad-hoc prose in code.
 *   **Runtime contract:** Each supported `F1` surface and prompt resolves through a maintained context -> topic mapping table backed by the F1 source, including the help-popup hint line rendered as combined keybind+word labels where the keybind exists in the word (for example `Contents` and `Navigation`, with the mnemonic letter highlighted by UI styling rather than literal stored parentheses) and as `key space lowercase action` where it does not (for example `Esc`/`Quit`). Generated help must also carry the shallow shared-explainer links permitted by Task 43.1, keep navigation topics distinct from YtreeNova command-family topics, and respect the one-or-two-hop maximum depth.
 *   **Scope-sharing contract:** Showall and Global may share generated topic content where behavior matches, but the mapping layer must still allow a distinct Global-only explainer for multi-volume behavior.
@@ -1383,11 +1383,11 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
-*   **Documentation i18n split:** Use `po4a` for help/manpage/doc translation workflow from the canonical authored help sources defined by Task 43.4 (`etc/help/f1.en.md` and `etc/help/man.en.md`); generated man/usage/help assets stay derived artifacts. Use gettext for runtime UI surfaces (footer labels/help, prompts, status/error/info text) that are not emitted from the canonical help-source pipeline.
+*   **Documentation i18n split:** Use `po4a` for help/manpage/doc translation workflow from the canonical authored help sources defined by Task 43.3 (`etc/help/f1.en.md` and `etc/help/man.en.md`); generated man/usage/help assets stay derived artifacts. Use gettext for runtime UI surfaces (footer labels/help, prompts, status/error/info text) that are not emitted from the canonical help-source pipeline.
 *   **Keybinding token contract:** Translate human command labels only. Key tokens come from the active keymap and punctuation comes from the renderer. For example, English can render key token `C` + label `Copy` as `(C)opy`, while German can render key token `K` + label `Kopieren` as `(K)opieren`. Translators must not be required to preserve raw strings like `(C)opy` for shortcut visibility.
 *   **Translator workflow contract:** Contributors should be able to add or update a language by editing standard translation assets (`.po` for runtime UI, `po4a` inputs for docs/help) without touching C source, renderer punctuation, or mnemonic/key-token wiring.
 *   **Translator-guide contract:** Ship a translator-facing guide that explains the split between canonical help-source translation, runtime gettext strings, and command/keymap preset data; the guide must also explain how locale-specific mnemonic/keybinding conflicts are resolved in shipped presets/keymaps rather than by manually rewriting rendered shortcut prose.
-*   **Runtime help-text organization:** Contextual `F1` help prose should come primarily from the canonical help-source pipeline in Task 43.4 rather than scattered ad-hoc C literals; remaining non-generated footer/prompt/help text should flow through a small predictable set of gettext contexts/catalog entries so translators can find related strings together and keep repeated explanations consistent.
+*   **Runtime help-text organization:** Contextual `F1` help prose should come primarily from the canonical help-source pipeline in Task 43.3 rather than scattered ad-hoc C literals; remaining non-generated footer/prompt/help text should flow through a small predictable set of gettext contexts/catalog entries so translators can find related strings together and keep repeated explanations consistent.
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
 *   **Pilot locale:** Ship German (`de`) as the first non-English reference locale and use it as the contributor template/test bed proving end-to-end UI + manpage/help translation workflow, while keeping English fallback automatic for untranslated strings.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
