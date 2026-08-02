@@ -862,57 +862,26 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 #### **Task 43.3: Separate Contextual F1 Help Authorship from Man/Usage Reference Authorship**
-*   **Goal:** Keep contextual `F1` help and man/USAGE reference prose in separate authored sources so each can serve its own audience without tone or structure compromises.
-*   **Rationale:** Footer/F1 parity checks reduce runtime drift, but one prose body should not be forced to serve both jobs. The filter path is the clearest example: pressing `F`/`f` for filter and then `F1` should open a short plain-English guide, while the manpage and `docs/USAGE.md` should remain terser Unix-reference material.
-*   **Separate-source contract:** The authored contextual-help source is dedicated to the help popup (`etc/help/f1.en.md` target path). The authored man/USAGE reference source is separate (`etc/help/man.en.md` target path). No compatibility shim or forced dual-purpose source remains in the final model.
+*   **Goal:** Keep contextual `F1` help and man/USAGE reference prose in separate authored sources so each can serve its own audience without tone or structure compromises, then finish the remaining audit/parity cleanup around that pipeline.
+*   **Rationale:** Much of this split-source pipeline already exists, so the remaining work is no longer "invent the mechanism" so much as "keep the mechanism authoritative, editable, and fully reconciled with runtime/footer/manpage behavior." The filter path remains the clearest example: pressing `F`/`f` for filter and then `F1` should open a short plain-English guide, while the manpage and `docs/USAGE.md` stay terser Unix-reference material.
+*   **Separate-source contract:** The authored contextual-help source is dedicated to the help popup (`etc/help/f1.en.md`). The authored man/USAGE reference source is separate (`etc/help/man.en.md`). No compatibility shim or forced dual-purpose source remains in the final model.
 *   **Projection contract:** The F1 source drives only runtime/contextual help assets. The man source drives only the manpage and generated `docs/USAGE.md`. Shared topic IDs and mappings are allowed, but shared prose is optional rather than required.
-*   **Editability contract:** Both sources must be easy for translators and maintainers to read and edit directly as ordinary markdown. Optional reusable fragments may exist only when they are naturally helpful; translators may copy/paste by judgment, and neither file is shaped around keeping the other DRY.
-*   **Context/topic contract:** Both authored sources use the same stable topic inventory (for example `contents`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`, `command-line-editing`, `vi-keys`, `f10`, `theming`) and the runtime maps active contexts/prompts to those topic IDs. Shared facts such as keybinding ownership and context mapping stay aligned through that inventory, not through forced shared prose.
-*   **Contextual-F1 contract:** Contextual `F1` remains intentionally short and task-local. Prompt `F1` surfaces such as Filter/Compare/Output show only the relevant plain-English syntax/options/examples for that prompt, while the main directory/file/archive/F7/F8 surfaces explain the active footer commands and only the non-obvious caveats needed in that context. The help-popup hint line is a fixed minimal row for `Contents`, `Navigation`, and `Esc/Quit`, and every listed command term in the body is a help popup link to a brief explication page.
-*   **Local-navigation contract:** Contextual command pages keep navigation ownership clear. Directory help carries tree/directory navigation only, file help carries file-window navigation only, and topic-local controls such as `F8 split` stay on their own contextual pages instead of being repeated across unrelated command pages.
+*   **Generator/runtime contract:** The in-repo Python generator is the sole correctness path for runtime help assets, generated headers, manpage output, and `docs/USAGE.md`, and runtime `F1` surfaces resolve through maintained context -> topic mappings backed by the F1 source rather than scattered ad-hoc C prose.
+*   **Editability contract:** Both sources must stay easy for translators and maintainers to read and edit directly as ordinary markdown. Optional reusable fragments may exist only when naturally helpful; neither file should be shaped around clever DRY tricks that make ordinary editing harder.
+*   **Context/topic contract:** Both authored sources use the same stable topic inventory (for example `contents`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`, `command-line-editing`, `vi-keys`, `f10`, and `theming`) and the runtime maps active contexts/prompts to those topic IDs. Shared facts such as keybinding ownership and context mapping stay aligned through that inventory, not through forced shared prose.
+*   **Contextual-F1 contract:** Contextual `F1` remains intentionally short and task-local. Prompt `F1` surfaces such as Filter/Compare/Output show only the relevant plain-English syntax/options/examples for that prompt, while the main directory/file/archive/F7/F8 surfaces explain the active footer commands and only the non-obvious caveats needed in that context. The help-popup hint line is a fixed minimal row for `Contents`, `Navigation`, and `Esc/Quit`, and every listed command term in the body is a help popup link to a brief explainer page.
 *   **Reference-tone contract:** The man/USAGE source stays terse and reference-oriented. It is a markdown-authored Unix-style bite-sized reference, not a projection of the F1 tutorial voice.
-*   **Geometry contract:** The help popup uses a fixed frame footprint derived from the current layout topology, matching the history/up-arrow family rather than resizing to per-topic content.
-*   **Generator portability contract:** Essential help generation must not depend on external markdown tooling that may be missing on supported targets. The project must ship a small in-repo Python generator (Python is already a project requirement for tests) that runs on Linux, BSD, GNU Hurd, and illumos and produces runtime help assets from the F1 source plus man/usage outputs from the man source. External tools are not part of the correctness path.
+*   **Generator portability contract:** Essential help generation must not depend on external markdown tooling that may be missing on supported targets. The project ships a small in-repo Python generator (Python is already a project requirement for tests) that runs on Linux, BSD, GNU Hurd, and illumos; external tools are not part of the correctness path.
 *   **Ownership split:** User `commands.conf` remains a user override/customization surface for labels/bindings and is not the canonical source of translated help prose. Shipped help data owns explanatory text; key tokens and displayed command labels continue to resolve through keymap/command-preset/runtime rendering rules.
 *   **Acceptance Criteria:**
 *   Updating filter help for the tutorial popup and updating filter help for the man/USAGE reference are independent explicit edits; no hidden single-source prose coupling is required.
+*   The schemas for `etc/help/f1.en.md` and `etc/help/man.en.md` remain strict enough for deterministic generation and simple enough for maintainers and translators to extend manually.
+*   One generator command regenerates runtime help outputs from `etc/help/f1.en.md` and reference outputs from `etc/help/man.en.md`, and generation fails loudly on malformed topic blocks instead of silently dropping content.
 *   A maintained context-to-source mapping exists for the first-pass `F1` surfaces (directory, file, archive, Showall, Global, F7, F8, and prompt/dialog help including Filter/Compare/Output).
-*   The shared topic inventory keeps runtime keybinding facts and context ownership aligned across both sources without forcing shared paragraphs.
-*   Build/docs tooling can regenerate `docs/USAGE.md` and manpage output from the man source and regenerate runtime `F1` help assets from the F1 source without manual copy editing and without requiring `cmark` for correctness.
-*   Parity/audit coverage detects drift between active runtime keybindings, generated `F1` slices, and manpage/usage text.
-*   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated in the same delivery so the split-source help model, generator path, and runtime context/topic mapping contract are documented as first-class architecture/spec behavior.
-*   The chosen split-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
-*   - [ ] **Status:** In Progress.
-
-#### **Task 43.3.1: Define the Split Help-Source Topic Schemas**
-*   **Goal:** Define the exact `etc/help/f1.en.md` and `etc/help/man.en.md` topic-block formats so new help pages can be added by inserting one new block in the relevant authored file.
-*   **Schema contract:** Each topic block carries a stable topic ID and declared runtime contexts/prompts. F1 blocks own concise contextual text plus explainer links; man blocks own terse reference subsections for the same topic ID where needed.
-*   **Authoring contract:** Both files must stay easy to scan and edit in a normal text editor; maintainers must not need to touch multiple hidden fragment stores or update fragile offsets/index tables by hand when adding a new topic block.
-*   **Acceptance Criteria:**
-*   The schemas are strict enough for deterministic generation and simple enough for maintainers and translators to extend manually.
-*   Topic IDs exist for the first-pass surfaces `contents`, `navigation`, `dir`, `file`, `archive-dir`, `archive-file`, `filter`, `compare`, `output`, `showall`, `global`, `f7`, `f8`, `command-line-editing`, `vi-keys`, `f10`, and `theming`.
-*   The schemas document how F1 explainer links are declared without creating deep help trees and how the man source stays independent of F1 prose.
-*   - [ ] **Status:** In Progress.
-
-#### **Task 43.3.2: Implement the Python Help Generator**
-*   **Goal:** Implement the in-repo Python generator that reads the separate F1 and man help sources and emits runtime help assets plus long-form docs.
-*   **Generator contract:** The generator must be the sole correctness path for producing manpage output, generated `docs/USAGE.md`, and runtime `F1` help assets from the split authored sources.
-*   **Portability contract:** The generator must use only Python facilities acceptable on the supported target set and must not require `cmark` or other external markdown tooling to succeed.
-*   **Acceptance Criteria:**
-*   One generator command regenerates runtime help outputs from `etc/help/f1.en.md` and reference outputs from `etc/help/man.en.md`.
-*   Output generation is deterministic and suitable for CI/audit drift checks.
-*   The generator fails loudly on malformed topic blocks in either source rather than silently dropping help content.
-*   - [ ] **Status:** In Progress.
-
-#### **Task 43.3.3: Wire Runtime Context-to-Topic Help Loading**
-*   **Goal:** Make runtime `F1` surfaces load generated contextual help content by context/topic ID from the dedicated F1 source instead of embedding ad-hoc prose in code.
-*   **Runtime contract:** Each supported `F1` surface and prompt resolves through a maintained context -> topic mapping table backed by the F1 source, including the help-popup hint line rendered as combined keybind+word labels where the keybind exists in the word (for example `Contents` and `Navigation`, with the mnemonic letter highlighted by UI styling rather than literal stored parentheses) and as `key space lowercase action` where it does not (for example `Esc`/`Quit`). Generated help must also carry the shallow shared-explainer links permitted by Task 43.1, keep navigation topics distinct from YtreeNova command-family topics, and respect the one-or-two-hop maximum depth.
-*   **Scope-sharing contract:** Showall and Global may share generated topic content where behavior matches, but the mapping layer must still allow a distinct Global-only explainer for multi-volume behavior.
-*   **Acceptance Criteria:**
 *   Directory, file, archive-dir, archive-file, Filter, Compare, Output, Showall, Global, F7, and F8 `F1` paths all resolve through generated topic data.
-*   Help popup geometry stays layout-derived and stable within a given topology instead of resizing from page text length.
-*   Adding a new `F1` context requires adding a topic block plus one mapping entry, not hand-writing new prose in code.
-*   Focused regression/audit coverage proves runtime help is generated-content driven rather than duplicated literal text.
+*   Parity/audit coverage detects drift between active runtime keybindings, generated `F1` slices, and manpage/usage text.
+*   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` stay aligned with the split-source help model, generator path, and runtime context/topic mapping contract.
+*   The chosen split-source format remains compatible with the future gettext/po4a split tracked under Task 61 rather than creating an i18n dead end.
 *   - [ ] **Status:** In Progress.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
