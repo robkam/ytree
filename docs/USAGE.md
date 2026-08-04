@@ -97,10 +97,10 @@ The preview owns scrolling while the underlying selection still owns the file ta
 See also: Navigation, File mode, Applications menu.
 ### Split Screen Mode
 
-F8 split mode gives each panel independent state and uses the inactive panel as the default target for multi-panel actions.
-Its topic covers only split-specific rules.
+Split mode keeps two panels active at once, and runtime F1 opens the directory or file split page for the active panel.
+Use the split page for the live footer command list and this page for the shared split model.
 
-See also: Navigation, Directory mode, File mode.
+See also: Navigation, Directory split page, File split page.
 # KEY BINDINGS
 
 **Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-`Ctrl` footer variant, and Ctrl-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
@@ -433,8 +433,9 @@ when it is omitted, runtime inherits the `help` foreground and background. When
 bundled starter themes keep `picker` on a different background so F2,
 history, volume, and applications menus stand out from the main content
 background. Color values accept names or numbers, `grey`/`gray`, bright
-prefixes such as `+white` or `+grey`, and optional backgrounds such as
-`+white on blue`.
+prefixes such as `+white`, and optional backgrounds such as `+white on
+blue`. `+grey`/`+gray` is accepted syntax but currently renders as
+`white`, so prefer `white` when you mean the rendered color.
 
 Theme-local file-type palettes use compact grouped rules, for example
 `archives = red: tar,tgz,zip` or `scripts = +cyan: sh,bash,py`. Rules are

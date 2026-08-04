@@ -170,8 +170,9 @@ when it is omitted, runtime inherits the `help` foreground and background. When
 bundled starter themes keep `picker` on a different background so F2,
 history, volume, and applications menus stand out from the main content
 background. Color values accept names or numbers, `grey`/`gray`, bright
-prefixes such as `+white` or `+grey`, and optional backgrounds such as
-`+white on blue`.
+prefixes such as `+white`, and optional backgrounds such as `+white on
+blue`. `+grey`/`+gray` is accepted syntax but currently renders as
+`white`, so prefer `white` when you mean the rendered color.
 
 Theme-local file-type palettes use compact grouped rules, for example
 `archives = red: tar,tgz,zip` or `scripts = +cyan: sh,bash,py`. Rules are
