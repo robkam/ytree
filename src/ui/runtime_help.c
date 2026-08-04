@@ -22,11 +22,14 @@
 #define GENERATED_HELP_DEFAULT_WRAP_WIDTH 72
 #define GENERATED_HELP_MIN_MAIN_WIDTH 8
 #define GENERATED_HELP_WRAP_PADDING 4
+#define GENERATED_HELP_INTRO_RESERVED_FOOTER_COMMANDS 1
+#define GENERATED_HELP_STANDARD_RESERVED_FOOTER_COMMANDS 3
 
 typedef struct {
   char label[GENERATED_HELP_MAX_ITEM_LABEL];
   char summary[GENERATED_HELP_MAX_TEXT_WIDTH];
   char detail[GENERATED_HELP_MAX_ITEM_DETAIL];
+  const char *linked_topic_id;
   BOOL selectable;
 } RuntimeHelpItem;
 
@@ -300,6 +303,28 @@ static char PickFooterKey(const char *label, const char used_keys[],
   return (char)toupper((unsigned char)label[0]);
 }
 
+static BOOL TopicIdEquals(const GeneratedHelpTopic *topic, const char *topic_id) {
+  return topic != NULL && topic->topic_id != NULL && topic_id != NULL &&
+         strcmp(topic->topic_id, topic_id) == 0;
+}
+
+static const char *FindExplainerTopicForLabel(const GeneratedHelpTopic *topic,
+                                              const char *label) {
+  size_t i;
+
+  if (topic == NULL || label == NULL || label[0] == '\0')
+    return NULL;
+
+  for (i = 0; i < topic->explainer_link_count; ++i) {
+    if (topic->explainer_links[i].label != NULL &&
+        strcmp(topic->explainer_links[i].label, label) == 0) {
+      return topic->explainer_links[i].target_topic_id;
+    }
+  }
+
+  return NULL;
+}
+
 static void TrimWhitespaceInPlace(char *text) {
   char *start;
   char *end;
@@ -514,6 +539,7 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
   RuntimeHelpItem *item;
   char detail[GENERATED_HELP_MAX_ITEM_DETAIL];
   size_t detail_len;
+  const char *linked_topic_id;
 
   if (state == NULL || heading == NULL || body == NULL ||
       state->item_count >= GENERATED_HELP_MAX_ITEMS)
@@ -529,6 +555,7 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
   ExtractItemLabel(heading, item->label, sizeof(item->label));
   if (item->label[0] == '\0')
     return;
+  linked_topic_id = FindExplainerTopicForLabel(state->topic, item->label);
   detail_len = strlen(detail);
   if (detail_len >= sizeof(item->detail))
     detail_len = sizeof(item->detail) - 1;
@@ -537,7 +564,9 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
   ExtractSummary(detail, item->summary, sizeof(item->summary));
   if (item->summary[0] == '\0')
     snprintf(item->summary, sizeof(item->summary), "%s", detail);
-  item->selectable = (strcmp(item->summary, item->detail) != 0);
+  item->linked_topic_id = linked_topic_id;
+  item->selectable =
+      (item->linked_topic_id != NULL || strcmp(item->summary, item->detail) != 0);
   state->item_count++;
 }
 
@@ -677,6 +706,18 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
     return 0;
 
   if (state->contextual_list_mode) {
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
+    state->footer_commands[command_count].label =
+        state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Open"
+                                                                   : "Back";
+    state->footer_commands[command_count].primary_key =
+        state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Enter"
+                                                                   : "Left";
+    state->footer_commands[command_count].secondary_key =
+        state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Right"
+                                                                   : "C";
+    command_count++;
+
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
     state->footer_commands[command_count].label = "Contents";
     state->footer_commands[command_count].primary_key = "C";
@@ -699,7 +740,9 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
     return command_count;
   }
 
-  reserved_tail = 1;
+  reserved_tail = TopicIdEquals(state->topic, "intro")
+                      ? GENERATED_HELP_INTRO_RESERVED_FOOTER_COMMANDS
+                      : GENERATED_HELP_STANDARD_RESERVED_FOOTER_COMMANDS;
   memset(used_keys, 0, sizeof(used_keys));
   for (i = 0; i < state->topic->explainer_link_count &&
               command_count + reserved_tail < GENERATED_HELP_MAX_FOOTER_COMMANDS;
@@ -722,6 +765,19 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
   state->link_command_count = command_count;
   state->active_link_index =
       command_count > 0 ? 0 : GENERATED_HELP_NO_SELECTION;
+  if (!TopicIdEquals(state->topic, "intro")) {
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+    state->footer_commands[command_count].label = "Back";
+    state->footer_commands[command_count].primary_key = "Left";
+    state->footer_commands[command_count].secondary_key = NULL;
+    command_count++;
+
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+    state->footer_commands[command_count].label = "Contents";
+    state->footer_commands[command_count].primary_key = "C";
+    state->footer_commands[command_count].secondary_key = NULL;
+    command_count++;
+  }
   state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
   state->footer_commands[command_count].label = "Quit";
   state->footer_commands[command_count].primary_key = "Esc";
@@ -959,6 +1015,13 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
         return -1;
       if (!state->items[state->selected_item_index].selectable)
         return -1;
+      if (state->items[state->selected_item_index].linked_topic_id != NULL) {
+        state->next_topic_id =
+            state->items[state->selected_item_index].linked_topic_id;
+        state->reselection_direction = 0;
+        state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+        return 1;
+      }
       state->next_detail_index = state->selected_item_index;
       state->reselection_direction = 0;
       state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
@@ -985,9 +1048,17 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
     return 0;
   }
 
+  key = islower(ch) ? toupper(ch) : ch;
   if (ch == KEY_LEFT) {
     state->back_requested = TRUE;
     return 1;
+  }
+  if (key == 'C') {
+    if (!TopicIdEquals(state->topic, "intro")) {
+      state->next_topic_id = "intro";
+      return 1;
+    }
+    return -1;
   }
 
   if (ch == KEY_RIGHT || ch == CR || ch == LF) {
@@ -1000,7 +1071,6 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
     return 1;
   }
 
-  key = islower(ch) ? toupper(ch) : ch;
   for (i = 0; i < state->link_command_count; ++i) {
     if (state->footer_commands[i].primary_key != NULL &&
         state->footer_commands[i].primary_key[0] == key) {

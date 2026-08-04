@@ -272,6 +272,8 @@ PROMPT_TOPIC_ORDER = [
 
 SUPPORT_TOPIC_ORDER = [
     ("command-line-editing", "Command-line Editing"),
+    ("copy-move-targets", "Copy/Move Targets"),
+    ("list-jump", "List Jump"),
     ("vi-keys", "VI Keys"),
     ("f10", "F10 Config"),
     ("theming", "Theming"),

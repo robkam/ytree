@@ -32,7 +32,7 @@ static const GeneratedHelpLink generated_help_links_intro[] = {
 
 static const GeneratedHelpLongFormSection generated_help_sections_intro[] = {
     {"Purpose", "Use `F1` for the thing you are doing now, not as one giant manual.\nShort local pages keep the first answer on screen. Shared topics carry the rules that repeat across more than one place."},
-    {"Contents", "* **Navigation**: Learn the help-popup keys, list movement, and back/close rules.\n* **Tagged**: Learn how ytnova treats a tagged set as one working group.\n* **Shared commands**: Learn the function-key family that appears in more than one mode.\n* **Directory Help**: Learn tree-mode commands and directory-only rules.\n* **File Help**: Learn file-list commands, tagged actions, and file-only rules.\n* **Archive Directory Help**: Learn what changes inside an archive tree.\n* **Archive File Help**: Learn what changes inside an archive file list.\n* **Showall** and **Global**: Learn the aggregated file-list modes.\n* **F7 Preview** and **F8 Split**: Learn overlay-only controls and caveats.\n* **Filter**, **Compare**, and **Output**: Learn the option-heavy command families.\n* **Command-line Editing**, **VI Keys**, **F2 picker**, **F10 config**, and **Theming**: Learn the shared operator rules."},
+    {"Contents", "* **Navigation**: Learn the help-popup keys, list movement, and back/close rules.\n* **Tagged**: Learn how ytnova treats a tagged set as one working group.\n* **Shared commands**: Learn the function-key family that appears in more than one mode.\n* **Directory Help**: Learn tree-mode commands and directory-only rules.\n* **File Help**: Learn file-list commands, tagged actions, and file-only rules.\n* **Archive Directory Help**: Learn what changes inside an archive tree.\n* **Archive File Help**: Learn what changes inside an archive file list.\n* **Showall** and **Global**: Learn the aggregated file-list modes.\n* **F7 Preview** and **F8 Split**: Learn overlay-only controls and caveats.\n* **List Jump** and **Copy/Move Targets**: Learn the shared `/` jump model plus destination and wildcard rename rules.\n* **Filter**, **Compare**, and **Output**: Learn the option-heavy command families.\n* **Command-line Editing**, **VI Keys**, **F2 picker**, **F10 config**, and **Theming**: Learn the shared operator rules."},
 };
 
 static const GeneratedHelpLink generated_help_links_navigation[] = {
@@ -45,7 +45,19 @@ static const GeneratedHelpLink generated_help_links_navigation[] = {
 
 static const GeneratedHelpLongFormSection generated_help_sections_navigation[] = {
     {"Help popup keys", "* **Up/Down**: Move between selectable rows or links.\n* **Page Up/Page Down**: Scroll longer help pages.\n* **Home/End**: Jump to the top or bottom of the current help page.\n* **Enter/Right**: Open the selected help item or linked topic.\n* **Left**: Go back one step.\n* **Esc/Quit**: Close the popup."},
-    {"Shared list movement", "* **Up/Down**: Move the active selection.\n* **Page Up/Page Down**: Move by pages.\n* **Home/End**: Jump to the start or end of the current list.\n* **Enter**: Accept the current row or switch between paired views when that surface owns `Enter`.\n* **Esc**: Cancel the current prompt, dialog, or overlay."},
+    {"Scope boundary", "This topic owns help-popup movement only.\nUse `List Jump` for runtime `/` name-jump behavior, and use the local mode page for ordinary tree/file selection commands."},
+};
+
+static const GeneratedHelpLink generated_help_links_list_jump[] = {
+    {"Directory mode", "dir"},
+    {"File mode", "file"},
+    {"Showall", "showall"},
+    {"Global", "global"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_list_jump[] = {
+    {"Jump model", "`/` starts an in-place jump prompt for the current list only.\nTree/directory views jump among visible directory names, while file-oriented views jump among the visible file rows for that surface."},
+    {"Acceptance and cancel", "* **Type text**: Move immediately to the best current match as you type.\n* **Enter**: Keep the current match and stay there.\n* **Esc**: Cancel the jump and restore the original selection.\n* **Scope changes**: Filtering, Showall/Global projection, archives, and split mode all change which visible list `/` searches, but they do not change the jump keys themselves."},
 };
 
 static const GeneratedHelpLink generated_help_links_shared_commands[] = {
@@ -81,6 +93,18 @@ static const GeneratedHelpLongFormSection generated_help_sections_command_line_e
     {"Shared helpers", "* **Up**: Open or cycle prompt history when that prompt keeps history.\n* **F2**: Open a browser or picker when the current prompt supports browsing.\n* **F1**: Show syntax or scope rules that matter only to the current prompt."},
 };
 
+static const GeneratedHelpLink generated_help_links_copy_move_targets[] = {
+    {"Directory mode", "dir"},
+    {"File mode", "file"},
+    {"Archive file", "archive-file"},
+    {"F8 split", "f8"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_copy_move_targets[] = {
+    {"Target forms", "Use a directory path when you want the original names preserved under another directory.\nUse one full replacement name when you want one selected item to land under a new explicit name.\nUse a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern."},
+    {"Shared rules", "Tagged copy/move uses the same target syntax as single-item copy/move.\nSplit mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.\nArchive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved."},
+};
+
 static const GeneratedHelpLink generated_help_links_vi_keys[] = {
     {"Navigation", "navigation"},
     {"Command-line editing", "command-line-editing"},
@@ -112,26 +136,33 @@ static const GeneratedHelpLongFormSection generated_help_sections_theming[] = {
 
 static const GeneratedHelpLink generated_help_links_dir[] = {
     {"Navigation", "navigation"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"MoveDir", "copy-move-targets"},
     {"Output", "output"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_dir[] = {
-    {"Directory commands", "* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` change the paired file view, and `6` toggles size units.\n* **Attributes**: Open the attributes submenu for the selected directory.\n* **Copy**: Copy the selected directory branch to another directory. The destination prompt can reuse the currently suggested target path, or you can replace it with another directory before the copy starts.\n* **Delete**: Delete the selected directory.\n* **Filter**: Filter the current file-list scope. Use globs such as `*.c`, comma lists such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `>2023-01-01`, or `>1M`.\n* **Global**: Show files from every logged volume in one list.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected directory, the current logged tree, or another target. Use it for tree-vs-tree checks or to hand the pair off to an external compare tool, depending on the compare prompt you choose.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file, or reload an already logged path from the top.\n* **Makedir**: Create a new directory.\n* **New File**: Create a new empty file in the current directory.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected directory to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected directory.\n* **Showall**: Show every file inside the current logged volume.\n* **Tag**: Tag the files in the selected directory scope.\n* **Untag**: Remove tags from the selected directory scope.\n* **MoveDir**: Move the selected directory branch.\n* **Write**: Export the current selection through the output prompts.\n* **Execute**: Run a shell command on the current selection while leaving `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files and dot-directories."},
+    {"Directory commands", "* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` change the paired file view, and `6` toggles size units.\n* **Attributes**: Open the attributes submenu for the selected directory.\n* **Copy**: Copy the selected directory branch to another directory.\n* **Delete**: Delete the selected directory.\n* **Filter**: Filter the current file-list scope.\n* **Global**: Show files from every logged volume in one list.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected directory, the current logged tree, or another target.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file, or reload an already logged path from the top.\n* **Makedir**: Create a new directory.\n* **New File**: Create a new empty file in the current directory.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected directory to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected directory.\n* **Showall**: Show every file inside the current logged volume.\n* **Tag**: Tag the files in the selected directory scope.\n* **Untag**: Remove tags from the selected directory scope.\n* **MoveDir**: Move the selected directory branch.\n* **Write**: Export the current selection through the output prompts.\n* **Execute**: Run a shell command on the current selection while leaving `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files and dot-directories."},
     {"Directory function keys", "* **F1**: Open contextual help for the active directory surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the current file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
 static const GeneratedHelpLink generated_help_links_file[] = {
     {"Navigation", "navigation"},
     {"Tagged", "tagged"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"Move", "copy-move-targets"},
     {"Output", "output"},
+    {"Write", "output"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_file[] = {
-    {"File commands", "* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt. The destination prompt accepts a directory, a full replacement name, or wildcard rename patterns such as `*.bak` or `copy-*`.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current file-list scope with globs, exclusions, and extended selectors. `Ctrl-S` searches only the tagged files and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file. Use it for quick file-vs-file checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving file mode.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt. The destination prompt uses the same directory, rename, and wildcard pattern rules as Copy.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current scope.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set. One destination or separator choice can write the whole batch.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
+    {"File commands", "* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current file-list scope. `Ctrl-S` searches only the tagged files and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving file mode.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current scope.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
     {"File function keys", "* **F1**: Open contextual help for the active file surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the selected file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
@@ -139,22 +170,26 @@ static const GeneratedHelpLink generated_help_links_archive_dir[] = {
     {"Navigation", "navigation"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_archive_dir[] = {
-    {"Archive directory commands", "* **1..9 view**: Change the archive directory/file presentation with keys `1` through `9`. `1..4` choose the base archive directory/file view, `5`, `7`, and `8` still affect the paired file projection, `6` toggles row-size units, and `9` stays a no-op inside archives.\n* **Delete**: Delete the selected archive directory entry.\n* **Filter**: Filter the current archive-backed file-list scope. The same glob, exclusion, and extended-selector rules apply here too.\n* **Global**: Show archive-backed results together with other logged volumes.\n* **Compare**: Compare the selected archive directory or the current archive tree. Use it for archive-vs-tree checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Volume**: Open the volume picker.\n* **Log**: Log another directory or archive file.\n* **Makedir**: Create a directory where the archive format supports it.\n* **Jump**: Jump to a matching name in the current list.\n* **Pipe**: Send the selected archive path to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected archive directory entry.\n* **Showall**: Show every file in the current archive.\n* **Tag**: Tag the files in the current virtual directory scope.\n* **Untag**: Remove tags from the current virtual directory scope.\n* **Root/Exit**: `\\` jumps to archive root when you are below it, or leaves the archive when you are already there.\n* **Dotfiles**: Toggle hidden entries when the archive view exposes them."},
+    {"Archive directory commands", "* **1..9 view**: Change the archive directory/file presentation with keys `1` through `9`. `1..4` choose the base archive directory/file view, `5`, `7`, and `8` still affect the paired file projection, `6` toggles row-size units, and `9` stays a no-op inside archives.\n* **Delete**: Delete the selected archive directory entry.\n* **Filter**: Filter the current archive-backed file-list scope.\n* **Global**: Show archive-backed results together with other logged volumes.\n* **Compare**: Compare the selected archive directory or the current archive tree.\n* **Volume**: Open the volume picker.\n* **Log**: Log another directory or archive file.\n* **Makedir**: Create a directory where the archive format supports it.\n* **Jump**: Jump to a matching name in the current list.\n* **Pipe**: Send the selected archive path to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected archive directory entry.\n* **Showall**: Show every file in the current archive.\n* **Tag**: Tag the files in the current virtual directory scope.\n* **Untag**: Remove tags from the current virtual directory scope.\n* **Root/Exit**: `\\` jumps to archive root when you are below it, or leaves the archive when you are already there.\n* **Dotfiles**: Toggle hidden entries when the archive view exposes them."},
     {"Archive directory function keys", "* **F1**: Open contextual help for the active archive-directory surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the current file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
 static const GeneratedHelpLink generated_help_links_archive_file[] = {
     {"Navigation", "navigation"},
     {"Tagged", "tagged"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"Move", "copy-move-targets"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_archive_file[] = {
-    {"Archive file commands", "* **1..9 view**: Change the archive-file presentation with keys `1` through `9`. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, and `8` toggles File detail, while `9` stays a no-op inside archives.\n* **Copy**: `C` copies the selected archive entry through archive-aware extract/copy paths, and `Ctrl-K` copies the tagged archive entries through the same prompt. The destination prompt accepts a directory, a full replacement name, or wildcard rename patterns such as `*.bak`.\n* **Delete**: Delete the selected archive entry.\n* **Filter**: Filter the current archive-backed file-list scope. `Ctrl-S` searches only the tagged archive entries and untags non-matches.\n* **Hex**: View the selected archive entry in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected archive entry against another file. Use it for quick file-vs-file checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Volume**: Open the volume picker.\n* **Log**: Log another directory or archive file.\n* **Move**: `M` moves the selected archive entry through archive-aware paths, and `Ctrl-N` moves the tagged archive entries through that same prompt. The destination prompt uses the same directory, rename, and wildcard pattern rules as Copy.\n* **Pipe**: Send the selected archive entry to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected archive entry.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected archive entry, and `Ctrl-T` tags every visible archive row in the current scope.\n* **Untag**: Remove the tag from the selected archive entry, and `Ctrl-U` removes every archive tag in the current scope.\n* **View**: View the selected archive entry, and `Ctrl-V` views the tagged archive entries one after another.\n* **Pathcopy**: Copy the selected archive entry while keeping its relative path.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden entries when the archive view exposes them."},
+    {"Archive file commands", "* **1..9 view**: Change the archive-file presentation with keys `1` through `9`. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, and `8` toggles File detail, while `9` stays a no-op inside archives.\n* **Copy**: `C` copies the selected archive entry through archive-aware extract/copy paths, and `Ctrl-K` copies the tagged archive entries through the same prompt.\n* **Delete**: Delete the selected archive entry.\n* **Filter**: Filter the current archive-backed file-list scope. `Ctrl-S` searches only the tagged archive entries and untags non-matches.\n* **Hex**: View the selected archive entry in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected archive entry against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log another directory or archive file.\n* **Move**: `M` moves the selected archive entry through archive-aware paths, and `Ctrl-N` moves the tagged archive entries through that same prompt.\n* **Pipe**: Send the selected archive entry to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected archive entry.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected archive entry, and `Ctrl-T` tags every visible archive row in the current scope.\n* **Untag**: Remove the tag from the selected archive entry, and `Ctrl-U` removes every archive tag in the current scope.\n* **View**: View the selected archive entry, and `Ctrl-V` views the tagged archive entries one after another.\n* **Pathcopy**: Copy the selected archive entry while keeping its relative path.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden entries when the archive view exposes them."},
     {"Archive file function keys", "* **F1**: Open contextual help for the active archive-file surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the selected file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
@@ -289,43 +324,55 @@ static const GeneratedHelpLongFormSection generated_help_sections_output_separat
 static const GeneratedHelpLink generated_help_links_showall[] = {
     {"Navigation", "navigation"},
     {"Tagged", "tagged"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"Move", "copy-move-targets"},
     {"Output", "output"},
+    {"Write", "output"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_showall[] = {
     {"Showall rules", "* **Scope**: Showall lists every file inside the current logged volume only. It does not merge in other logged volumes.\n* **Return**: Return to the previously selected directory.\n* **Open owner**: Jump to the owner directory of the selected file inside the current logged volume."},
-    {"Showall commands", "* **1..9 view**: Change the active panel's file presentation for the Showall list. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt. The destination prompt accepts a directory, a full replacement name, or wildcard rename patterns such as `*.bak` or `copy-*`.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current Showall result set with globs, exclusions, and extended selectors. `Ctrl-S` searches only the tagged files in the current Showall result set and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible Showall result set.\n* **Compare**: Compare the selected file against another file. Use it for quick file-vs-file checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving Showall.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt. The destination prompt uses the same directory, rename, and wildcard pattern rules as Copy.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only the tagged rows from the current Showall result set without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Repeating `S` changes sort without leaving Showall.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current Showall result set.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current Showall result set.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set. One destination or separator choice can write the whole batch.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current Showall result set."},
+    {"Showall commands", "* **1..9 view**: Change the active panel's file presentation for the Showall list. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current Showall result set. `Ctrl-S` searches only the tagged files in the current Showall result set and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible Showall result set.\n* **Compare**: Compare the selected file against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving Showall.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only the tagged rows from the current Showall result set without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Repeating `S` changes sort without leaving Showall.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current Showall result set.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current Showall result set.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current Showall result set."},
     {"Showall function keys", "* **F1**: Open contextual help for the current Showall surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the selected file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
 static const GeneratedHelpLink generated_help_links_global[] = {
     {"Navigation", "navigation"},
     {"Tagged", "tagged"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"Move", "copy-move-targets"},
     {"Output", "output"},
+    {"Write", "output"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_global[] = {
     {"Global rules", "* **Scope**: Global lists files from every logged volume. It is the cross-volume aggregate view.\n* **Return**: Return to the previously selected directory.\n* **Open owner**: Jump to the owner directory of the selected file even when it lives under another logged volume root."},
-    {"Global commands", "* **1..9 view**: Change the active panel's file presentation for the Global list. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt. The destination prompt accepts a directory, a full replacement name, or wildcard rename patterns such as `*.bak` or `copy-*`.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current Global result set with globs, exclusions, and extended selectors. `Ctrl-S` searches only the tagged files in the current Global result set and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible Global result set.\n* **Compare**: Compare the selected file against another file. Use it for quick file-vs-file checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving Global.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt. The destination prompt uses the same directory, rename, and wildcard pattern rules as Copy.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only the tagged rows from the current Global result set without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Repeating `S` changes sort without leaving Global.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current Global result set.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current Global result set.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set. One destination or separator choice can write the whole batch.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the owning volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current Global result set."},
+    {"Global commands", "* **1..9 view**: Change the active panel's file presentation for the Global list. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current Global result set. `Ctrl-S` searches only the tagged files in the current Global result set and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible Global result set.\n* **Compare**: Compare the selected file against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving Global.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only the tagged rows from the current Global result set without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Repeating `S` changes sort without leaving Global.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current Global result set.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current Global result set.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the owning volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current Global result set."},
     {"Global function keys", "* **F1**: Open contextual help for the current Global surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the selected file context.\n* **F8**: Toggle split-screen mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
 static const GeneratedHelpLink generated_help_links_f7[] = {
     {"Navigation", "navigation"},
     {"Tagged", "tagged"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
     {"Applications menu", "applications-menu"},
+    {"Move", "copy-move-targets"},
     {"Output", "output"},
+    {"Write", "output"},
+    {"Jump", "list-jump"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f7[] = {
     {"Preview rules", "* **F1**: Open contextual help for preview.\n* **F7**: Return to the underlying directory or file view.\n* **F8**: Split does nothing while preview is active.\n* **F9**: Open the applications menu without leaving preview.\n* **Tab panels**: `Tab` does not switch panels while preview is active.\n* **Esc**: Leave preview immediately."},
-    {"Preview commands", "* **Attributes**: Open the attributes submenu for the selected file without leaving preview.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt. The destination prompt accepts a directory, a full replacement name, or wildcard rename patterns such as `*.bak` or `copy-*`.\n* **Delete**: Delete the selected file without leaving preview.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current preview-backed file list with globs, exclusions, and extended selectors. `Ctrl-S` searches only the tagged files and untags non-matches.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file. Use it for quick file-vs-file checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt. The destination prompt uses the same directory, rename, and wildcard pattern rules as Copy.\n* **New File**: Create a new empty file without leaving preview.\n* **Rename**: Rename the selected file without leaving preview.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current scope.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set. One destination or separator choice can write the whole batch.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
+    {"Preview commands", "* **Attributes**: Open the attributes submenu for the selected file without leaving preview.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt.\n* **Delete**: Delete the selected file without leaving preview.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current preview-backed file list. `Ctrl-S` searches only the tagged files and untags non-matches.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt.\n* **New File**: Create a new empty file without leaving preview.\n* **Rename**: Rename the selected file without leaving preview.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current scope.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
 };
 
 static const GeneratedHelpLink generated_help_links_f8[] = {
@@ -339,31 +386,46 @@ static const GeneratedHelpLongFormSection generated_help_sections_f8[] = {
 };
 
 static const GeneratedHelpLink generated_help_links_f8_dir[] = {
+    {"F8", "f8"},
     {"Navigation", "navigation"},
     {"Split overview", "f8"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"MoveDir", "copy-move-targets"},
     {"Output", "output"},
+    {"Jump", "list-jump"},
+    {"Tab", "f8"},
+    {"Target defaults", "f8"},
+    {"Panel independence", "f8"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f8_dir[] = {
     {"Split rules", "* **F8**: Return to single-panel mode.\n* **Tab**: Switch the active panel and keep the passive panel's state intact.\n* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.\n* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state."},
-    {"Split directory commands", "* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` change the paired file view, and `6` toggles size units.\n* **Attributes**: Open the attributes submenu for the selected directory.\n* **Copy**: Copy the selected directory branch. In split mode the destination prompt defaults to the selected directory on the inactive panel, but you can still replace that target before the copy starts.\n* **Delete**: Delete the selected directory.\n* **Filter**: Filter the current file-list scope. Use globs such as `*.c`, comma lists such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `>2023-01-01`, or `>1M`.\n* **Global**: Show files from every logged volume in one list.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected directory, the current logged tree, or another target. Use it for tree-vs-tree checks or to hand the pair off to an external compare tool, depending on the compare prompt you choose.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file, or reload an already logged path from the top.\n* **Makedir**: Create a new directory.\n* **New File**: Create a new empty file in the current directory.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected directory to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected directory.\n* **Showall**: Show every file inside the current logged volume.\n* **Tag**: Tag the files in the selected directory scope.\n* **Untag**: Remove tags from the selected directory scope.\n* **MoveDir**: Move the selected directory branch.\n* **Write**: Export the current selection through the output prompts.\n* **Execute**: Run a shell command on the current selection while leaving `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files and dot-directories."},
+    {"Split directory commands", "* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` change the paired file view, and `6` toggles size units.\n* **Attributes**: Open the attributes submenu for the selected directory.\n* **Copy**: Copy the selected directory branch. In split mode the destination prompt defaults to the selected directory on the inactive panel.\n* **Delete**: Delete the selected directory.\n* **Filter**: Filter the current file-list scope.\n* **Global**: Show files from every logged volume in one list.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected directory, the current logged tree, or another target.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file, or reload an already logged path from the top.\n* **Makedir**: Create a new directory.\n* **New File**: Create a new empty file in the current directory.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected directory to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected directory.\n* **Showall**: Show every file inside the current logged volume.\n* **Tag**: Tag the files in the selected directory scope.\n* **Untag**: Remove tags from the selected directory scope.\n* **MoveDir**: Move the selected directory branch.\n* **Write**: Export the current selection through the output prompts.\n* **Execute**: Run a shell command on the current selection while leaving `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files and dot-directories."},
     {"Split directory function keys", "* **F1**: Open contextual help for the active split-directory surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the current file context.\n* **F8**: Return to single-panel mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
 static const GeneratedHelpLink generated_help_links_f8_file[] = {
+    {"F8", "f8"},
     {"Navigation", "navigation"},
     {"Split overview", "f8"},
     {"Tagged", "tagged"},
+    {"Copy", "copy-move-targets"},
     {"Filter", "filter"},
     {"Compare", "compare"},
+    {"Move", "copy-move-targets"},
     {"Output", "output"},
+    {"Write", "output"},
+    {"Jump", "list-jump"},
+    {"Tab", "f8"},
+    {"Target defaults", "f8"},
+    {"Panel independence", "f8"},
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f8_file[] = {
     {"Split rules", "* **F8**: Return to single-panel mode.\n* **Tab**: Switch the active panel and keep the passive panel's state intact.\n* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.\n* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state."},
-    {"Split file commands", "* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt, which in split mode defaults to the selected directory on the inactive panel. You can replace that default with another path, a full replacement name, or wildcard rename patterns such as `*.bak`.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current file-list scope with globs, exclusions, and extended selectors. `Ctrl-S` searches only the tagged files and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file. Use it for quick file-vs-file checks or to hand the pair off to an external compare tool from the compare prompt.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving file mode.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt, which in split mode defaults to the selected directory on the inactive panel. The prompt still accepts rename or wildcard pattern targets.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current scope.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set. One destination or separator choice can write the whole batch.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
+    {"Split file commands", "* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.\n* **Attributes**: Open the attributes submenu for the selected file.\n* **Copy**: `C` copies the selected file and `Ctrl-K` copies the tagged set through the same prompt, which in split mode defaults to the selected directory on the inactive panel.\n* **Delete**: Delete the selected file.\n* **Edit**: Open the selected file in the configured editor.\n* **Filter**: Filter the current file-list scope with globs, exclusions, and extended selectors. `Ctrl-S` searches only the tagged files and untags non-matches.\n* **Hex**: View the selected file in hex mode.\n* **Invert Tags**: Flip the tag state inside the current visible scope.\n* **Compare**: Compare the selected file against another file.\n* **Volume**: Open the volume picker.\n* **Log**: Log a new directory or archive file without leaving file mode.\n* **Move**: `M` moves the selected file and `Ctrl-N` moves the tagged set through that same prompt, which in split mode defaults to the selected directory on the inactive panel. The prompt still accepts rename or wildcard pattern targets.\n* **New File**: Create a new empty file.\n* **Only tagged**: Show only tagged files in the current scope without changing the tag state.\n* **Pipe**: Send the selected file to a command on standard input.\n* **Quit**: Quit ytnova.\n* **Rename**: Rename the selected file.\n* **Sort**: Change the current file-list sort order.\n* **Tag**: Tag the selected file, and `Ctrl-T` tags every visible file in the current scope.\n* **Untag**: Remove the tag from the selected file, and `Ctrl-U` removes every tag in the current scope.\n* **View**: View the selected file with the configured pager, and `Ctrl-V` views the tagged files one after another.\n* **Write**: Export the selected file through the output prompts, and `Ctrl-W` reuses the same prompts for the tagged set.\n* **Execute**: Run a shell command on the selected file, and `Ctrl-X` reruns the same command once for each tagged file. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.\n* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.\n* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.\n* **Jump**: Jump to a matching name in the current list.\n* **Dotfiles**: Toggle hidden dot-files in the current scope."},
     {"Split file function keys", "* **F1**: Open contextual help for the active split-file surface.\n* **F5**: Refresh the active panel.\n* **F6**: Change the active panel's stats/details presentation.\n* **F7**: Toggle preview for the selected file context.\n* **F8**: Return to single-panel mode.\n* **F9**: Open the Applications menu.\n* **F10**: Open the configuration command surface."},
 };
 
@@ -422,6 +484,16 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         generated_help_sections_navigation,
     },
     {
+        "list-jump",
+        "List Jump",
+        NULL,
+        "Use `/` to type a live name fragment and jump inside the current list.\nThe active mode still decides which list you are searching.",
+        4,
+        generated_help_links_list_jump,
+        2,
+        generated_help_sections_list_jump,
+    },
+    {
         "shared-commands",
         "Shared Commands",
         NULL,
@@ -450,6 +522,16 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         generated_help_links_command_line_editing,
         2,
         generated_help_sections_command_line_editing,
+    },
+    {
+        "copy-move-targets",
+        "Copy/Move Targets",
+        NULL,
+        "Copy and move prompts accept a destination directory, a full replacement name, or a wildcard rename pattern.\nThe local mode page still owns which key copies or moves, which tagged repeat exists, and any split/archive caveat.",
+        4,
+        generated_help_links_copy_move_targets,
+        2,
+        generated_help_sections_copy_move_targets,
     },
     {
         "vi-keys",
@@ -485,8 +567,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "dir",
         "Directory Help",
         "main.dir",
-        "Directory Help lists the active tree-panel commands.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        4,
+        "Directory Help lists the active tree-panel commands.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        7,
         generated_help_links_dir,
         2,
         generated_help_sections_dir,
@@ -495,8 +577,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "file",
         "File Help",
         "main.file",
-        "File Help lists the active file-panel commands.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        5,
+        "File Help lists the active file-panel commands.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        9,
         generated_help_links_file,
         2,
         generated_help_sections_file,
@@ -505,8 +587,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "archive-dir",
         "Archive Directory Help",
         "main.archive-dir",
-        "Archive Directory Help lists the active archive-tree commands.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        3,
+        "Archive Directory Help lists the active archive-tree commands.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        4,
         generated_help_links_archive_dir,
         2,
         generated_help_sections_archive_dir,
@@ -515,8 +597,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "archive-file",
         "Archive File Help",
         "main.archive-file",
-        "Archive File Help lists the active archive-file commands.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        4,
+        "Archive File Help lists the active archive-file commands.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        7,
         generated_help_links_archive_file,
         2,
         generated_help_sections_archive_file,
@@ -665,8 +747,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "showall",
         "Showall Help",
         "main.showall",
-        "Showall Help lists the commands for the current single-volume aggregate view.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        5,
+        "Showall Help lists the commands for the current single-volume aggregate view.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        9,
         generated_help_links_showall,
         3,
         generated_help_sections_showall,
@@ -675,8 +757,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "global",
         "Global Help",
         "main.global",
-        "Global Help lists the commands for the current multi-volume aggregate view.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        5,
+        "Global Help lists the commands for the current multi-volume aggregate view.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        9,
         generated_help_links_global,
         3,
         generated_help_sections_global,
@@ -685,8 +767,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f7",
         "F7 Preview Help",
         "overlay.f7-dir,overlay.f7-file",
-        "F7 Preview Help lists the commands that still work while preview stays open.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        6,
+        "F7 Preview Help lists the commands that still work while preview stays open.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        10,
         generated_help_links_f7,
         2,
         generated_help_sections_f7,
@@ -705,8 +787,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f8-dir",
         "F8 Split Directory Help",
         "overlay.f8-dir",
-        "F8 Split Directory Help lists the split-specific rules plus the active split directory-footer commands.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        5,
+        "F8 Split Directory Help lists the split-specific rules plus the active split directory-footer commands.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        12,
         generated_help_links_f8_dir,
         3,
         generated_help_sections_f8_dir,
@@ -715,8 +797,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f8-file",
         "F8 Split File Help",
         "overlay.f8-file",
-        "F8 Split File Help lists the split-specific rules plus the active split file-footer commands.\nComplex rows open a short explainer; one-line rows already say the whole action.",
-        6,
+        "F8 Split File Help lists the split-specific rules plus the active split file-footer commands.\nRows with shared rules open their owning explainer; one-line rows already say the whole action.",
+        14,
         generated_help_links_f8_file,
         3,
         generated_help_sections_f8_file,
@@ -763,4 +845,4 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     },
 };
 
-static const size_t generated_help_topic_count = 36;
+static const size_t generated_help_topic_count = 38;

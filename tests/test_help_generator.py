@@ -41,6 +41,8 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert "### Help System" in manpage
     assert "**Attributes**: Open the attributes submenu." in manpage
     assert "### Filter Help" in manpage
+    assert "### Copy/Move Targets" in manpage
+    assert "### List Jump" in manpage
     assert "### Command-line Editing" in manpage
     assert "### F10 Config" in manpage
     assert "Use normal glob-like patterns such as `*.c`" in manpage
@@ -53,6 +55,7 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert '"main.dir"' in header
     assert '"prompt.compare-target"' in header
     assert '"prompt.output-format"' in header
+    assert 'generated_help_links_list_jump' in header
     assert 'generated_help_links_filter' in header
 
 
