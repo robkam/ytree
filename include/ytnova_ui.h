@@ -247,6 +247,7 @@ typedef struct {
   size_t active_command_index;
   int (*key_handler)(ViewContext *, int, void *);
   int (*active_row_handler)(const void *);
+  void (*viewport_handler)(void *, int, int, int);
   void *key_data;
 } UIHelpPopupFooterSpec;
 extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,

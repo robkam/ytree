@@ -77,6 +77,7 @@ typedef struct {
 } FooterRowFit;
 
 #define FOOTER_COMMAND_COLUMN 9
+#define HELP_LABEL_OVERRIDE_TEXT_LENGTH 160
 #define FOOTER_STATIC(layout, label, key1, key2)                                 \
   { { layout, label, key1, key2 }, NULL, NULL }
 #define FOOTER_ACTION(layout, label, key1, key2, action_id)                      \
@@ -780,7 +781,7 @@ FindFooterSpecByPrimaryAction(const FooterCommandSpec *specs, size_t spec_count,
 static size_t BuildHelpLabelOverrides(
     const ViewContext *ctx, BOOL is_dir, const HelpLabelOverridePlan *plan,
     UIHelpLabelOverride *overrides,
-    char labels[][COMMAND_PRESENTATION_LABEL_LENGTH], size_t max_overrides) {
+    char labels[][HELP_LABEL_OVERRIDE_TEXT_LENGTH], size_t max_overrides) {
   size_t count = 0;
   size_t index;
 
@@ -797,8 +798,8 @@ static size_t BuildHelpLabelOverrides(
       ResolvedFooterCommand resolved;
 
       ResolveFooterCommandSpec(ctx, is_dir, spec, &resolved);
-      snprintf(labels[count], COMMAND_PRESENTATION_LABEL_LENGTH, "%s",
-               resolved.label);
+      snprintf(labels[count], sizeof(labels[count]), "%s",
+               resolved.rendered_text);
       overrides[count].canonical_label =
           plan->override_specs[index].canonical_label;
       overrides[count].display_label = labels[count];
@@ -1320,92 +1321,216 @@ void DisplayPreviewHelp(ViewContext *ctx) {
                          nav_pack.truncated ? nav_pack.truncated_width : 0);
 }
 
+static const HelpLabelOverrideSpec dir_help_label_specs[] = {
+    {"Attributes", "ACTION_CMD_A"},
+    {"Copy", "ACTION_CMD_C"},
+    {"Delete", "ACTION_CMD_D"},
+    {"Filter", "ACTION_FILTER"},
+    {"Global", "ACTION_CMD_G"},
+    {"Invert Tags", "ACTION_INVERT"},
+    {"Compare", "ACTION_COMPARE_DIR"},
+    {"Volume", "ACTION_VOL_MENU"},
+    {"Log", "ACTION_LOG"},
+    {"Makedir", "ACTION_CMD_M"},
+    {"New File", "ACTION_CMD_MKFILE"},
+    {"Only tagged", "ACTION_TOGGLE_TAGGED_MODE"},
+    {"Pipe", "ACTION_CMD_P"},
+    {"Quit", "ACTION_QUIT"},
+    {"Rename", "ACTION_CMD_R"},
+    {"Showall", "ACTION_CMD_S"},
+    {"Tag", "ACTION_TAG"},
+    {"Untag", "ACTION_UNTAG"},
+    {"MoveDir", "ACTION_CMD_V"},
+    {"Write", "ACTION_CMD_PRINT"},
+    {"Execute", "ACTION_CMD_X"},
+    {"Archive", "ACTION_CMD_I"},
+    {"Jump", "ACTION_LIST_JUMP"},
+    {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
+
+static const HelpLabelOverridePlan dir_help_label_plan = {
+    dir_footer_standard_specs,
+    sizeof(dir_footer_standard_specs) / sizeof(dir_footer_standard_specs[0]),
+    dir_help_label_specs,
+    sizeof(dir_help_label_specs) / sizeof(dir_help_label_specs[0])};
+
+static const HelpLabelOverrideSpec archive_dir_help_label_specs[] = {
+    {"Delete", "ACTION_CMD_D"},
+    {"Filter", "ACTION_FILTER"},
+    {"Global", "ACTION_CMD_G"},
+    {"Compare", "ACTION_COMPARE_DIR"},
+    {"Volume", "ACTION_VOL_MENU"},
+    {"Log", "ACTION_LOG"},
+    {"Makedir", "ACTION_CMD_M"},
+    {"Pipe", "ACTION_CMD_P"},
+    {"Quit", "ACTION_QUIT"},
+    {"Rename", "ACTION_CMD_R"},
+    {"Showall", "ACTION_CMD_S"},
+    {"Tag", "ACTION_TAG"},
+    {"Untag", "ACTION_UNTAG"},
+    {"Jump", "ACTION_LIST_JUMP"},
+    {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
+
+static const HelpLabelOverridePlan archive_dir_help_label_plan = {
+    dir_footer_archive_to_root_specs,
+    sizeof(dir_footer_archive_to_root_specs) /
+        sizeof(dir_footer_archive_to_root_specs[0]),
+    archive_dir_help_label_specs,
+    sizeof(archive_dir_help_label_specs) /
+        sizeof(archive_dir_help_label_specs[0])};
+
+static const HelpLabelOverrideSpec file_help_label_specs[] = {
+    {"Attributes", "ACTION_CMD_A"},
+    {"Copy", "ACTION_CMD_C"},
+    {"Delete", "ACTION_CMD_D"},
+    {"Edit", "ACTION_CMD_E"},
+    {"Filter", "ACTION_FILTER"},
+    {"Hex", "ACTION_CMD_H"},
+    {"Invert Tags", "ACTION_INVERT"},
+    {"Compare", "ACTION_COMPARE_FILE"},
+    {"Volume", "ACTION_VOL_MENU"},
+    {"Log", "ACTION_LOG"},
+    {"Move", "ACTION_CMD_M"},
+    {"New File", "ACTION_CMD_MKFILE"},
+    {"Only tagged", "ACTION_TOGGLE_TAGGED_MODE"},
+    {"Pipe", "ACTION_CMD_P"},
+    {"Quit", "ACTION_QUIT"},
+    {"Rename", "ACTION_CMD_R"},
+    {"Sort", "ACTION_CMD_S"},
+    {"Tag", "ACTION_TAG"},
+    {"Untag", "ACTION_UNTAG"},
+    {"View", "ACTION_CMD_V"},
+    {"Write", "ACTION_CMD_PRINT"},
+    {"Execute", "ACTION_CMD_X"},
+    {"Pathcopy", "ACTION_CMD_Y"},
+    {"Archive", "ACTION_CMD_I"},
+    {"Jump", "ACTION_LIST_JUMP"},
+    {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
+
+static const HelpLabelOverridePlan file_help_label_plan = {
+    file_footer_standard_specs,
+    sizeof(file_footer_standard_specs) / sizeof(file_footer_standard_specs[0]),
+    file_help_label_specs,
+    sizeof(file_help_label_specs) / sizeof(file_help_label_specs[0])};
+
+static const HelpLabelOverrideSpec archive_file_help_label_specs[] = {
+    {"Copy", "ACTION_CMD_C"},
+    {"Delete", "ACTION_CMD_D"},
+    {"Filter", "ACTION_FILTER"},
+    {"Hex", "ACTION_CMD_H"},
+    {"Invert Tags", "ACTION_INVERT"},
+    {"Compare", "ACTION_COMPARE_FILE"},
+    {"Volume", "ACTION_VOL_MENU"},
+    {"Log", "ACTION_LOG"},
+    {"Move", "ACTION_CMD_M"},
+    {"Pipe", "ACTION_CMD_P"},
+    {"Quit", "ACTION_QUIT"},
+    {"Rename", "ACTION_CMD_R"},
+    {"Sort", "ACTION_CMD_S"},
+    {"Tag", "ACTION_TAG"},
+    {"Untag", "ACTION_UNTAG"},
+    {"View", "ACTION_CMD_V"},
+    {"Pathcopy", "ACTION_CMD_Y"},
+    {"Jump", "ACTION_LIST_JUMP"},
+    {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
+
+static const HelpLabelOverridePlan archive_file_help_label_plan = {
+    file_footer_archive_specs,
+    sizeof(file_footer_archive_specs) / sizeof(file_footer_archive_specs[0]),
+    archive_file_help_label_specs,
+    sizeof(archive_file_help_label_specs) /
+        sizeof(archive_file_help_label_specs[0])};
+
+static const HelpLabelOverrideSpec preview_help_label_specs[] = {
+    {"Attributes", "ACTION_CMD_A"},
+    {"Copy", "ACTION_CMD_C"},
+    {"Delete", "ACTION_CMD_D"},
+    {"Edit", "ACTION_CMD_E"},
+    {"Filter", "ACTION_FILTER"},
+    {"Invert Tags", "ACTION_INVERT"},
+    {"Compare", "ACTION_COMPARE_FILE"},
+    {"Move", "ACTION_CMD_M"},
+    {"New File", "ACTION_CMD_MKFILE"},
+    {"Rename", "ACTION_CMD_R"},
+    {"Tag", "ACTION_TAG"},
+    {"Untag", "ACTION_UNTAG"},
+    {"View", "ACTION_CMD_V"},
+    {"Write", "ACTION_CMD_PRINT"},
+    {"Execute", "ACTION_CMD_X"},
+    {"Pathcopy", "ACTION_CMD_Y"},
+    {"Archive", "ACTION_CMD_I"},
+    {"Jump", "ACTION_LIST_JUMP"},
+    {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
+
+static const HelpLabelOverridePlan preview_help_label_plan = {
+    preview_footer_specs,
+    sizeof(preview_footer_specs) / sizeof(preview_footer_specs[0]),
+    preview_help_label_specs,
+    sizeof(preview_help_label_specs) / sizeof(preview_help_label_specs[0])};
+
+static int ShowGeneratedHelpForPlan(ViewContext *ctx, BOOL is_dir,
+                                    const char *context_id,
+                                    const HelpLabelOverridePlan *plan) {
+  size_t max_overrides;
+  UIHelpLabelOverride *label_overrides;
+  char(*label_text)[HELP_LABEL_OVERRIDE_TEXT_LENGTH];
+  int rc;
+
+  if (ctx == NULL || context_id == NULL || plan == NULL)
+    return -1;
+
+  max_overrides = plan->override_spec_count;
+  label_overrides = xcalloc(max_overrides, sizeof(*label_overrides));
+  label_text = xcalloc(max_overrides, sizeof(*label_text));
+  rc = UI_ShowGeneratedContextHelpWithOverrides(
+      ctx, context_id, NULL, 0, label_overrides,
+      BuildHelpLabelOverrides(ctx, is_dir, plan, label_overrides, label_text,
+                              max_overrides));
+  free(label_text);
+  free(label_overrides);
+  return rc;
+}
+
 int UI_ShowIntegratedHelp(ViewContext *ctx, const DirEntry *dir_entry) {
-  static const HelpLabelOverrideSpec file_help_label_specs[] = {
-      {"Attributes", "ACTION_CMD_A"},
-      {"Copy", "ACTION_CMD_C"},
-      {"Copy tagged", "ACTION_CMD_C"},
-      {"Delete", "ACTION_CMD_D"},
-      {"Edit", "ACTION_CMD_E"},
-      {"Filter", "ACTION_FILTER"},
-      {"Hex", "ACTION_CMD_H"},
-      {"Invert Tags", "ACTION_INVERT"},
-      {"Compare", "ACTION_COMPARE_FILE"},
-      {"Volume", "ACTION_VOL_MENU"},
-      {"Log", "ACTION_LOG"},
-      {"Move", "ACTION_CMD_M"},
-      {"Move tagged", "ACTION_CMD_M"},
-      {"New File", "ACTION_CMD_MKFILE"},
-      {"Only tagged", "ACTION_TOGGLE_TAGGED_MODE"},
-      {"Pipe", "ACTION_CMD_P"},
-      {"Quit", "ACTION_QUIT"},
-      {"Rename", "ACTION_CMD_R"},
-      {"Sort", "ACTION_CMD_S"},
-      {"Tag", "ACTION_TAG"},
-      {"Tag all", "ACTION_TAG"},
-      {"Untag", "ACTION_UNTAG"},
-      {"Untag all", "ACTION_UNTAG"},
-      {"View", "ACTION_CMD_V"},
-      {"Write", "ACTION_CMD_PRINT"},
-      {"Execute", "ACTION_CMD_X"},
-      {"Pathcopy", "ACTION_CMD_Y"},
-      {"Archive", "ACTION_CMD_I"},
-      {"Jump", "ACTION_LIST_JUMP"},
-      {"Dotfiles", "ACTION_TOGGLE_HIDDEN"}};
-  enum {
-    FILE_HELP_LABEL_SPEC_COUNT =
-        sizeof(file_help_label_specs) / sizeof(file_help_label_specs[0])
-  };
-  static const HelpLabelOverridePlan file_help_label_plan = {
-      file_footer_standard_specs,
-      sizeof(file_footer_standard_specs) / sizeof(file_footer_standard_specs[0]),
-      file_help_label_specs,
-      FILE_HELP_LABEL_SPEC_COUNT};
   ViewFocus active_focus;
 
   if (ctx == NULL)
     return -1;
 
   active_focus = AppStateResolveActivePanelFocus(ctx);
-  if (ctx->preview_mode) {
-    return UI_ShowGeneratedContextHelp(
-        ctx, (active_focus == FOCUS_TREE) ? "overlay.f7-dir" : "overlay.f7-file",
-        NULL, 0);
-  }
+  if (ctx->preview_mode)
+    return ShowGeneratedHelpForPlan(
+        ctx, FALSE, (active_focus == FOCUS_TREE) ? "overlay.f7-dir"
+                                                 : "overlay.f7-file",
+        &preview_help_label_plan);
 
   if (active_focus == FOCUS_TREE) {
     if (ctx->is_split_screen)
-      return UI_ShowGeneratedContextHelp(ctx, "overlay.f8-dir", NULL, 0);
-    return UI_ShowGeneratedContextHelp(
-        ctx, (ctx->view_mode == ARCHIVE_MODE) ? "main.archive-dir" : "main.dir",
-        NULL, 0);
+      return ShowGeneratedHelpForPlan(ctx, TRUE, "overlay.f8-dir",
+                                      &dir_help_label_plan);
+    if (ctx->view_mode == ARCHIVE_MODE)
+      return ShowGeneratedHelpForPlan(ctx, TRUE, "main.archive-dir",
+                                      &archive_dir_help_label_plan);
+    return ShowGeneratedHelpForPlan(ctx, TRUE, "main.dir",
+                                    &dir_help_label_plan);
   }
 
   if (!ctx->is_split_screen && ctx->view_mode != ARCHIVE_MODE &&
-      (dir_entry == NULL || !dir_entry->global_flag)) {
-    UIHelpLabelOverride label_overrides[FILE_HELP_LABEL_SPEC_COUNT];
-    char label_text[FILE_HELP_LABEL_SPEC_COUNT]
-                   [COMMAND_PRESENTATION_LABEL_LENGTH];
-    size_t label_override_count;
-
-    label_override_count = BuildHelpLabelOverrides(
-        ctx, FALSE, &file_help_label_plan, label_overrides, label_text,
-        FILE_HELP_LABEL_SPEC_COUNT);
-    return UI_ShowGeneratedContextHelpWithOverrides(
-        ctx, "main.file", NULL, 0, label_overrides, label_override_count);
-  }
+      (dir_entry == NULL || !dir_entry->global_flag))
+    return ShowGeneratedHelpForPlan(ctx, FALSE, "main.file",
+                                    &file_help_label_plan);
 
   if (ctx->view_mode == ARCHIVE_MODE)
-    return UI_ShowGeneratedContextHelp(ctx, "main.archive-file", NULL, 0);
+    return ShowGeneratedHelpForPlan(ctx, FALSE, "main.archive-file",
+                                    &archive_file_help_label_plan);
   if (ctx->is_split_screen)
-    return UI_ShowGeneratedContextHelp(ctx, "overlay.f8-file", NULL, 0);
-  if (dir_entry != NULL && dir_entry->global_flag) {
-    return UI_ShowGeneratedContextHelp(
-        ctx, dir_entry->global_all_volumes ? "main.global" : "main.showall",
-        NULL, 0);
-  }
-
-  return UI_ShowGeneratedContextHelp(ctx, "main.file", NULL, 0);
+    return ShowGeneratedHelpForPlan(ctx, FALSE, "overlay.f8-file",
+                                    &file_help_label_plan);
+  if (dir_entry != NULL && dir_entry->global_flag)
+    return ShowGeneratedHelpForPlan(
+        ctx, FALSE, dir_entry->global_all_volumes ? "main.global" : "main.showall",
+        &file_help_label_plan);
+  return ShowGeneratedHelpForPlan(ctx, FALSE, "main.file",
+                                  &file_help_label_plan);
 }
 
 void ClearHelp(ViewContext *ctx) {

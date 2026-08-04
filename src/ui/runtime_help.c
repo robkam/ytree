@@ -27,6 +27,7 @@ typedef struct {
   char label[GENERATED_HELP_MAX_ITEM_LABEL];
   char summary[GENERATED_HELP_MAX_TEXT_WIDTH];
   char detail[GENERATED_HELP_MAX_ITEM_DETAIL];
+  BOOL selectable;
 } RuntimeHelpItem;
 
 typedef struct {
@@ -54,10 +55,158 @@ typedef struct {
   UIHelpPopupRow rows[GENERATED_HELP_MAX_ROWS];
   char text_lines[GENERATED_HELP_MAX_TEXT_LINES][GENERATED_HELP_MAX_TEXT_WIDTH];
   size_t footer_command_count;
+  size_t prefix_row_count;
   size_t row_count;
   size_t item_count;
+  size_t reselection_anchor_index;
+  size_t previous_visible_start;
+  size_t previous_visible_end;
+  BOOL viewport_valid;
+  int visible_row_count;
+  int visible_row_offset;
+  int reselection_direction;
   int wrap_width;
 } RuntimeHelpPopupState;
+
+static size_t FindNextSelectableItem(const RuntimeHelpPopupState *state,
+                                     size_t start_index,
+                                     size_t end_index_exclusive) {
+  size_t i;
+
+  if (state == NULL || start_index >= end_index_exclusive)
+    return GENERATED_HELP_NO_SELECTION;
+
+  if (end_index_exclusive > state->item_count)
+    end_index_exclusive = state->item_count;
+  for (i = start_index; i < end_index_exclusive; ++i) {
+    if (state->items[i].selectable)
+      return i;
+  }
+
+  return GENERATED_HELP_NO_SELECTION;
+}
+
+static size_t FindPreviousSelectableItem(const RuntimeHelpPopupState *state,
+                                         size_t start_index,
+                                         size_t start_limit_inclusive) {
+  size_t i;
+
+  if (state == NULL || state->item_count == 0 || start_limit_inclusive >= state->item_count ||
+      start_index >= state->item_count || start_index < start_limit_inclusive)
+    return GENERATED_HELP_NO_SELECTION;
+
+  i = start_index;
+  while (1) {
+    if (state->items[i].selectable)
+      return i;
+    if (i == start_limit_inclusive)
+      break;
+    i--;
+  }
+
+  return GENERATED_HELP_NO_SELECTION;
+}
+
+static BOOL GetVisibleContextItemRange(const RuntimeHelpPopupState *state,
+                                       size_t *visible_start_out,
+                                       size_t *visible_end_out) {
+  size_t visible_start_row;
+  size_t visible_end_row;
+  size_t item_start_row;
+  size_t item_end_row;
+
+  if (state == NULL || visible_start_out == NULL || visible_end_out == NULL ||
+      state->visible_row_count <= 0 || state->item_count == 0)
+    return FALSE;
+
+  visible_start_row = (size_t)MAXIMUM(state->visible_row_offset, 0);
+  visible_end_row = visible_start_row + (size_t)state->visible_row_count;
+  item_start_row = state->prefix_row_count;
+  item_end_row = item_start_row + state->item_count;
+  if (visible_end_row <= item_start_row || visible_start_row >= item_end_row)
+    return FALSE;
+
+  if (visible_start_row < item_start_row)
+    visible_start_row = item_start_row;
+  if (visible_end_row > item_end_row)
+    visible_end_row = item_end_row;
+
+  *visible_start_out = visible_start_row - item_start_row;
+  *visible_end_out = visible_end_row - item_start_row;
+  return (*visible_start_out < *visible_end_out);
+}
+
+static void UpdateGeneratedHelpViewport(void *user_data, int scroll_offset,
+                                        int visible_rows, int row_count) {
+  RuntimeHelpPopupState *state = (RuntimeHelpPopupState *)user_data;
+  size_t anchor_index;
+  size_t visible_start;
+  size_t visible_end;
+  size_t previous_visible_start;
+  size_t previous_visible_end;
+  size_t next_index;
+
+  (void)row_count;
+  if (state == NULL)
+    return;
+
+  state->visible_row_offset = scroll_offset;
+  state->visible_row_count = visible_rows;
+  if (state->reselection_direction == 0 || state->visible_row_count <= 0 ||
+      state->item_count == 0)
+    return;
+
+  if (!GetVisibleContextItemRange(state, &visible_start, &visible_end)) {
+    state->viewport_valid = FALSE;
+    return;
+  }
+
+  previous_visible_start = state->previous_visible_start;
+  previous_visible_end = state->previous_visible_end;
+
+  anchor_index = state->reselection_anchor_index;
+  if (anchor_index == GENERATED_HELP_NO_SELECTION &&
+      state->selected_item_index != GENERATED_HELP_NO_SELECTION &&
+      state->selected_item_index < state->item_count) {
+    anchor_index = state->selected_item_index;
+  }
+
+  next_index = GENERATED_HELP_NO_SELECTION;
+  if (state->reselection_direction < 0) {
+    size_t search_limit = visible_end;
+
+    if (state->viewport_valid && visible_start >= previous_visible_start)
+      search_limit = visible_start;
+    else if (state->viewport_valid && previous_visible_start < search_limit)
+      search_limit = previous_visible_start;
+    if (anchor_index != GENERATED_HELP_NO_SELECTION && anchor_index < search_limit)
+      search_limit = anchor_index;
+    if (search_limit > visible_start)
+      next_index =
+          FindPreviousSelectableItem(state, search_limit - 1, visible_start);
+  } else {
+    size_t search_start = visible_start;
+
+    if (state->viewport_valid && previous_visible_end > search_start)
+      search_start = previous_visible_end;
+    if (anchor_index != GENERATED_HELP_NO_SELECTION &&
+        anchor_index + 1 > search_start)
+      search_start = anchor_index + 1;
+    if (search_start < visible_end)
+      next_index = FindNextSelectableItem(state, search_start, visible_end);
+  }
+
+  state->previous_visible_start = visible_start;
+  state->previous_visible_end = visible_end;
+  state->viewport_valid = TRUE;
+
+  if (next_index == GENERATED_HELP_NO_SELECTION)
+    return;
+
+  state->selected_item_index = next_index;
+  state->reselection_direction = 0;
+  state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+}
 
 static const GeneratedHelpTopic *FindGeneratedTopicById(const char *topic_id) {
   size_t i;
@@ -173,7 +322,7 @@ static void TrimWhitespaceInPlace(char *text) {
 static void AppendHelpTextFragment(char *dest, size_t dest_size,
                                    const char *fragment) {
   size_t used;
-  size_t remaining;
+  size_t fragment_len;
 
   if (dest == NULL || dest_size == 0 || fragment == NULL)
     return;
@@ -181,8 +330,11 @@ static void AppendHelpTextFragment(char *dest, size_t dest_size,
   used = strlen(dest);
   if (used >= dest_size - 1)
     return;
-  remaining = dest_size - used - 1;
-  strncat(dest, fragment, remaining);
+  fragment_len = strlen(fragment);
+  if (fragment_len > dest_size - used - 1)
+    fragment_len = dest_size - used - 1;
+  memcpy(dest + used, fragment, fragment_len);
+  dest[used + fragment_len] = '\0';
 }
 
 static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size) {
@@ -361,6 +513,7 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
                              const char *body) {
   RuntimeHelpItem *item;
   char detail[GENERATED_HELP_MAX_ITEM_DETAIL];
+  size_t detail_len;
 
   if (state == NULL || heading == NULL || body == NULL ||
       state->item_count >= GENERATED_HELP_MAX_ITEMS)
@@ -376,10 +529,15 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
   ExtractItemLabel(heading, item->label, sizeof(item->label));
   if (item->label[0] == '\0')
     return;
-  snprintf(item->detail, sizeof(item->detail), "%s", detail);
-  ExtractSummary(item->detail, item->summary, sizeof(item->summary));
+  detail_len = strlen(detail);
+  if (detail_len >= sizeof(item->detail))
+    detail_len = sizeof(item->detail) - 1;
+  memcpy(item->detail, detail, detail_len);
+  item->detail[detail_len] = '\0';
+  ExtractSummary(detail, item->summary, sizeof(item->summary));
   if (item->summary[0] == '\0')
-    snprintf(item->summary, sizeof(item->summary), "%s", item->detail);
+    snprintf(item->summary, sizeof(item->summary), "%s", detail);
+  item->selectable = (strcmp(item->summary, item->detail) != 0);
   state->item_count++;
 }
 
@@ -407,7 +565,7 @@ static size_t BuildContextItems(RuntimeHelpPopupState *state) {
       const char *line_break = strchr(cursor, '\n');
       size_t len =
           line_break != NULL ? (size_t)(line_break - cursor) : strlen(cursor);
-      char line[GENERATED_HELP_MAX_TEXT_WIDTH];
+      char line[GENERATED_HELP_MAX_ITEM_DETAIL];
       char *content = line;
       BOOL is_bullet;
 
@@ -505,7 +663,8 @@ static BOOL TopicUsesContextualItemList(const GeneratedHelpTopic *topic,
           strcmp(topic->topic_id, "showall") == 0 ||
           strcmp(topic->topic_id, "global") == 0 ||
           strcmp(topic->topic_id, "f7") == 0 ||
-          strcmp(topic->topic_id, "f8") == 0);
+          strcmp(topic->topic_id, "f8-dir") == 0 ||
+          strcmp(topic->topic_id, "f8-file") == 0);
 }
 
 static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
@@ -589,7 +748,9 @@ static size_t BuildContextListRows(RuntimeHelpPopupState *state,
   for (index = 0;
        index < state->item_count && row_count < GENERATED_HELP_MAX_ROWS;
        ++index) {
-    state->rows[row_count].kind = UI_HELP_POPUP_LINK_TEXT;
+    state->rows[row_count].kind = state->items[index].selectable
+                                      ? UI_HELP_POPUP_LINK_TEXT
+                                      : UI_HELP_POPUP_TEXT;
     state->rows[row_count].prefix = state->items[index].label;
     state->rows[row_count].text = state->items[index].summary;
     state->rows[row_count].commands = NULL;
@@ -679,6 +840,8 @@ static size_t BuildTextRows(RuntimeHelpPopupState *state,
 static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
                                         void *user_data) {
   RuntimeHelpPopupState *state = (RuntimeHelpPopupState *)user_data;
+  size_t visible_start;
+  size_t visible_end;
   size_t i;
   int key;
 
@@ -702,26 +865,103 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
     }
 
     if (ch == KEY_UP || ch == KEY_DOWN) {
-      size_t next_index = state->selected_item_index;
+      size_t next_index;
 
       if (state->item_count == 0)
-        return -1;
-      if (ch == KEY_UP && next_index > 0)
-        next_index--;
-      if (ch == KEY_DOWN && next_index + 1 < state->item_count)
-        next_index++;
-      if (next_index != state->selected_item_index) {
-        state->rows[state->selected_item_index].selected = FALSE;
+        return 0;
+
+      if (state->visible_row_count <= 0)
+        return 0;
+
+      if (!GetVisibleContextItemRange(state, &visible_start, &visible_end))
+        return 0;
+
+      if (state->selected_item_index == GENERATED_HELP_NO_SELECTION) {
+        if (state->reselection_direction != 0 &&
+            state->reselection_anchor_index != GENERATED_HELP_NO_SELECTION) {
+          if (ch == KEY_UP && state->reselection_direction > 0)
+            state->reselection_direction = -1;
+          else if (ch == KEY_DOWN && state->reselection_direction < 0)
+            state->reselection_direction = 1;
+          return 0;
+        }
+
+        if (ch == KEY_UP)
+          next_index = FindPreviousSelectableItem(
+              state, visible_end > 0 ? visible_end - 1 : visible_start,
+              visible_start);
+        else
+          next_index = FindNextSelectableItem(state, visible_start, visible_end);
+
+        if (next_index == GENERATED_HELP_NO_SELECTION)
+          return 0;
+
         state->selected_item_index = next_index;
-        state->rows[state->selected_item_index].selected = TRUE;
+        state->reselection_direction = 0;
+        state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+        return -1;
       }
+
+      if (state->selected_item_index < visible_start ||
+          state->selected_item_index >= visible_end) {
+        state->reselection_direction = (ch == KEY_UP) ? -1 : 1;
+        state->reselection_anchor_index = state->selected_item_index;
+        return 0;
+      }
+
+      next_index = GENERATED_HELP_NO_SELECTION;
+      if (ch == KEY_UP) {
+        if (state->selected_item_index > visible_start) {
+          next_index = FindPreviousSelectableItem(
+              state, state->selected_item_index - 1, visible_start);
+        }
+        if (next_index == GENERATED_HELP_NO_SELECTION &&
+            state->selected_item_index > 0) {
+          state->reselection_direction = -1;
+          state->reselection_anchor_index = state->selected_item_index;
+          return 0;
+        }
+      } else {
+        if (state->selected_item_index + 1 < visible_end) {
+          next_index = FindNextSelectableItem(
+              state, state->selected_item_index + 1, visible_end);
+        }
+        if (next_index == GENERATED_HELP_NO_SELECTION &&
+            state->selected_item_index + 1 < state->item_count) {
+          state->reselection_direction = 1;
+          state->reselection_anchor_index = state->selected_item_index;
+          return 0;
+        }
+      }
+
+      if (next_index == GENERATED_HELP_NO_SELECTION) {
+        return 0;
+      }
+
+      state->selected_item_index = next_index;
+      state->reselection_direction = 0;
+      state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
       return -1;
     }
 
+    if (ch == KEY_HOME || ch == KEY_END || ch == KEY_PPAGE ||
+        ch == KEY_NPAGE) {
+      state->selected_item_index = GENERATED_HELP_NO_SELECTION;
+      state->reselection_direction = 0;
+      state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+      return 0;
+    }
+
     if (ch == KEY_RIGHT || ch == CR || ch == LF) {
-      if (state->item_count == 0)
-        return 0;
+      if (state->item_count == 0 ||
+          state->selected_item_index == GENERATED_HELP_NO_SELECTION ||
+          state->selected_item_index >= state->item_count)
+        return -1;
+      if (!state->items[state->selected_item_index].selectable)
+        return -1;
       state->next_detail_index = state->selected_item_index;
+      state->reselection_direction = 0;
+      state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
       return 1;
     }
 
@@ -775,15 +1015,27 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
 
 static int GetGeneratedHelpActiveRow(const void *user_data) {
   const RuntimeHelpPopupState *state = (const RuntimeHelpPopupState *)user_data;
+  size_t visible_start;
+  size_t visible_end;
 
   if (state == NULL || !state->contextual_list_mode ||
       state->current_detail_index != GENERATED_HELP_NO_SELECTION)
     return -1;
 
-  if (state->selected_item_index >= state->item_count)
+  if (state->selected_item_index == GENERATED_HELP_NO_SELECTION ||
+      state->selected_item_index >= state->item_count)
     return -1;
 
-  return (int)state->selected_item_index;
+  if (state->visible_row_count > 0) {
+    if (!GetVisibleContextItemRange(state, &visible_start, &visible_end))
+      return -1;
+
+    if (state->selected_item_index < visible_start ||
+        state->selected_item_index >= visible_end)
+      return -1;
+  }
+
+  return (int)(state->prefix_row_count + state->selected_item_index);
 }
 
 int UI_ShowGeneratedContextHelpWithOverrides(
@@ -803,7 +1055,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     return -1;
 
   current_view.topic = topic;
-  current_view.selected_item_index = 0;
+  current_view.selected_item_index = GENERATED_HELP_NO_SELECTION;
   current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
 
   while (current_view.topic != NULL) {
@@ -819,6 +1071,11 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     state.selected_item_index = current_view.selected_item_index;
     state.current_detail_index = current_view.current_detail_index;
     state.next_detail_index = GENERATED_HELP_NO_SELECTION;
+    state.prefix_row_count = prefix_row_count;
+    state.reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+    state.previous_visible_start = 0;
+    state.previous_visible_end = 0;
+    state.viewport_valid = FALSE;
     state.wrap_width =
         ctx->layout.main_win_width > GENERATED_HELP_MIN_MAIN_WIDTH
             ? ctx->layout.main_win_width - GENERATED_HELP_WRAP_PADDING
@@ -828,9 +1085,15 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     if (state.contextual_list_mode) {
       (void)BuildContextItems(&state);
       ApplyLabelOverrides(&state);
+      if (state.current_detail_index == GENERATED_HELP_NO_SELECTION &&
+          state.selected_item_index == GENERATED_HELP_NO_SELECTION &&
+          state.item_count > 0) {
+        state.selected_item_index =
+            FindNextSelectableItem(&state, 0, state.item_count);
+      }
     }
     if (state.selected_item_index >= state.item_count)
-      state.selected_item_index = 0;
+      state.selected_item_index = GENERATED_HELP_NO_SELECTION;
     if (state.current_detail_index >= state.item_count)
       state.current_detail_index = GENERATED_HELP_NO_SELECTION;
 
@@ -846,6 +1109,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     footer_spec.active_command_index = state.active_link_index;
     footer_spec.key_handler = HandleGeneratedHelpFooterKey;
     footer_spec.active_row_handler = GetGeneratedHelpActiveRow;
+    footer_spec.viewport_handler = UpdateGeneratedHelpViewport;
     footer_spec.key_data = &state;
 
     title = (state.contextual_list_mode &&

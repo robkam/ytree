@@ -739,14 +739,57 @@ The preview owns scrolling while the underlying selection still owns the file ta
 ## topic:f8
 ```ytnova-help-meta
 title: F8 Split Help
-contexts: overlay.f8-dir,overlay.f8-file
+contexts: none
 ```
 ### Contextual F1
-F8 split mode gives each panel independent state and uses the inactive panel as the default target for multi-panel actions.
-Its topic covers only split-specific rules.
+Split mode keeps two panels active at once, and runtime F1 opens the directory or file split page for the active panel.
+Use the split page for the live footer command list and this page for the shared split model.
 ### Explainer links
 - [Navigation](topic:navigation)
+- [Directory split page](topic:f8-dir)
+- [File split page](topic:f8-file)
+
+### Long form
+#### Split controls
+* **Leave split**: Press `F8` again to return to single-panel mode.
+* **Tab**: Switch the active panel and keep the passive panel's state intact.
+* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.
+* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
+
+## topic:f8-dir
+```ytnova-help-meta
+title: F8 Split Help
+contexts: overlay.f8-dir
+```
+### Contextual F1
+The split-directory page combines split-only rules with the active directory-footer command list.
+It is the runtime F1 page when the split focus is on the tree panel.
+### Explainer links
+- [Navigation](topic:navigation)
+- [Split overview](topic:f8)
 - [Directory mode](topic:dir)
+
+### Long form
+#### Split controls
+* **Leave split**: Press `F8` again to return to single-panel mode.
+* **Tab**: Switch the active panel and keep the passive panel's state intact.
+* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.
+* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
+
+#### Split directory commands
+* **Command list**: The split-directory page reuses the directory-footer command family (`1..9 view`, Attributes, Copy, Delete, Filter, Global, Invert, `J compare`, `K volume`, Log, Makedir, Newfile, Only tagged, Pipe, Quit, Rename, Showall, Tag, Untag, MoveDir, Write, `eXecute`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel.
+
+## topic:f8-file
+```ytnova-help-meta
+title: F8 Split Help
+contexts: overlay.f8-file
+```
+### Contextual F1
+The split-file page combines split-only rules with the active file-footer command list.
+It is the runtime F1 page when the split focus is on the file panel.
+### Explainer links
+- [Navigation](topic:navigation)
+- [Split overview](topic:f8)
 - [File mode](topic:file)
 
 ### Long form
@@ -755,7 +798,9 @@ Its topic covers only split-specific rules.
 * **Tab**: Switch the active panel and keep the passive panel's state intact.
 * **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.
 * **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
-* **Overlay ownership**: Split help shows only split-specific rules. Ordinary directory and file commands stay on their own pages.
+
+#### Split file commands
+* **Command list**: The split-file page reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Only tagged, Pipe, Quit, Rename, Sort, Tag, Untag, View, Write, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel.
 
 ## topic:history-dialog
 ```ytnova-help-meta

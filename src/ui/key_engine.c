@@ -811,59 +811,33 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   }
 }
 
-int WGetch(ViewContext *ctx, WINDOW *win) {
-  int c;
-
-  c = wgetch(win);
-
-  if (ctx && ctx->status_line_error_pending && c != ERR) {
-#ifdef KEY_RESIZE
-    if (c != KEY_RESIZE)
-      UI_ClearStatusLineError(ctx);
-#else
-    UI_ClearStatusLineError(ctx);
-#endif
-  }
-
-#ifdef KEY_RESIZE
-  if (c == KEY_RESIZE) {
-    if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
-      return ERR;
-    if (ctx)
-      (void)AppStateMarkResizeRequest(ctx);
-    c = -1;
-  }
-#endif
-
-  return (c);
-}
-
-int Getch(ViewContext *ctx) { return WGetch(ctx, stdscr); }
-
-static int NormalizeEscSequence(int ch) {
+static int NormalizeEscSequenceForWindow(WINDOW *win, int ch) {
   int seq1;
   int seq2;
 
   if (ch != ESC)
     return ch;
 
-  nodelay(stdscr, TRUE);
-  seq1 = wgetch(stdscr);
+  if (win == NULL)
+    win = stdscr;
+
+  nodelay(win, TRUE);
+  seq1 = wgetch(win);
   if (seq1 == ERR) {
-    nodelay(stdscr, FALSE);
+    nodelay(win, FALSE);
     return ESC;
   }
 
   if (seq1 != '[' && seq1 != 'O') {
     ungetch(seq1);
-    nodelay(stdscr, FALSE);
+    nodelay(win, FALSE);
     return ESC;
   }
 
-  seq2 = wgetch(stdscr);
+  seq2 = wgetch(win);
   if (seq2 == ERR) {
     ungetch(seq1);
-    nodelay(stdscr, FALSE);
+    nodelay(win, FALSE);
     return ESC;
   }
 
@@ -890,7 +864,7 @@ static int NormalizeEscSequence(int ch) {
   case '4':
   case '7':
   case '8': {
-    int seq3 = wgetch(stdscr);
+    int seq3 = wgetch(win);
     if (seq3 == '~') {
       ch = (seq2 == '1' || seq2 == '7') ? KEY_HOME : KEY_END;
     } else {
@@ -909,8 +883,41 @@ static int NormalizeEscSequence(int ch) {
     break;
   }
 
-  nodelay(stdscr, FALSE);
+  nodelay(win, FALSE);
   return ch;
+}
+
+int WGetch(ViewContext *ctx, WINDOW *win) {
+  int c;
+
+  c = wgetch(win);
+
+  if (ctx && ctx->status_line_error_pending && c != ERR) {
+#ifdef KEY_RESIZE
+    if (c != KEY_RESIZE)
+      UI_ClearStatusLineError(ctx);
+#else
+    UI_ClearStatusLineError(ctx);
+#endif
+  }
+
+#ifdef KEY_RESIZE
+  if (c == KEY_RESIZE) {
+    if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
+      return ERR;
+    if (ctx)
+      (void)AppStateMarkResizeRequest(ctx);
+    c = -1;
+  }
+#endif
+
+  return NormalizeEscSequenceForWindow(win, c);
+}
+
+int Getch(ViewContext *ctx) { return WGetch(ctx, stdscr); }
+
+static int NormalizeEscSequence(int ch) {
+  return NormalizeEscSequenceForWindow(stdscr, ch);
 }
 
 int GetEventOrKey(ViewContext *ctx) {
