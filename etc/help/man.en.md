@@ -48,6 +48,7 @@ The in-app `F1` popup remains the shorter contextual path for the active screen,
 * **Archive-Dir Mode** and **Archive-File Mode**: Reference for archive-backed navigation and command limits.
 * **Showall** and **Global**: Reference for single-volume and multi-volume aggregated file lists.
 * **F7 Preview** and **F8 Split**: Reference for overlay-only controls and ownership rules.
+* **List Jump** and **Copy/Move Targets**: Reference for shared `/` jump behavior plus destination and wildcard rename rules.
 * **Filter**, **Compare**, **Execute**, **Archive**, and **Output**: Reference for option-heavy prompt families.
 * **Command-line Editing**, **VI Keys**, **F2 picker**, **F10 config**, and **Theming**: Reference for shared operator rules and configuration surfaces.
 
@@ -75,12 +76,34 @@ The help popup uses list-style navigation.
 * **Left**: Go back one step.
 * **Esc/Quit**: Close the popup.
 
-#### Shared list movement
-* **Up/Down**: Move the active selection.
-* **Page Up/Page Down**: Move by pages.
-* **Home/End**: Jump to the start or end of the current list.
-* **Enter**: Accept the current row or switch between paired views when that surface owns `Enter`.
-* **Esc**: Cancel the current prompt, dialog, or overlay.
+#### Scope boundary
+This topic owns help-popup movement only.
+Use `List Jump` for runtime `/` name-jump behavior, and use the local mode page for ordinary tree/file selection commands.
+
+## topic:list-jump
+```ytnova-help-meta
+title: List Jump
+contexts: none
+```
+### Contextual F1
+`/` is ytnova's in-list name jump.
+It is distinct from help-popup navigation and remains scoped to the current runtime list.
+### Explainer links
+- [Directory mode](topic:dir)
+- [File mode](topic:file)
+- [Showall](topic:showall)
+- [Global](topic:global)
+
+### Long form
+#### Jump model
+`/` opens an incremental jump prompt for the current visible list only.
+Tree/directory views jump among visible directory names, while file-oriented views jump among the visible file rows for that surface.
+
+#### Acceptance and cancel
+* **Type text**: Move immediately to the best current match as you type.
+* **Enter**: Keep the current match and stay there.
+* **Esc**: Cancel the jump and restore the original selection.
+* **Scope changes**: Filtering, Showall/Global projection, archives, and split mode all change which visible list `/` searches, but they do not change the jump keys themselves.
 
 ## topic:shared-commands
 ```ytnova-help-meta
@@ -159,6 +182,31 @@ Prompt-specific syntax and scope rules belong to the relevant command topic.
 * **Up**: Open or cycle prompt history when that prompt keeps history.
 * **F2**: Open a browser or picker when the current prompt supports browsing.
 * **F1**: Show syntax or scope rules that matter only to the current prompt.
+
+## topic:copy-move-targets
+```ytnova-help-meta
+title: Copy/Move Targets
+contexts: none
+```
+### Contextual F1
+Copy and move prompts accept a destination directory, a full replacement name, or a wildcard rename pattern.
+Local mode pages own the triggering keys, tagged repeats, and any split/archive caveats.
+### Explainer links
+- [Directory mode](topic:dir)
+- [File mode](topic:file)
+- [Archive-File mode](topic:archive-file)
+- [F8 split](topic:f8)
+
+### Long form
+#### Target forms
+Use a directory path when you want the original names preserved under another directory.
+Use one full replacement name when you want one selected item to land under a new explicit name.
+Use a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.
+
+#### Shared rules
+Tagged copy/move uses the same target syntax as single-item copy/move.
+Split mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.
+Archive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved.
 
 ## topic:vi-keys
 ```ytnova-help-meta

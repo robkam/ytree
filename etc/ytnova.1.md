@@ -371,6 +371,28 @@ Then choose the final destination.
 * **Up**: Open or cycle prompt history when that prompt keeps history.
 * **F2**: Open a browser or picker when the current prompt supports browsing.
 * **F1**: Show syntax or scope rules that matter only to the current prompt.
+### Copy/Move Targets
+
+#### Target forms
+Use a directory path when you want the original names preserved under another directory.
+Use one full replacement name when you want one selected item to land under a new explicit name.
+Use a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.
+
+#### Shared rules
+Tagged copy/move uses the same target syntax as single-item copy/move.
+Split mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.
+Archive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved.
+### List Jump
+
+#### Jump model
+`/` opens an incremental jump prompt for the current visible list only.
+Tree/directory views jump among visible directory names, while file-oriented views jump among the visible file rows for that surface.
+
+#### Acceptance and cancel
+* **Type text**: Move immediately to the best current match as you type.
+* **Enter**: Keep the current match and stay there.
+* **Esc**: Cancel the jump and restore the original selection.
+* **Scope changes**: Filtering, Showall/Global projection, archives, and split mode all change which visible list `/` searches, but they do not change the jump keys themselves.
 ### VI Keys
 
 #### Navigation remap

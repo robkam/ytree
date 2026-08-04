@@ -150,6 +150,31 @@ def _open_help_detail(
     assert False, screen_text(tui)
 
 
+def _follow_help_topic(
+    tui, label, topic_title, *, direction_key=Keys.RIGHT, timeout=1.0, steps=24
+):
+    _scroll_help_to_text(tui, label)
+
+    for _ in range(steps):
+        before = screen_text(tui)
+        screen = tui.send_and_wait_for_condition(
+            direction_key,
+            lambda lines: lines if any(topic_title in line for line in lines) else False,
+            timeout=timeout,
+        )
+        if screen:
+            return "\n".join(screen)
+        current = screen_text(tui)
+        if current != before and topic_title not in current:
+            tui.send_keystroke(Keys.LEFT, wait=0.05)
+            current = screen_text(tui)
+        if label not in current:
+            current = _scroll_help_to_text(tui, label)
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+
+    assert False, screen_text(tui)
+
+
 def _open_current_help_detail_title(tui, direction_key=Keys.RIGHT):
     before = screen_text(tui)
     tui.send_keystroke(direction_key, wait=0.05)
@@ -240,7 +265,7 @@ def test_contextual_help_accepts_csi_arrow_sequences(tmp_path):
         copy_detail = tui.send_and_wait_for_condition(
             csi_right,
             lambda lines: lines
-            if any("destination prompt can reuse" in line for line in lines)
+            if any("Copy/Move Targets" in line for line in lines)
             else False,
             timeout=1.5,
         )
@@ -272,7 +297,7 @@ def test_contextual_help_accepts_application_arrow_sequences(tmp_path):
         copy_detail = tui.send_and_wait_for_condition(
             Keys.RIGHT,
             lambda lines: lines
-            if any("destination prompt can reuse" in line for line in lines)
+            if any("Copy/Move Targets" in line for line in lines)
             else False,
             timeout=1.5,
         )
@@ -303,7 +328,7 @@ def test_contextual_help_down_arrow_advances_hidden_active_link(tmp_path):
         moved = tui.send_and_wait_for_condition(
             Keys.RIGHT,
             lambda lines: lines
-            if any("destination prompt can reuse" in line for line in lines)
+            if any("Copy/Move Targets" in line for line in lines)
             else False,
             timeout=1.0,
         )
@@ -332,7 +357,7 @@ def test_contextual_help_down_arrow_skips_plain_rows_then_scrolls(tmp_path):
         copy_detail = tui.send_and_wait_for_condition(
             Keys.RIGHT,
             lambda lines: lines
-            if any("destination prompt can reuse" in line for line in lines)
+            if any("Copy/Move Targets" in line for line in lines)
             else False,
             timeout=1.0,
         )
@@ -389,15 +414,19 @@ def test_contextual_help_down_arrow_eventually_scrolls_visible_page(tmp_path):
         help_screen = _wait_for_help(tui, "Directory Help")
         assert "1..9 view:" in help_screen, help_screen
 
-        scrolled = _scroll_help_to_text(tui, "eXecute:")
-        assert "eXecute:" in scrolled, scrolled
+        scrolled = _scroll_help_to_text(tui, "Z archive:")
+        assert "Z archive:" in scrolled, scrolled
 
-        before = scrolled
-        scrolled = tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
-        assert scrolled, screen_text(tui)
-        scrolled_text = "\n".join(scrolled)
-        assert scrolled_text != before, scrolled_text
-        assert "Directory Help" in scrolled_text, scrolled_text
+        advanced = None
+        for _ in range(8):
+            tui.send_keystroke(Keys.DOWN, wait=0.05)
+            current = screen_text(tui)
+            if "/ jump:" in current or "` dotfiles:" in current:
+                advanced = current
+                break
+
+        assert advanced, screen_text(tui)
+        assert "Directory Help" in advanced, advanced
     finally:
         tui.quit()
 
@@ -509,12 +538,9 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
         tui.quit()
 
 
-def test_split_file_help_arrows_scroll_past_visible_link_boundaries_without_wrapping(
-    tmp_path,
-):
+def test_split_file_help_arrows_follow_rows_without_wrapping(tmp_path):
     root = _root_with_file(tmp_path, "split_file_help_arrow_boundaries")
     tui = _spawn_help_tui(root)
-    labels = ("1..9 view:", "C/^K copy:", "Filter:", "J compare:")
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
@@ -533,61 +559,27 @@ def test_split_file_help_arrows_scroll_past_visible_link_boundaries_without_wrap
         help_screen = _wait_for_help(tui, "F8 Split File Help")
         assert "C/^K copy:" in help_screen, help_screen
 
-        tui.send_keystroke(Keys.HOME, wait=0.05)
-        plain_style = _visible_cell_style(tui, "1..9 view:")
-
-        tui.send_keystroke(Keys.DOWN, wait=0.05)
-        selected_style = _visible_cell_style(tui, "1..9 view:")
-        assert selected_style != plain_style, screen_text(tui)
-        assert (
-            _selected_visible_help_label(tui, labels, selected_style) == "1..9 view:"
-        ), screen_text(tui)
-
-        tui.send_keystroke(Keys.DOWN, wait=0.05)
-        assert (
-            _selected_visible_help_label(tui, labels, selected_style) == "C/^K copy:"
-        ), screen_text(tui)
-
-        tui.send_keystroke(Keys.DOWN, wait=0.05)
-        assert _selected_visible_help_label(tui, labels, selected_style) == "Filter:", screen_text(
-            tui
+        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1..9 view:")
+        first_detail = _follow_help_topic(
+            tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
         )
+        assert "Copy/Move Targets" in first_detail, first_detail
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        assert tui.wait_for_content("F8 Split File Help", timeout=1.0), screen_text(tui)
 
-        boundary_screen = tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
-        assert boundary_screen, screen_text(tui)
-        assert _selected_visible_help_label(tui, labels, selected_style) == "Filter:", screen_text(
-            tui
+        compare_detail = _follow_help_topic(
+            tui, "J compare:", "Compare Help", timeout=1.0
         )
-
-        tui.send_keystroke(Keys.DOWN, wait=0.05)
-        assert _selected_visible_help_label(tui, labels, selected_style) == "J compare:", screen_text(
-            tui
-        )
+        assert "Compare Help" in compare_detail, compare_detail
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        assert tui.wait_for_content("F8 Split File Help", timeout=1.0), screen_text(tui)
 
         tui.send_keystroke(Keys.END, wait=0.05)
         current = screen_text(tui)
         assert "F10:" in current, current
 
-        tui.send_keystroke(Keys.UP, wait=0.05)
-        assert _selected_visible_help_label(tui, ("eXecute:",), selected_style) == "eXecute:", screen_text(
-            tui
-        )
-
-        tui.send_keystroke(Keys.UP, wait=0.05)
-        assert _selected_visible_help_label(tui, ("eXecute:",), selected_style) == "eXecute:", screen_text(
-            tui
-        )
-
-        tui.send_keystroke(Keys.UP, wait=0.05)
-        assert _selected_visible_help_label(tui, ("Write:",), selected_style) == "Write:", screen_text(
-            tui
-        )
-
-        for _ in range(12):
-            tui.send_keystroke(Keys.UP, wait=0.05)
-            assert _selected_visible_help_label(tui, ("Write:",), selected_style) == "Write:", screen_text(
-                tui
-            )
+        unchanged = tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.5)
+        assert not unchanged, screen_text(tui)
     finally:
         tui.quit()
 
@@ -742,12 +734,13 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         footer_line = next(
             line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
+        assert "Open" in footer_line, footer_line
         assert "Contents" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
         assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
         directory_frame = _popup_frame(directory_help_screen, "Directory Help")
-        assert footer_line.index("Contents") - directory_frame["left"] <= 3, footer_line
+        assert footer_line.index("Enter/Right") - directory_frame["left"] <= 3, footer_line
         assert directory_frame["bottom_row"] == directory_frame["footer_row"] + 1, directory_help_screen
         help_lines = directory_help_screen.splitlines()
         title_gap = help_lines[directory_frame["title_row"] + 1][
@@ -782,11 +775,10 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "eXecute:" in help_screen, help_screen
         assert "Left Arrow:" not in help_screen, help_screen
         help_screen = _send_help_key_until_text(tui, Keys.HOME, "Copy:")
-        split_copy_detail = _open_help_detail(
-            tui, "Copy:", "inactive panel", timeout=1.0
+        split_copy_detail = _follow_help_topic(
+            tui, "Copy:", "Copy/Move Targets", timeout=1.0
         )
-        assert "inactive panel" in _normalized_help_text(split_copy_detail), split_copy_detail
-        assert "destination" in _normalized_help_text(split_copy_detail), split_copy_detail
+        assert "wildcard rename pattern" in _normalized_help_text(split_copy_detail), split_copy_detail
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("F8 Split Directory Help", timeout=1.0), screen_text(
             tui
@@ -832,14 +824,15 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
             assert label in help_screen, help_screen
             assert stale_label not in help_screen, help_screen
         help_screen = _send_help_key_until_text(tui, Keys.HOME, "C/^K copy:")
-        copy_detail = _open_help_detail(
-            tui, "C/^K copy:", "wildcard rename patterns", timeout=1.0
+        copy_detail = _follow_help_topic(
+            tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
         )
-        copy_detail = _scroll_help_to_text(tui, "*.bak")
         normalized_copy_detail = _normalized_help_text(copy_detail)
-        assert "Ctrl-K copies the tagged set" in normalized_copy_detail, copy_detail
-        assert "wildcard rename patterns" in normalized_copy_detail, copy_detail
-        assert "*.bak" in normalized_copy_detail, copy_detail
+        assert "destination directory" in normalized_copy_detail, copy_detail
+        assert "local mode page still owns which key copies or moves" in normalized_copy_detail, copy_detail
+        assert "wildcard rename pattern" in normalized_copy_detail, copy_detail
+        assert "*.bak" not in normalized_copy_detail, copy_detail
+        assert "Ctrl-K copies the tagged set" not in normalized_copy_detail, copy_detail
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("F8 Split File Help", timeout=1.0), screen_text(tui)
         help_screen = screen_text(tui)
@@ -982,6 +975,7 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         footer_line = next(
             line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
+        assert "Open" in footer_line, footer_line
         assert "Contents" in footer_line, footer_line
         assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line

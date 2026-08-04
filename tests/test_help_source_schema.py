@@ -13,6 +13,8 @@ REQUIRED_TOPICS = {
     "shared-commands",
     "tagged",
     "command-line-editing",
+    "copy-move-targets",
+    "list-jump",
     "vi-keys",
     "f10",
     "theming",

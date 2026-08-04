@@ -1,0 +1,32 @@
+Title: Split Cross-Cutting Operator Semantics from Local Context Pages
+Acceptance target: Contextual F1 pages stay task-local, shared operator semantics are reachable through real runtime follow paths, help-popup navigation is distinct from runtime navigation, and focused help regressions validate the final open/follow/back/close hint-line workflow.
+Completion objective: Make Task 43.4 true end-to-end across authored help sources, generated runtime topic data, help-popup/runtime follow behavior, and focused help tests, while including the already-edited roadmap/spec source-of-truth updates in the same commit.
+
+Chosen work family: Runtime contextual-row follow ownership + shared-topic cleanup + focused help workflow tests.
+Deferred families: None. Task 43.2 and Idea FE-7 remain explicitly out of scope for this mission.
+
+Inventory
+- docs/ROADMAP.md — source-of-truth roadmap wording already edited locally; include in this commit. [addressed]
+- docs/SPECIFICATION.md — source-of-truth contract wording already edited locally; include in this commit. [addressed]
+- etc/help/f1.en.md — authored contextual/runtime help ownership, shared-topic routing, local-page slimming. [addressed]
+- etc/help/f1.de.md — topic inventory/schema parity for shared-topic additions. [addressed]
+- etc/help/man.en.md — topic inventory/schema parity for generated usage/man outputs. [addressed]
+- docs/USAGE.md — generated from man help source; regenerated for parity. [addressed]
+- etc/ytnova.1.md — generated from man help source; regenerated for parity. [addressed]
+- scripts/generate_help_assets.py — support-topic ordering updated for new shared topics. [addressed]
+- src/core/generated_help_topics.h — regenerated runtime topic data. [addressed]
+- src/ui/runtime_help.c — contextual row follow wiring, shared-topic ownership lookup, footer hint/navigation behavior. [addressed]
+- src/ui/help_popup.c — existing footer rendering/viewport behavior already satisfied the contract; no code change required. [intentionally unchanged]
+- tests/test_help_source_schema.py — shared-topic inventory/schema parity. [addressed]
+- tests/test_help_generator.py — generator/runtime header expectations for new shared topics. [addressed]
+- tests/test_help_text_contract.py — focused live help popup workflow/discoverability coverage updated for shared-topic follow semantics and new hint-line behavior. [addressed]
+
+Validation
+- `make help-assets`
+- `make clean && make`
+- `source .venv/bin/activate && pytest -q tests/test_help_source_schema.py tests/test_help_generator.py tests/test_help_text_contract.py`
+
+Result
+- Shared operator semantics now live in shared topics with real follow paths from contextual command rows.
+- Contextual pages keep task-local key ownership while shared topics carry cross-cutting destination/jump semantics.
+- Focused help tests now validate follow/back behavior without preserving the pre-43.4 inline-detail assumptions.
