@@ -553,44 +553,81 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression tests cover at least one filesystem case and one archive case.
 *   - [ ] **Status:** Not Started.
 
-### **Task 26: Remove Footer Prompt for / Search**
-*   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.
-*   Rationale: Current search semantics already work; only the footer prompt is unnecessary UI churn.
-*   Requirements:
-*   Preserve current semantics: incremental match while typing, Enter confirms jump, Esc cancels.
-*   Typing `/y` must keep the footer keybinding text unchanged and move selection immediately to the first directory/file whose name starts with `y`.
-*   Do not redraw/replace footer keybinding lines during / search.
-*   Use a non-footer inline input/render path for search text and match feedback.
-*   Status: Not Started
-
 ### **Task 27: Enforce One-Level Primary Action Depth (Prompt-Chain Audit)**
 *   **Goal:** Audit and remediate primary interactive workflows so the common path stays `key -> Enter -> result` with at most one submenu/prompt layer.
-*   **Rationale:** Deep prompt chains increase friction and slow high-frequency workflows.
-*   **Scope Lock:** Interaction depth, defaults, and prompt composition only; no command semantic changes in this task.
-*   **Acceptance Criteria:**
-*   Inventory primary action flows across filesystem, archive, and split contexts; identify any flow that exceeds one submenu/prompt layer.
-*   Produce a complete `keybinding -> flow` audit for filesystem, archive, and split contexts covering all keybindings that open submenus/prompts.
-*   For each audited keybinding, record current chain steps, common-path step count, submenu depth, and manual repro keys.
-*   Deliver the audit output as a manual QA checklist so submenu-chain offenders can be exercised directly.
-*   For each flagged flow, define a single-surface option model with sensible defaults and per-option key toggles.
-*   Keep explicit/safe target confirmation where required (for example compare and write destinations) without reintroducing chained menu depth.
-*   If a deep flow is temporarily unavoidable, provide an equivalent fast path and document the exception.
-*   Add regression coverage for at least one remediated deep flow to prevent prompt-chain regressions.
+*   **Rationale:** Deep prompt chains, misleading prompt surfaces, and context-mismatched command visibility increase friction, hide capability, and slow high-frequency workflows.
+*   **Scope Lock:** This task family covers interaction depth, prompt/menu composition, context-surface command visibility, and prompt-surface correctness only; it does not change command semantics.
+*   **Source-of-Truth Rule:** Shared shallow-flow rules, prompt-label/mnemonic normalization, prompt-surface visibility rules, and counting rules belong in `docs/SPECIFICATION.md`. This roadmap item must audit against that source of truth and update the spec first if any required rule is missing, stale, or ambiguous.
+*   **Delivery Model:** Complete through subtasks `27.1+`. `27.1` inventories and ranks offenders, `27.2` reconciles and finalizes the governing spec contract, and `27.3+` remediate one audited offender family per subtask.
+*   **Umbrella Acceptance Criteria:**
+*   Inventory primary action flows across the full required coverage set: filesystem, archive, split, `F7`, `F8`, `Showall`, `Global`, tagged workflows, and active picker/prompt/dialog surfaces such as history, volumes, applications, compare prompts, and syntax-bearing command prompts.
+*   Produce a complete `keybinding -> flow` audit for all keybindings that open submenus, prompts, pickers, modal choosers, overlays, or other interactive surfaces in that coverage set.
+*   For each audited surface, record current chain steps, common-path step count, submenu depth, active context, return path, and manual repro keys.
+*   Audit prompt-surface correctness in the same pass, including:
+*   usable commands that are available in the active surface but not shown there,
+*   commands shown in the active surface that are not actually usable there,
+*   prompt/menu labels or mnemonics that violate the documented prompt-label contract.
+*   Deliver the audit output as a manual QA checklist so every flagged surface can be exercised directly.
+*   Reconcile the audited flows against `docs/SPECIFICATION.md` and update the spec only where the governing rule is missing, stale, or ambiguous.
+*   Create remediation subtasks for every audited prompt-chain offender family and close this umbrella only after each inventoried family is marked addressed, intentionally unchanged with reason, or deferred/blocked with a concrete reason.
 *   - [ ] **Status:** Not Started.
 
-### **Task 28: Simplify Compare Mode Flow with Persistent Presets**
-*   **Goal:** Keep compare fast and explicit by consolidating options in compare mode while preserving current safe defaults and target confirmation.
-*   **Rationale:** Compare is high-frequency and should require fewer chained prompts without hiding safety-critical target selection.
-*   **Dependency:** Sequence after Task 30 prompt-chain simplification baseline.
-*   **Scope Lock:** Compare flow only (`j/J` entry behavior); no unrelated keybinding or footer redesign.
+#### **Task 27.1: Audit and Rank Primary Action Flows**
+*   **Goal:** Build the zero-based inventory of all primary interactive flows and rank prompt-chain offenders by depth, frequency, and operator cost.
+*   **Scope Lock:** Audit, classification, checklist output, remediation planning, and tracker/spec reconciliation only; no runtime behavior changes in this subtask.
+*   **Acceptance Criteria:**
+*   Produce the full `keybinding -> flow` matrix for the complete Task 27 coverage set.
+*   Record current chain, common-path decision count, submenu depth, visible command surface, hidden-but-usable commands, shown-but-unusable commands, return path, and manual repro keys for each audited flow.
+*   Rank offender families by user impact and depth severity.
+*   For each offender family, produce a remediation-ready compression plan that records:
+*   current chain,
+*   proposed compressed chain,
+*   current vs proposed submenu depth,
+*   equivalent fast path or justified exception if needed,
+*   likely owner files/modules,
+*   likely tests/docs to update,
+*   focused validation path.
+*   Identify family boundaries for remediation so follow-up subtasks can be delivered by coherent owner/risk/validation surface rather than prompt-by-prompt micro-slices.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 27.2: Reconcile Shallow-Flow Contract Against Spec**
+*   **Goal:** Confirm that the governing shallow-flow, prompt-surface, mnemonic, and counting rules are fully and correctly defined in `docs/SPECIFICATION.md` before remediation subtasks land.
+*   **Scope Lock:** Spec reconciliation only; do not duplicate long-form design rules in the roadmap and do not change runtime behavior in this subtask.
+*   **Acceptance Criteria:**
+*   Verify that `docs/SPECIFICATION.md` explicitly defines:
+*   what counts as a primary action,
+*   how common-path steps are counted,
+*   how submenu/prompt depth is counted,
+*   whether prompt-local aids such as `F1`, `F2`, history, browse, and completion count toward depth,
+*   which destructive or safety-critical confirmations are valid exceptions,
+*   what qualifies as an equivalent fast path.
+*   Verify that `docs/SPECIFICATION.md` also explicitly covers prompt-label/mnemonic normalization and prompt-surface command-visibility correctness.
+*   If any required rule is missing or ambiguous, update `docs/SPECIFICATION.md` first and keep the roadmap text concise by reference rather than restating the full contract here.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 27.3+: Remediate Audited Offender Families**
+*   **Goal:** Reduce each audited offender family to the documented shallow-flow budget or document a justified exception with an equivalent fast path.
+*   **Scope Lock:** One coherent offender family per subtask; do not mix unrelated families with different owner boundaries or validation paths.
+*   **Acceptance Criteria (applies to each remediation subtask):**
+*   The remediated family meets the documented common-path depth rule, or the subtask documents why a deeper branch is unavoidable and provides an equivalent fast path.
+*   Prompt/menu surfaces for that family show the commands that are actually usable there and do not advertise commands that are unavailable in that surface.
+*   Labels and mnemonics for that family conform to the prompt-label contract in `docs/SPECIFICATION.md`.
+*   Focused regression coverage prevents the remediated family from regressing into deeper prompt chains or prompt-surface mismatches.
+*   - [ ] **Status:** Not Started.
+
+### **Task 28: Persist Compare Mode Presets and Modal Contract**
+*   **Goal:** Build on the Task 27 compare-flow baseline by making compare mode remember last-used settings and enforce a durable modal interaction contract.
+*   **Rationale:** After compare prompt-chain compression is established, compare still needs stable option memory, strict modal ownership, and consistent compare-only key behavior to stay fast and predictable in repeated use.
+*   **Dependency:** Sequence after Task 27.2 and after the Task 27 compare-family remediation subtask establishes the compressed compare flow baseline. If compare-mode state ownership still depends on split-panel restore/state work, land this after Task 30.
+*   **Scope Lock:** Compare mode behavior only after the compare-family shallow-flow remediation exists; no fresh compare prompt-chain redesign here and no unrelated footer or global keybinding redesign.
 *   **Acceptance Criteria:**
 *   Compare remains a modal state and the compare footer keybinding/F1 surface owns the footer while active.
 *   In compare mode, only compare keys are active; non-compare keys are silent no-ops.
 *   No conflicting quick-key mappings are permitted in compare mode.
-*   Keep explicit compare target prompt (no implicit target execution).
-*   Add one-surface compare option toggles (for example basis/tag settings) without reintroducing prompt chains.
+*   The compare flow inherited from Task 27 remains the baseline; this task must not reintroduce deeper prompt chains or bypass explicit compare target confirmation.
 *   Persist last-used compare options across restart; config values seed defaults and runtime usage updates remembered defaults.
 *   Default behavior remains unchanged when quick/preset config is absent.
+*   Compare-mode prompt/menu/help surfaces stay synchronized with the persisted option model and modal key contract.
 *   Add focused regression coverage for compare behavior and split-panel isolation.
 *   Update compare docs/help text in `etc/ytnova.1.md` and regenerate `docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
