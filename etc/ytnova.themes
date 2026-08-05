@@ -18,7 +18,8 @@
 background = blue
 static_text = white
 dynamic_text = +white
-margin = dynamic_text
+# margin = dynamic_text
+# uses fallback from dynamic_text
 dialog = white
 box_lines = white
 tree_lines = white
@@ -28,7 +29,8 @@ help = black on +grey
 help_keybind = white
 help_link = black on cyan
 help_link_selection = yellow on cyan
-help_box_lines = black on +grey
+# help_box_lines = black on +grey
+# uses fallback from help fg/bg
 selection = black on cyan
 picker = white on cyan
 picker_selection = white on black
@@ -54,15 +56,18 @@ box_lines = cyan
 tree_lines = +white
 static_text = white
 dynamic_text = +white
-margin = dynamic_text
+# margin = dynamic_text
+# uses fallback from dynamic_text
 keybind = +white
 footer = white
 selection = black on white
 dialog = white
 picker = black on cyan
-picker_selection = selection
+# picker_selection = selection
+# uses fallback from selection
 help = white
-help_keybind = keybind
+# help_keybind = keybind
+# uses fallback from keybind on help background
 help_link = cyan
 help_link_selection = yellow
 help_box_lines = cyan on blue
@@ -86,15 +91,18 @@ box_lines = grey
 tree_lines = white
 static_text = white
 dynamic_text = +white
-margin = dynamic_text
+# margin = dynamic_text
+# uses fallback from dynamic_text
 keybind = +white
 footer = white
 selection = black on white
 dialog = white
 picker = black on grey
-picker_selection = selection
+# picker_selection = selection
+# uses fallback from selection
 help = white
-help_keybind = keybind
+# help_keybind = keybind
+# uses fallback from keybind on help background
 help_link = cyan
 help_link_selection = yellow
 help_box_lines = grey on black

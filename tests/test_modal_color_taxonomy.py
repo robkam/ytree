@@ -68,8 +68,9 @@ def test_prompt_uses_dialog_and_volume_uses_picker_palette():
         volume_source, "int SelectLoadedVolume(ViewContext *ctx, int *return_key)"
     )
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_block
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_block
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_block
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_block
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_block
+    assert "COLOR_PAIR(UI_ROLE_BOX_LINES)" not in volume_block
     assert "UI_RenderCommandStrip" in volume_block
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in volume_source
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in volume_block
@@ -80,8 +81,9 @@ def test_prompt_uses_dialog_and_volume_uses_picker_palette():
         app_source, "int UI_OpenApplicationsMenu(ViewContext *ctx) {"
     )
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in app_block
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in app_block
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in app_block
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_PICKER));" in app_block
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));" in app_block
+    assert "COLOR_PAIR(UI_ROLE_BOX_LINES)" not in app_block
     assert "UI_RenderCommandStrip" in app_block
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in app_source
     assert "UI_Dialog_Close(ctx, win);" in app_block

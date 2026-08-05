@@ -492,11 +492,11 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
   if (win == ctx->ctx_f2_window) {
 #ifdef COLOR_SUPPORT
-    wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+    wattron(win, COLOR_PAIR(UI_ROLE_PICKER));
 #endif
     box(win, 0, 0);
 #ifdef COLOR_SUPPORT
-    wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+    wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));
 #endif
   }
 

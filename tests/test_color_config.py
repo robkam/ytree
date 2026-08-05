@@ -96,17 +96,25 @@ def _theme_role_names(section):
     roles = set()
     for line in section.splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            stripped = stripped[1:].strip()
+        if "=" not in stripped:
             continue
         roles.add(stripped.split("=", 1)[0].strip())
     return roles
 
 
-def _theme_role_order(section):
+def _theme_visible_role_order(section):
     roles = []
     for line in section.splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            stripped = stripped[1:].strip()
+        if "=" not in stripped:
             continue
         roles.append(stripped.split("=", 1)[0].strip())
     return roles
@@ -117,15 +125,16 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     classic = _theme_section(source, "theme quiet-blue")
     bash_black = _theme_section(source, "theme bash-black")
 
-    assert "help = black on +grey\nhelp_keybind = white\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\nhelp_box_lines = black on +grey\n" in source
+    assert "help = black on +grey\nhelp_keybind = white\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\n# help_box_lines = black on +grey\n# uses fallback from help fg/bg\n" in source
 
     for section in (classic, bash_black):
         assert _theme_role_names(section) == THEME_ROLES
 
-    assert _theme_role_order(classic) == _theme_role_order(bash_black)
+    assert _theme_visible_role_order(classic) == _theme_visible_role_order(bash_black)
 
     assert "background = blue" in classic
-    assert "margin = dynamic_text" in classic
+    assert "# margin = dynamic_text" in classic
+    assert "# uses fallback from dynamic_text" in classic
     assert "error = +white on red" in classic
     assert "warning = black on yellow" in classic
     assert "search_hit = black on yellow" in classic
@@ -136,10 +145,12 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "selection = black on white\n" in classic
     assert "dialog = white\n" in classic
     assert "picker = black on cyan\n" in classic
-    assert "picker_selection = selection\n" in classic
+    assert "# picker_selection = selection" in classic
+    assert "# uses fallback from selection" in classic
     assert "footer = white\n" in classic
     assert "help = white\n" in classic
-    assert "help_keybind = keybind\n" in classic
+    assert "# help_keybind = keybind" in classic
+    assert "# uses fallback from keybind on help background" in classic
     assert "help_link = cyan\n" in classic
     assert "help_link_selection = yellow\n" in classic
     assert "help_box_lines = cyan on blue\n" in classic
@@ -147,12 +158,13 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "\nbox_lines = cyan on blue\n" not in classic
     assert "dynamic_text = +white on blue" not in classic
     assert "background = black" in bash_black
+    assert "# margin = dynamic_text" in bash_black
     assert "keybind = +white\n" in bash_black
     assert "picker = black on grey\n" in bash_black
-    assert "picker_selection = selection\n" in bash_black
+    assert "# picker_selection = selection" in bash_black
     assert "footer = white\n" in bash_black
     assert "help = white\n" in bash_black
-    assert "help_keybind = keybind\n" in bash_black
+    assert "# help_keybind = keybind" in bash_black
     assert "help_link = cyan\n" in bash_black
     assert "help_link_selection = yellow\n" in bash_black
     assert "help_box_lines = grey on black\n" in bash_black
@@ -249,10 +261,8 @@ def test_spec_documents_user_visible_theme_contract():
         "runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`"
         in spec_source
     )
-    assert (
-        "Required starter-theme roles are `background`, `box_lines`, `tree_lines`, `margin`"
-        in spec_source
-    )
+    assert "The starter-theme role surface is `background`, `box_lines`, `tree_lines`, `margin`" in spec_source
+    assert "Each packaged starter-theme block MUST include every semantic role either as an active assignment or as a full-line commented fallback documentation entry." in spec_source
     assert "`footer`" in spec_source
     assert "`help_link`" in spec_source
     assert "`help_link_selection`" in spec_source

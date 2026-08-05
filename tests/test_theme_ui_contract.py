@@ -352,12 +352,14 @@ def test_picker_surfaces_use_picker_and_selection_roles():
     assert "ctx->ctx_matches_window, COLOR_PAIR(UI_ROLE_PICKER)" in completion_source
     assert "ctx->ctx_history_window, COLOR_PAIR(UI_ROLE_PICKER)" in history_source
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in app_menu_source
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in app_menu_source
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in app_menu_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_PICKER));" in app_menu_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));" in app_menu_source
+    assert "COLOR_PAIR(UI_ROLE_BOX_LINES)" not in app_menu_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in app_menu_source
     assert "WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_source
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_source
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in volume_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));" in volume_source
+    assert "COLOR_PAIR(UI_ROLE_BOX_LINES)" not in volume_source
     assert "UISelectionAttrForBase(ctx, UI_ROLE_PICKER)" in volume_source
     assert "COLOR_PAIR(CPAIR_HST) | A_BOLD" not in volume_source
     assert "win == ctx->ctx_f2_window" in render_dir_source
@@ -368,8 +370,8 @@ def test_picker_surfaces_use_picker_and_selection_roles():
         render_dir_source
     )
     assert "waddch(win, (chtype)ch | A_BOLD);" not in render_dir_source
-    assert "wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in render_dir_source
-    assert "wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));" in render_dir_source
+    assert "wattron(win, COLOR_PAIR(UI_ROLE_PICKER));" in render_dir_source
+    assert "wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));" in render_dir_source
     assert "box(ctx->ctx_f2_window, 0, 0);" not in display_source
 
 

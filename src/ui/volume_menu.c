@@ -276,11 +276,11 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     while (menu_active) {
       werase(win);
 #ifdef COLOR_SUPPORT
-      wattron(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+      wattron(win, COLOR_PAIR(UI_ROLE_PICKER));
 #endif
       box(win, 0, 0);
 #ifdef COLOR_SUPPORT
-      wattroff(win, COLOR_PAIR(UI_ROLE_BOX_LINES));
+      wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));
 #endif
       mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
       UI_RenderCommandStrip(
