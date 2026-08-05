@@ -188,7 +188,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Log**: Log a new directory or archive file. Logging an already logged path reloads it from the top.
 * **Makedir**: Create a new directory.
 * **New File**: Create a new empty file.
-* **Only tagged**: Show only tagged files for the current scope without changing the tag state.
+* **Filter**: The filter prompt also owns the tagged-only scope toggle; press `Tab` there to switch between all files and tagged-only for the current scope.
 * **Pipe**: Send the selected directory to a command on standard input.
 * **Quit**: Quit ytnova.
 * **Rename**: Rename the selected directory.
@@ -224,7 +224,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Move**: Move the selected file.
 * **Move tagged**: Move the tagged set to one destination.
 * **New File**: Create a new empty file.
-* **Only tagged**: Show only tagged files in the current scope without changing the tag state.
+* **Filter**: The filter prompt also owns the tagged-only scope toggle; press `Tab` there to switch between all files and tagged-only for the current scope.
 * **Pipe**: Send the selected file to a command on standard input.
 * **Quit**: Quit ytnova.
 * **Rename**: Rename the selected file.
@@ -339,12 +339,31 @@ These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
 ### Filter Help
 
 #### Syntax
+Current filter terms:
+* `*` — show all files
+* `*.c` — glob match
+* `*.c,*.h` — stack multiple glob terms
+* `-*.o` — exclude matches
+* `:r` — attribute test
+* `:x` — attribute test
+* `>2023-01-01` — date test
+* `>1M` — size test
+
+You can combine terms in one filter:
+* `*.c,-*.tmp`
+* `*.c,*.h,>1M`
+* `:r,*.sh`
+* `*.log,>2024-01-01,-debug*`
+
 Use normal glob-like patterns such as `*.c`, comma-separated unions such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `:x`, `>2023-01-01`, or `>1M`.
 If your shell would expand the pattern before ytnova sees it, quote it at the shell prompt.
 
 #### Scope
 The filter always applies to the current file-list family.
-That may be an ordinary file list, an archive file list, Showall, Global, or a tagged-only view built from one of those scopes.
+That may be a normal file list, archive file list, Showall, or Global.
+Press `Tab` to switch the filter scope between all files and tagged files.
+This is enabled only when tagged files exist in the current scope.
+When tagged scope is enabled, the prompt changes to `FILTER [tagged]:`.
 ### Output Help
 
 #### Output model

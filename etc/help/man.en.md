@@ -152,7 +152,7 @@ You can build a set, act on it, narrow it, then clear or invert it.
 #### Common tagged flows
 * **Tag** and **Untag**: Add or remove the current row from the working set.
 * **Invert Tags**: Flip the tag state inside the current visible scope.
-* **Only tagged**: Show only the tagged rows inside the current scope.
+* **Filter**: Press `F`, then `Tab` to switch the current file-list scope between all rows and tagged-only rows without changing tag state.
 * **Copy tagged** and **Move tagged**: Send the whole tagged set to one destination.
 * **View tagged**: Open the tagged files one after another.
 * **Search tagged**: Search only the tagged files, then untag non-matches.
@@ -305,7 +305,7 @@ It owns directory navigation, tree expansion, and directory-scoped commands.
 * **Log**: Log a new directory or archive file. Logging an already logged path reloads it from the top.
 * **Makedir**: Create a new directory.
 * **New File**: Create a new empty file.
-* **Only tagged**: Show only tagged files for the current scope without changing the tag state.
+* **Filter**: The filter prompt also owns the tagged-only scope toggle; press `Tab` there to switch between all files and tagged-only for the current scope.
 * **Pipe**: Send the selected directory to a command on standard input.
 * **Quit**: Quit ytnova.
 * **Rename**: Rename the selected directory.
@@ -354,7 +354,7 @@ It owns file navigation, file-scoped commands, tagged actions, and export entry 
 * **Move**: Move the selected file.
 * **Move tagged**: Move the tagged set to one destination.
 * **New File**: Create a new empty file.
-* **Only tagged**: Show only tagged files in the current scope without changing the tag state.
+* **Filter**: The filter prompt also owns the tagged-only scope toggle; press `Tab` there to switch between all files and tagged-only for the current scope.
 * **Pipe**: Send the selected file to a command on standard input.
 * **Quit**: Quit ytnova.
 * **Rename**: Rename the selected file.
@@ -463,7 +463,8 @@ contexts: prompt.filter,prompt.filter-tagged
 ```
 ### Contextual F1
 Filters apply glob, exclusion, attribute, date, and size selectors to the current file-list family.
-Scope still depends on the active mode or tagged-only view.
+The prompt starts with `*`, which means all files.
+Terms can be stacked by separating them with commas.
 ### Explainer links
 - [Tagged](topic:tagged)
 - [Showall](topic:showall)
@@ -472,12 +473,31 @@ Scope still depends on the active mode or tagged-only view.
 
 ### Long form
 #### Syntax
+Current filter terms:
+* `*` — show all files
+* `*.c` — glob match
+* `*.c,*.h` — stack multiple glob terms
+* `-*.o` — exclude matches
+* `:r` — attribute test
+* `:x` — attribute test
+* `>2023-01-01` — date test
+* `>1M` — size test
+
+You can combine terms in one filter:
+* `*.c,-*.tmp`
+* `*.c,*.h,>1M`
+* `:r,*.sh`
+* `*.log,>2024-01-01,-debug*`
+
 Use normal glob-like patterns such as `*.c`, comma-separated unions such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `:x`, `>2023-01-01`, or `>1M`.
 If your shell would expand the pattern before ytnova sees it, quote it at the shell prompt.
 
 #### Scope
 The filter always applies to the current file-list family.
-That may be an ordinary file list, an archive file list, Showall, Global, or a tagged-only view built from one of those scopes.
+That may be a normal file list, archive file list, Showall, or Global.
+Press `Tab` to switch the filter scope between all files and tagged files.
+This is enabled only when tagged files exist in the current scope.
+When tagged scope is enabled, the prompt changes to `FILTER [tagged]:`.
 
 ## topic:compare
 ```ytnova-help-meta
@@ -732,7 +752,7 @@ It keeps single-volume scope while flattening directory boundaries.
 * **Open owner**: `\` jumps to the owner directory of the selected file inside the current logged volume.
 * **Sort**: Repeating `S` changes sort; it does not leave Showall.
 * **Filter**: Filter still applies only to the current Showall result set.
-* **Only tagged**: Show only the tagged rows from the current Showall result set.
+* **Filter**: Filter still applies only to the current Showall result set, and `Tab` inside the filter prompt narrows that same result set to tagged-only rows.
 
 ## topic:global
 ```ytnova-help-meta
@@ -754,7 +774,7 @@ It keeps multi-volume scope while flattening directory boundaries.
 * **Open owner**: `\` jumps to the owner directory of the selected file even when it lives under another logged volume root.
 * **Global**: Repeating `G` is a no-op while you are already in Global.
 * **Filter**: Filter still applies only to the current Global result set.
-* **Only tagged**: Show only the tagged rows from the current Global result set.
+* **Filter**: Filter still applies only to the current Global result set, and `Tab` inside the filter prompt narrows that same result set to tagged-only rows.
 
 ## topic:f7
 ```ytnova-help-meta
@@ -825,7 +845,7 @@ It is the runtime F1 page when the split focus is on the tree panel.
 * **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
 
 #### Split directory commands
-* **Command list**: The split-directory page reuses the directory-footer command family (`1..9 view`, Attributes, Copy, Delete, Filter, Global, Invert, `J compare`, `K volume`, Log, Makedir, Newfile, Only tagged, Pipe, Quit, Rename, Showall, Tag, Untag, MoveDir, Write, `eXecute`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel.
+* **Command list**: The split-directory page reuses the directory-footer command family (`1..9 view`, Attributes, Copy, Delete, Filter, Global, Invert, `J compare`, `K volume`, Log, Makedir, Newfile, Pipe, Quit, Rename, Showall, Tag, Untag, MoveDir, Write, `eXecute`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel. Tagged-only scope now lives under `Filter` via `Tab` inside the prompt.
 
 ## topic:f8-file
 ```ytnova-help-meta
@@ -848,7 +868,7 @@ It is the runtime F1 page when the split focus is on the file panel.
 * **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
 
 #### Split file commands
-* **Command list**: The split-file page reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Only tagged, Pipe, Quit, Rename, Sort, Tag, Untag, View, Write, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel.
+* **Command list**: The split-file page reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Pipe, Quit, Rename, Sort, Tag, Untag, View, Write, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel. Tagged-only scope now lives under `Filter` via `Tab` inside the prompt.
 
 ## topic:history-dialog
 ```ytnova-help-meta

@@ -128,8 +128,8 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "` dotfiles" in dir_footer
         assert "`dotfiles" not in dir_footer
         _assert_single_space_after_nav_glyphs(dir_lines[2], "File", "F1 help")
-        assert dir_lines[1].startswith("COMMANDS Only tagged"), (
-            "Wide dir footer second row should begin with the balanced overflow command.\n"
+        assert dir_lines[1].startswith("COMMANDS "), (
+            "Wide dir footer second row should remain a balanced command overflow row.\n"
             + "\n".join(dir_lines)
         )
         assert "K volume" in dir_footer, dir_footer
@@ -137,7 +137,8 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert dir_lines[2].find("F9 apps") < dir_lines[2].find("F10 config"), dir_lines[2]
         assert dir_lines[2].rstrip().endswith("Esc cancel"), dir_lines[2]
         assert "1..9 dir view" in dir_lines[0], "\n".join(dir_lines)
-        assert "Only tagged" in dir_lines[1], "\n".join(dir_lines)
+        assert "Pipe" in dir_lines[1], "\n".join(dir_lines)
+        assert "Only tagged" not in dir_footer, "\n".join(dir_lines)
         assert "F1 help" in dir_lines[2], "\n".join(dir_lines)
 
         tui.send_keystroke(Keys.ENTER, wait=0.5)
@@ -152,19 +153,19 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         assert "Untag" in file_footer, file_footer
         assert "View" in file_footer, file_footer
         _assert_single_space_after_nav_glyphs(file_lines[2], "Tree", "F1 help")
-        assert "Only tagged" in file_lines[1], (
+        assert "Pipe" in file_lines[1], (
             "Wide file footer should balance later key-ordered actions onto the second row.\n"
             + "\n".join(file_lines)
         )
-        assert file_lines[1].startswith("COMMANDS Only tagged"), (
-            "Wide file footer second row should begin with the balanced overflow command.\n"
+        assert file_lines[1].startswith("COMMANDS "), (
+            "Wide file footer second row should begin with the balanced overflow command row.\n"
             + "\n".join(file_lines)
         )
         assert file_footer.index("Write") < file_footer.index("eXecute"), file_footer
         assert file_lines[2].find("F9 apps") < file_lines[2].find("F10 config"), file_lines[2]
         assert file_lines[2].rstrip().endswith("Esc cancel"), file_lines[2]
         assert "1..9 file view" in file_lines[0], "\n".join(file_lines)
-        assert "Only tagged" in file_lines[1], "\n".join(file_lines)
+        assert "Only tagged" not in file_footer, "\n".join(file_lines)
         assert "F1 help" in file_lines[2], "\n".join(file_lines)
     finally:
         tui.quit()
