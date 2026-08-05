@@ -149,6 +149,470 @@ static const UICommandStripCommand read_string_history_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 
+typedef struct {
+  ViewContext *ctx;
+  YtreeNovaPanel *panel;
+  WINDOW *win;
+  const char *prompt;
+  char *buffer;
+  int max_len;
+  int history_type;
+  int ch;
+  int p;
+  int scroll_offset;
+  int field_width;
+  int prompt_row;
+  int hints_row;
+  int win_y;
+  BOOL mode_edit;
+  BOOL date_overwrite_edit;
+  BOOL overwrite_edit;
+  BOOL restore_insert_flag;
+  BOOL saved_insert_flag;
+  BOOL insert_flag;
+  BOOL accept_special_term;
+  BOOL mode_octal_entry;
+  char mode_octal_input[5];
+  int mode_octal_len;
+  char mode_original[32];
+  char mode_type;
+  const UICommandStripCommand *hints;
+  size_t hint_count;
+  int (*help_callback)(ViewContext *, void *);
+  void *help_data;
+} PromptSession;
+
+static DirEntry *PromptSessionSelectedEntry(PromptSession *session) {
+  if (!session || !session->ctx)
+    return NULL;
+  return GetSelectedDirEntry(
+      session->ctx,
+      (session->panel ? session->panel->vol : session->ctx->active->vol));
+}
+
+static void PromptSessionRefreshBackground(PromptSession *session) {
+  if (!session || !session->ctx)
+    return;
+  RefreshView(session->ctx, PromptSessionSelectedEntry(session));
+}
+
+static void PromptSessionComputeWindowRows(PromptSession *session) {
+  session->prompt_row = (session->ctx->layout.prompt_y > 0) ? 1 : 0;
+  session->hints_row = session->prompt_row + 1;
+  session->win_y = (session->ctx->layout.prompt_y > 0)
+                       ? session->ctx->layout.prompt_y - 1
+                       : session->ctx->layout.prompt_y;
+}
+
+static void PromptSessionResolveHints(
+    PromptSession *session, const UICommandStripCommand *hints_override,
+    size_t hints_override_count) {
+  if (hints_override != NULL && hints_override_count > 0) {
+    session->hints = hints_override;
+    session->hint_count = hints_override_count;
+  } else if (session->history_type == HST_LOG ||
+             session->history_type == HST_PATH) {
+    session->hints = read_string_path_hint_commands;
+    session->hint_count = sizeof(read_string_path_hint_commands) /
+                          sizeof(read_string_path_hint_commands[0]);
+  } else {
+    session->hints = read_string_history_hint_commands;
+    session->hint_count = sizeof(read_string_history_hint_commands) /
+                          sizeof(read_string_history_hint_commands[0]);
+  }
+}
+
+static void PromptSessionLoadModeOriginal(PromptSession *session) {
+  strncpy(session->mode_original, session->buffer,
+          sizeof(session->mode_original) - 1);
+  session->mode_original[sizeof(session->mode_original) - 1] = '\0';
+  if (session->mode_edit && session->mode_original[0] == '\0') {
+    (void)snprintf(session->mode_original, sizeof(session->mode_original),
+                   "----------");
+  }
+
+  session->mode_type = session->mode_original[0];
+  if (session->mode_edit && session->mode_type != '-' &&
+      session->mode_type != 'd' && session->mode_type != 'l' &&
+      session->mode_type != '?') {
+    session->mode_type = '-';
+  }
+
+  if (session->mode_edit && is_octal_mode_string(session->buffer)) {
+    session->mode_octal_entry = TRUE;
+    session->mode_octal_len = (int)strlen(session->buffer);
+    strncpy(session->mode_octal_input, session->buffer,
+            sizeof(session->mode_octal_input) - 1);
+    session->mode_octal_input[sizeof(session->mode_octal_input) - 1] = '\0';
+  } else {
+    session->mode_octal_entry = FALSE;
+    session->mode_octal_len = 0;
+    session->mode_octal_input[0] = '\0';
+  }
+}
+
+static void PromptSessionPrepareInitialState(PromptSession *session) {
+  if (session->overwrite_edit) {
+    PromptSessionLoadModeOriginal(session);
+    session->p = 0;
+    session->restore_insert_flag = TRUE;
+    session->insert_flag = FALSE;
+  } else {
+    session->p = StrVisualLength(session->buffer);
+  }
+}
+
+static void PromptSessionClearPromptArea(PromptSession *session) {
+  if (session->ctx->layout.prompt_y > 0) {
+    mvwhline(stdscr, session->ctx->layout.prompt_y - 1, 0, ' ', COLS);
+  }
+  mvwhline(stdscr, session->ctx->layout.prompt_y, 0, ' ', COLS);
+  mvwhline(stdscr, session->ctx->layout.status_y, 0, ' ', COLS);
+  wnoutrefresh(stdscr);
+}
+
+static void PromptSessionExpandTildeOnAccept(PromptSession *session) {
+  if (session->buffer[0] == '~') {
+    const char *home = getenv("HOME");
+
+    if (home && (session->buffer[1] == '/' || session->buffer[1] == '\0')) {
+      char expanded[PATH_LENGTH + 1];
+
+      snprintf(expanded, sizeof(expanded), "%s%s", home, session->buffer + 1);
+      strncpy(session->buffer, expanded, session->max_len - 1);
+      session->buffer[session->max_len - 1] = '\0';
+    }
+  }
+}
+
+static void PromptSessionHandleResize(PromptSession *session) {
+  PromptSessionComputeWindowRows(session);
+  wresize(session->win, PROMPT_WIN_HEIGHT, COLS);
+  mvwin(session->win, session->win_y, 0);
+  PromptSessionRefreshBackground(session);
+  touchwin(session->win);
+}
+
+static void PromptSessionUpdateModeBufferFromOctal(PromptSession *session) {
+  if (session->mode_octal_len == 0) {
+    session->mode_octal_entry = FALSE;
+    strncpy(session->buffer, session->mode_original, session->max_len - 1);
+    session->buffer[session->max_len - 1] = '\0';
+    session->p = 0;
+  } else if (session->mode_octal_len < 3) {
+    strncpy(session->buffer, session->mode_octal_input, session->max_len - 1);
+    session->buffer[session->max_len - 1] = '\0';
+    session->p = session->mode_octal_len;
+  } else {
+    char converted_mode[16];
+
+    format_mode_from_octal(session->mode_octal_input, session->mode_type,
+                           converted_mode, sizeof(converted_mode));
+    strncpy(session->buffer, converted_mode, session->max_len - 1);
+    session->buffer[session->max_len - 1] = '\0';
+    session->p = StrVisualLength(session->buffer);
+  }
+}
+
+static BOOL PromptSessionHandleModeOctalDelete(PromptSession *session) {
+  if (!session->mode_edit || !session->mode_octal_entry)
+    return FALSE;
+  if (session->mode_octal_len > 0) {
+    session->mode_octal_len--;
+    session->mode_octal_input[session->mode_octal_len] = '\0';
+    PromptSessionUpdateModeBufferFromOctal(session);
+  }
+  return TRUE;
+}
+
+static BOOL PromptSessionHandleNavigationKey(PromptSession *session) {
+  switch (session->ch) {
+  case KEY_LEFT:
+  case KEY_BTAB:
+    if (session->p > 0)
+      session->p--;
+    return TRUE;
+
+  case KEY_RIGHT:
+    if (session->p < StrVisualLength(session->buffer))
+      session->p++;
+    return TRUE;
+
+  case 'A' & 0x1F:
+  case KEY_HOME:
+    session->p = 0;
+    return TRUE;
+
+  case 'E' & 0x1F:
+  case KEY_END:
+    session->p = StrVisualLength(session->buffer);
+    return TRUE;
+
+  case 'K' & 0x1F: {
+    int byte_pos = VisualPositionToBytePosition(session->buffer, session->p);
+
+    session->buffer[byte_pos] = '\0';
+    return TRUE;
+  }
+
+  case 'U' & 0x1F:
+    if (session->p > 0) {
+      int byte_pos = VisualPositionToBytePosition(session->buffer, session->p);
+
+      memmove(session->buffer, session->buffer + byte_pos,
+              strlen(session->buffer) - byte_pos + 1);
+      session->p = 0;
+    }
+    return TRUE;
+
+  case 'W' & 0x1F:
+    if (session->p > 0) {
+      int byte_p = VisualPositionToBytePosition(session->buffer, session->p);
+      int end_of_word = byte_p;
+      int start_of_word;
+
+      while (end_of_word > 0 &&
+             !isalnum((unsigned char)session->buffer[end_of_word - 1])) {
+        end_of_word--;
+      }
+      start_of_word = end_of_word;
+      while (start_of_word > 0 &&
+             isalnum((unsigned char)session->buffer[start_of_word - 1])) {
+        start_of_word--;
+      }
+
+      if (start_of_word < byte_p) {
+        char saved_char;
+
+        memmove(session->buffer + start_of_word, session->buffer + byte_p,
+                strlen(session->buffer + byte_p) + 1);
+        saved_char = session->buffer[start_of_word];
+        session->buffer[start_of_word] = '\0';
+        session->p = StrVisualLength(session->buffer);
+        session->buffer[start_of_word] = saved_char;
+      }
+    }
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+static BOOL PromptSessionHandleDeletionKey(PromptSession *session) {
+  switch (session->ch) {
+  case 'H' & 0x1F:
+  case KEY_BACKSPACE:
+  case 127:
+    if (PromptSessionHandleModeOctalDelete(session))
+      return TRUE;
+    if (session->mode_edit) {
+      if (session->p > 0) {
+        int prev_byte =
+            VisualPositionToBytePosition(session->buffer, session->p - 1);
+
+        session->buffer[prev_byte] = '-';
+        session->p--;
+      }
+      return TRUE;
+    }
+    if (session->p > 0) {
+      int curr_byte = VisualPositionToBytePosition(session->buffer, session->p);
+      int prev_byte =
+          VisualPositionToBytePosition(session->buffer, session->p - 1);
+
+      memmove(session->buffer + prev_byte, session->buffer + curr_byte,
+              strlen(session->buffer) - curr_byte + 1);
+      session->p--;
+    }
+    return TRUE;
+
+  case 'D' & 0x1F:
+  case KEY_DC:
+    if (PromptSessionHandleModeOctalDelete(session))
+      return TRUE;
+    if (session->mode_edit) {
+      if (session->p < StrVisualLength(session->buffer)) {
+        int curr_byte =
+            VisualPositionToBytePosition(session->buffer, session->p);
+
+        session->buffer[curr_byte] = '-';
+      }
+      return TRUE;
+    }
+    if (session->p < StrVisualLength(session->buffer)) {
+      int curr_byte = VisualPositionToBytePosition(session->buffer, session->p);
+      int next_byte =
+          VisualPositionToBytePosition(session->buffer, session->p + 1);
+
+      memmove(session->buffer + curr_byte, session->buffer + next_byte,
+              strlen(session->buffer) - next_byte + 1);
+    }
+    return TRUE;
+
+  case KEY_IC:
+    if (!session->overwrite_edit)
+      session->insert_flag = !session->insert_flag;
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+static BOOL PromptSessionHandleHistoryKey(PromptSession *session) {
+  switch (session->ch) {
+  case 'P' & 0x1F:
+  case KEY_UP: {
+    const char *history = GetHistory(session->ctx, session->history_type);
+
+    if (history) {
+      strncpy(session->buffer, history, session->max_len - 1);
+      session->buffer[session->max_len - 1] = '\0';
+      session->p = StrVisualLength(session->buffer);
+      if (session->mode_edit)
+        PromptSessionLoadModeOriginal(session);
+    }
+    return TRUE;
+  }
+
+  case '\t':
+    if (session->history_type == HST_FILTER) {
+      session->accept_special_term = TRUE;
+      return TRUE;
+    }
+    {
+      char *match = GetMatches(session->ctx, session->buffer);
+
+      if (match) {
+        strncpy(session->buffer, match, session->max_len - 1);
+        session->buffer[session->max_len - 1] = '\0';
+        session->p = StrVisualLength(session->buffer);
+        free(match);
+      }
+    }
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+static BOOL PromptSessionHandleActionKey(PromptSession *session) {
+  switch (session->ch) {
+#ifdef KEY_F
+  case KEY_F(1):
+    if (session->help_callback != NULL) {
+      curs_set(0);
+      (void)session->help_callback(session->ctx, session->help_data);
+      touchwin(session->win);
+      curs_set(1);
+    }
+    return TRUE;
+
+  case KEY_F(2):
+#endif
+  case 'F' & 0x1f:
+    if (session->history_type == HST_LOG || session->history_type == HST_PATH) {
+      char path[PATH_LENGTH + 1];
+
+      if (KeyF2Get(session->ctx, session->panel, path) == 0) {
+        if (*path) {
+          strncpy(session->buffer, path, session->max_len - 1);
+          session->buffer[session->max_len - 1] = '\0';
+          session->p = StrVisualLength(session->buffer);
+        }
+      }
+      PromptSessionRefreshBackground(session);
+      touchwin(session->win);
+    }
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+static BOOL PromptSessionHandlePrintableKey(PromptSession *session) {
+  int ch = session->ch;
+
+  if (ch < ' ' || ch > '~')
+    return FALSE;
+
+  if (session->date_overwrite_edit) {
+    if (!is_date_literal_char(ch)) {
+      UI_Beep(session->ctx, FALSE);
+      return TRUE;
+    }
+    if (session->p >= 19) {
+      UI_Beep(session->ctx, FALSE);
+      return TRUE;
+    }
+  }
+
+  if (session->mode_edit) {
+    if (isupper(ch))
+      ch = tolower(ch);
+
+    if (ch >= '0' && ch <= '7') {
+      if (!session->mode_octal_entry) {
+        session->mode_octal_entry = TRUE;
+        session->mode_octal_len = 0;
+        session->mode_octal_input[0] = '\0';
+        session->scroll_offset = 0;
+      }
+
+      if (session->mode_octal_len >= 4) {
+        UI_Beep(session->ctx, FALSE);
+        return TRUE;
+      }
+
+      session->mode_octal_input[session->mode_octal_len++] = (char)ch;
+      session->mode_octal_input[session->mode_octal_len] = '\0';
+      PromptSessionUpdateModeBufferFromOctal(session);
+      return TRUE;
+    }
+
+    session->mode_octal_entry = FALSE;
+    session->mode_octal_len = 0;
+    session->mode_octal_input[0] = '\0';
+
+    if (!is_mode_literal_char(ch)) {
+      UI_Beep(session->ctx, FALSE);
+      return TRUE;
+    }
+
+    if ((int)strlen(session->buffer) < 10) {
+      strncpy(session->buffer, session->mode_original, session->max_len - 1);
+      session->buffer[session->max_len - 1] = '\0';
+      session->p = 0;
+    }
+
+    if (session->p >= 10) {
+      UI_Beep(session->ctx, FALSE);
+      return TRUE;
+    }
+  }
+
+  if (strlen(session->buffer) < (size_t)(session->max_len - 1)) {
+    int byte_pos = VisualPositionToBytePosition(session->buffer, session->p);
+
+    if (session->insert_flag) {
+      memmove(session->buffer + byte_pos + 1, session->buffer + byte_pos,
+              strlen(session->buffer) - byte_pos + 1);
+    }
+    session->buffer[byte_pos] = ch;
+    if (!session->insert_flag && session->buffer[byte_pos + 1] == '\0') {
+      session->buffer[byte_pos + 1] = '\0';
+    }
+    session->p++;
+  } else {
+    UI_Beep(session->ctx, FALSE);
+  }
+
+  return TRUE;
+}
+
 static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
                                  int history_type,
@@ -156,555 +620,155 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
                                  size_t hints_override_count,
                                  int (*help_callback)(ViewContext *, void *),
                                  void *help_data) {
+  static BOOL insert_flag = TRUE;
+  PromptSession session;
   WINDOW *win;
-  int field_width;
   int hints_row;
   int prompt_row;
-  int win_y, win_x;
-  int ch;
-  int p = 0; /* Visual cursor position */
-  int scroll_offset = 0;
-  static BOOL insert_flag = TRUE;
-  BOOL mode_edit = (history_type == HST_CHANGE_MODUS);
-  BOOL date_overwrite_edit = (history_type == HST_GENERAL && prompt != NULL &&
-                              strncmp(prompt, "DATE (", 6) == 0);
-  BOOL overwrite_edit = (mode_edit || date_overwrite_edit);
-  BOOL restore_insert_flag = FALSE;
-  BOOL previous_insert_flag = insert_flag;
-  BOOL mode_octal_entry = FALSE;
-  char mode_octal_input[5] = {0};
-  int mode_octal_len = 0;
-  char mode_original[32] = {0};
-  char mode_type = '-';
-  const UICommandStripCommand *hints = NULL;
-  size_t hint_count = 0;
+  const UICommandStripCommand *hints;
+  size_t hint_count;
 
-  /* Ensure buffer is valid */
   if (buffer == NULL)
     return ESC;
 
-  /* Mode editing starts in overwrite-from-start behavior. */
-  if (overwrite_edit) {
-    strncpy(mode_original, buffer, sizeof(mode_original) - 1);
-    mode_original[sizeof(mode_original) - 1] = '\0';
-    if (mode_edit && mode_original[0] == '\0') {
-      (void)snprintf(mode_original, sizeof(mode_original), "----------");
-    }
-    mode_type = mode_original[0];
-    if (mode_edit && mode_type != '-' && mode_type != 'd' && mode_type != 'l' &&
-        mode_type != '?') {
-      mode_type = '-';
-    }
-    p = 0;
-    restore_insert_flag = TRUE;
-    insert_flag = FALSE;
-  } else {
-    /* Initial cursor position at end of string */
-    p = StrVisualLength(buffer);
-  }
+  memset(&session, 0, sizeof(session));
+  session.ctx = ctx;
+  session.panel = panel;
+  session.prompt = prompt;
+  session.buffer = buffer;
+  session.max_len = max_len;
+  session.history_type = history_type;
+  session.mode_edit = (history_type == HST_CHANGE_MODUS);
+  session.date_overwrite_edit =
+      (history_type == HST_GENERAL && prompt != NULL &&
+       strncmp(prompt, "DATE (", 6) == 0);
+  session.overwrite_edit = (session.mode_edit || session.date_overwrite_edit);
+  session.saved_insert_flag = insert_flag;
+  session.insert_flag = insert_flag;
+  session.mode_type = '-';
+  session.help_callback = help_callback;
+  session.help_data = help_data;
 
-  /* Determine Key Hints */
-  if (hints_override != NULL && hints_override_count > 0) {
-    hints = hints_override;
-    hint_count = hints_override_count;
-  } else if (history_type == HST_LOG || history_type == HST_PATH) {
-    hints = read_string_path_hint_commands;
-    hint_count = sizeof(read_string_path_hint_commands) /
-                 sizeof(read_string_path_hint_commands[0]);
-  } else {
-    hints = read_string_history_hint_commands;
-    hint_count = sizeof(read_string_history_hint_commands) /
-                 sizeof(read_string_history_hint_commands[0]);
-  }
+  PromptSessionPrepareInitialState(&session);
+  PromptSessionResolveHints(&session, hints_override, hints_override_count);
+  hints = session.hints;
+  hint_count = session.hint_count;
+  PromptSessionClearPromptArea(&session);
+  PromptSessionComputeWindowRows(&session);
+  prompt_row = session.prompt_row;
+  hints_row = session.hints_row;
 
-  /* Clearance: Clear the interaction area on stdscr first */
-  /* Clear line above prompt to prevent footer bleed */
-  if (ctx->layout.prompt_y > 0) {
-    mvwhline(stdscr, ctx->layout.prompt_y - 1, 0, ' ', COLS);
-  }
-  mvwhline(stdscr, ctx->layout.prompt_y, 0, ' ', COLS);
-  mvwhline(stdscr, ctx->layout.status_y, 0, ' ', COLS);
-  wnoutrefresh(stdscr);
-
-  /* Use the full three-line prompt area so stale footer rows cannot bleed
-   * back in after browse/log interactions. */
-  prompt_row = (ctx->layout.prompt_y > 0) ? 1 : 0;
-  hints_row = prompt_row + 1;
-  win_y = (ctx->layout.prompt_y > 0) ? ctx->layout.prompt_y - 1
-                                     : ctx->layout.prompt_y;
-  win_x = 0;
-
-  /* Setup Window: blank row + prompt/input + hints */
-  win = newwin(PROMPT_WIN_HEIGHT, COLS, win_y, win_x);
+  win = newwin(PROMPT_WIN_HEIGHT, COLS, session.win_y, 0);
   if (win == NULL)
     return ESC;
+  session.win = win;
 
-  werase(win);  /* Clear window immediately to prevent footer bleed */
+  werase(win);
   UI_Dialog_Push(win, UI_TIER_FOOTER);
-
   keypad(win, TRUE);
   WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_DIALOG));
-  curs_set(1); /* Show cursor */
+  curs_set(1);
 
   while (1) {
+    int field_width;
+    int prompt_len;
+
     werase(win);
-
-    /* Prompt and Input Field */
     mvwprintw(win, prompt_row, 1, "%s ", prompt);
+    prompt_len = StrVisualLength(prompt) + 2;
+    field_width = COLS - prompt_len - 1;
+    session.field_width = field_width;
+
+    if (help_callback != NULL) {
+      int hint_x = 1;
+
+      hint_x += UI_RenderAdaptiveCommandStrip(
+          win, hints_row, hint_x, read_string_help_hint_commands,
+          sizeof(read_string_help_hint_commands) /
+              sizeof(read_string_help_hint_commands[0]),
+          UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      if (hints != NULL && hint_count > 0)
+        hint_x += 2;
+      UI_RenderAdaptiveCommandStrip(win, hints_row, hint_x, hints, hint_count,
+                                    UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+    } else {
+      UI_RenderAdaptiveCommandStrip(win, hints_row, 1, hints, hint_count,
+                                    UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+    }
+
+    if (session.p < session.scroll_offset) {
+      session.scroll_offset = session.p;
+    } else if (session.p >= session.scroll_offset + field_width) {
+      session.scroll_offset = session.p - field_width + 1;
+    }
+
     {
-      int prompt_len = StrVisualLength(prompt) + 2;
-      field_width = COLS - prompt_len - 1;
+      int start_byte =
+          VisualPositionToBytePosition(buffer, session.scroll_offset);
+      char *display_str = StrLeft(&buffer[start_byte], field_width);
+      int i;
+      int len_drawn;
 
-      /* Hints */
-      if (help_callback != NULL) {
-        int hint_x = 1;
-
-        hint_x += UI_RenderAdaptiveCommandStrip(
-            win, hints_row, hint_x, read_string_help_hint_commands,
-            sizeof(read_string_help_hint_commands) /
-                sizeof(read_string_help_hint_commands[0]),
-            UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
-        if (hints != NULL && hint_count > 0)
-          hint_x += 2;
-        UI_RenderAdaptiveCommandStrip(win, hints_row, hint_x, hints, hint_count,
-                                      UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
-      } else {
-        UI_RenderAdaptiveCommandStrip(win, hints_row, 1, hints, hint_count,
-                                      UI_ROLE_DIALOG, UI_ROLE_KEYBIND);
+      mvwaddstr(win, prompt_row, prompt_len, display_str);
+      len_drawn = StrVisualLength(display_str);
+      for (i = len_drawn; i < field_width; i++) {
+        waddch(win, '_');
       }
-
-      /* Handle Scrolling */
-      if (p < scroll_offset) {
-        scroll_offset = p;
-      } else if (p >= scroll_offset + field_width) {
-        scroll_offset = p - field_width + 1;
-      }
-
-      /* Extract visible portion */
-      {
-        int start_byte = VisualPositionToBytePosition(buffer, scroll_offset);
-        char *display_str = StrLeft(&buffer[start_byte], field_width);
-        int i;
-        int len_drawn;
-
-        mvwaddstr(win, prompt_row, prompt_len, display_str);
-
-        /* Fill remaining space with underscores */
-        len_drawn = StrVisualLength(display_str);
-        for (i = len_drawn; i < field_width; i++) {
-          waddch(win, '_');
-        }
-
-        free(display_str);
-
-        /* Position Cursor */
-        wmove(win, prompt_row, prompt_len + (p - scroll_offset));
-      }
+      free(display_str);
+      wmove(win, prompt_row, prompt_len + (session.p - session.scroll_offset));
     }
 
     wrefresh(win);
+    curs_set(1);
+    session.ch = WGetch(ctx, win);
+    session.ch = normalize_prompt_escape_key(win, session.ch);
 
-    curs_set(1); /* Ensure cursor is visible */
-    ch = WGetch(ctx, win);
-    ch = normalize_prompt_escape_key(win, ch);
-
-
-    if (ch == ESC) {
+    if (session.ch == ESC) {
       break;
     }
-    if (ch == ERR) {
-      /* Wait a tiny amount to prevent CPU hang on EOF/NonBlocking */
+    if (session.ch == ERR) {
       napms(10);
       continue;
     }
-    if (ch == '\n' || ch == '\r') {
-      ch = CR; /* Standardize return */
-
-      /* Handle Tilde Expansion on Enter */
-      if (buffer[0] == '~') {
-        const char *home = getenv("HOME");
-        if (home) {
-          /* Expand only if just "~" or "~/..." */
-          if (buffer[1] == '/' || buffer[1] == '\0') {
-            char expanded[PATH_LENGTH + 1];
-            snprintf(expanded, sizeof(expanded), "%s%s", home, buffer + 1);
-            strncpy(buffer, expanded, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            /* p will be invalid relative to visual pos, but we are exiting loop
-             */
-          }
-        }
-      }
-
+    if (session.ch == '\n' || session.ch == '\r') {
+      session.ch = CR;
+      PromptSessionExpandTildeOnAccept(&session);
       break;
     }
 
     if (ctx && ctx->resize_request) {
       (void)AppStateClearResizeRequest(ctx);
-
-      /* Recreate window geometry */
-      prompt_row = (ctx->layout.prompt_y > 0) ? 1 : 0;
-      hints_row = prompt_row + 1;
-      win_y = (ctx->layout.prompt_y > 0) ? ctx->layout.prompt_y - 1
-                                         : ctx->layout.prompt_y;
-
-      wresize(win, PROMPT_WIN_HEIGHT, COLS);
-      mvwin(win, win_y, 0);
-
-      /* Refresh background to clear artifacts */
-      RefreshView(ctx, GetSelectedDirEntry(
-                                 ctx, (panel ? panel->vol : ctx->active->vol)));
-      touchwin(win);
+      PromptSessionHandleResize(&session);
+      prompt_row = session.prompt_row;
+      hints_row = session.hints_row;
       continue;
     }
 
-    switch (ch) {
-    case KEY_LEFT:
-    case KEY_BTAB:
-      if (p > 0)
-        p--;
-      break;
-
-    case KEY_RIGHT:
-      if (p < StrVisualLength(buffer))
-        p++;
-      break;
-
-    case 'A' & 0x1F: /* Ctrl-A */
-    case KEY_HOME:
-      p = 0;
-      break;
-
-    case 'E' & 0x1F: /* Ctrl-E */
-    case KEY_END:
-      p = StrVisualLength(buffer);
-      break;
-
-    case 'K' & 0x1F: /* Ctrl-K: Delete to end */
-    {
-      int byte_pos = VisualPositionToBytePosition(buffer, p);
-      buffer[byte_pos] = '\0';
-    } break;
-
-    case 'U' & 0x1F: /* Ctrl-U: Delete to start */
-      if (p > 0) {
-        int byte_pos = VisualPositionToBytePosition(buffer, p);
-        memmove(buffer, buffer + byte_pos, strlen(buffer) - byte_pos + 1);
-        p = 0;
-      }
-      break;
-
-    case 'W' & 0x1F: /* Ctrl-W: Delete word left */
-      if (p > 0) {
-        int byte_p = VisualPositionToBytePosition(buffer, p);
-        int end_of_word = byte_p;
-        int start_of_word;
-
-        /* Skip backwards over any non-alphanumeric characters */
-        while (end_of_word > 0 &&
-               !isalnum((unsigned char)buffer[end_of_word - 1])) {
-          end_of_word--;
-        }
-        /* Find the start of the word */
-        start_of_word = end_of_word;
-        while (start_of_word > 0 &&
-               isalnum((unsigned char)buffer[start_of_word - 1])) {
-          start_of_word--;
-        }
-
-        if (start_of_word < byte_p) {
-          memmove(buffer + start_of_word, buffer + byte_p,
-                  strlen(buffer + byte_p) + 1);
-          /* Recalculate p based on new string prefix */
-          char c = buffer[start_of_word];
-          buffer[start_of_word] = '\0';
-          p = StrVisualLength(buffer);
-          buffer[start_of_word] = c;
-        }
-      }
-      break;
-
-    case 'H' & 0x1F: /* Ctrl-H */
-    case KEY_BACKSPACE:
-    case 127: /* ASCII DEL sometimes maps to Backspace */
-      if (mode_edit && mode_octal_entry) {
-        if (mode_octal_len > 0) {
-          char converted_mode[16];
-          mode_octal_len--;
-          mode_octal_input[mode_octal_len] = '\0';
-          if (mode_octal_len == 0) {
-            mode_octal_entry = FALSE;
-            strncpy(buffer, mode_original, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = 0;
-          } else if (mode_octal_len < 3) {
-            strncpy(buffer, mode_octal_input, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = mode_octal_len;
-          } else {
-            format_mode_from_octal(mode_octal_input, mode_type, converted_mode,
-                                   sizeof(converted_mode));
-            strncpy(buffer, converted_mode, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = StrVisualLength(buffer);
-          }
-        }
+    if (PromptSessionHandleNavigationKey(&session) ||
+        PromptSessionHandleDeletionKey(&session) ||
+        PromptSessionHandleHistoryKey(&session) ||
+        PromptSessionHandleActionKey(&session) ||
+        PromptSessionHandlePrintableKey(&session)) {
+      if (session.accept_special_term)
         break;
-      }
-      if (mode_edit) {
-        if (p > 0) {
-          int prev_byte = VisualPositionToBytePosition(buffer, p - 1);
-          buffer[prev_byte] = '-';
-          p--;
-        }
-        break;
-      }
-      if (p > 0) {
-        int curr_byte = VisualPositionToBytePosition(buffer, p);
-        int prev_byte = VisualPositionToBytePosition(buffer, p - 1);
-        memmove(buffer + prev_byte, buffer + curr_byte,
-                strlen(buffer) - curr_byte + 1);
-        p--;
-      }
-      break;
-
-    case 'D' & 0x1F: /* Ctrl-D */
-    case KEY_DC:     /* Delete Key */
-      if (mode_edit && mode_octal_entry) {
-        if (mode_octal_len > 0) {
-          char converted_mode[16];
-          mode_octal_len--;
-          mode_octal_input[mode_octal_len] = '\0';
-          if (mode_octal_len == 0) {
-            mode_octal_entry = FALSE;
-            strncpy(buffer, mode_original, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = 0;
-          } else if (mode_octal_len < 3) {
-            strncpy(buffer, mode_octal_input, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = mode_octal_len;
-          } else {
-            format_mode_from_octal(mode_octal_input, mode_type, converted_mode,
-                                   sizeof(converted_mode));
-            strncpy(buffer, converted_mode, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = StrVisualLength(buffer);
-          }
-        }
-        break;
-      }
-      if (mode_edit) {
-        if (p < StrVisualLength(buffer)) {
-          int curr_byte = VisualPositionToBytePosition(buffer, p);
-          buffer[curr_byte] = '-';
-        }
-        break;
-      }
-      if (p < StrVisualLength(buffer)) {
-        int curr_byte = VisualPositionToBytePosition(buffer, p);
-        int next_byte = VisualPositionToBytePosition(buffer, p + 1);
-        memmove(buffer + curr_byte, buffer + next_byte,
-                strlen(buffer) - next_byte + 1);
-      }
-      break;
-
-    case KEY_IC:
-      if (overwrite_edit)
-        break;
-      insert_flag = !insert_flag;
-      break;
-
-    case 'P' & 0x1F: /* Ctrl-P: history up (readline-style) */
-    case KEY_UP: {
-      /* GetHistory returns a pointer to internal history data.
-         Do NOT free it. */
-      const char *h = GetHistory(ctx, history_type);
-      if (h) {
-        strncpy(buffer, h, max_len - 1);
-        buffer[max_len - 1] = '\0';
-        p = StrVisualLength(buffer);
-        if (mode_edit) {
-          strncpy(mode_original, buffer, sizeof(mode_original) - 1);
-          mode_original[sizeof(mode_original) - 1] = '\0';
-          if (mode_original[0] == '\0')
-            (void)snprintf(mode_original, sizeof(mode_original), "----------");
-          mode_type = mode_original[0];
-          if (mode_type != '-' && mode_type != 'd' && mode_type != 'l' &&
-              mode_type != '?') {
-            mode_type = '-';
-          }
-          if (is_octal_mode_string(buffer)) {
-            mode_octal_entry = TRUE;
-            mode_octal_len = (int)strlen(buffer);
-            strncpy(mode_octal_input, buffer, sizeof(mode_octal_input) - 1);
-            mode_octal_input[sizeof(mode_octal_input) - 1] = '\0';
-          } else {
-            mode_octal_entry = FALSE;
-            mode_octal_len = 0;
-            mode_octal_input[0] = '\0';
-          }
-        }
-      }
-    } break;
-
-    case '\t': {
-      /* GetMatches allocates a new string. MUST free it. */
-      char *match = GetMatches(ctx, buffer);
-      if (match) {
-        strncpy(buffer, match, max_len - 1);
-        buffer[max_len - 1] = '\0';
-        p = StrVisualLength(buffer);
-        free(match);
-      }
-    } break;
-
-#ifdef KEY_F
-    case KEY_F(1):
-      if (help_callback != NULL) {
-        curs_set(0);
-        (void)help_callback(ctx, help_data);
-        touchwin(win);
-        curs_set(1);
-      }
-      break;
-
-    case KEY_F(2):
-#endif
-    case 'F' & 0x1f:
-      if (history_type == HST_LOG || history_type == HST_PATH) {
-        char path[PATH_LENGTH + 1];
-        /* F2 Directory Selection */
-        /* Note: KeyF2Get handles saving/restoring the screen context internally
-         */
-        if (KeyF2Get(ctx, panel, path) == 0) {
-          if (*path) {
-            strncpy(buffer, path, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = StrVisualLength(buffer);
-            /* Force refresh of global view before we redraw our window,
-               just in case KeyF2Get left things dirty */
-            RefreshView(
-                ctx, GetSelectedDirEntry(
-                         ctx, (panel ? panel->vol : ctx->active->vol)));
-            touchwin(win);
-          }
-        } else {
-          /* Cancelled or error, just ensure background is clean */
-          RefreshView(ctx,
-                            GetSelectedDirEntry(
-                                ctx, (panel ? panel->vol : ctx->active->vol)));
-          touchwin(win);
-        }
-      }
-      break;
-
-    default:
-      if (ch >= ' ' && ch <= '~') {
-        if (date_overwrite_edit) {
-          if (!is_date_literal_char(ch)) {
-            UI_Beep(ctx, FALSE);
-            break;
-          }
-          if (p >= 19) {
-            UI_Beep(ctx, FALSE);
-            break;
-          }
-        }
-
-        if (mode_edit) {
-          if (isupper(ch))
-            ch = tolower(ch);
-
-          if (ch >= '0' && ch <= '7') {
-            if (!mode_octal_entry) {
-              mode_octal_entry = TRUE;
-              mode_octal_len = 0;
-              mode_octal_input[0] = '\0';
-              scroll_offset = 0;
-            }
-
-            if (mode_octal_len >= 4) {
-              UI_Beep(ctx, FALSE);
-              break;
-            }
-
-            mode_octal_input[mode_octal_len++] = (char)ch;
-            mode_octal_input[mode_octal_len] = '\0';
-
-            if (mode_octal_len < 3) {
-              strncpy(buffer, mode_octal_input, max_len - 1);
-              buffer[max_len - 1] = '\0';
-              p = mode_octal_len;
-            } else {
-              char converted_mode[16];
-              format_mode_from_octal(mode_octal_input, mode_type,
-                                     converted_mode, sizeof(converted_mode));
-              strncpy(buffer, converted_mode, max_len - 1);
-              buffer[max_len - 1] = '\0';
-              p = StrVisualLength(buffer);
-            }
-            break;
-          }
-
-          mode_octal_entry = FALSE;
-          mode_octal_len = 0;
-          mode_octal_input[0] = '\0';
-
-          if (!is_mode_literal_char(ch)) {
-            UI_Beep(ctx, FALSE);
-            break;
-          }
-
-          if ((int)strlen(buffer) < 10) {
-            strncpy(buffer, mode_original, max_len - 1);
-            buffer[max_len - 1] = '\0';
-            p = 0;
-          }
-
-          if (p >= 10) {
-            UI_Beep(ctx, FALSE);
-            break;
-          }
-        }
-
-        if (strlen(buffer) < (size_t)(max_len - 1)) {
-          int byte_pos = VisualPositionToBytePosition(buffer, p);
-          if (insert_flag) {
-            memmove(buffer + byte_pos + 1, buffer + byte_pos,
-                    strlen(buffer) - byte_pos + 1);
-          }
-          buffer[byte_pos] = ch;
-          if (!insert_flag && buffer[byte_pos + 1] == '\0') {
-            /* Overwrite mode at end extends string */
-            buffer[byte_pos + 1] = '\0';
-          }
-          p++;
-        } else {
-          UI_Beep(ctx, FALSE);
-        }
-      }
-      break;
+      continue;
     }
+
+    if (session.accept_special_term)
+      break;
   }
 
-  /* Cleanup */
-  if (restore_insert_flag) {
-    insert_flag = previous_insert_flag;
-  }
+  insert_flag =
+      session.restore_insert_flag ? session.saved_insert_flag : session.insert_flag;
   curs_set(0);
   UI_Dialog_Close(ctx, win);
 
-  /* Update History on success */
-  if (ch == CR && buffer[0] != '\0') {
+  if (session.ch == CR && buffer[0] != '\0') {
     InsHistory(ctx, buffer, history_type);
   }
 
-  /* Global Refresh to restore what was behind the window */
-  RefreshView(
-      ctx, GetSelectedDirEntry(ctx, (panel ? panel->vol : ctx->active->vol)));
-
-  return ch;
+  PromptSessionRefreshBackground(&session);
+  return session.ch;
 }
 
 int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel, const char *prompt,

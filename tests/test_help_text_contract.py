@@ -664,10 +664,10 @@ def test_filter_prompt_f1_help_uses_generated_runtime_topic(tmp_path):
 
         filter_help = _wait_for_help(tui, "Filter Help")
         normalized = _normalized_help_text(filter_help)
-        assert "Type a glob such as *.c" in normalized, filter_help
-        assert ":r and :x" in normalized, filter_help
-        assert ">2023-01-01" in normalized, filter_help
-        assert ">1M" in normalized, filter_help
+        assert "Type one or more filter terms." in normalized, filter_help
+        assert "The prompt starts with *, which means all files." in normalized, filter_help
+        assert "Terms can be stacked by separating them with commas." in normalized, filter_help
+        assert "All terms apply together to the current file-list scope." in normalized, filter_help
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("FILTER:", timeout=1.0), screen_text(tui)

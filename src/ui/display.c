@@ -331,8 +331,6 @@ static const FooterCommandSpec dir_footer_standard_specs[] = {
                   "ACTION_CMD_M"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
                   "ACTION_CMD_MKFILE"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL,
-                  "ACTION_TOGGLE_TAGGED_MODE"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
                   "ACTION_CMD_P"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
@@ -460,8 +458,6 @@ static const FooterCommandSpec file_footer_standard_specs[] = {
                    "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
                   "ACTION_CMD_MKFILE"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Only tagged", "O", NULL,
-                  "ACTION_TOGGLE_TAGGED_MODE"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
                   "ACTION_CMD_P"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
@@ -851,18 +847,8 @@ static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands
 
   memset(&best_row1_fit, 0, sizeof(best_row1_fit));
   for (preferred_split = 0; preferred_split < command_count; ++preferred_split) {
-    if (strcmp(commands[preferred_split].label,
-               prefer_newfile_split ? "Newfile" : "Only tagged") == 0) {
+    if (strcmp(commands[preferred_split].label, "Newfile") == 0) {
       break;
-    }
-  }
-  if (preferred_split >= command_count) {
-    for (preferred_split = 0; preferred_split < command_count;
-         ++preferred_split) {
-      if (strcmp(commands[preferred_split].label,
-                 prefer_newfile_split ? "Only tagged" : "Newfile") == 0) {
-        break;
-      }
     }
   }
   if (preferred_split >= command_count) {
@@ -1333,7 +1319,6 @@ static const HelpLabelOverrideSpec dir_help_label_specs[] = {
     {"Log", "ACTION_LOG"},
     {"Makedir", "ACTION_CMD_M"},
     {"New File", "ACTION_CMD_MKFILE"},
-    {"Only tagged", "ACTION_TOGGLE_TAGGED_MODE"},
     {"Pipe", "ACTION_CMD_P"},
     {"Quit", "ACTION_QUIT"},
     {"Rename", "ACTION_CMD_R"},
@@ -1391,7 +1376,6 @@ static const HelpLabelOverrideSpec file_help_label_specs[] = {
     {"Log", "ACTION_LOG"},
     {"Move", "ACTION_CMD_M"},
     {"New File", "ACTION_CMD_MKFILE"},
-    {"Only tagged", "ACTION_TOGGLE_TAGGED_MODE"},
     {"Pipe", "ACTION_CMD_P"},
     {"Quit", "ACTION_QUIT"},
     {"Rename", "ACTION_CMD_R"},

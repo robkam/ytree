@@ -680,9 +680,6 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'n':
   case 'N':
     return AppStateValidatedKeyAction(ACTION_CMD_MKFILE);
-  case 'o':
-  case 'O':
-    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);
   case 'p':
   case 'P':
     return AppStateValidatedKeyAction(ACTION_CMD_P);
@@ -758,12 +755,7 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
     return AppStateValidatedKeyAction(ACTION_REFRESH);
   case KEY_F(10):
     return AppStateValidatedKeyAction(ACTION_EDIT_CONFIG);
-  case KEY_F(28):
-    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);
-  case KEY_F(16):
-    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);
 #endif
-
   case 'j':
     if (!vi_keys_enabled && ctx) {
       if (active_focus == FOCUS_TREE)

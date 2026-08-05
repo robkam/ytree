@@ -232,7 +232,7 @@ def test_tree_viewport_helper_uses_current_row_and_exact_labels():
         "x  No files".ljust(left_width) + "x                   x",
         "m" + "q" * left_width + "vqqqqqqqqqqqqqqqqqqqj",
         "1..9 dir view 0 stats Attributes Copy Delete Filter Global Invert J compare Log Makedir Newfile",
-        "COMMANDS Only tagged Pipe Quit Rename Showall Tag Untag moVedir Write eXecute Z archive / jump ` dotfiles",
+        "COMMANDS Pipe Quit Rename Showall Tag Untag moVedir Write eXecute Z archive / jump ` dotfiles",
         "←─┘ File F1 help  F5 refresh  F7 autoview  F8 split  F9 apps  F10 config  Esc cancel",
     ]
 
