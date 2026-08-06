@@ -931,7 +931,7 @@ def test_output_prompt_f1_help_uses_generated_runtime_topics(tmp_path):
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-        tui.send_keystroke("w", wait=0.2)
+        tui.send_keystroke("o", wait=0.2)
 
         assert tui.wait_for_content("Format:", timeout=1.0), screen_text(tui)
         format_help = _wait_for_help(tui, "Output Format Help")
@@ -950,14 +950,14 @@ def test_output_prompt_f1_help_uses_generated_runtime_topics(tmp_path):
         assert tui.wait_for_content("Page break separator", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ENTER, wait=0.2)
 
-        assert tui.wait_for_content("Destination:", timeout=1.0), screen_text(tui)
+        assert tui.wait_for_content("Output to:", timeout=1.0), screen_text(tui)
         destination_help = _wait_for_help(tui, "Output Destination Help")
         destination_normalized = _normalized_help_text(destination_help)
-        assert "file path or a command line" in destination_normalized, destination_help
-        assert "final destination exactly as you want it used" in destination_normalized, destination_help
-        assert "cancel and return without writing" in destination_normalized, destination_help
+        destination_lower = destination_normalized.lower()
+        assert "file output writes exported text to a path" in destination_lower, destination_help
+        assert "hardcopy sends exported text to the chosen printer command" in destination_lower, destination_help
         tui.send_keystroke(Keys.ESC, wait=0.2)
-        assert tui.wait_for_content("Destination:", timeout=1.0), screen_text(tui)
+        assert tui.wait_for_content("Output to:", timeout=1.0), screen_text(tui)
     finally:
         tui.quit()
 

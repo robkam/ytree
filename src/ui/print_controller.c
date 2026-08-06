@@ -90,26 +90,26 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   term = InputChoiceWithHelp(ctx,
-                             "Destination: (F)ile, (C)ommand  (Esc) cancel  ",
-                             "FC\033",
+                             "Output to: (F)ile, (H)ardcopy  (Esc) cancel  ",
+                             "FHC\033",
                              UI_ShowGeneratedContextHelpCallback,
                              (void *)output_destination_help_context);
   if (term == ESC) {
     ClearPrintPrompt(ctx);
     return;
   }
-  config.destination = (term == 'C') ? PRINT_DESTINATION_COMMAND
+  config.destination = (term == 'H' || term == 'C') ? PRINT_DESTINATION_COMMAND
                                      : PRINT_DESTINATION_FILE;
 
   {
     char prompt[COMMAND_LINE_LENGTH + 1];
     char cwd[PATH_LENGTH + 1];
     if (config.destination == PRINT_DESTINATION_COMMAND) {
-      snprintf(prompt, sizeof(prompt), "Write command: ");
+      snprintf(prompt, sizeof(prompt), "Printer command: ");
     } else if (getcwd(cwd, sizeof(cwd))) {
-      snprintf(prompt, sizeof(prompt), "Write file (CWD: %.200s): ", cwd);
+      snprintf(prompt, sizeof(prompt), "Output file (CWD: %.200s): ", cwd);
     } else {
-      snprintf(prompt, sizeof(prompt), "Write file: ");
+      snprintf(prompt, sizeof(prompt), "Output file: ");
     }
 
     if (UI_ReadStringWithHelp(
@@ -150,7 +150,7 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
       UI_Message(ctx, "Failed to open file*%s*", error_target);
     }
   } else if (status == PRINT_WRITE_IO_ERROR) {
-    UI_Message(ctx, "Write operation failed");
+    UI_Message(ctx, "Output operation failed");
   } else if (status == PRINT_WRITE_NO_DESTINATION) {
     UI_Message(ctx, "No destination specified");
   }

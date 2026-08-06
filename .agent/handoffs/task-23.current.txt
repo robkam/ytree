@@ -1,0 +1,68 @@
+Work item: docs/ROADMAP.md Task 23
+Title: Replace `Write` with an Explicit `Output` / Hardcopy Flow
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- Relabel the output/export action from `Write` to `Output` across command strip, footer, F1 help, prompts, manpage, and generated usage docs.
+- Reassign `O` to the explicit output flow and keep the interaction shallow: `O -> Output to: File / Hardcopy -> destination prompt -> Enter`.
+- Keep filter default semantics (`FILTER: *`) and use `Tab` inside the filter prompt to toggle tagged-only scope on the same prompt surface, with tagged-only wording updated to `FILTER [tagged only]: *`.
+- Preserve explicit file-output format flow and destination semantics, including `Format: Raw, Framed, Page break`, plain filename => file output, hardcopy => printer-command prompt, expert aliases still accepted, and context-valid output visibility.
+- Ship synchronized regression coverage and synchronized spec/help/man/usage/generated assets.
+
+Current repo state:
+- No prior handoff directory existed; reconstructed from current repo state and tracker docs.
+- Existing worktree edits in docs/ROADMAP.md, docs/SPECIFICATION.md, and docs/ARCHITECTURE.md are in-scope task edits and are preserved.
+- Active PR: https://github.com/robkam/ytreenova/pull/441
+- Local follow-up removes the stale packaged-command compatibility shim and stale regression framing before the next push.
+
+Chosen work family:
+- Output/hardcopy relabel + key reassignment + filter-prompt wording parity + synchronized docs/tests/assets.
+
+Inventory:
+1. Tracker/spec/docs source of truth
+   - docs/ROADMAP.md Task 23 [addressed]
+   - docs/BUGS.md BUG-8 output-context trust family [intentionally unchanged: the roadmap/spec/runtime changes in this batch satisfy the bug family without changing the bug tracker prose.]
+   - docs/SPECIFICATION.md output/filter rules [addressed]
+   - docs/ARCHITECTURE.md tag-view scope rule [addressed]
+2. Command/registry surfaces
+   - etc/commands/en.conf [addressed]
+   - etc/commands/de.conf [addressed]
+   - etc/ytnova.commands [addressed]
+   - src/cmd/commands.c default key registry + packaged-command load behavior [addressed: the follow-up keeps the direct packaged/compiled load path and removes the local stale-command compatibility shim.]
+   - src/core/default_commands_catalog.h (generated) [addressed]
+   - src/core/default_command_presets_catalog.h (generated) [addressed]
+3. Runtime dispatch/help/footer surfaces
+   - src/ui/display.c footer/help label overrides [addressed]
+   - src/ui/interactions.c filter prompt wording/toggle surface [addressed]
+   - src/ui/print_controller.c format/destination/prompt wording and shallow flow [addressed]
+   - src/cmd/print_ops.c destination semantics / alias compatibility [intentionally unchanged: existing print/output back-end semantics already satisfied the task once prompts and command surfaces were corrected.]
+   - src/ui/ctrl_dir.c + src/ui/ctrl_file.c + src/ui/ctrl_file_ops.c context-valid output entry points [intentionally unchanged: existing dispatch paths already route output/tagged-output correctly after the command-surface relabel and key changes.]
+   - src/ui/key_engine.c tagged-output shortcut / direct key mapping [addressed]
+4. Help/man/runtime generated help surfaces
+   - etc/help/f1.en.md [addressed]
+   - etc/help/f1.de.md [addressed]
+   - etc/help/man.en.md [addressed]
+   - src/core/generated_help_topics.h (generated) [addressed]
+   - etc/ytnova.1.md (generated) [addressed]
+   - docs/USAGE.md (generated) [addressed]
+5. Direct regression surfaces
+   - tests/test_print_feature.py [addressed]
+   - tests/test_help_text_contract.py [addressed]
+   - tests/test_tagged_action_regressions.py [addressed]
+   - tests/test_command_strip_visibility.py [addressed]
+   - tests/test_archive_ui.py [addressed]
+   - tests/test_panel_isolation.py [addressed]
+   - tests/ytnova_keys.py helper constant [addressed]
+6. Compatibility seams / call paths to reconcile
+   - plain path => file output default [addressed]
+   - `>path` / `!command` expert aliases remain accepted [addressed: `>path` remains covered by regression flow, and dedicated hardcopy prompts still drive command execution without reintroducing a generic command destination.]
+   - tagged output shortcut (`Ctrl-W` / tagged path) [addressed]
+   - filesystem/showall/global/archive visibility matrix for Output [addressed: shared dir/file footer/help surfaces cover filesystem + showall/global variants, and archive-specific regressions cover archive dir/file output visibility.]
+
+Focused validation:
+- `make commands-catalog command-presets-catalog`
+- `make clean && make`
+- `source .venv/bin/activate && pytest -q tests/test_print_feature.py`
+- `source .venv/bin/activate && pytest -q tests/test_help_text_contract.py::test_output_prompt_f1_help_uses_generated_runtime_topics tests/test_tagged_action_regressions.py::test_filter_prompt_tab_without_tags_stays_on_all_scope tests/test_archive_ui.py::test_archive_output_flow_writes_selected_entry_to_file tests/test_command_strip_visibility.py::test_wide_footer_keeps_space_before_jump_label tests/test_panel_isolation.py::test_tree_viewport_helper_uses_current_row_and_exact_labels`
+- `source .venv/bin/activate && pytest -q tests/test_archive_ui.py::test_archive_dir_footer_pipe_action_visible tests/test_archive_ui.py::test_archive_footer_keeps_root_on_command_row_and_omits_ctrl_r_rename tests/test_archive_ui.py::test_archive_output_flow_writes_selected_entry_to_file tests/test_command_strip_visibility.py::test_narrow_dir_and_file_footers_keep_full_labels_until_resize tests/test_command_strip_visibility.py::test_wide_footer_keeps_space_before_jump_label tests/test_tagged_action_regressions.py::test_filter_prompt_tab_toggles_tagged_scope_from_directory_window`
+- `make clean && make YTNOVA_DATADIR=$(pwd)/etc`
+- `source .venv/bin/activate && pytest -q tests/test_print_feature.py tests/test_help_text_contract.py::test_output_prompt_f1_help_uses_generated_runtime_topics`

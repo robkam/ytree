@@ -158,7 +158,7 @@ def test_filter_prompt_tab_toggles_tagged_scope_from_directory_window(
         lines = tui.send_and_wait_for_condition(
             Keys.TAB,
             lambda current_lines: current_lines
-            if any("FILTER [tagged]:" in line for line in current_lines)
+            if any("FILTER [tagged only]:" in line for line in current_lines)
             else False,
             timeout=1.5,
         )
@@ -180,7 +180,7 @@ def test_filter_prompt_tab_toggles_tagged_scope_from_directory_window(
         lines = tui.send_and_wait_for_condition(
             "f",
             lambda current_lines: current_lines
-            if any("FILTER [tagged]:" in line for line in current_lines)
+            if any("FILTER [tagged only]:" in line for line in current_lines)
             else False,
             timeout=1.5,
         )
@@ -190,7 +190,7 @@ def test_filter_prompt_tab_toggles_tagged_scope_from_directory_window(
             Keys.TAB,
             lambda current_lines: current_lines
             if any("FILTER:" in line for line in current_lines)
-            and not any("FILTER [tagged]:" in line for line in current_lines)
+            and not any("FILTER [tagged only]:" in line for line in current_lines)
             else False,
             timeout=1.5,
         )
@@ -236,7 +236,7 @@ def test_filter_prompt_tab_without_tags_stays_on_all_scope(ytnova_binary, tmp_pa
         assert lines, _screen_text(tui)
         prompt_screen = "\n".join(lines)
         assert "FILTER: *" in prompt_screen, prompt_screen
-        assert "FILTER [tagged]:" not in prompt_screen, prompt_screen
+        assert "FILTER [tagged only]:" not in prompt_screen, prompt_screen
     finally:
         tui.quit()
 
