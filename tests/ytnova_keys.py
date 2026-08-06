@@ -21,6 +21,7 @@ class Keys:
     CTRL_L = "\x0c"
     CTRL_U = "\x15"
     CTRL_V = "\x16"
+    CTRL_W = "\x17"
 
     # Function Keys (Standard xterm/vt100)
     # Note: If these fail, try "\033OR" for F7 and "\033OS" for F8

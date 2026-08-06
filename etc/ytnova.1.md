@@ -196,7 +196,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Tag**: Tag the files in the selected directory scope.
 * **Untag**: Untag the files in the selected directory scope.
 * **MoveDir**: Move the selected directory branch.
-* **Write**: Export the current selection to a file or command through the output prompts.
+* **Output**: Export the current selection to a file or command through the output prompts.
 * **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.
 * **Archive**: Create an archive from the tagged set first, or from the current selection when nothing is tagged.
 * **Jump**: Jump to a matching name in the current list.
@@ -235,7 +235,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Untag all**: Remove every tag in the current scope.
 * **View**: View the selected file with the configured pager.
 * **View tagged**: View the tagged files one after another.
-* **Write**: Export the selected file or tagged set through the output prompts.
+* **Output**: Export the selected file or tagged set through the output prompts.
 * **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely. `Ctrl-X` reruns the command for each tagged file.
 * **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.
 * **Search tagged**: Search only the tagged files, then untag files that do not match.
@@ -261,6 +261,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Log**: Log another directory or archive file.
 * **Makedir**: Create a directory where the archive format supports it.
 * **Pipe**: Send the selected archive path to a command on standard input.
+* **Output**: Export the current archive-backed selection through the output prompts.
 * **Quit**: Quit ytnova.
 * **Rename**: Rename the selected archive directory entry.
 * **Showall**: Show every file in the current archive.
@@ -288,6 +289,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Move**: Move the selected archive entry through archive-aware paths.
 * **Move tagged**: Move the tagged archive entries to one destination.
 * **Pipe**: Send the selected archive entry to a command on standard input.
+* **Output**: Export the selected archive entry through the output prompts.
 * **Quit**: Quit ytnova.
 * **Rename**: Rename the selected archive entry.
 * **Sort**: Change the current file-list sort order.
@@ -298,7 +300,6 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Pathcopy**: Copy the selected archive entry while keeping its relative path.
 * **Search tagged**: Search only the tagged archive entries, then untag non-matches.
 * **Execute**: Not available in archive file mode.
-* **Write**: Not available in archive file mode.
 * **Dotfiles**: Toggle hidden entries when the archive view exposes them.
 # COMPARE
 
@@ -363,13 +364,13 @@ The filter always applies to the current file-list family.
 That may be a normal file list, archive file list, Showall, or Global.
 Press `Tab` to switch the filter scope between all files and tagged files.
 This is enabled only when tagged files exist in the current scope.
-When tagged scope is enabled, the prompt changes to `FILTER [tagged]:`.
+When tagged scope is enabled, the prompt changes to `FILTER [tagged only]:`.
 ### Output Help
 
 #### Output model
-`Write` is an export flow.
+`Output` is an export flow.
 It can write plain content, framed content, or page-break-separated content.
-It can also send that output to a command instead of a file path.
+It can also send that output to a printer command instead of a file path.
 
 #### Output order
 Choose the format first.

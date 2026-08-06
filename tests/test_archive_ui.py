@@ -80,6 +80,10 @@ def test_archive_dir_footer_pipe_action_visible(ytnova_binary, tmp_path):
             "Archive directory footer should advertise Pipe.\n"
             + "\n".join(footer_lines[:2])
         )
+        assert any("output" in line for line in footer_lines[:2]), (
+            "Archive directory footer should advertise Output.\n"
+            + "\n".join(footer_lines[:2])
+        )
     finally:
         tui.quit()
 
@@ -192,10 +196,54 @@ def test_archive_footer_keeps_root_on_command_row_and_omits_ctrl_r_rename(
             "Archive file footer must still show Rename.\n"
             + "\n".join(archive_file_footer)
         )
+        assert any("output" in line for line in archive_file_footer[:2]), (
+            "Archive file footer should advertise Output.\n"
+            + "\n".join(archive_file_footer[:2])
+        )
         assert "^r rename" not in "\n".join(archive_file_footer), (
             "Archive file footer must not show the static ^R rename entry.\n"
             + "\n".join(archive_file_footer)
         )
+    finally:
+        tui.quit()
+
+
+def test_archive_output_flow_writes_selected_entry_to_file(ytnova_binary, tmp_path):
+    root = tmp_path / "archive_output_flow"
+    root.mkdir()
+    archive_path = root / "output_flow.tar"
+    _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert tui.wait_for_content("inside.txt", timeout=2.0), "\n".join(
+            tui.get_screen_dump()
+        )
+
+        tui.send_keystroke("o", wait=0.2)
+        assert tui.wait_for_content("Format:", timeout=1.0), "\n".join(
+            tui.get_screen_dump()
+        )
+
+        tui.send_keystroke("R", wait=0.2)
+        assert tui.wait_for_content("Output to:", timeout=1.0), "\n".join(
+            tui.get_screen_dump()
+        )
+
+        tui.send_keystroke("F", wait=0.2)
+        assert tui.wait_for_content("Output file", timeout=1.0), "\n".join(
+            tui.get_screen_dump()
+        )
+
+        out_path = root / "archive_output.txt"
+        tui.send_keystroke(f"{out_path}\r", wait=0.6)
+
+        assert out_path.exists()
+        assert out_path.read_text(encoding="utf-8") == "inside payload\n"
     finally:
         tui.quit()
 

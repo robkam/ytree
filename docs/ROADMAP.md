@@ -516,11 +516,10 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Task 23: Replace `Write` with an Explicit `Output` / Hardcopy Flow**
-*   **Goal:** Make file-output and hardcopy behavior immediately understandable by moving tagged-only discovery under `Filter` and repurposing `O` as an explicit `Output` action.
+*   **Goal:** Make file-output and hardcopy behavior immediately understandable by repurposing `O` as an explicit `Output` action.
 *   **Rationale:** `Write` reads like in-place save/edit, while the current destination chooser hides the core distinction users care about: file output versus hardcopy.
 *   **Scope Lock:** Keep the interaction shallow: no more than one chooser before the final destination prompt.
 *   **Acceptance Criteria:**
-*   Tagged-only discoverability moves under `Filter`, so `O` can be reassigned without losing the feature.
 *   The command strip, footer, F1 help, prompts, manpage, and generated usage docs relabel the current output/export action from `Write` to `Output`.
 *   `O` becomes `Output`; user-facing wording for this feature uses `Output`, `File`, and `Hardcopy` rather than the misleading `Write` label.
 *   The common path becomes `O -> Output to: File / Hardcopy -> destination prompt -> Enter`.
@@ -1716,14 +1715,13 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-16: Tagged-Only Results View**
-*   **Goal:** Add a view mode that shows only tagged files without altering the tag set itself.
+*   **Goal:** Add a tagged-only filter mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
-    *   `F4` toggles **Tagged-Only** view mode.
-    *   In file lists, Showall, Global, and archive file views, users can toggle a **Tagged-Only** filter to temporarily narrow the visible list to currently tagged items.
-    *   Leaving the mode restores the normal file/filter view; tags remain unchanged.
-    *   This should compose cleanly with existing filters, grep-on-tagged workflows, and compare/tag workflows.
+    *   In file lists, Showall, Global, and archive file views, users can open `Filter`, then press `Tab` when tagged files exist to toggle a **Tagged-Only** filter that temporarily narrows the visible list to currently tagged items.
+    *   Leaving the tagged-only filter restores the normal file/filter view; tags remain unchanged.
+    *   This composes cleanly with existing filters, grep-on-tagged workflows, and compare/tag workflows.
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
-*   - [ ] **Status:** In Progress (tagged-only toggle shipped on `o/O`; broader workflow/key-shape refinements remain).
+*   - [x] **Status:** Completed.
 
 ### **Idea FE-17: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.

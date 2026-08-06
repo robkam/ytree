@@ -33,7 +33,6 @@ static const CommandActionSpec kCommandActions[] = {
     {"dir", "ACTION_LOG", 'l'},
     {"dir", "ACTION_CMD_M", 'm'},
     {"dir", "ACTION_CMD_MKFILE", 'n'},
-    {"dir", "ACTION_TOGGLE_TAGGED_MODE", 'o'},
     {"dir", "ACTION_CMD_P", 'p'},
     {"dir", "ACTION_QUIT", 'q'},
     {"dir", "ACTION_CMD_R", 'r'},
@@ -41,7 +40,7 @@ static const CommandActionSpec kCommandActions[] = {
     {"dir", "ACTION_TAG", 't'},
     {"dir", "ACTION_UNTAG", 'u'},
     {"dir", "ACTION_CMD_V", 'v'},
-    {"dir", "ACTION_CMD_PRINT", 'w'},
+    {"dir", "ACTION_CMD_PRINT", 'o'},
     {"dir", "ACTION_CMD_X", 'x'},
     {"dir", "ACTION_CMD_I", 'z'},
     {"dir", "ACTION_LIST_JUMP", '/'},
@@ -54,6 +53,7 @@ static const CommandActionSpec kCommandActions[] = {
     {"archive_dir", "ACTION_LOG", 'l'},
     {"archive_dir", "ACTION_CMD_M", 'm'},
     {"archive_dir", "ACTION_CMD_P", 'p'},
+    {"archive_dir", "ACTION_CMD_PRINT", 'o'},
     {"archive_dir", "ACTION_CMD_R", 'r'},
     {"archive_dir", "ACTION_CMD_S", 's'},
     {"archive_dir", "ACTION_TAG", 't'},
@@ -75,12 +75,11 @@ static const CommandActionSpec kCommandActions[] = {
     {"file", "ACTION_CMD_M", 'm'},
     {"file", "ACTION_CMD_TAGGED_M", 0x0E},
     {"file", "ACTION_CMD_MKFILE", 'n'},
-    {"file", "ACTION_TOGGLE_TAGGED_MODE", 'o'},
     {"file", "ACTION_CMD_P", 'p'},
     {"file", "ACTION_QUIT", 'q'},
     {"file", "ACTION_CMD_R", 'r'},
     {"file", "ACTION_CMD_S", 's'},
-    {"file", "ACTION_CMD_PRINT", 'w'},
+    {"file", "ACTION_CMD_PRINT", 'o'},
     {"file", "ACTION_CMD_X", 'x'},
     {"file", "ACTION_CMD_Y", 'y'},
     {"file", "ACTION_CMD_I", 'z'},
@@ -94,6 +93,7 @@ static const CommandActionSpec kCommandActions[] = {
     {"archive_file", "ACTION_COMPARE_FILE", 'j'},
     {"archive_file", "ACTION_CMD_M", 'm'},
     {"archive_file", "ACTION_CMD_P", 'p'},
+    {"archive_file", "ACTION_CMD_PRINT", 'o'},
     {"archive_file", "ACTION_CMD_R", 'r'},
     {"archive_file", "ACTION_CMD_S", 's'},
     {"archive_file", "ACTION_TAG", 't'},
@@ -623,8 +623,6 @@ static int LoadPresetSource(ViewContext *ctx, const char *preset_id) {
     fclose(fp);
     return result;
   }
-  if (errno != ENOENT)
-    return -1;
 
   compiled_preset = FindCompiledPresetText(preset_id);
   if (compiled_preset == NULL)
@@ -670,8 +668,6 @@ static int LoadPackagedDefaultCommands(ViewContext *ctx) {
     fclose(fp);
     return result;
   }
-  if (errno != ENOENT)
-    return -1;
 
   fp = fmemopen((void *)default_commands_catalog, strlen(default_commands_catalog),
                 "r");

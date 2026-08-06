@@ -680,6 +680,9 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'n':
   case 'N':
     return AppStateValidatedKeyAction(ACTION_CMD_MKFILE);
+  case 'o':
+  case 'O':
+    return AppStateValidatedKeyAction(ACTION_CMD_PRINT);
   case 'p':
   case 'P':
     return AppStateValidatedKeyAction(ACTION_CMD_P);

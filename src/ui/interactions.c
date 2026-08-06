@@ -865,7 +865,7 @@ int UI_ReadFilter(ViewContext *ctx) {
         {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 
     (void)snprintf(prompt, sizeof(prompt),
-                   tagged_only ? "FILTER [tagged]:" : "FILTER:");
+                   tagged_only ? "FILTER [tagged only]:" : "FILTER:");
     {
       int term = UI_ReadStringWithHelp(
           ctx, ctx->active, prompt, buffer, FILE_SPEC_LENGTH, HST_FILTER,

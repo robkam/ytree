@@ -133,7 +133,9 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
             + "\n".join(dir_lines)
         )
         assert "K volume" in dir_footer, dir_footer
-        assert dir_footer.index("Write") < dir_footer.index("eXecute"), dir_footer
+        assert "Output" in dir_footer, dir_footer
+        assert "Write" not in dir_footer, dir_footer
+        assert dir_footer.index("Output") < dir_footer.index("eXecute"), dir_footer
         assert dir_lines[2].find("F9 apps") < dir_lines[2].find("F10 config"), dir_lines[2]
         assert dir_lines[2].rstrip().endswith("Esc cancel"), dir_lines[2]
         assert "1..9 dir view" in dir_lines[0], "\n".join(dir_lines)
@@ -161,7 +163,9 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
             "Wide file footer second row should begin with the balanced overflow command row.\n"
             + "\n".join(file_lines)
         )
-        assert file_footer.index("Write") < file_footer.index("eXecute"), file_footer
+        assert "Output" in file_footer, file_footer
+        assert "Write" not in file_footer, file_footer
+        assert file_footer.index("Output") < file_footer.index("eXecute"), file_footer
         assert file_lines[2].find("F9 apps") < file_lines[2].find("F10 config"), file_lines[2]
         assert file_lines[2].rstrip().endswith("Esc cancel"), file_lines[2]
         assert "1..9 file view" in file_lines[0], "\n".join(file_lines)
