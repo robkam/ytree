@@ -31,6 +31,7 @@ static int CountWrappedBodyLines(const char *msg, int body_width);
 static void DisplayMessage(ViewContext *ctx, const char *msg);
 static int PrintMessage(ViewContext *ctx, const char *msg);
 static void ClearStatusLineErrorLine(ViewContext *ctx);
+static void RestoreStatusLineFooter(ViewContext *ctx);
 
 void UI_Beep(ViewContext *ctx, BOOL critical) {
   (void)ctx;
@@ -65,28 +66,53 @@ void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...) {
   doupdate();
 }
 
-void UI_ClearStatusLineError(ViewContext *ctx) {
-  const DirEntry *dir_entry = NULL;
+void UI_RenderStatusLineNotice(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_menu_window || !ctx->status_line_notice_pending ||
+      ctx->status_line_error_pending)
+    return;
 
+  wmove(ctx->ctx_menu_window, 2, 0);
+  wclrtoeol(ctx->ctx_menu_window);
+  Print(ctx->ctx_menu_window, 2, 0, ctx->status_line_notice_text,
+        UI_ROLE_FOOTER);
+  wnoutrefresh(ctx->ctx_menu_window);
+}
+
+void UI_ShowStatusLineNotice(ViewContext *ctx, const char *fmt, ...) {
+  va_list ap;
+  char message[PATH_LENGTH + 1];
+
+  if (!ctx || !fmt)
+    return;
+
+  va_start(ap, fmt);
+  (void)vsnprintf(message, sizeof(message), fmt, ap);
+  va_end(ap);
+
+  if (!AppStateCommitStatusLineNotice(ctx, message))
+    return;
+  UI_RenderStatusLineNotice(ctx);
+  doupdate();
+}
+
+void UI_ClearStatusLineError(ViewContext *ctx) {
   if (!ctx || !ctx->status_line_error_pending)
     return;
 
   if (!AppStateClearStatusLineError(ctx))
     return;
   ClearStatusLineErrorLine(ctx);
-  if (!ctx->ctx_menu_window)
+  RestoreStatusLineFooter(ctx);
+}
+
+void UI_ClearStatusLineNotice(ViewContext *ctx) {
+  if (!ctx || !ctx->status_line_notice_pending)
     return;
 
-  if (ctx->preview_mode) {
-    DisplayPreviewHelp(ctx);
-  } else {
-    if (ctx->active)
-      dir_entry = GetPanelDirEntry(ctx->active);
-    if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE)
-      DisplayDirHelp(ctx, dir_entry);
-    else
-      DisplayFileHelp(ctx, dir_entry);
-  }
+  if (!AppStateClearStatusLineNotice(ctx))
+    return;
+  ClearStatusLineErrorLine(ctx);
+  RestoreStatusLineFooter(ctx);
 }
 
 int UI_Message(ViewContext *ctx, const char *fmt, ...) {
@@ -435,4 +461,23 @@ static void ClearStatusLineErrorLine(ViewContext *ctx) {
     return;
   wmove(ctx->ctx_menu_window, 2, 0);
   wclrtoeol(ctx->ctx_menu_window);
+}
+
+static void RestoreStatusLineFooter(ViewContext *ctx) {
+  const DirEntry *dir_entry = NULL;
+
+  if (!ctx || !ctx->ctx_menu_window)
+    return;
+
+  if (ctx->preview_mode) {
+    DisplayPreviewHelp(ctx);
+    return;
+  }
+
+  if (ctx->active)
+    dir_entry = GetPanelDirEntry(ctx->active);
+  if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE)
+    DisplayDirHelp(ctx, dir_entry);
+  else
+    DisplayFileHelp(ctx, dir_entry);
 }

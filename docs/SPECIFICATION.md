@@ -199,6 +199,7 @@ When a text prompt is active, specialized conventions ensure a refined editing e
 *   **Equivalent Fast-Path Rule:** An equivalent fast path is a documented path that reaches the same operation outcome without increasing mandatory decision count or interactive depth for the common case. Optional advanced toggles, defaults, or in-prompt mode switches satisfy this rule; an extra submenu does not.
 *   **Prompt Label Rule:** Prompt and menu titles MUST describe the user decision in plain language, not an internal implementation step. Labels and mnemonics stay normalized to the live command word and render as full words with in-place mnemonic emphasis rather than key-prefix jargon.
 *   **Prompt-Surface Correctness Rule:** Active prompt, menu, picker, dialog, and overlay surfaces MUST show the commands that are actually usable there, MUST NOT show commands that are unavailable there, and MUST keep `Enter`/`Esc`/return-path semantics explicit.
+*   **Routine-Success Return Rule:** Routine successful operations MUST return directly to the working view without a blocking acknowledgment step. If a short summary is useful, present it as a transient non-modal status message rather than a `PRESS ENTER` confirmation dialog.
 
 ---
 

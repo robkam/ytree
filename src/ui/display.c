@@ -1208,6 +1208,7 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   nav_specs = GetDirFooterNavSpecs(ctx, dir_entry, &nav_count, &nav_signpost);
   RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);
   UI_RenderStatusLineError(ctx);
+  UI_RenderStatusLineNotice(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -1239,6 +1240,7 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   nav_specs = GetFileFooterNavSpecs(dir_entry, &nav_count, &nav_signpost);
   RenderFooterNavRow(ctx, nav_signpost, nav_specs, nav_count);
   UI_RenderStatusLineError(ctx);
+  UI_RenderStatusLineNotice(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 

@@ -593,12 +593,12 @@ def test_dir_window_compare_prompt_round_trip(ytnova_binary, tmp_path):
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.25)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0), _screen_text(tui)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
 
     tui.send_keystroke(Keys.ESC, wait=0.25)
     footer = _footer_text(tui)
     assert "j compare" in footer and "j tree" in footer, (
-        "Exiting compare scope prompt should restore directory footer hints.\n"
+        "Exiting the directory compare target prompt should restore directory footer hints.\n"
         f"{footer}"
     )
 

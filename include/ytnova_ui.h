@@ -284,6 +284,9 @@ extern void UI_Beep(ViewContext *ctx, BOOL critical);
 extern void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...);
 extern void UI_RenderStatusLineError(ViewContext *ctx);
 extern void UI_ClearStatusLineError(ViewContext *ctx);
+extern void UI_ShowStatusLineNotice(ViewContext *ctx, const char *fmt, ...);
+extern void UI_RenderStatusLineNotice(ViewContext *ctx);
+extern void UI_ClearStatusLineNotice(ViewContext *ctx);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void FreeFileEntryList(YtreeNovaPanel *panel);
@@ -386,9 +389,23 @@ extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
                           const char *dst_path, int *mode_flags);
 
 /* input_line.c */
+typedef BOOL (*UIPromptActionHandler)(ViewContext *ctx, YtreeNovaPanel *panel,
+                                      int ch, const char *buffer, int max_len,
+                                      int *cursor_pos, void *action_data);
+typedef struct {
+  const UICommandStripCommand *hints_override;
+  size_t hints_override_count;
+  int (*help_callback)(ViewContext *, void *);
+  void *help_data;
+  UIPromptActionHandler action_handler;
+  void *action_data;
+} UIPromptOptions;
 extern int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel,
                          const char *prompt, char *buffer, int max_len,
                          int history_type);
+extern int UI_ReadStringWithPromptOptions(
+    ViewContext *ctx, YtreeNovaPanel *panel, const char *prompt, char *buffer,
+    int max_len, int history_type, const UIPromptOptions *options);
 extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
                                  int history_type,
@@ -583,18 +600,12 @@ extern int UI_GatherArchivePayload(ViewContext *ctx, DirEntry *selected_dir,
 extern void UI_FreeArchivePayload(ArchivePayload *payload);
 extern int UI_CreateArchiveFromPayload(ViewContext *ctx,
                                        const ArchivePayload *payload);
-extern int UI_SelectCompareMenuChoice(ViewContext *ctx,
-                                      CompareMenuChoice *choice);
 extern int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
                                       CompareRequest *request);
 extern int UI_BuildDirectoryCompareRequest(ViewContext *ctx,
                                            DirEntry *source_dir,
-                                           CompareFlowType flow_type,
-                                           CompareRequest *request);
-extern int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx,
-                                                 DirEntry *source_dir,
-                                                 CompareFlowType flow_type,
-                                                 CompareRequest *request);
+                                           CompareRequest *request,
+                                           BOOL *launch_external);
 extern const char *UI_CompareFlowTypeName(CompareFlowType flow_type);
 extern const char *UI_CompareBasisName(CompareBasis basis);
 extern const char *UI_CompareTagResultName(CompareTagResult tag_result);
@@ -607,8 +618,8 @@ extern void DirCompare_RunInternalDirectory(ViewContext *ctx,
                                             const CompareRequest *request);
 extern void DirCompare_RunInternalLoggedTree(ViewContext *ctx,
                                              const CompareRequest *request);
-extern void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
-                                      CompareFlowType flow_type);
+extern void DirCompare_LaunchExternal(ViewContext *ctx,
+                                      const CompareRequest *request);
 
 /* file_compare.c */
 extern void FileCompare_LaunchExternal(ViewContext *ctx,

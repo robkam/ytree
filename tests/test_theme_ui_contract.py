@@ -304,12 +304,15 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
 
     assert "} HelpCommandStrip;" in display_source
     assert "DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);" in display_source
-    assert "static const UICommandStripCommand compare_status_commands[]" in compare_source
-    assert "static const UICommandStripCommand compare_basis_commands[]" in compare_source
-    assert "static const UICommandStripCommand compare_tag_result_commands[]" in compare_source
-    assert "static const UICommandStripCommand compare_scope_commands[]" in compare_source
-    assert "static const UICommandStripCommand compare_external_scope_commands[]" in compare_source
+    assert "static const UICommandStripCommand compare_target_hint_commands[]" in (
+        compare_source
+    )
     assert "static const CompareGeneratedHelpSpec compare_target_help_spec" in compare_source
+    assert "options.hints_override = compare_target_hint_commands;" in compare_source
+    assert "options.action_handler = HandleCompareTargetAction;" in compare_source
+    assert "UI_ReadStringWithPromptOptions(ctx, ctx->active, state.prompt," in (
+        compare_source
+    )
     assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);" in compare_source
     assert "static const UICommandStripCommand help_popup_close_commands[]" in (
         help_popup_source
@@ -317,7 +320,6 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     assert "static const UICommandStripCommand applications_menu_commands[]" in app_menu_source
     assert "static const UICommandStripCommand read_string_path_hint_commands[]" in input_line_source
     assert "static const UICommandStripCommand read_string_history_hint_commands[]" in input_line_source
-    assert "UI_RenderAdaptiveCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y," in compare_source
     assert "UI_RenderAdaptiveCommandStrip(" in tagged_source
     assert "tagged_view_message_commands" in tagged_source
     assert "tagged_view_prompt_commands" in tagged_source

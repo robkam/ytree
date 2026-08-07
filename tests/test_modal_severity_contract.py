@@ -27,7 +27,7 @@ def test_modal_message_severity_routes_info_warn_error_pairs():
     )
 
 
-def test_directory_compare_completion_uses_informational_modal_path():
+def test_directory_compare_completion_uses_transient_status_notice():
     compare_source = _read_source("src/ui/dir_compare.c")
 
     flat_compare_block = _extract_function_block(
@@ -36,16 +36,26 @@ def test_directory_compare_completion_uses_informational_modal_path():
     logged_tree_block = _extract_function_block(
         compare_source, "void DirCompare_RunInternalLoggedTree("
     )
-
-    assert "Directory compare complete." in flat_compare_block
-    assert "UI_Message(" in flat_compare_block, (
-        "Directory compare completion summary should use the informational modal path."
+    flat_status_block = _extract_function_block(
+        compare_source, "static void ShowDirectoryCompareStatus("
+    )
+    logged_status_block = _extract_function_block(
+        compare_source, "static void ShowLoggedTreeCompareStatus("
     )
 
-    assert "Logged-tree compare complete." in logged_tree_block
-    assert "UI_Message(" in logged_tree_block, (
-        "Logged-tree completion summary should use the informational modal path."
+    assert "ShowDirectoryCompareStatus(" in flat_compare_block
+    assert "UI_ShowStatusLineNotice(" in flat_status_block, (
+        "Directory compare completion summary should use a transient status notice "
+        "instead of a blocking modal."
     )
+    assert "Directory compare complete." not in flat_compare_block
+
+    assert "ShowLoggedTreeCompareStatus(" in logged_tree_block
+    assert "UI_ShowStatusLineNotice(" in logged_status_block, (
+        "Logged-tree completion summary should use a transient status notice "
+        "instead of a blocking modal."
+    )
+    assert "Logged-tree compare complete." not in logged_tree_block
 
 
 def test_modal_window_background_rebinds_per_severity_tier():
