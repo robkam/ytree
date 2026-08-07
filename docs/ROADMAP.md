@@ -569,7 +569,7 @@ Ordering policy (for all editors, including AI editors):
 *   Deliver the audit output as a manual QA checklist so every flagged surface can be exercised directly.
 *   Reconcile the audited flows against `docs/SPECIFICATION.md` and update the spec only where the governing rule is missing, stale, or ambiguous.
 *   Create remediation subtasks for every audited prompt-chain offender family and close this umbrella only after each inventoried family is marked addressed, intentionally unchanged with reason, or deferred/blocked with a concrete reason.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress. The audit baseline now lives in the reusable internal note `docs/ai/PRIMARY_ACTION_AUDIT.md`; the umbrella remains open until the audited remediation families land.
 
 #### **Task 27.1: Audit and Rank Primary Action Flows**
 *   **Goal:** Build the zero-based inventory of all primary interactive flows and rank prompt-chain offenders by depth, frequency, and operator cost.
@@ -587,7 +587,7 @@ Ordering policy (for all editors, including AI editors):
 *   likely tests/docs to update,
 *   focused validation path.
 *   Identify family boundaries for remediation so follow-up subtasks can be delivered by coherent owner/risk/validation surface rather than prompt-by-prompt micro-slices.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 27.2: Reconcile Shallow-Flow Contract Against Spec**
 *   **Goal:** Confirm that the governing shallow-flow, prompt-surface, mnemonic, and counting rules are fully and correctly defined in `docs/SPECIFICATION.md` before remediation subtasks land.
@@ -602,7 +602,7 @@ Ordering policy (for all editors, including AI editors):
 *   what qualifies as an equivalent fast path.
 *   Verify that `docs/SPECIFICATION.md` also explicitly covers prompt-label/mnemonic normalization and prompt-surface command-visibility correctness.
 *   If any required rule is missing or ambiguous, update `docs/SPECIFICATION.md` first and keep the roadmap text concise by reference rather than restating the full contract here.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 27.3+: Remediate Audited Offender Families**
 *   **Goal:** Reduce each audited offender family to the documented shallow-flow budget or document a justified exception with an equivalent fast path.
@@ -612,6 +612,51 @@ Ordering policy (for all editors, including AI editors):
 *   Prompt/menu surfaces for that family show the commands that are actually usable there and do not advertise commands that are unavailable in that surface.
 *   Labels and mnemonics for that family conform to the prompt-label contract in `docs/SPECIFICATION.md`.
 *   Focused regression coverage prevents the remediated family from regressing into deeper prompt chains or prompt-surface mismatches.
+*   - [ ] **Status:** In Progress. The audited families are now split below for runtime remediation by owner/risk boundary.
+
+#### **Task 27.3: Compress Compare Prompt Chains**
+*   **Goal:** Reduce compare workflows to the shallowest safe common path without changing compare semantics.
+*   **Scope Lock:** Compare chooser/prompt composition, prompt visibility, and compare help updates only.
+*   **Acceptance Criteria:**
+*   Directory compare no longer requires more than one chooser layer before the target prompt on the common path.
+*   External compare does not add an avoidable extra chooser layer on top of the compare entry path.
+*   Compare target, basis, and tagged-result choices remain explicit, discoverable, and help-synchronized.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 27.4: Compress Attribute Editing Prompt Chains**
+*   **Goal:** Reduce attribute-edit workflows, especially date edits, to the shallowest safe prompt sequence.
+*   **Scope Lock:** Attribute chooser composition, date-scope selection, prompt help, and related tests/docs only.
+*   **Acceptance Criteria:**
+*   Attribute edits require at most one chooser layer before the value-entry prompt on the common path.
+*   Syntax-bearing date edits advertise their format help on the active prompt surface.
+*   Tagged/date variants remain explicit without reintroducing deeper menu chains.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 27.5: Normalize Prompt-Aid Visibility and Chooser Labels**
+*   **Goal:** Make prompt-local aids and chooser commands visible and truthfully labeled on the active surface.
+*   **Scope Lock:** History, F2 picker, volume menu, applications menu, and other chooser/prompt command-surface correctness only.
+*   **Acceptance Criteria:**
+*   Active chooser/picker/dialog surfaces show the commands that are actually usable there.
+*   Command labels describe the real action outcome instead of stale or misleading wording.
+*   Prompt-local help, browse, and history aids are advertised whenever they are supported.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 27.6: Reconcile Multi-Input Target Prompt Families**
+*   **Goal:** Apply the primary-action exception and equivalent-fast-path rules to copy/move-style target prompts.
+*   **Scope Lock:** Copy, move, rename-pattern, destination, and related confirmation flows only.
+*   **Acceptance Criteria:**
+*   The spec-allowed exception path is explicit for genuinely multi-input workflows.
+*   Avoidable extra prompts are merged or removed on the common path.
+*   Required confirmations remain only where safety or ambiguity justifies them.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 27.7: Compress Output Export Prompt Chains**
+*   **Goal:** Reduce output/export prompting to the shallowest safe flow while preserving file vs hardcopy semantics and format control.
+*   **Scope Lock:** Output format/destination/separator prompts, help text, and related tests/docs only.
+*   **Acceptance Criteria:**
+*   Output/export no longer crosses more chooser layers than the Task 27 spec allows for its common path.
+*   Advanced output options remain available without reintroducing hidden semantics.
+*   File and hardcopy destinations remain explicit and help-synchronized.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 28: Persist Compare Mode Presets and Modal Contract**

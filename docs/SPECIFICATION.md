@@ -187,6 +187,19 @@ When a text prompt is active, specialized conventions ensure a refined editing e
 *   **Browsing**: `F2` or `^f` opens the directory selection browser.
 *   **Prompt Guidance Layout Rule**: Prompt-owned command rows use structured command-strip rendering with adaptive truncation; if a prompt row cannot fit every visible action, runtime truncates the final visible entry with an ellipsis instead of clipping a key token or label mid-word.
 
+### 4.6 Primary Action Depth Contract
+*   **Primary-Action Definition:** A primary action is any user-invoked command that opens a prompt, menu, picker, overlay, modal chooser, or immediately commits a user-visible operation or mode/result change from the active runtime surface.
+*   **Common-Path Rule:** The documented fast path for a primary action MUST stay `key -> Enter -> result` unless the action genuinely needs additional user choices or safety confirmation.
+*   **Decision Count Rule:** Count one common-path decision for each required chooser selection or text acceptance after the initial key. Optional exploration, cancellation, or advanced branches do not change the baseline count.
+*   **Interactive-Layer Count Rule:** Count one interactive layer each time the common path enters a distinct prompt, menu, picker, chooser, overlay, or confirmation surface after the initial key. Sequential hand-offs (`prompt A -> prompt B -> prompt C`) count cumulatively even when only one surface is visible at a time.
+*   **Depth Budget Rule:** Ordinary primary actions MUST NOT require more than one interactive layer on their common path. If a command needs richer input, runtime MUST compress those choices into one prompt/menu layer where that can be done safely.
+*   **Prompt-Local Aid Rule:** Prompt-local aids such as `F1`, `F2`, history recall, browse pickers, and completion lists do not increase the owning primary action's depth budget when they return to the same pending prompt with the partially edited value preserved. They are same-layer aids, not extra required layers.
+*   **Aid Discoverability Rule:** When a prompt/menu/picker/dialog supports prompt-local aids, the active surface MUST advertise the usable aids there or in its immediate `F1`/hint surface. Hidden prompt-only capability is a defect.
+*   **Exception Rule:** Extra interactive layers are allowed only for destructive or safety-critical confirmation, or when the action truly requires multiple independent data types that cannot be expressed safely on one surface. Such exceptions MUST remain explicit, justified, and paired with the shallowest equivalent fast path the workflow can support.
+*   **Equivalent Fast-Path Rule:** An equivalent fast path is a documented path that reaches the same operation outcome without increasing mandatory decision count or interactive depth for the common case. Optional advanced toggles, defaults, or in-prompt mode switches satisfy this rule; an extra submenu does not.
+*   **Prompt Label Rule:** Prompt and menu titles MUST describe the user decision in plain language, not an internal implementation step. Labels and mnemonics stay normalized to the live command word and render as full words with in-place mnemonic emphasis rather than key-prefix jargon.
+*   **Prompt-Surface Correctness Rule:** Active prompt, menu, picker, dialog, and overlay surfaces MUST show the commands that are actually usable there, MUST NOT show commands that are unavailable there, and MUST keep `Enter`/`Esc`/return-path semantics explicit.
+
 ---
 
 ## 5. Split-Screen (F8) & Session Model
