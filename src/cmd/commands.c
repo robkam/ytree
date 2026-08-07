@@ -184,6 +184,24 @@ int CommandActionDefaultKeyCode(const char *context, const char *action_id) {
   return -1;
 }
 
+static int IsLegacyStarterCommandRow(const char *action_id, int binding_key,
+                                     const char *shown, const char *label) {
+  if (action_id == NULL || shown == NULL || label == NULL)
+    return 0;
+
+  if (strcmp(action_id, "ACTION_TOGGLE_TAGGED_MODE") == 0 &&
+      (binding_key == 'o' || binding_key == 'O') && strcmp(shown, "O") == 0 &&
+      strcmp(label, "Only tagged") == 0)
+    return 1;
+
+  if (strcmp(action_id, "ACTION_CMD_PRINT") == 0 &&
+      (binding_key == 'w' || binding_key == 'W') && strcmp(shown, "W") == 0 &&
+      strcmp(label, "Write") == 0)
+    return 1;
+
+  return 0;
+}
+
 static int ApplyContextBinding(ViewContext *ctx, const char *context,
                                int binding_key, const char *action_id,
                                const char *command) {
@@ -490,6 +508,9 @@ static int ProcessCommandsColumns(ViewContext *ctx, char *context_column,
         *line_error = 1;
         return -1;
       }
+      if (IsLegacyStarterCommandRow(action_id, binding_key, shown_column,
+                                    label_column))
+        continue;
       if (ctx != NULL &&
           ApplyContextBinding(ctx, context_name, binding_key, action_id, command) !=
               0) {

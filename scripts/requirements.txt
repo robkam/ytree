@@ -4,11 +4,11 @@
 #
 #    pip-compile --output-file=scripts/requirements.txt scripts/requirements.in
 #
-annotated-types==0.7.0
+annotated-types==0.8.0
     # via pydantic
 certifi==2026.7.22
     # via requests
-cffi==2.1.0
+cffi==2.1.1
     # via cryptography
 charset-normalizer==3.4.9
     # via requests
@@ -16,29 +16,29 @@ cryptography==50.0.0
     # via google-auth
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
-google-api-core[grpc]==2.32.0
+google-api-core[grpc]==2.33.0
     # via
     #   google-ai-generativelanguage
     #   google-api-python-client
     #   google-generativeai
 google-api-python-client==2.198.0
     # via google-generativeai
-google-auth==2.56.2
+google-auth==2.56.3
     # via
     #   google-ai-generativelanguage
     #   google-api-core
     #   google-api-python-client
     #   google-auth-httplib2
     #   google-generativeai
-google-auth-httplib2==0.4.0
+google-auth-httplib2==0.4.1
     # via google-api-python-client
 google-generativeai==0.8.6
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 googleapis-common-protos==1.75.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.82.1
+grpcio==1.83.0
     # via
     #   google-api-core
     #   grpcio-status
@@ -54,15 +54,15 @@ iniconfig==2.3.0
     # via pytest
 nexus-rpc==1.4.0
     # via temporalio
-packaging==26.2
+packaging==26.3
     # via pytest
 pexpect==4.9.0
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 pluggy==1.6.0
     # via pytest
 prompt-toolkit==3.0.53
-    # via -r requirements.in
-proto-plus==1.28.1
+    # via -r scripts/requirements.in
+proto-plus==1.28.2
     # via
     #   google-ai-generativelanguage
     #   google-api-core
@@ -92,14 +92,14 @@ pygments==2.20.0
 pyparsing==3.3.2
     # via httplib2
 pyte==0.8.2
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 pytest==9.1.1
-    # via -r requirements.in
+    # via -r scripts/requirements.in
 requests==2.34.2
     # via google-api-core
 temporalio==1.31.0
-    # via -r requirements.in
-tqdm==4.69.0
+    # via -r scripts/requirements.in
+tqdm==4.70.0
     # via google-generativeai
 types-protobuf==7.34.1.20260518
     # via temporalio

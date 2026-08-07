@@ -116,6 +116,80 @@ def test_output_flow_uses_o_key_and_explicit_file_and_hardcopy_prompts():
             ytnova.quit()
 
 
+def test_stale_output_commands_conf_does_not_abort_startup():
+    with tempfile.TemporaryDirectory() as td:
+        source_path = os.path.join(td, "source.txt")
+        with open(source_path, "w", encoding="utf-8") as handle:
+            handle.write("stale-output-commands-conf\n")
+
+        config_dir = os.path.join(td, ".config", "ytnova")
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "commands.conf"), "w", encoding="utf-8") as handle:
+            handle.write(
+                "[DIR]\n"
+                "A | A | Attributes | ACTION_CMD_A |\n"
+                "C | C | Copy | ACTION_CMD_C |\n"
+                "D | D | Delete | ACTION_CMD_D |\n"
+                "F | F | Filter | ACTION_FILTER |\n"
+                "G | G | Global | ACTION_CMD_G |\n"
+                "I | I | Invert | ACTION_INVERT |\n"
+                "J | J | Compare | ACTION_COMPARE_DIR |\n"
+                "L | L | Log | ACTION_LOG |\n"
+                "M | M | Makedir | ACTION_CMD_M |\n"
+                "N | N | Newfile | ACTION_CMD_MKFILE |\n"
+                "O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |\n"
+                "P | P | Pipe | ACTION_CMD_P |\n"
+                "Q | Q | Quit | ACTION_QUIT |\n"
+                "R | R | Rename | ACTION_CMD_R |\n"
+                "S | S | Showall | ACTION_CMD_S |\n"
+                "T | T | Tag | ACTION_TAG |\n"
+                "U | U | Untag | ACTION_UNTAG |\n"
+                "V | V | Movedir | ACTION_CMD_V |\n"
+                "W | W | Write | ACTION_CMD_PRINT |\n"
+                "X | X | Execute | ACTION_CMD_X |\n"
+                "Z | Z | Archive | ACTION_CMD_I |\n"
+                "/ | / | Jump | ACTION_LIST_JUMP |\n"
+                "` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |\n"
+                "\n"
+                "[FILE]\n"
+                "A | A | Attributes | ACTION_CMD_A |\n"
+                "C | C | Copy | ACTION_CMD_C |\n"
+                "Ctrl+K | ^K | Copy tagged | ACTION_CMD_TAGGED_C |\n"
+                "D | D | Delete | ACTION_CMD_D |\n"
+                "E | E | Edit | ACTION_CMD_E |\n"
+                "F | F | Filter | ACTION_FILTER |\n"
+                "H | H | Hex | ACTION_CMD_H |\n"
+                "I | I | Invert | ACTION_INVERT |\n"
+                "J | J | Compare | ACTION_COMPARE_FILE |\n"
+                "L | L | Log | ACTION_LOG |\n"
+                "M | M | Move | ACTION_CMD_M |\n"
+                "Ctrl+N | ^N | Move tagged | ACTION_CMD_TAGGED_M |\n"
+                "N | N | Newfile | ACTION_CMD_MKFILE |\n"
+                "O | O | Only tagged | ACTION_TOGGLE_TAGGED_MODE |\n"
+                "P | P | Pipe | ACTION_CMD_P |\n"
+                "Q | Q | Quit | ACTION_QUIT |\n"
+                "R | R | Rename | ACTION_CMD_R |\n"
+                "S | S | Sort | ACTION_CMD_S |\n"
+                "W | W | Write | ACTION_CMD_PRINT |\n"
+                "X | X | Execute | ACTION_CMD_X |\n"
+                "Y | Y | Pathcopy | ACTION_CMD_Y |\n"
+                "Z | Z | Archive | ACTION_CMD_I |\n"
+                "/ | / | Jump | ACTION_LIST_JUMP |\n"
+                "` | ` | Dotfiles | ACTION_TOGGLE_HIDDEN |\n"
+            )
+
+        ytnova = _spawn_controller(td)
+        try:
+            _enter_file_mode(ytnova)
+
+            format_screen = "\n".join(_open_output_flow(ytnova, "o"))
+            assert "Format:" in format_screen, format_screen
+            assert "Write" not in format_screen, format_screen
+            assert "Only tagged" not in format_screen, format_screen
+        finally:
+            ytnova.quit()
+
+
 def test_output_plain_path_defaults_to_file_destination():
     with tempfile.TemporaryDirectory() as td:
         source_path = os.path.join(td, "source.txt")
