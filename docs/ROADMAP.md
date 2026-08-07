@@ -11,7 +11,7 @@ Ordering policy (for all editors, including AI editors):
 - IDs are unstable labels and are likely to change often due to reprioritization/renumbering.
 - `docs/ROADMAP.md` is forward-looking only (`planned`/`in-progress`).
 - Completed items are removed after landing.
-- For shipped outcomes, see [docs/CHANGES.md](CHANGES.md), which records only the most significant milestones, not every minor change.
+- For shipped outcomes, see [docs/CHANGELOG.md](CHANGELOG.md), which records only the most significant milestones, not every minor change.
 - Use git history as the full archive.
 
 ---
@@ -539,7 +539,7 @@ Ordering policy (for all editors, including AI editors):
 *   F1/help text, footer labels, prompt text, and runtime behavior stay synchronized with the same contract.
 *   `docs/SPECIFICATION.md`, `etc/ytnova.1.md`, and generated `docs/USAGE.md` are updated in the same delivery so docs match runtime behavior.
 *   No crash on printer-command failure or destination-open failure.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 25: Add `Catalog` Output Mode to `Write`**
 *   **Goal:** Extend the existing `Write` format dialog with a `Catalog` mode that exports a deterministic file/directory inventory (similar intent to `ls -1pR`) instead of file contents.

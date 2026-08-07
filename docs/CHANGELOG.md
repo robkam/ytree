@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Scope policy: `docs/CHANGES.md` records shipped, already implemented, major user-visible or project-level milestones only.
+Scope policy: `docs/CHANGELOG.md` records shipped, already implemented, major user-visible or project-level milestones only.
 Minor/trivial fixes are tracked in git history.
 
 ## [1.0.0-alpha] - 2026-06-10
