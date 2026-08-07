@@ -1,0 +1,70 @@
+Work item: docs/ROADMAP.md Task 27
+Title: Enforce One-Level Primary Action Depth (Prompt-Chain Audit)
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- Audit and remediate primary interactive workflows so the common path stays `key -> Enter -> result` with at most one submenu/prompt layer.
+- Inventory primary action flows across filesystem, archive, split, F7, F8, Showall, Global, tagged workflows, and active picker/prompt/dialog surfaces such as history, volumes, applications, compare prompts, and syntax-bearing command prompts.
+- Produce a complete `keybinding -> flow` audit with current chain steps, common-path step count, submenu depth, active context, return path, manual repro keys, and prompt-surface correctness notes.
+- Reconcile the shallow-flow, prompt-label/mnemonic, and prompt-surface visibility rules against docs/SPECIFICATION.md, updating the spec first if required rules are missing, stale, or ambiguous.
+- Create remediation-ready offender families and keep every inventoried family explicitly addressed, intentionally unchanged, or deferred with reason.
+
+Current repo state:
+- Stale relay for Task 23 was deleted after confirming PR #441 merged on August 7, 2026 and no active branch/PR still depended on it.
+- No active PR is open for this repository.
+- Active branch: `docs/primary-action-audit-baseline`.
+
+Chosen work family:
+- Task 27.1 + 27.2 docs baseline: produce the primary-action audit/checklist artifact and reconcile the governing shallow-flow spec contract before runtime remediation subtasks.
+
+Deferred remediation families after this docs baseline:
+1. Compare flow depth and submenu chaining (`J` / compare prompts) [deferred: distinct compare owner and focused runtime validation path]
+2. Attributes / metadata-edit chooser depth (`A` family) [deferred: distinct attribute owner and prompt-compression path]
+3. Prompt-local aid and prompt-surface visibility parity (history, F2 browse, chooser labels) [deferred: separate prompt-surface correctness family]
+4. Volume / applications / picker chooser wording and visibility [deferred: lower-risk chooser/help family]
+5. Output / copy-move destination / syntax-bearing command prompts [deferred: needs the new exception/counting contract before runtime compression]
+
+Inventory reconciliation:
+1. Source-of-truth tracker/spec surfaces
+   - docs/ROADMAP.md Task 27 umbrella text [addressed: status advanced to In Progress and follow-up remediation families were split into concrete subtasks]
+   - docs/ROADMAP.md Task 27.1 acceptance text [addressed: status marked Completed after the audit matrix and offender ranking landed]
+   - docs/ROADMAP.md Task 27.2 acceptance text [addressed: status marked Completed after the spec contract landed]
+   - docs/SPECIFICATION.md interaction-economy / direct-access / prompt standards / footer-F1 parity / prompt-dialog rules [addressed: new §4.6 defines primary-action depth, counting, aids, exceptions, fast paths, labels, and prompt-surface correctness]
+   - docs/ARCHITECTURE.md command-surface/help ownership boundaries [intentionally unchanged: the existing ownership boundaries were sufficient and the audit only referenced them]
+   - docs/ai/WORKFLOW.md UX economy gate [intentionally unchanged: the new canonical rule now lives in docs/SPECIFICATION.md without conflicting with the workflow gate]
+2. New audit/checklist artifact surfaces
+   - durable manual QA checklist and `keybinding -> flow` matrix for the Task 27 coverage set [addressed: added docs/ai/PRIMARY_ACTION_AUDIT.md]
+   - ranked offender-family table with current chain, proposed compressed chain, depth delta, owner modules, likely tests/docs, and focused validation path [addressed: added docs/ai/PRIMARY_ACTION_AUDIT.md]
+3. Coverage-set runtime owner surfaces audited and cited
+   - src/ui/display.c footer command surfaces and prompt/history help entries [addressed]
+   - src/ui/runtime_help.c active-surface help resolution / prompt ownership [intentionally unchanged: referenced for ownership boundary, not edited]
+   - src/ui/key_engine.c primary key dispatch for contextual action surfaces [addressed]
+   - src/ui/ctrl_dir.c directory-mode action dispatch (including Showall/Global/applications) [addressed]
+   - src/ui/ctrl_file.c file-mode action dispatch (including Showall/Global/applications) [addressed]
+   - src/ui/ctrl_file_ops.c filter/search/output/copy-move command-entry flows [addressed]
+   - src/ui/interactions.c and src/ui/input_line.c prompt strings, history/browse aids, and syntax-bearing command prompts [addressed]
+   - src/ui/compare_request.c compare chooser/prompt chain [addressed]
+   - src/ui/history_dialog.c history modal [addressed]
+   - src/ui/volume_menu.c volume chooser [addressed]
+   - src/ui/application_menu.c applications menu [addressed]
+   - src/ui/f2_picker.c directory picker/browse surface [addressed]
+   - src/ui/view_preview.c F7 preview overlay [addressed]
+   - src/ui/split_transition.c split/F8 surface interactions [addressed]
+   - src/ui/print_controller.c output prompt chain reference point [addressed]
+   - src/ui/attr_actions.c attribute chooser family [addressed]
+4. Direct evidence / validation surfaces for the audit matrix
+   - etc/help/f1.en.md topic inventory for required runtime surfaces [addressed]
+   - tests/test_compare_actions.py [addressed]
+   - tests/test_f2_vols.py [addressed]
+   - tests/test_filtering.py [addressed]
+   - tests/test_destination_prompt.py [addressed]
+   - tests/test_f7_preview.py [addressed]
+   - tests/test_archive_ui.py [addressed]
+   - tests/test_help_text_contract.py [addressed]
+   - tests/test_command_strip_visibility.py [addressed]
+   - tests/test_dir_window_dispatch_regressions.py / tests/test_file_window_dispatch_regressions.py [addressed]
+5. Closure statuses for this first batch
+   - Runtime behavior changes [intentionally unchanged: Task 27.1 and 27.2 are docs/audit/spec-only by roadmap scope lock]
+   - Generated help/man/usage assets [intentionally unchanged: no authored help source changed in this batch]
+
+Focused validation:
+- `git diff --check`
