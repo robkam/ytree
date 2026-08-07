@@ -543,6 +543,29 @@ Available choices depend on the active compare mode.
 Enter one path.
 The compare scope decides whether that one path is treated as a file target, a directory target, or a logged-tree target.
 
+## topic:change-date
+```ytnova-help-meta
+title: Date Change Help
+contexts: prompt.change-date
+```
+### Contextual F1
+The date prompt accepts `YYYY-MM-DD` and optional `HH:MM[:SS]` time input for attribute edits.
+`F3` cycles whether the entered value updates the modified time, accessed time, or both.
+### Explainer links
+- [File mode](topic:file)
+- [Directory mode](topic:dir)
+- [Command-line editing](topic:command-line-editing)
+
+### Long form
+#### Scope choices
+Use `modified` to change only the last-modified timestamp.
+Use `accessed` to change only the access timestamp.
+Use `both` to write the entered value to both timestamps.
+
+#### Format rules
+If you omit the time portion, ytnova keeps the current hour, minute, and second.
+Tagged date edits use the same prompt and scope cycle.
+
 ## topic:compare-scope
 ```ytnova-help-meta
 title: Compare Scope Help

@@ -205,12 +205,10 @@ def test_dir_date_change_no_footer_artifact(ytnova_binary, tmp_path):
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.1)
 
-    # Directory attributes -> date -> modified
+    # Directory attributes -> date prompt (modified is the default scope)
     tui.send_keystroke("a")
     time.sleep(0.1)
     tui.send_keystroke("d")
-    time.sleep(0.1)
-    tui.send_keystroke("m")
     time.sleep(0.1)
 
     # Full-width overwrite input
@@ -272,7 +270,7 @@ def test_dir_mkdir_cancel_no_footer_artifact(ytnova_binary, tmp_path):
 
 
 def test_file_date_change_modified_updates_mtime(ytnova_binary, tmp_path):
-    """Verifies file attributes date->modified updates the file mtime."""
+    """Verifies file attributes date prompt updates the default modified scope."""
     d = tmp_path / "file_date_change_test"
     d.mkdir()
     target = d / "sample.txt"
@@ -285,14 +283,12 @@ def test_file_date_change_modified_updates_mtime(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
 
-    # Enter file window and trigger Attributes -> Date -> Modified.
+    # Enter file window and trigger Attributes -> Date.
     tui.send_keystroke(Keys.ENTER)
     time.sleep(0.2)
     tui.send_keystroke("a")
     time.sleep(0.1)
     tui.send_keystroke("d")
-    time.sleep(0.1)
-    tui.send_keystroke("m")
     time.sleep(0.1)
     tui.send_keystroke("2026-03-15 10:11:12\r")
     time.sleep(0.6)

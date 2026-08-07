@@ -1,8 +1,0 @@
-{
-  "mode": "tmux",
-  "session": "ytnova-ci-repair-docs-changelog-discoverability",
-  "branch": "docs/changelog-discoverability",
-  "log": "/home/rob/ytreenova/.agent/handoffs/ci-repair.current.log",
-  "command": "python3 /home/rob/ytreenova/scripts/ci_repair_loop.py",
-  "status": "started"
-}

@@ -31,6 +31,21 @@ static const UICommandStripCommand attribute_commands_tagged[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
     {UI_COMMAND_LAYOUT_MNEMONIC, "Date", "D", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged date", "^D", NULL}};
+static const UICommandStripCommand date_change_hint_commands[] = {
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scope", "F3", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+
+static const char date_change_help_context[] = "prompt.change-date";
+
+enum { DATE_SCOPE_CYCLE_KEY = 3 };
+
+typedef struct {
+  char prompt[96];
+  int scope_mask;
+} DateChangePromptState;
 
 static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   int written;
@@ -146,6 +161,64 @@ static void format_mode_prompt_value(mode_t mode, char *buffer, size_t size) {
 
   (void)GetAttributes((unsigned short)mode, attributes);
   (void)snprintf(buffer, size, "%s", attributes);
+}
+
+static const char *DateScopeLabel(int scope_mask) {
+  switch (scope_mask) {
+  case DATE_SCOPE_ACCESS:
+    return "accessed";
+  case DATE_SCOPE_ACCESS | DATE_SCOPE_MODIFY:
+    return "both";
+  case DATE_SCOPE_MODIFY:
+  default:
+    return "modified";
+  }
+}
+
+static int NextDateScope(int scope_mask) {
+  switch (scope_mask) {
+  case DATE_SCOPE_MODIFY:
+    return DATE_SCOPE_ACCESS;
+  case DATE_SCOPE_ACCESS:
+    return DATE_SCOPE_ACCESS | DATE_SCOPE_MODIFY;
+  case DATE_SCOPE_ACCESS | DATE_SCOPE_MODIFY:
+  default:
+    return DATE_SCOPE_MODIFY;
+  }
+}
+
+static void UpdateDateChangePromptLabel(DateChangePromptState *state) {
+  if (!state)
+    return;
+
+  (void)snprintf(state->prompt, sizeof(state->prompt),
+                 "DATE [%s] (YYYY-MM-DD [HH:MM[:SS]]):",
+                 DateScopeLabel(state->scope_mask));
+}
+
+static BOOL HandleDateChangePromptAction(ViewContext *ctx, YtreeNovaPanel *panel,
+                                         int ch, const char *buffer,
+                                         int max_len, int *cursor_pos,
+                                         void *action_data) {
+  (void)ctx;
+  (void)panel;
+  (void)buffer;
+  (void)max_len;
+  (void)cursor_pos;
+#ifdef KEY_F
+  if (ch == KEY_F(DATE_SCOPE_CYCLE_KEY)) {
+    DateChangePromptState *state = action_data;
+
+    if (!state)
+      return FALSE;
+
+    state->scope_mask = NextDateScope(state->scope_mask);
+    UpdateDateChangePromptLabel(state);
+    return TRUE;
+  }
+#endif
+
+  return FALSE;
 }
 
 static int parse_date_input(const char *input, time_t base_time,
@@ -315,29 +388,21 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
   char date_input[32];
   char display_time[32];
   const struct tm *tm_ptr;
-  int which;
+  time_t base_time;
+  UIPromptOptions options;
+  DateChangePromptState state;
 
   if (!ctx || !new_time || !scope_mask)
     return -1;
 
-  time_t base_time = (*new_time > 0) ? *new_time : time(NULL);
-
-  which = InputChoice(ctx, "DATE FIELD: (M)odified (A)ccessed (B)oth", "MAB");
-  if (which == ESC || which < 0)
-    return -1;
-
-  switch (which) {
-  case 'A':
-    *scope_mask = DATE_SCOPE_ACCESS;
-    break;
-  case 'B':
-    *scope_mask = DATE_SCOPE_ACCESS | DATE_SCOPE_MODIFY;
-    break;
-  case 'M':
-  default:
-    *scope_mask = DATE_SCOPE_MODIFY;
-    break;
+  base_time = (*new_time > 0) ? *new_time : time(NULL);
+  state.scope_mask = *scope_mask;
+  if (state.scope_mask != DATE_SCOPE_MODIFY &&
+      state.scope_mask != DATE_SCOPE_ACCESS &&
+      state.scope_mask != (DATE_SCOPE_ACCESS | DATE_SCOPE_MODIFY)) {
+    state.scope_mask = DATE_SCOPE_MODIFY;
   }
+  UpdateDateChangePromptLabel(&state);
 
   CopyBoundedString(display_time, sizeof(display_time), "1970-01-01 00:00:00");
   tm_ptr = localtime(&base_time);
@@ -346,12 +411,21 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
                    tm_ptr);
   }
 
-  strncpy(date_input, display_time, sizeof(date_input) - 1);
-  date_input[sizeof(date_input) - 1] = '\0';
+  CopyBoundedString(date_input, sizeof(date_input), display_time);
+
+  memset(&options, 0, sizeof(options));
+  options.hints_override = date_change_hint_commands;
+  options.hints_override_count =
+      sizeof(date_change_hint_commands) / sizeof(date_change_hint_commands[0]);
+  options.help_callback = UI_ShowGeneratedContextHelpCallback;
+  options.help_data = (void *)date_change_help_context;
+  options.action_handler = HandleDateChangePromptAction;
+  options.action_data = &state;
 
   ClearHelp(ctx);
-  if (UI_ReadString(ctx, ctx->active, "DATE (YYYY-MM-DD [HH:MM[:SS]]):",
-                    date_input, (int)sizeof(date_input), HST_GENERAL) != CR) {
+  if (UI_ReadStringWithPromptOptions(ctx, ctx->active, state.prompt, date_input,
+                                     (int)sizeof(date_input), HST_GENERAL,
+                                     &options) != CR) {
     wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
     wclrtoeol(ctx->ctx_border_window);
     wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
@@ -370,6 +444,7 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
     return -1;
   }
 
+  *scope_mask = state.scope_mask;
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
   wclrtoeol(ctx->ctx_border_window);
   wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
