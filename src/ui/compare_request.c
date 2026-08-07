@@ -8,113 +8,38 @@
 #include "interactions_panel_paths.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
-#include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct {
   const char *context_id;
 } CompareGeneratedHelpSpec;
 
-static const UICommandStripCommand compare_status_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "context help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
-static const UICommandStripCommand compare_basis_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Size", "S", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Date", "D", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Size+date", "Z", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Hash", "H", NULL}};
-static const UICommandStripCommand compare_tag_result_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Different", "F", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Match", "M", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Newer", "N", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Older", "O", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Unique", "U", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Type-mismatch", "T", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Error", "E", NULL}};
-static const UICommandStripCommand compare_scope_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Directory only", "D", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Logged tree", "T", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "External viewer", "X", NULL}};
-static const UICommandStripCommand compare_external_scope_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Directory", "D", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Logged tree", "T", NULL}};
+typedef struct {
+  ViewContext *ctx;
+  DirEntry *source_dir;
+  CompareRequest *request;
+  BOOL *launch_external;
+  char prompt[128];
+  char last_auto_target[PATH_LENGTH + 1];
+} CompareTargetPromptState;
+
+enum {
+  COMPARE_SCOPE_CYCLE_KEY = 3,
+  COMPARE_BASIS_CYCLE_KEY = 4,
+  COMPARE_TAG_CYCLE_KEY = 5
+};
+
 static const UICommandStripCommand compare_target_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "browse", "F2", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scope", "F3", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "basis", "F4", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tag", "F5", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
 static const CompareGeneratedHelpSpec compare_target_help_spec = {
     "prompt.compare-target"};
-static const CompareGeneratedHelpSpec compare_scope_help_spec = {
-    "prompt.compare-scope"};
-static const CompareGeneratedHelpSpec compare_external_scope_help_spec = {
-    "prompt.compare-scope"};
-static const CompareGeneratedHelpSpec compare_basis_help_spec = {
-    "prompt.compare-basis"};
-static const CompareGeneratedHelpSpec compare_results_help_spec = {
-    "prompt.compare-results"};
-
-static void ClearComparePromptArea(ViewContext *ctx) {
-  if (!ctx || !ctx->ctx_border_window)
-    return;
-
-#ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
-#else
-  wattrset(ctx->ctx_border_window, A_NORMAL);
-#endif
-  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-
-  if (ctx->layout.prompt_y > 0) {
-    wmove(ctx->ctx_border_window, ctx->layout.prompt_y - 1, 0);
-    wclrtoeol(ctx->ctx_border_window);
-  }
-  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-  wclrtoeol(ctx->ctx_border_window);
-  wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
-  wclrtoeol(ctx->ctx_border_window);
-  wnoutrefresh(ctx->ctx_border_window);
-  doupdate();
-}
-
-static void DrawComparePrompt(ViewContext *ctx, const char *title,
-                              const UICommandStripCommand *commands,
-                              size_t command_count) {
-  int prompt_x;
-  int status_x;
-
-  if (!ctx || !ctx->ctx_border_window || !title)
-    return;
-
-  ClearComparePromptArea(ctx);
-#ifdef COLOR_SUPPORT
-  wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
-#else
-  wattrset(ctx->ctx_border_window, A_NORMAL);
-#endif
-  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
-
-  Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)title,
-        UI_ROLE_STATIC_TEXT);
-  prompt_x = 1 + StrVisualLength((char *)title);
-  if (commands != NULL && command_count > 0) {
-    prompt_x += 2;
-    UI_RenderAdaptiveCommandStrip(ctx->ctx_border_window, ctx->layout.prompt_y,
-                                  prompt_x, commands, command_count,
-                                  UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
-  }
-
-  Print(ctx->ctx_border_window, ctx->layout.status_y, 1, "COMMANDS",
-        UI_ROLE_STATIC_TEXT);
-  status_x = 1 + StrVisualLength("COMMANDS") + 2;
-  UI_RenderAdaptiveCommandStrip(
-      ctx->ctx_border_window, ctx->layout.status_y, status_x,
-      compare_status_commands,
-      sizeof(compare_status_commands) / sizeof(compare_status_commands[0]),
-      UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
-  wnoutrefresh(ctx->ctx_border_window);
-  doupdate();
-}
 
 static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {
   const CompareGeneratedHelpSpec *spec =
@@ -125,50 +50,6 @@ static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {
 
   (void)UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);
   return 0;
-}
-
-static int InputCompareChoice(ViewContext *ctx, const char *title,
-                              const UICommandStripCommand *commands,
-                              size_t command_count, const char *valid_terms,
-                              int default_choice,
-                              const CompareGeneratedHelpSpec *help_spec) {
-  if (!ctx || !title || !valid_terms)
-    return ESC;
-
-  while (1) {
-    int ch;
-
-    DrawComparePrompt(ctx, title, commands, command_count);
-
-    ch = WGetch(ctx, ctx->ctx_border_window);
-    if (ch < 0)
-      continue;
-
-    if (ch == KEY_F(1)) {
-      (void)ShowCompareHelpCallback(ctx, (void *)help_spec);
-      continue;
-    }
-    if (ch == ESC) {
-      ClearComparePromptArea(ctx);
-      return ESC;
-    }
-
-    if (ch == CR || ch == LF) {
-      if (default_choice > 0) {
-        ch = default_choice;
-      } else {
-        continue;
-      }
-    }
-
-    if (islower(ch))
-      ch = toupper(ch);
-
-    if (strchr(valid_terms, ch) != NULL) {
-      ClearComparePromptArea(ctx);
-      return ch;
-    }
-  }
 }
 
 static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
@@ -204,77 +85,252 @@ static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
   return 0;
 }
 
-static int PromptCompareBasis(ViewContext *ctx, CompareBasis *basis) {
-  int ch;
-
-  if (!ctx || !basis)
+static int ResolveCompareSourcePath(ViewContext *ctx, DirEntry *source_dir,
+                                    CompareFlowType flow_type,
+                                    char *source_path) {
+  if (!ctx || !source_path)
     return -1;
 
-  ch = InputCompareChoice(
-      ctx, "COMPARE BASIS:", compare_basis_commands,
-      sizeof(compare_basis_commands) / sizeof(compare_basis_commands[0]), "SDZH",
-      0, &compare_basis_help_spec);
-  if (ch == ESC || ch < 0)
+  if (flow_type == COMPARE_FLOW_DIRECTORY) {
+    if (!source_dir)
+      return -1;
+    GetPath(source_dir, source_path);
+  } else if (flow_type == COMPARE_FLOW_LOGGED_TREE) {
+    if (!ctx->active || !ctx->active->vol || !ctx->active->vol->vol_stats.tree)
+      return -1;
+    GetPath(ctx->active->vol->vol_stats.tree, source_path);
+  } else {
+    return -1;
+  }
+
+  source_path[PATH_LENGTH] = '\0';
+  return 0;
+}
+
+static int ResolveSplitCompareTargetPath(ViewContext *ctx,
+                                         CompareFlowType flow_type,
+                                         char *target_path) {
+  YtreeNovaPanel *inactive = NULL;
+
+  if (!ctx || !ctx->is_split_screen || !target_path)
     return -1;
 
-  switch (ch) {
-  case 'S':
-    *basis = COMPARE_BASIS_SIZE;
-    return 0;
-  case 'D':
-    *basis = COMPARE_BASIS_DATE;
-    return 0;
-  case 'Z':
-    *basis = COMPARE_BASIS_SIZE_AND_DATE;
-    return 0;
-  case 'H':
-    *basis = COMPARE_BASIS_HASH;
-    return 0;
+  inactive = UI_GetInactivePanel(ctx);
+  if (!inactive)
+    return -1;
+
+  if (flow_type == COMPARE_FLOW_DIRECTORY) {
+    return UI_GetPanelSelectedDirPath(ctx, inactive, target_path);
+  }
+  if (flow_type == COMPARE_FLOW_LOGGED_TREE) {
+    return UI_GetPanelLoggedRootPath(inactive, target_path);
+  }
+
+  return -1;
+}
+
+static CompareBasis NextCompareBasis(CompareBasis basis) {
+  switch (basis) {
+  case COMPARE_BASIS_SIZE_AND_DATE:
+    return COMPARE_BASIS_SIZE;
+  case COMPARE_BASIS_SIZE:
+    return COMPARE_BASIS_DATE;
+  case COMPARE_BASIS_DATE:
+    return COMPARE_BASIS_HASH;
+  case COMPARE_BASIS_HASH:
   default:
-    return -1;
+    return COMPARE_BASIS_SIZE_AND_DATE;
   }
 }
 
-static int PromptCompareTagResult(ViewContext *ctx,
-                                  CompareTagResult *tag_result) {
-  int ch;
+static CompareTagResult NextCompareTagResult(CompareTagResult tag_result) {
+  switch (tag_result) {
+  case COMPARE_TAG_DIFFERENT:
+    return COMPARE_TAG_MATCH;
+  case COMPARE_TAG_MATCH:
+    return COMPARE_TAG_NEWER;
+  case COMPARE_TAG_NEWER:
+    return COMPARE_TAG_OLDER;
+  case COMPARE_TAG_OLDER:
+    return COMPARE_TAG_UNIQUE;
+  case COMPARE_TAG_UNIQUE:
+    return COMPARE_TAG_TYPE_MISMATCH;
+  case COMPARE_TAG_TYPE_MISMATCH:
+    return COMPARE_TAG_ERROR;
+  case COMPARE_TAG_ERROR:
+  default:
+    return COMPARE_TAG_DIFFERENT;
+  }
+}
 
-  if (!ctx || !tag_result)
-    return -1;
+static void UpdateCompareTargetPromptLabel(const CompareTargetPromptState *state) {
+  const char *scope_name;
 
-  ch = InputCompareChoice(
-      ctx, "TAG FILE LIST:", compare_tag_result_commands,
-      sizeof(compare_tag_result_commands) /
-          sizeof(compare_tag_result_commands[0]),
-      "FMNOUTE", 0, &compare_results_help_spec);
-  if (ch == ESC || ch < 0)
-    return -1;
+  if (!state || !state->request || !state->launch_external)
+    return;
+
+  scope_name = (*state->launch_external)
+                   ? (state->request->flow_type == COMPARE_FLOW_LOGGED_TREE
+                          ? "external tree"
+                          : "external directory")
+                   : (state->request->flow_type == COMPARE_FLOW_LOGGED_TREE
+                          ? "logged tree"
+                          : "directory");
+
+  if (*state->launch_external) {
+    (void)snprintf(state->prompt, sizeof(state->prompt),
+                   "COMPARE TARGET [%s | saved %s | saved %s]:", scope_name,
+                   UI_CompareBasisName(state->request->basis),
+                   UI_CompareTagResultName(state->request->tag_result));
+  } else {
+    (void)snprintf(state->prompt, sizeof(state->prompt),
+                   "COMPARE TARGET [%s | %s | %s]:", scope_name,
+                   UI_CompareBasisName(state->request->basis),
+                   UI_CompareTagResultName(state->request->tag_result));
+  }
+}
+
+static void SyncCompareTargetPromptState(CompareTargetPromptState *state,
+                                         char *target_path, int *cursor_pos) {
+  char next_auto_target[PATH_LENGTH + 1];
+  BOOL used_split_default = FALSE;
+
+  if (!state || !state->request || !target_path)
+    return;
+
+  if (ResolveCompareSourcePath(state->ctx, state->source_dir,
+                               state->request->flow_type,
+                               state->request->source_path) != 0) {
+    return;
+  }
+
+  if (ResolveSplitCompareTargetPath(state->ctx, state->request->flow_type,
+                                    next_auto_target) == 0) {
+    used_split_default = TRUE;
+  } else {
+    strncpy(next_auto_target, state->request->source_path, PATH_LENGTH);
+    next_auto_target[PATH_LENGTH] = '\0';
+  }
+
+  if ((state->last_auto_target[0] != '\0' &&
+       strcmp(target_path, state->last_auto_target) == 0) ||
+      target_path[0] == '\0') {
+    strncpy(target_path, next_auto_target, PATH_LENGTH);
+    target_path[PATH_LENGTH] = '\0';
+    if (cursor_pos != NULL)
+      *cursor_pos = StrVisualLength(target_path);
+  }
+
+  strncpy(state->last_auto_target, next_auto_target, PATH_LENGTH);
+  state->last_auto_target[PATH_LENGTH] = '\0';
+  state->request->used_split_default_target = used_split_default;
+  UpdateCompareTargetPromptLabel(state);
+}
+
+static void AdvanceComparePromptScope(CompareTargetPromptState *state,
+                                      char *target_path, int *cursor_pos) {
+  if (!state || !state->request || !state->launch_external)
+    return;
+
+  if (!*state->launch_external &&
+      state->request->flow_type == COMPARE_FLOW_DIRECTORY) {
+    state->request->flow_type = COMPARE_FLOW_LOGGED_TREE;
+  } else if (!*state->launch_external &&
+             state->request->flow_type == COMPARE_FLOW_LOGGED_TREE) {
+    state->request->flow_type = COMPARE_FLOW_DIRECTORY;
+    *state->launch_external = TRUE;
+  } else if (*state->launch_external &&
+             state->request->flow_type == COMPARE_FLOW_DIRECTORY) {
+    state->request->flow_type = COMPARE_FLOW_LOGGED_TREE;
+  } else {
+    state->request->flow_type = COMPARE_FLOW_DIRECTORY;
+    *state->launch_external = FALSE;
+  }
+
+  SyncCompareTargetPromptState(state, target_path, cursor_pos);
+}
+
+static BOOL HandleCompareTargetAction(ViewContext *ctx, YtreeNovaPanel *panel,
+                                      int ch, const char *buffer, int max_len,
+                                      int *cursor_pos, void *action_data) {
+  const CompareTargetPromptState *state =
+      (CompareTargetPromptState *)action_data;
+
+  (void)ctx;
+  (void)panel;
+  (void)max_len;
+
+  if (!state || !state->request || !buffer)
+    return FALSE;
 
   switch (ch) {
-  case 'F':
-    *tag_result = COMPARE_TAG_DIFFERENT;
-    return 0;
-  case 'M':
-    *tag_result = COMPARE_TAG_MATCH;
-    return 0;
-  case 'N':
-    *tag_result = COMPARE_TAG_NEWER;
-    return 0;
-  case 'O':
-    *tag_result = COMPARE_TAG_OLDER;
-    return 0;
-  case 'U':
-    *tag_result = COMPARE_TAG_UNIQUE;
-    return 0;
-  case 'T':
-    *tag_result = COMPARE_TAG_TYPE_MISMATCH;
-    return 0;
-  case 'E':
-    *tag_result = COMPARE_TAG_ERROR;
-    return 0;
+#ifdef KEY_F
+  case KEY_F(COMPARE_SCOPE_CYCLE_KEY):
+    AdvanceComparePromptScope((CompareTargetPromptState *)state,
+                              state->request->target_path, cursor_pos);
+    return TRUE;
+
+  case KEY_F(COMPARE_BASIS_CYCLE_KEY):
+    state->request->basis = NextCompareBasis(state->request->basis);
+    UpdateCompareTargetPromptLabel(state);
+    return TRUE;
+
+  case KEY_F(COMPARE_TAG_CYCLE_KEY):
+    state->request->tag_result =
+        NextCompareTagResult(state->request->tag_result);
+    UpdateCompareTargetPromptLabel(state);
+    return TRUE;
+#endif
   default:
+    return FALSE;
+  }
+}
+
+static int PromptDirectoryCompareTarget(ViewContext *ctx, DirEntry *source_dir,
+                                        CompareRequest *request,
+                                        BOOL *launch_external) {
+  CompareTargetPromptState state;
+  UIPromptOptions options;
+
+  if (!ctx || !source_dir || !request || !launch_external)
+    return -1;
+
+  memset(&state, 0, sizeof(state));
+  state.ctx = ctx;
+  state.source_dir = source_dir;
+  state.request = request;
+  state.launch_external = launch_external;
+
+  request->flow_type = COMPARE_FLOW_DIRECTORY;
+  request->basis = COMPARE_BASIS_SIZE_AND_DATE;
+  request->tag_result = COMPARE_TAG_DIFFERENT;
+  request->used_split_default_target = FALSE;
+  request->target_path[0] = '\0';
+  *launch_external = FALSE;
+
+  SyncCompareTargetPromptState(&state, request->target_path, NULL);
+  memset(&options, 0, sizeof(options));
+  options.hints_override = compare_target_hint_commands;
+  options.hints_override_count =
+      sizeof(compare_target_hint_commands) /
+      sizeof(compare_target_hint_commands[0]);
+  options.help_callback = ShowCompareHelpCallback;
+  options.help_data = (void *)&compare_target_help_spec;
+  options.action_handler = HandleCompareTargetAction;
+  options.action_data = &state;
+
+  ClearHelp(ctx);
+  if (UI_ReadStringWithPromptOptions(ctx, ctx->active, state.prompt,
+                                     request->target_path, PATH_LENGTH,
+                                     HST_PATH, &options) != CR) {
     return -1;
   }
+
+  if (request->target_path[0] == '\0')
+    return -1;
+
+  request->target_path[PATH_LENGTH] = '\0';
+  return 0;
 }
 
 const char *UI_CompareFlowTypeName(CompareFlowType flow_type) {
@@ -348,43 +404,6 @@ const char *UI_GetCompareHelperCommand(const ViewContext *ctx,
   }
 }
 
-int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
-  int ch;
-
-  if (!ctx || !choice)
-    return -1;
-
-  ch = InputCompareChoice(
-      ctx, "COMPARE SCOPE:", compare_scope_commands,
-      sizeof(compare_scope_commands) / sizeof(compare_scope_commands[0]), "DTX",
-      'D', &compare_scope_help_spec);
-  if (ch == ESC || ch < 0)
-    return -1;
-
-  if (ch == 'D') {
-    *choice = COMPARE_MENU_DIRECTORY_ONLY;
-    return 0;
-  }
-  if (ch == 'T') {
-    *choice = COMPARE_MENU_DIRECTORY_PLUS_TREE;
-    return 0;
-  }
-  if (ch == 'X') {
-    int scope_ch = InputCompareChoice(
-        ctx, "EXTERNAL VIEWER:", compare_external_scope_commands,
-        sizeof(compare_external_scope_commands) /
-            sizeof(compare_external_scope_commands[0]),
-        "DT", 'D', &compare_external_scope_help_spec);
-    if (scope_ch == ESC || scope_ch < 0)
-      return -1;
-    *choice = (scope_ch == 'T') ? COMPARE_MENU_EXTERNAL_TREE
-                                : COMPARE_MENU_EXTERNAL_DIRECTORY;
-    return 0;
-  }
-
-  return -1;
-}
-
 int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
                                CompareRequest *request) {
   YtreeNovaPanel *inactive = NULL;
@@ -420,83 +439,13 @@ int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
   return 0;
 }
 
-static int BuildDirectoryCompareRequestInternal(ViewContext *ctx,
-                                                DirEntry *source_dir,
-                                                CompareFlowType flow_type,
-                                                CompareRequest *request,
-                                                BOOL include_compare_prompts) {
-  YtreeNovaPanel *inactive = NULL;
-  const char *default_target = NULL;
-
-  if (!ctx || !request)
+int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
+                                    CompareRequest *request,
+                                    BOOL *launch_external) {
+  if (!ctx || !source_dir || !request || !launch_external)
     return -1;
-  if (flow_type != COMPARE_FLOW_DIRECTORY &&
-      flow_type != COMPARE_FLOW_LOGGED_TREE) {
-    return -1;
-  }
 
   memset(request, 0, sizeof(*request));
-  request->flow_type = flow_type;
-
-  if (flow_type == COMPARE_FLOW_DIRECTORY) {
-    if (!source_dir)
-      return -1;
-    GetPath(source_dir, request->source_path);
-  } else {
-    if (!ctx->active || !ctx->active->vol || !ctx->active->vol->vol_stats.tree)
-      return -1;
-    GetPath(ctx->active->vol->vol_stats.tree, request->source_path);
-  }
-  request->source_path[PATH_LENGTH] = '\0';
-
-  if (ctx->is_split_screen) {
-    inactive = UI_GetInactivePanel(ctx);
-    if (inactive) {
-      if (flow_type == COMPARE_FLOW_DIRECTORY) {
-        if (UI_GetPanelSelectedDirPath(ctx, inactive, request->target_path) == 0) {
-          default_target = request->target_path;
-          request->used_split_default_target = TRUE;
-        }
-      } else if (UI_GetPanelLoggedRootPath(inactive, request->target_path) == 0) {
-        default_target = request->target_path;
-        request->used_split_default_target = TRUE;
-      }
-    }
-  }
-
-  if (PromptCompareTargetPath(ctx, "COMPARE TARGET:",
-                              default_target ? default_target
-                                             : request->source_path,
-                              request->target_path,
-                              &compare_target_help_spec) != 0) {
-    return -1;
-  }
-  request->target_path[PATH_LENGTH] = '\0';
-
-  if (include_compare_prompts) {
-    if (PromptCompareBasis(ctx, &request->basis) != 0)
-      return -1;
-    if (PromptCompareTagResult(ctx, &request->tag_result) != 0)
-      return -1;
-  } else {
-    request->basis = COMPARE_BASIS_NONE;
-    request->tag_result = COMPARE_TAG_NONE;
-  }
-
-  return 0;
-}
-
-int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
-                                    CompareFlowType flow_type,
-                                    CompareRequest *request) {
-  return BuildDirectoryCompareRequestInternal(ctx, source_dir, flow_type,
-                                              request, TRUE);
-}
-
-int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx,
-                                          DirEntry *source_dir,
-                                          CompareFlowType flow_type,
-                                          CompareRequest *request) {
-  return BuildDirectoryCompareRequestInternal(ctx, source_dir, flow_type,
-                                              request, FALSE);
+  return PromptDirectoryCompareTarget(ctx, source_dir, request,
+                                      launch_external);
 }

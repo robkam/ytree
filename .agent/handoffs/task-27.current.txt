@@ -1,70 +1,65 @@
-Work item: docs/ROADMAP.md Task 27
-Title: Enforce One-Level Primary Action Depth (Prompt-Chain Audit)
+Work item: docs/ROADMAP.md Task 27.3
+Title: Compress Compare Prompt Chains
 Completion objective: complete this roadmap item correctly.
 Acceptance target:
-- Audit and remediate primary interactive workflows so the common path stays `key -> Enter -> result` with at most one submenu/prompt layer.
-- Inventory primary action flows across filesystem, archive, split, F7, F8, Showall, Global, tagged workflows, and active picker/prompt/dialog surfaces such as history, volumes, applications, compare prompts, and syntax-bearing command prompts.
-- Produce a complete `keybinding -> flow` audit with current chain steps, common-path step count, submenu depth, active context, return path, manual repro keys, and prompt-surface correctness notes.
-- Reconcile the shallow-flow, prompt-label/mnemonic, and prompt-surface visibility rules against docs/SPECIFICATION.md, updating the spec first if required rules are missing, stale, or ambiguous.
-- Create remediation-ready offender families and keep every inventoried family explicitly addressed, intentionally unchanged, or deferred with reason.
+- Reduce compare workflows to the shallowest safe common path without changing compare semantics.
+- Directory compare no longer requires more than one chooser layer before the target prompt on the common path.
+- External compare does not add an avoidable extra chooser layer on top of the compare entry path.
+- Compare target, basis, and tagged-result choices remain explicit, discoverable, and help-synchronized.
+- Successful compare runs return directly to the working view without a blocking acknowledgment modal.
 
 Current repo state:
-- Stale relay for Task 23 was deleted after confirming PR #441 merged on August 7, 2026 and no active branch/PR still depended on it.
-- No active PR is open for this repository.
-- Active branch: `docs/primary-action-audit-baseline`.
+- Active PR: https://github.com/robkam/ytreenova/pull/444
+- Active branch: `feat/compare-shallow-flow`.
+- Stale ci-repair relay files from merged PR #442 remain deleted in the working tree and stay out of scope for this compare-family batch.
+- The merged docs baseline from PR #443 is the current source of truth for the Task 27 audit/spec contract.
 
-Chosen work family:
-- Task 27.1 + 27.2 docs baseline: produce the primary-action audit/checklist artifact and reconcile the governing shallow-flow spec contract before runtime remediation subtasks.
+Audit-selected family for this batch:
+- Compare chooser and tagged-result flow compression.
 
-Deferred remediation families after this docs baseline:
-1. Compare flow depth and submenu chaining (`J` / compare prompts) [deferred: distinct compare owner and focused runtime validation path]
-2. Attributes / metadata-edit chooser depth (`A` family) [deferred: distinct attribute owner and prompt-compression path]
-3. Prompt-local aid and prompt-surface visibility parity (history, F2 browse, chooser labels) [deferred: separate prompt-surface correctness family]
-4. Volume / applications / picker chooser wording and visibility [deferred: lower-risk chooser/help family]
-5. Output / copy-move destination / syntax-bearing command prompts [deferred: needs the new exception/counting contract before runtime compression]
+Deferred families from the same Task 27 audit:
+1. Output export prompt chain [deferred: distinct print/output owner and validation path]
+2. Attribute editing/date prompt chain [deferred: distinct attr-actions owner and syntax-prompt risk]
+3. Multi-input target prompts (copy/move variants) [deferred: distinct exception-rule review family]
+4. Prompt-aid visibility and chooser labels [deferred: lighter menu/picker/help correctness family]
 
-Inventory reconciliation:
-1. Source-of-truth tracker/spec surfaces
-   - docs/ROADMAP.md Task 27 umbrella text [addressed: status advanced to In Progress and follow-up remediation families were split into concrete subtasks]
-   - docs/ROADMAP.md Task 27.1 acceptance text [addressed: status marked Completed after the audit matrix and offender ranking landed]
-   - docs/ROADMAP.md Task 27.2 acceptance text [addressed: status marked Completed after the spec contract landed]
-   - docs/SPECIFICATION.md interaction-economy / direct-access / prompt standards / footer-F1 parity / prompt-dialog rules [addressed: new §4.6 defines primary-action depth, counting, aids, exceptions, fast paths, labels, and prompt-surface correctness]
-   - docs/ARCHITECTURE.md command-surface/help ownership boundaries [intentionally unchanged: the existing ownership boundaries were sufficient and the audit only referenced them]
-   - docs/ai/WORKFLOW.md UX economy gate [intentionally unchanged: the new canonical rule now lives in docs/SPECIFICATION.md without conflicting with the workflow gate]
-2. New audit/checklist artifact surfaces
-   - durable manual QA checklist and `keybinding -> flow` matrix for the Task 27 coverage set [addressed: added docs/ai/PRIMARY_ACTION_AUDIT.md]
-   - ranked offender-family table with current chain, proposed compressed chain, depth delta, owner modules, likely tests/docs, and focused validation path [addressed: added docs/ai/PRIMARY_ACTION_AUDIT.md]
-3. Coverage-set runtime owner surfaces audited and cited
-   - src/ui/display.c footer command surfaces and prompt/history help entries [addressed]
-   - src/ui/runtime_help.c active-surface help resolution / prompt ownership [intentionally unchanged: referenced for ownership boundary, not edited]
-   - src/ui/key_engine.c primary key dispatch for contextual action surfaces [addressed]
-   - src/ui/ctrl_dir.c directory-mode action dispatch (including Showall/Global/applications) [addressed]
-   - src/ui/ctrl_file.c file-mode action dispatch (including Showall/Global/applications) [addressed]
-   - src/ui/ctrl_file_ops.c filter/search/output/copy-move command-entry flows [addressed]
-   - src/ui/interactions.c and src/ui/input_line.c prompt strings, history/browse aids, and syntax-bearing command prompts [addressed]
-   - src/ui/compare_request.c compare chooser/prompt chain [addressed]
-   - src/ui/history_dialog.c history modal [addressed]
-   - src/ui/volume_menu.c volume chooser [addressed]
-   - src/ui/application_menu.c applications menu [addressed]
-   - src/ui/f2_picker.c directory picker/browse surface [addressed]
-   - src/ui/view_preview.c F7 preview overlay [addressed]
-   - src/ui/split_transition.c split/F8 surface interactions [addressed]
-   - src/ui/print_controller.c output prompt chain reference point [addressed]
-   - src/ui/attr_actions.c attribute chooser family [addressed]
-4. Direct evidence / validation surfaces for the audit matrix
-   - etc/help/f1.en.md topic inventory for required runtime surfaces [addressed]
-   - tests/test_compare_actions.py [addressed]
-   - tests/test_f2_vols.py [addressed]
-   - tests/test_filtering.py [addressed]
-   - tests/test_destination_prompt.py [addressed]
-   - tests/test_f7_preview.py [addressed]
-   - tests/test_archive_ui.py [addressed]
-   - tests/test_help_text_contract.py [addressed]
-   - tests/test_command_strip_visibility.py [addressed]
-   - tests/test_dir_window_dispatch_regressions.py / tests/test_file_window_dispatch_regressions.py [addressed]
-5. Closure statuses for this first batch
-   - Runtime behavior changes [intentionally unchanged: Task 27.1 and 27.2 are docs/audit/spec-only by roadmap scope lock]
-   - Generated help/man/usage assets [intentionally unchanged: no authored help source changed in this batch]
+Explicit inventory:
+1. Source-of-truth tracker/spec/audit surfaces
+   - docs/ROADMAP.md Task 27.3 text [addressed: compare acceptance now requires non-modal success handling]
+   - docs/ROADMAP.md Task 27.3+ remediation umbrella [addressed: remediation subtasks now forbid blocking routine-success acknowledgment]
+   - docs/SPECIFICATION.md §4.6 depth contract [addressed: added the routine-success non-modal rule]
+   - docs/ai/PRIMARY_ACTION_AUDIT.md compare family row and remediation batch table [addressed: compare moved to compliant baseline and the remaining families were re-ranked]
+2. Runtime compare owner surfaces
+   - src/ui/compare_request.c compare scope/target/basis/result prompt composition [addressed: directory compare now compresses scope/basis/tag into the target prompt with prompt-local toggles]
+   - src/ui/ctrl_dir.c directory compare entry dispatch [addressed: compare dispatch now consumes one prepared request and branches external vs internal after prompt completion]
+   - src/ui/dir_compare.c internal compare completion feedback and external compare launch path [addressed: internal compare success now uses terse footer-status notices; external launch remains addressed]
+   - include/ytnova_ui.h prompt API declarations if compare needs prompt-local toggle hooks [addressed: added the prompt-action hook surface and updated compare prototypes]
+   - src/ui/input_line.c prompt framework if compare needs prompt-local toggle hooks [addressed: prompt-local action handling now supports compare-specific F3/F4/F5 toggles]
+   - src/ui/error.c transient footer/status notice helpers [addressed: added a non-modal footer notice path]
+   - src/ui/appstate_message.c status-line state commits [addressed: notice state now persists across redraws]
+   - src/ui/display.c footer/status-line render path [addressed: notices render on the footer status line without disturbing footer commands]
+   - src/ui/key_engine.c next-key status-line clear path [addressed: notices clear on the next real key while preserving the key action]
+   - include/ytnova_defs.h CompareRequest / compare enums [intentionally unchanged: existing compare request and enum shapes were sufficient]
+3. Help/runtime-help surfaces
+   - etc/help/f1.en.md compare topics (`compare`, `compare-target`, and any still-live compare prompt topics) [addressed: compare help now documents the one-prompt F3/F4/F5 flow]
+   - src/core/generated_help_topics.h generated runtime help asset [addressed: refreshed via `make help-assets`]
+4. Direct regression surfaces
+   - tests/test_compare_actions.py directory compare, external compare, prompt labels, help, cancel, split-default, and file-compare guardrails [addressed: compare success now stays non-modal and returns directly to the working view]
+   - tests/test_modal_severity_contract.py compare-success modal contract [addressed: compare success now routes through footer notice helpers instead of UI_Message]
+   - tests/ytnova_keys.py F3/F4 key sequences [addressed: added the missing prompt-toggle key constants for compare regression coverage]
+5. Install-path guardrail surfaces
+   - Makefile install/uninstall workflow [addressed: install now runs a shadow-copy preflight that blocks stale user-local binary/man artifacts unless explicitly overridden]
+   - .ai/shared.md install policy for AI-driven local runs [addressed: AI guidance now forbids ad-hoc binary/man copies outside build/ and make install PREFIX targets]
+   - tests/test_install_shadow_guard.py install preflight regression coverage [addressed: covers clean pass, blocking stale binary/man artifacts, and explicit override]
+6. Intentionally unchanged candidates unless implementation proves otherwise
+   - src/ui/file_compare.c file compare execution path [intentionally unchanged: file compare already met the Task 27 depth budget]
+   - src/ui/ctrl_file.c file compare entry path [intentionally unchanged: file compare entry already opened the direct target prompt]
 
 Focused validation:
-- `git diff --check`
+- `make`
+- `source .venv/bin/activate && pytest -q tests/test_install_shadow_guard.py tests/test_modal_severity_contract.py tests/test_compare_actions.py`
+
+Pre-PR closure status:
+- This compare-family inventory is fully reconciled for the amended-but-not-yet-pushed branch state.
+- Deferred Task 27 families remain output export, attribute editing/date flow, multi-input target prompts, and prompt-aid visibility/chooser labels because they have different owner and validation boundaries.
+- Current next action: amend the existing compare commit, push the updated branch to PR #444, then restart the CI wait loop for the new head SHA.

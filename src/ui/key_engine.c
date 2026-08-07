@@ -895,6 +895,14 @@ int WGetch(ViewContext *ctx, WINDOW *win) {
     UI_ClearStatusLineError(ctx);
 #endif
   }
+  if (ctx && ctx->status_line_notice_pending && c != ERR) {
+#ifdef KEY_RESIZE
+    if (c != KEY_RESIZE)
+      UI_ClearStatusLineNotice(ctx);
+#else
+    UI_ClearStatusLineNotice(ctx);
+#endif
+  }
 
 #ifdef KEY_RESIZE
   if (c == KEY_RESIZE) {

@@ -426,41 +426,25 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
 }
 
 static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
-  CompareMenuChoice menu_choice = COMPARE_MENU_CANCEL;
-  CompareFlowType flow_type = COMPARE_FLOW_DIRECTORY;
   CompareRequest request;
   BOOL external_launch = FALSE;
 
   if (!ctx || !source_dir)
     return;
 
-  if (UI_SelectCompareMenuChoice(ctx, &menu_choice) != 0)
-    return;
-
-  if (menu_choice == COMPARE_MENU_DIRECTORY_PLUS_TREE) {
-    flow_type = COMPARE_FLOW_LOGGED_TREE;
-  } else if (menu_choice == COMPARE_MENU_EXTERNAL_DIRECTORY) {
-    flow_type = COMPARE_FLOW_DIRECTORY;
-    external_launch = TRUE;
-  } else if (menu_choice == COMPARE_MENU_EXTERNAL_TREE) {
-    flow_type = COMPARE_FLOW_LOGGED_TREE;
-    external_launch = TRUE;
-  } else if (menu_choice != COMPARE_MENU_DIRECTORY_ONLY) {
-    return;
-  }
-
-  if (external_launch) {
-    DirCompare_LaunchExternal(ctx, source_dir, flow_type);
-    RefreshView(ctx, source_dir);
-    return;
-  }
-
-  if (UI_BuildDirectoryCompareRequest(ctx, source_dir, flow_type, &request) !=
+  if (UI_BuildDirectoryCompareRequest(ctx, source_dir, &request,
+                                      &external_launch) !=
       0) {
     return;
   }
 
-  if (flow_type == COMPARE_FLOW_DIRECTORY) {
+  if (external_launch) {
+    DirCompare_LaunchExternal(ctx, &request);
+    RefreshView(ctx, source_dir);
+    return;
+  }
+
+  if (request.flow_type == COMPARE_FLOW_DIRECTORY) {
     DirCompare_RunInternalDirectory(ctx, source_dir, &request);
     return;
   }

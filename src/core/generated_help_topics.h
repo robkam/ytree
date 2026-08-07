@@ -212,7 +212,7 @@ static const GeneratedHelpLink generated_help_links_compare[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare[] = {
-    {"Compare flow", "Choose the target first.\nThen choose the compare scope when the source is a directory.\nThen choose the compare basis when the runtime offers more than one basis.\nFinally choose which result class to tag on the source side."},
+    {"Compare flow", "Choose the target on the compare prompt.\nUse `F3` there to cycle compare scope between directory, logged tree, external directory, and external tree.\nUse `F4` there to cycle the internal compare basis.\nUse `F5` there to cycle which result class the internal compare will tag.\nPress `Enter` when the prompt shows the compare plan you want."},
     {"Compare rules", "* Logged-tree compare uses logged content only. It does not auto-log unopened `+` subdirectories.\n* `FILEDIFF` may use `%1` and `%2`. When those placeholders are missing, ytnova appends source and target paths to the helper command.\n* External directory/tree compare launches `DIRDIFF` or `TREEDIFF` instead of tagging runtime results.\n* There is no separate compare-tagged-files mode."},
 };
 
@@ -222,7 +222,7 @@ static const GeneratedHelpLink generated_help_links_compare_target[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_compare_target[] = {
-    {"Target rules", "Enter one path.\nThe compare scope decides whether that one path is treated as a file target, a directory target, or a logged-tree target."},
+    {"Target rules", "Enter one path.\n`F3` cycles directory -> logged tree -> external directory -> external tree.\n`F4` cycles `size+date` -> `size` -> `date` -> `hash`.\n`F5` cycles `Different` -> `Match` -> `Newer` -> `Older` -> `Unique` -> `Type mismatch` -> `Error`.\nExternal compare still shows the saved internal basis/tag choices so you can switch back without losing them."},
 };
 
 static const GeneratedHelpLink generated_help_links_compare_scope[] = {
@@ -623,7 +623,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "compare-target",
         "Compare Target Help",
         "prompt.compare-target",
-        "The current file, directory, or logged tree is the compare source.\nEnter the target path directly, use `F2` to browse, or use `Up` for history.\nIn split view, the inactive panel seeds the default compare target.",
+        "The current file, directory, or logged tree is the compare source.\nEnter the target path directly, use `F2` to browse, or use `Up` for history.\nPress `F3` to cycle compare scope, `F4` to cycle the compare basis, and `F5` to cycle which result class the internal compare will tag.\nIn split view, the inactive panel seeds the default compare target for the current scope.",
         2,
         generated_help_links_compare_target,
         1,

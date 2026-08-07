@@ -12,5 +12,7 @@
 
 BOOL AppStateCommitStatusLineError(ViewContext *ctx, const char *message);
 BOOL AppStateClearStatusLineError(ViewContext *ctx);
+BOOL AppStateCommitStatusLineNotice(ViewContext *ctx, const char *message);
+BOOL AppStateClearStatusLineNotice(ViewContext *ctx);
 
 #endif /* YTNOVA_APPSTATE_MESSAGE_H */

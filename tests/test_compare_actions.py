@@ -97,6 +97,29 @@ def _run_file_compare(tui, target=None, wait=0.5):
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue after helper exits
 
 
+def _open_directory_compare_prompt(tui):
+    tui.send_keystroke("J", wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
+
+
+def _cycle_directory_compare_scope(tui, count=1):
+    for _ in range(count):
+        tui.send_keystroke(Keys.F3, wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
+
+
+def _cycle_directory_compare_basis(tui, count=1):
+    for _ in range(count):
+        tui.send_keystroke(Keys.F4, wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
+
+
+def _cycle_directory_compare_tag(tui, count=1):
+    for _ in range(count):
+        tui.send_keystroke(Keys.F5, wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
+
+
 def test_compare_footer_entries_by_view(ytnova_binary, tmp_path):
     d = tmp_path / "compare_footer"
     d.mkdir()
@@ -106,10 +129,7 @@ def test_compare_footer_entries_by_view(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
 
-    tui.send_keystroke("J", wait=0.25)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0), (
-        "Directory compare action should be reachable via J."
-    )
+    _open_directory_compare_prompt(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -122,24 +142,23 @@ def test_compare_footer_entries_by_view(ytnova_binary, tmp_path):
     tui.quit()
 
 
-def test_c_opens_compare_submenu(ytnova_binary, tmp_path):
-    d = tmp_path / "compare_submenu_open"
+def test_j_opens_directory_compare_prompt(ytnova_binary, tmp_path):
+    d = tmp_path / "compare_prompt_open"
     d.mkdir()
     (d / "child").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
 
-    tui.send_keystroke("J", wait=0.25)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
 
     tui.send_keystroke(Keys.ESC, wait=0.2)
     _assert_no_footer_artifacts(tui)
     tui.quit()
 
 
-def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytnova_binary, tmp_path):
-    d = tmp_path / "compare_submenu_choices"
+def test_compare_prompt_scope_cycle_preserves_target_prompt(ytnova_binary, tmp_path):
+    d = tmp_path / "compare_prompt_scope_cycle"
     d.mkdir()
     (d / "left").mkdir()
     (d / "right").mkdir()
@@ -147,25 +166,22 @@ def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytnova_binary, 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("D", wait=0.3)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    assert "directory | size+date | different" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("T", wait=0.3)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui)
+    assert "logged tree" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.quit()
 
 
-def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
+def test_compare_prompt_cycles_to_external_dirdiff_without_extra_prompts(
     ytnova_binary, tmp_path
 ):
-    d = tmp_path / "compare_submenu_external"
+    d = tmp_path / "compare_prompt_external_dir"
     d.mkdir()
     alpha = d / "alpha"
     beta = d / "beta"
@@ -179,12 +195,9 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("X", wait=0.2)
-    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui, count=2)
+    assert "external directory" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
@@ -194,21 +207,18 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
         "DIRDIFF should receive source and target directory paths.\n"
         f"Args: {logged}"
     )
-    assert not tui.wait_for_content("COMPARE BASIS:", timeout=0.4), (
-        "External directory compare should not prompt for compare basis."
-    )
-    assert not tui.wait_for_content("TAG FILE LIST:", timeout=0.4), (
-        "External directory compare should not prompt for tag result."
+    assert not tui.wait_for_content("COMPARE TARGET [", timeout=0.4), (
+        "External directory compare should launch directly from the compare target prompt."
     )
 
     tui.quit()
 
 
-def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
+def test_compare_prompt_cycles_to_external_treediff_without_extra_prompts(
     ytnova_binary, tmp_path
 ):
-    source_root = tmp_path / "compare_submenu_external_tree_source"
-    target_root = tmp_path / "compare_submenu_external_tree_target"
+    source_root = tmp_path / "compare_prompt_external_tree_source"
+    target_root = tmp_path / "compare_prompt_external_tree_target"
     source_root.mkdir()
     target_root.mkdir()
     (source_root / "left.txt").write_text("left", encoding="utf-8")
@@ -218,12 +228,9 @@ def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("X", wait=0.2)
-    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
-    tui.send_keystroke("T", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui, count=3)
+    assert "external tree" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
@@ -233,18 +240,15 @@ def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
         "TREEDIFF should receive source and target logged-root paths.\n"
         f"Args: {logged}"
     )
-    assert not tui.wait_for_content("COMPARE BASIS:", timeout=0.4), (
-        "External tree compare should not prompt for compare basis."
-    )
-    assert not tui.wait_for_content("TAG FILE LIST:", timeout=0.4), (
-        "External tree compare should not prompt for tag result."
+    assert not tui.wait_for_content("COMPARE TARGET [", timeout=0.4), (
+        "External tree compare should launch directly from the compare target prompt."
     )
 
     tui.quit()
 
 
 def test_external_dirdiff_return_restores_full_ncurses_frame(ytnova_binary, tmp_path):
-    d = tmp_path / "compare_submenu_external_redraw"
+    d = tmp_path / "compare_prompt_external_redraw"
     d.mkdir()
     alpha = d / "alpha"
     beta = d / "beta"
@@ -261,12 +265,9 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytnova_binary, tmp_
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("X", wait=0.2)
-    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui, count=2)
+    assert "external directory" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
@@ -305,13 +306,12 @@ def test_non_f8_compare_target_prompting_for_file_dir_tree(ytnova_binary, tmp_pa
 
     tui.send_keystroke(Keys.ESC, wait=0.2)
     tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("T", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui)
+    assert "logged tree" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.quit()
@@ -453,6 +453,8 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
         if tui.wait_for_content("COMPARE TARGET:", timeout=0.8):
             tui.send_keystroke(Keys.ESC, wait=0.2)
             return
+        if tui.wait_for_content("COMPARE TARGET [", timeout=0.8):
+            tui.send_keystroke(Keys.ESC, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         tui.send_keystroke("J", wait=0.25)
         assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), (
@@ -543,24 +545,16 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytnova_binary, 
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # beta
     tui.send_keystroke(Keys.TAB, wait=0.3)
 
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
     assert tui.wait_for_content("beta", timeout=1.0)
     tui.send_keystroke(Keys.ENTER, wait=0.3)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke("Z", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
-    tui.send_keystroke("F", wait=0.3)
-    assert tui.wait_for_content("Directory compare complete.", timeout=1.0)
-    assert tui.wait_for_content("BASIS: size+date", timeout=1.0)
-    assert tui.wait_for_content("TAGGED (different): 1", timeout=1.0)
-
-    tui.send_keystroke(Keys.ENTER, wait=0.25)
-    _assert_no_footer_artifacts(tui)
+    assert tui.wait_for_content("Tagged different: 1", timeout=1.0), _screen_text(tui)
+    assert tui.wait_for_content("basis size+date", timeout=1.0), _screen_text(tui)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.3)
 
     # Active/source side (alpha) should have compare tags.
     tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _assert_no_footer_artifacts(tui)
     _assert_file_tag_state(tui, diff_name, True)
     _assert_file_tag_state(tui, match_name, False)
 
@@ -593,24 +587,17 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytnova_binary, 
     tui.send_keystroke(str(other_root) + Keys.ENTER, wait=0.7)
 
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("T", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui)
     assert tui.wait_for_content(str(other_root.name), timeout=1.0)
     tui.send_keystroke(Keys.ENTER, wait=0.3)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke("Z", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
-    tui.send_keystroke("F", wait=0.3)
-    assert tui.wait_for_content("Logged-tree compare complete.", timeout=1.0)
-    assert tui.wait_for_content("BASIS: size+date", timeout=1.0)
-    assert tui.wait_for_content("TAGGED (different): 1", timeout=1.0)
-
-    tui.send_keystroke(Keys.ENTER, wait=0.25)
-    _assert_no_footer_artifacts(tui)
+    assert tui.wait_for_content("Tagged different: 1", timeout=1.0), _screen_text(tui)
+    assert tui.wait_for_content("basis size+date", timeout=1.0), _screen_text(tui)
+    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.3)
 
     # Tree compare reports differences but does not auto-apply file tags.
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # main_dir
+    _assert_no_footer_artifacts(tui)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     _assert_file_tag_state(tui, "tree_diff.txt", False)
 
@@ -653,25 +640,17 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.8)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("T", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui)
     tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.35)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke("Z", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
-    tui.send_keystroke("F", wait=0.35)
 
-    assert tui.wait_for_content("Logged-tree compare complete.", timeout=1.0)
-    assert tui.wait_for_content("BASIS: size+date", timeout=1.0)
-    assert tui.wait_for_content("SKIPPED UNLOGGED: source=", timeout=1.0)
-    assert tui.wait_for_content("TAGGED (different): 1", timeout=1.0)
-
-    tui.send_keystroke(Keys.ENTER, wait=0.3)
-    _assert_no_footer_artifacts(tui)
+    assert tui.wait_for_content("Tagged different: 1", timeout=1.0), _screen_text(tui)
+    assert tui.wait_for_content("basis size+date", timeout=1.0), _screen_text(tui)
+    assert tui.wait_for_content("skipped unlogged: source=", timeout=1.0), _screen_text(tui)
+    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.3)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # top
+    _assert_no_footer_artifacts(tui)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     _assert_file_tag_state(tui, "visible_diff.txt", False)
     tui.quit()
@@ -685,53 +664,32 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytnova_binary, tmp
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
     assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
-
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("D", wait=0.2)
-    tui.send_keystroke("." + Keys.ENTER, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
-
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("D", wait=0.2)
-    tui.send_keystroke("." + Keys.ENTER, wait=0.2)
-    tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
-    tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
-
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("T", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui)
+    assert "logged tree" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("T", wait=0.2)
-    tui.send_keystroke("x" + Keys.ENTER, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_basis(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
-    tui.send_keystroke("J", wait=0.2)
-    tui.send_keystroke("T", wait=0.2)
-    tui.send_keystroke("x" + Keys.ENTER, wait=0.2)
-    tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_tag(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
+
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui, count=2)
+    assert "external directory" in _screen_text(tui).lower()
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
     _assert_no_footer_artifacts(tui)
     tui.quit()
@@ -785,27 +743,24 @@ def test_compare_prompt_labels_and_result_text(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
     screen_lower = _screen_text(tui).lower()
-    assert "logged tree" in screen_lower
-    assert "directory + logged tree" not in screen_lower
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    assert "directory | size+date | different" in screen_lower
     target_prompt = _screen_text(tui).lower()
     assert "f1 help" in target_prompt
     assert "f2 browse" in target_prompt
+    assert "f3 scope" in target_prompt
+    assert "f4 basis" in target_prompt
+    assert "f5 tag" in target_prompt
     assert "[f2]" not in target_prompt
-    tui.send_keystroke("." + Keys.ENTER, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
+    _cycle_directory_compare_scope(tui)
+    assert "logged tree | size+date | different" in _screen_text(tui).lower()
+    _cycle_directory_compare_basis(tui)
+    assert "logged tree | size | different" in _screen_text(tui).lower()
+    _cycle_directory_compare_tag(tui)
+    assert "logged tree | size | match" in _screen_text(tui).lower()
     screen_lower = _screen_text(tui).lower()
     assert "fifferent" not in screen_lower
-    assert "left-only" not in screen_lower
-    assert "unique" in screen_lower
-    assert "type-mismatch" in screen_lower
-    assert "error" in screen_lower
     tui.send_keystroke(Keys.ESC, wait=0.2)
     _assert_no_footer_artifacts(tui)
     tui.quit()
@@ -819,53 +774,17 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-
-    tui.send_keystroke(Keys.F1, wait=0.3)
-    scope_help = _screen_text(tui).lower()
-    assert "compare scope help" in scope_help
-    assert "directory only compares the current directory" in scope_help
-    assert "logged tree compares the current logged tree recursively" in scope_help
-
-    tui.send_keystroke(Keys.F1, wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
 
     tui.send_keystroke(Keys.F1, wait=0.3)
     target_help = _screen_text(tui).lower()
     assert "compare target help" in target_help
     assert "the current file, directory, or logged tree is the compare source" in target_help
-    assert "use `f2` to browse" in target_help
+    assert "f3" in target_help and "compare scope" in target_help
+    assert "f4" in target_help and "compare basis" in target_help
+    assert "f5" in target_help and "tag" in target_help
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-
-    tui.send_keystroke("." + Keys.ENTER, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-
-    tui.send_keystroke(Keys.F1, wait=0.3)
-    basis_help = _screen_text(tui).lower()
-    assert "compare basis help" in basis_help
-    assert "size checks file length" in basis_help
-    assert "date checks the last-modified time" in basis_help
-    assert "hash opens both files" in basis_help
-    tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-
-    tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
-    tui.send_keystroke(Keys.F1, wait=0.3)
-    result_help = _screen_text(tui).lower()
-    assert "compare result help" in result_help
-    assert "choose which compare result to tag" in result_help
-    assert "source-side file list" in result_help
-    assert "different" in result_help
-    assert "basis mismatches" in result_help
-    assert "unique" in result_help
-    assert "source-only entries" in result_help
-    tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
     _assert_no_footer_artifacts(tui)
@@ -997,7 +916,7 @@ def test_file_compare_j_flow_uses_current_file_source_and_prompt_behavior(
     tui.quit()
 
 
-def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
+def test_compare_external_tree_falls_back_to_dirdiff_when_treediff_unset(
     ytnova_binary, tmp_path
 ):
     source_root = tmp_path / "compare_external_tree_fallback_source"
@@ -1011,12 +930,9 @@ def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("X", wait=0.2)
-    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
-    tui.send_keystroke("T", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui, count=3)
+    assert "external tree" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
@@ -1026,11 +942,8 @@ def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
         "When TREEDIFF is unset, J->X->T should fall back to DIRDIFF.\n"
         f"Args: {logged}"
     )
-    assert not tui.wait_for_content("COMPARE BASIS:", timeout=0.4), (
-        "External tree compare fallback should not prompt for compare basis."
-    )
-    assert not tui.wait_for_content("TAG FILE LIST:", timeout=0.4), (
-        "External tree compare fallback should not prompt for tag result."
+    assert not tui.wait_for_content("COMPARE TARGET [", timeout=0.4), (
+        "External tree compare fallback should launch directly from the compare target prompt."
     )
 
     tui.quit()
@@ -1054,12 +967,9 @@ def test_external_compare_launch_does_not_modify_file_tag_state(ytnova_binary, t
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-    tui.send_keystroke("X", wait=0.2)
-    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_scope(tui, count=2)
+    assert "external directory" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
@@ -1086,27 +996,21 @@ def test_compare_help_close_with_f1_and_esc_returns_to_same_prompt(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("J", wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    _open_directory_compare_prompt(tui)
 
-    tui.send_keystroke(Keys.F1, wait=0.3)
-    assert "compare scope help" in _screen_text(tui).lower()
-    tui.send_keystroke(Keys.F1, wait=0.2)
-    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
-
-    tui.send_keystroke("D", wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.F1, wait=0.3)
     assert "compare target help" in _screen_text(tui).lower()
-    tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-
-    tui.send_keystroke("." + Keys.ENTER, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke(Keys.F1, wait=0.3)
-    assert "compare basis help" in _screen_text(tui).lower()
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    _assert_no_footer_artifacts(tui)
+
+    _open_directory_compare_prompt(tui)
+    _cycle_directory_compare_basis(tui)
+    tui.send_keystroke(Keys.F1, wait=0.3)
+    assert "compare target help" in _screen_text(tui).lower()
     tui.send_keystroke(Keys.F1, wait=0.2)
-    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
+    assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0)
 
     tui.send_keystroke(Keys.ESC, wait=0.2)
     _assert_no_footer_artifacts(tui)

@@ -74,6 +74,30 @@ typedef struct {
   unsigned long skipped_unlogged_source_dirs;
 } DirectoryCompareSummary;
 
+static void ShowDirectoryCompareStatus(ViewContext *ctx,
+                                       const CompareRequest *request,
+                                       const DirectoryCompareSummary *summary) {
+  if (!ctx || !request || !summary)
+    return;
+
+  UI_ShowStatusLineNotice(ctx, "Tagged %s: %lu (basis %s)",
+                          UI_CompareTagResultName(request->tag_result),
+                          summary->tagged_count,
+                          UI_CompareBasisName(request->basis));
+}
+
+static void ShowLoggedTreeCompareStatus(ViewContext *ctx,
+                                        const CompareRequest *request,
+                                        const DirectoryCompareSummary *summary) {
+  if (!ctx || !request || !summary)
+    return;
+
+  UI_ShowStatusLineNotice(
+      ctx, "Tagged %s: %lu (basis %s; skipped unlogged: source=%lu)",
+      UI_CompareTagResultName(request->tag_result), summary->tagged_count,
+      UI_CompareBasisName(request->basis), summary->skipped_unlogged_source_dirs);
+}
+
 static int CompareStatMtime(const struct stat *source_stat,
                             const struct stat *target_stat) {
   if (!source_stat || !target_stat)
@@ -428,12 +452,7 @@ void DirCompare_RunInternalDirectory(ViewContext *ctx, DirEntry *source_dir,
     }
   }
 
-  UI_Message(ctx,
-             "Directory compare complete.*BASIS: %s*TAGGED (%s): %lu file(s) "
-             "in active/source list.",
-             UI_CompareBasisName(request->basis),
-             UI_CompareTagResultName(request->tag_result),
-             summary.tagged_count);
+  ShowDirectoryCompareStatus(ctx, request, &summary);
 }
 
 static void RunInternalLoggedTreeCompareRecursive(
@@ -587,17 +606,11 @@ void DirCompare_RunInternalLoggedTree(ViewContext *ctx,
   RunInternalLoggedTreeCompareRecursive(source_root, source_path, target_path,
                                         request, &summary, stats);
 
-  UI_Message(
-      ctx,
-      "Logged-tree compare complete.*BASIS: %s*SKIPPED UNLOGGED: source=%lu"
-      "*TAGGED (%s): %lu file(s) in active/source list.",
-      UI_CompareBasisName(request->basis), summary.skipped_unlogged_source_dirs,
-      UI_CompareTagResultName(request->tag_result), summary.tagged_count);
+  ShowLoggedTreeCompareStatus(ctx, request, &summary);
 }
 
-void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
-                               CompareFlowType flow_type) {
-  CompareRequest request;
+void DirCompare_LaunchExternal(ViewContext *ctx,
+                               const CompareRequest *request) {
   struct stat source_stat;
   struct stat target_stat;
   char source_path[PATH_LENGTH + 1];
@@ -608,26 +621,22 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
   int start_dir_fd = -1;
   int result = -1;
 
-  if (!ctx)
+  if (!ctx || !request)
     return;
 
-  if (UI_BuildDirectoryCompareLaunchRequest(ctx, source_dir, flow_type,
-                                            &request) != 0) {
-    return;
-  }
-
-  helper = UI_GetCompareHelperCommand(ctx, flow_type);
-  helper_key =
-      (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF" : "DIRDIFF";
+  helper = UI_GetCompareHelperCommand(ctx, request->flow_type);
+  helper_key = (request->flow_type == COMPARE_FLOW_LOGGED_TREE)
+                   ? "TREEDIFF/DIRDIFF"
+                   : "DIRDIFF";
   if (!String_HasNonWhitespace(helper)) {
     UI_Message(ctx, "%s helper is not configured.*Set %s in the main config.",
-               UI_CompareFlowTypeName(flow_type), helper_key);
+               UI_CompareFlowTypeName(request->flow_type), helper_key);
     return;
   }
 
-  strncpy(source_path, request.source_path, PATH_LENGTH);
+  strncpy(source_path, request->source_path, PATH_LENGTH);
   source_path[PATH_LENGTH] = '\0';
-  if (ResolveDirectoryCompareTargetPath(source_path, request.target_path,
+  if (ResolveDirectoryCompareTargetPath(source_path, request->target_path,
                                         target_path) != 0) {
     UI_Message(ctx,
                "Compare target is empty or invalid.*Choose a target path.");

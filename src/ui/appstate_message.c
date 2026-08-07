@@ -34,3 +34,30 @@ BOOL AppStateClearStatusLineError(ViewContext *ctx) {
   ctx->status_line_error_text[0] = '\0';
   return TRUE;
 }
+
+BOOL AppStateCommitStatusLineNotice(ViewContext *ctx, const char *message) {
+  if (!AppStateValidatedOwnerField("ctx.message_state"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
+  if (!ctx || !message)
+    return FALSE;
+
+  (void)snprintf(ctx->status_line_notice_text,
+                 sizeof(ctx->status_line_notice_text), "%s", message);
+  ctx->status_line_notice_pending = TRUE;
+  return TRUE;
+}
+
+BOOL AppStateClearStatusLineNotice(ViewContext *ctx) {
+  if (!AppStateValidatedOwnerField("ctx.message_state"))
+    return FALSE;
+  if (!AppStateValidatedGenerationDomain("target.modal-command.session"))
+    return FALSE;
+  if (!ctx)
+    return FALSE;
+
+  ctx->status_line_notice_pending = FALSE;
+  ctx->status_line_notice_text[0] = '\0';
+  return TRUE;
+}

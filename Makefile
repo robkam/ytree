@@ -225,6 +225,7 @@ $(MANPAGE): $(HELP_F1_SOURCE) $(HELP_MAN_SOURCE) $(HELP_GENERATOR_SCRIPT) | $(BU
 
 # Install binary, man page, and documentation
 install: $(MAIN_BIN) $(MANPAGE) docs
+	@$(MAKE_CMD) install-shadow-check
 	@echo "Installing ytnova $(VERSION) to $(PREFIX)..."
 	install -d -m 755 $(BINDEST)
 	install -m 755 $(MAIN_BIN) $(BINDEST)/$(MAIN)
@@ -243,6 +244,43 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	@echo "Commands: $(DATADEST)/ytnova.commands"
 	@echo "Command presets: $(DATADEST)/commands/*.conf"
 	@echo "Themes: $(DATADEST)/ytnova.themes"
+
+.PHONY: install-shadow-check
+install-shadow-check:
+	@if [ "$(ALLOW_SHADOW_INSTALL)" = "1" ]; then \
+		echo "Skipping ytnova shadow-install guard (ALLOW_SHADOW_INSTALL=1)."; \
+		exit 0; \
+	fi; \
+	install_home="$$HOME"; \
+	if [ -n "$$SUDO_USER" ]; then \
+		install_home="$$(getent passwd "$$SUDO_USER" | cut -d: -f6)"; \
+	fi; \
+	shadow_found=0; \
+	shadow_bin="$$install_home/.local/bin/$(MAIN)"; \
+	for shadow_man in \
+		"$$install_home/.local/share/man/man1/$(MAIN).1" \
+		"$$install_home/.local/share/man/man1/$(MAIN).1.gz" \
+		"$$install_home/.local/man/man1/$(MAIN).1" \
+		"$$install_home/.local/man/man1/$(MAIN).1.gz"; do \
+		if [ -e "$$shadow_man" ]; then \
+			if [ $$shadow_found -eq 0 ]; then \
+				echo "Refusing ytnova install: shadow user-local ytnova artifacts exist outside $(PREFIX)."; \
+			fi; \
+			echo "  stale man: $$shadow_man"; \
+			shadow_found=1; \
+		fi; \
+	done; \
+	if [ -e "$$shadow_bin" ]; then \
+		if [ $$shadow_found -eq 0 ]; then \
+			echo "Refusing ytnova install: shadow user-local ytnova artifacts exist outside $(PREFIX)."; \
+		fi; \
+		echo "  stale binary: $$shadow_bin"; \
+		shadow_found=1; \
+	fi; \
+	if [ $$shadow_found -ne 0 ]; then \
+		echo "Remove the stale user-local copies or rerun with ALLOW_SHADOW_INSTALL=1 if you really intend to keep them."; \
+		exit 1; \
+	fi
 
 # Uninstall all installed files
 uninstall:

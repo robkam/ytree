@@ -1105,6 +1105,8 @@ typedef struct _ViewContext {
   BOOL highlight_full_line;
   BOOL status_line_error_pending;
   char status_line_error_text[PATH_LENGTH + 1];
+  BOOL status_line_notice_pending;
+  char status_line_notice_text[PATH_LENGTH + 1];
   char *initial_directory;
   char configuration_file_path[PATH_LENGTH + 1];
   BOOL configuration_file_path_is_explicit;

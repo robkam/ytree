@@ -609,6 +609,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Scope Lock:** One coherent offender family per subtask; do not mix unrelated families with different owner boundaries or validation paths.
 *   **Acceptance Criteria (applies to each remediation subtask):**
 *   The remediated family meets the documented common-path depth rule, or the subtask documents why a deeper branch is unavoidable and provides an equivalent fast path.
+*   Routine successful operations in the remediated family return directly to the working view; any useful completion summary is non-modal.
 *   Prompt/menu surfaces for that family show the commands that are actually usable there and do not advertise commands that are unavailable in that surface.
 *   Labels and mnemonics for that family conform to the prompt-label contract in `docs/SPECIFICATION.md`.
 *   Focused regression coverage prevents the remediated family from regressing into deeper prompt chains or prompt-surface mismatches.
@@ -621,7 +622,8 @@ Ordering policy (for all editors, including AI editors):
 *   Directory compare no longer requires more than one chooser layer before the target prompt on the common path.
 *   External compare does not add an avoidable extra chooser layer on top of the compare entry path.
 *   Compare target, basis, and tagged-result choices remain explicit, discoverable, and help-synchronized.
-*   - [ ] **Status:** Not Started.
+*   Successful compare runs do not stop on a blocking completion dialog; any completion summary stays non-modal.
+*   - [x] **Status:** Completed.
 
 #### **Task 27.4: Compress Attribute Editing Prompt Chains**
 *   **Goal:** Reduce attribute-edit workflows, especially date edits, to the shallowest safe prompt sequence.

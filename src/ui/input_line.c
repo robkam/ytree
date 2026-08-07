@@ -180,6 +180,8 @@ typedef struct {
   size_t hint_count;
   int (*help_callback)(ViewContext *, void *);
   void *help_data;
+  UIPromptActionHandler action_handler;
+  void *action_data;
 } PromptSession;
 
 static DirEntry *PromptSessionSelectedEntry(PromptSession *session) {
@@ -533,6 +535,23 @@ static BOOL PromptSessionHandleActionKey(PromptSession *session) {
   }
 }
 
+static BOOL PromptSessionHandlePromptAction(PromptSession *session) {
+  if (!session || session->action_handler == NULL)
+    return FALSE;
+
+  if (!session->action_handler(session->ctx, session->panel, session->ch,
+                               session->buffer, session->max_len, &session->p,
+                               session->action_data)) {
+    return FALSE;
+  }
+
+  if (session->p < 0)
+    session->p = 0;
+  if (session->p > StrVisualLength(session->buffer))
+    session->p = StrVisualLength(session->buffer);
+  return TRUE;
+}
+
 static BOOL PromptSessionHandlePrintableKey(PromptSession *session) {
   int ch = session->ch;
 
@@ -616,10 +635,7 @@ static BOOL PromptSessionHandlePrintableKey(PromptSession *session) {
 static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
                                  int history_type,
-                                 const UICommandStripCommand *hints_override,
-                                 size_t hints_override_count,
-                                 int (*help_callback)(ViewContext *, void *),
-                                 void *help_data) {
+                                 const UIPromptOptions *options) {
   static BOOL insert_flag = TRUE;
   PromptSession session;
   WINDOW *win;
@@ -646,11 +662,16 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   session.saved_insert_flag = insert_flag;
   session.insert_flag = insert_flag;
   session.mode_type = '-';
-  session.help_callback = help_callback;
-  session.help_data = help_data;
+  if (options != NULL) {
+    session.help_callback = options->help_callback;
+    session.help_data = options->help_data;
+    session.action_handler = options->action_handler;
+    session.action_data = options->action_data;
+  }
 
   PromptSessionPrepareInitialState(&session);
-  PromptSessionResolveHints(&session, hints_override, hints_override_count);
+  PromptSessionResolveHints(&session, options ? options->hints_override : NULL,
+                            options ? options->hints_override_count : 0);
   hints = session.hints;
   hint_count = session.hint_count;
   PromptSessionClearPromptArea(&session);
@@ -679,7 +700,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
     field_width = COLS - prompt_len - 1;
     session.field_width = field_width;
 
-    if (help_callback != NULL) {
+    if (session.help_callback != NULL) {
       int hint_x = 1;
 
       hint_x += UI_RenderAdaptiveCommandStrip(
@@ -748,6 +769,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
         PromptSessionHandleDeletionKey(&session) ||
         PromptSessionHandleHistoryKey(&session) ||
         PromptSessionHandleActionKey(&session) ||
+        PromptSessionHandlePromptAction(&session) ||
         PromptSessionHandlePrintableKey(&session)) {
       if (session.accept_special_term)
         break;
@@ -774,7 +796,14 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
 int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel, const char *prompt,
                   char *buffer, int max_len, int history_type) {
   return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
-                               history_type, NULL, 0, NULL, NULL);
+                               history_type, NULL);
+}
+
+int UI_ReadStringWithPromptOptions(
+    ViewContext *ctx, YtreeNovaPanel *panel, const char *prompt, char *buffer,
+    int max_len, int history_type, const UIPromptOptions *options) {
+  return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
+                               history_type, options);
 }
 
 int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
@@ -784,7 +813,13 @@ int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                           size_t hints_override_count,
                           int (*help_callback)(ViewContext *, void *),
                           void *help_data) {
+  UIPromptOptions options;
+
+  memset(&options, 0, sizeof(options));
+  options.hints_override = hints_override;
+  options.hints_override_count = hints_override_count;
+  options.help_callback = help_callback;
+  options.help_data = help_data;
   return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
-                               history_type, hints_override,
-                               hints_override_count, help_callback, help_data);
+                               history_type, &options);
 }
