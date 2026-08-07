@@ -604,7 +604,7 @@ Ordering policy (for all editors, including AI editors):
 *   If any required rule is missing or ambiguous, update `docs/SPECIFICATION.md` first and keep the roadmap text concise by reference rather than restating the full contract here.
 *   - [x] **Status:** Completed.
 
-#### **Task 27.3+: Remediate Audited Offender Families**
+#### **Task 27.3: Remediate Audited Offender Families**
 *   **Goal:** Reduce each audited offender family to the documented shallow-flow budget or document a justified exception with an equivalent fast path.
 *   **Scope Lock:** One coherent offender family per subtask; do not mix unrelated families with different owner boundaries or validation paths.
 *   **Acceptance Criteria (applies to each remediation subtask):**
@@ -615,7 +615,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage prevents the remediated family from regressing into deeper prompt chains or prompt-surface mismatches.
 *   - [ ] **Status:** In Progress. The audited families are now split below for runtime remediation by owner/risk boundary.
 
-#### **Task 27.3: Compress Compare Prompt Chains**
+#### **Task 27.3.1: Compress Compare Prompt Chains**
 *   **Goal:** Reduce compare workflows to the shallowest safe common path without changing compare semantics.
 *   **Scope Lock:** Compare chooser/prompt composition, prompt visibility, and compare help updates only.
 *   **Acceptance Criteria:**
@@ -625,16 +625,16 @@ Ordering policy (for all editors, including AI editors):
 *   Successful compare runs do not stop on a blocking completion dialog; any completion summary stays non-modal.
 *   - [x] **Status:** Completed.
 
-#### **Task 27.4: Compress Attribute Editing Prompt Chains**
+#### **Task 27.3.2: Compress Attribute Editing Prompt Chains**
 *   **Goal:** Reduce attribute-edit workflows, especially date edits, to the shallowest safe prompt sequence.
 *   **Scope Lock:** Attribute chooser composition, date-scope selection, prompt help, and related tests/docs only.
 *   **Acceptance Criteria:**
 *   Attribute edits require at most one chooser layer before the value-entry prompt on the common path.
 *   Syntax-bearing date edits advertise their format help on the active prompt surface.
 *   Tagged/date variants remain explicit without reintroducing deeper menu chains.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
-#### **Task 27.5: Normalize Prompt-Aid Visibility and Chooser Labels**
+#### **Task 27.3.3: Normalize Prompt-Aid Visibility and Chooser Labels**
 *   **Goal:** Make prompt-local aids and chooser commands visible and truthfully labeled on the active surface.
 *   **Scope Lock:** History, F2 picker, volume menu, applications menu, and other chooser/prompt command-surface correctness only.
 *   **Acceptance Criteria:**
@@ -643,7 +643,7 @@ Ordering policy (for all editors, including AI editors):
 *   Prompt-local help, browse, and history aids are advertised whenever they are supported.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 27.6: Reconcile Multi-Input Target Prompt Families**
+#### **Task 27.3.4: Reconcile Multi-Input Target Prompt Families**
 *   **Goal:** Apply the primary-action exception and equivalent-fast-path rules to copy/move-style target prompts.
 *   **Scope Lock:** Copy, move, rename-pattern, destination, and related confirmation flows only.
 *   **Acceptance Criteria:**
@@ -652,7 +652,7 @@ Ordering policy (for all editors, including AI editors):
 *   Required confirmations remain only where safety or ambiguity justifies them.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 27.7: Compress Output Export Prompt Chains**
+#### **Task 27.3.5: Compress Output Export Prompt Chains**
 *   **Goal:** Reduce output/export prompting to the shallowest safe flow while preserving file vs hardcopy semantics and format control.
 *   **Scope Lock:** Output format/destination/separator prompts, help text, and related tests/docs only.
 *   **Acceptance Criteria:**

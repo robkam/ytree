@@ -657,7 +657,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   session.mode_edit = (history_type == HST_CHANGE_MODUS);
   session.date_overwrite_edit =
       (history_type == HST_GENERAL && prompt != NULL &&
-       strncmp(prompt, "DATE (", 6) == 0);
+       strncmp(prompt, "DATE ", sizeof("DATE ") - 1) == 0);
   session.overwrite_edit = (session.mode_edit || session.date_overwrite_edit);
   session.saved_insert_flag = insert_flag;
   session.insert_flag = insert_flag;

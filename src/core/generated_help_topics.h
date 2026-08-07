@@ -225,6 +225,17 @@ static const GeneratedHelpLongFormSection generated_help_sections_compare_target
     {"Target rules", "Enter one path.\n`F3` cycles directory -> logged tree -> external directory -> external tree.\n`F4` cycles `size+date` -> `size` -> `date` -> `hash`.\n`F5` cycles `Different` -> `Match` -> `Newer` -> `Older` -> `Unique` -> `Type mismatch` -> `Error`.\nExternal compare still shows the saved internal basis/tag choices so you can switch back without losing them."},
 };
 
+static const GeneratedHelpLink generated_help_links_change_date[] = {
+    {"File mode", "file"},
+    {"Directory mode", "dir"},
+    {"Command-line editing", "command-line-editing"},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_change_date[] = {
+    {"Scope choices", "`modified` changes only the last-modified timestamp.\n`accessed` changes only the access timestamp.\n`both` writes the entered value to both timestamps."},
+    {"Format rules", "If you omit the time portion, ytnova keeps the existing hour, minute, and second from the current value.\nUse `Up` for prompt history and `Esc` to cancel without changing either timestamp."},
+};
+
 static const GeneratedHelpLink generated_help_links_compare_scope[] = {
     {"Compare Help", "compare"},
 };
@@ -630,6 +641,16 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         generated_help_sections_compare_target,
     },
     {
+        "change-date",
+        "Date Change Help",
+        "prompt.change-date",
+        "Enter the new date as `YYYY-MM-DD` or add a time as `YYYY-MM-DD HH:MM[:SS]`.\nPress `F3` to cycle whether the entered value updates the modified time, accessed time, or both.\nTagged date edits use the same prompt and scope cycle.",
+        3,
+        generated_help_links_change_date,
+        2,
+        generated_help_sections_change_date,
+    },
+    {
         "compare-scope",
         "Compare Scope Help",
         "prompt.compare-scope",
@@ -841,4 +862,4 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     },
 };
 
-static const size_t generated_help_topic_count = 38;
+static const size_t generated_help_topic_count = 39;
