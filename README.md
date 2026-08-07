@@ -8,6 +8,14 @@
 >
 > Before opening an issue or suggesting a feature, please check [BUGS.md](docs/BUGS.md) and [ROADMAP.md](docs/ROADMAP.md) first, so as not to create a duplicate if it is already listed.
 
+## Quick links
+
+- [CHANGELOG.md](docs/CHANGELOG.md) — release history and notable shipped milestones
+- [USAGE.md](docs/USAGE.md) — user guide and key reference
+- [quickstart.md](docs/quickstart.md) — developer setup
+- [CONTRIBUTING.md](docs/CONTRIBUTING.md) — contribution guidelines
+- See the [Documentation Guide](#documentation-guide) below for the full project documentation set
+
 <p align="center">
   <img src="docs/screenshots/split_archive_home.png" alt="YtreeNova F8 split screen: left panel browsing /home/rob/scripts.tar.gz, right panel showing the ~ tree with scripts inactive and its files in a small window." width="84%">
 </p>
@@ -93,7 +101,7 @@ sudo make uninstall
 
 ## Documentation Guide
 
-The project documentation is split into several focused files.
+The project documentation lives under `docs/` and is split into focused user, developer, governance, and AI workflow references.
 
 | Document | Purpose |
 | :--- | :--- |
@@ -107,7 +115,8 @@ The project documentation is split into several focused files.
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
 | **[TRUST.md](docs/TRUST.md)** | **Trust & Safety**: Safety claims and where to verify them in the codebase. |
 | **[ROADMAP.md](docs/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
-| **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of YtreeNova feature delivery, architecture work, and updates. |
+| **[CHANGELOG.md](docs/CHANGELOG.md)** | **Changelog**: Detailed history of YtreeNova feature delivery, architecture work, and updates. |
+| **[ai/WORKFLOW.md](docs/ai/WORKFLOW.md)** | **AI Workflow**: Persona routing, agent workflow, semantic-tool usage, and maintainer prompts. |
 
 ## Project Structure
 

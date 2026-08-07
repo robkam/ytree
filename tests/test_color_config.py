@@ -40,7 +40,7 @@ def test_dialog_color_key_is_defined_in_runtime_palette():
 def test_packaged_config_delegates_theme_details_to_theme_catalog():
     conf_source = _read_source("etc/ytnova.conf")
     template_source = _read_source("src/core/default_profile_template.h")
-    changes_source = _read_source("docs/CHANGES.md")
+    changes_source = _read_source("docs/CHANGELOG.md")
 
     for source in (conf_source, template_source):
         assert "Built-in default profile template for ~/.config/ytnova/ytnova.conf." in source
