@@ -457,7 +457,7 @@ static const GeneratedHelpLink generated_help_links_applications_menu[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_applications_menu[] = {
-    {"Applications actions", "* **Select preset**: `Up` and `Down` move through the preset list.\n* **Accept preset**: `Enter` accepts the selected row.\n* **Cancel**: `Esc` closes the menu.\n* **Current state**: The shipped Applications menu is still a lightweight placeholder surface, so treat it as a shell for future app-launch behavior."},
+    {"Applications actions", "* **Select preset**: `Up` and `Down` move through the preset list.\n* **Edit presets**: `E` opens the commands catalog so application presets can be changed without leaving the chooser family.\n* **Cancel menu**: `Esc` closes the placeholder chooser without selecting a preset.\n* **Current state**: The shipped Applications menu is still a lightweight placeholder surface, so treat it as a shell for future app-launch behavior."},
 };
 
 static const GeneratedHelpLink generated_help_links_f2_picker[] = {
@@ -466,7 +466,7 @@ static const GeneratedHelpLink generated_help_links_f2_picker[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_f2_picker[] = {
-    {"Picker actions", "* **Move**: `Up` and `Down` move through the visible directory rows.\n* **Expand**: `Right` expands the current directory one level, then moves into the first child when that level is already open.\n* **Collapse**: `Left` collapses the current directory, or moves to its parent when the current row is already closed.\n* **Accept**: `Enter` uses the highlighted directory for the calling prompt.\n* **Cancel**: `Esc` closes the picker without changing the prompt."},
+    {"Picker actions", "* **Move**: `Up` and `Down` move through the visible directory rows.\n* **Expand**: `Right` expands the current directory one level, then moves into the first child when that level is already open.\n* **Collapse**: `Left` collapses the current directory, or moves to its parent when the current row is already closed.\n* **Select**: `Enter` uses the highlighted directory for the calling prompt.\n* **Cancel**: `Esc` closes the picker without changing the prompt."},
 };
 
 static const GeneratedHelpTopic generated_help_topics[] = {
@@ -844,7 +844,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "applications-menu",
         "Applications Help",
         "dialog.applications",
-        "Use `Up` and `Down` to choose an application preset.\nUse `Enter` to accept it.\nUse `Esc` to leave the menu.\nThe shipped menu is still a placeholder surface.",
+        "Use `Up` and `Down` to choose an application preset.\nUse `Enter` to select the highlighted preset.\nUse `E` to edit the commands catalog that backs application presets.\nUse `Esc` to cancel the menu.\nThe shipped menu is still a placeholder surface.",
         1,
         generated_help_links_applications_menu,
         1,
@@ -854,7 +854,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "f2-picker",
         "F2 Picker Help",
         "dialog.f2-picker",
-        "Use `Up` and `Down` to move.\nUse `Right` to expand or enter the first child, and `Left` to collapse or go to the parent.\nUse `Enter` to accept the highlighted directory, and `Esc` to cancel.",
+        "Use `Up` and `Down` to move.\nUse `Right` to expand or enter the first child, and `Left` to collapse or go to the parent.\nUse `<` and `>` to cycle loaded volumes.\nUse `L` to log a new path.\nUse `` ` `` to toggle dotfiles.\nUse `Enter` to select the highlighted directory, and `Esc` to cancel.",
         2,
         generated_help_links_f2_picker,
         1,

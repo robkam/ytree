@@ -18,18 +18,14 @@
 #include <assert.h>
 
 
-typedef struct {
-  const char *prefix;
-  const UICommandStripCommand *commands;
-  size_t command_count;
-} HelpCommandStrip;
-
 static const UICommandStripCommand history_help_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "Cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
+    {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+
+enum { HISTORY_DIALOG_COMMAND_STRIP_X = 2 };
 
 typedef struct {
   UICommandStripCommand command;
@@ -1004,39 +1000,6 @@ static void RenderPackedFooterLine(WINDOW *win, int y, const char *signpost,
 #endif
 }
 
-static void DisplayBuiltInHelpLine(ViewContext *ctx, int y,
-                                   const HelpCommandStrip *strip) {
-  int prefix_width;
-
-  if (ctx == NULL || ctx->ctx_menu_window == NULL || strip == NULL ||
-      strip->prefix == NULL)
-    return;
-
-  if (strncmp(strip->prefix, "9-4 ", 4) == 0) {
-#ifdef COLOR_SUPPORT
-    PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", UI_ROLE_KEYBIND);
-    PrintSpecialString(ctx->ctx_menu_window, y, 3, (char *)strip->prefix + 3,
-                       UI_ROLE_FOOTER);
-#else
-    PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", A_BOLD);
-    PrintSpecialString(ctx->ctx_menu_window, y, 3, (char *)strip->prefix + 3,
-                       A_NORMAL);
-#endif
-  } else {
-#ifdef COLOR_SUPPORT
-    PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix,
-                       UI_ROLE_FOOTER);
-#else
-    PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix,
-                       A_NORMAL);
-#endif
-  }
-
-  prefix_width = StrVisualLength((char *)strip->prefix);
-  UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width, strip->commands,
-                        strip->command_count, UI_ROLE_FOOTER, UI_ROLE_KEYBIND);
-}
-
 static const FooterCommandSpec *GetDirFooterSpecs(const ViewContext *ctx,
                                                   const DirEntry *dir_entry,
                                                   size_t *command_count,
@@ -1245,16 +1208,31 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
 }
 
 void DisplayHistoryHelp(ViewContext *ctx) {
-  if (!ctx->ctx_menu_window)
+  int window_height;
+  int window_width;
+
+  if (!ctx->ctx_history_window)
     return;
-  werase(ctx->ctx_menu_window);
-  {
-    static const HelpCommandStrip history_help_strip = {
-        "", history_help_commands,
-        sizeof(history_help_commands) / sizeof(history_help_commands[0])};
-    DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);
-  }
-  wnoutrefresh(ctx->ctx_menu_window);
+
+  GetMaxYX(ctx->ctx_history_window, &window_height, &window_width);
+  if (window_height <= 0 || window_width <= 0)
+    return;
+
+#ifdef COLOR_SUPPORT
+  if (ctx->color_enabled)
+    wattrset(ctx->ctx_history_window, COLOR_PAIR(UI_ROLE_PICKER));
+  else
+    wattrset(ctx->ctx_history_window, 0);
+#else
+  wattrset(ctx->ctx_history_window, 0);
+#endif
+  mvwhline(ctx->ctx_history_window, window_height - 1, 0, ' ', window_width);
+
+  UI_RenderCommandStrip(
+      ctx->ctx_history_window, window_height - 1, HISTORY_DIALOG_COMMAND_STRIP_X,
+      history_help_commands,
+      sizeof(history_help_commands) / sizeof(history_help_commands[0]),
+      UI_ROLE_PICKER, UI_ROLE_KEYBIND);
 }
 
 int UI_ShowHistoryHelpPopup(ViewContext *ctx) {

@@ -634,14 +634,19 @@ Ordering policy (for all editors, including AI editors):
 *   Tagged/date variants remain explicit without reintroducing deeper menu chains.
 *   - [x] **Status:** Completed.
 
-#### **Task 27.3.3: Normalize Prompt-Aid Visibility and Chooser Labels**
-*   **Goal:** Make prompt-local aids and chooser commands visible and truthfully labeled on the active surface.
-*   **Scope Lock:** History, F2 picker, volume menu, applications menu, and other chooser/prompt command-surface correctness only.
+#### **Task 27.3.3: Normalize Prompt-Aid Visibility, Chooser Labels, and F2 View-State Controls**
+*   **Goal:** Make prompt-local aids and chooser commands visible, truthfully labeled, and behaviorally consistent with the active view state.
+*   **Scope Lock:** History, F2 picker, volume menu, applications menu, and other chooser/prompt command-surface correctness, including F2 dotfile visibility behavior only.
 *   **Acceptance Criteria:**
-*   Active chooser/picker/dialog surfaces show the commands that are actually usable there.
-*   Command labels describe the real action outcome instead of stale or misleading wording.
-*   Prompt-local help, browse, and history aids are advertised whenever they are supported.
-*   - [ ] **Status:** Not Started.
+*   Prompt and chooser surfaces advertise every supported local action, including help, history, browse, and dotfile toggles where available.
+*   Chooser/menu labels match the actual command behavior on the active surface.
+*   Chooser-style footer strips follow the canonical low-noise order: `F1 help` first, truthful local actions in task-flow order, `Esc cancel` last, and generic list-navigation hints omitted unless they explain a distinctive local rule.
+*   Standalone modal choosers get box lines. Embedded transient mini-pickers do not.
+*   The applications chooser exposes its edit action on-screen and honors the standard list-navigation keys (`Home`, `End`, `PgUp`, `PgDn`) in addition to arrow navigation.
+*   F2 browse/tree views inherit the current dotfile visibility state from the invoking view.
+*   In F2 browse/tree views, the backtick command toggles dotfile visibility and the on-screen command strip advertises it.
+*   Focused regression coverage prevents prompt-aid mismatches and F2 view-state drift.
+*   - [x] **Status:** Completed.
 
 #### **Task 27.3.4: Reconcile Multi-Input Target Prompt Families**
 *   **Goal:** Apply the primary-action exception and equivalent-fast-path rules to copy/move-style target prompts.

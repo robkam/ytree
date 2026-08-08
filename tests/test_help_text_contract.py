@@ -1014,8 +1014,36 @@ def test_picker_dialog_f1_help_covers_volume_and_applications(tmp_path):
         assert tui.wait_for_content("Applications", timeout=1.0), screen_text(tui)
         applications_screen = _wait_for_help(tui, "Applications Help")
         normalized = _normalized_help_text(applications_screen)
-        assert "Use Enter to accept it." in normalized, applications_screen
+        assert "Use Enter to select the highlighted preset." in normalized, applications_screen
+        assert "Use E to edit the commands catalog that backs application presets." in normalized, applications_screen
+        assert "Use Esc to cancel the menu." in normalized, applications_screen
         assert "placeholder surface" in normalized, applications_screen
+    finally:
+        tui.quit()
+
+
+def test_picker_dialog_f1_help_covers_f2_dotfiles_and_local_actions(tmp_path):
+    root = _root_with_file(tmp_path, "integrated_help_f2_picker")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        tui.send_keystroke(Keys.ENTER)
+        assert tui.wait_for_condition(
+            lambda lines: lines if any("file view" in line.lower() for line in lines[-3:]) else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), screen_text(tui)
+        tui.send_keystroke("c")
+        assert tui.wait_for_content("COPY:", timeout=1.0), screen_text(tui)
+        tui.send_keystroke(Keys.ENTER)
+        assert tui.wait_for_content("To Directory:", timeout=1.0), screen_text(tui)
+        tui.send_keystroke(Keys.F2)
+        assert tui.wait_for_content("cycle", timeout=1.0), screen_text(tui)
+        f2_screen = _normalized_help_text(_wait_for_help(tui, "F2 Picker Help"))
+        assert "Use < and > to cycle loaded volumes." in f2_screen, f2_screen
+        assert "Use L to log a new path." in f2_screen, f2_screen
+        assert "toggle dotfiles." in f2_screen, f2_screen
     finally:
         tui.quit()
 

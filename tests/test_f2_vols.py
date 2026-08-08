@@ -30,6 +30,31 @@ def _screen_contains_text(tui, target):
     return any(target in line for line in tui.get_screen_dump())
 
 
+def _wait_for_text_visibility(tui, target, *, present, timeout=1.5):
+    lines = tui.wait_for_condition(
+        lambda screen: screen
+        if any(target in line for line in screen) == present
+        else False,
+        timeout=timeout,
+        poll_interval=0.05,
+    )
+    assert lines, get_screen_text(tui)
+    return lines
+
+
+def _send_and_wait_for_text_visibility(tui, keys, target, *, present, timeout=1.5):
+    lines = tui.send_and_wait_for_condition(
+        keys,
+        lambda screen: screen
+        if any(target in line for line in screen) == present
+        else False,
+        timeout=timeout,
+        poll_interval=0.05,
+    )
+    assert lines, get_screen_text(tui)
+    return lines
+
+
 def _row_style_spans(tui, row, width=120):
     spans = []
     buffer = tui.screen.buffer
@@ -239,6 +264,62 @@ def test_f2_right_expands_then_enters_and_left_collapses_or_returns_parent(tmp_p
         tui.quit()
 
 
+def test_f2_picker_inherits_and_toggles_dotfile_visibility(tmp_path):
+    root = tmp_path / "f2_dotfile_visibility"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    (root / "visible_dest").mkdir()
+    (root / ".hidden_dest").mkdir()
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        if not _screen_contains_text(tui, ".hidden_dest"):
+            _send_and_wait_for_text_visibility(
+                tui, "`", ".hidden_dest", present=True, timeout=1.5
+            )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("file view" in line.lower() for line in lines[-3:])
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        tui.send_keystroke(Keys.COPY, wait=0.3)
+        assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_content("To Directory:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.F2, wait=0.3)
+        assert tui.wait_for_content("cycle", timeout=1.0), get_screen_text(tui)
+
+        f2_commands = next(
+            line for line in tui.get_screen_dump() if "cycle" in line and "Log" in line
+        )
+        assert "dotfiles" in f2_commands and "`" in f2_commands, f2_commands
+        assert _screen_contains_text(tui, ".hidden_dest"), get_screen_text(tui)
+
+        _send_and_wait_for_text_visibility(
+            tui, "`", ".hidden_dest", present=False, timeout=1.5
+        )
+
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        assert tui.wait_for_content("To Directory:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("file view" in line.lower() for line in lines[-3:])
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        assert not _screen_contains_text(tui, ".hidden_dest"), get_screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_f2_escape_can_abort_right_expand_scan(tmp_path):
     root = tmp_path / "f2_tree_abort"
     root.mkdir()
@@ -392,5 +473,72 @@ def test_f9_applications_menu_selection_only_covers_current_item(tmp_path):
             "of extending across the rest of the row.\n"
             f"selected span: {text!r}\n{get_screen_text(tui)}"
         )
+    finally:
+        tui.quit()
+
+
+def test_f9_applications_menu_navigation_keys_and_edit_action(tmp_path):
+    root = tmp_path / "applications_menu_edit_nav"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+
+    editor_capture = root / "applications_commands_capture.txt"
+    editor = root / "applications_commands_editor.sh"
+    editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "printf '\\n# edited by f9 apps\\n' >> \"$f\"\n",
+        encoding="utf-8",
+    )
+    editor.chmod(0o755)
+
+    tui = YtreeNovaTUI(
+        executable=YTNOVA_BIN,
+        cwd=str(root),
+        env_extra={"EDITOR": str(editor)},
+    )
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=1.5), get_screen_text(tui)
+        tui.send_keystroke(Keys.F9, wait=0.6)
+
+        assert _has_exact_span_text(tui, "wget fetch preset"), get_screen_text(tui)
+        tui.send_keystroke(Keys.END, wait=0.3)
+        assert _has_exact_span_text(tui, "format convert preset"), get_screen_text(tui)
+        tui.send_keystroke(Keys.HOME, wait=0.3)
+        assert _has_exact_span_text(tui, "wget fetch preset"), get_screen_text(tui)
+        tui.send_keystroke(Keys.PGDN, wait=0.3)
+        assert _has_exact_span_text(tui, "format convert preset"), get_screen_text(tui)
+        tui.send_keystroke(Keys.PGUP, wait=0.3)
+        assert _has_exact_span_text(tui, "wget fetch preset"), get_screen_text(tui)
+
+        tui.send_keystroke("e", wait=0.8)
+        assert tui.wait_for_condition(
+            lambda lines: lines if editor_capture.exists() else False,
+            timeout=2.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+
+        commands_path = next(
+            (
+                candidate
+                for candidate in (
+                    root / ".config" / "ytnova" / "commands.conf",
+                    root / ".ytnova.commands",
+                )
+                if candidate.exists()
+            ),
+            None,
+        )
+        assert commands_path is not None, (
+            "Applications edit should bootstrap the commands catalog before opening the editor."
+        )
+        commands_text = commands_path.read_text(encoding="utf-8")
+        assert "# edited by f9 apps" in commands_text
+        capture_text = editor_capture.read_text(encoding="utf-8")
+        assert "# commands.conf starter for YtreeNova command customization." in capture_text
+        assert "[DIR]" in capture_text
+        assert "ACTION_COMPARE_DIR" in capture_text
     finally:
         tui.quit()

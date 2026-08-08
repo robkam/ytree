@@ -77,8 +77,39 @@ static const YtreeNovaPanel *ResolveDirRenderPanel(const ViewContext *ctx,
     return ctx->right;
   if (ctx->active && ctx->active->vol == vol && ctx->ctx_dir_window == win)
     return ctx->active;
+  if (ctx->active && ctx->ctx_f2_window == win)
+    return ctx->active;
 
   return NULL;
+}
+
+static BOOL DirEntryVisibleForRenderPanel(const YtreeNovaPanel *panel,
+                                          const struct Volume *vol,
+                                          const DirEntry *dir_entry) {
+  const DirEntry *ancestor;
+
+  if (!panel || !vol || !dir_entry)
+    return FALSE;
+
+  if (panel->vol == vol)
+    return PanelDirIsVisible(panel, dir_entry);
+
+  if (!panel->hide_dot_files)
+    return TRUE;
+
+  if (dir_entry == vol->vol_stats.tree)
+    return TRUE;
+
+  if (dir_entry->name[0] == '.')
+    return FALSE;
+
+  for (ancestor = dir_entry->up_tree; ancestor && ancestor != vol->vol_stats.tree;
+       ancestor = ancestor->up_tree) {
+    if (ancestor->name[0] == '.')
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
 static int ResolveDirRenderMode(const ViewContext *ctx, const struct Volume *vol,
@@ -90,6 +121,302 @@ static int ResolveDirRenderMode(const ViewContext *ctx, const struct Volume *vol
   if (ctx)
     return ctx->dir_mode;
   return MODE_3;
+}
+
+typedef struct DirEntryNameRender {
+  char text[PATH_LENGTH + 2];
+  BOOL append_expand_suffix;
+} DirEntryNameRender;
+
+typedef struct DirEntryRenderState {
+  ViewContext *ctx;
+  WINDOW *win;
+  int y;
+  int graph_len;
+  int attr_start_col;
+  unsigned char hilight;
+  BOOL full_line_highlight;
+  BOOL is_active;
+  chtype margin_attr;
+  chtype tree_line_attr;
+  chtype name_attr;
+  chtype active_name_highlight_attr;
+} DirEntryRenderState;
+
+static void BuildDirGraphBuffer(const struct Volume *vol, int entry_no,
+                                const DirEntry *de_ptr, char *graph_buffer,
+                                size_t graph_buffer_size) {
+  unsigned int j;
+  size_t graph_used = 0;
+
+  if (!vol || !de_ptr || !graph_buffer || graph_buffer_size == 0)
+    return;
+
+  graph_buffer[0] = '\0';
+  for (j = 0; j < vol->dir_entry_list[entry_no].level; j++) {
+    const char *segment =
+        (vol->dir_entry_list[entry_no].indent & (1L << j)) ? "| " : "  ";
+    int written = snprintf(graph_buffer + graph_used,
+                           graph_buffer_size - graph_used, "%s", segment);
+
+    if (written < 0)
+      break;
+    if ((size_t)written >= graph_buffer_size - graph_used) {
+      graph_used = graph_buffer_size - 1;
+      break;
+    }
+    graph_used += (size_t)written;
+  }
+
+  (void)snprintf(graph_buffer + graph_used, graph_buffer_size - graph_used, "%s",
+                 de_ptr->next ? "6-" : "3-");
+}
+
+static char *BuildDirAttributeLine(const ViewContext *ctx,
+                                   const YtreeNovaPanel *render_panel,
+                                   const DirEntry *de_ptr, int dir_mode) {
+  char attributes[11];
+  char modify_time[20];
+  char change_time[20];
+  char access_time[20];
+  char owner[OWNER_NAME_MAX + 1];
+  char group[GROUP_NAME_MAX + 1];
+  const char *owner_name_ptr;
+  const char *group_name_ptr;
+  char size_text[32];
+  char *line_buffer;
+
+  if (!de_ptr)
+    return NULL;
+
+  switch (dir_mode) {
+  case MODE_1:
+    line_buffer = (char *)xmalloc(96);
+    (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
+    (void)CTime(de_ptr->stat_struct.st_mtime, modify_time);
+    FormatDirSize(ctx, render_panel, (long long)de_ptr->stat_struct.st_size,
+                  size_text, sizeof(size_text));
+    (void)snprintf(line_buffer, 96, "%10s %3d %11s %16s", attributes,
+                   (int)de_ptr->stat_struct.st_nlink, size_text, modify_time);
+    return line_buffer;
+  case MODE_2:
+    line_buffer = (char *)xmalloc(160);
+    (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
+    owner_name_ptr = GetDisplayPasswdName(de_ptr->stat_struct.st_uid);
+    group_name_ptr = GetDisplayGroupName(de_ptr->stat_struct.st_gid);
+    if (owner_name_ptr == NULL) {
+      (void)snprintf(owner, sizeof(owner), "%d",
+                     (int)de_ptr->stat_struct.st_uid);
+      owner_name_ptr = owner;
+    }
+    if (group_name_ptr == NULL) {
+      (void)snprintf(group, sizeof(group), "%d",
+                     (int)de_ptr->stat_struct.st_gid);
+      group_name_ptr = group;
+    }
+    (void)snprintf(line_buffer, 160, "%12u  %-12s %-12s",
+                   (unsigned int)de_ptr->stat_struct.st_ino, owner_name_ptr,
+                   group_name_ptr);
+    return line_buffer;
+  case MODE_4:
+    line_buffer = (char *)xmalloc(80);
+    (void)CTime(de_ptr->stat_struct.st_ctime, change_time);
+    (void)CTime(de_ptr->stat_struct.st_atime, access_time);
+    (void)snprintf(line_buffer, 80, "Chg.: %16s  Acc.: %16s", change_time,
+                   access_time);
+    return line_buffer;
+  case MODE_3:
+  default:
+    return NULL;
+  }
+}
+
+static void DrawDirEntryGraph(const DirEntryRenderState *render_state,
+                              const DirEntry *de_ptr,
+                              const char *graph_buffer) {
+  ViewContext *ctx;
+  WINDOW *win;
+  chtype margin_attr;
+  chtype tree_line_attr;
+  unsigned int j;
+
+  if (!render_state || !render_state->ctx || !de_ptr || !render_state->win ||
+      !graph_buffer)
+    return;
+
+  ctx = render_state->ctx;
+  win = render_state->win;
+  margin_attr = render_state->margin_attr;
+  tree_line_attr = render_state->tree_line_attr;
+
+  wattrset(win, margin_attr);
+  mvwaddch(win, render_state->y, 0,
+           (de_ptr->unlogged_flag || de_ptr->not_scanned) ? '+' : ' ');
+  wmove(win, render_state->y, 3);
+  wattrset(win, tree_line_attr);
+  wattron(win, A_ALTCHARSET);
+  for (j = 0; j < (unsigned int)render_state->graph_len; ++j) {
+    int ch;
+
+    switch (graph_buffer[j]) {
+    case '6':
+      ch = ACS_LTEE;
+      break;
+    case '3':
+      ch = ACS_LLCORNER;
+      break;
+    case '|':
+      ch = ACS_VLINE;
+      break;
+    case '-':
+      ch = ACS_HLINE;
+      break;
+    default:
+      ch = graph_buffer[j];
+      break;
+    }
+    waddch(win, (chtype)ch | ((win == ctx->ctx_f2_window) ? 0 : A_BOLD));
+  }
+  wattroff(win, A_ALTCHARSET);
+}
+
+static DirEntryNameRender PrepareDirNameRender(const ViewContext *ctx,
+                                               const DirEntry *de_ptr,
+                                               int dir_mode,
+                                               const DirEntryRenderState
+                                                   *render_state) {
+  DirEntryNameRender name_render;
+  int max_name_len;
+
+  name_render.text[0] = '\0';
+  name_render.append_expand_suffix = FALSE;
+  if (!ctx || !de_ptr || !render_state)
+    return name_render;
+
+  (void)snprintf(name_render.text, sizeof(name_render.text), "%s",
+                 (*de_ptr->name) ? de_ptr->name : ".");
+  if (de_ptr->not_scanned) {
+    BOOL has_subdirs = (de_ptr->sub_tree != NULL);
+
+    if (!has_subdirs && S_ISDIR(de_ptr->stat_struct.st_mode) &&
+        de_ptr->stat_struct.st_nlink > 2) {
+      has_subdirs = TRUE;
+    }
+    if (has_subdirs) {
+      size_t name_len = strlen(name_render.text);
+
+      if (name_len < sizeof(name_render.text) - 1) {
+        name_render.text[name_len] = '/';
+        name_render.text[name_len + 1] = '\0';
+        name_render.append_expand_suffix = TRUE;
+      }
+    }
+  }
+
+  max_name_len = (dir_mode == MODE_3)
+                     ? ctx->layout.dir_win_width - 3 - render_state->graph_len - 1
+                     : render_state->attr_start_col - 3 - render_state->graph_len - 1;
+  if (max_name_len < 1)
+    max_name_len = 1;
+  if ((int)strlen(name_render.text) > max_name_len) {
+    char temp_name[PATH_LENGTH + 2];
+
+    CutName(temp_name, name_render.text, max_name_len);
+    (void)snprintf(name_render.text, sizeof(name_render.text), "%s", temp_name);
+  }
+  return name_render;
+}
+
+static void DrawDirEntryName(const DirEntryRenderState *render_state,
+                             DirEntryNameRender *name_render) {
+  const ViewContext *ctx;
+  WINDOW *win;
+  BOOL is_active;
+  size_t highlight_name_len;
+  BOOL split_expand_suffix;
+
+  if (!render_state || !render_state->ctx || !render_state->win || !name_render)
+    return;
+
+  ctx = render_state->ctx;
+  win = render_state->win;
+  is_active = render_state->is_active;
+  highlight_name_len = strlen(name_render->text);
+  split_expand_suffix = (win == ctx->ctx_f2_window &&
+                         name_render->append_expand_suffix &&
+                         highlight_name_len > 0);
+  if (!render_state->hilight || render_state->full_line_highlight) {
+    mvwaddstr(win, render_state->y, 3 + render_state->graph_len,
+              name_render->text);
+    return;
+  }
+
+#ifdef COLOR_SUPPORT
+  if (is_active)
+    wattrset(win, render_state->active_name_highlight_attr);
+  else
+    wattron(win, A_BOLD | A_UNDERLINE);
+#else
+  if (is_active)
+    wattron(win, A_REVERSE);
+  else
+    wattron(win, A_BOLD | A_UNDERLINE);
+#endif
+  if (split_expand_suffix) {
+    char saved_ch;
+
+    highlight_name_len--;
+    saved_ch = name_render->text[highlight_name_len];
+    name_render->text[highlight_name_len] = '\0';
+    mvwaddstr(win, render_state->y, 3 + render_state->graph_len,
+              name_render->text);
+#ifdef COLOR_SUPPORT
+    if (is_active)
+      wattrset(win, render_state->name_attr);
+    else
+      wattroff(win, A_BOLD | A_UNDERLINE);
+#else
+    if (is_active)
+      wattroff(win, A_REVERSE);
+    else
+      wattroff(win, A_BOLD | A_UNDERLINE);
+#endif
+    name_render->text[highlight_name_len] = saved_ch;
+    waddnstr(win, name_render->text + highlight_name_len,
+             (int)(strlen(name_render->text) - highlight_name_len));
+    return;
+  }
+
+  mvwaddstr(win, render_state->y, 3 + render_state->graph_len,
+            name_render->text);
+#ifdef COLOR_SUPPORT
+  if (is_active)
+    wattrset(win, render_state->name_attr);
+  else
+    wattroff(win, A_BOLD | A_UNDERLINE);
+#else
+  if (is_active)
+    wattroff(win, A_REVERSE);
+  else
+    wattroff(win, A_BOLD | A_UNDERLINE);
+#endif
+}
+
+static void DrawDirEntryAttributes(const DirEntryRenderState *render_state,
+                                   const char *line_buffer) {
+  int current_x;
+  int i;
+  int current_y;
+
+  if (!render_state || !render_state->win || !line_buffer)
+    return;
+
+  getyx(render_state->win, current_y, current_x);
+  (void)current_y;
+  for (i = current_x; i < render_state->attr_start_col; ++i)
+    waddch(render_state->win, ' ');
+  mvwaddstr(render_state->win, render_state->y, render_state->attr_start_col,
+            line_buffer);
 }
 
 /*
@@ -157,309 +484,100 @@ void RotateDirMode(ViewContext *ctx) {
 
 void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
                    int entry_no, int y, unsigned char hilight, BOOL is_active) {
-  unsigned int j;
-  int color;
-  int highlight_color;
-  int margin_color;
-  int tree_line_color;
+  char graph_buffer[PATH_LENGTH + 1];
+  char *line_buffer = NULL;
+  const YtreeNovaPanel *render_panel;
+  const DirEntry *de_ptr;
+  DirEntryNameRender name_render;
+  DirEntryRenderState render_state;
+  int dir_mode;
+  const int attr_start_col = 38;
+  chtype inactive_full_line_attr;
+  BOOL full_line_highlight;
 
   if (!ctx || !vol || !win)
     return;
-  char graph_buffer[PATH_LENGTH + 1];
-  const char *format = NULL;
-  char *line_buffer = NULL;
-  size_t line_buffer_capacity = 0;
-  char *dir_name;
-  char attributes[11];
-  char modify_time[20]; /* Increased from 13 to 20 for "YYYY-MM-DD HH:MM" */
-  char change_time[20]; /* Increased from 13 to 20 */
-  char access_time[20]; /* Increased to 20 */
-  char owner[OWNER_NAME_MAX + 1];
-  char group[GROUP_NAME_MAX + 1];
-  const char *owner_name_ptr;
-  const char *group_name_ptr;
-  const YtreeNovaPanel *render_panel;
-  DirEntry *de_ptr;
-  BOOL append_expand_suffix = FALSE;
-  int dir_mode;
-  char size_text[32];
-
-  if (win == ctx->ctx_f2_window) {
-    color = UI_ROLE_PICKER;
-    highlight_color = UI_ROLE_SELECTION;
-    margin_color = UI_ROLE_PICKER;
-    tree_line_color = UI_ROLE_PICKER;
-  } else {
-    color = UI_ROLE_DYNAMIC_TEXT;
-    highlight_color = UI_ROLE_SELECTION;
-    margin_color = UI_ROLE_MARGIN;
-    tree_line_color = UI_ROLE_TREE_LINES;
-  }
-
-  /* Build the tree graph string (e.g., "| 6- ") */
-  graph_buffer[0] = '\0';
-  size_t graph_used = 0;
-  for (j = 0; j < vol->dir_entry_list[entry_no].level; j++) {
-    const char *segment =
-        (vol->dir_entry_list[entry_no].indent & (1L << j)) ? "| " : "  ";
-    int written = snprintf(graph_buffer + graph_used,
-                           sizeof(graph_buffer) - graph_used, "%s", segment);
-    if (written < 0)
-      break;
-    if ((size_t)written >= sizeof(graph_buffer) - graph_used) {
-      graph_used = sizeof(graph_buffer) - 1;
-      break;
-    }
-    graph_used += (size_t)written;
-  }
 
   de_ptr = vol->dir_entry_list[entry_no].dir_entry;
   dir_mode = ResolveDirRenderMode(ctx, vol, win);
   render_panel = ResolveDirRenderPanel(ctx, vol, win);
-  {
-    const char *branch_marker = de_ptr->next ? "6-" : "3-";
-    (void)snprintf(graph_buffer + graph_used, sizeof(graph_buffer) - graph_used,
-                   "%s", branch_marker);
-  }
-
-  /* Build the attribute string based on the current directory mode */
-  switch (dir_mode) {
-  case MODE_1:
-    (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
-    (void)CTime(de_ptr->stat_struct.st_mtime, modify_time);
-    FormatDirSize(ctx, render_panel, (long long)de_ptr->stat_struct.st_size,
-                  size_text, sizeof(size_text));
-    line_buffer_capacity = 96;
-    line_buffer = (char *)xmalloc(line_buffer_capacity);
-    format = "%10s %3d %11s %16s";
-
-    (void)snprintf(line_buffer, line_buffer_capacity, format, attributes,
-                   (int)de_ptr->stat_struct.st_nlink, size_text, modify_time);
-    break;
-  case MODE_2:
-    (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
-    owner_name_ptr = GetDisplayPasswdName(de_ptr->stat_struct.st_uid);
-    group_name_ptr = GetDisplayGroupName(de_ptr->stat_struct.st_gid);
-    if (owner_name_ptr == NULL) {
-      (void)snprintf(owner, sizeof(owner), "%d",
-                     (int)de_ptr->stat_struct.st_uid);
-      owner_name_ptr = owner;
-    }
-    if (group_name_ptr == NULL) {
-      (void)snprintf(group, sizeof(group), "%d",
-                     (int)de_ptr->stat_struct.st_gid);
-      group_name_ptr = group;
-    }
-    line_buffer_capacity = 160;
-    line_buffer = (char *)xmalloc(line_buffer_capacity);
-
-    format = "%12u  %-12s %-12s";
-    (void)snprintf(line_buffer, line_buffer_capacity, format,
-                   (unsigned int)de_ptr->stat_struct.st_ino, owner_name_ptr,
-                   group_name_ptr);
-    break;
-  case MODE_3: /* No attributes, line_buffer remains NULL */
-    break;
-  case MODE_4:
-    (void)CTime(de_ptr->stat_struct.st_ctime, change_time);
-    (void)CTime(de_ptr->stat_struct.st_atime, access_time);
-    format = "Chg.: %16s  Acc.: %16s";
-    line_buffer_capacity = 80;
-    line_buffer = (char *)xmalloc(line_buffer_capacity);
-
-    (void)snprintf(line_buffer, line_buffer_capacity, format, change_time,
-                   access_time);
-    break;
-  }
-
-  const int status_col = 0;
-  const int graph_col = 3;
-  int attr_start_col = 38; /* Column where attributes begin */
-  int graph_len = strlen(graph_buffer);
-  BOOL full_line_highlight =
+  BuildDirGraphBuffer(vol, entry_no, de_ptr, graph_buffer, sizeof(graph_buffer));
+  line_buffer = BuildDirAttributeLine(ctx, render_panel, de_ptr, dir_mode);
+  render_state.ctx = ctx;
+  render_state.win = win;
+  render_state.y = y;
+  render_state.graph_len = (int)strlen(graph_buffer);
+  render_state.attr_start_col = attr_start_col;
+  render_state.hilight = hilight;
+  render_state.full_line_highlight =
       (ctx->highlight_full_line && win != ctx->ctx_f2_window);
-  chtype line_attr;
-  chtype margin_attr;
-  chtype tree_line_attr;
-  chtype name_attr;
-  chtype inactive_full_line_attr;
-  chtype active_name_highlight_attr;
+  render_state.is_active = is_active;
+  full_line_highlight = render_state.full_line_highlight;
 
   wmove(win, y, 0);
   wclrtoeol(win);
 
-  /* Set the base attribute for the line */
 #ifdef COLOR_SUPPORT
-  line_attr = (hilight && full_line_highlight && is_active)
-                  ? COLOR_PAIR(highlight_color)
-                  : COLOR_PAIR(color);
-  margin_attr = (hilight && full_line_highlight && is_active)
-                    ? COLOR_PAIR(highlight_color)
-                    : COLOR_PAIR(margin_color);
-  tree_line_attr = (hilight && full_line_highlight && is_active)
-                       ? COLOR_PAIR(highlight_color)
-                       : COLOR_PAIR(tree_line_color);
-  active_name_highlight_attr =
+  {
+    int color;
+    int highlight_color;
+    int margin_color;
+    int tree_line_color;
+
+    if (win == ctx->ctx_f2_window) {
+      color = UI_ROLE_PICKER;
+      highlight_color = UI_ROLE_SELECTION;
+      margin_color = UI_ROLE_PICKER;
+      tree_line_color = UI_ROLE_PICKER;
+    } else {
+      color = UI_ROLE_DYNAMIC_TEXT;
+      highlight_color = UI_ROLE_SELECTION;
+      margin_color = UI_ROLE_MARGIN;
+      tree_line_color = UI_ROLE_TREE_LINES;
+    }
+
+  render_state.name_attr =
+      (hilight && render_state.full_line_highlight && is_active)
+          ? COLOR_PAIR(highlight_color)
+          : COLOR_PAIR(color);
+  render_state.margin_attr =
+      (hilight && render_state.full_line_highlight && is_active)
+          ? COLOR_PAIR(highlight_color)
+          : COLOR_PAIR(margin_color);
+  render_state.tree_line_attr =
+      (hilight && render_state.full_line_highlight && is_active)
+          ? COLOR_PAIR(highlight_color)
+          : COLOR_PAIR(tree_line_color);
+  render_state.active_name_highlight_attr =
       (win == ctx->ctx_f2_window) ? UISelectionAttrForBase(ctx, UI_ROLE_PICKER)
                                   : COLOR_PAIR(highlight_color);
+  }
 #else
-  line_attr = A_NORMAL;
-  margin_attr = A_NORMAL;
-  tree_line_attr = A_NORMAL;
-  active_name_highlight_attr = A_REVERSE;
+  render_state.name_attr = A_NORMAL;
+  render_state.margin_attr = A_NORMAL;
+  render_state.tree_line_attr = A_NORMAL;
+  render_state.active_name_highlight_attr = A_REVERSE;
 #endif
-  name_attr = line_attr;
   inactive_full_line_attr = (hilight && full_line_highlight && !is_active)
                                 ? (A_BOLD | A_UNDERLINE)
                                 : A_NORMAL;
   if (inactive_full_line_attr != A_NORMAL) {
-    margin_attr |= inactive_full_line_attr;
-    tree_line_attr |= inactive_full_line_attr;
-    name_attr |= inactive_full_line_attr;
+    render_state.margin_attr |= inactive_full_line_attr;
+    render_state.tree_line_attr |= inactive_full_line_attr;
+    render_state.name_attr |= inactive_full_line_attr;
   }
 
 #ifndef COLOR_SUPPORT
-  if (hilight && full_line_highlight && is_active)
-    name_attr = margin_attr = tree_line_attr = A_REVERSE;
+  if (hilight && render_state.full_line_highlight && is_active)
+    render_state.name_attr = render_state.margin_attr =
+        render_state.tree_line_attr = A_REVERSE;
 #endif
 
-  /* Part 1: Draw status marker and tree graph characters manually */
-  wattrset(win, margin_attr);
-  mvwaddch(win, y, status_col,
-           (de_ptr->unlogged_flag || de_ptr->not_scanned) ? '+' : ' ');
-  wmove(win, y, graph_col);
-  wattrset(win, tree_line_attr);
-  wattron(win, A_ALTCHARSET);
-  for (j = 0; j < (unsigned int)graph_len; ++j) {
-    int ch;
-    switch (graph_buffer[j]) {
-    case '6':
-      ch = ACS_LTEE;
-      break;
-    case '3':
-      ch = ACS_LLCORNER;
-      break;
-    case '|':
-      ch = ACS_VLINE;
-      break;
-    case '-':
-      ch = ACS_HLINE;
-      break;
-    default:
-      ch = graph_buffer[j];
-      break;
-    }
-    waddch(win, (chtype)ch | ((win == ctx->ctx_f2_window) ? 0 : A_BOLD));
-  }
-  wattroff(win, A_ALTCHARSET);
-  wattrset(win, name_attr);
-
-  /* Part 2: Prepare and draw the directory name */
-  char name_buffer[PATH_LENGTH + 2];
-  dir_name = de_ptr->name;
-  (void)snprintf(name_buffer, sizeof(name_buffer), "%s",
-                 (*dir_name) ? dir_name : ".");
-  if (de_ptr->not_scanned) {
-    BOOL has_subdirs = (de_ptr->sub_tree != NULL);
-    if (!has_subdirs && S_ISDIR(de_ptr->stat_struct.st_mode) &&
-        de_ptr->stat_struct.st_nlink > 2) {
-      has_subdirs = TRUE;
-    }
-    if (has_subdirs) {
-      size_t name_len = strlen(name_buffer);
-      if (name_len < sizeof(name_buffer) - 1) {
-        name_buffer[name_len] = '/';
-        name_buffer[name_len + 1] = '\0';
-        append_expand_suffix = TRUE;
-      }
-    }
-  }
-
-  /* Calculate maximum allowed name length based on mode and window width */
-  int max_name_len;
-  if (dir_mode == MODE_3) {
-    /* In MODE_3 (name-only), truncate based on full window width */
-    max_name_len = ctx->layout.dir_win_width - graph_col - graph_len - 1;
-  } else {
-    /* In other modes, truncate to prevent overlap with attributes */
-    max_name_len = attr_start_col - graph_col - graph_len - 1;
-  }
-  /* Safety: Ensure max_name_len is at least 1 to avoid issues with CutName */
-  if (max_name_len < 1) {
-    max_name_len = 1;
-  }
-
-  /* Apply truncation if the name is too long */
-  if ((int)strlen(name_buffer) > max_name_len) {
-    char temp_name[PATH_LENGTH + 2];
-    CutName(temp_name, name_buffer, max_name_len);
-    (void)snprintf(name_buffer, sizeof(name_buffer), "%s", temp_name);
-  }
-
-  /* If name-only highlight is active, select just the directory name. */
-  if (hilight && !full_line_highlight) {
-    size_t highlight_name_len = strlen(name_buffer);
-    BOOL split_expand_suffix =
-        (win == ctx->ctx_f2_window && append_expand_suffix &&
-         highlight_name_len > 0);
-#ifdef COLOR_SUPPORT
-    if (is_active)
-      wattrset(win, active_name_highlight_attr);
-    else
-      wattron(win, A_BOLD | A_UNDERLINE);
-#else
-    if (is_active)
-      wattron(win, A_REVERSE);
-    else
-      wattron(win, A_BOLD | A_UNDERLINE);
-#endif
-    if (split_expand_suffix) {
-      highlight_name_len--;
-      char saved_ch = name_buffer[highlight_name_len];
-
-      name_buffer[highlight_name_len] = '\0';
-      mvwaddstr(win, y, graph_col + graph_len, name_buffer);
-#ifdef COLOR_SUPPORT
-      if (is_active)
-        wattrset(win, name_attr);
-      else
-        wattroff(win, A_BOLD | A_UNDERLINE);
-#else
-      if (is_active)
-        wattroff(win, A_REVERSE);
-      else
-        wattroff(win, A_BOLD | A_UNDERLINE);
-#endif
-      name_buffer[highlight_name_len] = saved_ch;
-      waddnstr(win, name_buffer + highlight_name_len,
-               (int)(strlen(name_buffer) - highlight_name_len));
-    } else {
-      mvwaddstr(win, y, graph_col + graph_len, name_buffer);
-#ifdef COLOR_SUPPORT
-      if (is_active)
-        wattrset(win, name_attr);
-      else
-        wattroff(win, A_BOLD | A_UNDERLINE);
-#else
-      if (is_active)
-        wattroff(win, A_REVERSE);
-      else
-        wattroff(win, A_BOLD | A_UNDERLINE);
-#endif
-    }
-  } else {
-    mvwaddstr(win, y, graph_col + graph_len, name_buffer);
-  }
-
-  /* Part 3: Draw attributes and fill the gap in between */
-  if (line_buffer) {
-    int current_x;
-    getyx(win, y, current_x); /* Use y (parameter) as dummy output */
-    for (int i = current_x; i < attr_start_col; ++i) {
-      waddch(win, ' ');
-    }
-    mvwaddstr(win, y, attr_start_col, line_buffer);
-  }
+  DrawDirEntryGraph(&render_state, de_ptr, graph_buffer);
+  wattrset(win, render_state.name_attr);
+  name_render = PrepareDirNameRender(ctx, de_ptr, dir_mode, &render_state);
+  DrawDirEntryName(&render_state, &name_render);
+  DrawDirEntryAttributes(&render_state, line_buffer);
 
   wattrset(win, 0);
 
@@ -509,7 +627,7 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   for (i = 0; i < height && list_idx < vol->total_dirs; i++) {
     while (list_idx < vol->total_dirs) {
       const DirEntry *candidate = vol->dir_entry_list[list_idx].dir_entry;
-      if (!panel || PanelDirIsVisible(panel, candidate))
+      if (!panel || DirEntryVisibleForRenderPanel(panel, vol, candidate))
         break;
       list_idx++;
     }

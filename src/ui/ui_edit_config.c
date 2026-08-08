@@ -430,14 +430,27 @@ static void EditConfigProfile(ViewContext *ctx, DirEntry *dir_entry,
   ReloadConfigAndTheme(ctx, dir_entry, profile_path);
 }
 
-static void EditThemesFile(ViewContext *ctx, DirEntry *dir_entry,
-                           char *themes_path) {
-  if (Edit(ctx, dir_entry, themes_path) != 0) {
-    MESSAGE(ctx, "Can't edit \"%s\"", themes_path);
+static void EditReloadableRuntimeFile(ViewContext *ctx, DirEntry *dir_entry,
+                                      char *file_path) {
+  if (Edit(ctx, dir_entry, file_path) != 0) {
+    MESSAGE(ctx, "Can't edit \"%s\"", file_path);
     return;
   }
 
   ReloadConfigAndTheme(ctx, dir_entry, NULL);
+}
+
+void UI_EditCommandsCatalog(ViewContext *ctx, DirEntry *dir_entry) {
+  char commands_path[PATH_LENGTH + 1];
+
+  if (ResolveCommandsPath(ctx, commands_path, sizeof(commands_path)) != 0) {
+    MESSAGE(ctx, "Can't resolve commands file path");
+    return;
+  }
+  if (EnsureCommandsStarterFile(ctx, commands_path) != 0)
+    return;
+
+  EditReloadableRuntimeFile(ctx, dir_entry, commands_path);
 }
 
 void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
@@ -460,17 +473,7 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
     EditConfigProfile(ctx, dir_entry, profile_path);
     break;
   case 'M':
-    {
-      char commands_path[PATH_LENGTH + 1];
-
-      if (ResolveCommandsPath(ctx, commands_path, sizeof(commands_path)) != 0) {
-        MESSAGE(ctx, "Can't resolve commands file path");
-        break;
-      }
-      if (EnsureCommandsStarterFile(ctx, commands_path) != 0)
-        break;
-      EditThemesFile(ctx, dir_entry, commands_path);
-    }
+    UI_EditCommandsCatalog(ctx, dir_entry);
     break;
   case 'T':
     {
@@ -482,7 +485,7 @@ void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
       }
       if (EnsureThemesStarterFile(ctx, themes_path) != 0)
         break;
-      EditThemesFile(ctx, dir_entry, themes_path);
+      EditReloadableRuntimeFile(ctx, dir_entry, themes_path);
     }
     break;
   case 'R':

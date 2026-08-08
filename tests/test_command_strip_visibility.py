@@ -1,3 +1,4 @@
+import shlex
 import time
 from pathlib import Path
 
@@ -39,6 +40,27 @@ def _root_with_file(tmp_path):
     (root / "dir1").mkdir()
     (root / "file1.txt").write_text("seed\n", encoding="utf-8")
     return root
+
+
+def _configure_filediff_capture(root):
+    log_path = root / "filediff_args.log"
+    helper_path = root / ".capture_filediff.sh"
+    helper_path.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$@\" > {shlex.quote(str(log_path))}\n",
+        encoding="utf-8",
+    )
+    helper_path.chmod(0o755)
+    (root / ".ytnova").write_text(
+        f"[GLOBAL]\nFILEDIFF={helper_path}\n",
+        encoding="utf-8",
+    )
+    return log_path
+
+
+def _run_file_compare(tui, target, wait=0.5):
+    tui.send_keystroke(Keys.CTRL_U + target + Keys.ENTER, wait=wait)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
 
 
 def _line_containing(tui, needle):
@@ -175,7 +197,7 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         tui.quit()
 
 
-def test_picker_menus_show_explicit_close_and_action_keys(tmp_path):
+def test_picker_menus_show_supported_actions_and_truthful_labels(tmp_path):
     root = _root_with_file(tmp_path)
     tui = _spawn_narrow_tui(root)
 
@@ -185,27 +207,26 @@ def test_picker_menus_show_explicit_close_and_action_keys(tmp_path):
         tui.send_keystroke("k", wait=0.5)
         volume_line = _line_containing(tui, "Select Volume")
         assert "Select Volume" in volume_line
-        volume_commands = _line_containing_all(tui, "Up/Down", "Esc")
-        assert "select" in volume_commands
-        assert "switch" in volume_commands
-        assert "quit" in volume_commands
-        assert "Esc" in volume_commands
-        assert "Delete" in volume_commands
+        volume_commands = _line_containing_all(tui, "F1 help", "D release", "Enter switch", "Esc cancel")
+        assert "Up/Down" not in volume_commands
+        assert "Delete" not in volume_commands
         assert "(D)" not in volume_commands
         tui.send_keystroke(Keys.ESC, wait=0.5)
 
         tui.send_keystroke(Keys.F9, wait=0.5)
         _line_containing(tui, "Applications")
-        app_commands = _line_containing_all(tui, "Select ", "Enter")
-        assert "Enter" in app_commands
-        assert "Esc" in app_commands
+        app_commands = _line_containing_all(
+            tui, "F1 help", "Enter select", "Edit", "Esc cancel"
+        )
+        assert "Close" not in app_commands
+        assert "Up/Down" not in app_commands
     finally:
         tui.quit()
 
 
 def test_f2_picker_shows_explicit_log_key(tmp_path):
     root = _root_with_file(tmp_path)
-    tui = _spawn_narrow_tui(root)
+    tui = _spawn_sized_tui(root, 120)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.5)
@@ -213,11 +234,55 @@ def test_f2_picker_shows_explicit_log_key(tmp_path):
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         tui.send_keystroke(Keys.F2, wait=0.5)
 
-        f2_line = _line_containing(tui, "cycle")
-        assert "Log" in f2_line
+        f2_line = _line_containing_all(
+            tui, "F1 help", "Log", "cycle", "` dotfiles", "Enter select", "Esc cancel"
+        )
         assert "(L)" not in f2_line
-        assert "cycle" in f2_line
         assert "<" in f2_line and ">" in f2_line
+        assert f2_line.index("F1 help") < f2_line.index("Log"), f2_line
+        assert f2_line.index("Log") < f2_line.index("cycle"), f2_line
+        assert f2_line.index("cycle") < f2_line.index("` dotfiles"), f2_line
+        assert f2_line.index("` dotfiles") < f2_line.index("Enter select"), f2_line
+        assert f2_line.index("Enter select") < f2_line.index("Esc cancel"), f2_line
+        assert "` dotfiles  Enter select" in f2_line, f2_line
+    finally:
+        tui.quit()
+
+
+def test_history_dialog_keeps_prompt_footer_and_uses_local_chooser_order(tmp_path):
+    root = _root_with_file(tmp_path)
+    remembered_target = str(root / "remembered_target.txt")
+    Path(remembered_target).write_text("remembered\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+    tui = _spawn_sized_tui(root, 120)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke("J", wait=0.4)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), screen_text(tui)
+        _run_file_compare(tui, remembered_target, wait=0.55)
+        assert tui.wait_for_condition(
+            lambda _lines: log_path.exists(), timeout=2.0, poll_interval=0.05
+        ), screen_text(tui)
+
+        tui.send_keystroke("J", wait=0.4)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), screen_text(tui)
+
+        prompt_footer = _line_containing_all(tui, "F2 browse", "Up history", "Enter OK", "Esc cancel")
+
+        tui.send_keystroke(Keys.UP, wait=0.5)
+
+        history_footer = _line_containing_all(
+            tui, "F1 help", "Delete", "Pin/unpin", "Enter select", "Esc cancel"
+        )
+        assert "Up/Down" not in history_footer
+        assert "Left/Right" not in history_footer
+        assert history_footer.index("F1 help") < history_footer.index("Delete"), history_footer
+        assert history_footer.index("Delete") < history_footer.index("Pin/unpin"), history_footer
+        assert history_footer.index("Pin/unpin") < history_footer.index("Enter select"), history_footer
+        assert history_footer.index("Enter select") < history_footer.index("Esc cancel"), history_footer
+
+        assert prompt_footer in "\n".join(_prompt_lines(tui)), screen_text(tui)
     finally:
         tui.quit()
 

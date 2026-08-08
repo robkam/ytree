@@ -13,10 +13,35 @@
 #include "ytnova_ui.h"
 
 static const UICommandStripCommand volume_command_strip[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Up", "Down"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "release", "D", NULL},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, "switch", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "quit", "Esc", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+
+enum {
+  VOLUME_MENU_TITLE_PADDING = 4,
+  VOLUME_MENU_PATH_PADDING = 12,
+  VOLUME_MENU_NON_ITEM_ROWS = 5,
+  VOLUME_MENU_ITEM_START_ROW = 3,
+  VOLUME_MENU_COMMAND_STRIP_X = 2,
+  VOLUME_MENU_ITEM_PATH_PADDING = 8
+};
+
+typedef struct {
+  struct Volume **vol_array;
+  int num_volumes;
+  int selected_index;
+  int max_path_len;
+} VolumeMenuSnapshot;
+
+typedef struct {
+  int win_width;
+  int win_height;
+  int win_x;
+  int win_y;
+  int visible_lines;
+  int scroll_offset;
+} VolumeMenuLayout;
 
 static int ShowVolumeHelpPopup(ViewContext *ctx) {
   if (ctx == NULL)
@@ -128,27 +153,133 @@ static void EnsurePanelsReferenceActiveVolume(ViewContext *ctx) {
   SyncActivePanelWindows(ctx);
 }
 
+static int VolumeMenuPromptWidth(void) {
+  return UI_CommandStripVisualLength(volume_command_strip,
+                                     sizeof(volume_command_strip) /
+                                         sizeof(volume_command_strip[0]));
+}
+
+static int BuildVolumeMenuSnapshot(ViewContext *ctx,
+                                   VolumeMenuSnapshot *snapshot) {
+  struct Volume *s;
+  struct Volume *tmp;
+  struct Volume **vol_array;
+  int num_volumes;
+  int i;
+  int selected_index = 0;
+  int max_path_len = 0;
+
+  if (!ctx || !snapshot)
+    return -1;
+
+  num_volumes = HASH_COUNT(ctx->volumes_head);
+  snapshot->num_volumes = num_volumes;
+  if (num_volumes <= 0) {
+    snapshot->vol_array = NULL;
+    snapshot->selected_index = 0;
+    snapshot->max_path_len = 0;
+    return 0;
+  }
+
+  vol_array = (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
+  i = 0;
+  HASH_ITER(hh, ctx->volumes_head, s, tmp) {
+    int len;
+
+    if (s == NULL)
+      continue;
+    vol_array[i] = s;
+    len = StrVisualLength(s->vol_stats.log_path);
+    if (len > max_path_len)
+      max_path_len = len;
+    if (s == ctx->active->vol)
+      selected_index = i;
+    i++;
+  }
+
+  if (selected_index >= num_volumes)
+    selected_index = num_volumes - 1;
+  if (selected_index < 0)
+    selected_index = 0;
+
+  snapshot->vol_array = vol_array;
+  snapshot->selected_index = selected_index;
+  snapshot->max_path_len = max_path_len;
+  return 0;
+}
+
+static void ComputeVolumeMenuLayout(const ViewContext *ctx, const char *title,
+                                    int prompt_width,
+                                    const VolumeMenuSnapshot *snapshot,
+                                    VolumeMenuLayout *layout) {
+  int win_width;
+  int win_height;
+  int win_x;
+  int win_y;
+  int visible_lines;
+  int scroll_offset = 0;
+
+  if (!ctx || !title || !snapshot || !layout)
+    return;
+
+  win_width = MAXIMUM((int)(strlen(title) + VOLUME_MENU_TITLE_PADDING),
+                      snapshot->max_path_len + VOLUME_MENU_PATH_PADDING);
+  win_width = MAXIMUM(win_width, prompt_width + 4);
+  win_width = MINIMUM(win_width, COLS - ctx->layout.stats_width - 2);
+
+  win_height = MINIMUM(ctx->layout.bottom_border_y,
+                       snapshot->num_volumes + VOLUME_MENU_NON_ITEM_ROWS);
+  win_height = MAXIMUM(win_height, 10);
+
+  win_x = ((COLS - ctx->layout.stats_width) - win_width) / 2;
+  if (win_x < 1)
+    win_x = 1;
+  win_y = (LINES - win_height) / 2;
+
+  visible_lines = win_height - VOLUME_MENU_NON_ITEM_ROWS;
+  visible_lines = MAXIMUM(1, visible_lines);
+  if (snapshot->selected_index >= visible_lines) {
+    scroll_offset = snapshot->selected_index - visible_lines + 1;
+    scroll_offset = MINIMUM(scroll_offset, snapshot->num_volumes - visible_lines);
+  }
+  scroll_offset = MAXIMUM(0, scroll_offset);
+
+  layout->win_width = win_width;
+  layout->win_height = win_height;
+  layout->win_x = win_x;
+  layout->win_y = win_y;
+  layout->visible_lines = visible_lines;
+  layout->scroll_offset = scroll_offset;
+}
+
+static void RefreshActiveVolumeSelection(ViewContext *ctx) {
+  int dummy;
+
+  if (!ctx || !ctx->active || !ctx->active->vol)
+    return;
+
+  BuildDirEntryList(ctx, ctx->active->vol, &dummy);
+  EnsurePanelsReferenceActiveVolume(ctx);
+}
+
 /*
  * SelectLoadedVolume
  * Displays a list of currently loaded volumes and allows the user to switch
  * between them. Returns 0 on successful switch, -1 on cancel.
  */
 int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
-  struct Volume *s, *tmp;
-  struct Volume **vol_array = NULL;
-  int num_volumes;
-  int i, j, ch; /* Added j for visible line iteration */
-  int selected_index = 0;
-  WINDOW *win = NULL;
-  int win_height, win_width, win_x, win_y;
-  int result = -1; /* Assume cancel by default */
+  VolumeMenuSnapshot snapshot;
+  VolumeMenuLayout layout;
+  int ch;
   int prompt_width;
-  char title[] = "Select Volume";
+  WINDOW *win = NULL;
+  int result = -1; /* Assume cancel by default */
+  const char title[] = "Select Volume";
   BOOL changes_made = FALSE;
   BOOL restart_menu = FALSE;
 
-  /* Scrolling variables */
-  int visible_lines;
+  if (ctx == NULL)
+    return -1;
 
   if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))
     return -1;
@@ -158,25 +289,20 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     return -1;
 
   ClearHelp(ctx);
+  memset(&snapshot, 0, sizeof(snapshot));
+  memset(&layout, 0, sizeof(layout));
 
   do {
-    int max_path_len;
     BOOL menu_active;
-    int scroll_offset;
 
     restart_menu = FALSE;
     menu_active = TRUE;
-    prompt_width = UI_CommandStripVisualLength(
-        volume_command_strip,
-        sizeof(volume_command_strip) / sizeof(volume_command_strip[0]));
+    prompt_width = VolumeMenuPromptWidth();
 
-    /* Reset num_volumes and max_path_len for fresh snapshot */
-    max_path_len = 0;
-    scroll_offset = 0; /* Reset scroll offset for new menu display */
+    if (BuildVolumeMenuSnapshot(ctx, &snapshot) != 0)
+      return -1;
 
-    num_volumes = HASH_COUNT(ctx->volumes_head);
-
-    if (num_volumes == 0) {
+    if (snapshot.num_volumes == 0) {
       UI_Message(ctx, "No volumes currently loaded.");
       // If we deleted the last volume, GlobalView->active->vol should have been
       // reset to a blank one. In this case, we should return 0 to force a
@@ -185,84 +311,12 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       return changes_made ? 0 : -1;
     }
 
-    vol_array =
-        (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
-
-    i = 0;
-    int new_selected_index = 0; // Default to first item
-    HASH_ITER(hh, ctx->volumes_head, s, tmp) {
-      if (s == NULL)
-        continue;
-      vol_array[i] = s;
-      int len = StrVisualLength(s->vol_stats.log_path);
-      if (len > max_path_len) {
-        max_path_len = len;
-      }
-      if (s == ctx->active->vol) {
-        new_selected_index = i; // Set selected to current volume
-      }
-      i++;
-    }
-    selected_index =
-        new_selected_index; // Update selected_index after array is built
-    // Ensure selected_index is within bounds (should be if ctx->active->vol is
-    // valid)
-    if (selected_index >= num_volumes)
-      selected_index = num_volumes - 1;
-    if (selected_index < 0)
-      selected_index = 0;
-
-    /* 2. Window Setup */
-    /* Base width calculation */
-    /* FIX: Cast strlen result to int for MAXIMUM macro to avoid signed/unsigned
-     * warning */
-    win_width = MAXIMUM((int)(strlen(title) + 4), max_path_len + 12);
-
-    /* Ensure it covers the prompt */
-    win_width = MAXIMUM(win_width, prompt_width + 4);
-
-    /* Constraint: Fit strictly within the main directory area (left of stats
-     * panel) */
-    /* ctx->layout.stats_width is 24, STATS_MARGIN is 2, so the main area
-     * ends at COLS - 26 */
-    win_width = MINIMUM(win_width, COLS - ctx->layout.stats_width - 2);
-
-    win_height =
-        MINIMUM(ctx->layout.bottom_border_y,
-                num_volumes +
-                    5); /* 5 for top/bottom border, title, prompt, empty line */
-    win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
-
-    /* Center the window relative to the directory area */
-    win_x = ((COLS - ctx->layout.stats_width) - win_width) / 2;
-    /* Ensure safe X coordinate */
-    if (win_x < 1)
-      win_x = 1;
-
-    win_y = (LINES - win_height) / 2;
-
-    // Calculate visible lines for items
-    visible_lines =
-        win_height -
-        5; /* Height minus TopBorder, Title, Spacer, Prompt, BottomBorder */
-    visible_lines =
-        MAXIMUM(1, visible_lines); /* Ensure at least one line is visible */
-
-    // Adjust initial scroll_offset to make current_volume_index visible
-    if (selected_index >= visible_lines) {
-      scroll_offset = selected_index - visible_lines + 1;
-      // Ensure scroll_offset doesn't go past the end of the list
-      scroll_offset = MINIMUM(scroll_offset, num_volumes - visible_lines);
-    }
-    // Ensure scroll_offset is not negative
-    scroll_offset = MAXIMUM(0, scroll_offset);
-
-    // Create new window
-    win = newwin(win_height, win_width, win_y, win_x);
+    ComputeVolumeMenuLayout(ctx, title, prompt_width, &snapshot, &layout);
+    win = newwin(layout.win_height, layout.win_width, layout.win_y, layout.win_x);
     if (win == NULL) {
       UI_Error(ctx, __FILE__, __LINE__,
                "Failed to create window for volume selection.");
-      free(vol_array);
+      free(snapshot.vol_array);
       return -1;
     }
 
@@ -272,8 +326,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     WbkgdSet(ctx, win, COLOR_PAIR(UI_ROLE_PICKER));
     curs_set(0); /* Hide cursor */
 
-    /* 3. Input Loop */
     while (menu_active) {
+      int j;
+
       werase(win);
 #ifdef COLOR_SUPPORT
       wattron(win, COLOR_PAIR(UI_ROLE_PICKER));
@@ -282,49 +337,43 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 #ifdef COLOR_SUPPORT
       wattroff(win, COLOR_PAIR(UI_ROLE_PICKER));
 #endif
-      mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
+      mvwprintw(win, 1, (layout.win_width - (int)strlen(title)) / 2, "%s",
+                title);
       UI_RenderCommandStrip(
-          win, win_height - 2, (win_width - prompt_width) / 2,
+          win, layout.win_height - 2, VOLUME_MENU_COMMAND_STRIP_X,
           volume_command_strip,
           sizeof(volume_command_strip) / sizeof(volume_command_strip[0]),
           UI_ROLE_PICKER, UI_ROLE_KEYBIND);
 
-      /* Drawing loop using scroll_offset and visible_lines */
-      for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */
-        int actual_idx = scroll_offset + j; /* Calculate actual volume index */
-        if (actual_idx >= num_volumes) {
-          break; /* No more volumes to display */
-        }
-
-        int y_pos =
-            3 + j; /* Start listing from y=3, relative to visible line j */
-
-        const char *path_to_display =
-            vol_array[actual_idx]->vol_stats.log_path;
+      for (j = 0; j < layout.visible_lines; j++) {
+        int actual_idx = layout.scroll_offset + j;
+        int y_pos = VOLUME_MENU_ITEM_START_ROW + j;
+        const char *path_to_display;
         char display_buf[PATH_LENGTH + 1];
         char item_buf[PATH_LENGTH + 8];
+        int max_w;
 
-        if (strlen(path_to_display) == 0) {
+        if (actual_idx >= snapshot.num_volumes)
+          break;
+
+        path_to_display = snapshot.vol_array[actual_idx]->vol_stats.log_path;
+        if (strlen(path_to_display) == 0)
           path_to_display = "<No Path>";
-        }
 
-        /* Cut pathname if too long for the window */
-        /* FIX: Subtract 8 for padding to avoid overwriting right border (e.g.
-         * "[ ] " + path + border) */
-        int max_w = win_width - 8;
+        max_w = layout.win_width - VOLUME_MENU_ITEM_PATH_PADDING;
         CutPathname(display_buf, path_to_display, max_w);
-
         (void)snprintf(item_buf, sizeof(item_buf), "[%c] %s",
-                       (actual_idx == selected_index ? '*' : ' '), display_buf);
-        PaintVolumeRow(ctx, win, y_pos, win_width, item_buf,
-                       actual_idx == selected_index,
-                       vol_array[actual_idx] == ctx->active->vol);
+                       (actual_idx == snapshot.selected_index ? '*' : ' '),
+                       display_buf);
+        PaintVolumeRow(ctx, win, y_pos, layout.win_width, item_buf,
+                       actual_idx == snapshot.selected_index,
+                       snapshot.vol_array[actual_idx] == ctx->active->vol);
       }
       wrefresh(win);
 
       ch = WGetch(ctx, win);
 
-      if (ctx && ctx->resize_request) {
+      if (ctx->resize_request) {
         (void)AppStateClearResizeRequest(ctx);
         ReCreateWindows(ctx);
         DisplayMenu(ctx);
@@ -338,21 +387,23 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         (void)ShowVolumeHelpPopup(ctx);
         break;
       case KEY_UP:
-        selected_index--;
-        if (selected_index < 0) {
-          selected_index = num_volumes - 1;
-          scroll_offset = MAXIMUM(0, num_volumes - visible_lines);
-        } else if (selected_index < scroll_offset) {
-          scroll_offset--;
+        snapshot.selected_index--;
+        if (snapshot.selected_index < 0) {
+          snapshot.selected_index = snapshot.num_volumes - 1;
+          layout.scroll_offset =
+              MAXIMUM(0, snapshot.num_volumes - layout.visible_lines);
+        } else if (snapshot.selected_index < layout.scroll_offset) {
+          layout.scroll_offset--;
         }
         break;
       case KEY_DOWN:
-        selected_index++;
-        if (selected_index >= num_volumes) {
-          selected_index = 0;
-          scroll_offset = 0;
-        } else if (selected_index >= scroll_offset + visible_lines) {
-          scroll_offset++;
+        snapshot.selected_index++;
+        if (snapshot.selected_index >= snapshot.num_volumes) {
+          snapshot.selected_index = 0;
+          layout.scroll_offset = 0;
+        } else if (snapshot.selected_index >=
+                   layout.scroll_offset + layout.visible_lines) {
+          layout.scroll_offset++;
         }
         break;
       case LF:
@@ -372,29 +423,29 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       case KEY_DC: // Delete key
         if (return_key) {
           *return_key = ch;
-          if (vol_array)
-            free(vol_array);
+          if (snapshot.vol_array)
+            free(snapshot.vol_array);
           if (win)
             UI_Dialog_Close(ctx, win);
           curs_set(1);
-          return selected_index;
+          return snapshot.selected_index;
         }
 
-        if (num_volumes <= 1) {
+        if (snapshot.num_volumes <= 1) {
           UI_Message(ctx, "Cannot release the last volume.");
           // No need to redraw, loop will do it.
           break; // break from switch, loop continues to redraw
         }
 
         if (InputChoice(ctx, "Release this volume? (Y/N)", "YN\033") == 'Y') {
-          struct Volume *target_vol = vol_array[selected_index];
+          struct Volume *target_vol = snapshot.vol_array[snapshot.selected_index];
 
           if (target_vol == ctx->active->vol) {
             /* Scenario A: Deleting Current Volume */
             /* Find a neighbor to switch to */
             // If selected is 0, try 1. Otherwise, try 0.
-            int neighbor_idx = (selected_index == 0) ? 1 : 0;
-            struct Volume *neighbor = vol_array[neighbor_idx];
+            int neighbor_idx = (snapshot.selected_index == 0) ? 1 : 0;
+            struct Volume *neighbor = snapshot.vol_array[neighbor_idx];
 
             /* Verify neighbor accessibility before switching */
             // This logic is similar to  LogDisk, but for a neighbor.
@@ -464,10 +515,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
           /* Rebuild global list if we just switched or modified
            * ctx->active->vol indirectly */
-          {
-            int dummy;
-            BuildDirEntryList(ctx, ctx->active->vol, &dummy);
-          }
+          RefreshActiveVolumeSelection(ctx);
         }
         break; // break from switch, loop continues to redraw (if not
                // restart_menu)
@@ -478,9 +526,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     }
 
     /* 5. Cleanup inside loop before potentially restarting */
-    if (vol_array) {
-      free(vol_array);
-      vol_array = NULL;
+    if (snapshot.vol_array) {
+      free(snapshot.vol_array);
+      snapshot.vol_array = NULL;
     }
     if (win) {
       UI_Dialog_Close(ctx, win);
@@ -493,56 +541,48 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
   curs_set(1); /* Restore cursor */
 
   if (result == 0) {
-    /* We need to rebuild vol_array one last time to get the target volume
-       pointer because we freed it inside the loop. However, since we just
-       exited the loop, we don't have the array anymore. BUT: selected_index
-       refers to the index in the *last displayed* list. We need to reconstruct
-       the list to map index to pointer again safely.
-    */
+    struct Volume *s;
+    struct Volume *tmp;
+    struct Volume **vol_array = NULL;
+    struct Volume *target_vol;
+    int dummy = 0;
+    int num_volumes;
+    int i;
+
+    if (!ctx->active || !ctx->active->vol)
+      return -1;
 
     num_volumes = HASH_COUNT(ctx->volumes_head);
-    if (num_volumes > 0) {
-      vol_array =
-          (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
-      i = 0;
-      HASH_ITER(hh, ctx->volumes_head, s, tmp) { vol_array[i++] = s; }
+    if (num_volumes <= 0)
+      return -1;
 
-      /* Ensure index is still valid */
-      if (selected_index >= num_volumes)
-        selected_index = num_volumes - 1;
-      if (selected_index < 0)
-        selected_index = 0;
+    vol_array = (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
+    i = 0;
+    HASH_ITER(hh, ctx->volumes_head, s, tmp) { vol_array[i++] = s; }
 
-      struct Volume *target_vol = vol_array[selected_index];
-      if (target_vol != ctx->active->vol) {
-        int login_result =
-            LogDisk(ctx, ctx->active, target_vol->vol_stats.log_path);
-        EnsurePanelsReferenceActiveVolume(ctx);
-        free(vol_array);
-        return login_result;
-      }
+    if (snapshot.selected_index >= num_volumes)
+      snapshot.selected_index = num_volumes - 1;
+    if (snapshot.selected_index < 0)
+      snapshot.selected_index = 0;
 
-      free(vol_array);
-      /* Already on selected volume: preserve existing in-memory state. */
-      {
-        int dummy;
-        BuildDirEntryList(ctx, ctx->active->vol, &dummy);
-      }
+    target_vol = vol_array[snapshot.selected_index];
+    if (target_vol != ctx->active->vol) {
+      result = LogDisk(ctx, ctx->active, target_vol->vol_stats.log_path);
       EnsurePanelsReferenceActiveVolume(ctx);
-      return 0;
+      free(vol_array);
+      return result;
     }
+
+    free(vol_array);
+    BuildDirEntryList(ctx, ctx->active->vol, &dummy);
+    EnsurePanelsReferenceActiveVolume(ctx);
+    return 0;
   }
 
   // If changes were made (volumes deleted), return 0 to force main loop to
   // refresh. Otherwise, return original result (0 for switch, -1 for cancel).
   if (changes_made) {
-    /* Ensure main loop has a valid list if we deleted something but didn't
-     * switch via  LogDisk */
-    {
-      int dummy;
-      BuildDirEntryList(ctx, ctx->active->vol, &dummy);
-    }
-    EnsurePanelsReferenceActiveVolume(ctx);
+    RefreshActiveVolumeSelection(ctx);
     return 0;
   }
 

@@ -80,12 +80,51 @@ def _assert_command_strip_uses_full_label_model(source, array_name, labels):
 def test_f2_footer_uses_required_theme_command_strip():
     source = _read("src/ui/f2_picker.c")
 
-    assert _command_strip_text(source, "f2_command_strip") == "(L)og  (<)/(>) cycle"
+    assert (
+        _command_strip_text(source, "f2_command_strip")
+        == "(F1) help  (L)og  (<)/(>) cycle  (`) dotfiles"
+    )
+    assert _command_strip_text(source, "f2_context_command_strip") == "(Enter) select  (Esc) cancel"
     _assert_command_strip_uses_full_label_model(
-        source, "f2_command_strip", ("Log", "cycle")
+        source, "f2_command_strip", ("help", "Log", "cycle", "dotfiles")
+    )
+    _assert_command_strip_uses_full_label_model(
+        source, "f2_context_command_strip", ("select", "cancel")
     )
     assert "UI_RenderCommandStrip" in source
     assert '"[ (L)og (< >) Cycle ]"' not in source
+    assert '"  ` dotfiles  "' not in source
+
+
+def test_history_dialog_uses_local_chooser_footer_order():
+    source = _read("src/ui/display.c")
+
+    assert (
+        _command_strip_text(source, "history_help_commands")
+        == "(F1) help  (D)elete  (P)in/unpin  (Enter) select  (Esc) cancel"
+    )
+    _assert_command_strip_uses_full_label_model(
+        source,
+        "history_help_commands",
+        ("help", "Delete", "Pin/unpin", "select", "cancel"),
+    )
+    assert "Up/Down" not in _command_strip_text(source, "history_help_commands")
+    assert "Left/Right" not in _command_strip_text(source, "history_help_commands")
+
+
+def test_mini_chooser_footers_are_left_aligned_inside_their_boxes():
+    display_source = _read("src/ui/display.c")
+    app_menu_source = _read("src/ui/application_menu.c")
+
+    assert "HISTORY_DIALOG_COMMAND_STRIP_X = 2" in display_source
+    assert "ctx->ctx_history_window, window_height - 1, HISTORY_DIALOG_COMMAND_STRIP_X" in (
+        display_source
+    )
+    assert "prompt_x = (window_width - prompt_width) / 2;" not in display_source
+
+    assert "APPLICATIONS_MENU_COMMAND_STRIP_X = 2" in app_menu_source
+    assert "win, win_height - 2, APPLICATIONS_MENU_COMMAND_STRIP_X," in app_menu_source
+    assert "(win_width - prompt_width) / 2" not in app_menu_source
 
 
 def test_command_strip_key_role_controls_color_styling():
@@ -224,10 +263,10 @@ def test_volume_menu_uses_required_theme_command_strip():
 
     assert (
         _command_strip_text(source, "volume_command_strip")
-        == "(Up)/(Down) select  (Enter) switch  (Esc) quit  (D)elete"
+        == "(F1) help  (D) release  (Enter) switch  (Esc) cancel"
     )
     _assert_command_strip_uses_full_label_model(
-        source, "volume_command_strip", ("select", "switch", "quit", "Delete")
+        source, "volume_command_strip", ("help", "release", "switch", "cancel")
     )
     assert "UI_RenderCommandStrip" in source
     assert "Use UP/DOWN to select" not in source
@@ -263,16 +302,16 @@ def test_help_surfaces_use_help_role():
     assert '"help_link_selection"' in theme_source
     assert '"help_box_lines"' in theme_source
     assert "ctx->ctx_menu_window, COLOR_PAIR(UI_ROLE_FOOTER)" in init_source
-    assert "UI_RenderCommandStrip(ctx->ctx_menu_window, y, prefix_width," in display_source
-    assert "typedef struct {" in display_source
-    assert "} HelpCommandStrip;" in display_source
     assert "static const UICommandStripCommand history_help_commands[]" in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, dir_help" not in display_source
     assert "PrintMenuOptions(ctx->ctx_menu_window, i, 0, file_help" not in display_source
-    assert "PrintSpecialString(ctx->ctx_menu_window, y, 0, (char *)strip->prefix," in display_source
-    assert "mvwaddstr(ctx->ctx_menu_window, y, 0, strip->prefix);" not in display_source
-    assert 'strncmp(strip->prefix, "9-4 ", 4) == 0' in display_source
-    assert 'PrintSpecialString(ctx->ctx_menu_window, y, 0, "9-4", UI_ROLE_KEYBIND);' in display_source
+    assert "DisplayBuiltInHelpLine" not in display_source
+    assert "UI_RenderCommandStrip(win, y, FOOTER_COMMAND_COLUMN, commands, command_count," in (
+        display_source
+    )
+    assert "ctx->ctx_history_window, window_height - 1, HISTORY_DIALOG_COMMAND_STRIP_X," in (
+        display_source
+    )
     assert "UI_ROLE_FOOTER, UI_ROLE_KEYBIND" in display_source
     assert 'GetProfileValue)(ctx, "DIR1")' not in display_source
     assert 'GetProfileValue)(ctx, "DIR2")' not in display_source
@@ -281,8 +320,6 @@ def test_help_surfaces_use_help_role():
     assert "COLOR_PAIR(CPAIR_HELP) | A_BOLD" not in display_source
     assert "COLOR_PAIR(color) | A_BOLD" not in display_source
     assert '(char *)"History   (P)in/unpin' not in display_source
-    assert 'static const HelpCommandStrip history_help_strip = {' in display_source
-    assert 'DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);' in display_source
     assert "Updated:" not in display_source
     assert "UI_ShowGeneratedContextHelp(ctx, spec->context_id, NULL, 0);" in compare_source
     assert "COLOR_PAIR(UI_ROLE_HELP)" in help_popup_source
@@ -302,8 +339,8 @@ def test_task_sixty_touched_surfaces_use_structured_command_strips():
     tagged_source = _read("src/ui/tagged_view.c")
     internal_view_source = _read("src/ui/view_internal.c")
 
-    assert "} HelpCommandStrip;" in display_source
-    assert "DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);" in display_source
+    assert "} HelpCommandStrip;" not in display_source
+    assert "DisplayBuiltInHelpLine(ctx, 0, &history_help_strip);" not in display_source
     assert "static const UICommandStripCommand compare_target_hint_commands[]" in (
         compare_source
     )
