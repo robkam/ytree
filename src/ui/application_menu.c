@@ -20,9 +20,13 @@ static const ApplicationMenuEntry kApplicationMenuEntries[] = {
 };
 
 static const UICommandStripCommand applications_menu_commands[] = {
-    {UI_COMMAND_LAYOUT_LABEL_FIRST, "Select", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Close", "Enter", "Esc"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Enter", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "edit", "E", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL},
 };
+
+enum { APPLICATIONS_MENU_COMMAND_STRIP_X = 2 };
 
 static int ShowApplicationsHelpPopup(ViewContext *ctx) {
   if (ctx == NULL)
@@ -62,16 +66,18 @@ static void PaintApplicationRow(const ViewContext *ctx, WINDOW *win, int y_pos,
 
 int UI_OpenApplicationsMenu(ViewContext *ctx) {
   WINDOW *win = NULL;
-  const DirEntry *dir_entry = NULL;
+  DirEntry *dir_entry = NULL;
+  const int entry_count =
+      (int)(sizeof(kApplicationMenuEntries) / sizeof(kApplicationMenuEntries[0]));
   size_t i;
   int selected_index = 0;
   int result = -1;
-  int prompt_width;
   int win_height;
   int win_width;
   int win_x;
   int win_y;
   int ch;
+  int scroll_offset;
   BOOL menu_active;
   BOOL restart_menu;
   const char title[] = "Applications";
@@ -87,9 +93,7 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
 
     restart_menu = FALSE;
     menu_active = TRUE;
-    prompt_width = UI_CommandStripVisualLength(
-        applications_menu_commands,
-        sizeof(applications_menu_commands) / sizeof(applications_menu_commands[0]));
+    scroll_offset = 0;
 
     for (i = 0; i < sizeof(kApplicationMenuEntries) / sizeof(kApplicationMenuEntries[0]);
          i++) {
@@ -99,12 +103,15 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
     }
 
     win_width = MAXIMUM((int)(strlen(title) + 4), max_label_len + 6);
-    win_width = MAXIMUM(win_width, prompt_width + 4);
+    win_width =
+        MAXIMUM(win_width, APPLICATIONS_MENU_COMMAND_STRIP_X + 2 +
+                               UI_CommandStripVisualLength(
+                                   applications_menu_commands,
+                                   sizeof(applications_menu_commands) /
+                                       sizeof(applications_menu_commands[0])));
     win_width = MINIMUM(win_width, COLS - ctx->layout.stats_width - 2);
 
-    win_height = (int)(sizeof(kApplicationMenuEntries) /
-                       sizeof(kApplicationMenuEntries[0])) +
-                 5;
+    win_height = entry_count + 5;
     win_height = MAXIMUM(win_height, 8);
     win_height = MINIMUM(win_height, ctx->layout.bottom_border_y);
 
@@ -115,14 +122,17 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
 
     visible_lines = win_height - 5;
     visible_lines = MAXIMUM(1, visible_lines);
-    if (selected_index >= (int)(sizeof(kApplicationMenuEntries) /
-                                sizeof(kApplicationMenuEntries[0]))) {
-      selected_index = (int)(sizeof(kApplicationMenuEntries) /
-                             sizeof(kApplicationMenuEntries[0])) -
-                       1;
-    }
+    if (selected_index >= entry_count)
+      selected_index = entry_count - 1;
     if (selected_index < 0)
       selected_index = 0;
+    if (selected_index >= visible_lines) {
+      scroll_offset = selected_index - visible_lines + 1;
+      if (scroll_offset > entry_count - visible_lines)
+        scroll_offset = entry_count - visible_lines;
+    }
+    if (scroll_offset < 0)
+      scroll_offset = 0;
 
     win = newwin(win_height, win_width, win_y, win_x);
     if (win == NULL)
@@ -144,24 +154,25 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
 #endif
       mvwprintw(win, 1, (win_width - (int)strlen(title)) / 2, "%s", title);
       UI_RenderCommandStrip(
-          win, win_height - 2, (win_width - prompt_width) / 2,
+          win, win_height - 2, APPLICATIONS_MENU_COMMAND_STRIP_X,
           applications_menu_commands,
           sizeof(applications_menu_commands) /
               sizeof(applications_menu_commands[0]),
           UI_ROLE_PICKER, UI_ROLE_KEYBIND);
 
-      for (i = 0; i < sizeof(kApplicationMenuEntries) / sizeof(kApplicationMenuEntries[0]) &&
-                  (int)i < visible_lines;
-           i++) {
+      for (i = 0; (int)i < visible_lines; i++) {
+        int actual_index = scroll_offset + (int)i;
         char item_buf[PATH_LENGTH + 1];
         int max_w = win_width - 4;
 
+        if (actual_index >= entry_count)
+          break;
         (void)snprintf(item_buf, sizeof(item_buf), "%s",
-                       kApplicationMenuEntries[i].label);
+                       kApplicationMenuEntries[actual_index].label);
         if ((int)strlen(item_buf) > max_w)
           item_buf[max_w] = '\0';
         PaintApplicationRow(ctx, win, 3 + (int)i, win_width, item_buf,
-                            (int)i == selected_index);
+                            actual_index == selected_index);
       }
 
       wrefresh(win);
@@ -182,22 +193,46 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
       case KEY_UP:
         selected_index--;
         if (selected_index < 0) {
-          selected_index =
-              (int)(sizeof(kApplicationMenuEntries) /
-                    sizeof(kApplicationMenuEntries[0])) -
-              1;
+          selected_index = entry_count - 1;
+          scroll_offset = MAXIMUM(0, entry_count - visible_lines);
         }
+        if (selected_index < scroll_offset)
+          scroll_offset--;
         break;
       case KEY_DOWN:
         selected_index++;
-        if (selected_index >=
-            (int)(sizeof(kApplicationMenuEntries) /
-                  sizeof(kApplicationMenuEntries[0]))) {
+        if (selected_index >= entry_count) {
           selected_index = 0;
+          scroll_offset = 0;
         }
+        if (selected_index >= scroll_offset + visible_lines)
+          scroll_offset++;
+        break;
+      case KEY_HOME:
+      case KEY_PPAGE:
+        selected_index = 0;
+        scroll_offset = 0;
+        break;
+      case KEY_END:
+      case KEY_NPAGE:
+        selected_index = entry_count - 1;
+        scroll_offset = MAXIMUM(0, entry_count - visible_lines);
+        break;
+      case 'E':
+      case 'e':
+        UI_EditCommandsCatalog(
+            ctx,
+            (ctx->active != NULL && ctx->active->vol != NULL)
+                ? GetSelectedDirEntry(ctx, ctx->active->vol)
+                : NULL);
+        restart_menu = TRUE;
+        menu_active = FALSE;
         break;
       case LF:
       case CR:
+        result = 0;
+        menu_active = FALSE;
+        break;
       case ESC:
       case 'q':
       case 'Q':

@@ -940,15 +940,15 @@ contexts: dialog.applications
 ```
 ### Contextual F1
 The applications menu lists configured application presets.
-In the current alpha it remains a lightweight shell for future launcher behavior.
+Use `Enter` to select the highlighted preset, `E` to edit the commands catalog that backs application presets, and `Esc` to cancel.
 ### Explainer links
 - [Navigation](topic:navigation)
 
 ### Long form
 #### Applications actions
 * **Select preset**: `Up` and `Down` move through the preset list.
-* **Accept preset**: `Enter` accepts the selected row.
-* **Cancel**: `Esc` closes the menu.
+* **Edit presets**: `E` opens the commands catalog so application presets can be changed without leaving the chooser family.
+* **Cancel menu**: `Esc` closes the placeholder chooser without selecting a preset.
 * **Current state**: The shipped Applications menu is still a lightweight placeholder surface, so treat it as a shell for future app-launch behavior.
 
 ## topic:f2-picker
@@ -958,15 +958,15 @@ contexts: dialog.f2-picker
 ```
 ### Contextual F1
 The F2 picker browses for a path or preset supported by the active prompt.
-It is a prompt helper, not a standalone mode.
+It is a prompt helper, not a standalone mode, and it also exposes local volume cycling, path logging, and dotfile toggles without leaving the prompt.
 ### Explainer links
 - [Navigation](topic:navigation)
 - [Command-line editing](topic:command-line-editing)
 
 ### Long form
-#### Picker actions
-* **Move**: `Up` and `Down` move through the visible directory rows.
-* **Expand**: `Right` expands the current directory one level, then moves into the first child when that level is already open.
-* **Collapse**: `Left` collapses the current directory, or moves to its parent when the current row is already closed.
-* **Accept**: `Enter` uses the highlighted directory for the calling prompt.
-* **Cancel**: `Esc` closes the picker without changing the prompt.
+#### F2 picker actions
+* **Move in the tree**: `Up`/`Down` move the selection, while `Left` and `Right` collapse, expand, or enter subtrees.
+* **Cycle loaded volumes**: `<` and `>` rotate through logged volumes in the picker.
+* **Log a new path**: `L` logs a new directory or volume without leaving the picker.
+* **Toggle dotfiles**: `` ` `` reuses the invoking view's dotfile visibility control inside the picker.
+* **Select or cancel**: `Enter` selects the highlighted directory and `Esc` cancels the picker.

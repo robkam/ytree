@@ -1,0 +1,62 @@
+Work item: docs/ROADMAP.md Task 27.3.3
+Title: Normalize Prompt-Aid Visibility, Chooser Labels, and F2 View-State Controls
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- Prompt and chooser surfaces advertise every supported local action, including help, history, browse, dotfile toggles, release/edit actions, and truthful Enter/Esc verbs where available.
+- Chooser/menu labels match the actual command behavior on the active surface.
+- Footer command strips follow the durable chooser convention now owned by `docs/SPECIFICATION.md`: `F1 help` first, truthful local actions in stable task-flow order, `Esc cancel` last, and generic chooser navigation omitted when it is only repetitive noise.
+- F2 browse/tree views inherit the current dotfile visibility state from the invoking view.
+- In F2 browse/tree views, the backtick command toggles dotfile visibility and the on-screen command strip advertises it.
+- Applications chooser exposes its edit action on-screen and supports the standard list-navigation keys (`Home`, `End`, `PgUp`, `PgDn`) alongside arrow navigation.
+- Focused regression coverage prevents prompt-aid mismatches, chooser-order drift, application-menu navigation gaps, and F2 view-state drift.
+
+Current repo state:
+- Active PR: https://github.com/robkam/ytreenova/pull/446
+- Active branch: `fix/picker-view-state-controls` tracking `origin/fix/picker-view-state-controls`.
+- Prior Task 27.3.2 relay residue was deleted before this batch because its PR had already merged and no active branch depended on it.
+- `docs/ROADMAP.md` carried the kept Task 27.3.3 expansion for F2 dotfile/view-state controls when this run started; this batch implemented against that kept text and now marks it completed.
+
+Chosen coherent work family for this batch:
+- Prompt/chooser command-surface truthfulness, durable footer-order convention, applications chooser navigation/edit surface fixes, and F2 dotfile visibility inheritance/toggle behavior.
+
+Explicit inventory reconciliation:
+1. Source-of-truth docs/trackers
+   - `docs/ROADMAP.md` Task 27.3.3 title/goal/scope/acceptance/status line [addressed: kept expanded task text retained, the chooser chrome rule was added to the acceptance text, and status marked completed]
+   - `docs/ai/PRIMARY_ACTION_AUDIT.md` rank-4 prompt-aid visibility / chooser wording row and remaining-batches table [addressed: chooser/app/picker rows now describe the normalized compliant state and the open-findings section no longer carries this family]
+   - `docs/SPECIFICATION.md` footer-order convention plus view-state/dotfile-visibility contract [addressed: chooser/footer ordering guidance now lives in the canonical context-help contract, including the standalone-vs-embedded chooser chrome rule and the mini-chooser left-alignment rule for embedded picker boxes]
+2. Prompt/chooser runtime owners
+   - `src/ui/input_line.c` prompt hint rendering and prompt-local help/history/browse strip composition [intentionally unchanged: audit confirmed existing prompt strip composition already advertised supported help/history/browse aids correctly]
+   - `src/ui/f2_picker.c` F2 command strip, F2 action handling, and F2 loop state [addressed: strip now renders help/log/cycle/dotfiles/select/cancel in the chooser order, preserves the required spacing between dotfiles and Enter select, highlights the backtick dotfiles mnemonic through the shared command-strip renderer, and preserves live hidden-toggle behavior]
+   - `src/ui/render_dir.c` F2 tree render-panel resolution and visibility filtering [addressed: F2 rendering now resolves the invoking panel for mode/formatting and applies panel-local hidden-file filtering against the target volume root]
+   - `src/ui/application_menu.c` application chooser command strip labels/help visibility plus edit/navigation behavior [addressed: strip now shows help/select/edit/cancel, `Home`/`End`/`PgUp`/`PgDn` work, `E` opens the commands catalog editor path, and the embedded chooser footer is left-aligned to the box padding]
+   - `src/ui/volume_menu.c` volume chooser command strip labels/help visibility [addressed: live strip is now a single help/release/switch/cancel row with the redundant generic nav hint removed]
+   - `src/ui/display.c` history dialog command strip labels/help visibility [addressed: history chooser help now renders inside the history box with the canonical help/delete/pin/select/cancel order, stays left-aligned to the box padding, and no longer overwrites the prompt footer]
+   - `src/ui/history_dialog.c` history local-action key surface used by the history strip/help pairing [addressed: history redraw now reserves the last row for the chooser footer, keeps the underlying prompt footer intact, and pages within the reduced visible row count]
+3. Help/runtime-help surfaces
+   - `etc/help/f1.en.md` contextual help for F2 picker and chooser wording [addressed: applications/F2 wording now matches the live select/edit/cancel semantics]
+   - `etc/help/f1.de.md` locale-parity topic text for the same chooser/help contexts [addressed]
+   - `etc/help/man.en.md` authored help/man parity for the same chooser/help contexts [addressed]
+   - `src/core/generated_help_topics.h` regenerated runtime help asset [addressed: regenerated via `make help-assets`]
+4. Direct regression surfaces
+   - `tests/test_command_strip_visibility.py` chooser/prompt command-strip visibility and wording checks [addressed: assertions now cover the normalized footer order and truthful chooser verbs]
+   - `tests/test_help_text_contract.py` contextual help wording parity for history/volume/applications/F2 surfaces [addressed: chooser wording now covers release/edit/select semantics]
+   - `tests/test_f2_vols.py` F2 picker interaction coverage for browse/tree controls [addressed: regression coverage now includes applications chooser navigation/edit and keeps the F2/selection bounds protections]
+   - `tests/test_panel_isolation.py` or adjacent F2/dotfile regression coverage if the visibility contract needs panel-local proof [intentionally unchanged: this batch proved the F2-specific drift directly in `tests/test_f2_vols.py`, while existing panel-isolation guards already cover the broader panel-local dotfile contract]
+5. Intentionally out-of-scope
+   - Attribute/date prompts in `src/ui/attr_actions.c` [intentionally unchanged: already handled by the completed attribute family]
+   - Multi-input target prompt families in `src/ui/interactions.c` and related copy/move prompts [deferred: separate remaining roadmap family with a different validation path]
+   - Output/export prompt chains in `src/ui/print_controller.c` [deferred: separate remaining roadmap family with a shared print/export owner boundary]
+
+Focused validation:
+- RED proof against committed HEAD via temporary worktree: `make && source /home/rob/ytreenova/.venv/bin/activate && pytest -q tests/test_command_strip_visibility.py::test_history_dialog_keeps_prompt_footer_and_uses_local_chooser_order tests/test_theme_ui_contract.py::test_history_dialog_uses_local_chooser_footer_order` -> failed before the history-footer fix because the prompt footer was overwritten and the old history strip text remained in `src/ui/display.c`
+- RED proof for the follow-up alignment/mnemonic contract: `source .venv/bin/activate && pytest -q tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_mini_chooser_footers_are_left_aligned_inside_their_boxes` -> failed before this follow-up because the F2 dotfiles entry was raw text and the history/applications strips were still centered in source
+- RED proof for the spacing follow-up: `source .venv/bin/activate && pytest -q tests/test_command_strip_visibility.py::test_f2_picker_shows_explicit_log_key` -> failed before the spacing fix because the live F2 footer rendered `` ` dotfilesEnter select `` with no separator between the command groups
+- `make`
+- `source .venv/bin/activate && pytest -q tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_history_dialog_uses_local_chooser_footer_order tests/test_theme_ui_contract.py::test_mini_chooser_footers_are_left_aligned_inside_their_boxes tests/test_command_strip_visibility.py::test_picker_menus_show_supported_actions_and_truthful_labels tests/test_command_strip_visibility.py::test_f2_picker_shows_explicit_log_key tests/test_command_strip_visibility.py::test_history_dialog_keeps_prompt_footer_and_uses_local_chooser_order tests/test_f2_vols.py::test_f9_applications_menu_navigation_keys_and_edit_action`
+- CI root-cause repro/fix: `source .venv/bin/activate && pytest -q tests/test_theme_ui_contract.py::test_help_surfaces_use_help_role tests/test_theme_ui_contract.py::test_task_sixty_touched_surfaces_use_structured_command_strips tests/test_theme_ui_contract.py::test_f2_footer_uses_required_theme_command_strip tests/test_theme_ui_contract.py::test_history_dialog_uses_local_chooser_footer_order tests/test_theme_ui_contract.py::test_mini_chooser_footers_are_left_aligned_inside_their_boxes tests/test_command_strip_visibility.py::test_f2_picker_shows_explicit_log_key`
+- CI root-cause regression sweep: `source .venv/bin/activate && pytest -q tests/test_theme_ui_contract.py`
+
+Closure status:
+- This Task 27.3.3 inventory is reconciled for the widened chooser/footer/applications-edit family, including the chooser chrome rule, the history-dialog footer-in-box correction, embedded mini-chooser left alignment, and the highlighted F2 dotfiles mnemonic, and is ready for the amended push.
+- Remaining Task 27 prompt-depth families are multi-input target prompts and output prompt compression because they have different owner and validation boundaries.
+- Current next action: amend, force-push, and restart PR validation on the updated chooser/footer batch.

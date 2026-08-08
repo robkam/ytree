@@ -47,33 +47,27 @@ This checklist is reusable internal guidance for auditing primary-action depth, 
 | Execute prompt family | `X`, `Ctrl-X` | `X -> command prompt -> Enter -> result` | 1 | 1 | Directory/File/Showall/Global/F7/Split: `X` | Syntax-bearing command prompt has prompt help and tagged rerun semantics. | Compliant baseline | `src/ui/interactions.c`, `src/ui/input_line.c` |
 | Create-archive prompt family | `Z` | `Z -> archive target prompt -> Enter -> result` | 1 | 1 | Directory/File/Showall/Global/F7/Split: `Z` | Tagged-first behavior is explained in-context; prompt is already shallow. | Compliant baseline | `src/ui/interactions.c` |
 | Jump prompt family | `/` | `/ -> jump prompt -> Enter -> result` | 1 | 1 | Any command surface with Jump: `/` | Direct list-jump path is shallow and already matches the target contract. | Compliant baseline | `src/ui/key_engine.c`, `src/ui/interactions.c` |
-| Volume chooser | `K` | `K -> Select Volume dialog -> Enter/D/Esc -> result` | 1 | 1 | Directory/File/Archive/Showall/Global/Split: `K` | Interaction depth is acceptable; wording still mixes `Delete` in-strip with `Release` in help/reference prose. | Visibility/label defect, not depth defect | `src/ui/volume_menu.c`, `src/ui/display.c` |
-| Applications chooser | `F9` | `F9 -> Applications dialog -> Enter/Esc -> result` | 1 | 1 | Any main/overlay surface with F9: `F9` | Depth is acceptable, but the command strip currently labels `Enter` and `Esc` together as `Close` even though `Enter` accepts a row. | Visibility/label defect, not depth defect | `src/ui/application_menu.c` |
+| Volume chooser | `K` | `K -> Select Volume dialog -> Enter/D/Esc -> result` | 1 | 1 | Directory/File/Archive/Showall/Global/Split: `K` | Interaction depth is acceptable; the chooser now uses the canonical help/release/switch/cancel footer order and keeps generic list navigation in F1 instead of the live strip. | Compliant chooser footer | `src/ui/volume_menu.c`, `src/ui/display.c` |
+| Applications chooser | `F9` | `F9 -> Applications dialog -> Enter/Esc -> result` | 1 | 1 | Any main/overlay surface with F9: `F9` | Depth is acceptable; the chooser now labels select/edit/cancel truthfully and supports `Home`/`End`/`PgUp`/`PgDn` alongside arrow navigation. | Compliant chooser surface | `src/ui/application_menu.c` |
 | History aid | `Up`, `Ctrl-P` | `prompt -> history dialog -> Enter/Esc -> same prompt` | 1 | 1 same-layer aid | While a history-backed prompt is open: `Up` | Same-layer aid by contract; dialog itself is shallow and help-complete. | Compliant aid | `src/ui/history_dialog.c`, `src/ui/input_line.c` |
-| F2 browse aid | `F2`, `Ctrl-F` | `prompt -> F2 picker -> Enter/Esc -> same prompt` | 1 | 1 same-layer aid | Compare target / destination prompts: `F2` | The picker is shallow, but its live strip currently hides `Up/Down/Left/Right/Enter/Esc`, which are all usable there. | Visibility defect on picker surface | `src/ui/f2_picker.c` |
+| F2 browse aid | `F2`, `Ctrl-F` | `prompt -> F2 picker -> Enter/Esc -> same prompt` | 1 | 1 same-layer aid | Compare target / destination prompts: `F2` | The picker is shallow and now shows its local help/log/cycle/dotfiles/select/cancel aids while leaving standard tree navigation to the shared chooser convention and F1 help. | Compliant picker aid | `src/ui/f2_picker.c` |
 | F7 preview overlay | `F7` | `F7 -> preview overlay` | 0 | 1 overlay | File-like surfaces: `F7` | Overlay entry is direct; preview keeps its own restricted command surface and blocks `F8`/panel switching as documented. | Compliant baseline | `src/ui/view_preview.c`, `tests/test_f7_preview.py` |
 | F8 split toggle | `F8` | `F8 -> split layout` | 0 | 0 | Main dir/file/showall/global: `F8` | Entry is immediate; follow-up prompt defaults belong to later commands, not to the toggle itself. | Compliant baseline | `src/ui/split_transition.c` |
 | Showall / Global aggregate toggles | `S`, `G` | `key -> aggregate list` | 0 | 0 | Directory/File/Archive-Dir: `S` or `G` | Direct mode switch; no prompt-chain defect on entry. | Compliant baseline | `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c` |
 
 ## Prompt-surface correctness findings
 
-| Surface | Finding | Risk |
-| --- | --- | --- |
-| `dialog.f2-picker` | The live picker strip shows only `Log` and `cycle < >`, while `Up/Down/Left/Right/Enter/Esc` are the primary usable controls documented in help and tests. | Hidden usable commands on the active surface. |
-| `dialog.applications` | The strip renders `Close` for both `Enter` and `Esc`, but `Enter` actually accepts the highlighted row. | Misleading shown command label. |
-| `dialog.volume-menu` | The strip uses `Delete` for `D`, while help/reference prose describe the action as release/unload. | Action wording is harsher and less precise than the actual behavior. |
+No open findings remain in the prompt-aid visibility / chooser-label family after the footer-order normalization and applications-chooser navigation pass.
 ## Ranked remaining offender families
 
 | Rank | Family | Why it ranks here | Current chain | Proposed compression target | Likely docs/tests |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Output export prompt chain | Export is frequent and currently spans 3-4 layers before the final destination value. | `O -> format -> [separator] -> destination type -> destination` | One chooser plus one destination prompt, with format/destination extras folded into prompt-local toggles/defaults where safe. | `src/ui/print_controller.c`, `tests/test_print_feature.py`, help topics `output*` |
 | 3 | Multi-input target prompts (copy/move variants) | Common commands still traverse multiple target/name/destination surfaces and then add confirmation branches. | `copy/move -> name -> destination -> [confirm]` | Reconcile which steps are true exceptions and which can be combined or defaulted safely. | `src/ui/interactions.c`, `tests/test_destination_prompt.py`, `copy-move-targets` help |
-| 4 | Prompt-local aid visibility and chooser wording | Lower depth risk than output/attributes, but current active surfaces hide usable keys or name accepted actions imprecisely. | `F2/history/volume/apps` aid and chooser surfaces | Keep the existing shallow layers, but make the live surface advertise the real commands and outcome verbs. | `src/ui/f2_picker.c`, `src/ui/application_menu.c`, `src/ui/volume_menu.c` |
 
 ## Remaining remediation batches
 
 | Planned roadmap batch | Included family | Why it stays separate |
 | --- | --- | --- |
-| Prompt-aid visibility and chooser labels | Rank 4 | Mostly menu/picker/help-surface work with lighter runtime risk than output/attributes. |
 | Multi-input target prompt review | Rank 3 | Needs exception-rule decisions across copy/move/archive-style target prompts. |
 | Output prompt compression | Rank 1 | Shared print/export owner and its own prompt chain. |
