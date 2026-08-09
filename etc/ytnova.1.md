@@ -394,14 +394,14 @@ Then choose the final destination.
 ### Copy/Move Targets
 
 #### Target forms
-Use a directory path when you want the original names preserved under another directory.
 Use one full replacement name when you want one selected item to land under a new explicit name.
-Use a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.
+Use a wildcard rename pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.
+Use the second `To Directory:` prompt when you want to choose where the result lands, whether by typing a path directly or by using `F2` browse/history there.
 
 #### Shared rules
-Tagged copy/move uses the same target syntax as single-item copy/move.
-Split mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.
-Archive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved.
+Tagged copy/move and pathcopy use the same two-step target flow as single-item copy/move.
+Split mode may seed the inactive-panel directory as the default `To Directory:` value, but you can still replace that default before the operation starts.
+Archive-backed copy/move keeps the same destination prompt model even when extraction or archive-aware paths are involved.
 ### List Jump
 
 #### Jump model

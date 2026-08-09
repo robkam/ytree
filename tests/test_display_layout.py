@@ -740,15 +740,9 @@ def test_sort_prompt_uses_full_footer_without_bleed(ytnova_binary, tmp_path):
     tui.quit()
 
 
-@pytest.mark.parametrize(
-    "action_key,new_name,confirm_text",
-    [
-        ("c", "dir_copy_out", "Copy directory now"),
-        ("v", "dir_move_out", "Move directory now"),
-    ],
-)
+@pytest.mark.parametrize(("action_key", "new_name"), [("c", "dir_copy_out"), ("v", "dir_move_out")])
 def test_dir_copy_move_keeps_full_frame_after_command(
-    ytnova_binary, tmp_path, action_key, new_name, confirm_text
+    ytnova_binary, tmp_path, action_key, new_name
 ):
     root = tmp_path / "dir_ops_frame"
     root.mkdir()
@@ -772,15 +766,15 @@ def test_dir_copy_move_keeps_full_frame_after_command(
     tui.child.expect("COPY:|MOVE:")
     tui.child.send("\x15")
     tui.child.send(f"{new_name}\r")
-    tui.child.expect("To Directory")
-    tui.child.send("\x15")
+    tui.child.expect("To Directory:", timeout=2.0)
     tui.child.send(".\r")
-    tui.child.expect(confirm_text)
-    tui.child.send("Y")
-    tui.send_keystroke("", wait=0.8)
 
     out_dir = root / new_name
-    assert out_dir.exists() and out_dir.is_dir()
+    assert tui.wait_for_condition(
+        lambda _lines: out_dir if out_dir.exists() and out_dir.is_dir() else False,
+        timeout=2.0,
+        poll_interval=0.05,
+    )
     assert (out_dir / "nested" / "payload.txt").exists()
     if action_key == "v":
         assert not src.exists()
@@ -813,7 +807,7 @@ def test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_co
     tui.child.expect("COPY:")
     tui.child.send("\x15")
     tui.child.send("copied_src\r")
-    tui.child.expect("To Directory")
+    tui.child.expect("To Directory:", timeout=2.0)
     tui.child.send("\x15")
     tui.child.send("./new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
@@ -879,12 +873,10 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     tui.child.expect("COPY:")
     tui.child.send("\x15")
     tui.child.send("copied_src\r")
-    tui.child.expect("To Directory")
+    tui.child.expect("To Directory:", timeout=2.0)
     tui.child.send("\x15")
     tui.child.send("./new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
-    tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
     tui.send_keystroke("", wait=0.8)
 
@@ -974,12 +966,10 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_
     tui.child.expect("COPY:")
     tui.child.send("\x15")
     tui.child.send("copied_src\r")
-    tui.child.expect("To Directory")
+    tui.child.expect("To Directory:", timeout=2.0)
     tui.child.send("\x15")
     tui.child.send("../target_bucket/new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
-    tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
     tui.send_keystroke("", wait=1.0)
 
@@ -1044,12 +1034,10 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytnova_binary, t
     tui.child.expect("COPY:")
     tui.child.send("\x15")
     tui.child.send("copied_src\r")
-    tui.child.expect("To Directory")
+    tui.child.expect("To Directory:", timeout=2.0)
     tui.child.send("\x15")
     tui.child.send("../target_bucket/new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
-    tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
     tui.send_keystroke("", wait=1.0)
 
@@ -1111,12 +1099,10 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytnova_binary, tm
     tui.child.expect("COPY:")
     tui.child.send("\x15")
     tui.child.send("copied_src\r")
-    tui.child.expect("To Directory")
+    tui.child.expect("To Directory:", timeout=2.0)
     tui.child.send("\x15")
     tui.child.send(f"{target_bucket}/new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
-    tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
     tui.child.send("Y")
     tui.send_keystroke("", wait=1.0)
 

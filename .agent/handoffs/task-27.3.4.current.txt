@@ -1,0 +1,64 @@
+Work item: docs/ROADMAP.md Task 27.3.4
+Title: Reconcile Multi-Input Target Prompt Families
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- Copy, move, and pathcopy keep the two-step `name -> destination` flow as an explicit exception to generic prompt-compression work.
+- Only real safety confirmations remain after those two prompts, such as overwrite/replace conflicts or creating a missing destination directory.
+- Spec, help text, and regression tests make that exception explicit.
+
+Current repo state included in this task by maintainer instruction:
+- deleted: .agent/handoffs/task-27.3.3.current.txt
+- modified: docs/ARCHITECTURE.md
+- modified: docs/BUGS.md
+- modified: docs/ROADMAP.md
+- modified: docs/SPECIFICATION.md
+- active branch at task start: main tracking origin/main with no active PR
+- latest related merged PR before this task: https://github.com/robkam/ytreenova/pull/446 merged on 2026-08-09
+
+Chosen coherent work family for this batch:
+- Restore and document copy/move/pathcopy as the explicit two-prompt exception, and fix shared prompt-help rendering so prompt-local `F1` hints do not duplicate.
+- Add the governing prompt-compression principle to the canonical docs so adjacent offender work, especially output/export, does not repeat the same less-intuitive merge mistake.
+
+Inventory reconciliation:
+1. Source-of-truth docs and trackers
+- docs/ROADMAP.md Task 27.3.4 title/goal/scope/acceptance/status line [addressed: goal and acceptance now state the restored `name -> destination` exception and the plain-language reason for it]
+- docs/ROADMAP.md Task 27.3.5 goal/acceptance wording [addressed: output/export is now explicitly guarded against less-intuitive prompt merges while still targeting redundant-layer removal]
+- docs/SPECIFICATION.md primary-action depth rules plus §4.6 copy/move/pathcopy prompt contract [addressed: prompt compression now explicitly removes bureaucracy rather than meaning, and the copy/move/pathcopy exception names why it stays split]
+- docs/ai/PRIMARY_ACTION_AUDIT.md multi-input target prompt rows plus output-export offender row [addressed: copy/move/pathcopy exceptions cite the same principle and the output family is now constrained not to collapse file-vs-hardcopy or format semantics into an opaque merged prompt]
+- docs/ARCHITECTURE.md and docs/BUGS.md pre-existing maintainer-carried dirty state [intentionally unchanged: out of scope for this family]
+2. Runtime prompt owners and adjacent call paths
+- src/ui/interactions.c: GetCopyParameter, GetMoveParameter, GetDestinationDirectoryParameter, UI_EnsureCopyMoveDestinationDirectory [addressed: name prompt first, destination prompt second, then only real safety confirmations]
+- src/ui/ctrl_file_ops.c single/tagged/pathcopy dispatch using the shared prompt path [addressed via shared prompt restoration]
+- src/ui/ctrl_dir.c directory copy/move confirmation path [addressed: blanket post-target confirmation stays removed while overwrite/create safeguards remain]
+- include/ytnova_ui.h and src/ui/input_line.c prompt history/help plumbing [addressed: removed failed one-prompt history hook and guarded shared hint rendering against duplicate `F1 help`]
+- src/util/string_utils.c wildcard/name expansion [intentionally unchanged: existing rename-pattern handling remained correct]
+- src/cmd/copy.c and src/cmd/move.c overwrite/create safety paths [intentionally unchanged: these remain the owning safety confirms]
+3. Help and generated-help surfaces
+- etc/help/f1.en.md Copy/Move Targets topic [addressed: first visible contextual help now says full replacement name first, destination directory second, and only real safety confirms may follow]
+- etc/help/man.en.md corresponding authored help topic [addressed]
+- src/core/generated_help_topics.h [addressed via `make help-assets`]
+- docs/USAGE.md and etc/ytnova.1.md generated projections [addressed via `make help-assets`]
+4. Direct regression surfaces
+- tests/test_destination_prompt.py [addressed: two-step expectations restored across copy/move/pathcopy flows]
+- tests/test_display_layout.py [addressed: directory-copy layout flows again expect name prompt then `To Directory:`]
+- tests/test_fileops_integrity.py [addressed: copy/move integrity flows use the restored two-prompt contract]
+- tests/test_archive_write_parity.py [addressed: archive copy/move parity helpers now drive the restored `name -> destination` prompt contract instead of the removed merged-path entry]
+- tests/test_archive_ui.py [addressed: split copy-to-archive regression now accepts the restored destination prompt instead of assuming immediate completion after the name prompt]
+- tests/test_core.py [addressed: simple copy/move smoke tests now provide the second destination prompt explicitly]
+- tests/test_help_text_contract.py [addressed: copy prompt help now proves no duplicate `F1 help`, no `F2 browse` on the name prompt, and the documented name-then-destination exception]
+- tests/test_attribute_prompt_flow.py [addressed: inline date prompt also checked for duplicate-`F1 help` regression]
+- tests/test_help_generator.py [addressed: generated help projection stays synchronized]
+5. Adjacent surfaces to reconcile before closure
+- split/inactive-panel destination seeding [addressed: destination prompt still seeds from the inactive panel]
+- tagged variants and pathcopy [addressed: shared prompt path preserved]
+- archive-aware copy/move help and prompt contract [intentionally unchanged in runtime, documented and covered through shared help/topic contract]
+
+Focused validation:
+- RED before runtime restore: `source .venv/bin/activate && pytest -q tests/test_destination_prompt.py tests/test_display_layout.py::test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_corruption tests/test_display_layout.py::test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame tests/test_display_layout.py::test_dir_copy_absolute_destination_refreshes_without_relog tests/test_fileops_integrity.py::test_copy_mutation_updates_only_destination_hashes tests/test_fileops_integrity.py::test_move_mutation_rehomes_hash_without_corrupting_payload tests/test_help_text_contract.py::test_copy_prompt_f1_help_describes_name_then_destination_exception`
+- `make clean && make help-assets && make -j4`
+- GREEN: `source .venv/bin/activate && pytest -q tests/test_destination_prompt.py tests/test_display_layout.py::test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_corruption tests/test_display_layout.py::test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame tests/test_display_layout.py::test_dir_copy_absolute_destination_refreshes_without_relog tests/test_fileops_integrity.py::test_copy_mutation_updates_only_destination_hashes tests/test_fileops_integrity.py::test_move_mutation_rehomes_hash_without_corrupting_payload tests/test_help_text_contract.py::test_copy_prompt_f1_help_describes_name_then_destination_exception tests/test_help_text_contract.py::test_main_f1_help_tracks_directory_file_preview_and_split_contexts tests/test_help_generator.py::test_help_generator_renders_runtime_topics_and_usage_projection tests/test_attribute_prompt_flow.py::test_attribute_date_prompt_skips_field_chooser_and_advertises_help`
+
+Closure status:
+- This Task 27.3.4 inventory is reconciled for the restored two-prompt exception.
+- Remaining Task 27.3 runtime work outside this family is output/export prompt compression only; its roadmap/audit wording is now pre-tightened, but the runtime owner boundary and validation path still keep it separate.
+- Current next action: amend the active copy/move/pathcopy exception PR with the principle/27.3.5 guardrail wording, push the new head, and resume CI polling.

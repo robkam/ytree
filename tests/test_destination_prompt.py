@@ -67,6 +67,33 @@ def test_file_copy_missing_destination_yes_creates_directory_and_copies(
     assert copied.read_text(encoding="utf-8") == "alpha payload"
 
 
+def test_file_copy_name_then_destination_creates_missing_destination(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "file_copy_name_then_destination"
+    root.mkdir()
+    (root / "alpha.txt").write_text("alpha payload", encoding="utf-8")
+    copied = root / "new_parent" / "alpha_copy.txt"
+
+    controller = YtreeNovaController(ytnova_binary, str(root))
+    try:
+        controller.wait_for_startup()
+        _start_file_copy(controller, "alpha.txt", "alpha_copy.txt", copied.parent)
+
+        _expect_missing_destination_prompt(controller.child, copied.parent)
+
+        controller.child.send(Keys.CONFIRM_YES)
+        created = controller.wait_for_condition(
+            lambda _lines: copied if copied.exists() else False,
+            timeout=2.0,
+        )
+        assert created, _screen_text(controller.get_screen_dump())
+    finally:
+        controller.quit()
+
+    assert copied.read_text(encoding="utf-8") == "alpha payload"
+
+
 @pytest.mark.parametrize("decline_key", [Keys.CONFIRM_NO, Keys.ESC])
 def test_file_move_missing_destination_decline_reopens_directory_prompt(
     ytnova_binary, tmp_path, decline_key
@@ -92,6 +119,34 @@ def test_file_move_missing_destination_decline_reopens_directory_prompt(
 
     assert (root / "beta.txt").exists()
     assert not destination.exists()
+
+
+def test_file_move_name_then_destination_creates_missing_destination(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "file_move_name_then_destination"
+    root.mkdir()
+    (root / "beta.txt").write_text("beta payload", encoding="utf-8")
+    moved = root / "new_parent" / "beta_moved.txt"
+
+    controller = YtreeNovaController(ytnova_binary, str(root))
+    try:
+        controller.wait_for_startup()
+        _start_file_move(controller, "beta.txt", "beta_moved.txt", moved.parent)
+
+        _expect_missing_destination_prompt(controller.child, moved.parent)
+
+        controller.child.send(Keys.CONFIRM_YES)
+        moved_path = controller.wait_for_condition(
+            lambda _lines: moved if moved.exists() else False,
+            timeout=2.0,
+        )
+        assert moved_path, _screen_text(controller.get_screen_dump())
+    finally:
+        controller.quit()
+
+    assert moved.read_text(encoding="utf-8") == "beta payload"
+    assert not (root / "beta.txt").exists()
 
 
 def test_file_move_missing_destination_creation_failure_reports_error_and_aborts(
@@ -152,15 +207,58 @@ def test_directory_copy_missing_destination_yes_creates_directory_before_copy(
         assert lines, _screen_text(tui.get_screen_dump())
 
         tui.child.send("\x15copied_src\r")
-        assert tui.wait_for_text("To Directory", timeout=1.5), _screen_text(tui.get_screen_dump())
+        assert tui.wait_for_text("To Directory", timeout=1.5), _screen_text(
+            tui.get_screen_dump()
+        )
         tui.child.send("\x15./new_parent\r")
 
         _expect_missing_destination_prompt(tui.child, destination)
 
         tui.child.send("y")
-        assert tui.wait_for_text("Copy directory now", timeout=2.0), _screen_text(tui.get_screen_dump())
-        tui.child.send("y")
 
+        created = tui.wait_for_condition(
+            lambda _screen: copied if copied.exists() else False,
+            timeout=2.0,
+        )
+        assert created, _screen_text(tui.get_screen_dump())
+    finally:
+        tui.quit()
+
+    assert copied.read_text(encoding="utf-8") == "payload"
+
+
+def test_directory_copy_name_then_destination_runs_without_extra_operation_confirmation(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "dir_copy_name_then_destination"
+    root.mkdir()
+    src = root / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("payload", encoding="utf-8")
+    copied = root / "new_parent" / "copied_src" / "nested" / "payload.txt"
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        assert tui.wait_for_text("src_dir", timeout=2.0), _screen_text(tui.get_screen_dump())
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
+
+        lines = tui.send_and_wait_for_condition(
+            "c",
+            lambda screen: screen if "COPY:" in _screen_text(screen) else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui.get_screen_dump())
+
+        tui.child.send("\x15copied_src\r")
+        assert tui.wait_for_text("To Directory", timeout=1.5), _screen_text(
+            tui.get_screen_dump()
+        )
+        tui.child.send("\x15./new_parent\r")
+
+        tui.child.expect(r"Create missing directory\? \(y/N\)", timeout=2.0)
+
+        tui.child.send("y")
         created = tui.wait_for_condition(
             lambda _screen: copied if copied.exists() else False,
             timeout=2.0,

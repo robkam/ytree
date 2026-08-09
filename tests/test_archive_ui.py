@@ -760,7 +760,7 @@ def test_split_copy_to_archive_destination_uses_inactive_archive_panel(
         tui.child.expect(r"COPY:\s+b_source\.txt\s+AS:", timeout=2.0)
         tui.child.send("copied.txt\r")
         tui.child.expect("To Directory:", timeout=2.0)
-        tui.child.send("\r")
+        tui.child.send(Keys.ENTER)
 
         assert tui.wait_for_condition(
             lambda lines: lines

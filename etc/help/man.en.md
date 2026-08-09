@@ -186,11 +186,12 @@ Prompt-specific syntax and scope rules belong to the relevant command topic.
 ## topic:copy-move-targets
 ```ytnova-help-meta
 title: Copy/Move Targets
-contexts: none
+contexts: prompt.copy-move-target
 ```
 ### Contextual F1
-Copy and move prompts accept a destination directory, a full replacement name, or a wildcard rename pattern.
-Local mode pages own the triggering keys, tagged repeats, and any split/archive caveats.
+Two prompts: full replacement name or wildcard rename pattern first; destination directory second.
+Only real safety confirmations may follow: overwrite/replace or create-missing-directory.
+The local mode page still owns which key copies or moves; tagged and split/archive caveats stay there too.
 ### Explainer links
 - [Directory mode](topic:dir)
 - [File mode](topic:file)
@@ -199,14 +200,14 @@ Local mode pages own the triggering keys, tagged repeats, and any split/archive 
 
 ### Long form
 #### Target forms
-Use a directory path when you want the original names preserved under another directory.
 Use one full replacement name when you want one selected item to land under a new explicit name.
-Use a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.
+Use a wildcard rename pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.
+Use the second `To Directory:` prompt when you want to choose where the result lands, whether by typing a path directly or by using `F2` browse/history there.
 
 #### Shared rules
-Tagged copy/move uses the same target syntax as single-item copy/move.
-Split mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.
-Archive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved.
+Tagged copy/move and pathcopy use the same two-step target flow as single-item copy/move.
+Split mode may seed the inactive-panel directory as the default `To Directory:` value, but you can still replace that default before the operation starts.
+Archive-backed copy/move keeps the same destination prompt model even when extraction or archive-aware paths are involved.
 
 ## topic:vi-keys
 ```ytnova-help-meta

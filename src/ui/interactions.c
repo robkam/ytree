@@ -33,7 +33,8 @@ typedef enum {
   PROMPT_HELP_EXECUTE_DIRECTORY = 0,
   PROMPT_HELP_EXECUTE_FILE,
   PROMPT_HELP_SEARCH_TAGGED,
-  PROMPT_HELP_CREATE_ARCHIVE
+  PROMPT_HELP_CREATE_ARCHIVE,
+  PROMPT_HELP_COPY_MOVE_TARGET
 } PromptHelpTopic;
 
 static const UICommandStripCommand sort_by_commands[] = {
@@ -185,6 +186,9 @@ static void GetPromptHelpContext(PromptHelpTopic topic, const char **context_id)
     return;
 
   switch (topic) {
+  case PROMPT_HELP_COPY_MOVE_TARGET:
+    *context_id = "prompt.copy-move-target";
+    break;
   case PROMPT_HELP_EXECUTE_DIRECTORY:
     *context_id = "prompt.execute-dir";
     break;
@@ -298,6 +302,7 @@ void UI_CoreQuitShutdownTerminal(ViewContext *ctx) {
 int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                      char *to_dir) {
   char prompt_header[PATH_LENGTH + 50];
+  PromptHelpTopic help_topic = PROMPT_HELP_COPY_MOVE_TARGET;
 
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
@@ -311,8 +316,9 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
 
   ClearHelp(ctx);
 
-  if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
-                    HST_FILE) == CR) {
+  if (UI_ReadStringWithHelp(ctx, ctx->active, prompt_header, to_file,
+                            PATH_LENGTH, HST_FILE, NULL, 0,
+                            ShowPromptHelpCallback, &help_topic) == CR) {
     SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
     if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
       return 0;
@@ -324,6 +330,7 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
 int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
                      char *to_file, char *to_dir) {
   char prompt_header[PATH_LENGTH + 50];
+  PromptHelpTopic help_topic = PROMPT_HELP_COPY_MOVE_TARGET;
 
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
@@ -342,8 +349,9 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
 
   ClearHelp(ctx);
 
-  if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
-                    HST_FILE) == CR) {
+  if (UI_ReadStringWithHelp(ctx, ctx->active, prompt_header, to_file,
+                            PATH_LENGTH, HST_FILE, NULL, 0,
+                            ShowPromptHelpCallback, &help_topic) == CR) {
     SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
     if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
       return 0;

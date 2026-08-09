@@ -1048,6 +1048,33 @@ def test_picker_dialog_f1_help_covers_f2_dotfiles_and_local_actions(tmp_path):
         tui.quit()
 
 
+def test_copy_prompt_f1_help_describes_name_then_destination_exception(tmp_path):
+    root = _root_with_file(tmp_path, "integrated_help_copy_target_prompt")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        tui.send_keystroke(Keys.ENTER)
+        assert tui.wait_for_condition(
+            lambda lines: lines if any("file view" in line.lower() for line in lines[-3:]) else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), screen_text(tui)
+        tui.send_keystroke("c")
+        assert tui.wait_for_content("COPY:", timeout=1.0), screen_text(tui)
+        prompt_screen = screen_text(tui)
+        assert "F1 help  F1 help" not in prompt_screen, prompt_screen
+        assert "F1 help" in prompt_screen and "F2 browse" not in prompt_screen, prompt_screen
+
+        help_screen = _normalized_help_text(_wait_for_help(tui, "Copy/Move Targets"))
+        lower_help = help_screen.lower()
+        assert "destination directory" in lower_help, help_screen
+        assert "full replacement name" in lower_help, help_screen
+        assert "wildcard rename pattern" in lower_help, help_screen
+    finally:
+        tui.quit()
+
+
 def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
     root = tmp_path / "integrated_help_archive_contexts"
     root.mkdir()

@@ -552,6 +552,23 @@ static BOOL PromptSessionHandlePromptAction(PromptSession *session) {
   return TRUE;
 }
 
+static BOOL PromptHintsIncludeHelp(const UICommandStripCommand *hints,
+                                   size_t hint_count) {
+  size_t i;
+
+  if (hints == NULL || hint_count == 0)
+    return FALSE;
+
+  for (i = 0; i < hint_count; ++i) {
+    if (hints[i].primary_key != NULL &&
+        strcmp(hints[i].primary_key, "F1") == 0) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 static BOOL PromptSessionHandlePrintableKey(PromptSession *session) {
   int ch = session->ch;
 
@@ -700,7 +717,8 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
     field_width = COLS - prompt_len - 1;
     session.field_width = field_width;
 
-    if (session.help_callback != NULL) {
+    if (session.help_callback != NULL &&
+        !PromptHintsIncludeHelp(hints, hint_count)) {
       int hint_x = 1;
 
       hint_x += UI_RenderAdaptiveCommandStrip(

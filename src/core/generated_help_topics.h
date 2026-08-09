@@ -101,8 +101,8 @@ static const GeneratedHelpLink generated_help_links_copy_move_targets[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_copy_move_targets[] = {
-    {"Target forms", "Use a directory path when you want the original names preserved under another directory.\nUse one full replacement name when you want one selected item to land under a new explicit name.\nUse a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern."},
-    {"Shared rules", "Tagged copy/move uses the same target syntax as single-item copy/move.\nSplit mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.\nArchive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved."},
+    {"Target forms", "Use one full replacement name when you want one selected item to land under a new explicit name.\nUse a wildcard rename pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern.\nUse the second `To Directory:` prompt when you want to choose where the result lands, whether by typing a path directly or by using `F2` browse/history there."},
+    {"Shared rules", "Tagged copy/move and pathcopy use the same two-step target flow as single-item copy/move.\nSplit mode may seed the inactive-panel directory as the default `To Directory:` value, but you can still replace that default before the operation starts.\nArchive-backed copy/move keeps the same destination prompt model even when extraction or archive-aware paths are involved."},
 };
 
 static const GeneratedHelpLink generated_help_links_vi_keys[] = {
@@ -533,8 +533,8 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "copy-move-targets",
         "Copy/Move Targets",
-        NULL,
-        "Copy and move prompts accept a destination directory, a full replacement name, or a wildcard rename pattern.\nThe local mode page still owns which key copies or moves, which tagged repeat exists, and any split/archive caveat.",
+        "prompt.copy-move-target",
+        "Two prompts: full replacement name or wildcard rename pattern first; destination directory second.\nOnly real safety confirmations may follow: overwrite/replace or create-missing-directory.\nThe local mode page still owns which key copies or moves; tagged and split/archive caveats stay there too.",
         4,
         generated_help_links_copy_move_targets,
         2,

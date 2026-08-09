@@ -158,7 +158,6 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
   int cmd_res;
   DirEntry *anchor;
   DirEntry *source_entry = NULL;
-  const char *prompt;
 
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
     return dir_entry;
@@ -256,18 +255,6 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
   if (!BuildDirOpCommand(move_dir, quoted_src, quoted_dst, command_line,
                          sizeof(command_line))) {
     UI_ShowStatusLineError(ctx, "Command too long");
-    if (need_dsp_help)
-      *need_dsp_help = TRUE;
-    return dir_entry;
-  }
-
-  if (move_dir) {
-    prompt = "Move directory now (Y/N) ? ";
-  } else {
-    prompt = "Copy directory now (Y/N) ? ";
-  }
-
-  if (UI_ChoiceResolver(ctx, prompt, "YN\033") != 'Y') {
     if (need_dsp_help)
       *need_dsp_help = TRUE;
     return dir_entry;

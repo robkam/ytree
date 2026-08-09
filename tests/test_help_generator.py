@@ -42,6 +42,7 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert "**Attributes**: Open the attributes submenu." in manpage
     assert "### Filter Help" in manpage
     assert "### Copy/Move Targets" in manpage
+    assert "full target path" in manpage
     assert "### List Jump" in manpage
     assert "### Command-line Editing" in manpage
     assert "### F10 Config" in manpage

@@ -177,8 +177,6 @@ def test_copy_prompt_cancel_keeps_tree_snapshot_identical(ytnova_binary, tmp_pat
         controller.select_file("cancel.txt")
         controller.child.send(Keys.COPY)
         controller.child.expect("COPY")
-        controller.input_text("cancel_copy.txt")
-        controller.child.expect("To Directory")
         controller.child.send(Keys.ESC)
         time.sleep(0.4)
     finally:

@@ -66,11 +66,8 @@ def test_simple_copy(controller, sandbox):
 
     # 3. Input New Name
     yt.input_text("copy.txt")
-
-    # 4. Input Destination
-    # Updated to match src/cmd/copy.c: "To Directory:"
     yt.child.expect("To Directory")
-    yt.input_text("") # Accept current directory
+    yt.input_text(".")
 
     # 5. Verify
     assert (sandbox / "source" / "copy.txt").exists()
@@ -114,9 +111,6 @@ def test_move(controller, sandbox):
 
     # 3. Input New Name
     yt.input_text("moved.txt")
-
-    # 4. Input Destination
-    # Updated to match src/cmd/move.c: "To Directory:"
     yt.child.expect("To Directory")
     yt.input_text("../dest")
 

@@ -38,6 +38,7 @@ def _open_inline_date_prompt(tui, activation_key="d"):
     prompt_text = "\n".join(lines[-4:])
     assert "DATE FIELD:" not in "\n".join(lines), prompt_text
     hint_text = prompt_text.lower()
+    assert "f1 help  f1 help" not in hint_text, prompt_text
     assert "f1 help" in hint_text, prompt_text
     assert "f3 scope" in hint_text, prompt_text
     return lines

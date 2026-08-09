@@ -76,7 +76,7 @@ def _copy_selected_file(controller, new_name, to_dir):
     controller.child.send(Keys.COPY)
     controller.child.expect("COPY")
     controller.input_text(new_name)
-    controller.child.expect("To Directory")
+    controller.child.expect("To Directory:")
     controller.input_text(str(to_dir))
     time.sleep(0.7)
 
@@ -85,7 +85,7 @@ def _move_selected_file(controller, new_name, to_dir):
     controller.child.send(Keys.MOVE)
     controller.child.expect("MOVE")
     controller.input_text(new_name)
-    controller.child.expect("To Directory")
+    controller.child.expect("To Directory:")
     controller.input_text(str(to_dir))
     time.sleep(0.7)
 
