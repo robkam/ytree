@@ -34,5 +34,6 @@ int UI_Dialog_Push(WINDOW *win, UITier tier);
 int UI_Dialog_Pop(const WINDOW *win);
 void UI_Dialog_RefreshAll(ViewContext *ctx);
 void UI_Dialog_Close(ViewContext *ctx, WINDOW *win);
+void UI_Dialog_CloseNoRefresh(WINDOW *win);
 
 #endif /* YTNOVA_DIALOG_H */

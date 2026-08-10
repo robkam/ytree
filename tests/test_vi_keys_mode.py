@@ -1,3 +1,4 @@
+import io
 import time
 
 import pytest
@@ -43,7 +44,9 @@ def test_vi_uppercase_u_untags_all(ytnova_binary, vi_mode_test_dir):
     tui.quit()
 
 
-def test_vi_uppercase_d_deletes_tagged(ytnova_binary, vi_mode_test_dir):
+def test_vi_uppercase_d_deletes_tagged_after_single_confirmation(
+    ytnova_binary, vi_mode_test_dir
+):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(vi_mode_test_dir))
     time.sleep(1.0)
 
@@ -56,15 +59,28 @@ def test_vi_uppercase_d_deletes_tagged(ytnova_binary, vi_mode_test_dir):
     time.sleep(0.2)
 
     tui.send_keystroke("D")
-    time.sleep(0.2)
-
+    assert tui.wait_for_text("Delete 2 tagged files", timeout=1.5), "\n".join(
+        tui.get_screen_dump()
+    )
     prompt_screen = "\n".join(tui.get_screen_dump())
     assert "Delete 2 tagged files" in prompt_screen, prompt_screen
+    assert "Ask for confirmation for each file" not in prompt_screen, prompt_screen
 
-    tui.send_keystroke("y")
-    time.sleep(0.2)
-    tui.send_keystroke("n")
-    time.sleep(0.7)
+    raw_output = io.StringIO()
+    tui.child.logfile_read = raw_output
+    try:
+        tui.send_keystroke("y")
+        deleted = tui.wait_for_condition(
+            lambda _lines: (
+                not (vi_mode_test_dir / "a.txt").exists()
+                and not (vi_mode_test_dir / "b.txt").exists()
+            ),
+            timeout=2.0,
+        )
+        assert deleted, "\n".join(tui.get_screen_dump())
+        assert "Ask for confirmation for each file" not in raw_output.getvalue()
+    finally:
+        tui.child.logfile_read = None
 
     tui.quit()
 

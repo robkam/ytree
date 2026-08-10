@@ -151,12 +151,11 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
   int i;
   int start_file;
   int cursor_pos;
-  BOOL confirm_each = FALSE;
   int term;
   int start_x = 0;
   int result = 0;
   int tagged_count = 0;
-  int override_mode = 0; /* Auto-override mode for read-only files */
+  int override_mode = 0;
   char prompt_buffer[MESSAGE_LENGTH];
 
   /* 1. Count tagged files */
@@ -176,15 +175,6 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
   term = InputChoice(ctx, prompt_buffer, "YN\033");
   if (term != 'Y')
     return -1;
-
-  /* 3. Prompt for Mode (Confirm Each?) */
-  term =
-      InputChoice(ctx, "Ask for confirmation for each file (Y/N) ? ", "YN\033");
-  if (term == ESC)
-    return -1;
-  confirm_each = (term == 'Y') ? TRUE : FALSE;
-  if (!confirm_each)
-    override_mode = 1;
 
   if (baudrate() >= QUICK_BAUD_RATE)
     typeahead(0);
@@ -213,37 +203,23 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
       RefreshWindow(ctx->ctx_file_window);
       doupdate();
 
-      term = 'Y';
-      if (confirm_each) {
-        term = InputChoice(ctx, "Delete this file (Y/N) ? ", "YN\033");
-      }
+      /* Pass the override mode pointer to suppress read-only prompts if 'A'
+       * was selected previously on a real read-only safety prompt. */
+      if ((result = DeleteFile(ctx, fe_ptr, &override_mode, s,
+                               (ChoiceCallback)UI_ChoiceResolver)) == 0) {
+        /* File was deleted */
+        /*----------------------*/
 
-      if (term == ESC) {
-        if (baudrate() >= QUICK_BAUD_RATE)
-          typeahead(-1);
-        result = -1;
-        break;
-      }
+        deleted = TRUE;
 
-      if (term == 'Y') {
-        /* Pass the override mode pointer to suppress read-only prompts if 'A'
-         * was selected previously */
-        if ((result = DeleteFile(ctx, fe_ptr, &override_mode, s,
-                                 (ChoiceCallback)UI_ChoiceResolver)) == 0) {
-          /* File was deleted */
-          /*----------------------*/
+        if (de_ptr->global_flag)
+          DisplayDiskStatistic(ctx, s);
+        else
+          DisplayDirStatistic(ctx, de_ptr, NULL, s); /* Updated call */
 
-          deleted = TRUE;
+        DisplayAvailBytes(ctx, s);
 
-          if (de_ptr->global_flag)
-            DisplayDiskStatistic(ctx, s);
-          else
-            DisplayDirStatistic(ctx, de_ptr, NULL, s); /* Updated call */
-
-          DisplayAvailBytes(ctx, s);
-
-          FileList_RemoveFileEntry(ctx, start_file + cursor_pos);
-        }
+        FileList_RemoveFileEntry(ctx, start_file + cursor_pos);
       }
     }
     if (!deleted)

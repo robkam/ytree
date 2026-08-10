@@ -31,6 +31,16 @@ typedef struct {
   int result;
 } F2PickerLoopState;
 
+static void F2NormalizeSelectionForVisibility(
+    const YtreeNovaPanel *panel, const struct Volume *target_vol, int win_height,
+    int *disp_begin_pos, int *cursor_pos);
+static BOOL F2DirIsVisible(const YtreeNovaPanel *panel,
+                           const struct Volume *target_vol,
+                           const DirEntry *dir_entry);
+static int F2FindVisibleIndex(const YtreeNovaPanel *panel,
+                              const struct Volume *target_vol, int start_idx,
+                              int direction);
+
 static int F2VisibleRows(int win_height) {
   if (win_height <= 1)
     return 1;
@@ -47,46 +57,172 @@ static int F2ReadTreeDepth(ViewContext *ctx) {
   return read_depth;
 }
 
-static DirEntry *F2CurrentDir(struct Volume *target_vol, int disp_begin_pos,
+static int F2ResolveSelectionIndex(const YtreeNovaPanel *panel,
+                                   const struct Volume *target_vol,
+                                   int disp_begin_pos, int cursor_pos) {
+  int index;
+  int step;
+
+  if (!panel || !target_vol || !target_vol->dir_entry_list ||
+      target_vol->total_dirs <= 0)
+    return -1;
+
+  index = F2FindVisibleIndex(panel, target_vol, disp_begin_pos, 1);
+  if (index < 0)
+    index = F2FindVisibleIndex(panel, target_vol, 0, 1);
+  if (index < 0)
+    return -1;
+
+  for (step = 0; step < cursor_pos; ++step) {
+    int next_index = F2FindVisibleIndex(panel, target_vol, index + 1, 1);
+    if (next_index < 0)
+      break;
+    index = next_index;
+  }
+
+  return index;
+}
+
+static int F2VisibleRowOffset(const YtreeNovaPanel *panel,
+                              const struct Volume *target_vol, int start_idx,
+                              int target_idx, int visible_rows) {
+  int index;
+  int row;
+
+  if (!panel || !target_vol || !target_vol->dir_entry_list || visible_rows < 1)
+    return -1;
+
+  index = F2FindVisibleIndex(panel, target_vol, start_idx, 1);
+  if (index < 0)
+    return -1;
+
+  for (row = 0; row < visible_rows && index >= 0; ++row) {
+    if (index == target_idx)
+      return row;
+    index = F2FindVisibleIndex(panel, target_vol, index + 1, 1);
+  }
+
+  return -1;
+}
+
+static int F2BacktrackVisibleIndex(const YtreeNovaPanel *panel,
+                                   const struct Volume *target_vol,
+                                   int target_idx, int visible_steps) {
+  int index;
+  int step;
+
+  if (!panel || !target_vol || !target_vol->dir_entry_list || target_idx < 0 ||
+      target_idx >= target_vol->total_dirs)
+    return -1;
+
+  index = target_idx;
+  for (step = 0; step < visible_steps; ++step) {
+    int prev_index = F2FindVisibleIndex(panel, target_vol, index - 1, -1);
+    if (prev_index < 0)
+      break;
+    index = prev_index;
+  }
+
+  return index;
+}
+
+static DirEntry *F2CurrentDir(const YtreeNovaPanel *panel,
+                              struct Volume *target_vol, int disp_begin_pos,
                               int cursor_pos) {
   int index;
 
-  if (!target_vol || !target_vol->dir_entry_list || target_vol->total_dirs <= 0)
+  if (!panel || !target_vol || !target_vol->dir_entry_list ||
+      target_vol->total_dirs <= 0)
     return NULL;
 
-  index = disp_begin_pos + cursor_pos;
+  index = F2ResolveSelectionIndex(panel, target_vol, disp_begin_pos, cursor_pos);
   if (index < 0 || index >= target_vol->total_dirs)
     return NULL;
 
   return target_vol->dir_entry_list[index].dir_entry;
 }
 
-static BOOL F2PositionAtIndex(const struct Volume *target_vol, int target_index,
+static BOOL F2PositionAtIndex(const YtreeNovaPanel *panel,
+                              const struct Volume *target_vol, int target_index,
                               int win_height, int *disp_begin_pos,
                               int *cursor_pos) {
   int visible_rows;
+  int start_index;
+  int row;
 
-  if (!target_vol || !disp_begin_pos || !cursor_pos || target_index < 0 ||
-      target_index >= target_vol->total_dirs)
+  if (!panel || !target_vol || !disp_begin_pos || !cursor_pos ||
+      target_index < 0 || target_index >= target_vol->total_dirs ||
+      !F2DirIsVisible(panel, target_vol,
+                      target_vol->dir_entry_list[target_index].dir_entry))
     return FALSE;
 
   visible_rows = F2VisibleRows(win_height);
-  if (*disp_begin_pos < 0)
-    *disp_begin_pos = 0;
-  if (target_index < *disp_begin_pos) {
-    *disp_begin_pos = target_index;
-    *cursor_pos = 0;
-  } else if (target_index >= *disp_begin_pos + visible_rows) {
-    *disp_begin_pos = target_index - visible_rows + 1;
-    *cursor_pos = visible_rows - 1;
-  } else {
-    *cursor_pos = target_index - *disp_begin_pos;
+  if (visible_rows < 1)
+    visible_rows = 1;
+
+  start_index = F2FindVisibleIndex(panel, target_vol, *disp_begin_pos, 1);
+  if (start_index < 0)
+    start_index = F2FindVisibleIndex(panel, target_vol, 0, 1);
+  if (start_index < 0)
+    return FALSE;
+
+  row = F2VisibleRowOffset(panel, target_vol, start_index, target_index,
+                           visible_rows);
+  if (row >= 0) {
+    *disp_begin_pos = start_index;
+    *cursor_pos = row;
+    return TRUE;
   }
 
-  if (*disp_begin_pos < 0)
-    *disp_begin_pos = 0;
-  if (*cursor_pos < 0)
+  if (target_index < start_index) {
+    *disp_begin_pos = target_index;
     *cursor_pos = 0;
+    return TRUE;
+  }
+
+  start_index =
+      F2BacktrackVisibleIndex(panel, target_vol, target_index, visible_rows - 1);
+  if (start_index < 0)
+    return FALSE;
+
+  row = F2VisibleRowOffset(panel, target_vol, start_index, target_index,
+                           visible_rows);
+  if (row < 0)
+    return FALSE;
+
+  *disp_begin_pos = start_index;
+  *cursor_pos = row;
+  return TRUE;
+}
+
+static BOOL F2PositionAtIndexAnchored(const YtreeNovaPanel *panel,
+                                      const struct Volume *target_vol,
+                                      int target_index, int win_height,
+                                      int *disp_begin_pos, int *cursor_pos) {
+  int visible_rows;
+  int start_index;
+  int row;
+
+  if (!panel || !target_vol || !disp_begin_pos || !cursor_pos ||
+      target_index < 0 || target_index >= target_vol->total_dirs ||
+      !F2DirIsVisible(panel, target_vol,
+                      target_vol->dir_entry_list[target_index].dir_entry))
+    return FALSE;
+
+  visible_rows = F2VisibleRows(win_height);
+  if (visible_rows <= 1)
+    return F2PositionAtIndex(panel, target_vol, target_index, win_height,
+                             disp_begin_pos, cursor_pos);
+  start_index =
+      F2BacktrackVisibleIndex(panel, target_vol, target_index, visible_rows / 2);
+  if (start_index < 0)
+    return FALSE;
+  row = F2VisibleRowOffset(panel, target_vol, start_index, target_index,
+                           visible_rows);
+  if (row < 0)
+    return FALSE;
+  *disp_begin_pos = start_index;
+  *cursor_pos = row;
   return TRUE;
 }
 
@@ -135,9 +271,9 @@ static int F2FindVisibleIndex(const YtreeNovaPanel *panel,
   direction = (direction > 0) ? 1 : -1;
 
   if (start_idx < 0)
-    start_idx = (direction > 0) ? 0 : total_dirs - 1;
+    return -1;
   if (start_idx >= total_dirs)
-    start_idx = (direction > 0) ? total_dirs - 1 : 0;
+    return -1;
 
   for (idx = start_idx; idx >= 0 && idx < total_dirs; idx += direction) {
     if (F2DirIsVisible(panel, target_vol,
@@ -148,7 +284,8 @@ static int F2FindVisibleIndex(const YtreeNovaPanel *panel,
   return -1;
 }
 
-static BOOL F2PositionAtDir(const struct Volume *target_vol,
+static BOOL F2PositionAtDir(const YtreeNovaPanel *panel,
+                            const struct Volume *target_vol,
                             const DirEntry *target_dir, int win_height,
                             int *disp_begin_pos, int *cursor_pos) {
   int i;
@@ -158,16 +295,65 @@ static BOOL F2PositionAtDir(const struct Volume *target_vol,
 
   for (i = 0; i < target_vol->total_dirs; ++i) {
     if (target_vol->dir_entry_list[i].dir_entry == target_dir)
-      return F2PositionAtIndex(target_vol, i, win_height, disp_begin_pos,
+      return F2PositionAtIndex(panel, target_vol, i, win_height, disp_begin_pos,
                                cursor_pos);
   }
 
   return FALSE;
 }
 
-static BOOL F2ExpandCurrentDir(ViewContext *ctx, struct Volume *target_vol,
-                               int win_height, int *disp_begin_pos,
-                               int *cursor_pos) {
+static int F2ResolveAnchorIndex(const YtreeNovaPanel *panel,
+                                const struct Volume *target_vol) {
+  int current_index;
+  int visible_index;
+
+  if (!panel || !target_vol || !target_vol->dir_entry_list ||
+      target_vol->total_dirs <= 0)
+    return -1;
+
+  if (panel->vol != target_vol)
+    return F2FindVisibleIndex(panel, target_vol, 0, 1);
+
+  current_index = GetPanelVisibleSelectionIndex(panel);
+  if (current_index < 0)
+    current_index = F2FindVisibleIndex(panel, target_vol, 0, 1);
+
+  if (F2DirIsVisible(panel, target_vol,
+                     target_vol->dir_entry_list[current_index].dir_entry)) {
+    return current_index;
+  }
+
+  visible_index = F2FindVisibleIndex(panel, target_vol, current_index, 1);
+  if (visible_index < 0)
+    visible_index = F2FindVisibleIndex(panel, target_vol, current_index - 1, -1);
+  if (visible_index < 0)
+    visible_index = F2FindVisibleIndex(panel, target_vol, 0, 1);
+  return visible_index;
+}
+
+static void F2AnchorSelectionFromPanel(const YtreeNovaPanel *panel,
+                                       const struct Volume *target_vol,
+                                       int win_height, int *disp_begin_pos,
+                                       int *cursor_pos) {
+  int anchor_index;
+
+  if (!panel || !target_vol || !disp_begin_pos || !cursor_pos)
+    return;
+
+  anchor_index = F2ResolveAnchorIndex(panel, target_vol);
+  if (anchor_index >= 0 &&
+      F2PositionAtIndexAnchored(panel, target_vol, anchor_index, win_height,
+                                disp_begin_pos, cursor_pos)) {
+    return;
+  }
+
+  F2NormalizeSelectionForVisibility(panel, target_vol, win_height,
+                                    disp_begin_pos, cursor_pos);
+}
+
+static BOOL F2ExpandCurrentDir(ViewContext *ctx, const YtreeNovaPanel *panel,
+                               struct Volume *target_vol, int win_height,
+                               int *disp_begin_pos, int *cursor_pos) {
   DirEntry *selected;
   char selected_path[PATH_LENGTH + 1];
   int dummy_counter = 0;
@@ -176,12 +362,12 @@ static BOOL F2ExpandCurrentDir(ViewContext *ctx, struct Volume *target_vol,
   if (!ctx || !target_vol)
     return FALSE;
 
-  selected = F2CurrentDir(target_vol, *disp_begin_pos, *cursor_pos);
+  selected = F2CurrentDir(panel, target_vol, *disp_begin_pos, *cursor_pos);
   if (selected == NULL)
     return FALSE;
 
   if (!selected->not_scanned && selected->sub_tree != NULL)
-    return F2PositionAtDir(target_vol, selected->sub_tree, win_height,
+    return F2PositionAtDir(panel, target_vol, selected->sub_tree, win_height,
                            disp_begin_pos, cursor_pos);
 
   if (!selected->unlogged_flag &&
@@ -191,7 +377,7 @@ static BOOL F2ExpandCurrentDir(ViewContext *ctx, struct Volume *target_vol,
       return FALSE;
     BuildDirEntryList(ctx, target_vol, &dummy_counter);
     BuildDirEntryList(ctx, target_vol, &dummy_counter);
-    return F2PositionAtDir(target_vol, selected, win_height, disp_begin_pos,
+    return F2PositionAtDir(panel, target_vol, selected, win_height, disp_begin_pos,
                            cursor_pos);
   }
 
@@ -210,13 +396,13 @@ static BOOL F2ExpandCurrentDir(ViewContext *ctx, struct Volume *target_vol,
 
   BuildDirEntryList(ctx, target_vol, &dummy_counter);
   BuildDirEntryList(ctx, target_vol, &dummy_counter);
-  return F2PositionAtDir(target_vol, selected, win_height,
+  return F2PositionAtDir(panel, target_vol, selected, win_height,
                          disp_begin_pos, cursor_pos);
 }
 
-static BOOL F2CollapseCurrentDir(ViewContext *ctx, struct Volume *target_vol,
-                                 int win_height, int *disp_begin_pos,
-                                 int *cursor_pos) {
+static BOOL F2CollapseCurrentDir(ViewContext *ctx, const YtreeNovaPanel *panel,
+                                 struct Volume *target_vol, int win_height,
+                                 int *disp_begin_pos, int *cursor_pos) {
   DirEntry *selected;
   DirEntry *de_ptr;
   FileEntry *fe_ptr;
@@ -226,14 +412,14 @@ static BOOL F2CollapseCurrentDir(ViewContext *ctx, struct Volume *target_vol,
   if (!ctx || !target_vol)
     return FALSE;
 
-  selected = F2CurrentDir(target_vol, *disp_begin_pos, *cursor_pos);
+  selected = F2CurrentDir(panel, target_vol, *disp_begin_pos, *cursor_pos);
   if (selected == NULL)
     return FALSE;
 
   if (selected->not_scanned || selected->sub_tree == NULL) {
     if (selected->up_tree == NULL)
       return FALSE;
-    return F2PositionAtDir(target_vol, selected->up_tree, win_height,
+    return F2PositionAtDir(panel, target_vol, selected->up_tree, win_height,
                            disp_begin_pos, cursor_pos);
   }
 
@@ -250,7 +436,7 @@ static BOOL F2CollapseCurrentDir(ViewContext *ctx, struct Volume *target_vol,
 
   BuildDirEntryList(ctx, target_vol, &dummy_counter);
   BuildDirEntryList(ctx, target_vol, &dummy_counter);
-  return F2PositionAtDir(target_vol, selected, win_height, disp_begin_pos,
+  return F2PositionAtDir(panel, target_vol, selected, win_height, disp_begin_pos,
                          cursor_pos);
 }
 
@@ -311,16 +497,17 @@ static void F2NormalizeSelectionForVisibility(
   if (target_vol->total_dirs <= 0)
     return;
 
-  current_index = *disp_begin_pos + *cursor_pos;
+  current_index =
+      F2ResolveSelectionIndex(panel, target_vol, *disp_begin_pos, *cursor_pos);
   if (current_index < 0)
-    current_index = 0;
-  if (current_index >= target_vol->total_dirs)
-    current_index = target_vol->total_dirs - 1;
+    current_index = F2FindVisibleIndex(panel, target_vol, 0, 1);
+  if (current_index < 0)
+    return;
 
   if (F2DirIsVisible(panel, target_vol,
                      target_vol->dir_entry_list[current_index].dir_entry)) {
-    (void)F2PositionAtIndex(target_vol, current_index, win_height, disp_begin_pos,
-                            cursor_pos);
+    (void)F2PositionAtIndex(panel, target_vol, current_index, win_height,
+                            disp_begin_pos, cursor_pos);
     return;
   }
 
@@ -330,14 +517,24 @@ static void F2NormalizeSelectionForVisibility(
   if (visible_index < 0)
     visible_index = F2FindVisibleIndex(panel, target_vol, 0, 1);
   if (visible_index >= 0)
-    (void)F2PositionAtIndex(target_vol, visible_index, win_height, disp_begin_pos,
-                            cursor_pos);
+    (void)F2PositionAtIndex(panel, target_vol, visible_index, win_height,
+                            disp_begin_pos, cursor_pos);
 }
 
-static void F2DisplayTreeAt(ViewContext *ctx, struct Volume *target_vol,
-                            int disp_begin_pos, int cursor_pos) {
+static void F2DisplayTreeAt(ViewContext *ctx, const YtreeNovaPanel *panel,
+                            struct Volume *target_vol, int disp_begin_pos,
+                            int cursor_pos) {
+  int current_index;
+
+  current_index =
+      F2ResolveSelectionIndex(panel, target_vol, disp_begin_pos, cursor_pos);
+  if (current_index < 0)
+    current_index = F2FindVisibleIndex(panel, target_vol, disp_begin_pos, 1);
+  if (current_index < 0)
+    current_index = 0;
+
   DisplayTree(ctx, target_vol, ctx->ctx_f2_window, disp_begin_pos,
-              disp_begin_pos + cursor_pos, TRUE);
+              current_index, TRUE);
 }
 
 static void F2RedrawMainWindows(ViewContext *ctx) {
@@ -373,12 +570,11 @@ static BOOL F2CycleVolume(ViewContext *ctx, YtreeNovaPanel *panel, int direction
   state->disp_begin_pos = panel->disp_begin_pos;
   state->cursor_pos = panel->cursor_pos;
   BuildDirEntryList(ctx, state->target_vol, &dummy);
-  F2NormalizeSelectionForVisibility(panel, state->target_vol, state->win_height,
-                                    &state->disp_begin_pos,
-                                    &state->cursor_pos);
+  F2AnchorSelectionFromPanel(panel, state->target_vol, state->win_height,
+                             &state->disp_begin_pos, &state->cursor_pos);
   F2RedrawMainWindows(ctx);
   MapF2Window(ctx);
-  F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+  F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                   state->cursor_pos);
   return TRUE;
 }
@@ -394,7 +590,13 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
     return FALSE;
 
   visible_rows = F2VisibleRows(state->win_height);
-  current_idx = state->disp_begin_pos + state->cursor_pos;
+  current_idx = F2ResolveSelectionIndex(panel, state->target_vol,
+                                        state->disp_begin_pos,
+                                        state->cursor_pos);
+  if (current_idx < 0)
+    current_idx = F2FindVisibleIndex(panel, state->target_vol, 0, 1);
+  if (current_idx < 0)
+    return TRUE;
 
   switch (action) {
   case ACTION_MOVE_DOWN:
@@ -402,10 +604,11 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
         F2FindVisibleIndex(panel, state->target_vol, current_idx + 1, 1);
     if (target_idx < 0)
       return TRUE;
-    if (!F2PositionAtIndex(state->target_vol, target_idx, state->win_height,
+    if (!F2PositionAtIndex(panel, state->target_vol, target_idx,
+                           state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos))
       return TRUE;
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
 
@@ -414,17 +617,18 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
         F2FindVisibleIndex(panel, state->target_vol, current_idx - 1, -1);
     if (target_idx < 0)
       return TRUE;
-    if (!F2PositionAtIndex(state->target_vol, target_idx, state->win_height,
+    if (!F2PositionAtIndex(panel, state->target_vol, target_idx,
+                           state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos))
       return TRUE;
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
 
   case ACTION_MOVE_RIGHT:
-    if (F2ExpandCurrentDir(ctx, state->target_vol, state->win_height,
+    if (F2ExpandCurrentDir(ctx, panel, state->target_vol, state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos)) {
-      F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+      F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                       state->cursor_pos);
     } else {
       UI_Beep(ctx, FALSE);
@@ -432,9 +636,9 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
     return TRUE;
 
   case ACTION_MOVE_LEFT:
-    if (F2CollapseCurrentDir(ctx, state->target_vol, state->win_height,
+    if (F2CollapseCurrentDir(ctx, panel, state->target_vol, state->win_height,
                              &state->disp_begin_pos, &state->cursor_pos)) {
-      F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+      F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                       state->cursor_pos);
     } else {
       UI_Beep(ctx, FALSE);
@@ -452,10 +656,11 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
     }
     if (target_idx == current_idx)
       return TRUE;
-    if (!F2PositionAtIndex(state->target_vol, target_idx, state->win_height,
+    if (!F2PositionAtIndex(panel, state->target_vol, target_idx,
+                           state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos))
       return TRUE;
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
 
@@ -470,10 +675,11 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
     }
     if (target_idx == current_idx)
       return TRUE;
-    if (!F2PositionAtIndex(state->target_vol, target_idx, state->win_height,
+    if (!F2PositionAtIndex(panel, state->target_vol, target_idx,
+                           state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos))
       return TRUE;
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
 
@@ -481,10 +687,11 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
     target_idx = F2FindVisibleIndex(panel, state->target_vol, 0, 1);
     if (target_idx < 0 || target_idx == current_idx)
       return TRUE;
-    if (!F2PositionAtIndex(state->target_vol, target_idx, state->win_height,
+    if (!F2PositionAtIndex(panel, state->target_vol, target_idx,
+                           state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos))
       return TRUE;
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
 
@@ -493,10 +700,11 @@ static BOOL F2MoveSelection(ViewContext *ctx, const YtreeNovaPanel *panel,
                                     state->target_vol->total_dirs - 1, -1);
     if (target_idx < 0 || target_idx == current_idx)
       return TRUE;
-    if (!F2PositionAtIndex(state->target_vol, target_idx, state->win_height,
+    if (!F2PositionAtIndex(panel, state->target_vol, target_idx,
+                           state->win_height,
                            &state->disp_begin_pos, &state->cursor_pos))
       return TRUE;
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
 
@@ -516,10 +724,17 @@ static BOOL F2HandleLog(ViewContext *ctx, YtreeNovaPanel *panel,
 
   if (state->target_vol->vol_stats.log_mode == DISK_MODE) {
     if (state->target_vol->total_dirs > 0) {
-      GetPath(state->target_vol
-                  ->dir_entry_list[state->disp_begin_pos + state->cursor_pos]
-                  .dir_entry,
-              new_log_path);
+      int current_index = F2ResolveSelectionIndex(panel, state->target_vol,
+                                                  state->disp_begin_pos,
+                                                  state->cursor_pos);
+      if (current_index < 0)
+        current_index = F2FindVisibleIndex(panel, state->target_vol, 0, 1);
+      if (current_index >= 0) {
+        GetPath(state->target_vol->dir_entry_list[current_index].dir_entry,
+                new_log_path);
+      } else if (getcwd(new_log_path, sizeof(new_log_path)) == NULL) {
+        (void)snprintf(new_log_path, sizeof(new_log_path), "%s", ".");
+      }
     } else if (getcwd(new_log_path, sizeof(new_log_path)) == NULL) {
       (void)snprintf(new_log_path, sizeof(new_log_path), "%s", ".");
     }
@@ -533,10 +748,10 @@ static BOOL F2HandleLog(ViewContext *ctx, YtreeNovaPanel *panel,
     state->disp_begin_pos = panel->disp_begin_pos;
     state->cursor_pos = panel->cursor_pos;
     BuildDirEntryList(ctx, state->target_vol, &dummy);
-    F2ClampViewport(state->target_vol, &state->disp_begin_pos,
-                    &state->cursor_pos);
+    F2AnchorSelectionFromPanel(panel, state->target_vol, state->win_height,
+                               &state->disp_begin_pos, &state->cursor_pos);
     MapF2Window(ctx);
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     *action = ACTION_NONE;
   }
@@ -559,11 +774,11 @@ static BOOL F2HandleAction(ViewContext *ctx, YtreeNovaPanel *panel,
   case ACTION_HELP:
     (void)UI_ShowGeneratedContextHelp(ctx, "dialog.f2-picker", NULL, 0);
     MapF2Window(ctx);
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
   case ACTION_ENTER:
-    selected = F2CurrentDir(state->target_vol, state->disp_begin_pos,
+    selected = F2CurrentDir(panel, state->target_vol, state->disp_begin_pos,
                             state->cursor_pos);
     if (selected != NULL) {
       GetPath(selected, path);
@@ -582,7 +797,7 @@ static BOOL F2HandleAction(ViewContext *ctx, YtreeNovaPanel *panel,
                                       &state->disp_begin_pos,
                                       &state->cursor_pos);
     MapF2Window(ctx);
-    F2DisplayTreeAt(ctx, state->target_vol, state->disp_begin_pos,
+    F2DisplayTreeAt(ctx, panel, state->target_vol, state->disp_begin_pos,
                     state->cursor_pos);
     return TRUE;
   case ACTION_QUIT:
@@ -612,6 +827,7 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   unsigned int original_panel_generation;
   F2PickerLoopState state;
   int local_disp_begin_pos, local_cursor_pos;
+  int selected_index = -1;
   int win_width, win_height;
   YtreeNovaAction action;
 
@@ -637,8 +853,8 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   F2EnsureDirEntryList(ctx, state.target_vol);
   GetMaxYX(ctx->ctx_f2_window, &win_height, &win_width);
   state.win_height = win_height;
-  F2NormalizeSelectionForVisibility(panel, state.target_vol, state.win_height,
-                                    &state.disp_begin_pos, &state.cursor_pos);
+  F2AnchorSelectionFromPanel(panel, state.target_vol, state.win_height,
+                             &state.disp_begin_pos, &state.cursor_pos);
   if (ctx->ctx_dir_window != NULL) {
     werase(ctx->ctx_dir_window);
     RefreshWindow(ctx->ctx_dir_window);
@@ -648,7 +864,7 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     RefreshWindow(panel->pan_dir_window);
   }
   MapF2Window(ctx);
-  F2DisplayTreeAt(ctx, state.target_vol, state.disp_begin_pos,
+  F2DisplayTreeAt(ctx, panel, state.target_vol, state.disp_begin_pos,
                   state.cursor_pos);
   do {
     int footer_x = 2;
@@ -685,6 +901,11 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
 
   local_disp_begin_pos = state.disp_begin_pos;
   local_cursor_pos = state.cursor_pos;
+  if (state.target_vol != NULL) {
+    selected_index = F2ResolveSelectionIndex(panel, state.target_vol,
+                                             local_disp_begin_pos,
+                                             local_cursor_pos);
+  }
 
   if (ctx->active->vol != original_vol) {
     if (!AppStateCommitPanelVolume(ctx->active, original_vol))
@@ -723,9 +944,13 @@ int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
     DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
   }
 
-  if (!AppStateCommitPanelTreeViewport(panel, local_disp_begin_pos,
-                                       local_cursor_pos))
-    return -1;
+  if (panel->vol == state.target_vol && selected_index >= 0) {
+    PositionPanelAtIndex(panel, selected_index);
+  } else if (panel->vol == state.target_vol) {
+    if (!AppStateCommitPanelTreeViewport(panel, local_disp_begin_pos,
+                                         local_cursor_pos))
+      return -1;
+  }
 
   UnmapF2Window(ctx);
   DEBUG_LOG("EXIT HandleDirWindow: Panel=%s Cursor=%d DispBegin=%d",

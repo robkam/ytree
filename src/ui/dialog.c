@@ -113,3 +113,10 @@ void UI_Dialog_Close(ViewContext *ctx, WINDOW *win) {
   UI_Dialog_RefreshAll(ctx);
   doupdate();
 }
+
+void UI_Dialog_CloseNoRefresh(WINDOW *win) {
+  if (!win)
+    return;
+  UI_Dialog_Pop(win);
+  delwin(win);
+}

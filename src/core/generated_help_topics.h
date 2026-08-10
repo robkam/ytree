@@ -102,7 +102,7 @@ static const GeneratedHelpLink generated_help_links_copy_move_targets[] = {
 
 static const GeneratedHelpLongFormSection generated_help_sections_copy_move_targets[] = {
     {"Target forms", "Use a directory path when you want the original names preserved under another directory.\nUse one full replacement name when you want one selected item to land under a new explicit name.\nUse a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewrite each selected basename by pattern."},
-    {"Shared rules", "Tagged copy/move uses the same target syntax as single-item copy/move.\nSplit mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.\nArchive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved."},
+    {"Shared rules", "Tagged copy/move uses the same target syntax as single-item copy/move.\nPathcopy uses the same two-prompt target flow while preserving the selected file's path relative to the current volume root.\nSplit mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.\nArchive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved.\nOnly real safety prompts may follow the name and destination prompts, such as overwrite/replace conflicts or creating a missing destination directory.\nOverwrite/replace conflicts show source and destination size/time facts when available so you can see whether the destination is newer/older or bigger/smaller before answering.\nDirectory copy/move starts after the destination is accepted; there is no extra copy-now or move-now confirmation."},
 };
 
 static const GeneratedHelpLink generated_help_links_vi_keys[] = {
@@ -534,7 +534,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "copy-move-targets",
         "Copy/Move Targets",
         NULL,
-        "Copy and move prompts accept a destination directory, a full replacement name, or a wildcard rename pattern.\nThe local mode page still owns which key copies or moves, which tagged repeat exists, and any split/archive caveat.",
+        "Copy, move, and pathcopy use two explicit prompts.\nFirst choose the replacement name or wildcard rename pattern.\nThen choose the destination directory.\nThe split stays intentional; no copy-now or move-now confirmation follows.\nMerging them would hide meaning; only real safety prompts may follow.\nOverwrite conflicts compare size/time so you can judge newer/older and bigger/smaller.",
         4,
         generated_help_links_copy_move_targets,
         2,

@@ -2,6 +2,7 @@ import pytest
 import os
 import re
 import time
+from helpers_ui import _panel_path_header, _path_label
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -97,6 +98,28 @@ def _has_exact_span_text(tui, target, width=120):
             if text == target:
                 return True
     return False
+
+
+def _left_exact_span_row(tui, target, width=120, max_x=70):
+    for row, line in enumerate(tui.get_screen_dump()):
+        if target not in line:
+            continue
+        for start, _, _, text in _row_style_spans(tui, row, width=width):
+            if text == target and start < max_x:
+                return row
+    raise AssertionError(
+        f"Could not find left-panel exact span {target!r}.\n{get_screen_text(tui)}"
+    )
+
+
+def _left_row_containing(tui, target, max_x=70):
+    for row, line in enumerate(tui.get_screen_dump()):
+        col = line.find(target)
+        if 0 <= col < max_x:
+            return row
+    raise AssertionError(
+        f"Could not find left-panel row containing {target!r}.\n{get_screen_text(tui)}"
+    )
 
 
 def _move_selection_to_exact_span(tui, target, max_steps=12):
@@ -320,6 +343,114 @@ def test_f2_picker_inherits_and_toggles_dotfile_visibility(tmp_path):
         tui.quit()
 
 
+def test_f2_picker_hidden_entries_cannot_be_selected_while_hidden(tmp_path):
+    root = tmp_path / "f2_hidden_selection"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    (root / ".hidden_dest").mkdir()
+    (root / "visible_dest").mkdir()
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        if _screen_contains_text(tui, ".hidden_dest"):
+            _send_and_wait_for_text_visibility(
+                tui, "`", ".hidden_dest", present=False, timeout=1.5
+            )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("file view" in line.lower() for line in lines[-3:])
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        tui.send_keystroke(Keys.COPY, wait=0.3)
+        assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_content("To Directory:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.F2, wait=0.3)
+        assert tui.wait_for_content("cycle", timeout=1.0), get_screen_text(tui)
+        assert not _screen_contains_text(tui, ".hidden_dest"), get_screen_text(tui)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        assert _has_exact_span_text(tui, "visible_dest"), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+
+        prompt = tui.wait_for_condition(
+            lambda lines: _destination_prompt_line(tui)
+            if any("To Directory:" in line for line in lines)
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        )
+        assert prompt, get_screen_text(tui)
+        destination_line = _destination_prompt_line(tui)
+        assert str(root / "visible_dest") in destination_line, get_screen_text(tui)
+        assert ".hidden_dest" not in destination_line, get_screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_f2_picker_preserves_visible_selection_index_when_hidden_rows_exist(tmp_path):
+    root = tmp_path / "f2_visible_index_selection"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    (root / ".UnixTree").mkdir()
+    for name in ("00", "Cline", "Hooks"):
+        child = root / name
+        child.mkdir()
+        (child / "inside.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        if _screen_contains_text(tui, ".UnixTree"):
+            _send_and_wait_for_text_visibility(
+                tui, "`", ".UnixTree", present=False, timeout=1.5
+            )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("file view" in line.lower() for line in lines[-3:])
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        tui.send_keystroke(Keys.COPY, wait=0.3)
+        assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_content("To Directory:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.F2, wait=0.3)
+        assert tui.wait_for_content("cycle", timeout=1.0), get_screen_text(tui)
+        assert not _screen_contains_text(tui, ".UnixTree"), get_screen_text(tui)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        assert _has_exact_span_text(tui, "Cline"), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_content(str(root / "Cline"), timeout=1.0), get_screen_text(tui)
+
+        tui.send_keystroke(Keys.ESC, wait=0.4)
+        assert tui.wait_for_condition(
+            lambda lines: _panel_path_header(lines)
+            if any("file view" in line.lower() for line in lines[-3:])
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        current_path = _panel_path_header(tui.get_screen_dump()) or ""
+        assert _path_label(current_path) == "Cline", get_screen_text(tui)
+        assert _path_label(current_path) != "00", get_screen_text(tui)
+        assert ".UnixTree" not in current_path, get_screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_f2_escape_can_abort_right_expand_scan(tmp_path):
     root = tmp_path / "f2_tree_abort"
     root.mkdir()
@@ -421,6 +552,105 @@ def test_f2_selection_stops_before_the_synthetic_expand_suffix(tmp_path):
             "synthetic expandability suffix.\n"
             f"selected span: {text!r}\n{get_screen_text(tui)}"
         )
+    finally:
+        tui.quit()
+
+
+def test_f2_picker_down_moves_highlight_before_scrolling(tmp_path):
+    root = tmp_path / "f2_picker_selection_motion"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    for i in range(80):
+        (root / f"dir_{i:02d}").mkdir()
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        for _ in range(35):
+            tui.send_keystroke(Keys.DOWN, wait=0.03)
+
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        tui.send_keystroke(Keys.COPY, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        tui.send_keystroke(Keys.F2, wait=0.5)
+
+        before_row = _left_exact_span_row(tui, "dir_34")
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        after_row = _left_exact_span_row(tui, "dir_35")
+
+        assert after_row > before_row, (
+            "F2 destination browsing should move the highlighted selection "
+            "through the visible rows before it starts scrolling the tree.\n"
+            f"before row={before_row}, after row={after_row}\n"
+            f"{get_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f2_picker_up_at_top_stops_without_wrapping(tmp_path):
+    root = tmp_path / "f2_picker_top_boundary"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    for i in range(5):
+        (root / f"dir_{i:02d}").mkdir()
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        tui.send_keystroke(Keys.COPY, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        tui.send_keystroke(Keys.F2, wait=0.5)
+
+        root_path = str(root)
+        assert _left_exact_span_row(tui, root_path) >= 0, get_screen_text(tui)
+        tui.send_keystroke(Keys.HOME, wait=0.1)
+        assert _left_exact_span_row(tui, root_path) >= 0, get_screen_text(tui)
+
+        tui.send_keystroke(Keys.UP, wait=0.2)
+        assert _left_exact_span_row(tui, root_path) >= 0, (
+            "F2 destination browsing should stop at the top item instead of "
+            "wrapping to the bottom.\n"
+            f"{get_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f2_picker_keeps_viewport_fixed_until_highlight_hits_edge(tmp_path):
+    root = tmp_path / "r"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    for name in ["00", "Cline", "codex-lb", "codex-pooler", "priv"]:
+        (root / name).mkdir()
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        tui.send_keystroke(Keys.COPY, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        tui.send_keystroke(Keys.F2, wait=0.5)
+
+        root_row = _left_row_containing(tui, str(root))
+        child_row = _left_row_containing(tui, "00")
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        moved_child_row = _left_row_containing(tui, "00")
+
+        assert moved_child_row > root_row, (
+            "F2 destination browsing should keep the viewport fixed until the "
+            "highlight reaches the visible edge instead of scrolling the root "
+            "selection out of view on the first Down.\n"
+            f"root row={root_row}, initial child row={child_row}, "
+            f"moved child row={moved_child_row}\n"
+            f"{get_screen_text(tui)}"
+        )
+        assert _left_row_containing(tui, str(root)) == root_row, get_screen_text(tui)
     finally:
         tui.quit()
 

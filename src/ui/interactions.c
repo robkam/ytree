@@ -298,6 +298,7 @@ void UI_CoreQuitShutdownTerminal(ViewContext *ctx) {
 int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                      char *to_dir) {
   char prompt_header[PATH_LENGTH + 50];
+  UIPromptOptions options;
 
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
@@ -311,8 +312,10 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
 
   ClearHelp(ctx);
 
-  if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
-                    HST_FILE) == CR) {
+  memset(&options, 0, sizeof(options));
+  options.suppress_final_refresh = TRUE;
+  if (UI_ReadStringWithPromptOptions(ctx, ctx->active, prompt_header, to_file,
+                                     PATH_LENGTH, HST_FILE, &options) == CR) {
     SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
     if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
       return 0;
@@ -324,6 +327,7 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
 int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
                      char *to_file, char *to_dir) {
   char prompt_header[PATH_LENGTH + 50];
+  UIPromptOptions options;
 
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
@@ -342,8 +346,10 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
 
   ClearHelp(ctx);
 
-  if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
-                    HST_FILE) == CR) {
+  memset(&options, 0, sizeof(options));
+  options.suppress_final_refresh = TRUE;
+  if (UI_ReadStringWithPromptOptions(ctx, ctx->active, prompt_header, to_file,
+                                     PATH_LENGTH, HST_FILE, &options) == CR) {
     SeedDestinationDirectoryFromInactivePanel(ctx, to_dir);
     if (GetDestinationDirectoryParameter(ctx, to_dir) == 0)
       return 0;

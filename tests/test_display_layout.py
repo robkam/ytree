@@ -2,6 +2,7 @@ import pytest
 import time
 import re
 import pexpect
+import io
 from helpers_stats import current_file_from_stats as _current_file_from_stats
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_lines as _footer_lines
@@ -741,14 +742,14 @@ def test_sort_prompt_uses_full_footer_without_bleed(ytnova_binary, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "action_key,new_name,confirm_text",
+    "action_key,new_name,stale_confirm_text",
     [
         ("c", "dir_copy_out", "Copy directory now"),
         ("v", "dir_move_out", "Move directory now"),
     ],
 )
 def test_dir_copy_move_keeps_full_frame_after_command(
-    ytnova_binary, tmp_path, action_key, new_name, confirm_text
+    ytnova_binary, tmp_path, action_key, new_name, stale_confirm_text
 ):
     root = tmp_path / "dir_ops_frame"
     root.mkdir()
@@ -774,18 +775,38 @@ def test_dir_copy_move_keeps_full_frame_after_command(
     tui.child.send(f"{new_name}\r")
     tui.child.expect("To Directory")
     tui.child.send("\x15")
+    raw_output = io.StringIO()
+    tui.child.logfile_read = raw_output
     tui.child.send(".\r")
-    tui.child.expect(confirm_text)
-    tui.child.send("Y")
-    tui.send_keystroke("", wait=0.8)
-
     out_dir = root / new_name
-    assert out_dir.exists() and out_dir.is_dir()
+    created = tui.wait_for_condition(
+        lambda _screen: out_dir if out_dir.exists() and out_dir.is_dir() else False,
+        timeout=2.0,
+    )
+    assert created, "\n".join(tui.get_screen_dump())
+    command_output = raw_output.getvalue()
+    tui.child.logfile_read = None
+    assert "\x1b[?1049l" not in command_output, command_output
+    assert "\x1b[?1049h" not in command_output, command_output
+    assert "\x1b[H\x1b[2J" not in command_output, command_output
+    assert stale_confirm_text not in "\n".join(tui.get_screen_dump())
     assert (out_dir / "nested" / "payload.txt").exists()
     if action_key == "v":
         assert not src.exists()
 
-    post = "\n".join(tui.get_screen_dump())
+    restored = tui.wait_for_condition(
+        lambda lines: lines
+        if "Path:" in "\n".join(lines) and "File F1 help" in "\n".join(lines)
+        else False,
+        timeout=2.0,
+    )
+    assert restored, "\n".join(tui.get_screen_dump())
+    post = "\n".join(restored)
+    if action_key == "c":
+        assert new_name in post, (
+            "Directory copy did not keep the new directory visible in-session.\n"
+            f"{post}"
+        )
     assert "File F1 help" in post, "Footer keybinding row disappeared after dir copy/move"
     assert "Path:" in post, "Header/border row disappeared after dir copy/move"
 
@@ -884,12 +905,14 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     tui.child.send("./new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
-    tui.child.send("Y")
-    tui.send_keystroke("", wait=0.8)
 
     copied = root / "new_parent" / "copied_src" / "nested" / "payload.txt"
-    assert copied.exists(), "Directory copy did not complete after confirming create"
+    created = tui.wait_for_condition(
+        lambda _screen: copied if copied.exists() else False,
+        timeout=2.0,
+    )
+    assert created, "Directory copy did not complete after confirming create"
+    assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
     post = "\n".join(tui.get_screen_dump())
     footer = _footer_text(tui).lower()
@@ -979,12 +1002,14 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_
     tui.child.send("../target_bucket/new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
-    tui.child.send("Y")
-    tui.send_keystroke("", wait=1.0)
 
     copied = root / "target_bucket" / "new_parent" / "copied_src" / "nested" / "payload.txt"
-    assert copied.exists(), "Directory copy did not complete"
+    created = tui.wait_for_condition(
+        lambda _screen: copied if copied.exists() else False,
+        timeout=2.0,
+    )
+    assert created, "Directory copy did not complete"
+    assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
     # Move to target_bucket and verify the copied branch is visible immediately.
     for _ in range(16):
@@ -1049,9 +1074,14 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytnova_binary, t
     tui.child.send("../target_bucket/new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
-    tui.child.send("Y")
-    tui.send_keystroke("", wait=1.0)
+
+    copied = root / "target_bucket" / "new_parent" / "copied_src" / "nested" / "payload.txt"
+    created = tui.wait_for_condition(
+        lambda _screen: copied if copied.exists() else False,
+        timeout=2.0,
+    )
+    assert created, "Directory copy did not complete"
+    assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
     # Navigate to created destination directory and delete it.
     for _ in range(16):
@@ -1116,12 +1146,14 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytnova_binary, tm
     tui.child.send(f"{target_bucket}/new_parent\r")
     tui.child.expect("Create missing directory\\?", timeout=2.0)
     tui.child.send("Y")
-    tui.child.expect("Copy directory now", timeout=2.0)
-    tui.child.send("Y")
-    tui.send_keystroke("", wait=1.0)
 
     copied = root / "target_bucket" / "new_parent" / "copied_src" / "nested" / "payload.txt"
-    assert copied.exists(), "Directory copy to absolute destination did not complete"
+    created = tui.wait_for_condition(
+        lambda _screen: copied if copied.exists() else False,
+        timeout=2.0,
+    )
+    assert created, "Directory copy to absolute destination did not complete"
+    assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
     for _ in range(16):
         if "target_bucket" in tui.get_screen_dump()[0]:

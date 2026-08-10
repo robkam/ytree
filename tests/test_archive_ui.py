@@ -1,4 +1,6 @@
 import io
+import os
+import re
 import tarfile
 import zipfile
 
@@ -244,6 +246,69 @@ def test_archive_output_flow_writes_selected_entry_to_file(ytnova_binary, tmp_pa
 
         assert out_path.exists()
         assert out_path.read_text(encoding="utf-8") == "inside payload\n"
+    finally:
+        tui.quit()
+
+
+def test_archive_copy_to_existing_destination_shows_size_time_comparison(
+    ytnova_binary, tmp_path
+):
+    root = tmp_path / "archive_copy_existing_destination_conflict"
+    root.mkdir()
+    archive_path = root / "source.tar"
+    destination_dir = root / "dest"
+    destination_dir.mkdir()
+    destination = destination_dir / "inside.txt"
+
+    with tarfile.open(archive_path, "w") as tf:
+        payload = "archive payload grows\n".encode("utf-8")
+        info = tarfile.TarInfo(name="inside.txt")
+        info.size = len(payload)
+        info.mode = 0o644
+        info.mtime = 1700000000
+        tf.addfile(info, io.BytesIO(payload))
+
+    destination.write_text("old\n", encoding="utf-8")
+    os.utime(destination, (1690000000, 1690000000))
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert tui.wait_for_content("inside.txt", timeout=2.0), "\n".join(
+            tui.get_screen_dump()
+        )
+
+        tui.child.send(Keys.COPY)
+        tui.child.expect("COPY:", timeout=1.5)
+        tui.child.send(Keys.ENTER)
+        tui.child.expect("To Directory:", timeout=1.5)
+        tui.child.send(f"{destination_dir}\r")
+        assert tui.wait_for_content("Overwrite", timeout=1.5), "\n".join(
+            tui.get_screen_dump()
+        )
+
+        screen = "\n".join(tui.get_screen_dump())
+        normalized = " ".join(screen.split())
+        assert "inside.txt" in normalized, screen
+        assert re.search(
+            r"src [0-9]+(?:\.[0-9])?[BKMGTP] \d{4}-\d{2}-\d{2} \d{2}:\d{2}",
+            normalized,
+            re.IGNORECASE,
+        ), screen
+        assert re.search(
+            r"dst [0-9]+(?:\.[0-9])?[BKMGTP] \d{4}-\d{2}-\d{2} \d{2}:\d{2}",
+            normalized,
+            re.IGNORECASE,
+        ), screen
+        assert re.search(
+            r"(same size|dst smaller|dst bigger), (same time|dst older|dst newer)",
+            normalized.lower(),
+        ), screen
+
+        tui.child.send(Keys.ESC)
     finally:
         tui.quit()
 

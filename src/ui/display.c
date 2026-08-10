@@ -342,8 +342,6 @@ static const FooterCommandSpec dir_footer_standard_specs[] = {
                   "ACTION_UNTAG"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
                   "ACTION_CMD_V"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Output", "O", NULL,
-                  "ACTION_CMD_PRINT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
                   "ACTION_CMD_X"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL,
@@ -850,21 +848,24 @@ static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands
   }
 
   memset(&best_row1_fit, 0, sizeof(best_row1_fit));
-  for (preferred_split = 0; preferred_split < command_count; ++preferred_split) {
-    if (strcmp(commands[preferred_split].label, "Newfile") == 0) {
-      break;
-    }
-  }
-  if (preferred_split >= command_count) {
+  if (prefer_newfile_split) {
     for (preferred_split = 0; preferred_split < command_count;
          ++preferred_split) {
-      if (strcmp(commands[preferred_split].label, "Pipe") == 0) {
+      if (strcmp(commands[preferred_split].label, "Newfile") == 0) {
         break;
       }
     }
+    if (preferred_split >= command_count) {
+      for (preferred_split = 0; preferred_split < command_count;
+           ++preferred_split) {
+        if (strcmp(commands[preferred_split].label, "Pipe") == 0) {
+          break;
+        }
+      }
+    }
+    if (preferred_split == 0 || preferred_split >= command_count)
+      preferred_split = 0;
   }
-  if (preferred_split == 0 || preferred_split >= command_count)
-    preferred_split = 0;
 
   for (split_index = 1; split_index <= command_count; ++split_index) {
     FooterRowFit row1_fit;
@@ -891,10 +892,10 @@ static FooterPackResult PackFooterCommands(const UICommandStripCommand *commands
     if (!best_found || represented > best_represented ||
         (represented == best_represented && full_visible > best_full_visible) ||
         (represented == best_represented && full_visible == best_full_visible &&
-         preferred_split > 0 && preferred_delta < best_preferred_delta) ||
+         balance_delta < best_balance_delta) ||
         (represented == best_represented && full_visible == best_full_visible &&
-         preferred_delta == best_preferred_delta &&
-         balance_delta < best_balance_delta)) {
+         balance_delta == best_balance_delta && preferred_split > 0 &&
+         preferred_delta < best_preferred_delta)) {
       best_found = TRUE;
       best_split = split_index;
       best_row1_fit = row1_fit;
@@ -1315,7 +1316,6 @@ static const HelpLabelOverrideSpec dir_help_label_specs[] = {
     {"Tag", "ACTION_TAG"},
     {"Untag", "ACTION_UNTAG"},
     {"MoveDir", "ACTION_CMD_V"},
-    {"Output", "ACTION_CMD_PRINT"},
     {"Execute", "ACTION_CMD_X"},
     {"Archive", "ACTION_CMD_I"},
     {"Jump", "ACTION_LIST_JUMP"},

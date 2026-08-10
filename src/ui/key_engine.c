@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifdef READLINE_SUPPORT
@@ -32,10 +33,111 @@
 /* It writes the character 'c' to standard output. */
 static int term_putc(int c) { return fputc(c, stdout); }
 
+#define CONFLICT_SIZE_SCALE_THRESHOLD 999.5
+#define CONFLICT_SIZE_MAX_UNIT_INDEX 5
+
 static int NormalizeChoiceKey(int c) {
   if (c >= 0 && c <= UCHAR_MAX && islower((unsigned char)c))
     return toupper((unsigned char)c);
   return c;
+}
+
+static void FormatConflictSize(long long value, char *buffer,
+                               size_t buffer_size) {
+  double scaled = (double)value;
+  int unit_index = 0;
+  static const char *units[] = {"B", "K", "M", "G", "T", "P"};
+
+  if (!buffer || buffer_size == 0)
+    return;
+
+  if (value < 0) {
+    (void)snprintf(buffer, buffer_size, "?");
+    return;
+  }
+
+  while (scaled >= CONFLICT_SIZE_SCALE_THRESHOLD &&
+         unit_index < CONFLICT_SIZE_MAX_UNIT_INDEX) {
+    scaled /= 1024.0;
+    unit_index++;
+  }
+
+  if (unit_index == 0)
+    (void)snprintf(buffer, buffer_size, "%lld%s", value, units[unit_index]);
+  else
+    (void)snprintf(buffer, buffer_size, "%.1f%s", scaled, units[unit_index]);
+}
+
+static void FormatConflictTime(time_t when, char *buffer, size_t buffer_size) {
+  struct tm tm_buf;
+  const struct tm *tm_ptr;
+
+  if (!buffer || buffer_size == 0)
+    return;
+
+#if defined(_POSIX_THREAD_SAFE_FUNCTIONS)
+  tm_ptr = localtime_r(&when, &tm_buf);
+#else
+  tm_ptr = localtime(&when);
+  if (tm_ptr)
+    tm_buf = *tm_ptr;
+  tm_ptr = tm_ptr ? &tm_buf : NULL;
+#endif
+
+  if (!tm_ptr ||
+      strftime(buffer, buffer_size, "%Y-%m-%d %H:%M", tm_ptr) == 0) {
+    (void)snprintf(buffer, buffer_size, "?");
+  }
+}
+
+static const char *ConflictTimeRelation(const struct stat *src_stat,
+                                        const struct stat *dst_stat) {
+  if (!src_stat || !dst_stat)
+    return "time unknown";
+  if (dst_stat->st_mtime > src_stat->st_mtime)
+    return "dst newer";
+  if (dst_stat->st_mtime < src_stat->st_mtime)
+    return "dst older";
+  return "same time";
+}
+
+static const char *ConflictSizeRelation(const struct stat *src_stat,
+                                        const struct stat *dst_stat) {
+  if (!src_stat || !dst_stat)
+    return "size unknown";
+  if (dst_stat->st_size > src_stat->st_size)
+    return "dst bigger";
+  if (dst_stat->st_size < src_stat->st_size)
+    return "dst smaller";
+  return "same size";
+}
+
+static BOOL BuildConflictDetail(const char *src_path, const char *dst_path,
+                                char *buffer, size_t buffer_size) {
+  struct stat src_stat;
+  struct stat dst_stat;
+  char src_size[24];
+  char dst_size[24];
+  char src_time[20];
+  char dst_time[20];
+  int written;
+
+  if (!src_path || !dst_path || !buffer || buffer_size == 0)
+    return FALSE;
+
+  if (lstat(src_path, &src_stat) != 0 || lstat(dst_path, &dst_stat) != 0)
+    return FALSE;
+
+  FormatConflictSize((long long)src_stat.st_size, src_size, sizeof(src_size));
+  FormatConflictSize((long long)dst_stat.st_size, dst_size, sizeof(dst_size));
+  FormatConflictTime(src_stat.st_mtime, src_time, sizeof(src_time));
+  FormatConflictTime(dst_stat.st_mtime, dst_time, sizeof(dst_time));
+
+  written = snprintf(buffer, buffer_size, "src %s %s | dst %s %s | %s, %s",
+                     src_size, src_time, dst_size, dst_time,
+                     ConflictSizeRelation(&src_stat, &dst_stat),
+                     ConflictTimeRelation(&src_stat, &dst_stat));
+  return written >= 0 && (size_t)written < buffer_size;
 }
 
 char *StrLeft(const char *str, size_t visible_count) {
@@ -333,6 +435,133 @@ int InputChoiceWithHelp(ViewContext *ctx, const char *msg, const char *term,
   return (c);
 }
 
+static int InputChoiceWithDetail(ViewContext *ctx, const char *msg,
+                                 const char *detail, const char *term) {
+  int c;
+
+  if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
+    return ERR;
+  if (!AppStateValidatedDispatchSurface("surface.modal-completion-event"))
+    return ERR;
+  if (!AppStateValidatedEvent("event.modal-completion"))
+    return ERR;
+
+  ClearHelp(ctx);
+
+  curs_set(1);
+  leaveok(ctx->ctx_border_window, FALSE);
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  mvwhline(ctx->ctx_border_window, ctx->layout.status_y, 1, ' ', COLS - 2);
+  PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
+                   UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+  if (detail && detail[0] != '\0')
+    Print(ctx->ctx_border_window, ctx->layout.status_y, 1, (char *)detail,
+          UI_ROLE_STATIC_TEXT);
+  wnoutrefresh(ctx->ctx_border_window);
+  doupdate();
+  do {
+    c = WGetch(ctx, ctx->ctx_border_window);
+    if (c == ESC)
+      break;
+    if (c >= 0)
+      c = NormalizeChoiceKey(c);
+  } while (c != -1 && !strchr(term, c));
+
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  mvwhline(ctx->ctx_border_window, ctx->layout.status_y, 1, ' ', COLS - 2);
+  wnoutrefresh(ctx->ctx_border_window);
+  leaveok(ctx->ctx_border_window, TRUE);
+  curs_set(0);
+  doupdate();
+
+  return (c);
+}
+
+static BOOL ChoiceTermsContainKey(const char *term, int key) {
+  const char *p;
+
+  if (!term)
+    return FALSE;
+
+  for (p = term; *p; p++) {
+    if (NormalizeChoiceKey((unsigned char)*p) == key)
+      return TRUE;
+  }
+  return FALSE;
+}
+
+static BOOL ChoiceTokenMatchesTerms(const char *begin, const char *end,
+                                    const char *term) {
+  BOOL has_choice = FALSE;
+  const char *p;
+
+  if (!begin || !end || !term || begin >= end)
+    return FALSE;
+
+  for (p = begin; p < end; p++) {
+    unsigned char ch = (unsigned char)*p;
+    int normalized;
+
+    if (!isalpha(ch))
+      continue;
+
+    normalized = NormalizeChoiceKey(ch);
+    if (!ChoiceTermsContainKey(term, normalized))
+      return FALSE;
+    has_choice = TRUE;
+  }
+  return has_choice;
+}
+
+static void PrintChoiceLiteral(WINDOW *win, int row, int col, const char *msg,
+                               const char *term) {
+  const char *choice_begin = NULL;
+  const char *choice_end = NULL;
+  const char *open_paren;
+  const char *p;
+  chtype current_attr = (chtype)-1;
+  chtype key_attr;
+  chtype normal_attr;
+  int max_x;
+
+  if (!win || !msg)
+    return;
+
+  max_x = getmaxx(win);
+  for (open_paren = strchr(msg, '('); open_paren != NULL;
+       open_paren = strchr(open_paren + 1, '(')) {
+    const char *close_paren = strchr(open_paren + 1, ')');
+    if (close_paren != NULL &&
+        ChoiceTokenMatchesTerms(open_paren + 1, close_paren, term)) {
+      choice_begin = open_paren + 1;
+      choice_end = close_paren;
+      break;
+    }
+  }
+
+#ifdef COLOR_SUPPORT
+  normal_attr = COLOR_PAIR(UI_ROLE_STATIC_TEXT);
+  key_attr = UIKeybindAttrForBase(UI_ROLE_KEYBIND, UI_ROLE_STATIC_TEXT);
+#else
+  normal_attr = A_NORMAL;
+  key_attr = A_BOLD;
+#endif
+
+  for (p = msg; *p && col < max_x; p++) {
+    unsigned char raw_ch = (unsigned char)*p;
+    chtype rendered_ch = (raw_ch < 32 && raw_ch != 0) ? ACS_BLOCK : raw_ch;
+    chtype attr = (choice_begin != NULL && p >= choice_begin && p < choice_end)
+                      ? key_attr
+                      : normal_attr;
+    if (attr != current_attr) {
+      wattrset(win, attr);
+      current_attr = attr;
+    }
+    mvwaddch(win, row, col++, rendered_ch);
+  }
+  wattrset(win, 0);
+}
+
 int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
   int c;
 
@@ -348,8 +577,8 @@ int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
   curs_set(1);
   leaveok(ctx->ctx_border_window, FALSE);
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
-  Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
-        UI_ROLE_STATIC_TEXT);
+  PrintChoiceLiteral(ctx->ctx_border_window, ctx->layout.prompt_y, 1, msg,
+                     term);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
@@ -1031,9 +1260,8 @@ int GetEventOrKey(ViewContext *ctx) {
 int UI_AskConflict(ViewContext *ctx, const char *src_path, const char *dst_path,
                    int *mode_flags) {
   char msg[1024];
+  char detail[128];
   int c;
-
-  (void)src_path;
 
   if (mode_flags && *mode_flags == CONFLICT_ALL)
     return CONFLICT_ALL;
@@ -1042,7 +1270,10 @@ int UI_AskConflict(ViewContext *ctx, const char *src_path, const char *dst_path,
            dst_path);
 
   /* Allow Y, N, A, Q, and ESC (27) */
-  c = InputChoice(ctx, msg, "YNAQ\033");
+  if (BuildConflictDetail(src_path, dst_path, detail, sizeof(detail)))
+    c = InputChoiceWithDetail(ctx, msg, detail, "YNAQ\033");
+  else
+    c = InputChoice(ctx, msg, "YNAQ\033");
 
   if (c == 'Y')
     return CONFLICT_OVERWRITE;
