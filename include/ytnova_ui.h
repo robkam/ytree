@@ -399,6 +399,7 @@ typedef struct {
   void *help_data;
   UIPromptActionHandler action_handler;
   void *action_data;
+  BOOL suppress_final_refresh;
 } UIPromptOptions;
 extern int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel,
                          const char *prompt, char *buffer, int max_len,

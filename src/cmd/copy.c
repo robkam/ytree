@@ -48,6 +48,8 @@ typedef struct CopyOperation {
   char from_dir[PATH_LENGTH + 1];
   char to_path[PATH_LENGTH + 1];
   char abs_path[PATH_LENGTH + 1];
+  char conflict_src_path[PATH_LENGTH + 1];
+  BOOL conflict_src_extracted;
 } CopyOperation;
 
 static int CopyAssignPath(char *dest, size_t dest_size, const char *src) {
@@ -431,11 +433,48 @@ static int CopyEnsureFilesystemDestination(CopyOperation *op) {
   return 0;
 }
 
+static const char *CopyPrepareConflictSourcePath(CopyOperation *op) {
+  const char *src_path = op->from_path;
+
+  if (op->conflict_src_extracted) {
+    return op->conflict_src_path;
+  }
+
+  op->conflict_src_path[0] = '\0';
+  if (CopyPrepareArchiveSourceFile(op, &src_path, op->conflict_src_path,
+                                   sizeof(op->conflict_src_path),
+                                   &op->conflict_src_extracted) != 0) {
+    op->conflict_src_extracted = FALSE;
+    op->conflict_src_path[0] = '\0';
+    return op->from_path;
+  }
+
+  if (op->conflict_src_extracted) {
+    return op->conflict_src_path;
+  }
+
+  return src_path;
+}
+
+static void CopyCleanupConflictSourcePath(CopyOperation *op) {
+  if (!op->conflict_src_extracted || !op->conflict_src_path[0]) {
+    return;
+  }
+
+  (void)unlink(op->conflict_src_path);
+  op->conflict_src_extracted = FALSE;
+  op->conflict_src_path[0] = '\0';
+}
+
 static int CopyHandleConflict(CopyOperation *op) {
   if (!(op->overwrite_mode && *op->overwrite_mode == CONFLICT_ALL) &&
       op->conflict_cb) {
-    int conflict_res = op->conflict_cb(op->ctx, op->from_path, op->to_path,
+    int conflict_res = op->conflict_cb(op->ctx,
+                                       CopyPrepareConflictSourcePath(op),
+                                       op->to_path,
                                        op->overwrite_mode);
+
+    CopyCleanupConflictSourcePath(op);
 
     if (conflict_res == CONFLICT_ABORT) {
       return -1;
@@ -577,6 +616,8 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
   op.conflict_cb = cb;
   op.choice_cb = choice_cb;
   op.path_copy = path_copy;
+  op.conflict_src_path[0] = '\0';
+  op.conflict_src_extracted = FALSE;
 
   (void)GetFileNamePath(fe_ptr, op.from_path);
   (void)GetPath(fe_ptr->dir_entry, op.from_dir);

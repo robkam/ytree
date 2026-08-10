@@ -828,9 +828,14 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
             tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
         )
         normalized_copy_detail = _normalized_help_text(copy_detail)
-        assert "destination directory" in normalized_copy_detail, copy_detail
-        assert "local mode page still owns which key copies or moves" in normalized_copy_detail, copy_detail
-        assert "wildcard rename pattern" in normalized_copy_detail, copy_detail
+        assert "two explicit prompts" in normalized_copy_detail, copy_detail
+        assert "First choose the replacement name or wildcard rename pattern" in normalized_copy_detail, copy_detail
+        assert "Then choose the destination directory" in normalized_copy_detail, copy_detail
+        assert "Merging them would hide meaning" in normalized_copy_detail, copy_detail
+        assert "only real safety prompts may follow" in normalized_copy_detail, copy_detail
+        assert "Overwrite conflicts compare size/time" in normalized_copy_detail, copy_detail
+        assert "newer/older and bigger/smaller" in normalized_copy_detail, copy_detail
+        assert "no copy-now or move-now confirmation follows" in normalized_copy_detail, copy_detail
         assert "*.bak" not in normalized_copy_detail, copy_detail
         assert "Ctrl-K copies the tagged set" not in normalized_copy_detail, copy_detail
         tui.send_keystroke(Keys.LEFT, wait=0.05)

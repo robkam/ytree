@@ -1,5 +1,6 @@
 import shlex
 import time
+import re
 from pathlib import Path
 
 from helpers_ui import footer_lines, screen_text
@@ -8,6 +9,8 @@ from ytnova_keys import Keys
 
 
 YTNOVA_BIN = str((Path(__file__).resolve().parents[1] / "build" / "ytnova").resolve())
+DISPLAY_SOURCE = Path(__file__).resolve().parents[1] / "src" / "ui" / "display.c"
+_FOOTER_COMMAND_COLUMN = len("COMMANDS ")
 
 
 def _spawn_narrow_tui(root):
@@ -92,6 +95,97 @@ def _assert_single_space_after_nav_glyphs(line, label, first_command):
     )
 
 
+def _footer_command_text(line):
+    return line[_FOOTER_COMMAND_COLUMN:].rstrip()
+
+
+def _footer_entries(lines, row_indexes=(0, 1)):
+    entries = []
+    for index in row_indexes:
+        entries.extend(
+            [entry for entry in _footer_command_text(lines[index]).split("  ") if entry]
+        )
+    return entries
+
+
+def _assert_balanced_top_footer_rows(lines):
+    row0 = _footer_command_text(lines[0])
+    row1 = _footer_command_text(lines[1])
+    entries0 = [entry for entry in row0.split("  ") if entry]
+    entries1 = [entry for entry in row1.split("  ") if entry]
+    actual_delta = abs(len(row0) - len(row1))
+
+    if len(entries0) > 1:
+        alt0 = "  ".join(entries0[:-1])
+        alt1 = "  ".join([entries0[-1], *entries1])
+        assert actual_delta <= abs(len(alt0) - len(alt1)), (
+            "Footer top rows should keep the chosen split at least as balanced "
+            "as moving the last first-row entry down.\n"
+            + "\n".join(lines)
+        )
+
+    if len(entries1) > 1:
+        alt0 = "  ".join([*entries0, entries1[0]])
+        alt1 = "  ".join(entries1[1:])
+        assert actual_delta <= abs(len(alt0) - len(alt1)), (
+            "Footer top rows should keep the chosen split at least as balanced "
+            "as moving the first second-row entry up.\n"
+            + "\n".join(lines)
+        )
+
+
+def _assert_no_duplicate_footer_entries(lines):
+    entries = _footer_entries(lines)
+    duplicates = []
+    seen = set()
+    for entry in entries:
+        if entry in seen and entry not in duplicates:
+            duplicates.append(entry)
+        seen.add(entry)
+    assert not duplicates, (
+        "Footer top rows must not repeat command labels within the same footer.\n"
+        f"duplicates={duplicates}\n" + "\n".join(lines)
+    )
+
+
+def _footer_array_duplicates(source_path, array_type):
+    duplicates = {}
+    source = source_path.read_text(encoding="utf-8")
+    for match in re.finditer(
+        rf"static const {array_type}\s+(\w+)\[\]\s*=\s*\{{(.*?)\}};",
+        source,
+        re.S,
+    ):
+        current_name = match.group(1)
+        body = match.group(2)
+        if array_type == "FooterCommandSpec":
+            labels = re.findall(
+                r'FOOTER_(?:ACTIONS?|STATIC)\(\s*[^,]+,\s*"([^"]+)"',
+                body,
+                re.S,
+            )
+        else:
+            labels = [
+                pair[0]
+                for pair in re.findall(
+                    r'\{\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\}',
+                    body,
+                    re.S,
+                )
+            ]
+
+        seen = set()
+        dup = []
+        for label in labels:
+            if label in seen and label not in dup:
+                dup.append(label)
+            seen.add(label)
+        if dup:
+            duplicates[current_name] = dup
+
+    return duplicates
+
+
 def test_narrow_dir_and_file_footers_keep_full_labels_until_resize(tmp_path):
     root = _root_with_file(tmp_path)
     tui = _spawn_narrow_tui(root)
@@ -130,6 +224,13 @@ def test_narrow_dir_and_file_footers_keep_full_labels_until_resize(tmp_path):
         tui.quit()
 
 
+def test_footer_specs_and_help_overrides_do_not_repeat_labels():
+    footer_dups = _footer_array_duplicates(DISPLAY_SOURCE, "FooterCommandSpec")
+    override_dups = _footer_array_duplicates(DISPLAY_SOURCE, "HelpLabelOverrideSpec")
+    assert not footer_dups, footer_dups
+    assert not override_dups, override_dups
+
+
 def test_wide_footer_keeps_space_before_jump_label(tmp_path):
     root = _root_with_file(tmp_path)
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
@@ -154,6 +255,8 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
             "Wide dir footer second row should remain a balanced command overflow row.\n"
             + "\n".join(dir_lines)
         )
+        _assert_balanced_top_footer_rows(dir_lines)
+        _assert_no_duplicate_footer_entries(dir_lines)
         assert "K volume" in dir_footer, dir_footer
         assert "Output" in dir_footer, dir_footer
         assert "Write" not in dir_footer, dir_footer
@@ -185,6 +288,8 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
             "Wide file footer second row should begin with the balanced overflow command row.\n"
             + "\n".join(file_lines)
         )
+        _assert_balanced_top_footer_rows(file_lines)
+        _assert_no_duplicate_footer_entries(file_lines)
         assert "Output" in file_footer, file_footer
         assert "Write" not in file_footer, file_footer
         assert file_footer.index("Output") < file_footer.index("eXecute"), file_footer

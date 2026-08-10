@@ -783,13 +783,18 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   insert_flag =
       session.restore_insert_flag ? session.saved_insert_flag : session.insert_flag;
   curs_set(0);
-  UI_Dialog_Close(ctx, win);
+  if (options != NULL && options->suppress_final_refresh && session.ch == CR) {
+    UI_Dialog_CloseNoRefresh(win);
+  } else {
+    UI_Dialog_Close(ctx, win);
+  }
 
   if (session.ch == CR && buffer[0] != '\0') {
     InsHistory(ctx, buffer, history_type);
   }
 
-  PromptSessionRefreshBackground(&session);
+  if (options == NULL || !options->suppress_final_refresh || session.ch != CR)
+    PromptSessionRefreshBackground(&session);
   return session.ch;
 }
 

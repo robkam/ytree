@@ -158,7 +158,6 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
   int cmd_res;
   DirEntry *anchor;
   DirEntry *source_entry = NULL;
-  const char *prompt;
 
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
     return dir_entry;
@@ -261,19 +260,8 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
     return dir_entry;
   }
 
-  if (move_dir) {
-    prompt = "Move directory now (Y/N) ? ";
-  } else {
-    prompt = "Copy directory now (Y/N) ? ";
-  }
-
-  if (UI_ChoiceResolver(ctx, prompt, "YN\033") != 'Y') {
-    if (need_dsp_help)
-      *need_dsp_help = TRUE;
-    return dir_entry;
-  }
-
-  cmd_res = SystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+  cmd_res = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+  touchwin(stdscr);
   if (cmd_res != 0) {
     UI_ShowStatusLineError(ctx, move_dir ? "Directory move failed"
                                          : "Directory copy failed");

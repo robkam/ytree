@@ -5594,7 +5594,9 @@ def test_input_choice_modal_completion_fails_closed_on_invalid_surface() -> None
             "curs_set(1);",
             "leaveok(ctx->ctx_border_window, FALSE);",
             "mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);",
-            "PrintMenuOptions(" if function_name == "InputChoice" else "Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,",
+            "PrintMenuOptions("
+            if function_name == "InputChoice"
+            else "PrintChoiceLiteral(",
             "wnoutrefresh(ctx->ctx_border_window);",
             "doupdate();",
             "WGetch(ctx, ctx->ctx_border_window);",

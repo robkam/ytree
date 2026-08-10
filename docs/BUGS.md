@@ -131,8 +131,8 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: Entries that are hidden from the UI are not being fully excluded from navigation/state resolution. Hidden-dotfile and hidden-prefix paths can still influence visible-tree behavior, so the app can resolve or restore against a hidden ancestor or sibling path instead of treating the visible tree as authoritative.
 *   **Repro (manual, 2026-06-04)**:
     *   Open a tree that contains both a visible target such as `src` and hidden-prefix content such as `./tmp/session.cast` or `~/.local/src`.
-    *   Perform a normal jump/search flow that should land on the visible target.
-*   **Expected**: Items hidden from the UI should not participate in ordinary visible-tree jumps, selection, or restore decisions.
+    *   Perform a normal jump/search flow that must land on the visible target.
+*   **Expected**: Items hidden from the UI must not participate in ordinary visible-tree jumps, selection, or restore decisions.
 *   **Actual**: The jump resolves to a hidden-prefix path such as `/home/rob/.local/src` instead of the visible `~/ytreenova/src`.
 *   **Impact**: Demonstrates a broader architectural defect in hidden-item accounting and visible-tree authority, not just a one-off wrong row. It can misdirect routine navigation and make hidden entries behave as if they were still visible.
 *   **Remediation**: Make hidden-from-UI entries non-participants in the normal visible-tree resolver paths unless explicitly requested, and keep the visible-tree contract authoritative for jump, selection, and restore logic. Add regression coverage that distinguishes visible-tree targets from hidden-prefix matches.
@@ -213,13 +213,13 @@ Ordering policy (for all editors, including AI editors):
 ### **BUG-7: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
 *   **Expected Behavior**:
-    *   `F7` should allow a practical command subset for in-context file work (for example attributes/copy/delete/edit/filter/compare/move/new-date/open/print/rename/tag/untag/view/execute/quit paths as applicable).
-    *   Tagged/search workflow should operate in `F7`: `^T` (tag-all), `^S` (search), then `^V` (view tagged/search results) without leaving preview.
-    *   In `F7` preview, tagged search hits/results should be visibly highlighted.
-    *   `F8` and `Tab` should remain disabled in `F7` preview mode so split/layout switching cannot mutate preview state unexpectedly.
+    *   `F7` must allow a practical command subset for in-context file work (for example attributes/copy/delete/edit/filter/compare/move/new-date/open/print/rename/tag/untag/view/execute/quit paths as applicable).
+    *   Tagged/search workflow must operate in `F7`: `^T` (tag-all), `^S` (search), then `^V` (view tagged/search results) without leaving preview.
+    *   In `F7` preview, tagged search hits/results must be visibly highlighted.
+    *   `F8` and `Tab` must remain disabled in `F7` preview mode so split/layout switching cannot mutate preview state unexpectedly.
 *   **Impact**: Makes `F7` feel unfinished and adds avoidable friction in routine review workflows.
 *   **Remediation**: Finish `F7` as an in-place work mode: allow core actions (tag/search/view results/compare/copy/move/rename) without leaving preview, keep `F8`/`Tab` blocked for state safety, and add regression coverage for allowed actions and blocked keys.
-*   **Related**: Existing regression intent for `F8`-in-`F7` state safety should remain preserved and extended to `Tab`.
+*   **Related**: Existing regression intent for `F8`-in-`F7` state safety must remain preserved and extended to `Tab`.
 *   **Status**: Confirmed.
 
 ### **BUG-8: `Write` Offers/Describes Actions That Are Not Context-Valid**
@@ -359,7 +359,7 @@ Ordering policy (for all editors, including AI editors):
     *   `BORDERS_COLOR` affects line art, but also appears to affect the dynamic path part of the header, stats box titles, static+dynamic text in volume sections, current-dir/attributes path text, and all text in the attributes box.
     *   `MENU_COLOR` affects footer menu text and also the clock color.
     *   Neutral interaction surfaces are inconsistent: footer prompts can turn grey wholesale, history can remain cyan-on-blue when it should be neutral dialog styling, and F2 option/help text mixes prompt, menu, and content roles.
-*   **Expected**: Color keys should map to coherent semantic roles. Borders/box lines, static labels, dynamic values, keybinding text, neutral dialog/history surfaces, prompt input fields, preview text, footer keybinding text, and F1 help text must be independently predictable enough that changing one role does not unexpectedly recolor unrelated UI surfaces.
+*   **Expected**: Color keys must map to coherent semantic roles. Borders/box lines, static labels, dynamic values, keybinding text, neutral dialog/history surfaces, prompt input fields, preview text, footer keybinding text, and F1 help text must be independently predictable enough that changing one role does not unexpectedly recolor unrelated UI surfaces.
 *   **Impact**: Makes theme tuning unreliable and confusing; users cannot produce a restrained, readable theme because color controls behave like cross-wired chimeras rather than intentional UI roles.
 *   **Remediation**:
     *   Audit all uses of semantic role pairs, `WbkgdSet`, `wattr*`, and `COLOR_PAIR` in the header, stats panel, footer/prompt, F2/history, autoview/preview, and dialog paths.
@@ -424,11 +424,25 @@ Ordering policy (for all editors, including AI editors):
 *   **Related**: `ROADMAP` Task 21 (unified frame redraw contract).
 *   **Status**: Confirmed (intermittent; no deterministic repro sequence yet).
 
-### **BUG-29: Stats Panel Lacks a Single Coherent State/Render Owner**
+### **BUG-29: Directory Copy/Move Can Blank or Partially Drop the Main Frame During In-Session Refresh**
+*   **Description**: After accepting a directory copy or move target, the live view can blank or lose parts of the main frame while the tree updates. The tree content may remain or reappear, but header/path, border lines, stats, or footer can disappear temporarily, making the operation look visually broken even when the filesystem mutation succeeds.
+*   **Repro (manual, 2026-08-11)**:
+    *   Copy or move a directory in the logged tree.
+    *   Representative recordings:
+        *   `/home/rob/recordings/inbox/ytnova-20260811-154517-135295-pc3eF7.cast`
+        *   `/home/rob/recordings/inbox/ytnova-20260811-155440-139983-Yoy25x.cast`
+*   **Expected**: The existing view stays intact and the destination branch updates in-place with no blank screen, no partial frame loss, and no whole-screen redraw glitch.
+*   **Actual**: The directory tree can update while the surrounding frame drops out or goes blank long enough to look broken.
+*   **Impact**: High-trust workflow damage in copy/move paths because successful filesystem mutations still look like a rendering failure.
+*   **Remediation**: Treat directory copy/move refresh as a deterministic redraw/invalidation bug, not as prompt-flow work. Rebuild one authoritative frame update path for header/path, tree, file pane, stats, and footer so in-session directory mutations cannot leave partial surfaces behind.
+*   **Related**: `BUG-28` (split-brain redraw), `BUG-30` (stats owner split), `ROADMAP` Task 21 (unified frame redraw contract).
+*   **Status**: Confirmed.
+
+### **BUG-30: Stats Panel Lacks a Single Coherent State/Render Owner**
 *   **Description**: The stats area does not behave like one consolidated UI component with one authoritative state/render path. In broken states, one subsection (for example `ATTRIBUTES`) can remain visible while the rest of the stats surface is blank or stale, which makes the panel look like multiple historical fragments glued together instead of one coherent unit.
 *   **Example symptom**: During prompt-driven flows such as `Write`, the right-side panel can show only the lower `ATTRIBUTES` subsection while upper stats sections disappear, even though the outer frame and surrounding panes remain on screen.
-*   **Expected**: Stats should be one complete component in the appstate architecture: one explicit owner for its projection, one layout contract, one redraw/invalidation path, and deterministic all-or-nothing rendering of its subsections.
+*   **Expected**: Stats must be one complete component in the appstate architecture: one explicit owner for its projection, one layout contract, one redraw/invalidation path, and deterministic all-or-nothing rendering of its subsections.
 *   **Impact**: Breaks trust in the appstate architecture, makes redraw bugs harder to reason about, and creates a visibly kludged UI impression because users can see that different stats subsections are not being treated as one unit.
 *   **Remediation**: Define stats as a first-class appstate/render component with one authoritative projection boundary. Consolidate subsection visibility, titles, values, and borders under one render contract so prompt/modal flows cannot partially orphan or preserve only one subsection. Regression coverage should verify that stats either renders as one complete valid unit or is intentionally hidden as one unit.
-*   **Related**: `BUG-28` (split-brain redraw), `docs/ARCHITECTURE.md` §4.2.3 (`AppState` transition contract), `ROADMAP` Task 21.1 (unified stats + main-pane redraw contract).
+*   **Related**: `BUG-28` (split-brain redraw), `BUG-29` (directory copy/move frame drop), `docs/ARCHITECTURE.md` §4.2.3 (`AppState` transition contract), `ROADMAP` Task 21.1 (unified stats + main-pane redraw contract).
 *   **Status**: Confirmed.

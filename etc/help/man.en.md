@@ -189,8 +189,12 @@ title: Copy/Move Targets
 contexts: none
 ```
 ### Contextual F1
-Copy and move prompts accept a destination directory, a full replacement name, or a wildcard rename pattern.
-Local mode pages own the triggering keys, tagged repeats, and any split/archive caveats.
+Copy, move, and pathcopy use two explicit prompts.
+First choose the replacement name or wildcard rename pattern.
+Then choose the destination directory.
+The split stays intentional because name/pattern and destination are separate decisions.
+Merging them would hide meaning instead of removing friction.
+Overwrite conflicts compare size/time so you can judge newer/older and bigger/smaller.
 ### Explainer links
 - [Directory mode](topic:dir)
 - [File mode](topic:file)
@@ -205,8 +209,12 @@ Use a wildcard pattern such as `*.bak` or `copy-*` when you want ytnova to rewri
 
 #### Shared rules
 Tagged copy/move uses the same target syntax as single-item copy/move.
+Pathcopy uses the same two-prompt target flow while preserving the selected file's path relative to the current volume root.
 Split mode may seed the inactive-panel directory as the default target, but you can still replace that default before the operation starts.
 Archive-backed copy/move keeps the same destination model even when extraction or archive-aware paths are involved.
+Only real safety prompts may follow the name and destination prompts, such as overwrite/replace conflicts or creating a missing destination directory.
+Overwrite/replace conflicts show source and destination size/time facts when available so you can see whether the destination is newer/older or bigger/smaller before answering.
+Directory copy/move starts after the destination is accepted; there is no extra copy-now or move-now confirmation.
 
 ## topic:vi-keys
 ```ytnova-help-meta
