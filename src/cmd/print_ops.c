@@ -54,8 +54,8 @@ static int PrintFileContent(const ViewContext *ctx, FileEntry *file_entry,
   (void)GetRealFileNamePath(file_entry, file_name_path, ctx->view_mode);
 
   if (config->format == PRINT_FORMAT_FRAMED) {
-    fprintf(out_fp, "%s %s %s\n\n", config->frame_separator, file_entry->name,
-            config->frame_separator);
+    fprintf(out_fp, "%s\n%s\n\n", file_entry->name,
+            config->frame_separator[0] ? config->frame_separator : "```");
   } else if (config->format == PRINT_FORMAT_PAGEBREAK) {
     fprintf(out_fp, "### %s\n\n", file_entry->name);
   }
@@ -84,12 +84,8 @@ static int PrintFileContent(const ViewContext *ctx, FileEntry *file_entry,
   /* Separator acts as a page-break divider between files, not a wrapper.
    * Emit it after each file except the last. */
   if (config->format == PRINT_FORMAT_FRAMED) {
-    fprintf(out_fp, "\n");
-    for (int i = 0; i < 40; i++) {
-      fprintf(out_fp, "%s",
-              config->frame_separator[0] ? config->frame_separator : "-");
-    }
-    fprintf(out_fp, "\n\n");
+    fprintf(out_fp, "\n%s\n\n",
+            config->frame_separator[0] ? config->frame_separator : "```");
   } else if (config->format == PRINT_FORMAT_PAGEBREAK) {
     if (!is_last) {
       fprintf(out_fp, "\n%s\n\n", config->frame_separator);
@@ -104,14 +100,49 @@ static int PrintFileContent(const ViewContext *ctx, FileEntry *file_entry,
   return result;
 }
 
+static int PrintDirectoryListing(const ViewContext *ctx, const DirEntry *dir_entry,
+                                 FILE *out_fp, const PrintConfig *config) {
+  const YtreeNovaPanel *active_panel = ctx ? ctx->active : NULL;
+  BOOL hide_dot_files =
+      (active_panel != NULL && active_panel->hide_dot_files) ? TRUE : FALSE;
+  const FileEntry *file_entry;
+
+  if (!dir_entry || !out_fp || !config)
+    return -1;
+
+  if (config->format == PRINT_FORMAT_FRAMED) {
+    fprintf(out_fp, "%s\n%s\n\n", dir_entry->name,
+            config->frame_separator[0] ? config->frame_separator : "```");
+  } else if (config->format == PRINT_FORMAT_PAGEBREAK) {
+    fprintf(out_fp, "### %s\n\n", dir_entry->name);
+  }
+
+  for (file_entry = dir_entry->file; file_entry; file_entry = file_entry->next) {
+    if (file_entry->matching) {
+      if (!hide_dot_files || file_entry->name[0] != '.') {
+        fprintf(out_fp, "%s\n", file_entry->name);
+      }
+    }
+  }
+
+  if (config->format == PRINT_FORMAT_FRAMED) {
+    fprintf(out_fp, "\n%s\n\n",
+            config->frame_separator[0] ? config->frame_separator : "```");
+  } else {
+    fprintf(out_fp, "\n");
+  }
+
+  return ferror(out_fp) ? -1 : 0;
+}
+
 PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
                                       BOOL tagged, PrintConfig *config,
                                       int *is_pipe, char *error_target) {
   FILE *out_fp = NULL;
   int pipe_output = FALSE;
-  char *dest_raw = config->print_to;
+  char *dest_raw;
   char expanded[PATH_LENGTH + 1];
-  PrintDestination destination = config->destination;
+  PrintDestination destination;
   const char *dest;
   char path[PATH_LENGTH + 1];
   int start_dir_fd;
@@ -125,6 +156,11 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
   if (error_target) {
     error_target[0] = '\0';
   }
+  if (!ctx || !ctx->active || !dir_entry || !config) {
+    return PRINT_WRITE_IO_ERROR;
+  }
+  dest_raw = config->print_to;
+  destination = config->destination;
 
   /* Strip leading spaces */
   while (*dest_raw == ' ')
@@ -213,14 +249,21 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
       }
     }
   } else {
-    FileEntry *fe_ptr =
-        ctx->active
-            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-            .file;
+    FileEntry *fe_ptr = NULL;
+
+    if (ctx->active->saved_focus == FOCUS_FILE && ctx->active->file_entry_list &&
+        ctx->active->file_count > 0) {
+      int file_index = dir_entry->start_file + dir_entry->cursor_pos;
+
+      if (file_index >= 0 && (unsigned int)file_index < ctx->active->file_count)
+        fe_ptr = ctx->active->file_entry_list[file_index].file;
+    }
     if (fe_ptr) {
       if (PrintFileContent(ctx, fe_ptr, out_fp, config, TRUE, TRUE) != 0) {
         write_failed = TRUE;
       }
+    } else if (PrintDirectoryListing(ctx, dir_entry, out_fp, config) != 0) {
+      write_failed = TRUE;
     }
   }
 

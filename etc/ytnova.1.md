@@ -373,9 +373,10 @@ It can write plain content, framed content, or page-break-separated content.
 It can also send that output to a printer command instead of a file path.
 
 #### Output order
-Choose the format first.
-Choose the separator only when the format asks for one.
-Then choose the final destination.
+Choose file or hardcopy first.
+On the file destination prompt, `F3` cycles `Raw`, `Framed`, and `Page break`.
+Choose the separator as soon as `F3` selects framed or page-break output, before entering the final file path.
+Hardcopy asks only for the printer command.
 # SUPPORT TOPICS
 
 ### Command-line Editing

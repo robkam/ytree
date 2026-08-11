@@ -711,9 +711,10 @@ It can write plain content, framed content, or page-break-separated content.
 It can also send that output to a printer command instead of a file path.
 
 #### Output order
-Choose the format first.
-Choose the separator only when the format asks for one.
-Then choose the final destination.
+Choose file or hardcopy first.
+On the file destination prompt, `F3` cycles `Raw`, `Framed`, and `Page break`.
+Choose the separator as soon as `F3` selects framed or page-break output, before entering the final file path.
+Hardcopy asks only for the printer command.
 
 ## topic:output-format
 ```ytnova-help-meta
@@ -737,16 +738,20 @@ title: Output Destination Help
 contexts: prompt.output-destination
 ```
 ### Contextual F1
-Output destination chooses whether exported text goes to a file path or to Hardcopy.
-Hardcopy uses a printer command instead of a generic command destination.
+Output destination chooses file output versus Hardcopy first, then collects the final destination value.
+For file output, `CWD` is the current working directory for bare filenames.
+Press `F3` only on the file destination prompt to cycle `Raw`, `Framed`, and `Page break`.
+Framed and page-break output ask for the separator before returning to the file destination prompt.
+Hardcopy sends raw output to a shell printer command such as `lpr`, `lp`, or `cat > /dev/lp1`.
 ### Explainer links
 - [Output Help](topic:output)
+- [Output Format Help](topic:output-format)
 - [Command-line editing](topic:command-line-editing)
 
 ### Long form
 #### Destination choices
 File output writes exported text to a path.
-Hardcopy sends exported text to the chosen printer command.
+Hardcopy sends raw exported text to the chosen printer command.
 
 ## topic:output-separator
 ```ytnova-help-meta
@@ -754,7 +759,7 @@ title: Output Separator Help
 contexts: prompt.output-separator
 ```
 ### Contextual F1
-Output separator defines the delimiter reused between files for framed or page-break exports.
+Output separator appears only when `F3` selects framed or page-break output.
 Raw output bypasses this prompt.
 ### Explainer links
 - [Output Help](topic:output)

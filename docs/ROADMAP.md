@@ -731,7 +731,7 @@ Ordering policy (for all editors, including AI editors):
 *   Separator prompting appears only when the selected output mode actually needs it.
 *   Advanced output options remain available without reintroducing hidden semantics or less-intuitive prompt merges.
 *   File and hardcopy destinations remain explicit and help-synchronized.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 28: Persist Compare Mode Presets and Modal Contract**
 *   **Goal:** Build on the Task 27 compare-flow baseline by making compare mode remember last-used settings and enforce a durable modal interaction contract.

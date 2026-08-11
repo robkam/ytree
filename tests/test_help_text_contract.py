@@ -938,31 +938,40 @@ def test_output_prompt_f1_help_uses_generated_runtime_topics(tmp_path):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         tui.send_keystroke("o", wait=0.2)
 
-        assert tui.wait_for_content("Format:", timeout=1.0), screen_text(tui)
-        format_help = _wait_for_help(tui, "Output Format Help")
-        format_normalized = _normalized_help_text(format_help)
-        assert "Raw writes content with no extra framing." in format_normalized, format_help
-        assert "Page break inserts a separator between files" in format_normalized, format_help
-        assert "skips a trailing separator at the end." in format_normalized, format_help
-        tui.send_keystroke(Keys.ESC, wait=0.2)
-        assert tui.wait_for_content("Format:", timeout=1.0), screen_text(tui)
-
-        tui.send_keystroke("P", wait=0.2)
-        assert tui.wait_for_content("Page break separator", timeout=1.0), screen_text(tui)
-        separator_help = _wait_for_help(tui, "Output Separator Help")
-        assert "default triple-backtick fence" in _normalized_help_text(separator_help), separator_help
-        tui.send_keystroke(Keys.ESC, wait=0.2)
-        assert tui.wait_for_content("Page break separator", timeout=1.0), screen_text(tui)
-        tui.send_keystroke(Keys.ENTER, wait=0.2)
-
         assert tui.wait_for_content("Output to:", timeout=1.0), screen_text(tui)
         destination_help = _wait_for_help(tui, "Output Destination Help")
         destination_normalized = _normalized_help_text(destination_help)
         destination_lower = destination_normalized.lower()
         assert "file output writes exported text to a path" in destination_lower, destination_help
-        assert "hardcopy sends exported text to the chosen printer command" in destination_lower, destination_help
+        assert "cwd" in destination_lower and "current working directory" in destination_lower, destination_help
+        assert "hardcopy sends raw exported text" in destination_lower, destination_help
+        assert "cat > /dev/lp1" in destination_lower, destination_help
+        assert "f3" in destination_lower and "file destination prompt" in destination_lower, destination_help
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("Output to:", timeout=1.0), screen_text(tui)
+
+        tui.send_keystroke("F", wait=0.2)
+        assert tui.wait_for_content("Output file [Raw]", timeout=1.0), screen_text(tui)
+        destination_help = _wait_for_help(tui, "Output Destination Help")
+        destination_normalized = _normalized_help_text(destination_help)
+        destination_lower = destination_normalized.lower()
+        assert "press" in destination_lower and "f3" in destination_lower, destination_help
+        assert "page break" in destination_lower and "separator" in destination_lower, destination_help
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("Output file [Raw]", timeout=1.0), screen_text(tui)
+
+        tui.send_keystroke(Keys.F3, wait=0.2)
+        assert tui.wait_for_content("Frame separator", timeout=1.0), screen_text(tui)
+        separator_help = _wait_for_help(tui, "Output Separator Help")
+        assert "default triple-backtick fence" in _normalized_help_text(separator_help), separator_help
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.wait_for_content("Frame separator", timeout=1.0), screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
+        assert tui.wait_for_content("Output file [Framed]", timeout=1.0), screen_text(tui)
+        tui.send_keystroke(Keys.F3, wait=0.2)
+        assert tui.wait_for_content("Page break separator", timeout=1.0), screen_text(tui)
+        tui.send_and_wait_for_screen_change("---SEP---" + Keys.ENTER, timeout=1.5)
+        assert tui.wait_for_content("Output file [Page break]", timeout=1.0), screen_text(tui)
     finally:
         tui.quit()
 
