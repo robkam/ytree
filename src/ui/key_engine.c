@@ -954,7 +954,7 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
       return AppStateValidatedKeyAction(ACTION_PREVIEW_SCROLL_DOWN);
     return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_M);
   case 0x0F:
-    return AppStateValidatedKeyAction(ACTION_CMD_I);
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_PRINT);
   case 0x10:
     if (ctx && ctx->preview_mode)
       return AppStateValidatedKeyAction(ACTION_PREVIEW_SCROLL_UP);

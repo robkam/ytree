@@ -227,17 +227,12 @@ def test_archive_output_flow_writes_selected_entry_to_file(ytnova_binary, tmp_pa
         )
 
         tui.send_keystroke("o", wait=0.2)
-        assert tui.wait_for_content("Format:", timeout=1.0), "\n".join(
-            tui.get_screen_dump()
-        )
-
-        tui.send_keystroke("R", wait=0.2)
         assert tui.wait_for_content("Output to:", timeout=1.0), "\n".join(
             tui.get_screen_dump()
         )
 
         tui.send_keystroke("F", wait=0.2)
-        assert tui.wait_for_content("Output file", timeout=1.0), "\n".join(
+        assert tui.wait_for_content("Output file [Raw]", timeout=1.0), "\n".join(
             tui.get_screen_dump()
         )
 
@@ -554,25 +549,21 @@ def test_archive_create_overwrite_prompt_respects_no_then_yes(ytnova_binary, tmp
         tui.quit()
 
 
-def test_archive_create_ctrl_o_triggers_archive_prompt(ytnova_binary, tmp_path):
+def test_archive_create_ctrl_o_opens_output_prompt(ytnova_binary, tmp_path):
     root = tmp_path / "ctrl_o_archive"
     root.mkdir()
     source_file = root / "source.txt"
     source_file.write_text("payload", encoding="utf-8")
-    archive_path = root / "out.zip"
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("source.txt", timeout=3.0)
+        tui.send_keystroke("t", wait=0.2)
 
-        tui.send_keystroke("\x0f", wait=0.2)
-        assert tui.wait_for_content("Create archive:", timeout=3.0)
-        tui.send_keystroke(f"{archive_path}\r", wait=0.6)
-
-        assert archive_path.exists()
-        assert _zip_names(archive_path) == ["source.txt"]
-        assert _zip_read_text(archive_path, "source.txt") == "payload"
+        tui.send_keystroke(Keys.CTRL_O, wait=0.2)
+        assert tui.wait_for_content("Output to:", timeout=3.0)
+        assert not tui.wait_for_content("Create archive:", timeout=0.5)
     finally:
         tui.quit()
 

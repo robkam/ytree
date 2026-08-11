@@ -18,7 +18,7 @@ This checklist is reusable internal guidance for auditing primary-action depth, 
 | Split surfaces | `overlay.f8-dir`, `overlay.f8-file` | `src/ui/split_transition.c`, `src/ui/display.c`, `src/ui/runtime_help.c` | `etc/help/f1.en.md`, `tests/test_panel_isolation.py` |
 | Preview overlay | `overlay.f7-dir`, `overlay.f7-file` | `src/ui/view_preview.c`, `src/ui/display.c` | `etc/help/f1.en.md`, `tests/test_f7_preview.py` |
 | Compare prompts | `prompt.compare-target` plus compare explainer topics for scope/basis/results | `src/ui/compare_request.c` | `tests/test_compare_actions.py` |
-| Output prompts | `prompt.output-format`, `prompt.output-separator`, `prompt.output-destination` | `src/ui/print_controller.c` | `etc/help/f1.en.md`, `src/ui/print_controller.c` |
+| Output prompts | `prompt.output-destination`, `prompt.output-separator`, plus the shared `output-format` explainer | `src/ui/print_controller.c` | `etc/help/f1.en.md`, `src/ui/print_controller.c` |
 | Filter prompt | `prompt.filter`, `prompt.filter-tagged` | `src/ui/interactions.c`, `src/ui/ctrl_file_ops.c` | `tests/test_filtering.py` |
 | History dialog | `dialog.history` | `src/ui/history_dialog.c`, `src/ui/display.c` | `etc/help/f1.en.md` |
 | Volume menu | `dialog.volume-menu` | `src/ui/volume_menu.c` | `etc/help/f1.en.md` |
@@ -44,7 +44,7 @@ This checklist is reusable internal guidance for auditing primary-action depth, 
 | Directory copy / move target family | `C`, `V` | `key -> name prompt -> destination prompt -> result` | 2 | 2 | Directory/Archive-Dir/Split-Dir: `C` or `V` | Directory copy/move is an explicit multi-input exception: first choose the replacement name or pattern, then choose the destination directory. The flow stays split because those are different decisions; merging them would hide meaning instead of removing bureaucracy. Only real safety confirmations may follow, and routine directory copy/move no longer stops on a blanket post-target confirmation. | Compliant exception (documented) | `src/ui/interactions.c`, `src/ui/ctrl_dir.c`, `tests/test_destination_prompt.py` |
 | File copy / move target family | `C`, `M`, `Ctrl-K`, `Ctrl-N`, `Y` | `key -> name prompt -> destination prompt -> result` | 2 | 2 | File-like surfaces: `C`/`M`/`Y` | Single-item, tagged, and pathcopy variants share the same explicit exception: replacement name or wildcard first, destination directory second. The flow stays split because name/pattern and destination carry different meanings, so compression there would be less intuitive. Only overwrite/replace or create-missing-destination confirmations may follow. | Compliant exception (documented) | `src/ui/interactions.c`, `src/ui/ctrl_file.c`, `tests/test_destination_prompt.py` |
 | Tagged delete | `Ctrl-D`, `D` in VI file view | `key -> batch delete confirmation -> result` | 1 | 1 | File/Archive-File/Showall/Global/F7/Split-File with tagged files: `Ctrl-D`; VI file view: `D` | Bulk tagged delete keeps one batch confirmation on the common path. Runtime must not interpose a routine `confirm each file?` chooser; only true follow-up safety prompts such as read-only override may appear when needed. | Compliant baseline (remediated) | `src/ui/file_tags.c`, `src/ui/ctrl_file_ops.c`, `tests/test_vi_keys_mode.py` |
-| Output export family | `O`, `Ctrl-W` | `O -> Format chooser -> [separator prompt] -> Output to chooser -> destination prompt -> result` | 3-4 | 3-4 | File/Dir/Archive/Showall/Global/F7/Split: `O` | Prompt-local help exists, but the common path still crosses multiple chooser layers before the destination prompt. The remediation target must remove redundant layers without collapsing file-vs-hardcopy or format decisions into a less-intuitive merged prompt. | Offender: output prompt chain | `src/ui/print_controller.c` |
+| Output export family | `O`, `Ctrl-O`, `Ctrl-W` | `O -> Output to chooser -> destination prompt [F3 format, separator if needed] -> result` | 2-3 | 2-3 | File/Dir/Archive/Showall/Global/F7/Split: `O` | File versus hardcopy stays explicit on the route chooser. File output keeps `Raw` / `Framed` / `Page break` visible as an in-prompt toggle, and selecting a framed/page-break format collects its separator before the final destination value. Hardcopy asks only for the printer command. | Compliant baseline (remediated) | `src/ui/print_controller.c` |
 | Execute prompt family | `X`, `Ctrl-X` | `X -> command prompt -> Enter -> result` | 1 | 1 | Directory/File/Showall/Global/F7/Split: `X` | Syntax-bearing command prompt has prompt help and tagged rerun semantics. | Compliant baseline | `src/ui/interactions.c`, `src/ui/input_line.c` |
 | Create-archive prompt family | `Z` | `Z -> archive target prompt -> Enter -> result` | 1 | 1 | Directory/File/Showall/Global/F7/Split: `Z` | Tagged-first behavior is explained in-context; prompt is already shallow. | Compliant baseline | `src/ui/interactions.c` |
 | Jump prompt family | `/` | `/ -> jump prompt -> Enter -> result` | 1 | 1 | Any command surface with Jump: `/` | Direct list-jump path is shallow and already matches the target contract. | Compliant baseline | `src/ui/key_engine.c`, `src/ui/interactions.c` |
@@ -59,13 +59,11 @@ This checklist is reusable internal guidance for auditing primary-action depth, 
 ## Prompt-surface correctness findings
 
 No open findings remain in the prompt-aid visibility / chooser-label family after the footer-order normalization and applications-chooser navigation pass.
+
 ## Ranked remaining offender families
 
-| Rank | Family | Why it ranks here | Current chain | Proposed compression target | Likely docs/tests |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Output export prompt chain | Export is frequent and currently spans 3-4 layers before the final destination value. | `O -> format -> [separator] -> destination type -> destination` | One chooser plus one destination prompt where safe, but only if file-vs-hardcopy and format semantics stay explicit and the compressed flow is not less intuitive than the clearer explicit split. | `src/ui/print_controller.c`, `tests/test_print_feature.py`, help topics `output*` |
+No ranked primary-action depth offender families remain open after the output export remediation.
+
 ## Remaining remediation batches
 
-| Planned roadmap batch | Included family | Why it stays separate |
-| --- | --- | --- |
-| Output prompt compression | Rank 1 | Shared print/export owner and its own prompt chain. |
+No separate remediation batches remain in this audit snapshot.

@@ -31,35 +31,18 @@ def _wait_for_screen_text(ytnova: YtreeNovaController, text: str, timeout: float
     return lines
 
 
+def _assert_directory_frame_restored(lines):
+    dump = "\n".join(lines)
+    assert any(line.startswith("l") and "FILTER" in line for line in lines), dump
+    assert sum(1 for line in lines if line.startswith("x")) >= 8, dump
+    assert any(line.startswith("m") and "j" in line for line in lines), dump
+
+
 def _open_output_flow(ytnova: YtreeNovaController, key: str = "o"):
     lines = ytnova.send_and_wait_for_condition(
         key,
         lambda screen: screen
-        if any("Format:" in line and "Page break" in line for line in screen)
-        else False,
-        timeout=2.0,
-    )
-    assert lines, "\n".join(ytnova.get_screen_dump())
-    return lines
-
-
-def _choose_raw_format(ytnova: YtreeNovaController):
-    lines = ytnova.send_and_wait_for_condition(
-        "R",
-        lambda screen: screen
-        if any("Output to:" in line for line in screen)
-        else False,
-        timeout=2.0,
-    )
-    assert lines, "\n".join(ytnova.get_screen_dump())
-    return lines
-
-
-def _choose_page_break_format(ytnova: YtreeNovaController):
-    lines = ytnova.send_and_wait_for_condition(
-        "P",
-        lambda screen: screen
-        if any("Page break separator" in line for line in screen)
+        if any("Output to:" in line and "Hardcopy" in line for line in screen)
         else False,
         timeout=2.0,
     )
@@ -79,6 +62,18 @@ def _choose_output_route(ytnova: YtreeNovaController, route_key: str, prompt_tex
     return lines
 
 
+def _cycle_output_format(ytnova: YtreeNovaController, prompt_text: str):
+    lines = ytnova.send_and_wait_for_condition(
+        Keys.F3,
+        lambda screen: screen
+        if any(prompt_text in line for line in screen)
+        else False,
+        timeout=2.0,
+    )
+    assert lines, "\n".join(ytnova.get_screen_dump())
+    return lines
+
+
 def test_output_flow_uses_o_key_and_explicit_file_and_hardcopy_prompts():
     with tempfile.TemporaryDirectory() as td:
         source_path = os.path.join(td, "source.txt")
@@ -89,29 +84,27 @@ def test_output_flow_uses_o_key_and_explicit_file_and_hardcopy_prompts():
         try:
             _enter_file_mode(ytnova)
 
-            format_screen = "\n".join(_open_output_flow(ytnova, "o"))
-            assert "Format:" in format_screen, format_screen
-            assert "Page break" in format_screen, format_screen
-
-            route_screen = "\n".join(_choose_raw_format(ytnova))
+            route_screen = "\n".join(_open_output_flow(ytnova, "o"))
             assert "Output to:" in route_screen, route_screen
             assert "File" in route_screen, route_screen
             assert "Hardcopy" in route_screen, route_screen
-            assert "Command" not in route_screen, route_screen
 
-            file_prompt = "\n".join(_choose_output_route(ytnova, "F", "Output file"))
+            file_prompt = "\n".join(
+                _choose_output_route(ytnova, "F", "Output file [Raw]")
+            )
             assert "Output file" in file_prompt, file_prompt
+            assert "[Raw]" in file_prompt, file_prompt
 
             output_path = os.path.join(td, "prompt_check.txt")
             ytnova.input_text(output_path)
             assert os.path.exists(output_path)
 
             _open_output_flow(ytnova, "o")
-            _choose_raw_format(ytnova)
             hardcopy_prompt = "\n".join(
                 _choose_output_route(ytnova, "H", "Printer command:")
             )
-            assert "Printer command:" in hardcopy_prompt, hardcopy_prompt
+            assert "Printer command" in hardcopy_prompt, hardcopy_prompt
+            assert "F3 format" not in hardcopy_prompt, hardcopy_prompt
         finally:
             ytnova.quit()
 
@@ -182,10 +175,10 @@ def test_stale_output_commands_conf_does_not_abort_startup():
         try:
             _enter_file_mode(ytnova)
 
-            format_screen = "\n".join(_open_output_flow(ytnova, "o"))
-            assert "Format:" in format_screen, format_screen
-            assert "Write" not in format_screen, format_screen
-            assert "Only tagged" not in format_screen, format_screen
+            route_screen = "\n".join(_open_output_flow(ytnova, "o"))
+            assert "Output to:" in route_screen, route_screen
+            assert "Write" not in route_screen, route_screen
+            assert "Only tagged" not in route_screen, route_screen
         finally:
             ytnova.quit()
 
@@ -202,8 +195,7 @@ def test_output_plain_path_defaults_to_file_destination():
 
             out_path = os.path.join(td, "plain_destination.txt")
             _open_output_flow(ytnova, "o")
-            _choose_raw_format(ytnova)
-            _choose_output_route(ytnova, "F", "Output file")
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
             ytnova.input_text(out_path)
 
             assert os.path.exists(out_path)
@@ -212,13 +204,65 @@ def test_output_plain_path_defaults_to_file_destination():
 
             alias_out_path = os.path.join(td, "legacy_alias_destination.txt")
             _open_output_flow(ytnova, "o")
-            _choose_raw_format(ytnova)
             _choose_output_route(ytnova, "H", "Printer command:")
             ytnova.input_text(f">{alias_out_path}")
 
             assert os.path.exists(alias_out_path)
             with open(alias_out_path, "r", encoding="utf-8") as handle:
                 assert "plain-path-default" in handle.read()
+        finally:
+            ytnova.quit()
+
+
+def test_framed_output_uses_multiline_fence_around_file_content():
+    with tempfile.TemporaryDirectory() as td:
+        source_path = os.path.join(td, "source.txt")
+        with open(source_path, "w", encoding="utf-8") as handle:
+            handle.write("hello\n")
+
+        ytnova = _spawn_controller(td)
+        try:
+            _enter_file_mode(ytnova)
+
+            output_path = os.path.join(td, "framed_output.txt")
+            _open_output_flow(ytnova, "o")
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
+            _cycle_output_format(ytnova, "Frame separator")
+            ytnova.child.send(Keys.ENTER)
+            _wait_for_screen_text(ytnova, "Output file [Framed]")
+            ytnova.input_text(output_path)
+
+            with open(output_path, "r", encoding="utf-8") as handle:
+                assert handle.read() == "source.txt\n```\n\nhello\n\n```\n\n"
+        finally:
+            ytnova.quit()
+
+
+def test_directory_output_framed_default_separator_writes_listing_without_crash():
+    with tempfile.TemporaryDirectory() as td:
+        source_path = os.path.join(td, "source.txt")
+        with open(source_path, "w", encoding="utf-8") as handle:
+            handle.write("directory-output-source\n")
+
+        ytnova = _spawn_controller(td)
+        try:
+            _open_output_flow(ytnova, "o")
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
+            separator_prompt = "\n".join(_cycle_output_format(ytnova, "Frame separator"))
+            assert "Frame separator" in separator_prompt, separator_prompt
+            ytnova.child.send(Keys.ENTER)
+            _wait_for_screen_text(ytnova, "Output file [Framed]")
+
+            output_path = os.path.join(td, "directory_listing.txt")
+            ytnova.input_text(output_path)
+            ytnova._read_output(timeout=0.5)
+            _assert_directory_frame_restored(ytnova.get_screen_dump())
+
+            assert ytnova.child.isalive(), "directory-tree output crashed"
+            assert os.path.exists(output_path)
+            with open(output_path, "r", encoding="utf-8") as handle:
+                output_text = handle.read()
+            assert "source.txt" in output_text
         finally:
             ytnova.quit()
 
@@ -241,9 +285,8 @@ def test_tagged_output_shortcut_reuses_output_flow():
             ytnova.wait_for_refresh()
 
             output_path = os.path.join(td, "tagged_output.txt")
-            _open_output_flow(ytnova, Keys.CTRL_W)
-            _choose_raw_format(ytnova)
-            _choose_output_route(ytnova, "F", "Output file")
+            _open_output_flow(ytnova, Keys.CTRL_O)
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
             ytnova.input_text(output_path)
 
             assert os.path.exists(output_path)
@@ -251,6 +294,28 @@ def test_tagged_output_shortcut_reuses_output_flow():
                 output_text = handle.read()
             assert "alpha-tagged-output" in output_text
             assert "beta-tagged-output" in output_text
+        finally:
+            ytnova.quit()
+
+
+def test_preview_output_refreshes_file_list_with_new_destination():
+    with tempfile.TemporaryDirectory() as td:
+        source_path = os.path.join(td, "source.txt")
+        with open(source_path, "w", encoding="utf-8") as handle:
+            handle.write("preview-output\n")
+
+        ytnova = _spawn_controller(td)
+        try:
+            _enter_file_mode(ytnova)
+            ytnova.child.send(Keys.F7)
+            _wait_for_screen_text(ytnova, "exit preview")
+
+            _open_output_flow(ytnova, "o")
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
+            ytnova.input_text("preview_export.txt")
+
+            assert os.path.exists(os.path.join(td, "preview_export.txt"))
+            _wait_for_screen_text(ytnova, "preview_export.txt", timeout=3.0)
         finally:
             ytnova.quit()
 
@@ -266,7 +331,6 @@ def test_output_hardcopy_failure_shows_error_without_crash():
             _enter_file_mode(ytnova)
 
             _open_output_flow(ytnova, "o")
-            _choose_raw_format(ytnova)
             _choose_output_route(ytnova, "H", "Printer command:")
             ytnova.input_text("false")
 
@@ -287,11 +351,22 @@ def test_page_break_prompt_still_uses_distinct_separator_prompt():
             _enter_file_mode(ytnova)
 
             _open_output_flow(ytnova, "o")
-            page_break_prompt = "\n".join(_choose_page_break_format(ytnova))
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
+            framed_prompt = "\n".join(_cycle_output_format(ytnova, "Frame separator"))
+            assert "Frame separator" in framed_prompt, framed_prompt
+            ytnova.child.send(Keys.ENTER)
+            _wait_for_screen_text(ytnova, "Output file [Framed]")
+
+            page_break_prompt = "\n".join(
+                _cycle_output_format(ytnova, "Page break separator")
+            )
             assert "Page break separator" in page_break_prompt, page_break_prompt
 
             ytnova.input_text("---SEP---")
-            route_screen = "\n".join(_wait_for_screen_text(ytnova, "Output to:"))
-            assert "Hardcopy" in route_screen, route_screen
+            _wait_for_screen_text(ytnova, "Output file [Page break]")
+
+            output_path = os.path.join(td, "page_break_output.txt")
+            ytnova.input_text(output_path)
+            assert os.path.exists(output_path)
         finally:
             ytnova.quit()

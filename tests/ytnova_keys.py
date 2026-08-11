@@ -19,6 +19,7 @@ class Keys:
     CTRL_S = "\x13"
     CTRL_T = "\x14"
     CTRL_L = "\x0c"
+    CTRL_O = "\x0f"
     CTRL_U = "\x15"
     CTRL_V = "\x16"
     CTRL_W = "\x17"

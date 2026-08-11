@@ -860,7 +860,9 @@ static BOOL HandleFileCommandDispatchAction(ViewContext *ctx,
 
   case ACTION_CMD_PRINT:
     UI_HandlePrintController(ctx, dir_entry, FALSE);
+    dir_entry = RefreshFileView(ctx, dir_entry);
     RefreshView(ctx, dir_entry);
+    *dir_entry_ptr = dir_entry;
     *need_dsp_help_ptr = TRUE;
     return TRUE;
 
