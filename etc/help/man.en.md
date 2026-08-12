@@ -790,6 +790,7 @@ It keeps single-volume scope while flattening directory boundaries.
 * **Sort**: Repeating `S` changes sort; it does not leave Showall.
 * **Filter**: Filter still applies only to the current Showall result set.
 * **Filter**: Filter still applies only to the current Showall result set, and `Tab` inside the filter prompt narrows that same result set to tagged-only rows.
+* **Command list**: Showall reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Pipe, Quit, Rename, Sort, Tag, Untag, View, Output, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active aggregated file list.
 
 ## topic:global
 ```ytnova-help-meta
@@ -812,6 +813,7 @@ It keeps multi-volume scope while flattening directory boundaries.
 * **Global**: Repeating `G` is a no-op while you are already in Global.
 * **Filter**: Filter still applies only to the current Global result set.
 * **Filter**: Filter still applies only to the current Global result set, and `Tab` inside the filter prompt narrows that same result set to tagged-only rows.
+* **Command list**: Global reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Pipe, Quit, Rename, Sort, Tag, Untag, View, Output, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active aggregated file list.
 
 ## topic:f7
 ```ytnova-help-meta
