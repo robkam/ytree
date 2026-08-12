@@ -1,0 +1,58 @@
+Work item: docs/ROADMAP.md Task 43
+Title: Refine Contextual F1 Content and Footer-Parity Contract (gettext-ready)
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- For each supported context, every footer command appears in the matching `F1` help set, with concise surface-accurate wording rather than verbatim footer duplication when clearer.
+- Contextual `F1` adds the missing caveats the footer cannot carry, uses the low-noise help-popup hint line model, and keeps prompt-local `F1` selective and explicitly advertised.
+- First-pass contexts include FS dir/file, VFS dir/file, F7, F8, Showall, Global, tagged/prompt flows with non-obvious semantics, and `VI_KEYS=1` variants.
+- Numeric `1..9` meanings, shared operator topics, shallow help-popup links, gettext-ready authored help paths, regression coverage, and a footer/F1/man/usage keybinding parity audit gate are all in scope.
+
+Chosen coherent work family:
+- Footer/F1/reference parity audit for first-pass contextual help surfaces: codify the live runtime command/help surface inventory, prove authored F1/man topics stay aligned with the runtime footer/help contract, and reconcile any discovered drift in the canonical help sources/docs/tests.
+
+Explicit inventory:
+1. Source-of-truth docs/trackers
+   - `docs/ROADMAP.md` Task 43 plus subtasks 43.2 and 43.3 acceptance/status lines.
+   - `docs/SPECIFICATION.md` help parity, help-popup hint-line, prompt-help, and theme-role rules.
+   - `docs/ARCHITECTURE.md` canonical help-source and runtime-help consumer boundaries.
+2. Runtime/footer source-of-truth surfaces
+   - `src/ui/display.c` footer command specs, help label override plans, and generated-help dispatch contexts for dir/file/archive/F7/F8/help-entry surfaces.
+   - `src/ui/application_menu.c`, `src/ui/volume_menu.c`, `src/ui/f2_picker.c`, `src/ui/interactions.c`, `src/ui/compare_request.c`, and `src/ui/print_controller.c` for dialog/prompt help context ownership.
+   - `src/ui/runtime_help.c` generated-topic context lookup plus runtime-owned help footer/hint-line behavior.
+3. Canonical authored/projection help surfaces
+   - `etc/help/f1.en.md` contextual-help topics and linked explainers.
+   - `etc/help/man.en.md` reference topics that must stay aligned on durable command semantics.
+   - Generated outputs/projections as needed: `src/core/generated_help_topics.h`, `etc/ytnova.1.md`, and `docs/USAGE.md`.
+4. Generator/audit tooling surfaces
+   - `scripts/generate_help_assets.py` and `Makefile` `help-assets` / `qa-help-assets` paths.
+5. Directly affected tests
+   - `tests/test_help_source_schema.py` for source-schema and new parity-audit coverage.
+   - `tests/test_help_generator.py`, `tests/test_help_text_contract.py`, and `tests/test_theme_ui_contract.py` if parity/generator assertions need alignment.
+6. Adjacent surfaces to evaluate but potentially leave unchanged
+   - `etc/help/f1.de.md` locale topic inventory/schema parity only; durable English-command audit should not force translator prose churn unless the schema/topic inventory changes.
+   - Prose-quality-only rewrites tracked under Task 43.5 stay separate unless the parity audit uncovers factual drift that must be fixed now.
+
+Inventory reconciliation:
+1. `docs/ROADMAP.md` Task 43 / 43.2 / 43.3 [addressed: Task 43 remains in progress overall, while 43.2 and 43.3 are now marked completed to match the landed footer/help theme-role split and the new footer/F1/reference parity audit coverage].
+2. `src/ui/display.c` and the main/aggregate/preview/split generated-help dispatch plans [addressed: the new audit reads the runtime help-label override arrays as the footer command source of truth for first-pass contextual list topics].
+3. `src/ui/application_menu.c`, `src/ui/volume_menu.c`, `src/ui/f2_picker.c`, `src/ui/interactions.c`, `src/ui/compare_request.c`, `src/ui/print_controller.c`, and `src/ui/runtime_help.c` [intentionally unchanged: chooser/prompt-local help ownership already resolves through generated contexts, but their footer/help parity uses different command-strip semantics than the display help-label plans, so they are left for a separate validation family rather than mixed into this first-pass contextual-list audit].
+4. `etc/help/f1.en.md`, `etc/help/man.en.md`, and generated/projection help outputs [addressed: the new audit proved the F1 source already matched the runtime footer command inventory and the man source was extended so Showall/Global reference topics now mention the full reused file-footer command family].
+5. `scripts/generate_help_assets.py` and `Makefile` help-asset paths [intentionally unchanged: existing generation/check targets already satisfied this family once the source drift was fixed].
+6. `tests/test_help_source_schema.py` plus adjacent help-generator/source-contract tests [addressed: added a runtime-help-label parity audit and revalidated the schema/generator checks].
+7. `etc/help/f1.de.md` locale schema parity [intentionally unchanged: the new audit keeps locale topic inventory/schema untouched and does not force translator prose churn for an English-reference parity repair].
+8. Task 43.5 prose-quality rewrites [deferred: different editorial/prose-quality validation path; this family only closes factual/runtime parity drift for Task 43 infrastructure, not the broader Unix-style prose rewrite pass].
+
+Validation:
+- Red: `source ../ytreenova/.venv/bin/activate && pytest -q tests/test_help_source_schema.py::test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity`
+- Green: `make help-assets`
+- Green: `source ../ytreenova/.venv/bin/activate && pytest -q tests/test_help_source_schema.py tests/test_help_generator.py`
+- Green: `make qa-help-assets`
+
+Roadmap scope update from maintainer feedback:
+- Base Task 43 now explicitly requires readable wrapped help text on narrow popup widths, truthful rendered key tokens in `F1` command rows, fuller coverage for tagged/syntax-heavy command behavior, per-number decoding for `1..9 view`, and a complete alphabetical `Contents` index for operator-facing help topics.
+- Task 43.1 now explicitly owns the alphabetical `Contents` index and the link-economy rule that avoids duplicate bureaucracy pages while keeping help-only follow/back behavior explicit.
+- Task 43.5 now explicitly owns prose adequacy for tag-sensitive/syntax-heavy commands and the narrow-width readability/presentation expectation.
+- I intentionally did not encode hardcoded title/term colors; best-practice wording keeps that as semantic theme-controlled emphasis rather than specific palette choices in the roadmap contract.
+
+Maintainer-requested extra inclusion:
+- `scripts/requirements.txt` version refresh is included in the same amended commit at maintainer request, even though it is outside the Task 43 help-parity family.

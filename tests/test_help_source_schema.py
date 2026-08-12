@@ -7,6 +7,7 @@ HELP_SOURCES = (
     Path("etc/help/man.en.md"),
 )
 LOCALE_F1_SOURCES = (Path("etc/help/f1.de.md"),)
+DISPLAY_SOURCE = Path("src/ui/display.c")
 REQUIRED_TOPICS = {
     "intro",
     "navigation",
@@ -34,6 +35,30 @@ REQUIRED_TOPICS = {
     "applications-menu",
     "f2-picker",
 }
+RUNTIME_HELP_LABEL_TOPICS = {
+    "dir": "dir_help_label_specs",
+    "file": "file_help_label_specs",
+    "archive-dir": "archive_dir_help_label_specs",
+    "archive-file": "archive_file_help_label_specs",
+    "showall": "file_help_label_specs",
+    "global": "file_help_label_specs",
+    "f7": "preview_help_label_specs",
+    "f8-dir": "dir_help_label_specs",
+    "f8-file": "file_help_label_specs",
+}
+MAN_LABEL_ALIASES = {
+    "Archive": ("Archive", "Z archive"),
+    "Compare": ("Compare", "J compare"),
+    "Copy": ("Copy", "C/^K copy"),
+    "Dotfiles": ("Dotfiles", "` dotfiles"),
+    "Execute": ("Execute", "eXecute"),
+    "Invert Tags": ("Invert Tags", "Invert"),
+    "Jump": ("Jump", "/ jump"),
+    "Move": ("Move", "M/^N move"),
+    "New File": ("New File", "Newfile"),
+    "Pathcopy": ("Pathcopy", "pathcopY"),
+    "Volume": ("Volume", "K volume"),
+}
 
 
 def _read_help_source(path):
@@ -52,6 +77,36 @@ def _topic_blocks(source):
         re.M | re.S,
     )
     return list(pattern.finditer(source))
+
+
+def _topic_block_map(source):
+    return {match.group("topic"): match for match in _topic_blocks(source)}
+
+
+def _topic_long_form(source, topic):
+    return _topic_block_map(source)[topic].group("long_form")
+
+
+def _topic_command_labels(source, topic):
+    return {
+        match.group(1)
+        for match in re.finditer(r"^\* \*\*([^*]+)\*\*:", _topic_long_form(source, topic), re.M)
+    }
+
+
+def _help_label_override_map():
+    source = DISPLAY_SOURCE.read_text(encoding="utf-8")
+    pattern = re.compile(
+        r"static const HelpLabelOverrideSpec (?P<name>[a-z_]+)\[\] = \{(?P<body>.*?)\};",
+        re.S,
+    )
+    return {
+        match.group("name"): re.findall(
+            r'\{"([^"]+)",\s*"[^"]+"\}',
+            match.group("body"),
+        )
+        for match in pattern.finditer(source)
+    }
 
 
 def test_help_source_uses_deterministic_topic_block_schema():
@@ -91,3 +146,28 @@ def test_help_source_defines_required_first_pass_topics():
         topic_sets.append(topics)
 
     assert topic_sets[0] == topic_sets[1] == topic_sets[2]
+
+
+def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity():
+    f1_source = _read_help_source(Path("etc/help/f1.en.md"))
+    man_source = _read_help_source(Path("etc/help/man.en.md"))
+    help_labels = _help_label_override_map()
+
+    for topic, array_name in RUNTIME_HELP_LABEL_TOPICS.items():
+        expected_labels = help_labels[array_name]
+        f1_labels = _topic_command_labels(f1_source, topic)
+        missing_f1 = [label for label in expected_labels if label not in f1_labels]
+        assert not missing_f1, (
+            f"{topic} F1 topic is missing runtime footer command rows: {missing_f1}"
+        )
+
+        man_long_form = _topic_long_form(man_source, topic)
+        missing_man = []
+        for label in expected_labels:
+            aliases = MAN_LABEL_ALIASES.get(label, (label,))
+            if not any(alias in man_long_form for alias in aliases):
+                missing_man.append(label)
+        assert not missing_man, (
+            f"{topic} man/usage topic is missing runtime footer command coverage: "
+            f"{missing_man}"
+        )
