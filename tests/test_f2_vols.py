@@ -712,8 +712,8 @@ def test_f9_applications_menu_navigation_keys_and_edit_action(tmp_path):
     root.mkdir()
     (root / "seed.txt").write_text("seed", encoding="utf-8")
 
-    editor_capture = root / "applications_commands_capture.txt"
-    editor = root / "applications_commands_editor.sh"
+    editor_capture = root / "applications_catalog_capture.txt"
+    editor = root / "applications_catalog_editor.sh"
     editor.write_text(
         "#!/bin/sh\n"
         "f=\"$1\"\n"
@@ -750,25 +750,70 @@ def test_f9_applications_menu_navigation_keys_and_edit_action(tmp_path):
             poll_interval=0.05,
         ), get_screen_text(tui)
 
-        commands_path = next(
+        applications_path = next(
             (
                 candidate
                 for candidate in (
-                    root / ".config" / "ytnova" / "commands.conf",
-                    root / ".ytnova.commands",
+                    root / ".config" / "ytnova" / "applications.conf",
+                    root / ".ytnova.applications",
                 )
                 if candidate.exists()
             ),
             None,
         )
-        assert commands_path is not None, (
-            "Applications edit should bootstrap the commands catalog before opening the editor."
+        assert applications_path is not None, (
+            "Applications edit should bootstrap the dedicated applications catalog before opening the editor."
         )
-        commands_text = commands_path.read_text(encoding="utf-8")
-        assert "# edited by f9 apps" in commands_text
+        applications_text = applications_path.read_text(encoding="utf-8")
+        assert "# edited by f9 apps" in applications_text
         capture_text = editor_capture.read_text(encoding="utf-8")
-        assert "# commands.conf starter for YtreeNova command customization." in capture_text
-        assert "[DIR]" in capture_text
-        assert "ACTION_COMPARE_DIR" in capture_text
+        assert "# applications.conf starter for YtreeNova F9 application presets." in capture_text
+        assert "# label | prompt | command" in capture_text
+        assert "open selected item |  | xdg-open {}" in capture_text
+        assert "open typed URL | URL | xdg-open {input}" in capture_text
+        assert "# open selected media in mpv |  | mpv {}" in capture_text
+    finally:
+        tui.quit()
+
+
+def test_f9_applications_menu_launches_entries_and_returns_without_pause(tmp_path):
+    root = tmp_path / "applications_menu_execute"
+    config_dir = root / ".config" / "ytnova"
+    root.mkdir()
+    config_dir.mkdir(parents=True)
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    (config_dir / "applications.conf").write_text(
+        "# label | prompt | command\n"
+        "launch success marker |  | sh -c 'sleep 0.2; printf ok > success.txt'\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=1.5), get_screen_text(tui)
+
+        tui.send_keystroke(Keys.F9, wait=0.6)
+        assert tui.wait_for_content("launch success marker", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke("\n", wait=0.2)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if "launched: launch success marker" in "\n".join(lines).lower()
+            and "[Hit return to continue]" not in "\n".join(lines)
+            else False,
+            timeout=1.5,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+
+        tui.send_keystroke(Keys.F9, wait=0.4)
+        assert tui.wait_for_content("launch success marker", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        assert tui.wait_for_condition(
+            lambda lines: (root / "success.txt").exists()
+            and "[Hit return to continue]" not in "\n".join(lines),
+            timeout=2.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
     finally:
         tui.quit()

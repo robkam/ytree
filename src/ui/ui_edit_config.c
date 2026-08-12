@@ -10,6 +10,7 @@
  ***************************************************************************/
 
 #define NO_YTNOVA_MACROS
+#include "../core/default_applications_catalog.h"
 #include "../core/default_commands_catalog.h"
 #include "../core/default_profile_template.h"
 #include "../core/default_theme_catalog.h"
@@ -196,6 +197,13 @@ static int EnsureCommandsStarterFile(ViewContext *ctx,
   return result < 0 ? -1 : 0;
 }
 
+static int EnsureApplicationsStarterFile(ViewContext *ctx,
+                                         const char *applications_path) {
+  int result = WriteStarterFile(ctx, applications_path,
+                                default_applications_catalog, "applications");
+  return result < 0 ? -1 : 0;
+}
+
 static int ApplyRefreshMode(ViewContext *ctx, DirEntry *dir_entry,
                             int refresh_mode) {
   int old_refresh_mode;
@@ -300,6 +308,14 @@ static int ResolveCommandsPath(const ViewContext *ctx, char *commands_path,
                                size_t commands_path_size) {
   return ConfigPaths_ResolveLoadedOrBootstrapPath(
       ctx, CONFIG_SURFACE_COMMANDS, commands_path, commands_path_size, TRUE);
+}
+
+static int ResolveApplicationsPath(const ViewContext *ctx,
+                                   char *applications_path,
+                                   size_t applications_path_size) {
+  return ConfigPaths_ResolveLoadedOrBootstrapPath(
+      ctx, CONFIG_SURFACE_APPLICATIONS, applications_path,
+      applications_path_size, TRUE);
 }
 
 static int ReloadConfigAndTheme(ViewContext *ctx, DirEntry *dir_entry,
@@ -451,6 +467,20 @@ void UI_EditCommandsCatalog(ViewContext *ctx, DirEntry *dir_entry) {
     return;
 
   EditReloadableRuntimeFile(ctx, dir_entry, commands_path);
+}
+
+void UI_EditApplicationsCatalog(ViewContext *ctx, DirEntry *dir_entry) {
+  char applications_path[PATH_LENGTH + 1];
+
+  if (ResolveApplicationsPath(ctx, applications_path, sizeof(applications_path)) !=
+      0) {
+    MESSAGE(ctx, "Can't resolve applications file path");
+    return;
+  }
+  if (EnsureApplicationsStarterFile(ctx, applications_path) != 0)
+    return;
+
+  EditReloadableRuntimeFile(ctx, dir_entry, applications_path);
 }
 
 void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {

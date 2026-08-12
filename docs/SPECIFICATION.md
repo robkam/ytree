@@ -187,8 +187,19 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 *   **`F6`**: unassigned.
 *   **`F7`**: autoview toggle.
 *   **`F8`**: split-screen toggle.
-*   **`F9`**: user menu (Macros).
+*   **`F9`**: Applications menu.
 *   **`F10`**: configuration.
+
+### 4.4.1 Applications Menu Contract
+*   **Launcher Role:** `F9` is the named-preset launcher for repeat-heavy external workflows. It is not the ad hoc shell prompt and it is not a keystroke recorder.
+*   **`eXecute` Separation Rule:** `eXecute` (`X`) remains the one-off shell command surface with history and terminal-style output. `F9` is for saved launchers, helper scripts, and repeatable application workflows.
+*   **Immediate Return Rule:** The common-path `F9` flow is `F9 -> Enter -> launched application -> working view`. After a preset starts, runtime MUST return to the TUI immediately without a blocking `PRESS ENTER` acknowledgment step.
+*   **Independent Process Rule:** The launched preset process MUST continue independently of the ytnova TUI. If a preset needs its own terminal, the preset command must open that terminal itself (directly or through a helper script).
+*   **Selection Placeholder Rule:** In the applications catalog, `{}` means the file or folder currently selected in ytnova.
+*   **Prompt Placeholder Rule:** In the applications catalog, `{input}` means the text the operator typed when the preset asked for extra input.
+*   **Working-Directory Rule:** Application presets MUST start in the active selection's directory context. In file focus that means the selected file's parent directory; in tree focus that means the selected directory itself. Presets without `{}` still inherit that working directory.
+*   **No-Implied-Target Rule:** If a preset omits `{}`, runtime MUST NOT silently append a selected path argument. The selection still defines the preset's working directory under the Working-Directory Rule.
+*   **Plain-English Help Rule:** Runtime help and starter-catalog comments MUST explain `{}` and `{input}` in plain English rather than shell-implementation jargon.
 
 ### 4.5 Prompt Interaction Standards
 When a text prompt is active, specialized conventions ensure a refined editing experience:

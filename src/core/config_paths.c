@@ -22,6 +22,8 @@ static const ConfigSurfacePathSpec kConfigSurfacePaths[] = {
     {CONFIG_SURFACE_PROFILE, PROFILE_CONFIG_HOME_PATH, PROFILE_FILENAME},
     {CONFIG_SURFACE_THEME, THEME_CONFIG_HOME_PATH, THEME_FILENAME},
     {CONFIG_SURFACE_COMMANDS, COMMANDS_CONFIG_HOME_PATH, COMMANDS_FILENAME},
+    {CONFIG_SURFACE_APPLICATIONS, APPLICATIONS_CONFIG_HOME_PATH,
+        APPLICATIONS_FILENAME},
 };
 
 static const ConfigSurfacePathSpec *ConfigPaths_FindSpec(ConfigSurface surface) {
@@ -63,6 +65,8 @@ static const char *ConfigPaths_CurrentPath(const ViewContext *ctx,
     return ctx->theme_file_path;
   case CONFIG_SURFACE_COMMANDS:
     return ctx->commands_file_path;
+  case CONFIG_SURFACE_APPLICATIONS:
+    return NULL;
   default:
     return NULL;
   }

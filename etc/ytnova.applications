@@ -1,0 +1,33 @@
+######################################
+# applications.conf starter for YtreeNova F9 application presets.
+#
+# This is the package's default Applications menu catalog.
+# Only explicit F9 Applications edit creates a user copy. When the file is
+# missing, YtreeNova falls back to the packaged applications catalog without
+# creating a user file.
+#
+# Row format:
+#   label | prompt | command
+#
+# Rules:
+# - label is the menu text shown in F9.
+# - prompt is optional. Leave it blank to run the command immediately.
+# - command is any shell command template.
+# - `{}` means the file or folder currently selected in ytnova.
+# - `{input}` means the text you type when the preset asks for extra input.
+# - F9 launches presets and returns to ytnova immediately.
+# - If a preset needs its own terminal, wrap it in your terminal emulator or a script.
+# - ytnova does not restrict user commands, even when they duplicate built-ins.
+# Useful patterns:
+# - open selected item |  | xdg-open {}
+# - open typed URL | URL | xdg-open {input}
+# - open selected media in mpv |  | mpv {}
+# - run a local helper script |  | ~/.local/bin/my-ytnova-handler {}
+######################################
+# label | prompt | command
+wget fetch preset | URL | wget --continue --show-progress --content-disposition {input}
+ssh connect preset | Host | ssh {input}
+format convert preset | Output path | ffmpeg -nostdin -hide_banner -i {} {input}
+# open selected item |  | xdg-open {}
+# open typed URL | URL | xdg-open {input}
+# open selected media in mpv |  | mpv {}

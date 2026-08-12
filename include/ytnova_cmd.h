@@ -238,6 +238,8 @@ extern void UI_SetKindOfSort(int kind_of_sort, Statistic *s);
 /* system.c */
 extern int QuerySystemCall(ViewContext *ctx, const char *command_line,
                            Statistic *s);
+extern int LaunchDetachedCommand(ViewContext *ctx, const char *command_line,
+                                 const char *working_directory, Statistic *s);
 extern int SilentSystemCall(ViewContext *ctx, const char *command_line,
                             Statistic *s);
 extern int SilentSystemCallEx(ViewContext *ctx, const char *command_line,

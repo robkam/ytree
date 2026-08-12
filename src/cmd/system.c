@@ -7,12 +7,127 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 
 /* Prototypes for functions defined in this file */
 int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s);
 int SilentSystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
+
+static int WriteDetachedLaunchError(int fd, int error_code) {
+  return write(fd, &error_code, sizeof(error_code)) == (ssize_t)sizeof(error_code)
+             ? 0
+             : -1;
+}
+
+int LaunchDetachedCommand(ViewContext *ctx, const char *command_line,
+                          const char *working_directory, Statistic *s) {
+  int status_pipe[2] = {-1, -1};
+  int child_error = 0;
+  ssize_t read_count;
+  pid_t child_pid;
+  int child_status;
+
+  (void)ctx;
+
+  if (command_line == NULL || *command_line == '\0' || s == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
+  if (pipe(status_pipe) != 0)
+    return -1;
+  if (fcntl(status_pipe[1], F_SETFD, FD_CLOEXEC) == -1) {
+    child_error = errno;
+    close(status_pipe[0]);
+    close(status_pipe[1]);
+    errno = child_error;
+    return -1;
+  }
+
+  child_pid = fork();
+  if (child_pid == -1) {
+    child_error = errno;
+    close(status_pipe[0]);
+    close(status_pipe[1]);
+    errno = child_error;
+    return -1;
+  }
+
+  if (child_pid == 0) {
+    int null_fd;
+    pid_t grandchild_pid;
+
+    close(status_pipe[0]);
+
+    if (setsid() == -1) {
+      child_error = errno;
+      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
+      _exit(1);
+    }
+
+    grandchild_pid = fork();
+    if (grandchild_pid == -1) {
+      child_error = errno;
+      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
+      _exit(1);
+    }
+    if (grandchild_pid > 0)
+      _exit(0);
+
+    if (working_directory != NULL && *working_directory != '\0' &&
+        chdir(working_directory) != 0) {
+      child_error = errno;
+      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
+      _exit(1);
+    }
+
+    null_fd = open("/dev/null", O_RDWR);
+    if (null_fd == -1) {
+      child_error = errno;
+      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
+      _exit(1);
+    }
+    if (dup2(null_fd, STDIN_FILENO) == -1 || dup2(null_fd, STDOUT_FILENO) == -1 ||
+        dup2(null_fd, STDERR_FILENO) == -1) {
+      child_error = errno;
+      close(null_fd);
+      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
+      _exit(1);
+    }
+    if (null_fd > STDERR_FILENO)
+      close(null_fd);
+
+    execl("/bin/sh", "sh", "-c", command_line, (char *)NULL);
+    child_error = errno;
+    (void)WriteDetachedLaunchError(status_pipe[1], child_error);
+    _exit(1);
+  }
+
+  close(status_pipe[1]);
+  if (waitpid(child_pid, &child_status, 0) == -1) {
+    child_error = errno;
+    close(status_pipe[0]);
+    errno = child_error;
+    return -1;
+  }
+
+  read_count = read(status_pipe[0], &child_error, sizeof(child_error));
+  close(status_pipe[0]);
+  if (read_count > 0) {
+    errno = child_error;
+    return -1;
+  }
+  if (read_count == -1)
+    return -1;
+
+  (void)GetAvailBytes(&s->disk_space, s);
+  return 0;
+}
 
 int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s) {
   int result;

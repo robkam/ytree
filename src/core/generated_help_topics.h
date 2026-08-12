@@ -458,7 +458,7 @@ static const GeneratedHelpLink generated_help_links_applications_menu[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_applications_menu[] = {
-    {"Applications actions", "* **Select preset**: `Up` and `Down` move through the preset list.\n* **Edit presets**: `E` opens the commands catalog so application presets can be changed without leaving the chooser family.\n* **Cancel menu**: `Esc` closes the placeholder chooser without selecting a preset.\n* **Current state**: The shipped Applications menu is still a lightweight placeholder surface, so treat it as a shell for future app-launch behavior."},
+    {"Applications actions", "* **Select preset**: `Up` and `Down` move through the preset list.\n* **Launch behavior**: `F9` is the named-preset launcher for repeat-heavy external workflows. It starts the selected preset and returns straight to the TUI without a blocking `PRESS ENTER` step.\n* **Use `eXecute` for one-offs**: The `X` command prompt stays the ad hoc shell surface with history and terminal-style output. Use `F9` for saved launchers and scripts, not for one-off shell typing.\n* **Edit presets**: `E` opens the dedicated applications catalog so application presets can be changed without leaving the chooser family.\n* **Selection and working directory**: `{}` inserts the currently selected file or folder. Presets start in that selection's directory context, so scripts without `{}` still run from the place you selected.\n* **Prompt text**: `{input}` inserts the extra text you typed for the preset prompt.\n* **Starter presets**: The bundled catalog starts with `xdg-open` launchers and includes commented examples for tools such as `mpv` or local helper scripts.\n* **Cancel menu**: `Esc` closes the chooser without selecting a preset."},
 };
 
 static const GeneratedHelpLink generated_help_links_f2_picker[] = {
@@ -845,7 +845,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
         "applications-menu",
         "Applications Help",
         "dialog.applications",
-        "Use `Up` and `Down` to choose an application preset.\nUse `Enter` to select the highlighted preset.\nUse `E` to edit the commands catalog that backs application presets.\nUse `Esc` to cancel the menu.\nThe shipped menu is still a placeholder surface.",
+        "Use `Up` and `Down` to choose an application preset.\nUse `Enter` to select the highlighted preset.\nAfter launch, ytnova keeps running and the application continues on its own.\nUse `E` to edit the applications catalog that backs application presets.\nUse `Esc` to cancel the menu.\nUse `{}` for the file or folder currently selected in ytnova.\nUse `{input}` for the text you type when the preset asks for extra input.",
         1,
         generated_help_links_applications_menu,
         1,

@@ -1,0 +1,65 @@
+Work item: docs/ROADMAP.md Task 55
+Title: Implement Applications Menu (`F9`) with Safe Default Presets
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- `F9` exposes user-configurable entries and ships with documented default presets.
+- `F9` application entries live in a dedicated user-editable applications catalog rather than sharing `commands.conf` with command-strip bindings.
+- The Applications menu edit path opens that dedicated applications catalog surface.
+- Default presets prioritize non-builtin external workflows with clear input placeholders and safe defaults.
+- User-added commands are not restricted, including commands that duplicate existing builtins.
+- Prompt/help/F1/manpage text documents `F9` basics and preset intent in contributor-friendly language.
+- Default `F9` launch returns to ytnova immediately, and the launched application continues independently.
+- Placeholder/help text explains `{}` and `{input}` in plain English and distinguishes saved `F9` launchers from ad hoc `eXecute`.
+
+Chosen coherent work family:
+- End-to-end `F9` applications catalog and launcher flow: dedicated catalog source/bootstrap/install surfaces, detached runtime launching from selection context, clearer launcher-vs-`eXecute` docs/help wording, and directly coupled tests.
+
+Explicit inventory:
+1. Source-of-truth docs/trackers
+   - `docs/ROADMAP.md` Task 55 status/acceptance text.
+   - `docs/SPECIFICATION.md` F9 blueprint wording.
+2. Dedicated applications-catalog surfaces
+   - `Makefile` generated/install/QA hooks for a packaged applications catalog.
+   - `etc/ytnova.applications`, `scripts/generate_default_applications_catalog.py`, `src/core/default_applications_catalog.h`.
+   - Config path definitions/resolution in `include/ytnova_defs.h` and `src/core/config_paths.c`.
+3. Runtime applications flow
+   - `src/ui/application_menu.c` menu loading/help/selection/edit/detached launch behavior.
+   - `src/cmd/system.c`, `include/ytnova_cmd.h` detached launcher helper for independent F9 presets.
+   - `src/ui/ui_edit_config.c` dedicated applications catalog edit/bootstrap path.
+4. Directly affected docs/help projections
+   - Authored help/man sources: `etc/help/f1.en.md`, `etc/help/man.en.md`.
+   - Generated help/docs/runtime assets: `src/core/generated_help_topics.h`, `etc/ytnova.1.md`, `docs/USAGE.md`.
+   - Help/docs generator surfaces: `scripts/generate_help_assets.py`.
+5. Directly affected tests
+   - `tests/test_f2_vols.py`, `tests/test_help_text_contract.py`, `tests/test_theme_ui_contract.py`.
+   - `tests/test_command_strip_visibility.py` and `tests/test_modal_color_taxonomy.py` as adjacent F9/menu guard coverage.
+6. Adjacent but intentionally unchanged
+   - Existing `commands.conf` loader/runtime (`src/cmd/commands.c`, related command-preset docs) remains command-strip-only.
+   - Task 56 extension-contract spec work remains separate; only the F9-vs-`eXecute` launcher contract needed for Task 55 was documented here.
+
+Inventory reconciliation:
+1. `docs/ROADMAP.md` [addressed: Task 55 acceptance formatting was cleaned up and the roadmap status now records the completed Applications-menu outcome].
+2. `docs/SPECIFICATION.md` [addressed: F9 blueprint now names the Applications menu instead of the stale macros wording].
+3. `Makefile` [addressed: added packaged applications catalog path macro, install/uninstall wiring, and focused QA targets].
+4. `etc/ytnova.applications`, `scripts/generate_default_applications_catalog.py`, `src/core/default_applications_catalog.h` [addressed: added dedicated starter/default catalog surfaces for F9 presets].
+5. `include/ytnova_defs.h`, `src/core/config_paths.c` [addressed: added dedicated applications catalog path definitions and bootstrap resolution support].
+6. `src/ui/application_menu.c` [addressed: F9 now loads user/package presets, edits the dedicated catalog, launches presets detached from the TUI, uses `{}`/`{input}` with active-selection working-directory semantics, and returns immediately without a blocking keypress].
+7. `src/ui/ui_edit_config.c`, `include/ytnova_ui.h` [addressed: added dedicated applications-catalog edit/bootstrap entry point].
+8. `etc/help/f1.en.md`, `etc/help/man.en.md`, `scripts/generate_help_assets.py`, `src/core/generated_help_topics.h`, `etc/ytnova.1.md`, `docs/USAGE.md` [addressed: documented the launcher-vs-`eXecute` contract, plain-English placeholder semantics, and starter examples in authored help/man plus regenerated runtime help assets; `etc/ytnova.1.md` and `docs/USAGE.md` remained unchanged because this topic is not projected into those generated summaries].
+9. `tests/test_f2_vols.py`, `tests/test_help_text_contract.py`, `tests/test_theme_ui_contract.py`, `tests/test_command_strip_visibility.py`, `tests/test_modal_color_taxonomy.py` [addressed: updated/extended focused F9 coverage for edit bootstrap, detached launch/no-pause behavior, plain-English help text, and menu shell contracts].
+10. `src/cmd/commands.c` and related command-preset docs [intentionally unchanged: commands.conf remains the command-strip override surface and no longer backs F9].
+11. Task 56 extension-contract work [intentionally unchanged: placeholder token policy was only documented enough to support Task 55 runtime/help behavior without broadening into the separate contract task].
+
+Validation:
+- Red: `source .venv/bin/activate && pytest -q tests/test_f2_vols.py -k 'f9_applications_menu'`
+- Green: `make help-assets`
+- Green: `make clean && make`
+- Green: `make qa-applications-catalog qa-help-assets`
+- Green: `source .venv/bin/activate && pytest -q tests/test_f2_vols.py -k 'f9_applications_menu' tests/test_help_text_contract.py -k 'applications' tests/test_theme_ui_contract.py -k 'f9_applications_menu'`
+- Green: `source .venv/bin/activate && pytest -q tests/test_command_strip_visibility.py -k 'F9 or applications' tests/test_modal_color_taxonomy.py tests/test_theme_ui_contract.py -k 'applications_menu or f9'`
+- Green: `make qa-clean-code qa-clang`
+- Green: `source .venv/bin/activate && pytest -q tests/test_f2_vols.py -k 'f9_applications_menu' tests/test_help_text_contract.py -k 'picker_dialog_f1_help_covers_volume_and_applications or applications' tests/test_theme_ui_contract.py -k 'f9_applications_menu or applications_menu or f9' tests/test_modal_color_taxonomy.py::test_prompt_uses_dialog_and_volume_uses_picker_palette`
+
+Current closure status:
+- Task 55 remains reconciled locally after the launcher-behavior follow-up: `F9` now behaves as a detached preset launcher with plain-English help/spec text and refreshed starter examples.
+- Next action: push the amended Applications catalog commit and resume CI on the new head SHA.
