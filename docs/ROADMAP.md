@@ -174,7 +174,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add edge-path coverage for overwrite/self-target, same-path, cross-device behavior, permission/no-space failures, odd filenames, and archive path edge cases.
 *   PTY/TUI helper conventions favor event-driven wait helpers and line-snapshot reuse over fixed sleeps and repeated full-screen joins in polling loops.
 *   Document fixture/helper conventions so new contributors can add mutation-integrity tests consistently.
-*   - [ ] **Status:** In Progress. The audit inventory now lives in `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md`; the remediation families are reconciled, and the umbrella remains open until the prompt-necessity spec contract lands in Task 26.2.
+*   - [ ] **Status:** Not Started.
 
 ### **Task 9: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
@@ -184,7 +184,7 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 10: Initialize Distributed Issue Tracking (git-bug)**
 *   **Goal:** Configure `git-bug` to act as a bridge between the local repository and GitHub Issues. Migrate the contents of `BUGS.md` and `TODO.txt` into this system prior to public release.
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
-*   - [ ] **Status:** In Progress. The audit inventory now lives in `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md`; the umbrella remains open until the tagged overwrite policy family and every other audited family are fully reconciled.
+*   - [x] **Status:** Completed.
 
 ### **Task 11: Configuration Integrity and Persistence**
 *   **Goal:** Group configuration-source governance and config/history persistence hardening under one umbrella with ordered subtask delivery.
@@ -570,7 +570,7 @@ Ordering policy (for all editors, including AI editors):
 *   For each offender family, define the collapsed common path and explicitly state which prompts remain necessary and why.
 *   Reconcile the audit against `docs/SPECIFICATION.md` so the final rule set complements Task 27: compress bureaucracy, but do not merge distinct meanings into one opaque prompt.
 *   Create remediation subtasks for every audited bureaucracy family and close this umbrella only after each inventoried family is marked addressed, intentionally unchanged with reason, or deferred/blocked with a concrete reason.
-*   - [ ] **Status:** In Progress. The audit inventory now lives in `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md`; the umbrella remains open until the tagged overwrite policy family and every other audited family are fully reconciled.
+*   - [x] **Status:** Completed.
 
 #### **Task 26.1: Audit and Rank Prompt Bureaucracy Offenders**
 *   **Goal:** Build a complete inventory of prompts that are unnecessary, repetitive, or wrongly sequenced, and rank them by workflow cost and frequency.
@@ -602,7 +602,7 @@ Ordering policy (for all editors, including AI editors):
 *   when prompt compression would hide meaning instead of removing bureaucracy.
 *   Verify that the final spec wording complements Task 27 rather than duplicating it: Task 27 governs interactive depth and surface correctness; Task 26 governs whether the prompts in that flow are necessary at all.
 *   If any required rule is missing or ambiguous, update `docs/SPECIFICATION.md` first and keep the roadmap text concise by reference rather than restating the full contract here.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 26.3: Remediate Audited Prompt Bureaucracy Families**
 *   **Goal:** Remove unnecessary prompts from each audited offender family while preserving distinct decisions and real safety checks.
