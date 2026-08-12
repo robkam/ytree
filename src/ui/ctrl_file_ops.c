@@ -1262,7 +1262,6 @@ static BOOL HandleTaggedCopyAction(ViewContext *ctx, int action,
   BOOL use_realpath =
       (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE);
   DirEntry *tree = use_realpath ? NULL : ((s) ? s->tree : NULL);
-  int term = 0;
 
   if (GetCopyParameter(ctx, NULL, path_copy, to_file, to_dir) != 0)
     return FALSE;
@@ -1270,11 +1269,6 @@ static BOOL HandleTaggedCopyAction(ViewContext *ctx, int action,
                                 to_path, &dest_dir_entry) != 0) {
     return FALSE;
   }
-
-  term = InputChoice(ctx, "Ask for confirmation for each overwrite (Y/N) ? ",
-                     "YN\033");
-  if (term == ESC)
-    return FALSE;
 
   walking_package.function_data.copy.statistic_ptr = s;
   walking_package.function_data.copy.dest_dir_entry = dest_dir_entry;
@@ -1284,7 +1278,7 @@ static BOOL HandleTaggedCopyAction(ViewContext *ctx, int action,
   walking_package.function_data.copy.conflict_cb =
       (void *)(ConflictCallback)UI_ConflictResolverWrapper;
   walking_package.function_data.copy.dir_create_mode = 0;
-  walking_package.function_data.copy.overwrite_mode = (term == 'N') ? 1 : 0;
+  walking_package.function_data.copy.overwrite_mode = 0;
   walking_package.function_data.copy.choice_cb =
       (void *)(ChoiceCallback)UI_ChoiceResolver;
 
@@ -1302,7 +1296,6 @@ static BOOL HandleTaggedMoveAction(ViewContext *ctx, DirEntry *dir_entry,
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
   char to_path[PATH_LENGTH + 1] = {0};
-  int term = 0;
 
   if (!s || !maybe_change_x_step_ptr)
     return FALSE;
@@ -1314,18 +1307,13 @@ static BOOL HandleTaggedMoveAction(ViewContext *ctx, DirEntry *dir_entry,
     return FALSE;
   }
 
-  term = InputChoice(ctx, "Ask for confirmation for each overwrite (Y/N) ? ",
-                     "YN\033");
-  if (term == ESC)
-    return FALSE;
-
   walking_package.function_data.mv.dest_dir_entry = dest_dir_entry;
   walking_package.function_data.mv.to_file = to_file;
   walking_package.function_data.mv.to_path = to_path;
   walking_package.function_data.mv.conflict_cb =
       (void *)(ConflictCallback)UI_ConflictResolverWrapper;
   walking_package.function_data.mv.dir_create_mode = 0;
-  walking_package.function_data.mv.overwrite_mode = (term == 'N') ? 1 : 0;
+  walking_package.function_data.mv.overwrite_mode = 0;
   walking_package.function_data.mv.choice_cb =
       (void *)(ChoiceCallback)UI_ChoiceResolver;
 

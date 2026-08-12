@@ -155,10 +155,12 @@ def test_tagged_copy_overwrite_all_applies_to_remaining_conflicts(controller, sa
         yt.child.expect("To Directory")
         yt.input_text("../dest")
 
-        yt.child.expect("Ask for confirmation for each overwrite")
-        yt.child.send("Y")
-
-        first_conflict = yt.child.expect([overwrite_alpha, overwrite_beta], timeout=3.0)
+        prompt_or_conflict = yt.child.expect(
+            ["Ask for confirmation for each overwrite", overwrite_alpha, overwrite_beta],
+            timeout=3.0,
+        )
+        assert prompt_or_conflict != 0
+        first_conflict = prompt_or_conflict - 1
         yt.child.send("A")
 
         second_conflict = overwrite_beta if first_conflict == 0 else overwrite_alpha
@@ -215,11 +217,8 @@ def test_tagged_move_overwrite_all_applies_to_remaining_conflicts(controller, sa
             ["Ask for confirmation for each overwrite", overwrite_alpha, overwrite_beta],
             timeout=3.0,
         )
-        if prompt_or_conflict == 0:
-            yt.child.send("Y")
-            first_conflict = yt.child.expect([overwrite_alpha, overwrite_beta], timeout=3.0)
-        else:
-            first_conflict = prompt_or_conflict - 1
+        assert prompt_or_conflict != 0
+        first_conflict = prompt_or_conflict - 1
         yt.child.send("A")
 
         second_conflict = overwrite_beta if first_conflict == 0 else overwrite_alpha

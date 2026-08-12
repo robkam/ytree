@@ -174,17 +174,17 @@ Ordering policy (for all editors, including AI editors):
 *   Add edge-path coverage for overwrite/self-target, same-path, cross-device behavior, permission/no-space failures, odd filenames, and archive path edge cases.
 *   PTY/TUI helper conventions favor event-driven wait helpers and line-snapshot reuse over fixed sleeps and repeated full-screen joins in polling loops.
 *   Document fixture/helper conventions so new contributors can add mutation-integrity tests consistently.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress. The audit inventory now lives in `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md`; the remediation families are reconciled, and the umbrella remains open until the prompt-necessity spec contract lands in Task 26.2.
 
 ### **Task 9: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
 *   **Rationale:** Ensures users and developers have accurate, up-to-date information about the project.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 10: Initialize Distributed Issue Tracking (git-bug)**
 *   **Goal:** Configure `git-bug` to act as a bridge between the local repository and GitHub Issues. Migrate the contents of `BUGS.md` and `TODO.txt` into this system prior to public release.
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress. The audit inventory now lives in `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md`; the umbrella remains open until the tagged overwrite policy family and every other audited family are fully reconciled.
 
 ### **Task 11: Configuration Integrity and Persistence**
 *   **Goal:** Group configuration-source governance and config/history persistence hardening under one umbrella with ordered subtask delivery.
@@ -198,7 +198,7 @@ Ordering policy (for all editors, including AI editors):
 *   A single documented command regenerates the header deterministically.
 *   `make qa-all` (or dedicated gate) fails on source/generated drift.
 *   **Files to Modify:** `Makefile`, `scripts/*` (new/updated generator + verifier), `src/core/default_profile_template.h`, and contributor/docs references as needed.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 11.2: Split Command Customization into `commands.conf` (i18n/l10n-Safe Layout)**
 *   **Goal:** Separate user-visible command labels, displayed key tokens, input/action customization, and custom shell-command bindings from the main runtime profile using one XDG-first companion command surface, while keeping the canonical design safe for future gettext/i18n/l10n work.
@@ -557,7 +557,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt friction is not limited to submenu depth. Repeated approvals, redundant mode choosers, and batch-operation follow-up questions can still turn a nominally shallow flow into tedious bureaucracy even when the user already expressed clear intent.
 *   **Scope Lock:** This task family covers prompt necessity, prompt sequencing, and prompt-compression correctness across runtime workflows. It complements Task 27's primary-action depth and surface audit rather than replacing it. Do not remove prompts that capture distinct meanings, independent data types, or true safety confirmations.
 *   **Source-of-Truth Rule:** The prompt-bureaucracy rules belong in `docs/SPECIFICATION.md` alongside the Task 27 shallow-flow contract. This roadmap item must reconcile against that spec and add any missing prompt-necessity rules there instead of carrying a duplicate local contract in the roadmap.
-*   **Delivery Model:** Complete through subtasks `26.1+`. `26.1` audits prompt bureaucracy offenders, `26.2` reconciles the complementary spec contract, and `26.3+` remediate one coherent offender family per subtask.
+*   **Delivery Model:** Complete through subtasks `26.1+`. `26.1` audits prompt bureaucracy offenders, `26.2` reconciles the complementary spec contract, and `26.3+` remediates one coherent offender family per subtask.
 *   **Umbrella Acceptance Criteria:**
 *   Audit prompts across filesystem, archive, split, `F7`, `F8`, `Showall`, `Global`, tagged workflows, chooser flows, overwrite flows, delete flows, and other multi-step command paths that can accumulate routine prompt friction.
 *   Classify each prompt in audited flows as one of:
@@ -570,7 +570,7 @@ Ordering policy (for all editors, including AI editors):
 *   For each offender family, define the collapsed common path and explicitly state which prompts remain necessary and why.
 *   Reconcile the audit against `docs/SPECIFICATION.md` so the final rule set complements Task 27: compress bureaucracy, but do not merge distinct meanings into one opaque prompt.
 *   Create remediation subtasks for every audited bureaucracy family and close this umbrella only after each inventoried family is marked addressed, intentionally unchanged with reason, or deferred/blocked with a concrete reason.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress. The audit inventory now lives in `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md`; the umbrella remains open until the tagged overwrite policy family and every other audited family are fully reconciled.
 
 #### **Task 26.1: Audit and Rank Prompt Bureaucracy Offenders**
 *   **Goal:** Build a complete inventory of prompts that are unnecessary, repetitive, or wrongly sequenced, and rank them by workflow cost and frequency.
@@ -588,7 +588,7 @@ Ordering policy (for all editors, including AI editors):
 *   likely tests/docs to update.
 *   Rank offender families by user cost, repetition frequency, and whether the extra prompt appears on the common path.
 *   Identify coherent remediation-family boundaries so follow-up subtasks can land by owner/risk/validation surface rather than one prompt at a time.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Task 26.2: Reconcile Prompt-Necessity Contract Against Spec**
 *   **Goal:** Define the complementary prompt-bureaucracy rules in `docs/SPECIFICATION.md` so they sit alongside, and do not conflict with, the Task 27 shallow-flow contract.
@@ -613,7 +613,28 @@ Ordering policy (for all editors, including AI editors):
 *   Real safety confirmations remain in place where needed, and only there.
 *   Prompt/help/spec surfaces stay synchronized with the corrected flow.
 *   Focused regression coverage prevents the offender family from regressing into repeated or unnecessary prompts.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
+
+#### **Task 26.3.1: Preserve the Already-Satisfied Prompt-Bureaucracy Fixes**
+*   **Goal:** Keep the already-landed prompt-bureaucracy fixes for the first six audited families explicit and verifiable in one place.
+*   **Scope Lock:** Roadmap reconciliation only for the already-satisfied families; do not reopen or renumber them into separate active subtasks.
+*   **Acceptance Criteria:**
+*   Filter keeps tagged-only scope on the live prompt instead of a second chooser.
+*   Compare keeps target entry on one live prompt without an extra chooser.
+*   Attribute date edits go straight from the chooser to the value prompt.
+*   Copy/move/pathcopy keep the explicit `name -> destination` exception with only real safety confirmations afterward.
+*   Tagged delete keeps one batch confirmation without a routine `confirm each file` policy prompt.
+*   Output/export no longer uses a redundant standalone format chooser.
+*   - [x] **Status:** Completed.
+
+#### **Task 26.3.2: Collapse Tagged Overwrite Policy Prompt Bureaucracy**
+*   **Goal:** Remove the pre-conflict overwrite policy prompt from tagged copy/move flows while preserving concrete overwrite safety prompts.
+*   **Scope Lock:** Tagged copy/move overwrite prompting, conflict-policy help/spec wording, and related tests only.
+*   **Acceptance Criteria:**
+*   Tagged copy/move no longer asks `Ask for confirmation for each overwrite (Y/N)?` before showing the first concrete overwrite conflict.
+*   The first overwrite conflict prompt still shows source/target context and keeps explicit conflict-resolution choices.
+*   Focused overwrite regressions prove that repeated conflicts can still be applied safely across the remaining tagged set.
+*   - [x] **Status:** Completed.
 
 ### **Task 27: Enforce One-Level Primary Action Depth (Prompt-Chain Audit)**
 *   **Goal:** Audit and remediate primary interactive workflows so the common path stays `key -> Enter -> result` with at most one submenu/prompt layer.
@@ -632,7 +653,7 @@ Ordering policy (for all editors, including AI editors):
 *   Deliver the audit output as a manual QA checklist so every flagged surface can be exercised directly.
 *   Reconcile the audited flows against `docs/SPECIFICATION.md` and update the spec only where the governing rule is missing, stale, or ambiguous.
 *   Create remediation subtasks for every audited prompt-chain offender family and close this umbrella only after each inventoried family is marked addressed, intentionally unchanged with reason, or deferred/blocked with a concrete reason.
-*   - [ ] **Status:** In Progress. The audit baseline now lives in the reusable internal note `docs/ai/PRIMARY_ACTION_AUDIT.md`; the umbrella remains open until the audited remediation families land.
+*   - [x] **Status:** Completed.
 
 #### **Task 27.1: Audit and Rank Primary Action Flows**
 *   **Goal:** Build the zero-based inventory of all primary interactive flows and rank prompt-chain offenders by depth, frequency, and operator cost.
@@ -677,7 +698,7 @@ Ordering policy (for all editors, including AI editors):
 *   Prompt/menu surfaces for that family show the commands that are actually usable there and do not advertise commands that are unavailable in that surface.
 *   Labels and mnemonics for that family conform to the prompt-label contract in `docs/SPECIFICATION.md`.
 *   Focused regression coverage prevents the remediated family from regressing into deeper prompt chains or prompt-surface mismatches.
-*   - [ ] **Status:** In Progress. The audited families are now split below for runtime remediation by owner/risk boundary.
+*   - [x] **Status:** Completed.
 
 #### **Task 27.3.1: Compress Compare Prompt Chains**
 *   **Goal:** Reduce compare workflows to the shallowest safe common path without changing compare semantics.
