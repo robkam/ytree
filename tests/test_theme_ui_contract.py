@@ -458,9 +458,9 @@ def test_manpage_and_usage_document_f9_applications_menu():
 
     for source in (man_source, usage_source):
         assert "**F8**: Toggle Split Screen Mode." in source
-        assert "**F9**: Open the Applications menu shell." in source
+        assert "**F9**: Open the Applications menu." in source
         assert source.index("**F8**: Toggle Split Screen Mode.") < source.index(
-            "**F9**: Open the Applications menu shell."
+            "**F9**: Open the Applications menu."
         ) < source.index("**F10**: Open the configuration command surface:")
 
 

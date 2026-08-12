@@ -1029,9 +1029,23 @@ def test_picker_dialog_f1_help_covers_volume_and_applications(tmp_path):
         applications_screen = _wait_for_help(tui, "Applications Help")
         normalized = _normalized_help_text(applications_screen)
         assert "Use Enter to select the highlighted preset." in normalized, applications_screen
-        assert "Use E to edit the commands catalog that backs application presets." in normalized, applications_screen
+        assert (
+            "After launch, ytnova keeps running and the application continues on its own."
+            in normalized
+        ), applications_screen
+        assert (
+            "Use E to edit the applications catalog that backs application presets."
+            in normalized
+        ), applications_screen
         assert "Use Esc to cancel the menu." in normalized, applications_screen
-        assert "placeholder surface" in normalized, applications_screen
+        assert (
+            "Use {} for the file or folder currently selected in ytnova."
+            in normalized
+        ), applications_screen
+        assert (
+            "Use {input} for the text you type when the preset asks for extra input."
+            in normalized
+        ), applications_screen
     finally:
         tui.quit()
 

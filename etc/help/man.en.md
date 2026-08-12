@@ -953,16 +953,22 @@ contexts: dialog.applications
 ```
 ### Contextual F1
 The applications menu lists configured application presets.
-Use `Enter` to select the highlighted preset, `E` to edit the commands catalog that backs application presets, and `Esc` to cancel.
+Use `Enter` to select the highlighted preset, then ytnova returns immediately while the launched application continues on its own.
+Use `E` to edit the applications catalog that backs application presets, and `Esc` to cancel.
+Use `{}` for the file or folder currently selected in ytnova and `{input}` for the text you type when the preset asks for extra input.
 ### Explainer links
 - [Navigation](topic:navigation)
 
 ### Long form
 #### Applications actions
 * **Select preset**: `Up` and `Down` move through the preset list.
-* **Edit presets**: `E` opens the commands catalog so application presets can be changed without leaving the chooser family.
-* **Cancel menu**: `Esc` closes the placeholder chooser without selecting a preset.
-* **Current state**: The shipped Applications menu is still a lightweight placeholder surface, so treat it as a shell for future app-launch behavior.
+* **Launcher role**: `F9` is the named-preset launcher for repeat-heavy external workflows. It is distinct from ad hoc `eXecute`, which remains the one-off shell prompt with history and terminal-style output.
+* **Return rule**: After a preset starts, ytnova returns directly to the working view without a blocking `PRESS ENTER` acknowledgment step.
+* **Edit presets**: `E` opens the dedicated applications catalog so application presets can be changed without leaving the chooser family.
+* **Selection and working directory**: `{}` inserts the currently selected file or folder. Presets start in that selection's directory context, so scripts without `{}` still run from the place you selected.
+* **Prompt text**: `{input}` inserts the extra text you typed for the preset prompt.
+* **Starter presets**: The bundled catalog starts with `xdg-open` launchers and includes commented examples for tools such as `mpv` or local helper scripts.
+* **Cancel menu**: `Esc` closes the chooser without selecting a preset.
 
 ## topic:f2-picker
 ```ytnova-help-meta

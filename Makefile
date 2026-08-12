@@ -73,6 +73,7 @@ PROJECT_CPPFLAGS = -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
                    -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
                    -DPACKAGED_COMMANDS_PATH='"$(YTNOVA_DATADIR)/ytnova.commands"' \
                    -DPACKAGED_COMMAND_PRESET_DIR='"$(YTNOVA_DATADIR)/commands"' \
+                   -DPACKAGED_APPLICATIONS_PATH='"$(YTNOVA_DATADIR)/ytnova.applications"' \
                    -DPACKAGED_THEME_PATH='"$(YTNOVA_DATADIR)/ytnova.themes"' \
                    $(COLOR) $(CLOCK) $(READLINE) \
                    -I$(INC_DIR) -MMD -MP
@@ -89,6 +90,9 @@ PROFILE_TEMPLATE_SCRIPT = scripts/generate_default_profile_template.py
 COMMANDS_CATALOG_SRC = etc/ytnova.commands
 COMMANDS_CATALOG_HDR = src/core/default_commands_catalog.h
 COMMANDS_CATALOG_SCRIPT = scripts/generate_default_commands_catalog.py
+APPLICATIONS_CATALOG_SRC = etc/ytnova.applications
+APPLICATIONS_CATALOG_HDR = src/core/default_applications_catalog.h
+APPLICATIONS_CATALOG_SCRIPT = scripts/generate_default_applications_catalog.py
 COMMAND_PRESETS_SRC_DIR = etc/commands
 COMMAND_PRESETS_HDR = src/core/default_command_presets_catalog.h
 COMMAND_PRESETS_SCRIPT = scripts/generate_default_command_presets_catalog.py
@@ -185,9 +189,9 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 		fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 		test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-help-assets qa-code-quality qa-all \
+		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-applications-catalog qa-command-presets-catalog qa-help-assets qa-code-quality qa-all \
 		ci-baseline mcp-doctor py-requirements \
-		qa-all-log qa-deep theme-catalog profile-template commands-catalog command-presets-catalog \
+		qa-all-log qa-deep theme-catalog profile-template commands-catalog applications-catalog command-presets-catalog \
 		help-assets \
 		code-quality-hotspots
 
@@ -235,6 +239,7 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	rm -f $(MANPAGE).gz
 	install -d -m 755 $(DATADEST)
 	install -m 644 etc/ytnova.commands $(DATADEST)/ytnova.commands
+	install -m 644 etc/ytnova.applications $(DATADEST)/ytnova.applications
 	install -d -m 755 $(DATADEST)/commands
 	install -m 644 $(COMMAND_PRESETS_SRC_DIR)/*.conf $(DATADEST)/commands/
 	install -m 644 etc/ytnova.themes $(DATADEST)/ytnova.themes
@@ -242,6 +247,7 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	@echo "Binary: $(BINDEST)/$(MAIN)"
 	@echo "Manual: $(MANDEST)/$(MAIN).1.gz"
 	@echo "Commands: $(DATADEST)/ytnova.commands"
+	@echo "Applications: $(DATADEST)/ytnova.applications"
 	@echo "Command presets: $(DATADEST)/commands/*.conf"
 	@echo "Themes: $(DATADEST)/ytnova.themes"
 
@@ -288,6 +294,7 @@ uninstall:
 	rm -f $(BINDEST)/$(MAIN)
 	rm -f $(MANDEST)/$(MAIN).1.gz
 	rm -f $(DATADEST)/ytnova.commands
+	rm -f $(DATADEST)/ytnova.applications
 	rm -f $(DATADEST)/commands/*.conf
 	-rmdir $(DATADEST)/commands 2>/dev/null || true
 	rm -f $(DATADEST)/ytnova.themes
@@ -523,6 +530,14 @@ commands-catalog:
 	$(PYTHON) $(COMMANDS_CATALOG_SCRIPT) --source $(COMMANDS_CATALOG_SRC) \
 		--header $(COMMANDS_CATALOG_HDR) --write
 
+qa-applications-catalog:
+	$(PYTHON) $(APPLICATIONS_CATALOG_SCRIPT) --source $(APPLICATIONS_CATALOG_SRC) \
+		--header $(APPLICATIONS_CATALOG_HDR) --check
+
+applications-catalog:
+	$(PYTHON) $(APPLICATIONS_CATALOG_SCRIPT) --source $(APPLICATIONS_CATALOG_SRC) \
+		--header $(APPLICATIONS_CATALOG_HDR) --write
+
 qa-command-presets-catalog:
 	$(PYTHON) $(COMMAND_PRESETS_SCRIPT) --source-dir $(COMMAND_PRESETS_SRC_DIR) \
 		--header $(COMMAND_PRESETS_HDR) --check
@@ -537,7 +552,7 @@ qa-help-assets:
 		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
 		--runtime-header $(HELP_RUNTIME_HDR) --check
 
-qa-code-quality: qa-unsafe-apis qa-dead-history-comments qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-command-presets-catalog qa-help-assets
+qa-code-quality: qa-unsafe-apis qa-dead-history-comments qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-applications-catalog qa-command-presets-catalog qa-help-assets
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 

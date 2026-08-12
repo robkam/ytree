@@ -1350,11 +1350,14 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Users need discoverable access to repeat-heavy external workflows that are not built-in file-manager actions.
 *   **Acceptance Criteria:**
     *   `F9` exposes user-configurable entries and ships with documented default presets.
+    *   `F9` application entries live in a dedicated user-editable applications catalog rather than sharing `commands.conf` with command-strip bindings.
+    *   The Applications menu edit path opens that dedicated applications catalog surface.
     *   Default presets prioritize non-builtin external workflows with clear input placeholders and safe defaults.
     *   User-added commands are not restricted, including commands that duplicate existing builtins.
     *   Prompt/help/F1/manpage text documents `F9` basics and preset intent in contributor-friendly language.
-    *   Command completion reporting is explicit (`success` on zero exit, actionable error summary on non-zero exit).
-*   - [ ] **Status:** In Progress. A picker-themed `F9` Applications menu shell now exists so theme surfaces can be previewed there; preset execution, user-configurable entries, and completion reporting remain open.
+    *   Default `F9` launch returns to ytnova immediately, and the launched application continues independently.
+    *   Prompt/help/starter-catalog text explains `{}` and `{input}` in plain English and distinguishes `F9` presets from ad hoc `eXecute`.
+*   - [x] **Status:** Completed. `F9` now loads a dedicated applications catalog, bootstraps editable starter presets, launches presets as independent applications from the active selection context, and documents the launcher-vs-`eXecute` workflow across help/manpage surfaces.
 
 ### **Task 56: Define Extension Surface Contract (`F9` Apps + `F7` Preview Plugins)**
 *   **Goal:** Define one explicit extension contract for external-tool integrations so command apps (`F9`) and preview plugins (`F7`) follow the same safety, UX, and fallback rules.

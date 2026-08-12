@@ -222,11 +222,16 @@ typedef struct _ViewContext ViewContext;
 #define THEME_FILENAME ".ytnova.themes"
 #define COMMANDS_CONFIG_HOME_PATH ".config/ytnova/commands.conf"
 #define COMMANDS_FILENAME ".ytnova.commands"
+#define APPLICATIONS_CONFIG_HOME_PATH ".config/ytnova/applications.conf"
+#define APPLICATIONS_FILENAME ".ytnova.applications"
 #ifndef PACKAGED_COMMANDS_PATH
 #define PACKAGED_COMMANDS_PATH "/usr/local/share/ytnova/ytnova.commands"
 #endif
 #ifndef PACKAGED_COMMAND_PRESET_DIR
 #define PACKAGED_COMMAND_PRESET_DIR "/usr/local/share/ytnova/commands"
+#endif
+#ifndef PACKAGED_APPLICATIONS_PATH
+#define PACKAGED_APPLICATIONS_PATH "/usr/local/share/ytnova/ytnova.applications"
 #endif
 #ifndef PACKAGED_THEME_PATH
 #define PACKAGED_THEME_PATH "/usr/local/share/ytnova/ytnova.themes"
@@ -322,7 +327,8 @@ typedef enum UISemanticRolePair {
 enum ConfigSurface {
   CONFIG_SURFACE_PROFILE = 0,
   CONFIG_SURFACE_THEME,
-  CONFIG_SURFACE_COMMANDS
+  CONFIG_SURFACE_COMMANDS,
+  CONFIG_SURFACE_APPLICATIONS
 };
 typedef enum ConfigSurface ConfigSurface;
 

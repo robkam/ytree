@@ -501,6 +501,7 @@ HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
 extern BOOL ParseSmallWindowSkipValue(const char *value);
 extern void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry);
 extern void UI_EditCommandsCatalog(ViewContext *ctx, DirEntry *dir_entry);
+extern void UI_EditApplicationsCatalog(ViewContext *ctx, DirEntry *dir_entry);
 
 /* dir_nav.c */
 extern void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry,
