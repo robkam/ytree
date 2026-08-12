@@ -32,6 +32,7 @@ Task-specific WIP, inventories, and live relay state belong in `.agent/handoffs/
 - `DEBUGGING.md` — internal debugging workflow and investigation notes.
 - `GOVERNANCE.md` — canonical map of where AI/developer governance rules live.
 - `PRIMARY_ACTION_AUDIT.md` — reusable checklist for auditing primary-action depth and prompt-surface correctness.
+- `PROMPT_BUREAUCRACY_AUDIT.md` — reusable checklist for auditing prompt necessity and redundant follow-up prompts.
 - `README.md` — ownership map for this internal-doc directory.
 - `TASK_PROMPT_TEMPLATE.md` — reusable prompt template for tracked implementation runs.
 - `TESTING.md` — internal testing standards and test-writing workflow.

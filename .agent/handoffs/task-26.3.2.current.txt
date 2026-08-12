@@ -1,0 +1,43 @@
+Work item: docs/ROADMAP.md Task 26.3.2
+Title: Collapse Tagged Overwrite Policy Prompt Bureaucracy
+Completion objective: complete this roadmap item correctly.
+Acceptance target:
+- Tagged copy/move no longer asks `Ask for confirmation for each overwrite (Y/N)?` before showing the first concrete overwrite conflict.
+- The first overwrite conflict prompt still shows source/target context and keeps explicit conflict-resolution choices.
+- Focused overwrite regressions prove that repeated conflicts can still be applied safely across the remaining tagged set.
+
+Chosen coherent work family:
+- Tagged copy/move overwrite policy prompt removal across the tagged mutation controller path, overwrite conflict handling, focused regressions, and roadmap status tracking.
+
+Explicit inventory:
+1. Source-of-truth trackers/docs
+   - `docs/ROADMAP.md` Task 26.3.2 goal/acceptance/status.
+   - `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md` open offender row and ranked-family status.
+   - `docs/SPECIFICATION.md` copy/move confirmation and destructive-confirmation rules.
+2. Runtime owner surfaces
+   - `src/ui/ctrl_file_ops.c` tagged copy/move dispatch, overwrite policy prompt, and walking-package setup.
+   - `src/ui/interactions.c` conflict wrapper seam if callback behavior needs adjustment.
+   - `src/ui/key_engine.c` overwrite conflict prompt behavior and `A`/`N`/`Q` handling.
+   - `src/cmd/copy.c` and `src/cmd/move.c` overwrite-mode handling for repeated conflicts.
+3. Direct regression surfaces
+   - `tests/test_core.py` tagged copy/move overwrite behavior.
+4. Intentionally unchanged unless the fix proves otherwise
+   - Untagged copy/move flows.
+   - Delete/output/compare/filter/attribute families already reconciled under Task 26.3.1.
+
+Current next action:
+- Reconcile the completed overwrite-policy fix in roadmap/audit docs, then review the focused validation and prepare the batch for commit.
+
+Inventory reconciliation:
+1. `docs/ROADMAP.md` [addressed: Task 26.3.2 is marked completed and Task 26.3 is closed after the tagged overwrite policy prompt was removed].
+2. `docs/ai/PROMPT_BUREAUCRACY_AUDIT.md` [addressed: the tagged overwrite family is now recorded as remediated and no remediation batches remain open].
+3. `docs/SPECIFICATION.md` [intentionally unchanged: the existing confirmation rules already covered this fix; spec reconciliation still belongs to Task 26.2].
+4. `src/ui/ctrl_file_ops.c` [addressed: tagged copy/move no longer asks the pre-conflict yes/no overwrite-policy prompt and now enters the first concrete conflict directly].
+5. `src/ui/interactions.c` [intentionally unchanged: the shared conflict wrapper already exposed the required first-conflict prompt behavior].
+6. `src/ui/key_engine.c` [intentionally unchanged: `UI_AskConflict` already provides source/target context and `A`/`N`/`Q` handling for the first concrete conflict].
+7. `src/cmd/copy.c` and `src/cmd/move.c` [intentionally unchanged: their `overwrite_mode` handling already supports direct first-conflict prompting and `All` propagation].
+8. `tests/test_core.py` [addressed: tagged copy/move regressions now prove the old pre-conflict policy prompt no longer appears and that `All` still applies across remaining conflicts].
+
+Validation:
+- RED proof: `source .venv/bin/activate && pytest -q tests/test_core.py::test_tagged_copy_overwrite_all_applies_to_remaining_conflicts tests/test_core.py::test_tagged_move_overwrite_all_applies_to_remaining_conflicts` -> 2 failed before the fix because tagged copy/move still showed `Ask for confirmation for each overwrite` before the first concrete conflict.
+- GREEN proof: `make clean && make && source .venv/bin/activate && pytest -q tests/test_core.py::test_tagged_copy_overwrite_all_applies_to_remaining_conflicts tests/test_core.py::test_tagged_move_overwrite_all_applies_to_remaining_conflicts` -> 2 passed.
