@@ -72,7 +72,7 @@ Ordering policy (for all editors, including AI editors):
 *   Existing split/viewport fixes are either routed through the transition boundary or explicitly marked as compatibility shims with removal tasks.
 *   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated or cross-linked so existing restore/split contracts do not preserve a narrower `F8`/`Tab`-only transition model, stale task references, or conflicting ownership language.
 *   `make qa-all` / PR full-QA CI passes with the invariant test harness enabled.
-*   - [x] **Status:** Completed.
+*   - [~] **Status:** In Progress.
 
 ### **Task 2: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
@@ -1026,7 +1026,7 @@ Ordering policy (for all editors, including AI editors):
 *   Links exist only where the target adds new explanatory value; avoid duplicate detail pages that merely restate the originating row or force unnecessary bureaucracy.
 *   Theme support for linked text and linked-target emphasis is defined in the theme catalog path, not as one-off `[COLORS]` or `ytnova.conf` knobs.
 *   Add focused regression coverage for link focus, follow, back, and close behavior.
-*   - [~] **Status:** In Progress.
+*   - [x] **Status:** Completed.
 
 #### **Task 43.2: Theme the Contextual F1 Reading Surface and Separate Footer Guidance Role**
 *   **Goal:** Define and implement distinct theme-role behavior for the contextual `F1` reading surface and the always-visible footer guidance surface now that the base role-based theme system exists.

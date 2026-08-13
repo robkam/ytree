@@ -50,6 +50,7 @@ typedef struct {
   size_t current_detail_index;
   size_t next_detail_index;
   BOOL back_requested;
+  BOOL has_history;
   BOOL contents_requested;
   BOOL contextual_list_mode;
   RuntimeHelpItem items[GENERATED_HELP_MAX_ITEMS];
@@ -570,11 +571,47 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
   state->item_count++;
 }
 
+static size_t BuildExplainerLinkItems(RuntimeHelpPopupState *state) {
+  size_t link_index;
+
+  if (state == NULL || state->topic == NULL)
+    return 0;
+
+  state->item_count = 0;
+  for (link_index = 0;
+       link_index < state->topic->explainer_link_count &&
+       state->item_count < GENERATED_HELP_MAX_ITEMS;
+       ++link_index) {
+    const GeneratedHelpLink *link = &state->topic->explainer_links[link_index];
+    const GeneratedHelpTopic *target = NULL;
+    const char *detail = NULL;
+
+    if (link->label == NULL || link->label[0] == '\0')
+      continue;
+    if (link->target_topic_id != NULL && link->target_topic_id[0] != '\0')
+      target = FindGeneratedTopicById(link->target_topic_id);
+    if (target != NULL && target->contextual_f1 != NULL &&
+        target->contextual_f1[0] != '\0') {
+      detail = target->contextual_f1;
+    } else if (target != NULL && target->title != NULL && target->title[0] != '\0') {
+      detail = target->title;
+    } else {
+      detail = link->label;
+    }
+    FinalizeHelpItem(state, link->label, detail);
+  }
+
+  return state->item_count;
+}
+
 static size_t BuildContextItems(RuntimeHelpPopupState *state) {
   size_t section_index;
 
   if (state == NULL || state->topic == NULL)
     return 0;
+
+  if (TopicIdEquals(state->topic, "intro"))
+    return BuildExplainerLinkItems(state);
 
   state->item_count = 0;
   for (section_index = 0;
@@ -685,6 +722,7 @@ static BOOL TopicUsesContextualItemList(const GeneratedHelpTopic *topic,
     return FALSE;
 
   return topic->topic_id != NULL &&
+         (strcmp(topic->topic_id, "intro") == 0 ||
          (strcmp(topic->topic_id, "dir") == 0 ||
           strcmp(topic->topic_id, "file") == 0 ||
           strcmp(topic->topic_id, "archive-dir") == 0 ||
@@ -693,7 +731,7 @@ static BOOL TopicUsesContextualItemList(const GeneratedHelpTopic *topic,
           strcmp(topic->topic_id, "global") == 0 ||
           strcmp(topic->topic_id, "f7") == 0 ||
           strcmp(topic->topic_id, "f8-dir") == 0 ||
-          strcmp(topic->topic_id, "f8-file") == 0);
+          strcmp(topic->topic_id, "f8-file") == 0));
 }
 
 static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
@@ -718,11 +756,23 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
                                                                    : "C";
     command_count++;
 
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label = "Contents";
-    state->footer_commands[command_count].primary_key = "C";
-    state->footer_commands[command_count].secondary_key = NULL;
-    command_count++;
+    if (state->current_detail_index == GENERATED_HELP_NO_SELECTION &&
+        state->has_history) {
+      state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+      state->footer_commands[command_count].label = "Back";
+      state->footer_commands[command_count].primary_key = "Left";
+      state->footer_commands[command_count].secondary_key = NULL;
+      command_count++;
+    }
+
+    if (!TopicIdEquals(state->topic, "intro") ||
+        state->current_detail_index != GENERATED_HELP_NO_SELECTION) {
+      state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+      state->footer_commands[command_count].label = "Contents";
+      state->footer_commands[command_count].primary_key = "C";
+      state->footer_commands[command_count].secondary_key = NULL;
+      command_count++;
+    }
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
     state->footer_commands[command_count].label = "Navigation";
@@ -918,6 +968,11 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
         return 1;
       }
       return 0;
+    }
+
+    if (ch == KEY_LEFT && state->has_history) {
+      state->back_requested = TRUE;
+      return 1;
     }
 
     if (ch == KEY_UP || ch == KEY_DOWN) {
@@ -1141,6 +1196,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     state.selected_item_index = current_view.selected_item_index;
     state.current_detail_index = current_view.current_detail_index;
     state.next_detail_index = GENERATED_HELP_NO_SELECTION;
+    state.has_history = history_count > 0;
     state.prefix_row_count = prefix_row_count;
     state.reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
     state.previous_visible_start = 0;

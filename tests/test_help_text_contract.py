@@ -1005,6 +1005,78 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         tui.quit()
 
 
+def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
+    root = _root_with_file(tmp_path, "help_contents_index")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+
+        _wait_for_help(tui, "Directory Help")
+        contents_screen = tui.send_and_wait_for_condition(
+            "c",
+            lambda lines: lines
+            if any("Contents" in line for line in lines)
+            and any("Applications Help:" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert contents_screen, screen_text(tui)
+        contents_text = "\n".join(contents_screen)
+        footer_line = next(
+            line for line in contents_text.splitlines() if "Esc/Quit" in line
+        )
+        assert "Open" in footer_line, footer_line
+        assert "Navigation" in footer_line, footer_line
+        assert "Applications Help" in contents_text, contents_text
+        assert "Archive Directory Help" in contents_text, contents_text
+
+        selected_style = _visible_cell_style(tui, "Applications Help:")
+        reached_copy_targets = False
+        for _ in range(24):
+            if (
+                _selected_visible_help_label(
+                    tui, ["Copy/Move Targets:"], selected_style
+                )
+                == "Copy/Move Targets:"
+            ):
+                reached_copy_targets = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.05)
+
+        assert reached_copy_targets, screen_text(tui)
+        contents_text = screen_text(tui)
+        assert "Copy/Move Targets" in contents_text, contents_text
+
+        detail_screen = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines
+            if any("wildcard rename pattern" in line.lower() for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert detail_screen, screen_text(tui)
+        detail_text = "\n".join(detail_screen)
+        assert "Copy/Move Targets" in detail_text, detail_text
+
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("Contents" in line for line in lines)
+            and any("Copy/Move Targets" in line for line in lines)
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), screen_text(tui)
+
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
+        tui.send_keystroke(Keys.ESC, wait=0.05)
+        assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_picker_dialog_f1_help_covers_volume_and_applications(tmp_path):
     root = _root_with_file(tmp_path, "integrated_help_picker_dialogs")
     tui = _spawn_help_tui(root)
