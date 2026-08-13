@@ -939,7 +939,8 @@ static void RenderFooterSignpost(WINDOW *win, int y, const char *signpost) {
                  FOOTER_COMMAND_COLUMN - 1, signpost);
   if (strncmp(signpost, "9-4", 3) == 0) {
 #ifdef COLOR_SUPPORT
-    PrintSpecialString(win, y, 0, "9-4", UI_ROLE_KEYBIND);
+    PrintSpecialString(win, y, 0, "9-4",
+                       UI_KEYBIND_BASE_PAIR + (UI_ROLE_FOOTER - 1));
     PrintSpecialString(win, y, 3, padded + 3, UI_ROLE_FOOTER);
 #else
     PrintSpecialString(win, y, 0, "9-4", A_BOLD);

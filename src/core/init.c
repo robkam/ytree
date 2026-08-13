@@ -1273,8 +1273,11 @@ int Init(ViewContext *ctx, const char *configuration_file,
   }
   DEBUG_LOG("Init: LoadCommands done");
 
-  if (ctx->core_init_ops.load_theme != NULL &&
-      ctx->core_init_ops.load_theme(ctx) != 0) {
+  if (((ctx->core_init_ops.load_startup_theme != NULL &&
+        ctx->core_init_ops.load_startup_theme(ctx) != 0) ||
+       (ctx->core_init_ops.load_startup_theme == NULL &&
+        ctx->core_init_ops.load_theme != NULL &&
+        ctx->core_init_ops.load_theme(ctx) != 0))) {
     CoreInitUINotice(ctx, "LoadTheme failed*ABORT");
     exit(1);
   }

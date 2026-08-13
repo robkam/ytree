@@ -304,6 +304,11 @@ typedef enum UISemanticRolePair {
   UI_ROLE_KEYBIND,
   UI_ROLE_FOOTER,
   UI_ROLE_HELP,
+  UI_ROLE_HELP_FOOTER,
+  UI_ROLE_HELP_HEADING,
+  UI_ROLE_HELP_TERM,
+  UI_ROLE_HELP_ATTENTION,
+  UI_ROLE_HELP_ALERT,
   UI_ROLE_HELP_KEYBIND,
   UI_ROLE_HELP_LINK,
   UI_ROLE_HELP_LINK_SELECTION,
@@ -320,8 +325,7 @@ typedef enum UISemanticRolePair {
   UI_ROLE_ERROR,
   UI_ROLE_SEARCH_HIT,
   UI_ROLE_DISABLED,
-  NUM_UI_COLOR_PAIRS,
-  F_COLOR_PAIR_BASE = 32
+  NUM_UI_COLOR_PAIRS
 } UISemanticRolePair;
 
 enum ConfigSurface {
@@ -334,6 +338,8 @@ typedef enum ConfigSurface ConfigSurface;
 
 #define UI_VIEWER_FRAME_PAIR NUM_UI_COLOR_PAIRS
 #define UI_KEYBIND_BASE_PAIR (UI_VIEWER_FRAME_PAIR + 1)
+#define UI_HELP_KEYBIND_BASE_PAIR (UI_KEYBIND_BASE_PAIR + (NUM_UI_COLOR_PAIRS - 1))
+#define F_COLOR_PAIR_BASE (UI_HELP_KEYBIND_BASE_PAIR + (NUM_UI_COLOR_PAIRS - 1))
 
 enum HistoryType {
   HST_GENERAL = 0,
@@ -939,6 +945,7 @@ typedef struct {
   int (*read_passwd_entries)(void);
   int (*read_profile)(ViewContext *ctx, const char *filename);
   int (*load_commands)(ViewContext *ctx);
+  int (*load_startup_theme)(ViewContext *ctx);
   int (*load_theme)(ViewContext *ctx);
   int (*read_history)(ViewContext *ctx, const char *filename);
   char *(*get_profile_value)(const ViewContext *ctx, const char *name);

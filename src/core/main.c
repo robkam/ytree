@@ -7,6 +7,7 @@
 
 #include "ytnova_defs.h"
 #include "ytnova_appstate_actions.h"
+#include "default_applications_catalog.h"
 #include "default_profile_template.h"
 #include "default_commands_catalog.h"
 #include "default_theme_catalog.h"
@@ -2300,198 +2301,338 @@ static int InitDefaultFile(const char *path, const char *contents) {
   return 0;
 }
 
-int main(int argc, char **argv) {
-  int argi;
+typedef struct StartupOptions {
   const char *hist;
   const char *conf;
-  BOOL init_requested = FALSE;
-  const char *filter_arg = NULL; /* Added for -f option */
-  int *path_indexes;
-  int path_count = 0;
-  ViewContext ctx;
+  const char *filter_arg;
+  BOOL init_requested;
+} StartupOptions;
 
-  memset(&ctx, 0, sizeof(ViewContext));
-  CoreMainOps_Register(&ctx);
-  if (!CoreMainOpsReady(&ctx.core_main_ops) ||
-      !AppStateOwnerFieldsReady() ||
-      !AppStateTransitionRegistryReady() ||
-      !AppStateGenerationDomainsReady() ||
-      !AppStateDispatchSurfacesReady() ||
+static int StartupInvariantsReady(const ViewContext *ctx) {
+  if (ctx == NULL || !CoreMainOpsReady(&ctx->core_main_ops) ||
+      !AppStateOwnerFieldsReady() || !AppStateTransitionRegistryReady() ||
+      !AppStateGenerationDomainsReady() || !AppStateDispatchSurfacesReady() ||
       !AppStateInvariantRegistryReady() ||
       !AppStateDiffHarnessRegistryReady() ||
-      !AppStateTransitionSequencesReady() ||
-      !AppStateActionCoverageReady() ||
-      !AppStateEventCoverageReady() ||
-      !AppStateActionTransitionsReady()) {
-    fprintf(stderr, "EXIT: startup invariants not configured\n");
-    exit(1);
-  }
+      !AppStateTransitionSequencesReady() || !AppStateActionCoverageReady() ||
+      !AppStateEventCoverageReady() || !AppStateActionTransitionsReady())
+    return 0;
 
-  /* Register Signal Handlers */
-  /* signal(SIGSEGV, EmergencyExit); */ /* Segfault */
-  /* signal(SIGABRT, EmergencyExit); */ /* Abort */
-  signal(SIGINT, SigIntHandler);        /* Ctrl-C safety */
+  return 1;
+}
 
-  /* setlocale is now handled in Init */
+static void PrintUsageAndExit(const char *argv0) {
+  fprintf(stderr,
+          "Usage: %s [--init] [-v|-V|--version] [-p profile_file] "
+          "[-h hist_file] [-d depth] [-f filter] [directory ...]\n",
+          argv0);
+  exit(1);
+}
 
-  hist = NULL;
-  conf = NULL;
+static const char *ConsumeOptionValue(int argc, char **argv, int *argi,
+                                      const char *option_name) {
+  const char *arg;
 
-  /* Pass 1: Pre-scan Loop - Parse Options (-p, -h) */
-  /* Note: -d and -f are validated here to prevent usage error, but processed
-   * after Init */
+  if (argv == NULL || argi == NULL)
+    return NULL;
+  arg = argv[*argi];
+  if (arg == NULL)
+    return NULL;
+  if (arg[2] > ' ')
+    return arg + 2;
+  if (*argi + 1 < argc)
+    return argv[++(*argi)];
+
+  fprintf(stderr, "Option %s requires an argument\n", option_name);
+  exit(1);
+}
+
+static void ParseStartupOptions(int argc, char **argv,
+                                StartupOptions *options) {
+  int argi;
+
+  if (options == NULL)
+    return;
+
+  memset(options, 0, sizeof(*options));
   for (argi = 1; argi < argc; argi++) {
     if (!strcmp(argv[argi], "-v") || !strcmp(argv[argi], "-V") ||
         !strcmp(argv[argi], "--version")) {
       fprintf(stdout, "ytnova %s (%s)\n", VERSION, VERSIONDATE);
-      return 0;
+      exit(0);
     }
     if (!strcmp(argv[argi], "--init")) {
-      init_requested = TRUE;
+      options->init_requested = TRUE;
       continue;
     }
+    if (argv[argi][0] != '-')
+      continue;
 
-    if (argv[argi][0] == '-') {
-      switch (argv[argi][1]) {
-      case 'p':
-      case 'P':
-        if (argv[argi][2] <= ' ') {
-          if (argi + 1 < argc)
-            conf = argv[++argi];
-          else {
-            fprintf(stderr, "Option -p requires an argument\n");
-            exit(1);
-          }
-        } else {
-          conf = argv[argi] + 2;
-        }
-        break;
-      case 'h':
-      case 'H':
-        if (argv[argi][2] <= ' ') {
-          if (argi + 1 < argc)
-            hist = argv[++argi];
-          else {
-            fprintf(stderr, "Option -h requires an argument\n");
-            exit(1);
-          }
-        } else {
-          hist = argv[argi] + 2;
-        }
-        break;
-      case 'd':
-      case 'D':
-        /* Skip -d here, processed after Init */
-        if (argv[argi][2] <= ' ') {
-          if (argi + 1 < argc)
-            argi++;
-          else {
-            fprintf(stderr, "Option -d requires an argument\n");
-            exit(1);
-          }
-        }
-        break;
-      case 'f':
-      case 'F':
-        /* Skip -f here, processed after Init */
-        if (argv[argi][2] <= ' ') {
-          if (argi + 1 < argc)
-            argi++;
-          else {
-            fprintf(stderr, "Option -f requires an argument\n");
-            exit(1);
-          }
-        }
-        break;
-      default:
-        fprintf(stderr,
-                "Usage: %s [--init] [-v|-V|--version] [-p profile_file] "
-                "[-h hist_file] [-d depth] [-f filter] [directory ...]\n",
-                argv[0]);
-        exit(1);
-      }
+    switch (argv[argi][1]) {
+    case 'p':
+    case 'P':
+      options->conf = ConsumeOptionValue(argc, argv, &argi, "-p");
+      break;
+    case 'h':
+    case 'H':
+      options->hist = ConsumeOptionValue(argc, argv, &argi, "-h");
+      break;
+    case 'd':
+    case 'D':
+      (void)ConsumeOptionValue(argc, argv, &argi, "-d");
+      break;
+    case 'f':
+    case 'F':
+      (void)ConsumeOptionValue(argc, argv, &argi, "-f");
+      break;
+    default:
+      PrintUsageAndExit(argv[0]);
     }
   }
+}
 
-  if (init_requested) {
-    char init_path_buffer[PATH_LENGTH + 1];
-    char init_theme_path_buffer[PATH_LENGTH + 1];
-    char init_commands_path_buffer[PATH_LENGTH + 1];
-    const char *init_path = conf;
-    const char *init_theme_path = init_theme_path_buffer;
-    const char *init_commands_path = init_commands_path_buffer;
-    int init_profile_status;
-    int init_theme_status;
-    int init_commands_status;
+static void RequireDefaultSurfacePath(ConfigSurface surface, char *path,
+                                      size_t path_size,
+                                      const char *error_message) {
+  if (GetDefaultSurfacePath(surface, path, path_size) != 0) {
+    fprintf(stderr, "%s\n", error_message);
+    exit(1);
+  }
+}
 
-    if (GetDefaultSurfacePath(CONFIG_SURFACE_THEME, init_theme_path_buffer,
-                              sizeof(init_theme_path_buffer)) != 0) {
-      fprintf(stderr,
-              "Cannot resolve target themes path. Set HOME before --init.\n");
-      exit(1);
-    }
-    if (GetDefaultSurfacePath(CONFIG_SURFACE_COMMANDS,
-                              init_commands_path_buffer,
-                              sizeof(init_commands_path_buffer)) != 0) {
-      fprintf(stderr,
-              "Cannot resolve target commands path. Set HOME before --init.\n");
-      exit(1);
-    }
+static void InitDefaultSurfaceOrExit(const char *path, const char *contents,
+                                     const char *label) {
+  int status;
 
-    if (!init_path) {
-      if (GetDefaultSurfacePath(CONFIG_SURFACE_PROFILE, init_path_buffer,
-                                sizeof(init_path_buffer)) != 0) {
-        fprintf(
-            stderr,
+  status = InitDefaultFile(path, contents);
+  if (status == -1) {
+    fprintf(stderr, "Failed to initialize %s %s: %s\n", label, path,
+            strerror(errno));
+    exit(1);
+  }
+  if (status == 0)
+    fprintf(stdout, "Created %s: %s\n", label, path);
+  else
+    fprintf(stdout, "%s already exists; not overwritten\n", path);
+}
+
+static void RunInitBootstrap(const char *conf) {
+  char init_path_buffer[PATH_LENGTH + 1];
+  char init_theme_path_buffer[PATH_LENGTH + 1];
+  char init_commands_path_buffer[PATH_LENGTH + 1];
+  char init_applications_path_buffer[PATH_LENGTH + 1];
+  const char *init_path = conf;
+
+  RequireDefaultSurfacePath(
+      CONFIG_SURFACE_THEME, init_theme_path_buffer, sizeof(init_theme_path_buffer),
+      "Cannot resolve target themes path. Set HOME before --init.");
+  RequireDefaultSurfacePath(
+      CONFIG_SURFACE_COMMANDS, init_commands_path_buffer,
+      sizeof(init_commands_path_buffer),
+      "Cannot resolve target commands path. Set HOME before --init.");
+  RequireDefaultSurfacePath(
+      CONFIG_SURFACE_APPLICATIONS, init_applications_path_buffer,
+      sizeof(init_applications_path_buffer),
+      "Cannot resolve target applications path. Set HOME before --init.");
+  if (!init_path) {
+    RequireDefaultSurfacePath(
+        CONFIG_SURFACE_PROFILE, init_path_buffer, sizeof(init_path_buffer),
+        "Cannot resolve target profile path. Set HOME or pass -p <file>.");
+    init_path = init_path_buffer;
+  }
+  if (!init_path) {
+    fprintf(stderr,
             "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
-        exit(1);
+    exit(1);
+  }
+
+  InitDefaultSurfaceOrExit(init_path, default_profile_template, "profile");
+  InitDefaultSurfaceOrExit(init_commands_path_buffer, default_commands_catalog,
+                           "commands");
+  InitDefaultSurfaceOrExit(init_theme_path_buffer, default_theme_catalog,
+                           "themes");
+  InitDefaultSurfaceOrExit(init_applications_path_buffer,
+                           default_applications_catalog, "applications");
+}
+
+static void ApplyPostInitOverrides(ViewContext *ctx, int argc, char **argv,
+                                   StartupOptions *options) {
+  int argi;
+
+  if (ctx == NULL || options == NULL)
+    return;
+  for (argi = 1; argi < argc; argi++) {
+    char *d_arg = NULL;
+
+    if (argv[argi][0] != '-')
+      continue;
+
+    switch (argv[argi][1]) {
+    case 'p':
+    case 'P':
+    case 'h':
+    case 'H':
+      if (argv[argi][2] <= ' ')
+        argi++;
+      break;
+    case 'd':
+    case 'D':
+      d_arg = (char *)ConsumeOptionValue(argc, argv, &argi, "-d");
+      if (d_arg != NULL) {
+        if (strcasecmp(d_arg, "all") == 0 || strcasecmp(d_arg, "max") == 0) {
+          ctx->core_main_ops.set_profile_value(ctx, "TREEDEPTH", "100");
+        } else if (strcasecmp(d_arg, "min") == 0 ||
+                   strcasecmp(d_arg, "root") == 0) {
+          ctx->core_main_ops.set_profile_value(ctx, "TREEDEPTH", "0");
+        } else {
+          ctx->core_main_ops.set_profile_value(ctx, "TREEDEPTH", d_arg);
+        }
       }
-      init_path = init_path_buffer;
+      break;
+    case 'f':
+    case 'F':
+      options->filter_arg = ConsumeOptionValue(argc, argv, &argi, "-f");
+      break;
     }
-    if (!init_path) {
-      fprintf(stderr,
-              "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
-      exit(1);
-    }
+  }
+}
 
-    init_profile_status = InitDefaultFile(init_path, default_profile_template);
-    if (init_profile_status == -1) {
-      fprintf(stderr, "Failed to initialize profile %s: %s\n", init_path,
-              strerror(errno));
-      exit(1);
-    }
-    init_theme_status = InitDefaultFile(init_theme_path, default_theme_catalog);
-    if (init_theme_status == -1) {
-      fprintf(stderr, "Failed to initialize themes %s: %s\n", init_theme_path,
-              strerror(errno));
-      exit(1);
-    }
-    init_commands_status =
-        InitDefaultFile(init_commands_path, default_commands_catalog);
-    if (init_commands_status == -1) {
-      fprintf(stderr, "Failed to initialize commands %s: %s\n",
-              init_commands_path, strerror(errno));
-      exit(1);
-    }
+static int *CollectPathIndexes(int argc, char **argv, int *path_count) {
+  int *path_indexes;
+  int argi;
 
-    if (init_profile_status == 0)
-      fprintf(stdout, "Created profile: %s\n", init_path);
-    else
-      fprintf(stdout, "%s already exists; not overwritten\n", init_path);
-    if (init_commands_status == 0)
-      fprintf(stdout, "Created commands: %s\n", init_commands_path);
-    else
-      fprintf(stdout, "%s already exists; not overwritten\n",
-              init_commands_path);
+  if (path_count == NULL)
+    return NULL;
+  *path_count = 0;
+  path_indexes = (int *)malloc(sizeof(int) * argc);
+  if (!path_indexes)
+    return NULL;
+  for (argi = 1; argi < argc; argi++) {
+    if (argv[argi][0] == '-') {
+      char c = argv[argi][1];
 
-    if (init_theme_status == 0)
-      fprintf(stdout, "Created themes: %s\n", init_theme_path);
-    else
-      fprintf(stdout, "%s already exists; not overwritten\n", init_theme_path);
+      if ((c == 'p' || c == 'P' || c == 'h' || c == 'H' || c == 'd' ||
+           c == 'D' || c == 'f' || c == 'F') &&
+          argv[argi][2] <= ' ') {
+        argi++;
+      }
+      continue;
+    }
+    path_indexes[(*path_count)++] = argi;
+  }
+  return path_indexes;
+}
+
+static void LoadStartupPaths(ViewContext *ctx, int argc, char **argv,
+                             const int *path_indexes, int path_count) {
+  if (ctx == NULL)
+    return;
+  if (path_count == 0) {
+    char cwd_path[PATH_LENGTH + 1];
+
+    if (getcwd(cwd_path, sizeof(cwd_path)) == NULL) {
+      ctx->core_main_ops.shutdown_curses(ctx);
+      fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
+      exit(1);
+    }
+    if (ctx->core_main_ops.log_disk(ctx, ctx->left, cwd_path) == -1) {
+      ctx->core_main_ops.shutdown_curses(ctx);
+      fprintf(stderr, "EXIT: LogDisk failed for CWD\n");
+      exit(1);
+    }
+    return;
+  }
+
+  while (path_count-- > 0) {
+    int path_index = path_indexes[path_count];
+
+    if (path_index > 0 && path_index < argc)
+      ctx->core_main_ops.log_disk(ctx, ctx->left, argv[path_index]);
+  }
+}
+
+static void RequireActiveVolumeOrExit(ViewContext *ctx) {
+  if (ctx == NULL || ctx->active == NULL || ctx->active->vol == NULL ||
+      ctx->active->vol->vol_stats.tree == NULL) {
+    if (ctx != NULL)
+      ctx->core_main_ops.shutdown_curses(ctx);
+    fprintf(stderr, "EXIT: No active volume\n");
+    exit(1);
+  }
+}
+
+static void ApplyStartupFilter(ViewContext *ctx, const char *filter_arg) {
+  if (ctx == NULL || filter_arg == NULL || ctx->active == NULL ||
+      ctx->active->vol == NULL)
+    return;
+
+  strncpy(ctx->active->vol->vol_stats.file_spec, filter_arg, FILE_SPEC_LENGTH);
+  ctx->active->vol->vol_stats.file_spec[FILE_SPEC_LENGTH] = '\0';
+  ctx->core_main_ops.set_filter(ctx->active->vol->vol_stats.file_spec,
+                                &ctx->active->vol->vol_stats);
+  ctx->core_main_ops.recalculate_sys_stats(ctx, &ctx->active->vol->vol_stats);
+}
+
+static void RunApplicationLoop(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
+
+  DEBUG_LOG("STARTING MAIN LOOP: ctx.active->vol=%p", (void *)ctx->active->vol);
+  if (ctx->active->vol) {
+    DEBUG_LOG("STARTING MAIN LOOP: tree=%p",
+              (void *)ctx->active->vol->vol_stats.tree);
+  }
+
+  while (ctx->active != NULL && ctx->active->vol != NULL &&
+         ctx->active->vol->vol_stats.tree != NULL) {
+    int main_loop_exit_char;
+
+    DEBUG_LOG("Calling HandleDirWindow...");
+    main_loop_exit_char =
+        ctx->core_main_ops.handle_dir_window(ctx, ctx->active->vol->vol_stats.tree);
+    DEBUG_LOG("HandleDirWindow returned %d", main_loop_exit_char);
+    if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q' ||
+        ytnova_shutdown_flag) {
+      break;
+    }
+  }
+}
+
+static void CleanupMainContext(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
+
+  ctx->core_main_ops.suspend_clock(ctx);
+  attrset(0);
+  clear();
+  refresh();
+  curs_set(1);
+  ctx->core_main_ops.shutdown_curses(ctx);
+  ctx->core_main_ops.volume_free_all(ctx);
+}
+
+int main(int argc, char **argv) {
+  int *path_indexes;
+  int path_count;
+  ViewContext ctx;
+  StartupOptions options;
+
+  memset(&ctx, 0, sizeof(ViewContext));
+  memset(&options, 0, sizeof(options));
+  CoreMainOps_Register(&ctx);
+  if (!StartupInvariantsReady(&ctx)) {
+    fprintf(stderr, "EXIT: startup invariants not configured\n");
+    exit(1);
+  }
+
+  signal(SIGINT, SigIntHandler);
+  ParseStartupOptions(argc, argv, &options);
+  if (options.init_requested) {
+    RunInitBootstrap(options.conf);
     return 0;
   }
 
-  if (ctx.core_main_ops.init(&ctx, conf, hist)) {
+  if (ctx.core_main_ops.init(&ctx, options.conf, options.hist)) {
     fprintf(stderr, "EXIT: Init failed\n");
     exit(1);
   }
@@ -2500,168 +2641,19 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  /* Pass 1.5: Post-Init Option Parsing (-d, -f) */
-  /* Process overrides that must happen after Init */
-  for (argi = 1; argi < argc; argi++) {
-    if (argv[argi][0] == '-') {
-      switch (argv[argi][1]) {
-      case 'p':
-      case 'P':
-      case 'h':
-      case 'H':
-        /* Skip already processed options */
-        if (argv[argi][2] <= ' ')
-          argi++;
-        break;
-      case 'd':
-      case 'D': {
-        char *d_arg = NULL;
-        if (argv[argi][2] <= ' ') {
-          if (argi + 1 < argc) {
-            d_arg = argv[++argi];
-          }
-        } else {
-          d_arg = argv[argi] + 2;
-        }
-
-        if (d_arg) {
-          if (strcasecmp(d_arg, "all") == 0 || strcasecmp(d_arg, "max") == 0) {
-            ctx.core_main_ops.set_profile_value(&ctx, "TREEDEPTH", "100");
-          } else if (strcasecmp(d_arg, "min") == 0 ||
-                     strcasecmp(d_arg, "root") == 0) {
-            ctx.core_main_ops.set_profile_value(&ctx, "TREEDEPTH", "0");
-          } else {
-            ctx.core_main_ops.set_profile_value(&ctx, "TREEDEPTH", d_arg);
-          }
-        }
-      } break;
-      case 'f':
-      case 'F': {
-        if (argv[argi][2] <= ' ') {
-          if (argi + 1 < argc) {
-            filter_arg = argv[++argi];
-          }
-        } else {
-          filter_arg = argv[argi] + 2;
-        }
-      } break;
-      }
-    }
-  }
-
-  /* Allocate memory for path indexes to support multiple volumes */
-  path_indexes = (int *)malloc(sizeof(int) * argc);
-  if (!path_indexes) {
+  ApplyPostInitOverrides(&ctx, argc, argv, &options);
+  path_indexes = CollectPathIndexes(argc, argv, &path_count);
+  if (path_indexes == NULL) {
     ctx.core_main_ops.shutdown_curses(&ctx);
     fprintf(stderr, "Memory allocation failed\n");
     exit(1);
   }
-
-  /* Pass 2: Path Collection Loop */
-  for (argi = 1; argi < argc; argi++) {
-    if (argv[argi][0] == '-') {
-      /* Skip flags and their values to ensure we only collect positional args
-       */
-      char c = argv[argi][1];
-      if ((c == 'p' || c == 'P' || c == 'h' || c == 'H' || c == 'd' ||
-           c == 'D' || c == 'f' || c == 'F') &&
-          argv[argi][2] <= ' ') {
-        argi++;
-      }
-      continue;
-    }
-    path_indexes[path_count++] = argi;
-  }
-
-  /* Processing Paths or Default */
-  if (path_count == 0) {
-    char cwd_path[PATH_LENGTH + 1];
-
-    /* Case 0: No paths provided, default to current working directory */
-    if (getcwd(cwd_path, sizeof(cwd_path)) == NULL) {
-      ctx.core_main_ops.shutdown_curses(&ctx);
-      fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
-      free(path_indexes);
-      exit(1);
-    }
-
-    /* Use LogDisk (wrapper around Volume_Load) to load the initial path */
-    if (ctx.core_main_ops.log_disk(&ctx, ctx.left, cwd_path) == -1) {
-      ctx.core_main_ops.shutdown_curses(&ctx);
-      /* If defaulting to CWD fails, it's a fatal error */
-      fprintf(stderr, "EXIT: LogDisk failed for CWD\n");
-      free(path_indexes);
-      exit(1);
-    }
-  } else {
-    for (int i = path_count - 1; i >= 0; i--) {
-      /* LogDisk returns -1 on failure but handles its own error messaging via
-       * UI. We proceed to try loading the other requested volumes. */
-      ctx.core_main_ops.log_disk(&ctx, ctx.left, argv[path_indexes[i]]);
-    }
-  }
-
+  LoadStartupPaths(&ctx, argc, argv, path_indexes, path_count);
   free(path_indexes);
-
-  /* Ensure we have at least one active volume before entering main loop */
-  if (ctx.active->vol == NULL || ctx.active->vol->vol_stats.tree == NULL) {
-    ctx.core_main_ops.shutdown_curses(&ctx);
-    fprintf(stderr, "EXIT: No active volume\n");
-    exit(1);
-  }
-
-  /* Apply command line filter if provided */
-  if (filter_arg) {
-    /* Safe copy with truncation */
-    strncpy(ctx.active->vol->vol_stats.file_spec, filter_arg, FILE_SPEC_LENGTH);
-    ctx.active->vol->vol_stats.file_spec[FILE_SPEC_LENGTH] = '\0';
-
-    ctx.core_main_ops.set_filter(ctx.active->vol->vol_stats.file_spec,
-                                 &ctx.active->vol->vol_stats);
-    ctx.core_main_ops.recalculate_sys_stats(&ctx, &ctx.active->vol->vol_stats);
-  }
-
-  /* Main application loop */
-  DEBUG_LOG("STARTING MAIN LOOP: ctx.active->vol=%p", (void *)ctx.active->vol);
-  if (ctx.active->vol) {
-    DEBUG_LOG("STARTING MAIN LOOP: tree=%p",
-              (void *)ctx.active->vol->vol_stats.tree);
-  }
-
-  /* Main application loop */
-
-  while (1) {
-    if (ctx.active == NULL || ctx.active->vol == NULL ||
-        ctx.active->vol->vol_stats.tree == NULL) {
-      break;
-    }
-    DEBUG_LOG("Calling HandleDirWindow...");
-    int main_loop_exit_char = ctx.core_main_ops.handle_dir_window(
-        &ctx, ctx.active->vol->vol_stats.tree);
-    DEBUG_LOG("HandleDirWindow returned %d", main_loop_exit_char);
-    if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {
-      /* User requested to quit. Break the loop to proceed with cleanup. */
-      break;
-    }
-    /* Also break if shutdown flag was set by SIGINT handler but not caught
-     * inside HandleDirWindow yet */
-    if (ytnova_shutdown_flag) {
-      break;
-    }
-  }
-
-  /* Explicit cleanup */
-  ctx.core_main_ops.suspend_clock(
-      &ctx); /* Stop SIGALRM (now no-op but kept for API consistency) before
-                touching curses/memory */
-
-  attrset(0);  /* Reset attributes */
-  clear();     /* Clear internal buffer */
-  refresh();   /* Push clear to screen */
-  curs_set(1); /* Restore visible cursor */
-  ctx.core_main_ops.shutdown_curses(&ctx);
-
-  ctx.core_main_ops.volume_free_all(&ctx); /* Explicitly free memory */
+  RequireActiveVolumeOrExit(&ctx);
+  ApplyStartupFilter(&ctx, options.filter_arg);
+  RunApplicationLoop(&ctx);
+  CleanupMainContext(&ctx);
 
   return 0;
 }

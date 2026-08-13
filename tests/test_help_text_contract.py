@@ -734,7 +734,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         footer_line = next(
             line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
-        assert "Open" in footer_line, footer_line
+        assert "open" in footer_line, footer_line
         assert "Contents" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
         assert "Shared commands" not in footer_line, footer_line
@@ -989,7 +989,7 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         footer_line = next(
             line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
-        assert "Open" in footer_line, footer_line
+        assert "open" in footer_line, footer_line
         assert "Contents" in footer_line, footer_line
         assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
@@ -1026,7 +1026,7 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
         footer_line = next(
             line for line in contents_text.splitlines() if "Esc/Quit" in line
         )
-        assert "Open" in footer_line, footer_line
+        assert "open" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
         assert "Applications Help" in contents_text, contents_text
         assert "Archive Directory Help" in contents_text, contents_text
@@ -1073,6 +1073,143 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
         assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ESC, wait=0.05)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_contextual_help_detail_footer_uses_left_back_and_c_contents(tmp_path):
+    root = _root_with_file(tmp_path, "help_detail_footer_contract")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+
+        _wait_for_help(tui, "Directory Help")
+        detail_screen = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if any("Esc/Quit" in line and "Left back" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert detail_screen, screen_text(tui)
+        detail_text = "\n".join(detail_screen)
+        footer_line = next(
+            line for line in detail_text.splitlines() if "Esc/Quit" in line
+        )
+        assert "Left back" in footer_line, footer_line
+        assert "Contents" in footer_line, footer_line
+        assert "Navigation" in footer_line, footer_line
+        assert "C back" not in footer_line, footer_line
+        assert "Directory mode" not in footer_line, footer_line
+        assert "File mode" not in footer_line, footer_line
+        assert "Archive file" not in footer_line, footer_line
+        assert "F8 split" not in footer_line, footer_line
+
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
+
+        selected_style = _visible_cell_style(tui, "1..9 view:")
+        reached_copy = False
+        for _ in range(12):
+            if _selected_visible_help_label(tui, ["Copy:"], selected_style) == "Copy:":
+                reached_copy = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.05)
+
+        assert reached_copy, screen_text(tui)
+
+        detail_screen = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines
+            if any("wildcard rename pattern" in line.lower() for line in lines)
+            and any("Esc/Quit" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert detail_screen, screen_text(tui)
+        detail_text = "\n".join(detail_screen)
+        assert "Copy/Move Targets" in detail_text, detail_text
+        footer_line = next(
+            line for line in detail_text.splitlines() if "Esc/Quit" in line
+        )
+        assert "Left back" in footer_line, footer_line
+        assert "Contents" in footer_line, footer_line
+        assert "Navigation" in footer_line, footer_line
+        assert "Directory mode" not in footer_line, footer_line
+        assert "File mode" not in footer_line, footer_line
+        assert "Archive file" not in footer_line, footer_line
+        assert "F8 split" not in footer_line, footer_line
+
+        contents_screen = tui.send_and_wait_for_condition(
+            "c",
+            lambda lines: lines
+            if any("Applications Help:" in line for line in lines)
+            and any("Esc/Quit" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert contents_screen, screen_text(tui)
+        contents_text = "\n".join(contents_screen)
+        assert (
+            "Change the active panel's directory and file presentation."
+            not in contents_text
+        ), contents_text
+        footer_line = next(
+            line for line in contents_text.splitlines() if "Esc/Quit" in line
+        )
+        assert "open" in footer_line, footer_line
+    finally:
+        tui.quit()
+
+
+def test_main_footer_signpost_keybind_uses_footer_background(tmp_path):
+    root = _root_with_file(tmp_path, "footer_signpost_theme_contract")
+    config_dir = root / ".config" / "ytnova"
+    config_dir.mkdir(parents=True)
+    (config_dir / "ytnova.conf").write_text(
+        "[GLOBAL]\nTHEME=sample\nSMALLWINDOWSKIP=1\n",
+        encoding="utf-8",
+    )
+    (config_dir / "themes.conf").write_text(
+        """
+[theme sample]
+background = blue
+box_lines = white
+tree_lines = white
+margin = dynamic_text
+static_text = white
+dynamic_text = +white
+keybind = yellow
+footer = magenta on white
+selection = black on cyan
+dialog = white
+picker = white on cyan
+help = black on white
+help_keybind = yellow
+help_link = black on cyan
+help_link_selection = yellow on cyan
+info = black on cyan
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        nav_style = _visible_cell_style(tui, "←qj")
+        footer_style = _visible_cell_style(tui, "File F1 help")
+        assert nav_style[1] == footer_style[1], (
+            "Footer navigation signpost must inherit the configured footer "
+            "background instead of keeping the main surface background.\n"
+            f"Nav={nav_style} Footer={footer_style}\n\n{screen_text(tui)}"
+        )
     finally:
         tui.quit()
 

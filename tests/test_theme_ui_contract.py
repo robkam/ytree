@@ -282,7 +282,12 @@ def test_help_surfaces_use_help_role():
     help_popup_source = _read("src/ui/help_popup.c")
 
     assert "UI_ROLE_HELP" in defs_source
+    assert "UI_ROLE_HELP_FOOTER" in defs_source
     assert "UI_ROLE_HELP_KEYBIND" in defs_source
+    assert "UI_ROLE_HELP_HEADING" in defs_source
+    assert "UI_ROLE_HELP_TERM" in defs_source
+    assert "UI_ROLE_HELP_ATTENTION" in defs_source
+    assert "UI_ROLE_HELP_ALERT" in defs_source
     assert "UI_ROLE_FOOTER" in defs_source
     assert "UI_ROLE_HELP_LINK" in defs_source
     assert "UI_ROLE_HELP_LINK_SELECTION" in defs_source
@@ -291,12 +296,22 @@ def test_help_surfaces_use_help_role():
     assert "UI_ROLE_KEYBIND" in defs_source
     assert '{"footer", UI_ROLE_FOOTER, 7, 0}' in color_source
     assert '{"help", UI_ROLE_HELP, 7, 0}' in color_source
+    assert '{"help_footer", UI_ROLE_HELP_FOOTER, 7, 0}' in color_source
+    assert '{"help_heading", UI_ROLE_HELP_HEADING, 7, 0}' in color_source
+    assert '{"help_term", UI_ROLE_HELP_TERM, 7, 0}' in color_source
+    assert '{"help_attention", UI_ROLE_HELP_ATTENTION, 7, 0}' in color_source
+    assert '{"help_alert", UI_ROLE_HELP_ALERT, 7, 0}' in color_source
     assert '{"help_keybind", UI_ROLE_HELP_KEYBIND, 15, 0}' in color_source
     assert '{"help_link", UI_ROLE_HELP_LINK, 6, 0}' in color_source
     assert '{"help_link_selection", UI_ROLE_HELP_LINK_SELECTION, 3, 0}' in color_source
     assert '{"help_box_lines", UI_ROLE_HELP_BOX_LINES, 7, 0}' in color_source
     assert '"footer"' in theme_source
     assert '"help"' in theme_source
+    assert '"help_footer"' in theme_source
+    assert '"help_heading"' in theme_source
+    assert '"help_term"' in theme_source
+    assert '"help_attention"' in theme_source
+    assert '"help_alert"' in theme_source
     assert '"help_keybind"' in theme_source
     assert '"help_link"' in theme_source
     assert '"help_link_selection"' in theme_source
@@ -325,9 +340,13 @@ def test_help_surfaces_use_help_role():
     assert "COLOR_PAIR(UI_ROLE_HELP)" in help_popup_source
     assert "wattron(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in help_popup_source
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in help_popup_source
-    assert "UI_RenderCommandStrip(win, y, start_x, commands, command_count, UI_ROLE_HELP," in help_popup_source
-    assert "UI_ROLE_KEYBIND);" in help_popup_source
-    assert "UI_ROLE_HELP, UI_ROLE_HELP_KEYBIND" in help_popup_source
+    assert "FillHelpPopupBlankLine(win, y, start_x, footer_width," in help_popup_source
+    assert "UI_RenderCommandStrip(win, y, start_x, commands, command_count," in help_popup_source
+    assert "UI_ROLE_HELP_FOOTER, UI_ROLE_HELP_KEYBIND" in help_popup_source
+    assert "UI_ROLE_HELP_KEYBIND" in help_popup_source
+    assert "UI_ROLE_HELP_HEADING" in help_popup_source
+    assert "UI_ROLE_HELP_TERM" in help_popup_source
+    assert "UI_ROLE_HELP_ATTENTION" in help_popup_source
 
 
 def test_task_sixty_touched_surfaces_use_structured_command_strips():
@@ -509,6 +528,7 @@ def test_tree_lines_and_margin_use_dedicated_theme_roles():
     color_source = _read("src/ui/color.c")
     theme_source = _read("src/cmd/theme.c")
     dir_source = _read("src/ui/render_dir.c")
+    file_source = _read("src/ui/render_file.c")
 
     assert "UI_ROLE_TREE_LINES" in defs_source
     assert "UI_ROLE_MARGIN" in defs_source
@@ -523,6 +543,9 @@ def test_tree_lines_and_margin_use_dedicated_theme_roles():
     assert "wattrset(win, margin_attr);" in dir_source
     assert "wattrset(win, tree_line_attr);" in dir_source
     assert "GetFileTypeColor" not in dir_source
+    assert "spec.margin_color_pair = (hilight && ctx->highlight_full_line &&" in file_source
+    assert "wattron(spec->win, COLOR_PAIR(spec->margin_color_pair));" in file_source
+    assert "wattrset(spec->win, COLOR_PAIR(spec->base_color_pair));" in file_source
 
 
 def test_incremental_jump_uses_slash_without_f12_alias():
@@ -669,7 +692,7 @@ def test_theme_docs_capture_role_routing_invariants():
     spec_source = _read("docs/SPECIFICATION.md")
     arch_source = _read("docs/ARCHITECTURE.md")
 
-    assert "F1/context help surfaces use the `help` role" in spec_source
+    assert "F1/context help surfaces use `help` for the reading body" in spec_source
     assert (
         "F2, history, completion, and volume selection surfaces use the `picker` role"
         in spec_source
@@ -690,13 +713,16 @@ def test_theme_loader_does_not_preserve_old_help_footer_role_contract():
     usage_source = _read("docs/USAGE.md")
 
     assert 'strcmp(name, "footer") == 0' not in theme_source
-    assert 'strcmp(name, "help_link") == 0' not in theme_source
-    assert 'strcmp(name, "help_link_selection") == 0' not in theme_source
     assert 'FindRole(roles, "footer")' not in theme_source
-    assert 'FindRole(roles, "help_link")' not in theme_source
-    assert 'FindRole(roles, "help_link_selection")' not in theme_source
+    assert 'FindRole(roles, "help_footer")' in theme_source
+    assert 'FindRole(roles, "help_heading")' in theme_source
+    assert 'FindRole(roles, "help_term")' in theme_source
+    assert 'FindRole(roles, "help_attention")' in theme_source
+    assert 'FindRole(roles, "help_alert")' in theme_source
     assert 'When `footer`, `help_link`, or `help_link_selection` are omitted' not in man_source
     assert 'When `footer`, `help_link`, or `help_link_selection` are omitted' not in usage_source
+    assert '`help_footer` owns the F1 popup strip' in man_source
+    assert '`help_term` owns term-style labels' in usage_source
 
 
 def test_theme_editor_tracks_active_path_and_bootstraps_xdg_for_defaults():

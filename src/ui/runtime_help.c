@@ -37,6 +37,7 @@ typedef struct {
   const GeneratedHelpTopic *topic;
   size_t selected_item_index;
   size_t current_detail_index;
+  BOOL contextual_origin;
 } RuntimeHelpView;
 
 typedef struct {
@@ -50,9 +51,10 @@ typedef struct {
   size_t current_detail_index;
   size_t next_detail_index;
   BOOL back_requested;
+  BOOL detail_back_requested;
   BOOL has_history;
-  BOOL contents_requested;
   BOOL contextual_list_mode;
+  BOOL contextual_origin;
   RuntimeHelpItem items[GENERATED_HELP_MAX_ITEMS];
   UICommandStripCommand footer_commands[GENERATED_HELP_MAX_FOOTER_COMMANDS];
   char footer_keys[GENERATED_HELP_MAX_FOOTER_COMMANDS][2];
@@ -363,7 +365,8 @@ static void AppendHelpTextFragment(char *dest, size_t dest_size,
   dest[used + fragment_len] = '\0';
 }
 
-static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size) {
+static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size,
+                              BOOL preserve_attention) {
   size_t out = 0;
   BOOL in_code = FALSE;
 
@@ -385,7 +388,12 @@ static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size) 
       continue;
     }
     if (!in_code && source[0] == '*' && source[1] == '*') {
-      source += 2;
+      if (preserve_attention && out + 2 < dest_size) {
+        dest[out++] = *source++;
+        dest[out++] = *source++;
+      } else {
+        source += 2;
+      }
       continue;
     }
     if (!in_code && *source == '*') {
@@ -486,7 +494,7 @@ static void ExtractItemLabel(const char *heading, char *label,
   if (heading == NULL)
     return;
 
-  StripHelpMarkdown(heading, stripped, sizeof(stripped));
+  StripHelpMarkdown(heading, stripped, sizeof(stripped), FALSE);
   TrimWhitespaceInPlace(stripped);
   if (stripped[0] == '\0')
     return;
@@ -546,7 +554,7 @@ static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
       state->item_count >= GENERATED_HELP_MAX_ITEMS)
     return;
 
-  StripHelpMarkdown(body, detail, sizeof(detail));
+  StripHelpMarkdown(body, detail, sizeof(detail), TRUE);
   TrimWhitespaceInPlace(detail);
   if (detail[0] == '\0')
     return;
@@ -744,22 +752,25 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
     return 0;
 
   if (state->contextual_list_mode) {
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
+    state->footer_commands[command_count].layout =
+        state->current_detail_index == GENERATED_HELP_NO_SELECTION
+            ? UI_COMMAND_LAYOUT_ALT_MNEMONIC
+            : UI_COMMAND_LAYOUT_KEY_PREFIX;
     state->footer_commands[command_count].label =
-        state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Open"
-                                                                   : "Back";
+        state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "open"
+                                                                   : "back";
     state->footer_commands[command_count].primary_key =
         state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Enter"
                                                                    : "Left";
     state->footer_commands[command_count].secondary_key =
         state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Right"
-                                                                   : "C";
+                                                                   : NULL;
     command_count++;
 
     if (state->current_detail_index == GENERATED_HELP_NO_SELECTION &&
         state->has_history) {
       state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label = "Back";
+      state->footer_commands[command_count].label = "back";
       state->footer_commands[command_count].primary_key = "Left";
       state->footer_commands[command_count].secondary_key = NULL;
       command_count++;
@@ -773,6 +784,37 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
       state->footer_commands[command_count].secondary_key = NULL;
       command_count++;
     }
+
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+    state->footer_commands[command_count].label = "Navigation";
+    state->footer_commands[command_count].primary_key = "N";
+    state->footer_commands[command_count].secondary_key = NULL;
+    command_count++;
+
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
+    state->footer_commands[command_count].label = "Quit";
+    state->footer_commands[command_count].primary_key = "Esc";
+    state->footer_commands[command_count].secondary_key = "Q";
+    command_count++;
+    state->link_command_count = 0;
+    state->active_link_index = GENERATED_HELP_NO_SELECTION;
+    return command_count;
+  }
+
+  if (state->contextual_origin) {
+    if (state->has_history) {
+      state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+      state->footer_commands[command_count].label = "back";
+      state->footer_commands[command_count].primary_key = "Left";
+      state->footer_commands[command_count].secondary_key = NULL;
+      command_count++;
+    }
+
+    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
+    state->footer_commands[command_count].label = "Contents";
+    state->footer_commands[command_count].primary_key = "C";
+    state->footer_commands[command_count].secondary_key = NULL;
+    command_count++;
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
     state->footer_commands[command_count].label = "Navigation";
@@ -943,111 +985,104 @@ static size_t BuildTextRows(RuntimeHelpPopupState *state,
   return row_count;
 }
 
-static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
-                                        void *user_data) {
-  RuntimeHelpPopupState *state = (RuntimeHelpPopupState *)user_data;
-  size_t visible_start;
-  size_t visible_end;
-  size_t i;
+static void ResetContextualHelpSelection(RuntimeHelpPopupState *state) {
+  if (state == NULL)
+    return;
+
+  state->selected_item_index = GENERATED_HELP_NO_SELECTION;
+  state->reselection_direction = 0;
+  state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+}
+
+static int HandleContextualOriginFooterKey(RuntimeHelpPopupState *state,
+                                           int ch) {
   int key;
 
-  (void)ctx;
-  if (state == NULL || state->topic == NULL)
+  if (state == NULL)
     return 0;
 
-  if (state->contextual_list_mode) {
-    key = islower(ch) ? toupper(ch) : ch;
-
-    if (state->current_detail_index != GENERATED_HELP_NO_SELECTION) {
-      if (ch == KEY_LEFT || key == 'C') {
-        state->contents_requested = TRUE;
-        return 1;
-      }
-      if (key == 'N') {
-        state->next_topic_id = "navigation";
-        return 1;
-      }
-      return 0;
-    }
-
-    if (ch == KEY_LEFT && state->has_history) {
-      state->back_requested = TRUE;
+  key = islower(ch) ? toupper(ch) : ch;
+  if (ch == KEY_LEFT && state->has_history) {
+    state->back_requested = TRUE;
+    return 1;
+  }
+  if (key == 'C') {
+    if (!TopicIdEquals(state->topic, "intro")) {
+      state->next_topic_id = "intro";
       return 1;
     }
+    return -1;
+  }
+  if (key == 'N') {
+    if (!TopicIdEquals(state->topic, "navigation")) {
+      state->next_topic_id = "navigation";
+      return 1;
+    }
+    return -1;
+  }
+  return 0;
+}
 
-    if (ch == KEY_UP || ch == KEY_DOWN) {
-      size_t next_index;
+static int HandleContextualListFooterKey(RuntimeHelpPopupState *state, int ch) {
+  size_t visible_start;
+  size_t visible_end;
+  int key;
 
-      if (state->item_count == 0)
-        return 0;
+  if (state == NULL)
+    return 0;
 
-      if (state->visible_row_count <= 0)
-        return 0;
+  key = islower(ch) ? toupper(ch) : ch;
 
-      if (!GetVisibleContextItemRange(state, &visible_start, &visible_end))
-        return 0;
+  if (state->current_detail_index != GENERATED_HELP_NO_SELECTION) {
+    if (ch == KEY_LEFT) {
+      state->detail_back_requested = TRUE;
+      return 1;
+    }
+    if (key == 'C') {
+      state->next_topic_id = "intro";
+      return 1;
+    }
+    if (key == 'N') {
+      state->next_topic_id = "navigation";
+      return 1;
+    }
+    return 0;
+  }
 
-      if (state->selected_item_index == GENERATED_HELP_NO_SELECTION) {
-        if (state->reselection_direction != 0 &&
-            state->reselection_anchor_index != GENERATED_HELP_NO_SELECTION) {
-          if (ch == KEY_UP && state->reselection_direction > 0)
-            state->reselection_direction = -1;
-          else if (ch == KEY_DOWN && state->reselection_direction < 0)
-            state->reselection_direction = 1;
-          return 0;
-        }
+  if (ch == KEY_LEFT && state->has_history) {
+    state->back_requested = TRUE;
+    return 1;
+  }
 
-        if (ch == KEY_UP)
-          next_index = FindPreviousSelectableItem(
-              state, visible_end > 0 ? visible_end - 1 : visible_start,
-              visible_start);
-        else
-          next_index = FindNextSelectableItem(state, visible_start, visible_end);
+  if (ch == KEY_UP || ch == KEY_DOWN) {
+    size_t next_index;
 
-        if (next_index == GENERATED_HELP_NO_SELECTION)
-          return 0;
+    if (state->item_count == 0 || state->visible_row_count <= 0)
+      return 0;
 
-        state->selected_item_index = next_index;
-        state->reselection_direction = 0;
-        state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
-        return -1;
-      }
+    if (!GetVisibleContextItemRange(state, &visible_start, &visible_end))
+      return 0;
 
-      if (state->selected_item_index < visible_start ||
-          state->selected_item_index >= visible_end) {
-        state->reselection_direction = (ch == KEY_UP) ? -1 : 1;
-        state->reselection_anchor_index = state->selected_item_index;
-        return 0;
-      }
-
-      next_index = GENERATED_HELP_NO_SELECTION;
-      if (ch == KEY_UP) {
-        if (state->selected_item_index > visible_start) {
-          next_index = FindPreviousSelectableItem(
-              state, state->selected_item_index - 1, visible_start);
-        }
-        if (next_index == GENERATED_HELP_NO_SELECTION &&
-            state->selected_item_index > 0) {
+    if (state->selected_item_index == GENERATED_HELP_NO_SELECTION) {
+      if (state->reselection_direction != 0 &&
+          state->reselection_anchor_index != GENERATED_HELP_NO_SELECTION) {
+        if (ch == KEY_UP && state->reselection_direction > 0)
           state->reselection_direction = -1;
-          state->reselection_anchor_index = state->selected_item_index;
-          return 0;
-        }
-      } else {
-        if (state->selected_item_index + 1 < visible_end) {
-          next_index = FindNextSelectableItem(
-              state, state->selected_item_index + 1, visible_end);
-        }
-        if (next_index == GENERATED_HELP_NO_SELECTION &&
-            state->selected_item_index + 1 < state->item_count) {
+        else if (ch == KEY_DOWN && state->reselection_direction < 0)
           state->reselection_direction = 1;
-          state->reselection_anchor_index = state->selected_item_index;
-          return 0;
-        }
-      }
-
-      if (next_index == GENERATED_HELP_NO_SELECTION) {
         return 0;
       }
+
+      if (ch == KEY_UP) {
+        next_index = FindPreviousSelectableItem(
+            state, visible_end > 0 ? visible_end - 1 : visible_start,
+            visible_start);
+      } else {
+        next_index = FindNextSelectableItem(state, visible_start, visible_end);
+      }
+
+      if (next_index == GENERATED_HELP_NO_SELECTION)
+        return 0;
 
       state->selected_item_index = next_index;
       state->reselection_direction = 0;
@@ -1055,53 +1090,108 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
       return -1;
     }
 
-    if (ch == KEY_HOME || ch == KEY_END || ch == KEY_PPAGE ||
-        ch == KEY_NPAGE) {
-      state->selected_item_index = GENERATED_HELP_NO_SELECTION;
-      state->reselection_direction = 0;
-      state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+    if (state->selected_item_index < visible_start ||
+        state->selected_item_index >= visible_end) {
+      state->reselection_direction = (ch == KEY_UP) ? -1 : 1;
+      state->reselection_anchor_index = state->selected_item_index;
       return 0;
     }
 
-    if (ch == KEY_RIGHT || ch == CR || ch == LF) {
-      if (state->item_count == 0 ||
-          state->selected_item_index == GENERATED_HELP_NO_SELECTION ||
-          state->selected_item_index >= state->item_count)
-        return -1;
-      if (!state->items[state->selected_item_index].selectable)
-        return -1;
-      if (state->items[state->selected_item_index].linked_topic_id != NULL) {
-        state->next_topic_id =
-            state->items[state->selected_item_index].linked_topic_id;
-        state->reselection_direction = 0;
-        state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
-        return 1;
+    next_index = GENERATED_HELP_NO_SELECTION;
+    if (ch == KEY_UP) {
+      if (state->selected_item_index > visible_start) {
+        next_index = FindPreviousSelectableItem(
+            state, state->selected_item_index - 1, visible_start);
       }
-      state->next_detail_index = state->selected_item_index;
+      if (next_index == GENERATED_HELP_NO_SELECTION &&
+          state->selected_item_index > 0) {
+        state->reselection_direction = -1;
+        state->reselection_anchor_index = state->selected_item_index;
+        return 0;
+      }
+    } else {
+      if (state->selected_item_index + 1 < visible_end) {
+        next_index = FindNextSelectableItem(state,
+                                            state->selected_item_index + 1,
+                                            visible_end);
+      }
+      if (next_index == GENERATED_HELP_NO_SELECTION &&
+          state->selected_item_index + 1 < state->item_count) {
+        state->reselection_direction = 1;
+        state->reselection_anchor_index = state->selected_item_index;
+        return 0;
+      }
+    }
+
+    if (next_index == GENERATED_HELP_NO_SELECTION)
+      return 0;
+
+    state->selected_item_index = next_index;
+    state->reselection_direction = 0;
+    state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+    return -1;
+  }
+
+  if (ch == KEY_HOME || ch == KEY_END || ch == KEY_PPAGE || ch == KEY_NPAGE) {
+    ResetContextualHelpSelection(state);
+    return 0;
+  }
+
+  if (ch == KEY_RIGHT || ch == CR || ch == LF) {
+    if (state->item_count == 0 ||
+        state->selected_item_index == GENERATED_HELP_NO_SELECTION ||
+        state->selected_item_index >= state->item_count)
+      return -1;
+    if (!state->items[state->selected_item_index].selectable)
+      return -1;
+    if (state->items[state->selected_item_index].linked_topic_id != NULL) {
+      state->next_topic_id =
+          state->items[state->selected_item_index].linked_topic_id;
       state->reselection_direction = 0;
       state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
       return 1;
     }
-
-    if (key == 'C') {
-      if (state->topic->topic_id != NULL &&
-          strcmp(state->topic->topic_id, "intro") != 0) {
-        state->next_topic_id = "intro";
-        return 1;
-      }
-      return -1;
-    }
-    if (key == 'N') {
-      if (state->topic->topic_id != NULL &&
-          strcmp(state->topic->topic_id, "navigation") != 0) {
-        state->next_topic_id = "navigation";
-        return 1;
-      }
-      return -1;
-    }
-
-    return 0;
+    state->next_detail_index = state->selected_item_index;
+    state->reselection_direction = 0;
+    state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
+    return 1;
   }
+
+  if (key == 'C') {
+    if (state->topic->topic_id != NULL &&
+        strcmp(state->topic->topic_id, "intro") != 0) {
+      state->next_topic_id = "intro";
+      return 1;
+    }
+    return -1;
+  }
+  if (key == 'N') {
+    if (state->topic->topic_id != NULL &&
+        strcmp(state->topic->topic_id, "navigation") != 0) {
+      state->next_topic_id = "navigation";
+      return 1;
+    }
+    return -1;
+  }
+
+  return 0;
+}
+
+static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
+                                        void *user_data) {
+  RuntimeHelpPopupState *state = (RuntimeHelpPopupState *)user_data;
+  size_t i;
+  int key;
+
+  (void)ctx;
+  if (state == NULL || state->topic == NULL)
+    return 0;
+
+  if (state->contextual_list_mode)
+    return HandleContextualListFooterKey(state, ch);
+
+  if (state->contextual_origin)
+    return HandleContextualOriginFooterKey(state, ch);
 
   key = islower(ch) ? toupper(ch) : ch;
   if (ch == KEY_LEFT) {
@@ -1182,6 +1272,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
   current_view.topic = topic;
   current_view.selected_item_index = GENERATED_HELP_NO_SELECTION;
   current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
+  current_view.contextual_origin =
+      TopicUsesContextualItemList(topic, prefix_row_count);
 
   while (current_view.topic != NULL) {
     RuntimeHelpPopupState state;
@@ -1195,6 +1287,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     state.label_override_count = label_override_count;
     state.selected_item_index = current_view.selected_item_index;
     state.current_detail_index = current_view.current_detail_index;
+    state.contextual_origin = current_view.contextual_origin;
     state.next_detail_index = GENERATED_HELP_NO_SELECTION;
     state.has_history = history_count > 0;
     state.prefix_row_count = prefix_row_count;
@@ -1247,7 +1340,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
 
     current_view.selected_item_index = state.selected_item_index;
 
-    if (state.contents_requested) {
+    if (state.detail_back_requested) {
       current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
       continue;
     }
@@ -1275,6 +1368,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     current_view.topic = next_topic;
     current_view.selected_item_index = 0;
     current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
+    current_view.contextual_origin =
+        current_view.contextual_origin || state.contextual_list_mode;
   }
 
   return 0;

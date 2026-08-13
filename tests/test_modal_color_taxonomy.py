@@ -31,8 +31,13 @@ def test_shared_help_popup_uses_help_palette():
     assert "wattron(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in popup_block
     assert "wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));" in popup_block
     assert "RenderHelpPopupFooter(win, height - 2," in popup_block
-    assert "UI_RenderCommandStrip(win, y, start_x, commands, command_count, UI_ROLE_HELP," in footer_block
-    assert "UI_ROLE_KEYBIND" in footer_block
+    assert "FillHelpPopupBlankLine(win, y, start_x, footer_width," in footer_block
+    assert "UI_RenderCommandStrip(win, y, start_x, commands, command_count," in footer_block
+    assert "UI_ROLE_HELP_FOOTER, UI_ROLE_HELP_KEYBIND" in footer_block
+    assert "UI_ROLE_HELP_KEYBIND" in footer_block
+    assert "UI_ROLE_HELP_HEADING" in help_source
+    assert "UI_ROLE_HELP_TERM" in help_source
+    assert "UI_ROLE_HELP_ATTENTION" in help_source
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in popup_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in popup_block
 

@@ -414,7 +414,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **First-Pass Topic Set Rule:** The topic inventory must include at least `intro`, `navigation`, `shared-commands`, `tagged`, `command-line-editing`, `vi-keys`, `f10`, `theming`, `dir`, `file`, `archive-dir`, `archive-file`, `showall`, `global`, `f7`, `f8`, `f8-dir`, `f8-file`, `filter`, `compare`, `output`, `history-dialog`, `volume-menu`, `applications-menu`, and `f2-picker`.
 *   **Coverage-Matrix Rule:** Topic planning and audits MUST be driven by a maintained user-question matrix, not by author memory alone. Recurrent question families such as filters, jump/list-jump, wildcard/rename-pattern behavior, search/fuzzy semantics, command-line editing, tagged-flow variants, split ownership, preview caveats, theming/customization, and prompt syntax are explicit coverage items rather than optional prose extras.
 *   **Visual Rule:** Command-strip words stay readable: the live UI renders the full word and highlights the bound letter in place. Literal key tokens such as `Esc`, `Enter`, `Up`, `Down`, and function keys render as key tokens, not as synthetic words. Live UI never shows bracket notation for mnemonics.
-*   **Help Mnemonic Role Rule:** When a theme styles help-popup mnemonics separately from the global/footer mnemonic role, it MUST use `help_keybind`. When `help_keybind` is omitted, runtime falls back to `keybind` while keeping the `help` background unless an explicit `on ...` background is given.
+*   **Help Mnemonic Role Rule:** When a theme styles help-popup mnemonics separately from the global/footer mnemonic role, it MUST use `help_keybind`. When `help_keybind` is omitted, runtime falls back to `keybind` while keeping the `help_footer` background unless an explicit `on ...` background is given.
 *   **Localized Label Rule:** In localized help and footer text, the visible command term is the localized command word, not a duplicated standalone key prefix. Runtime highlights the active bound letter in-place inside that localized term where possible; plain-text docs, tests, and code comments may use `(K)eyword` notation when a highlight must be spelled out without color.
 *   **Runtime Resolution Rule:** Runtime help loads generated F1 topic content by stable context/prompt ID from the generated runtime asset. When one shared explainer fans out to multiple runtime pages, those runtime pages are separate topic blocks that link back to the shared explainer instead of re-embedding prose in C code. Split help is explicitly allowed to fan out into distinct directory- and file-focused runtime pages while keeping one shared split overview topic.
 *   **Active-Surface Precedence Rule:** `F1` resolves against the innermost active runtime surface, not against a generic base mode. Prompt/dialog/picker surfaces that explicitly advertise prompt-local help own `F1` first; otherwise preview-specific help wins while `F7` preview is active; otherwise split/layout-specific help wins when that surface is the active differentiator; otherwise runtime falls back to the underlying directory/file/archive/Showall/Global context page or the owning shared explainer for that workflow. Once the help popup is open, its own keys consume input before the suspended underlying surface resumes dispatch.
@@ -445,7 +445,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 Routing contract:
 *   Severity class MUST route through semantic severity roles only: `info`, `warning`, and `error`.
 *   Severity modal headers, body text, frames, and prompts MUST retain the active severity role pair. They MUST NOT use raw reverse/blink styling that swaps foreground/background away from the configured severity colors.
-*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; the always-visible footer guidance strip uses `footer`; F1/context help surfaces use the `help` role, with `help_keybind` for help-popup mnemonics and `help_box_lines` for the popup frame when a theme wants explicit overrides; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral prompts/dialogs use `dialog`; the always-visible footer guidance strip uses `footer`; F1/context help surfaces use `help` for the reading body, `help_footer` for the popup command strip, `help_heading` for popup titles, `help_term` for popup term/definition labels, `help_attention` for bounded authored callouts, `help_alert` for any future stronger help-side urgency tier, `help_keybind` for popup mnemonics, and `help_box_lines` for the popup frame when a theme wants explicit overrides; F2, history, completion, and volume selection surfaces use the `picker` role, with `picker_selection` for the active highlighted row/bar.
 *   Tree status-marker columns use `margin`; tree guide glyphs use `tree_lines`; tree directory names and attributes use `dynamic_text`. File-type palette rules do not style directory tree rows.
 *   Preview/search-hit highlighting uses `search_hit` only for the matched span, then resets to the surrounding content role.
 *   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
@@ -471,10 +471,12 @@ Themes are plain-text user-editable files separate from the main configuration. 
 
 ### 7.1 Theme and Config-Family Files
 *   Packaged default sources are `etc/ytnova.conf`, `etc/ytnova.themes`, and `etc/ytnova.commands`; locale/layout command presets may additionally be shipped as separate packaged sources such as `etc/commands/<preset>.conf`. runtime binaries must not consult `etc/` directly.
-*   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, and `$XDG_CONFIG_HOME/ytnova/commands.conf`; when `XDG_CONFIG_HOME` is unset, they fall back to `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/themes.conf`, and `~/.config/ytnova/commands.conf`.
-*   Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, and `~/.ytnova.commands` when the XDG target paths cannot be used.
+*   Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, `$XDG_CONFIG_HOME/ytnova/commands.conf`, and `$XDG_CONFIG_HOME/ytnova/applications.conf`; when `XDG_CONFIG_HOME` is unset, they fall back to `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/themes.conf`, `~/.config/ytnova/commands.conf`, and `~/.config/ytnova/applications.conf`.
+*   Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, `~/.ytnova.commands`, and `~/.ytnova.applications` when the XDG target paths cannot be used.
 *   If the user theme catalog is missing, runtime loads packaged or compiled-in default theme data without creating `~/.config/ytnova/themes.conf`.
+*   If startup cannot load the selected theme from a user theme catalog, runtime falls back to packaged or compiled theme data before aborting startup; interactive reload still keeps the previous working theme and reports the load error.
 *   If the user command catalog is missing, runtime loads packaged or compiled-in default command data without creating `~/.config/ytnova/commands.conf`.
+*   `--init` creates missing user profile, commands, theme, and applications starter files at the active XDG or home-dotfile config targets without overwriting existing files.
 *   Installed locale/layout preset catalogs live as read-only shared data (for example `/usr/share/ytnova/commands/<preset>.conf`); they are packaged defaults, not extra user-owned config files.
 *   `etc/ytnova.commands` is the packaged default active command map. Upstream may ship it as English by default; a package may explicitly replace that default for a localized build, but runtime does not guess the active preset from locale at startup.
 *   `commands.conf` is the canonical user-editable source for active command selection/overrides, line-1/line-2 command bindings, shown key tokens, plain labels, stable action IDs, and optional custom shell-command bindings. `ytnova.conf` must not remain the canonical home of `[MENU]`, `[DIRMAP]`, `[FILEMAP]`, `[DIRCMD]`, or `[FILECMD]`.
@@ -487,7 +489,7 @@ Themes are plain-text user-editable files separate from the main configuration. 
 *   `THEME=` selects one named theme block, role aliases stay within that theme, and omitted backgrounds inherit that theme's background unless explicitly pinned.
 
 ### 7.2 Semantic Roles
-The starter-theme role surface is `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `help_keybind`, `help_link`, `help_link_selection`, `help_box_lines`, `info`, `warning`, `error`, and `search_hit`.
+The starter-theme role surface is `background`, `box_lines`, `tree_lines`, `margin`, `static_text`, `dynamic_text`, `keybind`, `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`, `help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `help_box_lines`, `info`, `warning`, `error`, and `search_hit`.
 
 Role meanings:
 *   `background`: default application background.
@@ -503,7 +505,12 @@ Role meanings:
 *   `picker`: selectable-list surfaces. The shipped starter themes keep picker-family surfaces on a different background so F2, history, volume, and applications menus stand out from the main content area.
 *   `picker_selection`: picker-family highlighted row/bar override. When omitted, picker-family selection falls back to `selection`.
 *   `help`: F1/context help reading surfaces.
-*   `help_keybind`: F1/context help popup mnemonic highlight role. If omitted, runtime falls back to `keybind` on the `help` background.
+*   `help_footer`: F1/context help popup command strip. When omitted, runtime inherits the `help` foreground and background.
+*   `help_heading`: F1/context help popup titles. When omitted, runtime inherits the `help` foreground and background.
+*   `help_term`: F1/context help popup term/definition labels. When omitted, runtime inherits `help_heading`.
+*   `help_attention`: bounded authored F1/context help callouts such as preserved `**...**` emphasis inside popup detail prose. When omitted, runtime inherits `help_term`.
+*   `help_alert`: reserved stronger F1/context help urgency tier. When omitted, runtime inherits `help_attention`.
+*   `help_keybind`: F1/context help popup mnemonic highlight role. If omitted, runtime falls back to `keybind` on the `help_footer` background.
 *   `help_link`: linked text inside F1/context help when hyperlink-capable help is enabled.
 *   `help_link_selection`: the active linked target inside F1/context help when hyperlink-capable help is enabled.
 *   `help_box_lines`: F1/context help popup frame lines. When omitted, runtime inherits the `help` foreground and background.

@@ -21,7 +21,7 @@ If no command line arguments are provided, the current directory will be logged.
 *   **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
 *   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
 *   **-h** *history_file*: Use *history_file* instead of the default `~/.ytnova-hst`.
-*   **--init**: Create missing starter profile, commands, and theme files and exit. By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, and `~/.config/ytnova/themes.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. The Applications catalog stays on its explicit `F9` edit/bootstrap path. Use `-p` to target a different profile file.
+*   **--init**: Create missing starter profile, commands, theme, and applications files and exit. By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, `~/.config/ytnova/themes.conf`, and `~/.config/ytnova/applications.conf` only if they do not already exist, and falls back to the home-dotfile paths only when the XDG target cannot be used. Use `-p` to target a different profile file.
 *   **-p** *config_file*: Use *config_file* instead of the default `~/.config/ytnova/ytnova.conf`.
 *   **-v**, **-V**, **--version**: Print ytnova version information and exit.
 *   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
@@ -440,8 +440,9 @@ Profile settings, command labels, themes, and reload all live here.
 ### Theming
 
 #### Theme model
-Themes set semantic roles such as `footer`, `help`, `help_link`, `selection`, `picker`, and `warning`.
-This keeps one theme change consistent across the whole UI.
+Themes set semantic roles such as `footer`, `help`, `help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.
+`footer` owns the always-visible main-app footer, while `help` owns the F1 reading body, `help_footer` owns the popup strip, and `help_box_lines` owns the popup frame.
+Headings/titles use `help_heading`, term-style labels use `help_term`, bounded callouts use `help_attention`, and any future stronger urgency tier can use `help_alert`, so help pages stay readable without hard-coded colors.
 
 #### Editing path
 Use `F10` to open the theme or config editing path.
@@ -469,12 +470,17 @@ user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
+`help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`,
 `help_keybind`, `help_link`, `help_link_selection`, `help_box_lines`,
-`warning`, `error`, and `search_hit`. `footer` owns the always-visible
-keybinding strip, while `help` owns the F1 reading surface. `help_keybind`
-owns help-popup mnemonic emphasis; when it is omitted, runtime falls back to
-`keybind` on the `help` background. `help_box_lines` owns the F1 popup frame;
-when it is omitted, runtime inherits the `help` foreground and background. When
+`warning`, `error`, and
+`search_hit`. `footer` owns the always-visible main-app keybinding strip, while
+`help` owns the F1 reading surface. `help_footer` owns the F1 popup strip,
+`help_heading` owns popup titles, `help_term` owns term-style labels,
+`help_attention` owns bounded authored callouts, and `help_alert` is the
+reserved stronger urgency tier. `help_keybind` owns help-popup mnemonic emphasis;
+when it is omitted, runtime falls back to `keybind` on the `help_footer`
+background. `help_box_lines` owns the F1 popup frame; when it is omitted,
+runtime inherits the `help` foreground and background. When
 `picker_selection` is omitted it falls back to
 `selection`, so existing themes keep the same picker highlight behavior. The
 bundled starter themes keep `picker` on a different background so F2,

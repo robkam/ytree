@@ -14,6 +14,11 @@ UIColor ui_colors[] = {{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0},
                        {"keybind", UI_ROLE_KEYBIND, 15, 0},
                        {"footer", UI_ROLE_FOOTER, 7, 0},
                        {"help", UI_ROLE_HELP, 7, 0},
+                       {"help_footer", UI_ROLE_HELP_FOOTER, 7, 0},
+                       {"help_heading", UI_ROLE_HELP_HEADING, 7, 0},
+                       {"help_term", UI_ROLE_HELP_TERM, 7, 0},
+                       {"help_attention", UI_ROLE_HELP_ATTENTION, 7, 0},
+                       {"help_alert", UI_ROLE_HELP_ALERT, 7, 0},
                        {"help_keybind", UI_ROLE_HELP_KEYBIND, 15, 0},
                        {"help_link", UI_ROLE_HELP_LINK, 6, 0},
                        {"help_link_selection", UI_ROLE_HELP_LINK_SELECTION, 3, 0},
@@ -156,16 +161,17 @@ chtype UISelectionAttrForBase(const ViewContext *ctx, int base_role) {
 }
 
 chtype UIKeybindAttrForBase(int overlay_role, int base_role) {
-  int pair_id;
+  int pair_id = -1;
 
-  if (overlay_role != UI_ROLE_KEYBIND)
+  if (overlay_role == UI_ROLE_KEYBIND)
+    pair_id = UI_KEYBIND_BASE_PAIR + (base_role - 1);
+  else if (overlay_role == UI_ROLE_HELP_KEYBIND)
+    pair_id = UI_HELP_KEYBIND_BASE_PAIR + (base_role - 1);
+  else
     return COLOR_PAIR(overlay_role);
   if (base_role < UI_ROLE_DYNAMIC_TEXT || base_role >= NUM_UI_COLOR_PAIRS)
     return COLOR_PAIR(overlay_role);
 
-  /* Keybind overlay pairs are reserved after the semantic UI pairs and before
-   * any file-type palette pairs. */
-  pair_id = UI_KEYBIND_BASE_PAIR + (base_role - 1);
   return COLOR_PAIR(pair_id);
 }
 
@@ -320,6 +326,10 @@ void ReinitColorPairs(ViewContext *ctx) {
   for (i = UI_ROLE_DYNAMIC_TEXT; i < NUM_UI_COLOR_PAIRS; ++i) {
     init_pair(UI_KEYBIND_BASE_PAIR + (i - 1),
               NormalizeColorIndex(UIColorForeground(UI_ROLE_KEYBIND), COLORS),
+              NormalizeColorIndex(UIColorBackground(i), COLORS));
+    init_pair(UI_HELP_KEYBIND_BASE_PAIR + (i - 1),
+              NormalizeColorIndex(UIColorForeground(UI_ROLE_HELP_KEYBIND),
+                                  COLORS),
               NormalizeColorIndex(UIColorBackground(i), COLORS));
   }
 

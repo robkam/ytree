@@ -662,478 +662,548 @@ static void BuildFileRowLabel(char *buffer, size_t buffer_size,
   }
 }
 
-void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y,
-                    int x, unsigned char hilight, int start_x, WINDOW *win) {
-  char attributes[11];
+typedef struct FileRowRenderSpec {
+  ViewContext *ctx;
+  YtreeNovaPanel *panel;
+  WINDOW *win;
+  FileEntry *fe_ptr;
+  int entry_column;
+  int y;
+  int width;
+  int pos_x;
+  int start_x;
+  int render_mode;
+  int filename_width;
+  int linkname_width;
+  int ef_window_width;
+  int base_color_pair;
+  int margin_color_pair;
+  int highlight_color_pair;
+  int inactive_highlight_attr;
+  unsigned char hilight;
+  BOOL is_tagged;
+  BOOL is_active_panel;
+  BOOL align_name_col;
+  BOOL uses_overlay_detail;
+  char type_of_file;
+  char justify;
+  const char *primary_name;
+  char overlay_detail[PATH_LENGTH + 128];
+} FileRowRenderSpec;
 
-  if (!ctx || !panel || !panel->vol || !win)
+static char *EnsureFileLineBuffer(size_t *buffer_size) {
+  static char *line_buffer = NULL;
+  static int old_cols = -1;
+  static size_t line_buffer_size = 0;
+
+  if (old_cols != COLS) {
+    old_cols = COLS;
+    free(line_buffer);
+    line_buffer_size = COLS + PATH_LENGTH;
+    line_buffer = (char *)xmalloc(line_buffer_size);
+  }
+  if (buffer_size != NULL)
+    *buffer_size = line_buffer_size;
+  return line_buffer;
+}
+
+static int ComputeFileColumnOffset(const FileRowRenderSpec *spec) {
+  if (spec == NULL || spec->panel == NULL)
+    return 0;
+
+  switch (spec->render_mode) {
+  case MODE_1:
+    if (spec->panel->max_visual_linkname_len)
+      return spec->entry_column * (spec->panel->max_visual_filename_len +
+                                   spec->panel->max_visual_linkname_len + 51);
+    return spec->entry_column * (spec->panel->max_visual_filename_len + 47);
+  case MODE_2:
+    if (spec->panel->max_visual_linkname_len)
+      return spec->entry_column * (spec->panel->max_visual_filename_len +
+                                   spec->panel->max_visual_linkname_len + 43);
+    return spec->entry_column * (spec->panel->max_visual_filename_len + 39);
+  case MODE_3:
+    return spec->entry_column * (spec->panel->max_visual_filename_len + 3);
+  case MODE_4:
+    if (spec->panel->max_visual_linkname_len)
+      return spec->entry_column * (spec->panel->max_visual_filename_len +
+                                   spec->panel->max_visual_linkname_len + 52);
+    return spec->entry_column * (spec->panel->max_visual_filename_len + 48);
+  case MODE_5:
+    return spec->entry_column * (spec->panel->max_visual_userview_len + 1);
+  default:
+    return spec->entry_column;
+  }
+}
+
+static void RenderFixedWidthFileEntry(const FileRowRenderSpec *spec) {
+  char compact_label[PATH_LENGTH * 2 + 8];
+  char display_name[PATH_LENGTH * 2 + 8];
+  int name_color;
+  int printed_len;
+  int k;
+
+  if (spec == NULL || spec->panel == NULL || spec->win == NULL)
     return;
+
+  wmove(spec->win, spec->y, spec->pos_x);
+  BuildFileRowLabel(compact_label, sizeof(compact_label), spec->panel,
+                    spec->fe_ptr, spec->type_of_file);
+  CutFilename(display_name, compact_label, spec->panel->fixed_col_width - 2);
+
+  name_color = (spec->hilight && spec->is_active_panel)
+                   ? spec->highlight_color_pair
+                   : GetFileTypeColor(spec->ctx, spec->fe_ptr);
+  wattron(spec->win, COLOR_PAIR(spec->margin_color_pair));
+  if (spec->is_tagged)
+    wattron(spec->win, A_BOLD);
+  if (spec->hilight && !spec->is_active_panel)
+    wattron(spec->win, spec->inactive_highlight_attr);
+
+  wprintw(spec->win, "%c ", (spec->is_tagged) ? TAGGED_SYMBOL : ' ');
+  wattrset(spec->win, COLOR_PAIR(name_color));
+  if (spec->is_tagged)
+    wattron(spec->win, A_BOLD);
+  if (spec->hilight && !spec->is_active_panel)
+    wattron(spec->win, spec->inactive_highlight_attr);
+  waddstr(spec->win, display_name);
+
+  printed_len = 2 + StrVisualLength(display_name);
+  for (k = printed_len; k < spec->panel->fixed_col_width; k++)
+    waddch(spec->win, ' ');
+
+  if (spec->hilight && !spec->is_active_panel)
+    wattroff(spec->win, spec->inactive_highlight_attr);
+  if (spec->is_tagged)
+    wattroff(spec->win, A_BOLD);
+  wattroff(spec->win, COLOR_PAIR(name_color));
+}
+
+static void BuildFullLineBuffer(const FileRowRenderSpec *spec, char *line_buffer,
+                                size_t line_buffer_size) {
+  char attributes[11];
   char modify_time[20];
   char change_time[20];
   char access_time[20];
   char size_text[32];
   char format[60];
-  char justify;
-  char *line_ptr;
-  int n, pos_x = 0;
-  FileEntry *fe_ptr;
-  static char *line_buffer = NULL;
-  static int old_cols = -1;
-  static size_t line_buffer_size = 0;
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
-  char *owner_name_ptr;
-  char *group_name_ptr;
-  int ef_window_width;
-  char *sym_link_name = NULL;
-  char type_of_file;
-  int filename_width = 0;
-  int linkname_width = 0;
-  int base_color_pair;
-  int width;
-  int render_mode;
-  BOOL is_tagged;
-  BOOL is_active_panel;
-  BOOL align_name_col;
-  BOOL uses_overlay_detail;
-  int inactive_highlight_attr;
-  int highlight_color_pair;
-  char overlay_detail[PATH_LENGTH + 128];
-  char row_label[PATH_LENGTH * 2 + 8];
-  char plain_name[PATH_LENGTH * 2 + 8];
-  const char *primary_name;
+  const char *owner_name_ptr;
+  const char *group_name_ptr;
 
-  if (!panel->file_entry_list)
+  if (spec == NULL || line_buffer == NULL || line_buffer_size == 0)
     return;
 
-  width = getmaxx(win);
+  switch (spec->render_mode) {
+  case MODE_1:
+    (void)GetAttributes(spec->fe_ptr->stat_struct.st_mode, attributes);
+    (void)CTime(spec->fe_ptr->stat_struct.st_mtime, modify_time);
+    FormatPanelSize(spec->ctx, spec->panel,
+                    (long long)spec->fe_ptr->stat_struct.st_size, size_text,
+                    sizeof(size_text));
+    if (spec->align_name_col) {
+      (void)snprintf(format, sizeof(format),
+                     "%%c %%-%ds %%10s %%3d %%11s %%16s", spec->filename_width);
+      (void)snprintf(line_buffer, line_buffer_size, format,
+                     (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->primary_name,
+                     attributes, spec->fe_ptr->stat_struct.st_nlink, size_text,
+                     modify_time);
+    } else {
+      (void)snprintf(format, sizeof(format),
+                     "%%c%%c%%%c%ds %%10s %%3d %%11s %%16s", spec->justify,
+                     spec->filename_width);
+      (void)snprintf(line_buffer, line_buffer_size, format,
+                     (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->type_of_file,
+                     spec->primary_name, attributes,
+                     spec->fe_ptr->stat_struct.st_nlink, size_text,
+                     modify_time);
+    }
+    break;
+  case MODE_2:
+    owner_name_ptr = GetDisplayPasswdName(spec->fe_ptr->stat_struct.st_uid);
+    group_name_ptr = GetDisplayGroupName(spec->fe_ptr->stat_struct.st_gid);
+    if (!owner_name_ptr) {
+      snprintf(owner, sizeof(owner), "%d", (int)spec->fe_ptr->stat_struct.st_uid);
+      owner_name_ptr = owner;
+    }
+    if (!group_name_ptr) {
+      snprintf(group, sizeof(group), "%d", (int)spec->fe_ptr->stat_struct.st_gid);
+      group_name_ptr = group;
+    }
+    if (spec->align_name_col) {
+      (void)snprintf(format, sizeof(format),
+                     "%%c %%%c%ds %%10lld %%-12s %%-12s", spec->justify,
+                     spec->filename_width);
+      (void)snprintf(line_buffer, line_buffer_size, format,
+                     (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->primary_name,
+                     (long long)spec->fe_ptr->stat_struct.st_ino, owner_name_ptr,
+                     group_name_ptr);
+    } else {
+      (void)snprintf(format, sizeof(format),
+                     "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", spec->justify,
+                     spec->filename_width);
+      (void)snprintf(line_buffer, line_buffer_size, format,
+                     (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->type_of_file,
+                     spec->primary_name, (long long)spec->fe_ptr->stat_struct.st_ino,
+                     owner_name_ptr, group_name_ptr);
+    }
+    break;
+  case MODE_3:
+    (void)snprintf(format, sizeof(format), "%%c %%%c%ds", spec->justify,
+                   spec->filename_width);
+    (void)snprintf(line_buffer, line_buffer_size, format,
+                   (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->primary_name);
+    if (spec->uses_overlay_detail && spec->overlay_detail[0] != '\0') {
+      (void)snprintf(line_buffer + strlen(line_buffer),
+                     line_buffer_size - strlen(line_buffer), "%s",
+                     spec->overlay_detail);
+    }
+    break;
+  case MODE_4:
+    (void)CTime(spec->fe_ptr->stat_struct.st_ctime, change_time);
+    (void)CTime(spec->fe_ptr->stat_struct.st_atime, access_time);
+    if (spec->align_name_col) {
+      (void)snprintf(format, sizeof(format),
+                     "%%c %%%c%ds Chg: %%16s  Acc: %%16s", spec->justify,
+                     spec->filename_width);
+      (void)snprintf(line_buffer, line_buffer_size, format,
+                     (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->primary_name,
+                     change_time, access_time);
+    } else {
+      (void)snprintf(format, sizeof(format),
+                     "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", spec->justify,
+                     spec->filename_width);
+      (void)snprintf(line_buffer, line_buffer_size, format,
+                     (spec->is_tagged) ? TAGGED_SYMBOL : ' ', spec->type_of_file,
+                     spec->primary_name, change_time, access_time);
+    }
+    break;
+  case MODE_5:
+    BuildUserFileEntry(spec->fe_ptr, spec->filename_width, spec->linkname_width,
+                       spec->is_tagged, (GetProfileValue)(spec->ctx, "USERVIEW"),
+                       200, line_buffer);
+    break;
+  }
+}
+
+static void RenderFullLineFileEntry(const FileRowRenderSpec *spec) {
+  char *line_buffer;
+  char *line_ptr;
+  size_t line_buffer_size = 0;
+  int line_end_pos;
+  int visual_len;
+
+  if (spec == NULL || spec->win == NULL)
+    return;
+
+  line_buffer = EnsureFileLineBuffer(&line_buffer_size);
+  if (line_buffer == NULL || line_buffer_size == 0)
+    return;
+
+  wattron(spec->win, COLOR_PAIR(spec->base_color_pair));
+  if (spec->is_tagged)
+    wattron(spec->win, A_BOLD);
+  if (spec->hilight && !spec->is_active_panel)
+    wattron(spec->win, spec->inactive_highlight_attr);
+
+  BuildFullLineBuffer(spec, line_buffer, line_buffer_size);
+  visual_len = StrVisualLength(line_buffer);
+  if (visual_len <= spec->ef_window_width) {
+    line_ptr = line_buffer;
+  } else if (visual_len > (spec->start_x + spec->ef_window_width)) {
+    line_ptr = &line_buffer[VisualPositionToBytePosition(line_buffer, spec->start_x)];
+  } else {
+    line_ptr =
+        &line_buffer[VisualPositionToBytePosition(line_buffer,
+                                                  visual_len - spec->ef_window_width)];
+  }
+  if (line_ptr == NULL)
+    return;
+
+  line_end_pos = VisualPositionToBytePosition(line_ptr, spec->ef_window_width);
+  if (line_end_pos >= 0)
+    line_ptr[line_end_pos] = '\0';
+  waddstr(spec->win, line_ptr);
+
+  if (spec->hilight && !spec->is_active_panel)
+    wattroff(spec->win, spec->inactive_highlight_attr);
+  if (spec->is_tagged)
+    wattroff(spec->win, A_BOLD);
+}
+
+static void AddFileDetailAtCursor(const FileRowRenderSpec *spec) {
+  char detail[PATH_LENGTH + 128];
+  char change_time[20];
+  char access_time[20];
+  char modify_time[20];
+  char size_text[32];
+  char attributes[11];
+  char owner[OWNER_NAME_MAX + 1];
+  char group[GROUP_NAME_MAX + 1];
+  const char *owner_name_ptr;
+  const char *group_name_ptr;
+
+  if (spec == NULL)
+    return;
+
+  switch (spec->render_mode) {
+  case MODE_1:
+    (void)GetAttributes(spec->fe_ptr->stat_struct.st_mode, attributes);
+    (void)CTime(spec->fe_ptr->stat_struct.st_mtime, modify_time);
+    FormatPanelSize(spec->ctx, spec->panel,
+                    (long long)spec->fe_ptr->stat_struct.st_size, size_text,
+                    sizeof(size_text));
+    (void)snprintf(detail, sizeof(detail), " %10s %3d %11s %16s", attributes,
+                   (int)spec->fe_ptr->stat_struct.st_nlink, size_text,
+                   modify_time);
+    AddClippedAtCursor(spec->win, detail, spec->width);
+    break;
+  case MODE_2:
+    owner_name_ptr = GetDisplayPasswdName(spec->fe_ptr->stat_struct.st_uid);
+    group_name_ptr = GetDisplayGroupName(spec->fe_ptr->stat_struct.st_gid);
+    if (!owner_name_ptr) {
+      snprintf(owner, sizeof(owner), "%d", (int)spec->fe_ptr->stat_struct.st_uid);
+      owner_name_ptr = owner;
+    }
+    if (!group_name_ptr) {
+      snprintf(group, sizeof(group), "%d", (int)spec->fe_ptr->stat_struct.st_gid);
+      group_name_ptr = group;
+    }
+    (void)snprintf(detail, sizeof(detail), " %10lld %-12s %-12s",
+                   (long long)spec->fe_ptr->stat_struct.st_ino, owner_name_ptr,
+                   group_name_ptr);
+    AddClippedAtCursor(spec->win, detail, spec->width);
+    break;
+  case MODE_4:
+    (void)CTime(spec->fe_ptr->stat_struct.st_ctime, change_time);
+    (void)CTime(spec->fe_ptr->stat_struct.st_atime, access_time);
+    (void)snprintf(detail, sizeof(detail), " Chg: %16s  Acc: %16s",
+                   change_time, access_time);
+    AddClippedAtCursor(spec->win, detail, spec->width);
+    break;
+  default:
+    break;
+  }
+}
+
+static void RenderNameOnlyFileEntry(const FileRowRenderSpec *spec) {
+  char prefix[3];
+  char display_name[PATH_LENGTH * 2 + 8];
+  char mode3_name[PATH_LENGTH * 2 + 8];
+  const char *name_text;
+  int overhead = 0;
+  int max_w;
+  int current_x;
+  int dummy_y;
+  int target_x;
+  int highlight_color_pair;
+
+  if (spec == NULL || spec->win == NULL)
+    return;
+
+  wattron(spec->win, COLOR_PAIR(spec->margin_color_pair));
+  if (spec->is_tagged)
+    wattron(spec->win, A_BOLD);
+
+  prefix[0] = (spec->is_tagged) ? TAGGED_SYMBOL : ' ';
+  prefix[1] = (spec->align_name_col || spec->render_mode == MODE_3)
+                  ? ' '
+                  : spec->type_of_file;
+  prefix[2] = '\0';
+  AddClippedAtCursor(spec->win, prefix, spec->width);
+
+  switch (spec->render_mode) {
+  case MODE_1:
+    overhead = 44;
+    break;
+  case MODE_2:
+    overhead = 40;
+    break;
+  case MODE_4:
+    overhead = 48;
+    break;
+  default:
+    break;
+  }
+
+  max_w = spec->width - spec->pos_x - 3 - overhead;
+  if (max_w < 16)
+    max_w = 16;
+  if (max_w > spec->width - spec->pos_x - 3)
+    max_w = spec->width - spec->pos_x - 3;
+
+  name_text = spec->primary_name;
+  if (spec->align_name_col || spec->render_mode == MODE_3) {
+    BuildFileRowLabel(mode3_name, sizeof(mode3_name), spec->panel, spec->fe_ptr,
+                      spec->type_of_file);
+    name_text = mode3_name;
+  }
+  if ((int)strlen(name_text) > max_w) {
+    CutFilename(display_name, name_text, max_w);
+  } else {
+    int copied_len;
+
+    copied_len = snprintf(display_name, sizeof(display_name), "%s", name_text);
+    if (copied_len < 0) {
+      display_name[0] = '\0';
+    } else if ((size_t)copied_len >= sizeof(display_name)) {
+      display_name[sizeof(display_name) - 1] = '\0';
+    }
+  }
+
+  highlight_color_pair = spec->highlight_color_pair;
+  wattrset(spec->win, COLOR_PAIR(spec->base_color_pair));
+  if (spec->is_tagged)
+    wattron(spec->win, A_BOLD);
+  if (spec->hilight) {
+    if (spec->is_active_panel)
+      wattrset(spec->win, COLOR_PAIR(highlight_color_pair));
+      else
+        wattron(spec->win, spec->inactive_highlight_attr);
+  }
+  AddClippedAtCursor(spec->win, display_name, spec->width);
+  if (spec->uses_overlay_detail && spec->overlay_detail[0] != '\0') {
+    getyx(spec->win, dummy_y, current_x);
+    (void)dummy_y;
+    target_x = MINIMUM(spec->pos_x + 2 + spec->filename_width, spec->width - 1);
+    while (current_x < target_x) {
+      waddch(spec->win, ' ');
+      current_x++;
+    }
+    AddClippedAtCursor(spec->win, spec->overlay_detail, spec->width);
+  }
+  if (spec->hilight) {
+    if (spec->is_active_panel)
+      wattrset(spec->win, COLOR_PAIR(spec->base_color_pair));
+    else
+      wattroff(spec->win, spec->inactive_highlight_attr);
+  }
+
+  if (spec->render_mode == MODE_3) {
+    if (spec->is_tagged)
+      wattroff(spec->win, A_BOLD);
+    return;
+  }
+
+  getyx(spec->win, dummy_y, current_x);
+  (void)dummy_y;
+  target_x = MINIMUM(spec->pos_x + 2 + spec->filename_width, spec->width - overhead);
+  while (current_x < target_x) {
+    waddch(spec->win, ' ');
+    current_x++;
+  }
+  AddFileDetailAtCursor(spec);
+
+  if (spec->is_tagged)
+    wattroff(spec->win, A_BOLD);
+}
+
+void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y,
+                    int x, unsigned char hilight, int start_x, WINDOW *win) {
+  FileEntry *fe_ptr;
+  FileRowRenderSpec spec;
+  char row_label[PATH_LENGTH * 2 + 8];
+  char plain_name[PATH_LENGTH * 2 + 8];
+  int highlight_color_pair;
+  BOOL is_active_panel;
+
+  if (!ctx || !panel || !panel->vol || !win || !panel->file_entry_list)
+    return;
 
   fe_ptr = panel->file_entry_list[entry_no].file;
   if (fe_ptr == NULL)
     return;
-  render_mode = panel->file_mode;
-  if (panel->fileinfo_overlay_mode != FILEINFO_OVERLAY_NONE) {
-    render_mode = MODE_3;
-  }
-  uses_overlay_detail =
+
+  memset(&spec, 0, sizeof(spec));
+  spec.ctx = ctx;
+  spec.panel = panel;
+  spec.win = win;
+  spec.fe_ptr = fe_ptr;
+  spec.entry_column = x;
+  spec.y = y;
+  spec.width = getmaxx(win);
+  spec.start_x = start_x;
+  spec.render_mode = panel->file_mode;
+  if (panel->fileinfo_overlay_mode != FILEINFO_OVERLAY_NONE)
+    spec.render_mode = MODE_3;
+  spec.uses_overlay_detail =
       (panel->fileinfo_overlay_mode != FILEINFO_OVERLAY_NONE &&
-       render_mode == MODE_3);
-  BuildOverlayDetail(ctx, panel, fe_ptr, GetTypeOfFile(fe_ptr->stat_struct),
-                     overlay_detail, sizeof(overlay_detail));
-  type_of_file = GetTypeOfFile(fe_ptr->stat_struct);
-  align_name_col =
+       spec.render_mode == MODE_3);
+  spec.type_of_file = GetTypeOfFile(fe_ptr->stat_struct);
+  BuildOverlayDetail(ctx, panel, fe_ptr, spec.type_of_file, spec.overlay_detail,
+                     sizeof(spec.overlay_detail));
+  spec.align_name_col =
       (panel->pan_small_file_window && win == panel->pan_small_file_window);
   BuildFileRowLabel(plain_name, sizeof(plain_name), panel, fe_ptr, ' ');
-  primary_name = plain_name;
-  if (align_name_col || render_mode == MODE_3) {
+  spec.primary_name = plain_name;
+  if (spec.align_name_col || spec.render_mode == MODE_3) {
     BuildFileRowLabel(row_label, sizeof(row_label), panel, fe_ptr,
-                      type_of_file);
-    primary_name = row_label;
+                      spec.type_of_file);
+    spec.primary_name = row_label;
   }
-  is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
+  spec.hilight = hilight;
+  spec.is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
   is_active_panel = !(ctx->is_split_screen && panel != ctx->active);
-  inactive_highlight_attr = A_BOLD | A_UNDERLINE;
+  spec.is_active_panel = is_active_panel;
+  spec.inactive_highlight_attr = A_BOLD | A_UNDERLINE;
+  if (hilight && !is_active_panel)
+    spec.inactive_highlight_attr = A_BOLD | A_UNDERLINE;
   highlight_color_pair = UI_ROLE_SELECTION;
+  spec.highlight_color_pair = highlight_color_pair;
+  spec.margin_color_pair = (hilight && ctx->highlight_full_line &&
+                            is_active_panel)
+                               ? highlight_color_pair
+                               : UI_ROLE_MARGIN;
 
   if (panel->fixed_col_width > 0) {
-    pos_x = x * (panel->fixed_col_width + 1);
-    wmove(win, y, pos_x);
-
-    /* Prepare Display Name */
-    char display_name[PATH_LENGTH * 2 + 8];
-    char compact_label[PATH_LENGTH * 2 + 8];
-    /* Reserve 2 chars for Tag and spacer. */
-    BuildFileRowLabel(compact_label, sizeof(compact_label), panel, fe_ptr,
-                      type_of_file);
-    CutFilename(display_name, compact_label, panel->fixed_col_width - 2);
-
-    /* Set Attributes */
-    int color = (hilight && is_active_panel) ? highlight_color_pair
-                                             : GetFileTypeColor(ctx, fe_ptr);
-    wattron(win, COLOR_PAIR(color));
-    if (is_tagged)
-      wattron(win, A_BOLD);
-    if (hilight && !is_active_panel)
-      wattron(win, inactive_highlight_attr);
-
-    /* Draw */
-    wprintw(win, "%c %s", (is_tagged) ? TAGGED_SYMBOL : ' ', display_name);
-
-    /* Pad remaining width */
-    int printed_len = 2 + StrVisualLength(display_name);
-    int k;
-    for (k = printed_len; k < panel->fixed_col_width; k++) {
-      waddch(win, ' ');
-    }
-
-    /* Cleanup */
-    if (hilight && !is_active_panel)
-      wattroff(win, inactive_highlight_attr);
-    if (is_tagged)
-      wattroff(win, A_BOLD);
-    wattroff(win, COLOR_PAIR(color));
+    spec.pos_x = x * (panel->fixed_col_width + 1);
+    RenderFixedWidthFileEntry(&spec);
     return;
   }
 
-  (panel->reverse_sort) ? (justify = '+') : (justify = '-');
-
-  if (old_cols != COLS) {
-    old_cols = COLS;
-    if (line_buffer)
-      free(line_buffer);
-
-    line_buffer_size = COLS + PATH_LENGTH;
-    line_buffer = (char *)xmalloc(line_buffer_size);
-  }
-  if (line_buffer == NULL || line_buffer_size == 0)
-    return;
-
-  if (S_ISLNK(fe_ptr->stat_struct.st_mode))
-    sym_link_name = &fe_ptr->name[strlen(fe_ptr->name) + 1];
-  else
-    sym_link_name = "";
-
+  spec.justify = panel->reverse_sort ? '+' : '-';
 #ifdef WITH_UTF8
 #if defined(__GNUC__) && __GNUC__ >= 7
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-overread"
 #endif
-  filename_width = panel->max_visual_filename_len +
-                   (strlen(fe_ptr->name) - StrVisualLength(fe_ptr->name));
+  spec.filename_width = panel->max_visual_filename_len +
+                        (strlen(fe_ptr->name) - StrVisualLength(fe_ptr->name));
 #if defined(__GNUC__) && __GNUC__ >= 7
 #pragma GCC diagnostic pop
 #endif
-  if (S_ISLNK(fe_ptr->stat_struct.st_mode))
-    linkname_width = panel->max_visual_linkname_len +
-                     (strlen(sym_link_name) - StrVisualLength(sym_link_name));
+  if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
+    const char *sym_link_name = &fe_ptr->name[strlen(fe_ptr->name) + 1];
+
+    spec.linkname_width = panel->max_visual_linkname_len +
+                          (strlen(sym_link_name) - StrVisualLength(sym_link_name));
+  }
 #else
-  filename_width = panel->max_visual_filename_len;
-  linkname_width = panel->max_visual_linkname_len;
+  spec.filename_width = panel->max_visual_filename_len;
+  spec.linkname_width = panel->max_visual_linkname_len;
 #endif
-  if (uses_overlay_detail)
-    filename_width = OverlayNameColumnWidth(panel, width, filename_width);
-
-  /* Calculate starting column position (pos_x) based on column index `x` */
-  switch (render_mode) {
-  case MODE_1:
-    if (panel->max_visual_linkname_len)
-      pos_x = x * (panel->max_visual_filename_len +
-                   panel->max_visual_linkname_len + 51); /* +47 + 4 = 51 */
-    else
-      pos_x = x * (panel->max_visual_filename_len + 47); /* +43 + 4 = 47 */
-    break;
-  case MODE_2:
-    if (panel->max_visual_linkname_len)
-      pos_x = x * (panel->max_visual_filename_len +
-                   panel->max_visual_linkname_len + 43);
-    else
-      pos_x = x * (panel->max_visual_filename_len + 39);
-    break;
-  case MODE_3:
-    pos_x = x * (panel->max_visual_filename_len + 3);
-    break;
-  case MODE_4:
-    if (panel->max_visual_linkname_len)
-      pos_x = x * (panel->max_visual_filename_len +
-                   panel->max_visual_linkname_len + 52); /* +44 + 8 = 52 */
-    else
-      pos_x = x * (panel->max_visual_filename_len + 48); /* +40 + 8 = 48 */
-    break;
-  case MODE_5:
-    pos_x = x * (panel->max_visual_userview_len + 1);
-    break;
-  default:
-    pos_x = x;
-    break;
+  if (spec.uses_overlay_detail) {
+    spec.filename_width =
+        OverlayNameColumnWidth(panel, spec.width, spec.filename_width);
   }
 
-  ef_window_width = width - pos_x - 1; /* Effective width for this column */
-  if (ef_window_width < 0)
-    ef_window_width = 0;
+  spec.pos_x = ComputeFileColumnOffset(&spec);
+  spec.ef_window_width = spec.width - spec.pos_x - 1;
+  if (spec.ef_window_width < 0)
+    spec.ef_window_width = 0;
+  wmove(win, y, spec.pos_x);
+  spec.base_color_pair = (hilight && ctx->highlight_full_line &&
+                          is_active_panel)
+                             ? highlight_color_pair
+                             : GetFileTypeColor(ctx, fe_ptr);
 
-  wmove(win, y, pos_x);
-  base_color_pair = (hilight && ctx->highlight_full_line && is_active_panel)
-                        ? highlight_color_pair
-                        : GetFileTypeColor(ctx, fe_ptr);
+  if (ctx->highlight_full_line)
+    RenderFullLineFileEntry(&spec);
+  else
+    RenderNameOnlyFileEntry(&spec);
 
-  if (ctx->highlight_full_line) {
-    /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
-    wattron(win, COLOR_PAIR(base_color_pair));
-    if (is_tagged)
-      wattron(win, A_BOLD);
-    if (hilight && !is_active_panel)
-      wattron(win, inactive_highlight_attr);
-
-    /* Build the full line string */
-    switch (render_mode) {
-    case MODE_1:
-      (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
-      (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
-      FormatPanelSize(ctx, panel, (long long)fe_ptr->stat_struct.st_size,
-                      size_text, sizeof(size_text));
-      if (align_name_col) {
-        (void)snprintf(format, sizeof(format),
-                       "%%c %%-%ds %%10s %%3d %%11s %%16s", filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
-                       attributes, fe_ptr->stat_struct.st_nlink, size_text,
-                       modify_time);
-      } else {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds %%10s %%3d %%11s %%16s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       primary_name, attributes, fe_ptr->stat_struct.st_nlink,
-                       size_text, modify_time);
-      }
-      break;
-    case MODE_2:
-      owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
-      group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
-      if (!owner_name_ptr) {
-        snprintf(owner, sizeof(owner), "%d", (int)fe_ptr->stat_struct.st_uid);
-        owner_name_ptr = owner;
-      }
-      if (!group_name_ptr) {
-        snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid);
-        group_name_ptr = group;
-      }
-      if (align_name_col) {
-        (void)snprintf(format, sizeof(format),
-                       "%%c %%%c%ds %%10lld %%-12s %%-12s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
-                       (long long)fe_ptr->stat_struct.st_ino, owner_name_ptr,
-                       group_name_ptr);
-      } else {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       primary_name, (long long)fe_ptr->stat_struct.st_ino,
-                       owner_name_ptr, group_name_ptr);
-      }
-      break;
-    case MODE_3:
-      (void)snprintf(format, sizeof(format), "%%c %%%c%ds", justify,
-                     filename_width);
-      (void)snprintf(line_buffer, line_buffer_size, format,
-                     (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name);
-      if (uses_overlay_detail && overlay_detail[0] != '\0') {
-        (void)snprintf(line_buffer + strlen(line_buffer),
-                       line_buffer_size - strlen(line_buffer), "%s",
-                       overlay_detail);
-      }
-      break;
-    case MODE_4:
-      (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
-      (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
-      if (align_name_col) {
-        (void)snprintf(format, sizeof(format),
-                       "%%c %%%c%ds Chg: %%16s  Acc: %%16s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
-                       change_time, access_time);
-      } else {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       primary_name, change_time, access_time);
-      }
-      break;
-    case MODE_5:
-      BuildUserFileEntry(fe_ptr, filename_width, linkname_width, is_tagged,
-                         (GetProfileValue)(ctx, "USERVIEW"), 200, line_buffer);
-      break;
-    }
-
-    /* Horizontal scrolling logic */
-    n = StrVisualLength(line_buffer);
-    if (n <= ef_window_width) {
-      line_ptr = line_buffer;
-    } else {
-      int line_end_pos;
-      if (n > (start_x + ef_window_width))
-        line_ptr =
-            &line_buffer[VisualPositionToBytePosition(line_buffer, start_x)];
-      else
-        line_ptr = &line_buffer[VisualPositionToBytePosition(
-            line_buffer, n - ef_window_width)];
-
-      if (line_ptr == NULL)
-        return;
-      line_end_pos = VisualPositionToBytePosition(line_ptr, ef_window_width);
-      if (line_end_pos < 0)
-        return;
-      line_ptr[line_end_pos] = '\0';
-    }
-    waddstr(win, line_ptr);
-
-    if (hilight && !is_active_panel)
-      wattroff(win, inactive_highlight_attr);
-    if (is_tagged)
-      wattroff(win, A_BOLD);
-
-  } else {
-    /* --- RENDER METHOD 2: NAME-ONLY HIGHLIGHT --- */
-
-    wattron(win, COLOR_PAIR(base_color_pair));
-    if (is_tagged)
-      wattron(win, A_BOLD);
-
-    /* Print tag and type/spacer */
-    {
-      char prefix[3];
-      prefix[0] = (is_tagged) ? TAGGED_SYMBOL : ' ';
-      prefix[1] = (align_name_col || render_mode == MODE_3) ? ' '
-                                                                   : type_of_file;
-      prefix[2] = '\0';
-      AddClippedAtCursor(win, prefix, width);
-    }
-
-    /* Calculate available width for name and truncate if necessary */
-    int overhead = 0;
-    switch (render_mode) {
-    case MODE_1:
-      overhead = 44;
-      break;
-    case MODE_2:
-      overhead = 40;
-      break;
-    case MODE_4:
-      overhead = 48;
-      break;
-    default:
-      overhead = 0;
-      break;
-    }
-    int max_w = width - pos_x - 3 - overhead;
-    /* Prioritize filename: never truncate below 16 chars unless window is tiny
-     */
-    if (max_w < 16)
-      max_w = 16;
-    if (max_w > width - pos_x - 3)
-      max_w = width - pos_x - 3;
-
-    char display_name[PATH_LENGTH * 2 + 8];
-    const char *name_text = primary_name;
-    char mode3_name[PATH_LENGTH * 2 + 8];
-    if (align_name_col || render_mode == MODE_3) {
-      BuildFileRowLabel(mode3_name, sizeof(mode3_name), panel, fe_ptr,
-                        type_of_file);
-      name_text = mode3_name;
-    }
-    if ((int)strlen(name_text) > max_w) {
-      CutFilename(display_name, name_text, max_w);
-    } else {
-      int copied_len =
-          snprintf(display_name, sizeof(display_name), "%s", name_text);
-      if (copied_len < 0) {
-        display_name[0] = '\0';
-      } else if ((size_t)copied_len >= sizeof(display_name)) {
-        display_name[sizeof(display_name) - 1] = '\0';
-      }
-    }
-
-    /* Highlight only the name */
-    if (hilight) {
-      if (is_active_panel)
-        wattrset(win, COLOR_PAIR(highlight_color_pair));
-      else
-        wattron(win, inactive_highlight_attr);
-    }
-    AddClippedAtCursor(win, display_name, width);
-    if (uses_overlay_detail && overlay_detail[0] != '\0') {
-      int current_x;
-      int dummy_y;
-      int target_x;
-
-      getyx(win, dummy_y, current_x);
-      (void)dummy_y;
-      target_x = MINIMUM(pos_x + 2 + filename_width, width - 1);
-      for (int i = current_x; i < target_x; i++)
-        waddch(win, ' ');
-      AddClippedAtCursor(win, overlay_detail, width);
-    }
-    if (hilight) {
-      if (is_active_panel)
-        wattrset(win, COLOR_PAIR(base_color_pair));
-      else
-        wattroff(win, inactive_highlight_attr);
-    }
-
-    /* Print attributes for modes other than MODE_3 */
-    if (render_mode != MODE_3) {
-      int current_x;
-      int dummy_y;
-      getyx(win, dummy_y, current_x);
-      (void)dummy_y;
-
-      /* Adjusted target_x calculation to stay within bounds */
-      int target_x = MINIMUM(pos_x + 2 + filename_width, width - overhead);
-
-      /* Fill space between name and attributes */
-      for (int i = current_x; i < target_x; i++)
-        waddch(win, ' ');
-
-      switch (render_mode) {
-      case MODE_1:
-        (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
-        (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
-        FormatPanelSize(ctx, panel, (long long)fe_ptr->stat_struct.st_size,
-                        size_text, sizeof(size_text));
-        {
-          char detail[PATH_LENGTH + 128];
-          (void)snprintf(detail, sizeof(detail), " %10s %3d %11s %16s",
-                         attributes, (int)fe_ptr->stat_struct.st_nlink,
-                         size_text, modify_time);
-          AddClippedAtCursor(win, detail, width);
-        }
-        break;
-      case MODE_2:
-        owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
-        group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
-        if (!owner_name_ptr) {
-          snprintf(owner, sizeof(owner), "%d", (int)fe_ptr->stat_struct.st_uid);
-          owner_name_ptr = owner;
-        }
-        if (!group_name_ptr) {
-          snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid);
-          group_name_ptr = group;
-        }
-        {
-          char detail[PATH_LENGTH + 128];
-          (void)snprintf(detail, sizeof(detail), " %10lld %-12s %-12s",
-                         (long long)fe_ptr->stat_struct.st_ino, owner_name_ptr,
-                         group_name_ptr);
-          AddClippedAtCursor(win, detail, width);
-        }
-        break;
-      case MODE_4:
-        (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
-        (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
-        {
-          char detail[PATH_LENGTH + 128];
-          (void)snprintf(detail, sizeof(detail), " Chg: %16s  Acc: %16s",
-                         change_time, access_time);
-          AddClippedAtCursor(win, detail, width);
-        }
-        break;
-      case MODE_5:
-        break;
-      }
-    }
-
-    if (is_tagged)
-      wattroff(win, A_BOLD);
-  }
-  wattroff(win, COLOR_PAIR(base_color_pair));
+  wattroff(win, COLOR_PAIR(spec.base_color_pair));
 }
 
 void DisplayFiles(ViewContext *ctx, YtreeNovaPanel *panel, const DirEntry *de_ptr,

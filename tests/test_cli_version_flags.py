@@ -27,21 +27,26 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     profile = home / ".config" / "ytnova" / "ytnova.conf"
     commands = home / ".config" / "ytnova" / "commands.conf"
     themes = home / ".config" / "ytnova" / "themes.conf"
+    applications = home / ".config" / "ytnova" / "applications.conf"
     legacy_profile = home / ".ytnova"
     legacy_commands = home / ".ytnova.commands"
     legacy_themes = home / ".ytnova.themes"
+    legacy_applications = home / ".ytnova.applications"
 
     first = _run_cmd(ytnova_binary, ["--init"], home=home)
     assert first.returncode == 0
     assert profile.exists()
     assert commands.exists()
     assert themes.exists()
+    assert applications.exists()
     assert not legacy_profile.exists()
     assert not legacy_commands.exists()
     assert not legacy_themes.exists()
+    assert not legacy_applications.exists()
     assert "Created profile:" in first.stdout
     assert "Created commands:" in first.stdout
     assert "Created themes:" in first.stdout
+    assert "Created applications:" in first.stdout
     created = profile.read_text(encoding="utf-8")
     assert "# YtreeNova Defaults" in created
     assert "[GLOBAL]" in created
@@ -62,15 +67,21 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     assert "info = white on blue" in created_themes
     assert "error = white on red" in created_themes
     assert "disabled =" not in created_themes
+    created_applications = applications.read_text(encoding="utf-8")
+    assert "# applications.conf starter for YtreeNova F9 application presets." in created_applications
+    assert "# label | prompt | command" in created_applications
+    assert "open selected item |  | xdg-open {}" in created_applications
 
     profile.write_text("SENTINEL\n", encoding="utf-8")
     commands.write_text("COMMANDS SENTINEL\n", encoding="utf-8")
     themes.write_text("THEME SENTINEL\n", encoding="utf-8")
+    applications.write_text("APPLICATIONS SENTINEL\n", encoding="utf-8")
     second = _run_cmd(ytnova_binary, ["--init"], home=home)
     assert second.returncode == 0
     assert profile.read_text(encoding="utf-8") == "SENTINEL\n"
     assert commands.read_text(encoding="utf-8") == "COMMANDS SENTINEL\n"
     assert themes.read_text(encoding="utf-8") == "THEME SENTINEL\n"
+    assert applications.read_text(encoding="utf-8") == "APPLICATIONS SENTINEL\n"
     assert "already exists; not overwritten" in second.stdout
 
 def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_path):
@@ -79,16 +90,19 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     profile = tmp_path / "explicit.conf"
     commands = home / ".config" / "ytnova" / "commands.conf"
     themes = home / ".config" / "ytnova" / "themes.conf"
+    applications = home / ".config" / "ytnova" / "applications.conf"
 
     result = _run_cmd(ytnova_binary, ["--init", "-p", str(profile)], home=home)
     assert result.returncode == 0
     assert profile.exists()
     assert commands.exists()
     assert themes.exists()
+    assert applications.exists()
     assert not (home / ".config" / "ytnova" / "ytnova.conf").exists()
     assert "Created profile:" in result.stdout
     assert "Created commands:" in result.stdout
     assert "Created themes:" in result.stdout
+    assert "Created applications:" in result.stdout
     profile_text = profile.read_text(encoding="utf-8")
     assert "THEME=quiet-blue" in profile_text
     assert "# THEME=bash-black" in profile_text
@@ -96,6 +110,8 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     commands_text = commands.read_text(encoding="utf-8")
     assert "[DIR]" in commands_text
     assert "[ARCHIVE_DIR]" in commands_text
+    applications_text = applications.read_text(encoding="utf-8")
+    assert "open selected item |  | xdg-open {}" in applications_text
 
 
 def test_init_falls_back_to_home_targets_when_xdg_dir_is_unavailable(
@@ -108,12 +124,15 @@ def test_init_falls_back_to_home_targets_when_xdg_dir_is_unavailable(
     profile = home / ".ytnova"
     commands = home / ".ytnova.commands"
     themes = home / ".ytnova.themes"
+    applications = home / ".ytnova.applications"
 
     result = _run_cmd(ytnova_binary, ["--init"], home=home)
     assert result.returncode == 0
     assert profile.exists()
     assert commands.exists()
     assert themes.exists()
+    assert applications.exists()
     assert "Created profile:" in result.stdout
     assert "Created commands:" in result.stdout
     assert "Created themes:" in result.stdout
+    assert "Created applications:" in result.stdout
