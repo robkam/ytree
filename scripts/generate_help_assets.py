@@ -366,6 +366,10 @@ def parse_help_source(source_text: str) -> list[HelpTopic]:
                 f"line {line_no + 3}: topic {topic_id!r} has invalid contexts list {contexts_raw!r}"
             )
         contexts = tuple() if contexts_raw == "none" else tuple(contexts_raw.split(","))
+        if len(set(contexts)) != len(contexts):
+            raise HelpSourceError(
+                f"line {line_no + 3}: topic {topic_id!r} repeats a runtime context in contexts:"
+            )
 
         pos = 6
         contextual_lines: list[str] = []
@@ -717,6 +721,7 @@ def c_literal(text: str) -> str:
 def validate_topic_inventory(
     f1_topics: list[HelpTopic], man_topics: list[HelpTopic]
 ) -> None:
+    context_owners: dict[str, str] = {}
     f1_ids = {topic.topic_id for topic in f1_topics}
     man_ids = {topic.topic_id for topic in man_topics}
 
@@ -736,6 +741,17 @@ def validate_topic_inventory(
             "split help sources do not share the same topic inventory: "
             + "; ".join(problems)
         )
+
+    for topic in f1_topics:
+        for context_id in topic.contexts:
+            owner = context_owners.get(context_id)
+            if owner is not None and owner != topic.topic_id:
+                raise HelpSourceError(
+                    "runtime help context "
+                    f"{context_id!r} is owned by multiple F1 topics: "
+                    f"{owner!r}, {topic.topic_id!r}"
+                )
+            context_owners[context_id] = topic.topic_id
 
 
 def build_outputs(

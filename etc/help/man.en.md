@@ -577,7 +577,7 @@ Tagged date edits use the same prompt and scope cycle.
 ## topic:compare-scope
 ```ytnova-help-meta
 title: Compare Scope Help
-contexts: prompt.compare-scope
+contexts: none
 ```
 ### Contextual F1
 The compare scope prompt chooses single-item, tagged-set, current-directory, or wider list-family comparison scope.
@@ -594,7 +594,7 @@ Use `External viewer` when you want an external diff tool instead of tagged comp
 ## topic:compare-basis
 ```ytnova-help-meta
 title: Compare Basis Help
-contexts: prompt.compare-basis
+contexts: none
 ```
 ### Contextual F1
 The compare basis prompt chooses the matching criteria used for the current compare run.
@@ -610,7 +610,7 @@ Use `Hash` only when metadata is not trustworthy enough.
 ## topic:compare-results
 ```ytnova-help-meta
 title: Compare Result Help
-contexts: prompt.compare-results
+contexts: none
 ```
 ### Contextual F1
 Compare results can be displayed, filtered, and converted into a tagged working set for follow-up commands.
@@ -719,7 +719,7 @@ Hardcopy asks only for the printer command.
 ## topic:output-format
 ```ytnova-help-meta
 title: Output Format Help
-contexts: prompt.output-format
+contexts: none
 ```
 ### Contextual F1
 Output format chooses how each exported file is framed in the batch.
