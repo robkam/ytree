@@ -16,6 +16,11 @@ THEME_ROLES = {
     "picker",
     "picker_selection",
     "help",
+    "help_footer",
+    "help_heading",
+    "help_term",
+    "help_attention",
+    "help_alert",
     "help_keybind",
     "help_link",
     "help_link_selection",
@@ -122,10 +127,11 @@ def _theme_visible_role_order(section):
 
 def test_packaged_theme_catalog_defines_required_semantic_roles():
     source = _read_source("etc/ytnova.themes")
+    norton_blue = _theme_section(source, "theme norton-blue")
     classic = _theme_section(source, "theme quiet-blue")
     bash_black = _theme_section(source, "theme bash-black")
 
-    assert "help = black on +grey\nhelp_keybind = white\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\n# help_box_lines = black on +grey\n# uses fallback from help fg/bg\n" in source
+    assert "help = black on white\nhelp_footer = help\nhelp_heading = blue\nhelp_term = help_heading\nhelp_attention = help_term\nhelp_alert = help_attention\nhelp_keybind = yellow\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\n# help_box_lines = black on white\n# uses fallback from help fg/bg\n" in norton_blue
 
     for section in (classic, bash_black):
         assert _theme_role_names(section) == THEME_ROLES
@@ -149,8 +155,13 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "# uses fallback from selection" in classic
     assert "footer = white\n" in classic
     assert "help = white\n" in classic
+    assert "help_footer = help\n" in classic
+    assert "help_heading = help\n" in classic
+    assert "help_term = help_heading\n" in classic
+    assert "help_attention = help_term\n" in classic
+    assert "help_alert = help_attention\n" in classic
     assert "# help_keybind = keybind" in classic
-    assert "# uses fallback from keybind on help background" in classic
+    assert "# uses fallback from keybind on help_footer background" in classic
     assert "help_link = cyan\n" in classic
     assert "help_link_selection = yellow\n" in classic
     assert "help_box_lines = cyan on blue\n" in classic
@@ -164,6 +175,11 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "# picker_selection = selection" in bash_black
     assert "footer = white\n" in bash_black
     assert "help = white\n" in bash_black
+    assert "help_footer = help\n" in bash_black
+    assert "help_heading = help\n" in bash_black
+    assert "help_term = help_heading\n" in bash_black
+    assert "help_attention = help_term\n" in bash_black
+    assert "help_alert = help_attention\n" in bash_black
     assert "# help_keybind = keybind" in bash_black
     assert "help_link = cyan\n" in bash_black
     assert "help_link_selection = yellow\n" in bash_black
@@ -249,11 +265,11 @@ def test_spec_documents_user_visible_theme_contract():
         in spec_source
     )
     assert (
-        "Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, and `$XDG_CONFIG_HOME/ytnova/commands.conf`"
+        "Preferred config-family paths are `$XDG_CONFIG_HOME/ytnova/ytnova.conf`, `$XDG_CONFIG_HOME/ytnova/themes.conf`, `$XDG_CONFIG_HOME/ytnova/commands.conf`, and `$XDG_CONFIG_HOME/ytnova/applications.conf`"
         in spec_source
     )
     assert (
-        "Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, and `~/.ytnova.commands`"
+        "Home-directory fallback user paths are `~/.ytnova`, `~/.ytnova.themes`, `~/.ytnova.commands`, and `~/.ytnova.applications`"
         in spec_source
     )
     assert "runtime binaries must not consult `etc/` directly" in spec_source
@@ -264,6 +280,11 @@ def test_spec_documents_user_visible_theme_contract():
     assert "The starter-theme role surface is `background`, `box_lines`, `tree_lines`, `margin`" in spec_source
     assert "Each packaged starter-theme block MUST include every semantic role either as an active assignment or as a full-line commented fallback documentation entry." in spec_source
     assert "`footer`" in spec_source
+    assert "`help_footer`" in spec_source
+    assert "`help_heading`" in spec_source
+    assert "`help_term`" in spec_source
+    assert "`help_attention`" in spec_source
+    assert "`help_alert`" in spec_source
     assert "`help_link`" in spec_source
     assert "`help_link_selection`" in spec_source
     assert "`help_box_lines`" in spec_source
@@ -290,7 +311,7 @@ def test_manpage_documents_user_visible_theme_contract():
     for source in (man_source, usage_source):
         assert "(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
         assert (
-            "By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, and `~/.config/ytnova/themes.conf`"
+            "By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, `~/.config/ytnova/themes.conf`, and `~/.config/ytnova/applications.conf`"
             in source
         )
         assert (
@@ -300,8 +321,10 @@ def test_manpage_documents_user_visible_theme_contract():
         assert "~/.config/ytnova/ytnova.conf" in source
         assert "~/.config/ytnova/commands.conf" in source
         assert "~/.config/ytnova/themes.conf" in source
+        assert "~/.config/ytnova/applications.conf" in source
         assert "~/.ytnova.commands" in source
         assert "~/.ytnova.themes" in source
+        assert "~/.ytnova.applications" in source
         assert "/usr/share/ytnova/commands/<preset>.conf" in source or (
             "/usr/share/ytnova/commands/*.conf" in source
         )
@@ -325,19 +348,31 @@ def test_compare_helper_messages_do_not_prefer_legacy_profile_path():
         assert "in the main config" in source
 
 
-def test_startup_fails_closed_on_theme_load_failure():
+def test_startup_theme_load_falls_back_before_abort():
     init_source = _read_source("src/core/init.c")
+    theme_source = _read_source("src/cmd/theme.c")
+    defs_source = _read_source("include/ytnova_defs.h")
+    spec_source = _read_source("docs/SPECIFICATION.md")
 
     assert "LoadTheme failed*ABORT" in init_source
+    assert "load_startup_theme" in defs_source
+    assert "ops->load_startup_theme = CoreInit_LoadStartupTheme;" in theme_source
+    assert "ctx->core_init_ops.load_startup_theme(ctx) != 0" in init_source
+    assert "int LoadStartupTheme(ViewContext *ctx)" in theme_source
+    assert "If startup cannot load the selected theme from a user theme catalog" in spec_source
+    assert "interactive reload still keeps the previous working theme" in spec_source
     assert re.search(
-        r"if \(ctx->core_init_ops\.load_theme != NULL &&\s*"
-        r"ctx->core_init_ops\.load_theme\(ctx\) != 0\) \{\s*"
+        r"if \(\(\(ctx->core_init_ops\.load_startup_theme != NULL &&\s*"
+        r"ctx->core_init_ops\.load_startup_theme\(ctx\) != 0\) \|\|\s*"
+        r"\(ctx->core_init_ops\.load_startup_theme == NULL &&\s*"
+        r"ctx->core_init_ops\.load_theme != NULL &&\s*"
+        r"ctx->core_init_ops\.load_theme\(ctx\) != 0\)\)\) \{\s*"
         r"CoreInitUINotice\(ctx, \"LoadTheme failed\*ABORT\"\);\s*"
         r"exit\(1\);\s*"
         r"\}",
         init_source,
     )
-    assert "ctx->core_init_ops.load_theme(ctx);\n  DEBUG_LOG" not in init_source
+    assert "return LoadConfiguredTheme(ctx);" in theme_source
 
 
 def test_architecture_documents_theme_boundaries():

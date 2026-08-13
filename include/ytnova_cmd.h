@@ -192,6 +192,7 @@ extern int ReadThemeFile(const ViewContext *ctx, const char *filename,
                          const char *theme_name);
 #endif
 extern int LoadConfiguredTheme(ViewContext *ctx);
+extern int LoadStartupTheme(ViewContext *ctx);
 
 /* history.c */
 extern int ReadHistory(ViewContext *ctx, const char *filename);

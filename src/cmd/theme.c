@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #define THEME_STYLE_LENGTH 128
-#define THEME_ROLE_COUNT 22
+#define THEME_ROLE_COUNT 27
 
 typedef enum {
   THEME_SECTION_NONE = 0,
@@ -52,8 +52,9 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "footer",
     "selection",   "dialog",    "picker",      "picker_selection",
-    "help",        "help_keybind", "help_link", "help_link_selection",
-    "help_box_lines",
+    "help",        "help_footer", "help_heading", "help_term",
+    "help_attention", "help_alert", "help_keybind", "help_link",
+    "help_link_selection", "help_box_lines",
     "info",        "warning",   "error",       "search_hit",
     "disabled"};
 
@@ -114,8 +115,12 @@ static ThemeLoadStatus ReadThemeFileInternal(THEME_LOAD_CTX *ctx,
                                              const char *theme_name);
 static ThemeLoadStatus ReadCompiledThemeCatalog(THEME_LOAD_CTX *ctx,
                                                 const char *theme_name);
+static const char *GetConfiguredThemeName(ViewContext *ctx);
+static int LoadThemeFromPackagedOrCompiled(THEME_LOAD_CTX *ctx,
+                                           const char *theme_name);
 static int TryThemeCatalogFile(THEME_LOAD_CTX *ctx, const char *path,
                                const char *theme_name);
+static int CoreInit_LoadStartupTheme(ViewContext *ctx);
 static int CoreInit_LoadTheme(ViewContext *ctx);
 
 static void SetThemeFilePath(ViewContext *ctx, const char *path) {
@@ -208,6 +213,11 @@ static ThemeRoleValue *FindRole(ThemeRoleValue *roles, const char *name) {
 static BOOL ThemeRoleIsOptional(const char *name) {
   return name != NULL &&
          (strcmp(name, "picker_selection") == 0 ||
+          strcmp(name, "help_footer") == 0 ||
+          strcmp(name, "help_heading") == 0 ||
+          strcmp(name, "help_term") == 0 ||
+          strcmp(name, "help_attention") == 0 ||
+          strcmp(name, "help_alert") == 0 ||
           strcmp(name, "help_keybind") == 0 ||
           strcmp(name, "help_box_lines") == 0 ||
           strcmp(name, "disabled") == 0);
@@ -315,14 +325,18 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
   int i;
   int background;
   int help_background;
+  int help_footer_background;
   const ThemeRoleValue *help_role;
+  const ThemeRoleValue *help_footer_role;
 
   if (ctx == NULL || roles == NULL)
     return;
 
   background = ThemeBackground(ctx, roles);
   help_background = background;
+  help_footer_background = background;
   help_role = FindRole(roles, "help");
+  help_footer_role = FindRole(roles, "help_footer");
   if (help_role != NULL && help_role->is_set) {
     int help_fg;
     int help_bg;
@@ -331,6 +345,17 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
                         &help_bg)) {
       help_background = help_bg;
     }
+  }
+  if (help_footer_role != NULL && help_footer_role->is_set) {
+    int help_footer_fg;
+    int help_footer_bg;
+
+    if (ParseThemeStyle(ctx, roles, help_footer_role->value, help_background,
+                        &help_footer_fg, &help_footer_bg)) {
+      help_footer_background = help_footer_bg;
+    }
+  } else {
+    help_footer_background = help_background;
   }
 
   for (i = 0; i < THEME_ROLE_COUNT; ++i) {
@@ -341,8 +366,18 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
     if (!roles[i].is_set || strcmp(roles[i].name, "background") == 0)
       continue;
 
-    if (strcmp(roles[i].name, "help_keybind") == 0)
+    if (strcmp(roles[i].name, "help_footer") == 0 ||
+        strcmp(roles[i].name, "help_heading") == 0 ||
+        strcmp(roles[i].name, "help_term") == 0 ||
+        strcmp(roles[i].name, "help_attention") == 0 ||
+        strcmp(roles[i].name, "help_alert") == 0 ||
+        strcmp(roles[i].name, "help_keybind") == 0 ||
+        strcmp(roles[i].name, "help_link") == 0 ||
+        strcmp(roles[i].name, "help_link_selection") == 0 ||
+        strcmp(roles[i].name, "help_box_lines") == 0)
       role_background = help_background;
+    if (strcmp(roles[i].name, "help_keybind") == 0)
+      role_background = help_footer_background;
 
     if (ParseThemeStyle(ctx, roles, roles[i].value, role_background, &fg, &bg))
       ApplySemanticRole(ctx, roles[i].name, fg, bg);
@@ -731,6 +766,7 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
                                                    const char *theme_name) {
   char buffer[2048];
   ThemeRoleValue roles[THEME_ROLE_COUNT];
+  BOOL role_seen[THEME_ROLE_COUNT];
   ThemeSection section = THEME_SECTION_NONE;
   ThemePaletteLine *palette_head = NULL;
   ThemePaletteLine *palette_tail = NULL;
@@ -749,12 +785,18 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
     return THEME_LOAD_INVALID;
 
   memset(roles, 0, sizeof(roles));
+  memset(role_seen, 0, sizeof(role_seen));
   for (i = 0; i < THEME_ROLE_COUNT; ++i)
     snprintf(roles[i].name, sizeof(roles[i].name), "%s", required_roles[i]);
   {
     ThemeRoleValue *margin_role = FindRole(roles, "margin");
     ThemeRoleValue *picker_selection_role =
         FindRole(roles, "picker_selection");
+    ThemeRoleValue *help_footer_role = FindRole(roles, "help_footer");
+    ThemeRoleValue *help_heading_role = FindRole(roles, "help_heading");
+    ThemeRoleValue *help_term_role = FindRole(roles, "help_term");
+    ThemeRoleValue *help_attention_role = FindRole(roles, "help_attention");
+    ThemeRoleValue *help_alert_role = FindRole(roles, "help_alert");
     ThemeRoleValue *help_keybind_role = FindRole(roles, "help_keybind");
 
     if (margin_role != NULL) {
@@ -766,6 +808,31 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
       snprintf(picker_selection_role->value,
                sizeof(picker_selection_role->value), "%s", "selection");
       picker_selection_role->is_set = TRUE;
+    }
+    if (help_footer_role != NULL) {
+      snprintf(help_footer_role->value, sizeof(help_footer_role->value), "%s",
+               "help");
+      help_footer_role->is_set = TRUE;
+    }
+    if (help_heading_role != NULL) {
+      snprintf(help_heading_role->value, sizeof(help_heading_role->value), "%s",
+               "help");
+      help_heading_role->is_set = TRUE;
+    }
+    if (help_term_role != NULL) {
+      snprintf(help_term_role->value, sizeof(help_term_role->value), "%s",
+               "help_heading");
+      help_term_role->is_set = TRUE;
+    }
+    if (help_attention_role != NULL) {
+      snprintf(help_attention_role->value,
+               sizeof(help_attention_role->value), "%s", "help_term");
+      help_attention_role->is_set = TRUE;
+    }
+    if (help_alert_role != NULL) {
+      snprintf(help_alert_role->value, sizeof(help_alert_role->value), "%s",
+               "help_attention");
+      help_alert_role->is_set = TRUE;
     }
     if (help_keybind_role != NULL) {
       snprintf(help_keybind_role->value, sizeof(help_keybind_role->value),
@@ -809,11 +876,16 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
         invalid_theme = TRUE;
         break;
       }
+      if (role_seen[(int)(role - roles)]) {
+        invalid_theme = TRUE;
+        break;
+      }
       if (!CopyThemeValueStrict(role->value, sizeof(role->value), value)) {
         invalid_theme = TRUE;
         break;
       }
       role->is_set = TRUE;
+      role_seen[(int)(role - roles)] = TRUE;
     } else if (section == THEME_SECTION_FILE_TYPES) {
       if (!SplitAssignment(line, &name, &value)) {
         invalid_theme = TRUE;
@@ -947,6 +1019,28 @@ static int TryThemeCatalogFile(THEME_LOAD_CTX *ctx, const char *path,
   return -2;
 }
 
+static const char *GetConfiguredThemeName(ViewContext *ctx) {
+  const char *theme_name = "quiet-blue";
+
+  if (ctx != NULL && ctx->core_init_ops.get_profile_value != NULL) {
+    const char *configured = ctx->core_init_ops.get_profile_value(ctx, "THEME");
+    if (configured != NULL && *configured != '\0')
+      theme_name = configured;
+  }
+
+  return theme_name;
+}
+
+static int LoadThemeFromPackagedOrCompiled(THEME_LOAD_CTX *ctx,
+                                           const char *theme_name) {
+  int result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
+
+  if (result == 0)
+    return 0;
+
+  return ReadCompiledThemeCatalog(ctx, theme_name) == THEME_LOAD_OK ? 0 : -1;
+}
+
 int LoadConfiguredTheme(ViewContext *ctx) {
   const char *theme_name;
   char path[PATH_LENGTH + 1];
@@ -956,12 +1050,7 @@ int LoadConfiguredTheme(ViewContext *ctx) {
     return -1;
   SetThemeFilePath(ctx, NULL);
 
-  theme_name = "quiet-blue";
-  if (ctx->core_init_ops.get_profile_value != NULL) {
-    const char *configured = ctx->core_init_ops.get_profile_value(ctx, "THEME");
-    if (configured != NULL && *configured != '\0')
-      theme_name = configured;
-  }
+  theme_name = GetConfiguredThemeName(ctx);
 
   if (ConfigPaths_ResolvePreferredPath(CONFIG_SURFACE_THEME, path,
                                        sizeof(path)) == 0) {
@@ -985,11 +1074,31 @@ int LoadConfiguredTheme(ViewContext *ctx) {
       return -1;
   }
 
-  result = TryThemeCatalogFile(ctx, PACKAGED_THEME_PATH, theme_name);
-  if (result == 0)
+  return LoadThemeFromPackagedOrCompiled(ctx, theme_name);
+}
+
+int LoadStartupTheme(ViewContext *ctx) {
+  const char *theme_name;
+
+  if (ctx == NULL)
+    return -1;
+  if (LoadConfiguredTheme(ctx) == 0)
     return 0;
 
-  return ReadCompiledThemeCatalog(ctx, theme_name) == THEME_LOAD_OK ? 0 : -1;
+  theme_name = GetConfiguredThemeName(ctx);
+  SetThemeFilePath(ctx, NULL);
+  if (LoadThemeFromPackagedOrCompiled(ctx, theme_name) == 0)
+    return 0;
+
+  if (strcmp(theme_name, "quiet-blue") == 0)
+    return -1;
+
+  SetThemeFilePath(ctx, NULL);
+  return LoadThemeFromPackagedOrCompiled(ctx, "quiet-blue");
+}
+
+static int CoreInit_LoadStartupTheme(ViewContext *ctx) {
+  return LoadStartupTheme(ctx);
 }
 
 static int CoreInit_LoadTheme(ViewContext *ctx) {
@@ -1000,5 +1109,6 @@ void CoreInitOps_RegisterCmdTheme(CoreInitOps *ops) {
   if (ops == NULL)
     return;
 
+  ops->load_startup_theme = CoreInit_LoadStartupTheme;
   ops->load_theme = CoreInit_LoadTheme;
 }

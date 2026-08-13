@@ -163,7 +163,7 @@ static const GeneratedHelpLink generated_help_links_theming[] = {
 };
 
 static const GeneratedHelpLongFormSection generated_help_sections_theming[] = {
-    {"Theme model", "Themes set semantic roles such as `footer`, `help`, `help_link`, `selection`, `picker`, and `warning`.\nThis keeps one theme change consistent across the whole UI."},
+    {"Theme model", "Themes set semantic roles such as `footer`, `help`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.\n`footer` owns footer-style command strips, while `help` owns the F1 reading body and `help_box_lines` owns the popup frame.\nLinked explainers use `help_link`, and the active linked target uses `help_link_selection`, so help pages stay readable without hard-coded colors."},
     {"Editing path", "Use `F10` to open the theme or config editing path.\nKeep high-frequency navigation surfaces readable first: selection, picker, footer, and help."},
 };
 

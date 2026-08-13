@@ -71,26 +71,35 @@ static void HelpPopupResolveFooterCommands(
                        sizeof(help_popup_close_commands[0]);
 }
 
-static void RenderHelpPopupFooter(
-    WINDOW *win, int y, int start_x, const UICommandStripCommand *commands,
-    size_t command_count, const UIHelpPopupFooterSpec *footer_spec) {
-  if (win == NULL || commands == NULL)
-    return;
-
-  (void)footer_spec;
-  UI_RenderCommandStrip(win, y, start_x, commands, command_count, UI_ROLE_HELP,
-                        UI_ROLE_KEYBIND);
-}
-
-static void FillHelpPopupContentBlankLine(WINDOW *win, int y, int start_x,
-                                         int width) {
+static void FillHelpPopupBlankLine(WINDOW *win, int y, int start_x, int width,
+                                   int role) {
   int x;
 
   if (win == NULL || width <= 0)
     return;
 
   for (x = 0; x < width; ++x)
-    mvwaddch(win, y, start_x + x, ' ' | COLOR_PAIR(UI_ROLE_HELP));
+    mvwaddch(win, y, start_x + x, ' ' | COLOR_PAIR(role));
+}
+
+static void RenderHelpPopupFooter(
+    WINDOW *win, int y, int start_x, const UICommandStripCommand *commands,
+    size_t command_count, const UIHelpPopupFooterSpec *footer_spec) {
+  int footer_width;
+
+  if (win == NULL)
+    return;
+
+  (void)footer_spec;
+  footer_width = getmaxx(win) - start_x - 2;
+  if (footer_width > 0)
+    FillHelpPopupBlankLine(win, y, start_x, footer_width,
+                           UI_ROLE_HELP_FOOTER);
+
+  if (commands != NULL && command_count > 0) {
+    UI_RenderCommandStrip(win, y, start_x, commands, command_count,
+                          UI_ROLE_HELP_FOOTER, UI_ROLE_HELP_KEYBIND);
+  }
 }
 
 static void ClearHelpPopupContentArea(WINDOW *win, int start_y, int start_x,
@@ -101,7 +110,7 @@ static void ClearHelpPopupContentArea(WINDOW *win, int start_y, int start_x,
     return;
 
   for (y = 0; y < line_count; ++y)
-    FillHelpPopupContentBlankLine(win, start_y + y, start_x, width);
+    FillHelpPopupBlankLine(win, start_y + y, start_x, width, UI_ROLE_HELP);
 }
 
 static void RenderHelpPopupFrame(WINDOW *win, int width, const char *title) {
@@ -115,9 +124,49 @@ static void RenderHelpPopupFrame(WINDOW *win, int width, const char *title) {
   box(win, 0, 0);
 #ifdef COLOR_SUPPORT
   wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));
+  wattron(win, COLOR_PAIR(UI_ROLE_HELP_HEADING));
 #endif
   mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength(title)) / 2), "%s",
             title);
+#ifdef COLOR_SUPPORT
+  wattroff(win, COLOR_PAIR(UI_ROLE_HELP_HEADING));
+#endif
+}
+
+static void RenderHelpInlineText(WINDOW *win, int y, int column, int max_width,
+                                 const char *text,
+                                 UISemanticRolePair base_role) {
+  BOOL attention = FALSE;
+  int used_width = 0;
+
+  if (win == NULL || text == NULL || max_width <= 0)
+    return;
+
+  while (*text != '\0' && used_width < max_width) {
+    size_t len = 0;
+    int available = max_width - used_width;
+
+    if (text[0] == '*' && text[1] == '*') {
+      attention = !attention;
+      text += 2;
+      continue;
+    }
+
+    while (text[len] != '\0' && !(text[len] == '*' && text[len + 1] == '*'))
+      ++len;
+    if (len == 0)
+      break;
+    if ((int)len > available)
+      len = (size_t)available;
+
+    wattrset(win, COLOR_PAIR(attention ? UI_ROLE_HELP_ATTENTION : base_role));
+    mvwprintw(win, y, column, "%.*s", (int)len, text);
+    column += (int)len;
+    used_width += (int)len;
+    text += len;
+  }
+
+  wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
 }
 
 static void SyncHelpPopupActiveRowScroll(
@@ -242,7 +291,7 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int start_x,
       mvwprintw(win, y, x, "%s", row->prefix);
       wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
     } else {
-      wattrset(win, COLOR_PAIR(text_role));
+      wattrset(win, COLOR_PAIR(UI_ROLE_HELP_TERM));
       mvwprintw(win, y, x, "%s", row->prefix);
       wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
     }
@@ -258,14 +307,13 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int start_x,
   case UI_HELP_POPUP_TEXT:
     if (row->text != NULL && row->text[0] != '\0' &&
         x < start_x + content_width) {
-      wattrset(win, COLOR_PAIR(text_role));
       if (row->prefix != NULL && row->prefix[0] != '\0') {
         mvwprintw(win, y, x, ": ");
         x += 2;
       }
       if (x < start_x + content_width)
-        mvwprintw(win, y, x, "%.*s", content_width - (x - start_x),
-                  row->text);
+        RenderHelpInlineText(win, y, x, content_width - (x - start_x),
+                             row->text, text_role);
       wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
     }
     break;

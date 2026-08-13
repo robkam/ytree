@@ -272,8 +272,9 @@ Theme edits belong in the config/theme files, not in per-screen hard-coded color
 
 ### Long form
 #### Theme model
-Themes set semantic roles such as `footer`, `help`, `help_link`, `selection`, `picker`, and `warning`.
-This keeps one theme change consistent across the whole UI.
+Themes set semantic roles such as `footer`, `help`, `help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.
+`footer` owns the always-visible main-app footer, while `help` owns the F1 reading body, `help_footer` owns the popup strip, and `help_box_lines` owns the popup frame.
+Headings/titles use `help_heading`, term-style labels use `help_term`, bounded callouts use `help_attention`, and any future stronger urgency tier can use `help_alert`, so help pages stay readable without hard-coded colors.
 
 #### Editing path
 Use `F10` to open the theme or config editing path.
