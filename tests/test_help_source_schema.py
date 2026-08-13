@@ -87,6 +87,17 @@ def _topic_long_form(source, topic):
     return _topic_block_map(source)[topic].group("long_form")
 
 
+def _topic_title_map(source):
+    return {
+        match.group("topic"): match.group("title") for match in _topic_blocks(source)
+    }
+
+
+def _topic_explainer_links(source, topic):
+    links = _topic_block_map(source)[topic].group("links") or ""
+    return re.findall(r"- \[([^\]]+)\]\(topic:([a-z0-9-]+)\)", links)
+
+
 def _topic_command_labels(source, topic):
     return {
         match.group(1)
@@ -171,3 +182,14 @@ def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity
             f"{topic} man/usage topic is missing runtime footer command coverage: "
             f"{missing_man}"
         )
+
+
+def test_contents_topic_is_a_complete_alphabetical_operator_index():
+    f1_source = _read_help_source(Path("etc/help/f1.en.md"))
+    title_map = _topic_title_map(f1_source)
+    expected_links = sorted(
+        ((title, topic) for topic, title in title_map.items() if topic != "intro"),
+        key=lambda item: item[0].casefold(),
+    )
+    contents_links = _topic_explainer_links(f1_source, "intro")
+    assert contents_links == expected_links
