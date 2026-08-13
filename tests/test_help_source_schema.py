@@ -8,6 +8,16 @@ HELP_SOURCES = (
 )
 LOCALE_F1_SOURCES = (Path("etc/help/f1.de.md"),)
 DISPLAY_SOURCE = Path("src/ui/display.c")
+RUNTIME_HELP_CONTEXT_SOURCES = (
+    Path("src/ui/application_menu.c"),
+    Path("src/ui/attr_actions.c"),
+    Path("src/ui/compare_request.c"),
+    Path("src/ui/display.c"),
+    Path("src/ui/f2_picker.c"),
+    Path("src/ui/interactions.c"),
+    Path("src/ui/print_controller.c"),
+    Path("src/ui/volume_menu.c"),
+)
 REQUIRED_TOPICS = {
     "intro",
     "navigation",
@@ -93,6 +103,17 @@ def _topic_title_map(source):
     }
 
 
+def _topic_context_map(source):
+    context_map = {}
+    for match in _topic_blocks(source):
+        contexts = match.group("contexts")
+        if contexts == "none":
+            continue
+        for context_id in contexts.split(","):
+            context_map.setdefault(context_id, []).append(match.group("topic"))
+    return context_map
+
+
 def _topic_explainer_links(source, topic):
     links = _topic_block_map(source)[topic].group("links") or ""
     return re.findall(r"- \[([^\]]+)\]\(topic:([a-z0-9-]+)\)", links)
@@ -118,6 +139,14 @@ def _help_label_override_map():
         )
         for match in pattern.finditer(source)
     }
+
+
+def _runtime_help_contexts():
+    contexts = set()
+    pattern = re.compile(r'"((?:main|overlay|prompt|dialog)\.[a-z0-9.-]+)"')
+    for path in RUNTIME_HELP_CONTEXT_SOURCES:
+        contexts.update(pattern.findall(path.read_text(encoding="utf-8")))
+    return contexts
 
 
 def test_help_source_uses_deterministic_topic_block_schema():
@@ -157,6 +186,15 @@ def test_help_source_defines_required_first_pass_topics():
         topic_sets.append(topics)
 
     assert topic_sets[0] == topic_sets[1] == topic_sets[2]
+
+
+def test_f1_context_metadata_matches_runtime_help_entry_points():
+    f1_context_map = _topic_context_map(_read_help_source(Path("etc/help/f1.en.md")))
+    runtime_contexts = _runtime_help_contexts()
+
+    assert set(f1_context_map) == runtime_contexts
+    for context_id, topics in f1_context_map.items():
+        assert len(topics) == 1, f"{context_id} is owned by multiple F1 topics: {topics}"
 
 
 def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity():

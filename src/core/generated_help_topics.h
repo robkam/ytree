@@ -687,7 +687,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "compare-scope",
         "Compare Scope Help",
-        "prompt.compare-scope",
+        NULL,
         "Directory only compares the current directory.\nLogged tree compares the current logged tree recursively and never auto-logs unopened branches.\nExternal viewer launches the configured external compare helper instead of tagging runtime results.",
         1,
         generated_help_links_compare_scope,
@@ -697,7 +697,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "compare-basis",
         "Compare Basis Help",
-        "prompt.compare-basis",
+        NULL,
         "Size checks file length.\nDate checks the last-modified time.\nsiZe+date treats either difference as a mismatch.\nHash opens both files and compares their content exactly, so it is slower.",
         1,
         generated_help_links_compare_basis,
@@ -707,7 +707,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "compare-results",
         "Compare Result Help",
-        "prompt.compare-results",
+        NULL,
         "Choose which compare result to tag in the source-side file list.\ndiFferent tags basis mismatches, and Unique tags source-only entries.\nMatch, Newer, Older, Type mismatch, and Error each tag only that one class.",
         1,
         generated_help_links_compare_results,
@@ -767,7 +767,7 @@ static const GeneratedHelpTopic generated_help_topics[] = {
     {
         "output-format",
         "Output Format Help",
-        "prompt.output-format",
+        NULL,
         "`Raw` writes content with no extra framing.\n`Framed` adds per-file headings or footers.\n`Page break` inserts a separator between files and skips a trailing separator at the end.",
         1,
         generated_help_links_output_format,

@@ -54,7 +54,8 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert "generated_help_topic_count" in header
     assert '"main.dir"' in header
     assert '"prompt.compare-target"' in header
-    assert '"prompt.output-format"' in header
+    assert '"prompt.output-destination"' in header
+    assert '"prompt.output-format"' not in header
     assert 'generated_help_links_list_jump' in header
     assert 'generated_help_links_filter' in header
 
@@ -71,6 +72,59 @@ One line.
 
     with pytest.raises(helpgen.HelpSourceError, match="missing ### Long form"):
         helpgen.parse_help_source(broken_source)
+
+
+def test_help_generator_rejects_duplicate_runtime_context_ownership():
+    broken_f1 = """## topic:first
+```ytnova-help-meta
+title: First
+contexts: prompt.shared
+```
+### Contextual F1
+One line.
+### Long form
+#### Section
+Body.
+
+## topic:second
+```ytnova-help-meta
+title: Second
+contexts: prompt.shared
+```
+### Contextual F1
+Another line.
+### Long form
+#### Section
+Body.
+"""
+    man_source = """## topic:first
+```ytnova-help-meta
+title: First
+contexts: none
+```
+### Contextual F1
+One line.
+### Long form
+#### Section
+Body.
+
+## topic:second
+```ytnova-help-meta
+title: Second
+contexts: none
+```
+### Contextual F1
+Another line.
+### Long form
+#### Section
+Body.
+"""
+
+    f1_topics = helpgen.parse_help_source(broken_f1)
+    man_topics = helpgen.parse_help_source(man_source)
+
+    with pytest.raises(helpgen.HelpSourceError, match="prompt.shared"):
+        helpgen.validate_topic_inventory(f1_topics, man_topics)
 
 
 def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
