@@ -203,3 +203,29 @@ def test_help_generator_roff_preserves_option_keywords_and_literal_globs():
     assert r"\fB*.c\fR" in roff
     assert r"\fB*.c,*.h\fR" in roff
     assert r"\\fB-h\\fR" not in roff
+
+
+def test_help_generator_roff_renders_long_form_bullets_as_bulleted_lists():
+    topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
+    )
+
+    roff = helpgen.render_roff_document(
+        helpgen.render_manpage_markdown(
+            topics, usage_mode=False, source_path="etc/help/man.en.md"
+        ),
+        version="1.0.0-alpha",
+        versiondate="June 2026",
+    )
+
+    assert (
+        '.SS "Shared function keys"\n'
+        '.IP "\\[bu]" 2\n'
+        r"\fBF1\fR: Open contextual help for the active surface."
+    ) in roff
+    assert (
+        '.SS "Directory navigation"\n'
+        '.IP "\\[bu]" 2\n'
+        r"\fBEnter\fR: Open the file window."
+    ) in roff
+    assert r"* \fBDotfiles\fR" not in roff

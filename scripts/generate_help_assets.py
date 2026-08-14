@@ -102,7 +102,7 @@ These commands work in most modes:
 *   **^Q**: **Quit to Directory**. If you exit ytnova with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
 *   **Q**: **Quit**. Exit ytnova.
 
-### VI Keys Mode (Profile Option)
+### Vi Keys Mode (Profile Option)
 When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 `h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
 
@@ -290,7 +290,7 @@ SUPPORT_TOPIC_ORDER = [
     ("command-line-editing", "Command-line Editing"),
     ("copy-move-targets", "Copy/Move Targets"),
     ("list-jump", "List Jump"),
-    ("vi-keys", "VI Keys"),
+    ("vi-keys", "Vi Keys"),
     ("f10", "F10 Config"),
     ("theming", "Theming"),
 ]
@@ -597,6 +597,12 @@ def render_roff_document(markdown: str, *, version: str, versiondate: str) -> st
     bullet: list[str] = []
     in_code = False
 
+    def strip_bullet_marker(line: str) -> str | None:
+        stripped = line.lstrip()
+        if len(stripped) >= 2 and stripped[0] in {"*", "-"} and stripped[1].isspace():
+            return stripped[2:].lstrip()
+        return None
+
     def flush_paragraph() -> None:
         nonlocal paragraph
         if not paragraph:
@@ -658,10 +664,11 @@ def render_roff_document(markdown: str, *, version: str, versiondate: str) -> st
             lines.append(f'.SS "{escape_roff_text(line[5:].strip())}"')
             continue
         stripped = line.lstrip()
-        if stripped.startswith("*   ") or stripped.startswith("- "):
+        bullet_item = strip_bullet_marker(line)
+        if bullet_item is not None:
             flush_paragraph()
             flush_bullet()
-            bullet.append(stripped[4:] if stripped.startswith("*   ") else stripped[2:])
+            bullet.append(bullet_item)
             continue
         if bullet and line[:1].isspace():
             bullet.append(stripped)

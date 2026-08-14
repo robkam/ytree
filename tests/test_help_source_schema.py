@@ -56,15 +56,16 @@ RUNTIME_HELP_LABEL_TOPICS = {
     "f8-dir": "dir_help_label_specs",
     "f8-file": "file_help_label_specs",
 }
-MAN_LABEL_ALIASES = {
+HELP_LABEL_ALIASES = {
     "Archive": ("Archive", "Z archive"),
     "Compare": ("Compare", "J compare"),
     "Copy": ("Copy", "C/^K copy"),
-    "Dotfiles": ("Dotfiles", "` dotfiles"),
+    "Dotfiles": ("Dotfiles", "` dotfiles", "\\` dotfiles"),
     "Execute": ("Execute", "eXecute"),
     "Invert Tags": ("Invert Tags", "Invert"),
     "Jump": ("Jump", "/ jump"),
     "Move": ("Move", "M/^N move"),
+    "MoveDir": ("MoveDir", "moVedir"),
     "New File": ("New File", "Newfile"),
     "Pathcopy": ("Pathcopy", "pathcopY"),
     "Volume": ("Volume", "K volume"),
@@ -101,6 +102,10 @@ def _topic_title_map(source):
     return {
         match.group("topic"): match.group("title") for match in _topic_blocks(source)
     }
+
+
+def _contents_link_label(title):
+    return title[:-5] if title.endswith(" Help") else title
 
 
 def _topic_context_map(source):
@@ -205,15 +210,11 @@ def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity
     for topic, array_name in RUNTIME_HELP_LABEL_TOPICS.items():
         expected_labels = help_labels[array_name]
         f1_labels = _topic_command_labels(f1_source, topic)
-        missing_f1 = [label for label in expected_labels if label not in f1_labels]
-        assert not missing_f1, (
-            f"{topic} F1 topic is missing runtime footer command rows: {missing_f1}"
-        )
 
         man_long_form = _topic_long_form(man_source, topic)
         missing_man = []
         for label in expected_labels:
-            aliases = MAN_LABEL_ALIASES.get(label, (label,))
+            aliases = HELP_LABEL_ALIASES.get(label, (label,))
             if not any(alias in man_long_form for alias in aliases):
                 missing_man.append(label)
         assert not missing_man, (
@@ -221,12 +222,26 @@ def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity
             f"{missing_man}"
         )
 
+        missing_f1 = []
+        for label in expected_labels:
+            aliases = HELP_LABEL_ALIASES.get(label, (label,))
+            if not any(alias in f1_labels for alias in aliases):
+                missing_f1.append(label)
+        assert not missing_f1, (
+            f"{topic} F1 topic is missing runtime footer command rows: {missing_f1}"
+        )
+
 
 def test_contents_topic_is_a_complete_alphabetical_operator_index():
     f1_source = _read_help_source(Path("etc/help/f1.en.md"))
     title_map = _topic_title_map(f1_source)
+    contents_only_topics = {"execute-dir", "execute-file"}
     expected_links = sorted(
-        ((title, topic) for topic, title in title_map.items() if topic != "intro"),
+        (
+            (_contents_link_label(title), topic)
+            for topic, title in title_map.items()
+            if topic != "intro" and topic not in contents_only_topics
+        ),
         key=lambda item: item[0].casefold(),
     )
     contents_links = _topic_explainer_links(f1_source, "intro")
