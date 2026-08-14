@@ -39,7 +39,8 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert helpgen.generated_banner("etc/help/man.en.md") in manpage
     assert "### Directory Mode" in manpage
     assert "### Help System" in manpage
-    assert "**Attributes**: Open the attributes submenu." in manpage
+    assert "#### Directory command families" in manpage
+    assert "* **Filesystem changes**: `Attributes`, `Rename`, `Delete`, `Makedir`, and `New File` change metadata or create/remove entries." in manpage
     assert "### Filter Help" in manpage
     assert "### Copy/Move Targets" in manpage
     assert "### List Jump" in manpage
@@ -226,6 +227,11 @@ def test_help_generator_roff_renders_long_form_bullets_as_bulleted_lists():
     assert (
         '.SS "Directory navigation"\n'
         '.IP "\\[bu]" 2\n'
-        r"\fBEnter\fR: Open the file window."
+        r"\fBEnter / Right / Left\fR: \fBEnter\fR opens the file window"
+    ) in roff
+    assert (
+        '.SS "File command families"\n'
+        '.IP "\\[bu]" 2\n'
+        r"\fBInspection\fR: \fBView\fR, \fBHex\fR, and \fBEdit\fR open the selected file"
     ) in roff
     assert r"* \fBDotfiles\fR" not in roff

@@ -41,16 +41,10 @@ This file is the fuller reference source for the manpage and generated `docs/USA
 The in-app `F1` popup remains the shorter contextual path for the active screen, prompt, or dialog.
 
 #### Contents
-* **Navigation**: Reference for popup navigation plus shared list movement.
-* **Tagged**: Reference for ytnova's tagged working-set model.
-* **Shared commands**: Reference for the function-key family that spans multiple modes.
-* **Directory Mode** and **File Mode**: Reference for the main logged filesystem views.
-* **Archive-Dir Mode** and **Archive-File Mode**: Reference for archive-backed navigation and command limits.
-* **Showall** and **Global**: Reference for single-volume and multi-volume aggregated file lists.
-* **F7 Preview** and **F8 Split**: Reference for overlay-only controls and ownership rules.
-* **List Jump** and **Copy/Move Targets**: Reference for shared `/` jump behavior plus destination and wildcard rename rules.
-* **Filter**, **Compare**, **Execute**, **Archive**, and **Output**: Reference for option-heavy prompt families.
-* **Command-line Editing**, **Vi Keys**, **F2 picker**, **F10 config**, and **Theming**: Reference for shared operator rules and configuration surfaces.
+* **Modes and navigation**: `Directory`, `File`, `Archive-Dir`, `Archive-File`, `Showall`, `Global`, `F7 Preview`, and `F8 Split` explain what each runtime surface owns.
+* **Shared operator rules**: `Navigation`, `Tagged`, `Shared Commands`, `Command-line Editing`, `Vi Keys`, `F10 Config`, and `Theming` collect cross-surface behavior once instead of repeating it in every mode page.
+* **Prompt references**: `List Jump`, `Copy/Move Targets`, `Filter`, `Compare`, `Output`, `Execute`, `Create Archive`, and `Date Change` document syntax, scope, and decision points.
+* **Chooser and support surfaces**: `History`, `Volume`, `Applications`, and the `F2 Picker` cover the reusable helper dialogs and menus.
 
 ## topic:navigation
 ```ytnova-help-meta
@@ -294,39 +288,16 @@ It owns directory navigation, tree expansion, and directory-scoped commands.
 
 ### Long form
 #### Directory navigation
-* **Enter**: Open the file window. If the selected directory is still unlogged, `Enter` logs or reveals one level first.
-* **Collapse**: Collapse the current branch. Press `-` again on a collapsed logged node to release it and mark it unlogged.
-* **Left Arrow**: Collapse the current node or move to its parent.
-* **Right Arrow**: Expand one level first, then move to the first child.
-* **Plus**: Log or reveal one level without moving the cursor.
-* **Asterisk**: Recursively expand the selected directory and its subdirectories.
+* **Enter / Right / Left**: `Enter` opens the file window and finishes logging when the selected directory is not expanded yet. `Right` expands first and then descends. `Left` collapses the current node or climbs to its parent.
+* **Logging controls**: `+` logs or reveals one level without moving. `*` expands recursively. `-` collapses the branch, and a second `-` on a collapsed logged node releases it back to an unlogged state.
+* **Tree ownership**: Directory Mode owns branch shape and logged-tree coverage. File lists, Showall, and Global only project files from the tree you have already logged.
 
-#### Directory commands
-* **1..9 view**: Change the active panel's directory and file presentation. `1` resets to the default Name view, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5`/`7`/`8`/`9` affect the file projection, and `6` toggles size units.
-* **Attributes**: Open the attributes submenu. Change mode, owner, group, or date.
-* **Copy**: Copy the selected directory branch.
-* **Delete**: Delete the selected directory.
-* **Filter**: Filter the current file-list scope. Use globs such as `*.c`, comma lists such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `>2023-01-01`, or `>1M`.
-* **Global**: Show files from every logged volume in one list.
-* **Invert Tags**: Flip the tag state inside the current visible scope.
-* **Compare**: Compare the current directory, the current logged tree, or an external viewer target.
-* **Volume**: Open the volume picker.
-* **Log**: Log a new directory or archive file. Logging an already logged path reloads it from the top.
-* **Makedir**: Create a new directory.
-* **New File**: Create a new empty file.
-* **Filter**: The filter prompt also owns the tagged-only scope toggle; press `Tab` there to switch between all files and tagged-only for the current scope.
-* **Pipe**: Send the selected directory to a command on standard input.
-* **Quit**: Quit ytnova.
-* **Rename**: Rename the selected directory.
-* **Showall**: Show every file inside the current logged volume.
-* **Tag**: Tag the files in the selected directory scope.
-* **Untag**: Untag the files in the selected directory scope.
-* **MoveDir**: Move the selected directory branch.
-* **Output**: Export the current selection to a file or command through the output prompts.
-* **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely.
-* **Archive**: Create an archive from the tagged set first, or from the current selection when nothing is tagged.
-* **Jump**: Jump to a matching name in the current list.
-* **Dotfiles**: Toggle hidden dot-files and dot-directories.
+#### Directory command families
+* **Presentation and scope**: `1..9 view` changes the panel presentation. `Filter`, `Showall`, `Global`, and `Jump` change which projected file set or visible subset you are inspecting.
+* **Filesystem changes**: `Attributes`, `Rename`, `Delete`, `Makedir`, and `New File` change metadata or create/remove entries. `Log` adds or reloads a logged root.
+* **Working-set control**: `Tag`, `Untag`, and `Invert Tags` define the set that later bulk commands consume.
+* **Transfer and export**: `Copy`, `MoveDir`, `Output`, `Pipe`, and `Archive` act on the selected branch or on the tagged set, depending on the command.
+* **Cross-surface actions**: `Compare` hands off to the compare flow, `Execute` runs a shell command with the current path, `Volume` switches logged volumes, `Dotfiles` toggles hidden entries, and `Quit` leaves ytnova.
 
 ## topic:file
 ```ytnova-help-meta
@@ -343,44 +314,18 @@ It owns file navigation, file-scoped commands, tagged actions, and export entry 
 
 ### Long form
 #### File navigation
-* **1..9 view**: Change the active panel's file presentation. `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, `8` toggles File detail, and `9` toggles the Git band inside Git worktrees.
-* **Enter**: Switch between the embedded file window and full-screen file mode.
-* **Left Arrow**: Move to the previous visible file column. In one-column layouts it behaves like page up.
-* **Right Arrow**: Move to the next visible file column. In one-column layouts it behaves like page down.
+* **Presentation**: `1..9 view` stays in file mode and changes Name, Attributes, Owner, and Times plus Compact, size units, Mini preview, File detail, and the Git band where they apply.
+* **Enter**: Switch between the embedded file window and full-screen file mode without leaving the same file list.
+* **Columns**: `Left` and `Right` move across visible file columns. In single-column layouts they page backward and forward through the same list.
 
-#### File commands
-* **Attributes**: Open the attributes submenu for the selected file.
-* **Copy**: Copy the selected file.
-* **Copy tagged**: Copy the tagged set to one destination.
-* **Delete**: Delete the selected file.
-* **Edit**: Open the selected file in the configured editor.
-* **Filter**: Filter the current file-list scope with globs, exclusions, and extended selectors.
-* **Hex**: View the selected file in hex mode.
-* **Invert Tags**: Flip the tag state inside the current visible scope.
-* **Compare**: Compare the selected file against another file.
-* **Volume**: Open the volume picker.
-* **Log**: Log a new directory or archive file without leaving file mode.
-* **Move**: Move the selected file.
-* **Move tagged**: Move the tagged set to one destination.
-* **New File**: Create a new empty file.
-* **Filter**: The filter prompt also owns the tagged-only scope toggle; press `Tab` there to switch between all files and tagged-only for the current scope.
-* **Pipe**: Send the selected file to a command on standard input.
-* **Quit**: Quit ytnova.
-* **Rename**: Rename the selected file.
-* **Sort**: Change the current file-list sort order.
-* **Tag**: Tag the selected file.
-* **Tag all**: Tag every visible file in the current scope.
-* **Untag**: Remove the tag from the selected file.
-* **Untag all**: Remove every tag in the current scope.
-* **View**: View the selected file with the configured pager.
-* **View tagged**: View the tagged files one after another.
-* **Output**: Export the selected file or tagged set through the output prompts.
-* **Execute**: Run a shell command. Leave `{}` unquoted so ytnova can expand it and quote the resulting path safely. `Ctrl-X` reruns the command for each tagged file.
-* **Pathcopy**: Copy the selected file while keeping its path relative to the current volume root.
-* **Search tagged**: Search only the tagged files, then untag files that do not match.
-* **Archive**: Archive the tagged set first, or the current selection when nothing is tagged.
-* **Jump**: Jump to a matching name in the current list.
-* **Dotfiles**: Toggle hidden dot-files in the current scope.
+#### File command families
+* **Inspection**: `View`, `Hex`, and `Edit` open the selected file through the configured pager, hex viewer, or editor.
+* **Transfer**: `Copy`, `Move`, and `Pathcopy` operate on the selected file. `Copy tagged` and `Move tagged` apply the same target rules to the tagged set.
+* **Working-set control**: `Tag`, `Untag`, `Tag all`, `Untag all`, and `Invert Tags` build or clear the set that later bulk commands consume.
+* **List control**: `Filter`, `Sort`, `Jump`, and `Dotfiles` change how the current file list is projected. The filter prompt still owns the tagged-only scope toggle on `Tab`.
+* **Metadata and creation**: `Attributes`, `Rename`, `Delete`, `New File`, and `Log` edit file state or add/reload content sources.
+* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands `{}` for one file, and `Ctrl-X` reruns the command once per tagged file.
+* **Cross-surface actions**: `Compare` enters the compare flow, `Search tagged` narrows the tagged set by content, `Volume` switches logged volumes, and `Quit` exits ytnova.
 
 ## topic:archive-dir
 ```ytnova-help-meta
@@ -396,30 +341,16 @@ It mirrors directory work where the archive format permits it.
 
 ### Long form
 #### Archive directory navigation
-* **Enter**: Switch to Archive File Mode for the selected archive directory.
-* **Left Arrow**: Collapse the current archive node or move to its parent.
-* **Right Arrow**: Expand one level first, then move to the first child.
-* **Root**: `\` jumps to archive root when you are below it.
-* **Exit archive**: `\` leaves the archive when you are already at archive root.
+* **Enter / Left / Right**: Navigate the virtual tree the same way as ordinary Directory Mode, but only within the currently opened archive.
+* **Root handling**: `\` jumps to archive root from deeper nodes, and leaves the archive entirely when you are already at that root.
+* **Archive scope**: Expansion state is virtual. It reflects archive contents, not a live writable filesystem tree.
 
-#### Archive directory commands
-* **1..9 view**: `1..4` choose the base archive directory/file view. `5`, `7`, and `8` still affect the paired file projection, `6` toggles row-size units, and `9` stays a no-op inside archives.
-* **Delete**: Delete the selected archive directory entry.
-* **Filter**: Filter the current archive-backed file-list scope.
-* **Global**: Show archive-backed results together with other logged volumes.
-* **Compare**: Compare the current archive directory or logged tree view.
-* **Volume**: Open the volume picker.
-* **Log**: Log another directory or archive file.
-* **Makedir**: Create a directory where the archive format supports it.
-* **Pipe**: Send the selected archive path to a command on standard input.
-* **Output**: Export the current archive-backed selection through the output prompts.
-* **Quit**: Quit ytnova.
-* **Rename**: Rename the selected archive directory entry.
-* **Showall**: Show every file in the current archive.
-* **Tag**: Tag the files in the current virtual directory scope.
-* **Untag**: Untag the files in the current virtual directory scope.
-* **Jump**: Jump to a matching name in the current list.
-* **Dotfiles**: Toggle hidden entries when the archive view exposes them.
+#### Archive directory command families
+* **Presentation and scope**: `1..9 view` still selects the base directory/file presentation, except `9` stays inert in archives. `Filter`, `Showall`, `Global`, and `Jump` still operate on the archive-backed visible set.
+* **Archive-aware edits**: `Delete`, `Rename`, and `Makedir` only work when the current archive format and access path support write-back semantics.
+* **Working-set control**: `Tag` and `Untag` operate on the current virtual directory scope.
+* **Transfers and export**: `Output`, `Pipe`, and `Compare` use archive-backed paths. `Log` and `Volume` switch away to other logged roots or volumes when needed.
+* **Session controls**: `Dotfiles` toggles hidden archive entries where the format exposes them, and `Quit` exits ytnova.
 
 ## topic:archive-file
 ```ytnova-help-meta
@@ -436,35 +367,17 @@ Some filesystem commands are unavailable or become archive-aware here.
 
 ### Long form
 #### Archive file navigation
-* **1..9 view**: `1` resets to Name, `2` shows Attributes, `3` shows Owner, `4` shows Times, `5` toggles Compact, `6` toggles size units, `7` toggles Mini preview, and `8` toggles File detail. `9` stays a no-op inside archives.
-* **Enter**: Switch back to Archive Directory Mode.
-* **Jump**: Jump to a matching name in the current list.
+* **Presentation**: `1..8` keeps the usual file-view bands, while `9` remains a no-op because archive entries do not expose the Git band surface.
+* **Enter**: Return to Archive Directory Mode for the same archive.
+* **List control**: `Jump`, `Filter`, and `Sort` still operate on the archive-backed visible file list.
 
-#### Archive file commands
-* **Copy**: Copy the selected archive entry through archive-aware extract/copy paths.
-* **Copy tagged**: Copy the tagged archive entries to one destination.
-* **Delete**: Delete the selected archive entry.
-* **Filter**: Filter the current archive-backed file-list scope.
-* **Hex**: View the selected archive entry in hex mode.
-* **Invert Tags**: Flip the tag state inside the current visible scope.
-* **Compare**: Compare the selected archive entry against another file.
-* **Volume**: Open the volume picker.
-* **Log**: Log another directory or archive file.
-* **Move**: Move the selected archive entry through archive-aware paths.
-* **Move tagged**: Move the tagged archive entries to one destination.
-* **Pipe**: Send the selected archive entry to a command on standard input.
-* **Output**: Export the selected archive entry through the output prompts.
-* **Quit**: Quit ytnova.
-* **Rename**: Rename the selected archive entry.
-* **Sort**: Change the current file-list sort order.
-* **Tag**: Tag the selected archive entry.
-* **Untag**: Remove the tag from the selected archive entry.
-* **View**: View the selected archive entry.
-* **View tagged**: View the tagged archive entries one after another.
-* **Pathcopy**: Copy the selected archive entry while keeping its relative path.
-* **Search tagged**: Search only the tagged archive entries, then untag non-matches.
-* **Execute**: Not available in archive file mode.
-* **Dotfiles**: Toggle hidden entries when the archive view exposes them.
+#### Archive file command families
+* **Inspection**: `View` and `Hex` open the selected archive entry without first moving you into an ordinary file-mode session.
+* **Transfer**: `Copy`, `Move`, and `Pathcopy` use archive-aware extract/copy paths. `Copy tagged` and `Move tagged` apply the same rules to the tagged archive set.
+* **Working-set control**: `Tag`, `Untag`, and `Invert Tags` manage the current archive-backed working set.
+* **Mutation limits**: `Delete` and `Rename` exist only where the archive path supports write-back. `Execute` is not available in archive file mode.
+* **Output and comparison**: `Output`, `Pipe`, `Compare`, `Search tagged`, and `View tagged` all stay scoped to the archive-backed list rather than a normal filesystem directory.
+* **Session controls**: `Log`, `Volume`, `Dotfiles`, and `Quit` behave like their file-mode counterparts, but they may take you out of the current archive session.
 
 ## topic:filter
 ```ytnova-help-meta
@@ -483,31 +396,17 @@ Terms can be stacked by separating them with commas.
 
 ### Long form
 #### Syntax
-Current filter terms:
-* `*` — show all files
-* `*.c` — glob match
-* `*.c,*.h` — stack multiple glob terms
-* `-*.o` — exclude matches
-* `:r` — attribute test
-* `:x` — attribute test
-* `>2023-01-01` — date test
-* `>1M` — size test
-
-You can combine terms in one filter:
-* `*.c,-*.tmp`
-* `*.c,*.h,>1M`
-* `:r,*.sh`
-* `*.log,>2024-01-01,-debug*`
-
+* **Glob selectors**: `*` shows everything. `*.c` matches one pattern. `*.c,*.h` stacks multiple include terms.
+* **Exclusions**: Prefix a term with `-`, for example `-*.o`, to subtract matching rows after the include terms.
+* **Extended selectors**: Attribute tests such as `:r` or `:x`, date tests such as `>2023-01-01`, and size tests such as `>1M` can be mixed with glob terms.
+* **Combinations**: `*.c,-*.tmp`, `*.c,*.h,>1M`, `:r,*.sh`, and `*.log,>2024-01-01,-debug*` are all valid compound filters.
 Use normal glob-like patterns such as `*.c`, comma-separated unions such as `*.c,*.h`, exclusions such as `-*.o`, and extended selectors such as `:r`, `:x`, `>2023-01-01`, or `>1M`.
 If your shell would expand the pattern before ytnova sees it, quote it at the shell prompt.
 
 #### Scope
-The filter always applies to the current file-list family.
-That may be a normal file list, archive file list, Showall, or Global.
-Press `Tab` to switch the filter scope between all files and tagged files.
-This is enabled only when tagged files exist in the current scope.
-When tagged scope is enabled, the prompt changes to `FILTER [tagged only]:`.
+The filter always applies to the current file-list family: a normal file list, an archive file list, Showall, or Global.
+`Tab` switches between all rows and tagged-only rows for that same visible family.
+The tagged-only toggle is offered only when tags already exist in the current scope, and the prompt changes to `FILTER [tagged only]:` when it is active.
 
 ## topic:compare
 ```ytnova-help-meta
@@ -707,15 +606,14 @@ The related output topics cover format, separator, and destination prompts.
 
 ### Long form
 #### Output model
-`Output` is an export flow.
-It can write plain content, framed content, or page-break-separated content.
-It can also send that output to a printer command instead of a file path.
+`Output` is a batch export flow, not a viewer.
+It writes the current file or tagged set as `Raw`, `Framed`, or `Page break` text, or sends the same stream to a printer command.
 
 #### Output order
-Choose file or hardcopy first.
-On the file destination prompt, `F3` cycles `Raw`, `Framed`, and `Page break`.
-Choose the separator as soon as `F3` selects framed or page-break output, before entering the final file path.
-Hardcopy asks only for the printer command.
+Choose the destination class first: file path or Hardcopy.
+When the destination is a file, `F3` cycles `Raw`, `Framed`, and `Page break` before the final path is accepted.
+Framed and page-break output ask for the separator string before returning to the destination prompt.
+Hardcopy asks only for the printer command because it always streams raw output.
 
 ## topic:output-format
 ```ytnova-help-meta
@@ -785,13 +683,10 @@ It keeps single-volume scope while flattening directory boundaries.
 
 ### Long form
 #### Showall behavior
-* **Scope**: Showall lists every file inside the current logged volume only.
-* **Esc**: Return to the previously selected directory.
-* **Open owner**: `\` jumps to the owner directory of the selected file inside the current logged volume.
-* **Sort**: Repeating `S` changes sort; it does not leave Showall.
-* **Filter**: Filter still applies only to the current Showall result set.
-* **Filter**: Filter still applies only to the current Showall result set, and `Tab` inside the filter prompt narrows that same result set to tagged-only rows.
-* **Command list**: Showall reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Pipe, Quit, Rename, Sort, Tag, Untag, View, Output, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active aggregated file list.
+* **Scope**: Showall flattens one logged volume into one file list. It never crosses into other logged volume roots.
+* **Return path**: `Esc` returns to the directory you came from, and `\` jumps to the owner directory of the selected file within that same volume.
+* **List control**: `Sort`, `Filter`, `Jump`, and `Dotfiles` apply to the aggregated Showall result set rather than to each directory separately. The filter prompt still provides the tagged-only toggle on `Tab`.
+* **Command family**: Showall reuses the File Mode command surface: `Attributes`, `Copy`, `Delete`, `Edit`, `Filter`, `Hex`, `Invert Tags`, `Compare`, `Volume`, `Log`, `Move`, `New File`, `Pipe`, `Quit`, `Rename`, `Sort`, `Tag`, `Untag`, `View`, `Output`, `Execute`, `Pathcopy`, `Archive`, `Jump`, and `Dotfiles`. The difference is only the flattened single-volume scope.
 
 ## topic:global
 ```ytnova-help-meta
@@ -808,13 +703,10 @@ It keeps multi-volume scope while flattening directory boundaries.
 
 ### Long form
 #### Global behavior
-* **Scope**: Global lists files from every logged volume.
-* **Esc**: Return to the previously selected directory.
-* **Open owner**: `\` jumps to the owner directory of the selected file even when it lives under another logged volume root.
-* **Global**: Repeating `G` is a no-op while you are already in Global.
-* **Filter**: Filter still applies only to the current Global result set.
-* **Filter**: Filter still applies only to the current Global result set, and `Tab` inside the filter prompt narrows that same result set to tagged-only rows.
-* **Command list**: Global reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Pipe, Quit, Rename, Sort, Tag, Untag, View, Output, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active aggregated file list.
+* **Scope**: Global flattens every logged volume into one file list.
+* **Return path**: `Esc` returns to the prior directory surface, and `\` jumps to the owner directory even when it lives under another logged volume root.
+* **List control**: `Filter`, `Jump`, `Dotfiles`, and `Sort` operate on the aggregated Global result set. Repeating `G` is a no-op because you are already in Global.
+* **Command family**: Global reuses the File Mode command surface: `Attributes`, `Copy`, `Delete`, `Edit`, `Filter`, `Hex`, `Invert Tags`, `Compare`, `Volume`, `Log`, `Move`, `New File`, `Pipe`, `Quit`, `Rename`, `Sort`, `Tag`, `Untag`, `View`, `Output`, `Execute`, `Pathcopy`, `Archive`, `Jump`, and `Dotfiles`. The difference is the multi-volume scope and the cross-volume owner jump.
 
 ## topic:f7
 ```ytnova-help-meta
@@ -831,18 +723,14 @@ The preview owns scrolling while the underlying selection still owns the file ta
 
 ### Long form
 #### Preview navigation
-* **Select file**: `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End` move the live file selection.
-* **Preview lines**: `Shift-Up` and `Shift-Down`, and `Ctrl-P` and `Ctrl-N`, scroll the preview.
-* **Preview pages**: `Shift-PgUp` and `Shift-PgDn` page the preview. `Shift-Home` and `Shift-End` jump to its ends.
-* **Leave preview**: `F7` returns to the underlying file or directory view.
-* **Applications**: `F9` opens the applications menu without leaving preview.
-* **Blocked keys**: `F8` split does nothing while preview is active, and `Tab` does not switch panels.
-* **Cancel**: `Esc` leaves preview immediately.
+* **Two scopes stay active**: the underlying file selection still moves with `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End`, while the preview buffer scrolls with `Shift-Up/Shift-Down`, `Ctrl-P/Ctrl-N`, `Shift-PgUp/Shift-PgDn`, and `Shift-Home/Shift-End`.
+* **Leaving preview**: `F7` or `Esc` returns to the suspended directory/file surface without discarding its current selection.
+* **Blocked overlays**: `F8` split and `Tab` panel switching are disabled while preview is active.
 
-#### Preview commands
-* **Copy**: Copy the selected file; `Ctrl-K` copies the tagged set.
-* **Filter**: Filter the list without leaving preview; `Ctrl-S` searches only the tagged set.
-* **File commands**: Attributes, Delete, Edit, Invert, `J compare`, `M/^N move`, Newfile, Rename, Tag/Untag, View, Output, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles `` still work.
+#### Preview command families
+* **File-mode command reuse**: Preview keeps the file-focused command family available: `Attributes`, `Copy`, `Delete`, `Edit`, `Filter`, `Invert Tags`, `Compare`, `Move`, `New File`, `Rename`, `Tag`, `Untag`, `View`, `Output`, `Execute`, `Pathcopy`, `Archive`, `Jump`, and `Dotfiles`.
+* **Tagged and bulk behavior**: `Ctrl-K` still copies the tagged set, and `Ctrl-S` still runs Search Tagged without leaving preview.
+* **Applications handoff**: `F9` opens the Applications menu from preview without closing preview first.
 
 ## topic:f8
 ```ytnova-help-meta
@@ -859,10 +747,9 @@ Use the split page for the live footer command list and this page for the shared
 
 ### Long form
 #### Split controls
-* **Leave split**: Press `F8` again to return to single-panel mode.
-* **Tab**: Switch the active panel and keep the passive panel's state intact.
-* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.
-* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
+* **Panel ownership**: Each panel keeps its own selection, tags, logged volume, view bands, and restore state. Split mode changes only which panel is active for the next command.
+* **Target defaults**: Copy, move, and compare prompts seed the inactive panel as the default destination or target, but you can still edit that default before the operation runs.
+* **Leaving split**: `F8` returns to one-panel mode. `Tab` switches the active panel without merging state between them.
 
 ## topic:f8-dir
 ```ytnova-help-meta
@@ -879,13 +766,13 @@ It is the runtime F1 page when the split focus is on the tree panel.
 
 ### Long form
 #### Split controls
-* **Leave split**: Press `F8` again to return to single-panel mode.
-* **Tab**: Switch the active panel and keep the passive panel's state intact.
-* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.
-* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
+* **Panel ownership**: Each panel keeps its own selection, tags, logged volume, view bands, and restore state. Split mode changes only which panel is active for the next command.
+* **Target defaults**: Copy, move, and compare prompts seed the inactive panel as the default destination or target, but you can still edit that default before the operation runs.
+* **Leaving split**: `F8` returns to one-panel mode. `Tab` switches the active panel without merging state between them.
 
 #### Split directory commands
-* **Command list**: The split-directory page reuses the directory-footer command family (`1..9 view`, Attributes, Copy, Delete, Filter, Global, Invert, `J compare`, `K volume`, Log, Makedir, Newfile, Pipe, Quit, Rename, Showall, Tag, Untag, MoveDir, Output, `eXecute`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel. Tagged-only scope now lives under `Filter` via `Tab` inside the prompt.
+The active split-directory panel uses the same command families as Directory Mode: `1..9 view`, `Attributes`, `Copy`, `Delete`, `Filter`, `Global`, `Invert Tags`, `Compare`, `Volume`, `Log`, `Makedir`, `New File`, `Pipe`, `Quit`, `Rename`, `Showall`, `Tag`, `Untag`, `MoveDir`, `Output`, `Execute`, `Archive`, `Jump`, and `Dotfiles`.
+The difference from one-panel Directory Mode is only panel targeting: prompt defaults point at the inactive panel where that makes sense, and `Filter` still owns the tagged-only toggle on `Tab`.
 
 ## topic:f8-file
 ```ytnova-help-meta
@@ -902,13 +789,13 @@ It is the runtime F1 page when the split focus is on the file panel.
 
 ### Long form
 #### Split controls
-* **Leave split**: Press `F8` again to return to single-panel mode.
-* **Tab**: Switch the active panel and keep the passive panel's state intact.
-* **Target defaults**: Copy, move, and compare prompts default to the inactive panel as destination or target.
-* **Panel independence**: Each panel keeps its own selection, view, tags, volume, and restore state.
+* **Panel ownership**: Each panel keeps its own selection, tags, logged volume, view bands, and restore state. Split mode changes only which panel is active for the next command.
+* **Target defaults**: Copy, move, and compare prompts seed the inactive panel as the default destination or target, but you can still edit that default before the operation runs.
+* **Leaving split**: `F8` returns to one-panel mode. `Tab` switches the active panel without merging state between them.
 
 #### Split file commands
-* **Command list**: The split-file page reuses the file-footer command family (`1..9 view`, Attributes, `C/^K copy`, Delete, Edit, Filter, Hex, Invert, `J compare`, `K volume`, Log, `M/^N move`, Newfile, Pipe, Quit, Rename, Sort, Tag, Untag, View, Output, `eXecute`, `pathcopY`, `Z archive`, `/ jump`, and `` ` dotfiles ``) for the active panel. Tagged-only scope now lives under `Filter` via `Tab` inside the prompt.
+The active split-file panel uses the same command families as File Mode: `1..9 view`, `Attributes`, `Copy`, `Delete`, `Edit`, `Filter`, `Hex`, `Invert Tags`, `Compare`, `Volume`, `Log`, `Move`, `New File`, `Pipe`, `Quit`, `Rename`, `Sort`, `Tag`, `Untag`, `View`, `Output`, `Execute`, `Pathcopy`, `Archive`, `Jump`, and `Dotfiles`.
+The difference from one-panel File Mode is only panel targeting: prompt defaults point at the inactive panel where that makes sense, and `Filter` still owns the tagged-only toggle on `Tab`.
 
 ## topic:history-dialog
 ```ytnova-help-meta

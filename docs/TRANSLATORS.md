@@ -13,6 +13,7 @@ ytnova currently has two different documentation/help families plus future runti
 
 2. **Reference help**
    - Canonical source: `etc/help/man.en.md`
+   - Existing locale example: `etc/help/man.de.md`
    - Generated outputs: `etc/ytnova.1.md`, `docs/USAGE.md`, build manpage output
    - Audience: users reading the fuller reference/manual
 
@@ -180,7 +181,7 @@ Avoid:
 
 ## Manual/reference translation
 
-`etc/help/man.en.md` is the fuller reference path. It should stay more reference-oriented than `F1`.
+`etc/help/man.en.md` is the fuller reference path. `etc/help/man.de.md` follows the same topic inventory and link structure as an authored localized source. Both should stay more reference-oriented than `F1`.
 
 Do not make the manual sound like popup help, and do not make popup help sound like a Unix manpage.
 
@@ -193,6 +194,7 @@ Until the full gettext/po4a workflow lands, a new help-language contribution sho
 - stable `contexts:` mappings
 - stable intra-help `topic:` link targets
 - the same separation between contextual pages, command explainers, and shared topics
+- for manual/reference locales, the same authored structure as `etc/help/man.en.md` instead of translating from generated `docs/USAGE.md` or `etc/ytnova.1.md`
 
 If a translation seems to require changing topic IDs, context IDs, or generator schema, that is not a normal translation change; raise it as a maintainer/design issue.
 
@@ -202,4 +204,5 @@ If a translation seems to require changing topic IDs, context IDs, or generator 
 - `docs/ROADMAP.md` — Task 43 / Task 61 planning
 - `etc/help/f1.en.md` — contextual F1 source
 - `etc/help/man.en.md` — reference/man source
+- `etc/help/man.de.md` — localized authored reference/man source example
 - `scripts/generate_help_assets.py` — generator and schema enforcement
