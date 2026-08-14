@@ -50,7 +50,7 @@ The in-app `F1` popup remains the shorter contextual path for the active screen,
 * **F7 Preview** and **F8 Split**: Reference for overlay-only controls and ownership rules.
 * **List Jump** and **Copy/Move Targets**: Reference for shared `/` jump behavior plus destination and wildcard rename rules.
 * **Filter**, **Compare**, **Execute**, **Archive**, and **Output**: Reference for option-heavy prompt families.
-* **Command-line Editing**, **VI Keys**, **F2 picker**, **F10 config**, and **Theming**: Reference for shared operator rules and configuration surfaces.
+* **Command-line Editing**, **Vi Keys**, **F2 picker**, **F10 config**, and **Theming**: Reference for shared operator rules and configuration surfaces.
 
 ## topic:navigation
 ```ytnova-help-meta
@@ -167,7 +167,7 @@ contexts: none
 Most prompts share the same editing keys.
 Prompt-specific syntax and scope rules belong to the relevant command topic.
 ### Explainer links
-- [VI keys](topic:vi-keys)
+- [Vi Keys](topic:vi-keys)
 - [F2 picker](topic:f2-picker)
 
 ### Long form
@@ -218,7 +218,7 @@ Directory copy/move starts after the destination is accepted; there is no extra 
 
 ## topic:vi-keys
 ```ytnova-help-meta
-title: VI Keys
+title: Vi Keys
 contexts: none
 ```
 ### Contextual F1

@@ -87,7 +87,7 @@ def _normalized_help_text(screen):
     return " ".join(screen.replace("`", "").split())
 
 
-def _scroll_help_to_text(tui, text, *, steps=48):
+def _scroll_help_to_text(tui, text, *, steps=80):
     current = screen_text(tui)
     unchanged_steps = 0
 
@@ -258,18 +258,19 @@ def test_contextual_help_accepts_csi_arrow_sequences(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
+        selected_style = _visible_cell_style(tui, "1: Name only.")
 
         tui.send_keystroke(csi_down, wait=0.05)
+        assert (
+            _selected_visible_help_label(
+                tui, ["1: Name only.", "2: Attributes.", "Copy:"], selected_style
+            )
+            != "1: Name only."
+        ), screen_text(tui)
 
-        copy_detail = tui.send_and_wait_for_condition(
-            csi_right,
-            lambda lines: lines
-            if any("Copy/Move Targets" in line for line in lines)
-            else False,
-            timeout=1.5,
-        )
-        assert copy_detail, screen_text(tui)
+        title_row, detail_screen = _open_current_help_detail_title(tui, csi_right)
+        assert title_row and "Directory Help" not in title_row, detail_screen
 
         returned = tui.send_and_wait_for_condition(
             csi_left,
@@ -277,7 +278,9 @@ def test_contextual_help_accepts_csi_arrow_sequences(tmp_path):
             timeout=1.5,
         )
         assert returned, screen_text(tui)
-        assert any("Copy:" in line for line in returned), "\n".join(returned)
+        assert any(
+            "Copy:" in line or "2: Attributes." in line for line in returned
+        ), "\n".join(returned)
     finally:
         tui.quit()
 
@@ -290,18 +293,19 @@ def test_contextual_help_accepts_application_arrow_sequences(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
+        selected_style = _visible_cell_style(tui, "1: Name only.")
 
         tui.send_keystroke(Keys.DOWN, wait=0.05)
+        assert (
+            _selected_visible_help_label(
+                tui, ["1: Name only.", "2: Attributes.", "Copy:"], selected_style
+            )
+            != "1: Name only."
+        ), screen_text(tui)
 
-        copy_detail = tui.send_and_wait_for_condition(
-            Keys.RIGHT,
-            lambda lines: lines
-            if any("Copy/Move Targets" in line for line in lines)
-            else False,
-            timeout=1.5,
-        )
-        assert copy_detail, screen_text(tui)
+        title_row, detail_screen = _open_current_help_detail_title(tui, Keys.RIGHT)
+        assert title_row and "Directory Help" not in title_row, detail_screen
 
         returned = tui.send_and_wait_for_condition(
             Keys.LEFT,
@@ -309,7 +313,9 @@ def test_contextual_help_accepts_application_arrow_sequences(tmp_path):
             timeout=1.5,
         )
         assert returned, screen_text(tui)
-        assert any("Copy:" in line for line in returned), "\n".join(returned)
+        assert any(
+            "Copy:" in line or "2: Attributes." in line for line in returned
+        ), "\n".join(returned)
     finally:
         tui.quit()
 
@@ -322,17 +328,19 @@ def test_contextual_help_down_arrow_advances_hidden_active_link(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
+        selected_style = _visible_cell_style(tui, "1: Name only.")
 
         tui.send_keystroke(Keys.DOWN, wait=0.05)
-        moved = tui.send_and_wait_for_condition(
-            Keys.RIGHT,
-            lambda lines: lines
-            if any("Copy/Move Targets" in line for line in lines)
-            else False,
-            timeout=1.0,
-        )
-        assert moved, screen_text(tui)
+        assert (
+            _selected_visible_help_label(
+                tui, ["1: Name only.", "2: Attributes.", "Copy:"], selected_style
+            )
+            != "1: Name only."
+        ), screen_text(tui)
+
+        title_row, detail_screen = _open_current_help_detail_title(tui, Keys.RIGHT)
+        assert title_row and "Directory Help" not in title_row, detail_screen
     finally:
         tui.quit()
 
@@ -345,7 +353,7 @@ def test_contextual_help_down_arrow_skips_plain_rows_then_scrolls(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
 
         moved = tui.send_and_wait_for_condition(
             Keys.DOWN,
@@ -354,14 +362,8 @@ def test_contextual_help_down_arrow_skips_plain_rows_then_scrolls(tmp_path):
         )
         assert moved, screen_text(tui)
 
-        copy_detail = tui.send_and_wait_for_condition(
-            Keys.RIGHT,
-            lambda lines: lines
-            if any("Copy/Move Targets" in line for line in lines)
-            else False,
-            timeout=1.0,
-        )
-        assert copy_detail, screen_text(tui)
+        copy_detail = _follow_help_topic(tui, "Copy:", "Copy/Move Targets", timeout=1.0)
+        assert "Copy/Move Targets" in copy_detail, copy_detail
 
         returned = tui.send_and_wait_for_condition(
             Keys.LEFT,
@@ -371,7 +373,7 @@ def test_contextual_help_down_arrow_skips_plain_rows_then_scrolls(tmp_path):
         assert returned, screen_text(tui)
         scrolled = _scroll_help_to_text(tui, "eXecute:")
         assert "eXecute:" in scrolled, scrolled
-        assert "1..9 view:" not in scrolled, scrolled
+        assert "1: Name only." not in scrolled, scrolled
     finally:
         tui.quit()
 
@@ -384,7 +386,7 @@ def test_contextual_help_down_arrow_scrolls_past_write_to_lower_commands(tmp_pat
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
 
         lower_commands = tui.wait_for_condition(
             lambda lines: lines if any("eXecute:" in line for line in lines) else False,
@@ -393,7 +395,7 @@ def test_contextual_help_down_arrow_scrolls_past_write_to_lower_commands(tmp_pat
         )
         assert not lower_commands, screen_text(tui)
 
-        for _ in range(30):
+        for _ in range(64):
             tui.send_keystroke(Keys.DOWN, wait=0.05)
             current = tui.peek_screen_dump()
             if any("eXecute:" in line for line in current):
@@ -412,7 +414,7 @@ def test_contextual_help_down_arrow_eventually_scrolls_visible_page(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
 
         scrolled = _scroll_help_to_text(tui, "Z archive:")
         assert "Z archive:" in scrolled, scrolled
@@ -439,7 +441,7 @@ def test_contextual_help_keeps_blank_gap_above_footer_while_scrolled(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
 
         help_screen = _scroll_help_to_text(tui, "` dotfiles:")
         assert "` dotfiles:" in help_screen, help_screen
@@ -496,12 +498,12 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
 
-        selected_style = _visible_cell_style(tui, "1..9 view:")
+        selected_style = _visible_cell_style(tui, "1: Name only.")
 
         reached_execute = False
-        for _ in range(48):
+        for _ in range(80):
             tui.send_keystroke(Keys.DOWN, wait=0.05)
             current = screen_text(tui)
             if "eXecute:" in current:
@@ -511,7 +513,7 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
         assert reached_execute, screen_text(tui)
 
         restored = False
-        for _ in range(48):
+        for _ in range(80):
             tui.send_keystroke(Keys.UP, wait=0.05)
             current = screen_text(tui)
             if "J compare:" in current:
@@ -525,15 +527,15 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
         for _ in range(48):
             tui.send_keystroke(Keys.UP, wait=0.05)
             current = screen_text(tui)
-            if "1..9 view:" in current:
+            if "1: Name only." in current:
                 restored_top = True
                 break
 
         assert restored_top, screen_text(tui)
-        assert _visible_cell_style(tui, "1..9 view:") == selected_style, screen_text(tui)
+        assert _visible_cell_style(tui, "1: Name only.") == selected_style, screen_text(tui)
 
         tui.send_keystroke(Keys.UP, wait=0.05)
-        assert _visible_cell_style(tui, "1..9 view:") == selected_style, screen_text(tui)
+        assert _visible_cell_style(tui, "1: Name only.") == selected_style, screen_text(tui)
     finally:
         tui.quit()
 
@@ -557,9 +559,10 @@ def test_split_file_help_arrows_follow_rows_without_wrapping(tmp_path):
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
         help_screen = _wait_for_help(tui, "F8 Split File Help")
+        help_screen = _scroll_help_to_text(tui, "C/^K copy:")
         assert "C/^K copy:" in help_screen, help_screen
 
-        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1..9 view:")
+        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1: Name only.")
         first_detail = _follow_help_topic(
             tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
         )
@@ -614,9 +617,9 @@ def test_execute_prompt_f1_help_explains_placeholder_and_tagged_repeat(tmp_path)
         tui.send_keystroke(Keys.F1, wait=0.3)
         help_screen = screen_text(tui)
         normalized = _normalized_help_text(help_screen)
-        assert "{} where the selected file path should be inserted" in normalized, help_screen
+        assert "Put {} where the selected file path should go" in normalized, help_screen
         assert "Ctrl-X" in help_screen, help_screen
-        assert "rerun the command for each tagged file" in normalized, help_screen
+        assert "repeat the same command once per tagged file" in normalized, help_screen
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("COMMAND", timeout=1.0), screen_text(tui)
@@ -664,10 +667,11 @@ def test_filter_prompt_f1_help_uses_generated_runtime_topic(tmp_path):
 
         filter_help = _wait_for_help(tui, "Filter Help")
         normalized = _normalized_help_text(filter_help)
-        assert "Type one or more filter terms." in normalized, filter_help
-        assert "The prompt starts with *, which means all files." in normalized, filter_help
-        assert "Terms can be stacked by separating them with commas." in normalized, filter_help
-        assert "All terms apply together to the current file-list scope." in normalized, filter_help
+        assert "Type one or more filter terms for the current file list." in normalized, filter_help
+        assert "* means show everything" in normalized, filter_help
+        assert "*.c matches by name" in normalized, filter_help
+        assert "Separate terms with commas so they all apply together." in normalized, filter_help
+        assert "switch between all files and tagged files" in normalized, filter_help
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("FILTER:", timeout=1.0), screen_text(tui)
@@ -709,8 +713,8 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
 
         help_screen = _wait_for_help(tui, "Directory Help")
         directory_help_screen = help_screen
-        assert "1..9 view:" in directory_help_screen, directory_help_screen
-        assert "Attributes:" in directory_help_screen, directory_help_screen
+        assert "1: Name only." in directory_help_screen, directory_help_screen
+        assert "2: Attributes." in directory_help_screen, directory_help_screen
         assert "A (Attributes):" not in directory_help_screen, directory_help_screen
         assert "Directory commands" not in directory_help_screen, directory_help_screen
         assert "Tree navigation" not in directory_help_screen, directory_help_screen
@@ -748,7 +752,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         ]
         assert title_gap.strip() == "", directory_help_screen
         first_help_row = next(
-            i for i, line in enumerate(help_lines) if "1..9 view:" in line
+            i for i, line in enumerate(help_lines) if "1: Name only." in line
         )
         blank_gap = help_lines[first_help_row + 1][
             directory_frame["left"] + 1 : directory_frame["right"]
@@ -767,14 +771,16 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         help_screen = _wait_for_help(tui, "F8 Split Directory Help")
         assert "Tab" in help_screen, help_screen
         assert "inactive panel" in help_screen, help_screen
-        assert "1..9 view:" in help_screen, help_screen
-        assert "J compare:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
         assert "F8:" in help_screen, help_screen
         assert "Leave split:" not in help_screen, help_screen
+        help_screen = _scroll_help_to_text(tui, "J compare:")
+        assert "J compare:" in help_screen, help_screen
         help_screen = _scroll_help_to_text(tui, "eXecute:")
         assert "eXecute:" in help_screen, help_screen
         assert "Left Arrow:" not in help_screen, help_screen
-        help_screen = _send_help_key_until_text(tui, Keys.HOME, "Copy:")
+        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1: Name only.")
+        help_screen = _scroll_help_to_text(tui, "Copy:")
         split_copy_detail = _follow_help_topic(
             tui, "Copy:", "Copy/Move Targets", timeout=1.0
         )
@@ -805,7 +811,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
         help_screen = _wait_for_help(tui, "F8 Split File Help")
         assert "File commands" not in help_screen, help_screen
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
         assert "Left Arrow:" not in help_screen, help_screen
         assert "Right Arrow:" not in help_screen, help_screen
         assert "Enter:" not in help_screen, help_screen
@@ -823,7 +829,8 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
             help_screen = _scroll_help_to_text(tui, label)
             assert label in help_screen, help_screen
             assert stale_label not in help_screen, help_screen
-        help_screen = _send_help_key_until_text(tui, Keys.HOME, "C/^K copy:")
+        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1: Name only.")
+        help_screen = _scroll_help_to_text(tui, "C/^K copy:")
         copy_detail = _follow_help_topic(
             tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
         )
@@ -984,8 +991,8 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
-        assert "Attributes:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
+        assert "2: Attributes." in help_screen, help_screen
         footer_line = next(
             line for line in help_screen.splitlines() if "Esc/Quit" in line
         )
@@ -1017,7 +1024,7 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
             "c",
             lambda lines: lines
             if any("Contents" in line for line in lines)
-            and any("Applications Help:" in line for line in lines)
+            and any("Applications:" in line for line in lines)
             else False,
             timeout=1.0,
         )
@@ -1028,10 +1035,10 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
         )
         assert "open" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
-        assert "Applications Help" in contents_text, contents_text
-        assert "Archive Directory Help" in contents_text, contents_text
+        assert "Applications" in contents_text, contents_text
+        assert "Archive Directory" in contents_text, contents_text
 
-        selected_style = _visible_cell_style(tui, "Applications Help:")
+        selected_style = _visible_cell_style(tui, "Applications:")
         reached_copy_targets = False
         for _ in range(24):
             if (
@@ -1109,9 +1116,9 @@ def test_contextual_help_detail_footer_uses_left_back_and_c_contents(tmp_path):
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
 
-        selected_style = _visible_cell_style(tui, "1..9 view:")
+        selected_style = _visible_cell_style(tui, "1: Name only.")
         reached_copy = False
-        for _ in range(12):
+        for _ in range(32):
             if _selected_visible_help_label(tui, ["Copy:"], selected_style) == "Copy:":
                 reached_copy = True
                 break
@@ -1144,7 +1151,7 @@ def test_contextual_help_detail_footer_uses_left_back_and_c_contents(tmp_path):
         contents_screen = tui.send_and_wait_for_condition(
             "c",
             lambda lines: lines
-            if any("Applications Help:" in line for line in lines)
+            if any("Applications:" in line for line in lines)
             and any("Esc/Quit" in line for line in lines)
             else False,
             timeout=1.0,
@@ -1299,7 +1306,7 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         help_screen = _wait_for_help(tui, "Archive Directory Help")
         seen_screens = [help_screen]
         for label in (
-            "1..9 view:",
+            "1: Name only.",
             "Global:",
             "J compare:",
             "K volume:",
@@ -1310,7 +1317,7 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
             help_screen = _scroll_help_to_text(tui, label)
             seen_screens.append(help_screen)
         dir_help = "\n".join(seen_screens).lower()
-        for label in ("1..9 view:", "global:", "j compare:", "k volume:", "log:", "showall:", "/ jump:"):
+        for label in ("1: name only.", "global:", "j compare:", "k volume:", "log:", "showall:", "/ jump:"):
             assert label in dir_help, dir_help
         for nav_label in ("enter:", "left arrow:", "right arrow:"):
             assert nav_label not in dir_help, help_screen
@@ -1327,8 +1334,21 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         assert tui.wait_for_content("inside.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Archive File Help")
-        file_help = help_screen.lower()
-        for label in ("1..9 view:", "c/^k copy:", "delete:", "filter:", "hex:", "j compare:", "k volume:", "m/^n move:"):
+        seen_screens = [help_screen]
+        for label in (
+            "1: Name only.",
+            "C/^K copy:",
+            "Delete:",
+            "Filter:",
+            "Hex:",
+            "J compare:",
+            "K volume:",
+            "M/^N move:",
+        ):
+            help_screen = _scroll_help_to_text(tui, label)
+            seen_screens.append(help_screen)
+        file_help = "\n".join(seen_screens).lower()
+        for label in ("1: name only.", "c/^k copy:", "delete:", "filter:", "hex:", "j compare:", "k volume:", "m/^n move:"):
             assert label in file_help, help_screen
         assert "archive file help only covers" not in file_help, help_screen
         assert "see file for the normal file-mode baseline" not in file_help, help_screen
@@ -1348,7 +1368,7 @@ def test_contextual_help_uses_page_keys_and_only_links_complex_commands(tmp_path
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
         help_screen = _wait_for_help(tui, "Directory Help")
-        assert "1..9 view:" in help_screen, help_screen
+        assert "1: Name only." in help_screen, help_screen
 
         help_screen = _send_help_key_until_text(tui, Keys.END, "` dotfiles:")
         assert "` dotfiles:" in help_screen, help_screen
@@ -1361,14 +1381,24 @@ def test_contextual_help_uses_page_keys_and_only_links_complex_commands(tmp_path
         assert unchanged, screen_text(tui)
         assert not any("` dotfiles" == line.strip() for line in unchanged), "\n".join(unchanged)
 
-        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1..9 view:")
-        assert "1..9 view:" in help_screen, help_screen
+        help_screen = _send_help_key_until_text(tui, Keys.HOME, "1: Name only.")
+        assert "1: Name only." in help_screen, help_screen
 
-        help_screen = _send_help_key_until_text(tui, Keys.PGDN, "moVedir:")
+        help_screen = screen_text(tui)
+        for _ in range(4):
+            if "moVedir:" in help_screen:
+                break
+            tui.send_keystroke(Keys.PGDN, wait=0.05)
+            help_screen = screen_text(tui)
         assert "moVedir:" in help_screen, help_screen
 
-        help_screen = _send_help_key_until_text(tui, Keys.PGUP, "1..9 view:")
-        assert "1..9 view:" in help_screen, help_screen
+        help_screen = screen_text(tui)
+        for _ in range(4):
+            if "1: Name only." in help_screen:
+                break
+            tui.send_keystroke(Keys.PGUP, wait=0.05)
+            help_screen = screen_text(tui)
+        assert "1: Name only." in help_screen, help_screen
     finally:
         tui.quit()
 

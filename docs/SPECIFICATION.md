@@ -178,7 +178,7 @@ The `ytnova` input system follows a layered model designed for high-speed intera
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
 *   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
 *   **Quit to Directory (`^q`):** Exits `ytnova` to the currently highlighted directory (requires shell-level support to finalize the shell path).
-*   **Localized Command-Preset Rule:** Locale/layout adaptation for linguistic mnemonics is provided by explicit command presets keyed by stable preset ID and action ID, not by runtime guesses about physical keyboard layout. A package can choose a default preset, and the user can override it, but runtime command resolution still starts from curses/terminfo key events plus the resolved active command preset.
+*   **Localized Command-Preset Rule:** Locale/layout adaptation for linguistic mnemonics is provided by explicit command presets keyed by stable preset ID and action ID, not by runtime guesses about physical keyboard layout. A preset selects a command-layout variant; it may encode localized labels, mnemonic choices, keyboard-layout accommodations, or a combination of those, but it does not by itself select the whole application language. A package can choose a default preset, and the user can override it, but runtime command resolution still starts from curses/terminfo key events plus the resolved active command preset.
 
 ### 4.4 Function Key Blueprint (F1-F12)
 *   **`F1`**: help.
@@ -541,7 +541,7 @@ Rules are first-match-wins. Selectors are extension names without `*.` by defaul
 
 Required contract:
 *   Section headers name the stable runtime command surface that owns the following rows; they are not language names. Current canonical surface IDs include at least `[DIR]`, `[FILE]`, `[ARCHIVE_DIR]`, and `[ARCHIVE_FILE]`. Future command surfaces may add new stable section IDs without changing the row grammar.
-*   `preset` names one packaged command preset by stable untranslated ID. If present, runtime loads that preset first and then applies local section-row overrides from `commands.conf`. If absent, runtime uses the packaged default active command map from `etc/ytnova.commands`.
+*   `preset` names one packaged command-layout preset by stable untranslated ID. If present, runtime loads that preset first and then applies local section-row overrides from `commands.conf`. If absent, runtime uses the packaged default active command map from `etc/ytnova.commands`. A preset may represent a language-oriented mnemonic set, a keyboard-layout accommodation, or a mixed locale/layout variant, but it does not by itself switch all application text.
 *   `binding` names the exact key inputs. Uppercase and lowercase letters may be bound separately. `Ctrl+letter` bindings are case-insensitive: `Ctrl+n` and `Ctrl+N` mean the same chord, so only one command may use a given `Ctrl+letter` chord. Alias bindings may be comma-separated only when they share the same section, shown token, label, action ID, and command payload.
 *   `shown` names the token text rendered in footer keybinding/F1 surfaces. It is separate from the real binding so localized labels and display mnemonics do not need to mirror the raw input key exactly.
 *   `label` stores plain user-visible text only. Users must not encode binding markup into the label column.

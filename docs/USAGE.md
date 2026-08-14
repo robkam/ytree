@@ -144,7 +144,7 @@ These commands work in most modes:
 *   **^Q**: **Quit to Directory**. If you exit ytnova with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
 *   **Q**: **Quit**. Exit ytnova.
 
-### VI Keys Mode (Profile Option)
+### Vi Keys Mode (Profile Option)
 When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 `h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
 
@@ -418,7 +418,7 @@ Tree/directory views jump among visible directory names, while file-oriented vie
 * **Enter**: Keep the current match and stay there.
 * **Esc**: Cancel the jump and restore the original selection.
 * **Scope changes**: Filtering, Showall/Global projection, archives, and split mode all change which visible list `/` searches, but they do not change the jump keys themselves.
-### VI Keys
+### Vi Keys
 
 #### Navigation remap
 With `VI_KEYS=1`, lowercase `h`, `j`, `k`, and `l` become `Left`, `Down`, `Up`, and `Right`.
