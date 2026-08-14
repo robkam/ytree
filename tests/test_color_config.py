@@ -317,7 +317,10 @@ def test_manpage_documents_user_visible_theme_contract():
         assert (
             "instead of the default `~/.config/ytnova/ytnova.conf`" in source
         )
-        assert "View the selected file with the configured pager." in source
+        assert (
+            "`View`, `Hex`, and `Edit` open the selected file through the configured pager, hex viewer, or editor."
+            in source
+        )
         assert "~/.config/ytnova/ytnova.conf" in source
         assert "~/.config/ytnova/commands.conf" in source
         assert "~/.config/ytnova/themes.conf" in source

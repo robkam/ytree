@@ -7,6 +7,8 @@ HELP_SOURCES = (
     Path("etc/help/man.en.md"),
 )
 LOCALE_F1_SOURCES = (Path("etc/help/f1.de.md"),)
+LOCALE_MAN_SOURCES = (Path("etc/help/man.de.md"),)
+ALL_HELP_SOURCES = HELP_SOURCES + LOCALE_F1_SOURCES + LOCALE_MAN_SOURCES
 DISPLAY_SOURCE = Path("src/ui/display.c")
 RUNTIME_HELP_CONTEXT_SOURCES = (
     Path("src/ui/application_menu.c"),
@@ -155,7 +157,7 @@ def _runtime_help_contexts():
 
 
 def test_help_source_uses_deterministic_topic_block_schema():
-    for path in HELP_SOURCES + LOCALE_F1_SOURCES:
+    for path in ALL_HELP_SOURCES:
         source = _read_help_source(path)
         blocks = _topic_blocks(source)
 
@@ -184,13 +186,14 @@ def test_help_source_uses_deterministic_topic_block_schema():
 
 def test_help_source_defines_required_first_pass_topics():
     topic_sets = []
-    for path in HELP_SOURCES + LOCALE_F1_SOURCES:
+    for path in ALL_HELP_SOURCES:
         source = _read_help_source(path)
         topics = {match.group("topic") for match in _topic_blocks(source)}
         assert REQUIRED_TOPICS.issubset(topics)
         topic_sets.append(topics)
 
-    assert topic_sets[0] == topic_sets[1] == topic_sets[2]
+    first_topics = topic_sets[0]
+    assert all(topics == first_topics for topics in topic_sets[1:])
 
 
 def test_f1_context_metadata_matches_runtime_help_entry_points():

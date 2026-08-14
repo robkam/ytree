@@ -1116,7 +1116,7 @@ Ordering policy (for all editors, including AI editors):
 *   Popup text remains readable in narrow layouts without losing right-edge content.
 *   The authored `etc/help/f1.en.md` source remains human-intelligible to edit directly, with topic ownership and local/shared boundaries obvious from the file itself rather than only from generator/runtime knowledge.
 *   The resulting authored help remains compatible with Task 43.3's translator/editability constraints and with Task 43.4's runtime follow-path structure.
-*   - [ ] **Status:** In Progress.
+*   - [~] **Status:** In Progress.
 
 #### **Task 43.6: Bring Manpage/Usage Reference Prose in Line with Unix Manpage Conventions**
 *   **Goal:** Make the authored manpage/usage reference text follow expected Unix manpage conventions for structure, tone, scannability, and level of detail instead of reading like an over-dense dump of command rows, repeated boilerplate, or mechanically projected popup content.
