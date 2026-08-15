@@ -1,0 +1,38 @@
+Work item: docs/ROADMAP.md Task 51.1
+Title: Baseline Security Debt Audit and Classification
+Acceptance target:
+- Canonical audit evidence documents the current Phase 5 security baseline across shell-command construction/escaping, archive path trust, tempfile lifecycle, and unsafe API usage.
+- The baseline inventory records severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes for each in-scope risk family.
+Completion objective:
+- Complete Task 51.1 by adding the baseline security debt audit to the canonical audit docs, reconciling the in-scope security surfaces against that inventory, and updating roadmap status so the audit evidence is durable and reviewable.
+
+Selected work family:
+- Security baseline documentation and classification for the four Task 51 risk families, plus the roadmap/audit bookkeeping needed to make that baseline durable.
+
+Inventory and closure:
+- docs/ROADMAP.md Task 51 / Task 51.1 source-of-truth status lines — addressed; Task 51 is now `In Progress` because the baseline exists while follow-on guardrail tasks remain open, and Task 51.1 is now `Complete`.
+- docs/ROADMAP.md maintainer-directed adjacent status corrections for Task 1, Task 2, Task 17, Task 18, and Task 61 — addressed; the roadmap now matches the maintainer's explicit completion/not-started calls while leaving the Task 51.1 audit result intact.
+- docs/AUDIT.md canonical audit evidence location for the Task 51.1 baseline — addressed; added the dated Security Baseline Debt Register with findings, owners, severity, disposition, residual risk, and the inspected-surface list.
+- scripts/check_c_unsafe_apis.py current unsafe-API detection guard — intentionally unchanged; audited as current enforcement evidence and classified as too narrow for the full Phase 5 denylist, with follow-up assigned to Task 51.2.1 / 51.3.
+- Makefile qa-unsafe-apis / qa-fileops-integrity / qa-all gate definitions — intentionally unchanged; audited to document current security-gate coverage and the remaining mandatory-evidence gap.
+- src/cmd/system.c runtime shell-launch boundary (`system`, `/bin/sh -c`) — intentionally unchanged; classified as high-severity fix-now debt for Task 51.2.2.
+- src/cmd/print_ops.c print-to-command `popen` path — intentionally unchanged; classified as high-severity fix-now debt for Task 51.2.2.
+- src/ui/ctrl_file_ops.c tagged command piping `popen` path — intentionally unchanged; classified as high-severity fix-now debt for Task 51.2.2.
+- src/core/quit.c fixed-literal `system("stty sane")` fallback — intentionally unchanged; recorded as part of the remaining shell-mediated runtime launch surface.
+- src/fs/archive_read.c archive internal-path validation and extraction entry points — intentionally unchanged; audited as the current archive trust-policy enforcement baseline with remaining coverage debt called out explicitly.
+- src/util/path_utils.c shared tempfile helper policy — intentionally unchanged; audited as the current centralized tempfile policy baseline.
+- src/cmd/copy.c archive extraction tempfile path that still hardcodes `/tmp` — intentionally unchanged; classified as medium-severity fix-now debt for the next fileops security hardening slice.
+- tests/test_security_shell_paths.py shell-path quoting and placeholder coverage — intentionally unchanged; cited as current evidence that placeholder quoting remains literal on the protected runtime paths already covered.
+- tests/test_security_tempfiles.py tempfile policy coverage — intentionally unchanged; cited as current evidence for the shared tempfile helper contract.
+- tests/test_commands_exhaustive.py direct source-contract coverage for tempfile cleanup call paths — intentionally unchanged; cited as supplemental cleanup-policy evidence for the tempfile baseline.
+- .agent/handoffs/task-61.txt unrelated completed-work residue — addressed; deleted before starting Task 51.1 because no active branch or PR still depended on it.
+
+Findings recorded in docs/AUDIT.md:
+- Shell-command construction and escaping: High; runtime command-launch surfaces still use `system()`, `popen()`, and `/bin/sh -c`; disposition fix now in Task 51.2.1 / 51.2.2.
+- Archive path trust policy: Medium; inspected call paths reject unsafe internal paths, but dedicated traversal-regression coverage is still debt.
+- Tempfile lifecycle: Medium; shared helper exists, but `src/cmd/copy.c` still bypasses it with `/tmp/ytnova_copy_XXXXXX`.
+- Unsafe API usage and QA detection: High; `qa-unsafe-apis` only bans a narrow string-API subset and does not yet detect the broader in-scope launch APIs.
+
+Focused validation:
+- `source .venv/bin/activate && make qa-unsafe-apis`
+- `source .venv/bin/activate && pytest -q tests/test_security_shell_paths.py::test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection`
