@@ -72,7 +72,7 @@ Ordering policy (for all editors, including AI editors):
 *   Existing split/viewport fixes are either routed through the transition boundary or explicitly marked as compatibility shims with removal tasks.
 *   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated or cross-linked so existing restore/split contracts do not preserve a narrower `F8`/`Tab`-only transition model, stale task references, or conflicting ownership language.
 *   `make qa-all` / PR full-QA CI passes with the invariant test harness enabled.
-*   - [~] **Status:** In Progress.
+*   - [x] **Status:** Complete.
 
 ### **Task 2: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
@@ -1275,12 +1275,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Add explicit QA and merge-gate enforcement that audits the current codebase for security risks and blocks new or reintroduced security findings.
 *   **Scope:** shell-command construction and escaping boundaries, archive path trust policy, tempfile lifecycle, and unsafe API usage.
 *   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
-*   - [ ] **Status:** Not Started.
+*   - [~] **Status:** In Progress.
 
 #### **Task 51.1: Baseline Security Debt Audit and Classification**
 *   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
 *   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 #### **Task 51.2: Runtime Execution Security Guardrail**
 *   **Goal:** Group runtime execution security hardening and guard expansion under one umbrella with mandatory staged completion.
@@ -1620,7 +1620,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
 *   **Pilot locale:** Use the existing German (`de`) help/man sources and German command preset as the initial reference locale baseline, and complete the missing runtime gettext/catalog path so German becomes the first end-to-end supported non-English locale. New locales may use German as a structural example, but English remains the canonical source of meaning.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Task 62: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.

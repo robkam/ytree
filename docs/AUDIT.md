@@ -165,6 +165,35 @@ Risk register (coverage/signal preservation):
 | Runtime optimizations hide flaky behavior | Track flake rate and require deterministic repro/root-cause handling | Flake rate trend worsens without root-cause fixes |
 | Deep runtime checks deferred too aggressively | Tier D requires sanitizer + deep Valgrind at merge/release cadence | Release/merge evidence lacks required deep-runtime gates |
 
+## 1.4 Security Baseline Debt Register (2026-08-15)
+
+This register is the canonical Task 51.1 baseline until a later audit replaces it.
+Its scope is limited to the four Phase 5 security families already named in `docs/ROADMAP.md`:
+shell-command construction/escaping, archive path trust, tempfile lifecycle, and unsafe API usage.
+
+| Risk family | Current evidence | Baseline finding | Severity | Owner | Disposition | Residual risk |
+|---|---|---|---|---|---|---|
+| Shell-command construction and escaping | `tests/test_security_shell_paths.py` proves the compare/view/execute placeholder paths preserve literal filenames containing shell metacharacters. | Runtime launch paths still rely on shell-mediated execution: `src/cmd/system.c` uses `system()` and `/bin/sh -c`, `src/cmd/print_ops.c` uses `popen()` for print-to-command, `src/ui/ctrl_file_ops.c` uses `popen()` for tagged piping, and `src/core/quit.c` still carries a fixed-literal `system("stty sane")` fallback. | High | Runtime command launch + file-command flows | Fix now in Task 51.2.2, with guard coverage expanded in Task 51.2.1. | Current quoting tests reduce immediate placeholder risk, but shell interpretation remains live in production runtime paths and can still be re-exposed by future call-path drift. |
+| Archive path trust policy | `src/fs/archive_read.c` centralizes `Archive_ValidateInternalPath()`, and inspected call paths in `src/cmd/execute.c`, `src/ui/view_preview.c`, and `src/ui/tagged_view.c` reject unsafe archive member paths before use. | No blocker/high defect was confirmed in the inspected call paths, but the trust policy is still enforced mostly by code inspection rather than a dedicated regression suite that proves traversal rejection across extract/preview/tagged-view surfaces. | Medium | Archive/fileops runtime + regression tests | Track as debt; add explicit regression coverage before expanding archive extraction behavior further. | A future call path that bypasses `Archive_ValidateInternalPath()` could reopen archive traversal risk without an audit catching it quickly. |
+| Tempfile lifecycle | `src/util/path_utils.c` provides `Path_BuildTempTemplate()` and `Path_CreateTempFile()`, and `tests/test_security_tempfiles.py` plus `tests/test_commands_exhaustive.py` lock the execute/view/hex/preview callers onto that shared helper. | `src/cmd/copy.c` still hardcodes `/tmp/ytnova_copy_XXXXXX` and calls `mkstemp()` directly when it extracts archive content for copy workflows, so the tempfile policy is not yet fully centralized. | Medium | File/archive mutation flows | Fix now in the next fileops security hardening slice. | TMPDIR-aware policy, cleanup invariants, and future guard expansion can still drift because one production path bypasses the shared helper. |
+| Unsafe API usage and QA detection | `make qa-unsafe-apis` runs `scripts/check_c_unsafe_apis.py`, which rejects `strcpy`, `strcat`, and `sprintf` in `src/**/*.c`; `make qa-fileops-integrity` already covers the current shell/tempfile regression tests. | The current guard only bans a narrow string-API subset and does not detect the in-scope runtime launch APIs already present (`system`, `popen`) or other approved denylist expansions needed for Phase 5. | High | Build/QA guard scripts | Fix now in Task 51.2.1 and make it mandatory in Task 51.3 PR evidence. | New or reintroduced in-scope security-sensitive APIs can still land without tripping the current baseline guard. |
+
+Inspected surfaces for this baseline:
+
+- `docs/ROADMAP.md`
+- `scripts/check_c_unsafe_apis.py`
+- `Makefile` (`qa-unsafe-apis`, `qa-fileops-integrity`, `qa-all`)
+- `src/cmd/system.c`
+- `src/cmd/print_ops.c`
+- `src/ui/ctrl_file_ops.c`
+- `src/core/quit.c`
+- `src/fs/archive_read.c`
+- `src/util/path_utils.c`
+- `src/cmd/copy.c`
+- `tests/test_security_shell_paths.py`
+- `tests/test_security_tempfiles.py`
+- `tests/test_commands_exhaustive.py`
+
 ## 2. Role Mapping
 The workflow relies on four distinct roles. When using AI agents, these must be treated as adversarial personas to ensure objectivity.
 
