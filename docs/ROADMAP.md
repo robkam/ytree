@@ -1288,7 +1288,7 @@ Ordering policy (for all editors, including AI editors):
 ##### **Task 51.2.1: Expand Security Guard Coverage to Block Reintroduction**
 *   **Goal:** Ensure banned/legacy security-sensitive APIs and patterns are explicitly rejected by automated guard scripts.
 *   **Mechanism:** Extend guard checks for legacy unsafe escaping/runtime paths and other approved denylisted APIs/patterns.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ##### **Task 51.2.2: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)**
 *   **Goal:** Make runtime command execution deterministic and secure by using one mandatory process-launch path in app runtime code.
