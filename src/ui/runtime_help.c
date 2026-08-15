@@ -74,6 +74,32 @@ typedef struct {
   int wrap_width;
 } RuntimeHelpPopupState;
 
+static const GeneratedHelpCatalog *ActiveGeneratedHelpCatalog(void) {
+  const char *language = I18n_GetLanguage();
+
+  if (generated_help_catalog_count == 0)
+    return NULL;
+  if (language != NULL && *language != '\0') {
+    size_t i;
+
+    for (i = 0; i < generated_help_catalog_count; ++i) {
+      if (generated_help_catalogs[i].locale_id != NULL &&
+          strcmp(generated_help_catalogs[i].locale_id, language) == 0) {
+        return &generated_help_catalogs[i];
+      }
+    }
+  }
+  return &generated_help_catalogs[0];
+}
+
+static const GeneratedHelpTopic *ActiveGeneratedHelpTopics(size_t *topic_count) {
+  const GeneratedHelpCatalog *catalog = ActiveGeneratedHelpCatalog();
+
+  if (topic_count != NULL)
+    *topic_count = catalog != NULL ? catalog->topic_count : 0;
+  return catalog != NULL ? catalog->topics : NULL;
+}
+
 static size_t FindNextSelectableItem(const RuntimeHelpPopupState *state,
                                      size_t start_index,
                                      size_t end_index_exclusive) {
@@ -215,15 +241,17 @@ static void UpdateGeneratedHelpViewport(void *user_data, int scroll_offset,
 }
 
 static const GeneratedHelpTopic *FindGeneratedTopicById(const char *topic_id) {
+  const GeneratedHelpTopic *topics;
+  size_t topic_count;
   size_t i;
 
   if (topic_id == NULL || topic_id[0] == '\0')
     return NULL;
 
-  for (i = 0; i < generated_help_topic_count; ++i) {
-    if (generated_help_topics[i].topic_id != NULL &&
-        strcmp(generated_help_topics[i].topic_id, topic_id) == 0) {
-      return &generated_help_topics[i];
+  topics = ActiveGeneratedHelpTopics(&topic_count);
+  for (i = 0; i < topic_count; ++i) {
+    if (topics[i].topic_id != NULL && strcmp(topics[i].topic_id, topic_id) == 0) {
+      return &topics[i];
     }
   }
 
@@ -256,14 +284,17 @@ static BOOL ContextListContains(const char *contexts_csv,
 
 static const GeneratedHelpTopic *FindGeneratedTopicByContext(
     const char *context_id) {
+  const GeneratedHelpTopic *topics;
+  size_t topic_count;
   size_t i;
 
   if (context_id == NULL || context_id[0] == '\0')
     return NULL;
 
-  for (i = 0; i < generated_help_topic_count; ++i) {
-    if (ContextListContains(generated_help_topics[i].contexts_csv, context_id))
-      return &generated_help_topics[i];
+  topics = ActiveGeneratedHelpTopics(&topic_count);
+  for (i = 0; i < topic_count; ++i) {
+    if (ContextListContains(topics[i].contexts_csv, context_id))
+      return &topics[i];
   }
 
   return NULL;
@@ -757,44 +788,59 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
             ? UI_COMMAND_LAYOUT_ALT_MNEMONIC
             : UI_COMMAND_LAYOUT_KEY_PREFIX;
     state->footer_commands[command_count].label =
-        state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "open"
-                                                                   : "back";
+        state->current_detail_index == GENERATED_HELP_NO_SELECTION
+            ? NP_("runtime-help.footer", "open")
+            : NP_("runtime-help.footer", "back");
     state->footer_commands[command_count].primary_key =
         state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Enter"
                                                                    : "Left";
     state->footer_commands[command_count].secondary_key =
         state->current_detail_index == GENERATED_HELP_NO_SELECTION ? "Right"
                                                                    : NULL;
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
 
     if (state->current_detail_index == GENERATED_HELP_NO_SELECTION &&
         state->has_history) {
       state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label = "back";
+      state->footer_commands[command_count].label =
+          NP_("runtime-help.footer", "back");
       state->footer_commands[command_count].primary_key = "Left";
       state->footer_commands[command_count].secondary_key = NULL;
+      state->footer_commands[command_count].translation_context =
+          "runtime-help.footer";
       command_count++;
     }
 
     if (!TopicIdEquals(state->topic, "intro") ||
         state->current_detail_index != GENERATED_HELP_NO_SELECTION) {
       state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label = "Contents";
+      state->footer_commands[command_count].label =
+          NP_("runtime-help.footer", "Contents");
       state->footer_commands[command_count].primary_key = "C";
       state->footer_commands[command_count].secondary_key = NULL;
+      state->footer_commands[command_count].translation_context =
+          "runtime-help.footer";
       command_count++;
     }
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label = "Navigation";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Navigation");
     state->footer_commands[command_count].primary_key = "N";
     state->footer_commands[command_count].secondary_key = NULL;
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
-    state->footer_commands[command_count].label = "Quit";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Quit");
     state->footer_commands[command_count].primary_key = "Esc";
     state->footer_commands[command_count].secondary_key = "Q";
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
     state->link_command_count = 0;
     state->active_link_index = GENERATED_HELP_NO_SELECTION;
@@ -804,28 +850,40 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
   if (state->contextual_origin) {
     if (state->has_history) {
       state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label = "back";
+      state->footer_commands[command_count].label =
+          NP_("runtime-help.footer", "back");
       state->footer_commands[command_count].primary_key = "Left";
       state->footer_commands[command_count].secondary_key = NULL;
+      state->footer_commands[command_count].translation_context =
+          "runtime-help.footer";
       command_count++;
     }
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label = "Contents";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Contents");
     state->footer_commands[command_count].primary_key = "C";
     state->footer_commands[command_count].secondary_key = NULL;
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label = "Navigation";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Navigation");
     state->footer_commands[command_count].primary_key = "N";
     state->footer_commands[command_count].secondary_key = NULL;
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
-    state->footer_commands[command_count].label = "Quit";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Quit");
     state->footer_commands[command_count].primary_key = "Esc";
     state->footer_commands[command_count].secondary_key = "Q";
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
     state->link_command_count = 0;
     state->active_link_index = GENERATED_HELP_NO_SELECTION;
@@ -851,6 +909,7 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
     state->footer_commands[command_count].primary_key =
         state->footer_keys[command_count];
     state->footer_commands[command_count].secondary_key = NULL;
+    state->footer_commands[command_count].translation_context = NULL;
     command_count++;
   }
 
@@ -859,21 +918,30 @@ static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
       command_count > 0 ? 0 : GENERATED_HELP_NO_SELECTION;
   if (!TopicIdEquals(state->topic, "intro")) {
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label = "Back";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Back");
     state->footer_commands[command_count].primary_key = "Left";
     state->footer_commands[command_count].secondary_key = NULL;
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
 
     state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label = "Contents";
+    state->footer_commands[command_count].label =
+        NP_("runtime-help.footer", "Contents");
     state->footer_commands[command_count].primary_key = "C";
     state->footer_commands[command_count].secondary_key = NULL;
+    state->footer_commands[command_count].translation_context =
+        "runtime-help.footer";
     command_count++;
   }
   state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_ALT_MNEMONIC;
-  state->footer_commands[command_count].label = "Quit";
+  state->footer_commands[command_count].label =
+      NP_("runtime-help.footer", "Quit");
   state->footer_commands[command_count].primary_key = "Esc";
   state->footer_commands[command_count].secondary_key = "Q";
+  state->footer_commands[command_count].translation_context =
+      "runtime-help.footer";
   command_count++;
 
   return command_count;

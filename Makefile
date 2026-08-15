@@ -71,6 +71,7 @@ WARNINGS    = -Wall -Wextra -Wno-unused-parameter
 # -DVERSION, -DVERSIONDATE: Version info from Makefile variables
 PROJECT_CPPFLAGS = -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
                    -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
+                   -DPACKAGED_LOCALE_DIR='"$(DATADIR)/locale"' \
                    -DPACKAGED_COMMANDS_PATH='"$(YTNOVA_DATADIR)/ytnova.commands"' \
                    -DPACKAGED_COMMAND_PRESET_DIR='"$(YTNOVA_DATADIR)/commands"' \
                    -DPACKAGED_APPLICATIONS_PATH='"$(YTNOVA_DATADIR)/ytnova.applications"' \
@@ -97,11 +98,17 @@ COMMAND_PRESETS_SRC_DIR = etc/commands
 COMMAND_PRESETS_HDR = src/core/default_command_presets_catalog.h
 COMMAND_PRESETS_SCRIPT = scripts/generate_default_command_presets_catalog.py
 HELP_F1_SOURCE = etc/help/f1.en.md
+HELP_F1_LOCALE_SOURCES = $(wildcard etc/help/f1.*.md)
 HELP_MAN_SOURCE = etc/help/man.en.md
 HELP_MAN_MD = etc/ytnova.1.md
 HELP_USAGE_MD = docs/USAGE.md
 HELP_RUNTIME_HDR = src/core/generated_help_topics.h
 HELP_GENERATOR_SCRIPT = scripts/generate_help_assets.py
+GETTEXT_COMPILE_SCRIPT = scripts/compile_mo.py
+GETTEXT_DOMAIN = ytnova
+GETTEXT_POT = po/$(GETTEXT_DOMAIN).pot
+GETTEXT_PO_FILES = $(wildcard po/*.po)
+GETTEXT_MO_FILES = $(patsubst po/%.po,$(BUILD_DIR)/locale/%/LC_MESSAGES/$(GETTEXT_DOMAIN).mo,$(GETTEXT_PO_FILES))
 CODE_QUALITY_HOTSPOT_SCRIPT = scripts/report_code_quality_hotspots.py
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
@@ -192,7 +199,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 		qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-dead-history-comments qa-module-boundaries qa-clean-code qa-appstate-contract qa-ai-config qa-theme-catalog qa-profile-template qa-commands-catalog qa-applications-catalog qa-command-presets-catalog qa-help-assets qa-code-quality qa-all \
 		ci-baseline mcp-doctor py-requirements \
 		qa-all-log qa-deep theme-catalog profile-template commands-catalog applications-catalog command-presets-catalog \
-		help-assets \
+		help-assets locale-catalogs update-gettext-pot \
 		code-quality-hotspots
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -214,6 +221,7 @@ $(BUILD_DIR):
 # Generate tracked help projections and the build manpage from the canonical help source.
 help-assets: | $(BUILD_DIR)
 	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --f1-source $(HELP_F1_SOURCE) \
+		$(foreach src,$(filter-out $(HELP_F1_SOURCE),$(HELP_F1_LOCALE_SOURCES)),--f1-locale-source $(src) ) \
 		--man-source $(HELP_MAN_SOURCE) \
 		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
 		--runtime-header $(HELP_RUNTIME_HDR) --man-roff $(MANPAGE) \
@@ -224,11 +232,30 @@ docs: help-assets
 # Generate the roff man page
 $(MANPAGE): $(HELP_F1_SOURCE) $(HELP_MAN_SOURCE) $(HELP_GENERATOR_SCRIPT) | $(BUILD_DIR)
 	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --f1-source $(HELP_F1_SOURCE) \
+		$(foreach src,$(filter-out $(HELP_F1_SOURCE),$(HELP_F1_LOCALE_SOURCES)),--f1-locale-source $(src) ) \
 		--man-source $(HELP_MAN_SOURCE) \
 		--man-roff $@ --version "$(VERSION)" --versiondate "$(VERSIONDATE)" --write
 
+locale-catalogs: $(GETTEXT_MO_FILES)
+
+$(BUILD_DIR)/locale/%/LC_MESSAGES/$(GETTEXT_DOMAIN).mo: po/%.po $(GETTEXT_COMPILE_SCRIPT) | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(PYTHON) $(GETTEXT_COMPILE_SCRIPT) $< $@
+
+update-gettext-pot:
+	xgettext --from-code=UTF-8 --language=C \
+		--keyword=_ --keyword=N_ --keyword=P_:1c,2 --keyword=NP_:1c,2 \
+		--keyword=UI_ReadString:3 --keyword=UI_ReadStringWithPromptOptions:3 \
+		--keyword=UI_ReadStringWithHelp:3 --keyword=UI_ShowHelpPopup:2 \
+		--keyword=UI_ShowHelpPopupWithFooter:2 \
+		--keyword=UI_ShowHelpPopupDismissAnyKey:2 \
+		--keyword=UI_ShowStatusLineError:2 --keyword=UI_ShowStatusLineNotice:2 \
+		--keyword=UI_Message:2 --keyword=UI_Notice:2 --keyword=UI_Warning:2 \
+		--keyword=UI_Error:4 \
+		--output=$(GETTEXT_POT) $(SRCS) include/ytnova_i18n.h
+
 # Install binary, man page, and documentation
-install: $(MAIN_BIN) $(MANPAGE) docs
+install: $(MAIN_BIN) $(MANPAGE) docs locale-catalogs
 	@$(MAKE_CMD) install-shadow-check
 	@echo "Installing ytnova $(VERSION) to $(PREFIX)..."
 	install -d -m 755 $(BINDEST)
@@ -238,11 +265,17 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 	install -m 644 $(MANPAGE).gz $(MANDEST)/$(MAIN).1.gz
 	rm -f $(MANPAGE).gz
 	install -d -m 755 $(DATADEST)
+	install -d -m 755 $(DESTDIR)$(DATADIR)/locale
 	install -m 644 etc/ytnova.commands $(DATADEST)/ytnova.commands
 	install -m 644 etc/ytnova.applications $(DATADEST)/ytnova.applications
 	install -d -m 755 $(DATADEST)/commands
 	install -m 644 $(COMMAND_PRESETS_SRC_DIR)/*.conf $(DATADEST)/commands/
 	install -m 644 etc/ytnova.themes $(DATADEST)/ytnova.themes
+	@for mo in $(GETTEXT_MO_FILES); do \
+		lang=$$(echo "$$mo" | sed -E 's#$(BUILD_DIR)/locale/([^/]+)/LC_MESSAGES/$(GETTEXT_DOMAIN)\\.mo#\\1#'); \
+		install -d -m 755 "$(DESTDIR)$(DATADIR)/locale/$$lang/LC_MESSAGES"; \
+		install -m 644 "$$mo" "$(DESTDIR)$(DATADIR)/locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo"; \
+	done
 	@echo "Installation complete."
 	@echo "Binary: $(BINDEST)/$(MAIN)"
 	@echo "Manual: $(MANDEST)/$(MAIN).1.gz"
@@ -548,6 +581,7 @@ command-presets-catalog:
 
 qa-help-assets:
 	$(PYTHON) $(HELP_GENERATOR_SCRIPT) --f1-source $(HELP_F1_SOURCE) \
+		$(foreach src,$(filter-out $(HELP_F1_SOURCE),$(HELP_F1_LOCALE_SOURCES)),--f1-locale-source $(src) ) \
 		--man-source $(HELP_MAN_SOURCE) \
 		--man-md $(HELP_MAN_MD) --usage-md $(HELP_USAGE_MD) \
 		--runtime-header $(HELP_RUNTIME_HDR) --check

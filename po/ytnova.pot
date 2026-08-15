@@ -1,0 +1,163 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ytnova 1.0.0-alpha\n"
+"POT-Creation-Date: 2026-08-15 00:00+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Usage: %s [--init] [-v|-V|--version] [-p profile_file] [-h hist_file] [-d depth] [-f filter] [directory ...]\n"
+msgstr ""
+
+msgid "Option %s requires an argument\n"
+msgstr ""
+
+msgid "Failed to initialize %s %s: %s\n"
+msgstr ""
+
+msgid "Created %s: %s\n"
+msgstr ""
+
+msgid "%s already exists; not overwritten\n"
+msgstr ""
+
+msgid "Cannot resolve target profile path. Set HOME or pass -p <file>."
+msgstr ""
+
+msgid "I N F O"
+msgstr ""
+
+msgid "N O T I C E"
+msgstr ""
+
+msgid "W A R N I N G"
+msgstr ""
+
+msgid "INTERNAL ERROR"
+msgstr ""
+
+msgid "ABOUT"
+msgstr ""
+
+msgid "             PRESS ENTER              "
+msgstr ""
+
+msgid "             PLEASE WAIT              "
+msgstr ""
+
+msgid "ytnova Version %s %s*"
+msgstr ""
+
+msgid "ytnova (UTF8) Version %s %s*"
+msgstr ""
+
+msgid "*In Module \""
+msgstr ""
+
+msgid "\"*Line "
+msgstr ""
+
+msgid "Framed"
+msgstr ""
+
+msgid "Page break"
+msgstr ""
+
+msgid "Raw"
+msgstr ""
+
+msgctxt "runtime-help.footer"
+msgid "open"
+msgstr ""
+
+msgctxt "runtime-help.footer"
+msgid "back"
+msgstr ""
+
+msgctxt "runtime-help.footer"
+msgid "Back"
+msgstr ""
+
+msgctxt "runtime-help.footer"
+msgid "Contents"
+msgstr ""
+
+msgctxt "runtime-help.footer"
+msgid "Navigation"
+msgstr ""
+
+msgctxt "runtime-help.footer"
+msgid "Quit"
+msgstr ""
+
+msgctxt "help-popup.footer"
+msgid "close"
+msgstr ""
+
+msgctxt "help-popup.footer"
+msgid "scroll"
+msgstr ""
+
+msgctxt "help-popup.footer"
+msgid "page"
+msgstr ""
+
+msgctxt "help-popup.footer"
+msgid "jump"
+msgstr ""
+
+msgctxt "help-popup.footer"
+msgid "OK"
+msgstr ""
+
+msgctxt "prompt.hints"
+msgid "browse"
+msgstr ""
+
+msgctxt "prompt.hints"
+msgid "history"
+msgstr ""
+
+msgctxt "prompt.hints"
+msgid "help"
+msgstr ""
+
+msgctxt "prompt.hints"
+msgid "OK"
+msgstr ""
+
+msgctxt "prompt.hints"
+msgid "cancel"
+msgstr ""
+
+msgctxt "applications-menu.commands"
+msgid "help"
+msgstr ""
+
+msgctxt "applications-menu.commands"
+msgid "select"
+msgstr ""
+
+msgctxt "applications-menu.commands"
+msgid "edit"
+msgstr ""
+
+msgctxt "applications-menu.commands"
+msgid "cancel"
+msgstr ""
+
+msgctxt "volume-menu.commands"
+msgid "help"
+msgstr ""
+
+msgctxt "volume-menu.commands"
+msgid "release"
+msgstr ""
+
+msgctxt "volume-menu.commands"
+msgid "switch"
+msgstr ""
+
+msgctxt "volume-menu.commands"
+msgid "cancel"
+msgstr ""

@@ -31,13 +31,20 @@ enum {
 };
 
 static const UICommandStripCommand compare_target_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "browse", "F2", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scope", "F3", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "basis", "F4", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tag", "F5", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "browse"),
+     "F2", NULL, "compare-target.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "scope"), "F3",
+     NULL, "compare-target.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "basis"), "F4",
+     NULL, "compare-target.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "tag"), "F5",
+     NULL, "compare-target.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "history"),
+     "Up", NULL, "compare-target.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "OK"), "Enter",
+     NULL, "compare-target.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("compare-target.hints", "cancel"),
+     "Esc", NULL, "compare-target.hints"}};
 static const CompareGeneratedHelpSpec compare_target_help_spec = {
     "prompt.compare-target"};
 

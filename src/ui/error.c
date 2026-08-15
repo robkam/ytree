@@ -7,6 +7,7 @@
 
 #include "ytnova_appstate_message.h"
 #include "ytnova_appstate_focus.h"
+#include "ytnova_i18n.h"
 #include "ytnova_ui.h"
 
 #include <stdarg.h>
@@ -19,10 +20,11 @@ typedef enum ModalSeverity {
 } ModalSeverity;
 
 static short ModalSeverityColorPair(ModalSeverity severity);
-static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
+static void MapModalWindow(ViewContext *ctx, const char *header,
+                           const char *prompt,
                            ModalSeverity severity);
 static void UnmapErrorWindow(ViewContext *ctx);
-static void PrintErrorLine(ViewContext *ctx, int y, char *str);
+static void PrintErrorLine(ViewContext *ctx, int y, const char *str);
 static int GetWrappedChunk(const char *segment, int segment_len, int line_start,
                            int body_width, int *chunk_offset, int *chunk_len);
 static int CountWrappedSegmentLines(const char *segment, int segment_len,
@@ -57,7 +59,7 @@ void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...) {
     return;
 
   va_start(ap, fmt);
-  (void)vsnprintf(message, sizeof(message), fmt, ap);
+  (void)I18n_VFormat(message, sizeof(message), fmt, ap);
   va_end(ap);
 
   if (!AppStateCommitStatusLineError(ctx, message))
@@ -86,7 +88,7 @@ void UI_ShowStatusLineNotice(ViewContext *ctx, const char *fmt, ...) {
     return;
 
   va_start(ap, fmt);
-  (void)vsnprintf(message, sizeof(message), fmt, ap);
+  (void)I18n_VFormat(message, sizeof(message), fmt, ap);
   va_end(ap);
 
   if (!AppStateCommitStatusLineNotice(ctx, message))
@@ -120,7 +122,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
+  (void)I18n_VFormat(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
   if (ctx == NULL || ctx->ctx_error_window == NULL) {
@@ -128,7 +130,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
     return 0;
   }
 
-  MapModalWindow(ctx, "I N F O", "             PRESS ENTER              ",
+  MapModalWindow(ctx, _("I N F O"), _("             PRESS ENTER              "),
                  MODAL_SEVERITY_INFO);
   return PrintMessage(ctx, buffer);
 }
@@ -138,7 +140,7 @@ int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
+  (void)I18n_VFormat(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
   if (ctx == NULL || ctx->ctx_error_window == NULL) {
@@ -146,7 +148,7 @@ int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
     return 0;
   }
 
-  MapModalWindow(ctx, "N O T I C E", "             PLEASE WAIT              ",
+  MapModalWindow(ctx, _("N O T I C E"), _("             PLEASE WAIT              "),
                  MODAL_SEVERITY_INFO);
   DisplayMessage(ctx, buffer);
   RefreshWindow(ctx->ctx_error_window);
@@ -159,7 +161,7 @@ int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
+  (void)I18n_VFormat(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
   if (ctx == NULL || ctx->ctx_error_window == NULL) {
@@ -167,7 +169,7 @@ int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
     return 0;
   }
 
-  MapModalWindow(ctx, "W A R N I N G", "             PRESS ENTER              ",
+  MapModalWindow(ctx, _("W A R N I N G"), _("             PRESS ENTER              "),
                  MODAL_SEVERITY_WARNING);
   return PrintMessage(ctx, buffer);
 }
@@ -175,7 +177,7 @@ int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
 void AboutBox(ViewContext *ctx) {
   static char version[80];
 
-  (void)snprintf(version, sizeof(version),
+  (void)I18n_Format(version, sizeof(version),
 #ifdef WITH_UTF8
                  "ytnova (UTF8) Version %s %s*",
 #else
@@ -183,7 +185,7 @@ void AboutBox(ViewContext *ctx) {
 #endif
                  VERSION, VERSIONDATE);
 
-  MapModalWindow(ctx, "ABOUT", "             PRESS ENTER              ",
+  MapModalWindow(ctx, _("ABOUT"), _("             PRESS ENTER              "),
                  MODAL_SEVERITY_INFO);
   (void)PrintMessage(ctx, version);
 }
@@ -210,7 +212,7 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vsnprintf(msg_buffer, sizeof(msg_buffer), fmt, ap);
+  (void)I18n_VFormat(msg_buffer, sizeof(msg_buffer), fmt, ap);
   va_end(ap);
 
   if (ctx == NULL || ctx->ctx_error_window == NULL) {
@@ -218,13 +220,15 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
     return -1;
   }
 
-  MapModalWindow(ctx, "INTERNAL ERROR", "             PRESS ENTER              ",
+  MapModalWindow(ctx, _("INTERNAL ERROR"),
+                 _("             PRESS ENTER              "),
                  MODAL_SEVERITY_ERROR);
   final_buffer[0] = '\0';
   AppendModalMessage(final_buffer, sizeof(final_buffer), msg_buffer);
-  AppendModalMessage(final_buffer, sizeof(final_buffer), "*In Module \"");
+  AppendModalMessage(final_buffer, sizeof(final_buffer),
+                     _("*In Module \""));
   AppendModalMessage(final_buffer, sizeof(final_buffer), module);
-  AppendModalMessage(final_buffer, sizeof(final_buffer), "\"*Line ");
+  AppendModalMessage(final_buffer, sizeof(final_buffer), _("\"*Line "));
   (void)snprintf(line_buffer, sizeof(line_buffer), "%d", line);
   AppendModalMessage(final_buffer, sizeof(final_buffer), line_buffer);
   return PrintMessage(ctx, final_buffer);
@@ -242,7 +246,8 @@ static short ModalSeverityColorPair(ModalSeverity severity) {
   }
 }
 
-static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
+static void MapModalWindow(ViewContext *ctx, const char *header,
+                           const char *prompt,
                            ModalSeverity severity) {
   short color_pair = ModalSeverityColorPair(severity);
 
@@ -261,7 +266,7 @@ static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
   wattroff(ctx->ctx_error_window, A_ALTCHARSET);
 
   wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));
-  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, prompt);
+  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, (char *)prompt);
   PrintErrorLine(ctx, 1, header);
   wattrset(ctx->ctx_error_window, COLOR_PAIR(color_pair));
 }
@@ -282,12 +287,13 @@ void UnmapNoticeWindow(ViewContext *ctx) {
   doupdate();
 }
 
-static void PrintErrorLine(ViewContext *ctx, int y, char *str) {
+static void PrintErrorLine(ViewContext *ctx, int y, const char *str) {
   int l;
 
   l = strlen(str);
 
-  MvWAddStr(ctx->ctx_error_window, y, (ERROR_WINDOW_WIDTH - l) >> 1, str);
+  MvWAddStr(ctx->ctx_error_window, y, (ERROR_WINDOW_WIDTH - l) >> 1,
+            (char *)str);
 }
 
 static int GetWrappedChunk(const char *segment, int segment_len, int line_start,

@@ -371,7 +371,7 @@ Ordering policy (for all editors, including AI editors):
 *   Route display-path formatting through a shared canonical formatter/contract (or equivalent centralized policy).
 *   Add focused regression tests covering root paths, trailing-slash joins, archive/display paths, and no accidental `//` join artifacts.
 *   Preserve valid POSIX-leading `//` semantics where intentional; do not blanket-collapse legitimate leading doubles.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 14: Copy Include-Paths Base/Result Preview Contract (Predictable Root Semantics)**
 *   **Goal:** Make `Copy` with `Preserve ancestor paths` explicit and predictable by showing a compact computed preview of base root, relative segment, and resulting destination path.
@@ -1136,7 +1136,7 @@ Ordering policy (for all editors, including AI editors):
 *   Topic-by-topic editing in `etc/help/man.en.md` remains straightforward for maintainers and translators.
 *   `etc/help/man.de.md` exists as a localized authored manual source that tracks canonical `etc/help/man.en.md` instead of any generated artifact.
 *   The resulting reference prose remains compatible with Task 43.3's split-source/generator contract and does not reintroduce pressure to collapse `F1` and manpage text back into one shared corpus.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.
@@ -1610,12 +1610,15 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 61: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
 *   **Documentation i18n split:** Use `po4a` for help/manpage/doc translation workflow from the canonical authored help sources defined by Task 43.3 (`etc/help/f1.en.md` and `etc/help/man.en.md`); generated man/usage/help assets stay derived artifacts. Use gettext for runtime UI surfaces (footer labels/help, prompts, status/error/info text) that are not emitted from the canonical help-source pipeline.
+*   **Canonical-source contract:** `etc/help/f1.en.md` and `etc/help/man.en.md` remain the canonical authored English sources. Localized help/man content follows those English sources; localized runtime UI follows gettext catalogs; locale-specific mnemonic layouts follow shipped preset/keymap data.
 *   **Keybinding token contract:** Translate human command labels only. Key tokens come from the active keymap and punctuation comes from the renderer. For example, English can render key token `C` + label `Copy` as `(C)opy`, while German can render key token `K` + label `Kopieren` as `(K)opieren`. Translators must not be required to preserve raw strings like `(C)opy` for shortcut visibility.
-*   **Translator workflow contract:** Contributors should be able to add or update a language by editing standard translation assets (`.po` for runtime UI, `po4a` inputs for docs/help) without touching C source, renderer punctuation, or mnemonic/key-token wiring.
+*   **Preset boundary:** Locale-specific command labels and mnemonic bindings that belong to packaged command presets remain data-owned by preset/keymap files (for example `etc/commands/*.conf`); gettext owns non-preset runtime UI prose.
+*   **Translator workflow contract:** Contributors should be able to localize runtime UI by editing standard `.po` catalogs and localize authored help/man content by editing the canonical `po4a` inputs, without touching C source or renderer punctuation. Locale-specific mnemonic/keybinding layouts remain defined in shipped preset/keymap data rather than in gettext strings.
 *   **Translator-guide contract:** Ship a translator-facing guide that explains the split between canonical help-source translation, runtime gettext strings, and command/keymap preset data; the guide must also explain how locale-specific mnemonic/keybinding conflicts are resolved in shipped presets/keymaps rather than by manually rewriting rendered shortcut prose.
 *   **Runtime help-text organization:** Contextual `F1` help prose must come primarily from the canonical help-source pipeline in Task 43.3 rather than scattered ad-hoc C literals; remaining non-generated footer/prompt/help text must flow through a small predictable set of gettext contexts/catalog entries so translators can find related strings together and keep repeated explanations consistent.
+*   **Current F1 quality debt:** The existing authored `F1` prose is structurally adequate for the pipeline but not yet at the intended quality bar. Preserve the canonical source/topic contract while allowing later prose rewrites to improve clarity, scannability, and usefulness without reopening the runtime/context mapping model.
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
-*   **Pilot locale:** Ship German (`de`) as the first non-English reference locale and use it as the contributor template/test bed proving end-to-end UI + manpage/help translation workflow, while keeping English fallback automatic for untranslated strings.
+*   **Pilot locale:** Use the existing German (`de`) help/man sources and German command preset as the initial reference locale baseline, and complete the missing runtime gettext/catalog path so German becomes the first end-to-end supported non-English locale. New locales may use German as a structural example, but English remains the canonical source of meaning.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
 *   - [ ] **Status:** Not Started.
 

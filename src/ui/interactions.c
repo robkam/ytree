@@ -37,19 +37,30 @@ typedef enum {
 } PromptHelpTopic;
 
 static const UICommandStripCommand sort_by_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "AccTime", "A", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "ChgTime", "C", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Extension", "E", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "ModTime", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Name", "N", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Size", "S", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "AccTime"), "A", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "ChgTime"), "C", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Extension"), "E", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Group"), "G", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "ModTime"), "M", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Name"), "N", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Size"), "S", NULL,
+     "sort.commands"}};
 static const UICommandStripCommand sort_commands_ascending[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "W", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Order [ascending]", "O", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Owner"), "W", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Order [ascending]"),
+     "O", NULL, "sort.commands"}};
 static const UICommandStripCommand sort_commands_descending[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "W", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Order [descending]", "O", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Owner"), "W", NULL,
+     "sort.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("sort.commands", "Order [descending]"),
+     "O", NULL, "sort.commands"}};
 
 static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   int written;
@@ -865,10 +876,15 @@ int UI_ReadFilter(ViewContext *ctx) {
                                            : "prompt.filter";
     const UICommandStripCommand hints[] = {
         {UI_COMMAND_LAYOUT_KEY_PREFIX,
-         tagged_only ? "all files" : "tagged", "Tab", NULL},
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+         tagged_only ? NP_("filter.hints", "all files")
+                     : NP_("filter.hints", "tagged"),
+         "Tab", NULL, "filter.hints"},
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("filter.hints", "history"), "Up",
+         NULL, "filter.hints"},
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("filter.hints", "OK"), "Enter",
+         NULL, "filter.hints"},
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("filter.hints", "cancel"), "Esc",
+         NULL, "filter.hints"}};
 
     (void)snprintf(prompt, sizeof(prompt),
                    tagged_only ? "FILTER [tagged only]:" : "FILTER:");

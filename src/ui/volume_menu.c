@@ -13,10 +13,14 @@
 #include "ytnova_ui.h"
 
 static const UICommandStripCommand volume_command_strip[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "release", "D", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "switch", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("volume-menu.commands", "help"), "F1",
+     NULL, "volume-menu.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("volume-menu.commands", "release"), "D",
+     NULL, "volume-menu.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("volume-menu.commands", "switch"),
+     "Enter", NULL, "volume-menu.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("volume-menu.commands", "cancel"),
+     "Esc", NULL, "volume-menu.commands"}};
 
 enum {
   VOLUME_MENU_TITLE_PADDING = 4,

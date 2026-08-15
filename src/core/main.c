@@ -7,6 +7,7 @@
 
 #include "ytnova_defs.h"
 #include "ytnova_appstate_actions.h"
+#include "ytnova_i18n.h"
 #include "default_applications_catalog.h"
 #include "default_profile_template.h"
 #include "default_commands_catalog.h"
@@ -2308,6 +2309,19 @@ typedef struct StartupOptions {
   BOOL init_requested;
 } StartupOptions;
 
+static void FPrintLocalized(FILE *stream, const char *msgid, ...) {
+  char buffer[MESSAGE_LENGTH + 1];
+  va_list ap;
+
+  if (stream == NULL || msgid == NULL)
+    return;
+
+  va_start(ap, msgid);
+  (void)I18n_VFormat(buffer, sizeof(buffer), msgid, ap);
+  va_end(ap);
+  (void)fputs(buffer, stream);
+}
+
 static int StartupInvariantsReady(const ViewContext *ctx) {
   if (ctx == NULL || !CoreMainOpsReady(&ctx->core_main_ops) ||
       !AppStateOwnerFieldsReady() || !AppStateTransitionRegistryReady() ||
@@ -2322,10 +2336,10 @@ static int StartupInvariantsReady(const ViewContext *ctx) {
 }
 
 static void PrintUsageAndExit(const char *argv0) {
-  fprintf(stderr,
-          "Usage: %s [--init] [-v|-V|--version] [-p profile_file] "
-          "[-h hist_file] [-d depth] [-f filter] [directory ...]\n",
-          argv0);
+  FPrintLocalized(stderr,
+                  "Usage: %s [--init] [-v|-V|--version] [-p profile_file] "
+                  "[-h hist_file] [-d depth] [-f filter] [directory ...]\n",
+                  argv0);
   exit(1);
 }
 
@@ -2343,7 +2357,7 @@ static const char *ConsumeOptionValue(int argc, char **argv, int *argi,
   if (*argi + 1 < argc)
     return argv[++(*argi)];
 
-  fprintf(stderr, "Option %s requires an argument\n", option_name);
+  FPrintLocalized(stderr, "Option %s requires an argument\n", option_name);
   exit(1);
 }
 
@@ -2395,7 +2409,7 @@ static void RequireDefaultSurfacePath(ConfigSurface surface, char *path,
                                       size_t path_size,
                                       const char *error_message) {
   if (GetDefaultSurfacePath(surface, path, path_size) != 0) {
-    fprintf(stderr, "%s\n", error_message);
+    fprintf(stderr, "%s\n", _(error_message));
     exit(1);
   }
 }
@@ -2406,14 +2420,14 @@ static void InitDefaultSurfaceOrExit(const char *path, const char *contents,
 
   status = InitDefaultFile(path, contents);
   if (status == -1) {
-    fprintf(stderr, "Failed to initialize %s %s: %s\n", label, path,
-            strerror(errno));
+    FPrintLocalized(stderr, "Failed to initialize %s %s: %s\n", label, path,
+                    strerror(errno));
     exit(1);
   }
   if (status == 0)
-    fprintf(stdout, "Created %s: %s\n", label, path);
+    FPrintLocalized(stdout, "Created %s: %s\n", label, path);
   else
-    fprintf(stdout, "%s already exists; not overwritten\n", path);
+    FPrintLocalized(stdout, "%s already exists; not overwritten\n", path);
 }
 
 static void RunInitBootstrap(const char *conf) {
@@ -2441,8 +2455,8 @@ static void RunInitBootstrap(const char *conf) {
     init_path = init_path_buffer;
   }
   if (!init_path) {
-    fprintf(stderr,
-            "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
+    fputs(_("Cannot resolve target profile path. Set HOME or pass -p <file>.\n"),
+          stderr);
     exit(1);
   }
 
@@ -2619,6 +2633,7 @@ int main(int argc, char **argv) {
 
   memset(&ctx, 0, sizeof(ViewContext));
   memset(&options, 0, sizeof(options));
+  I18n_Init();
   CoreMainOps_Register(&ctx);
   if (!StartupInvariantsReady(&ctx)) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");

@@ -1,0 +1,163 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ytnova 1.0.0-alpha\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Usage: %s [--init] [-v|-V|--version] [-p profile_file] [-h hist_file] [-d depth] [-f filter] [directory ...]\n"
+msgstr "Verwendung: %s [--init] [-v|-V|--version] [-p profile_file] [-h hist_file] [-d depth] [-f filter] [directory ...]\n"
+
+msgid "Option %s requires an argument\n"
+msgstr "Option %s benoetigt ein Argument\n"
+
+msgid "Failed to initialize %s %s: %s\n"
+msgstr "%s %s konnte nicht initialisiert werden: %s\n"
+
+msgid "Created %s: %s\n"
+msgstr "%s erstellt: %s\n"
+
+msgid "%s already exists; not overwritten\n"
+msgstr "%s existiert bereits; nicht ueberschrieben\n"
+
+msgid "Cannot resolve target profile path. Set HOME or pass -p <file>."
+msgstr "Der Zielpfad fuer das Profil kann nicht aufgeloest werden. Setze HOME oder uebergib -p <file>."
+
+msgid "I N F O"
+msgstr "H I N W E I S"
+
+msgid "N O T I C E"
+msgstr "H I N W E I S"
+
+msgid "W A R N I N G"
+msgstr "W A R N U N G"
+
+msgid "INTERNAL ERROR"
+msgstr "INTERNER FEHLER"
+
+msgid "ABOUT"
+msgstr "INFO"
+
+msgid "             PRESS ENTER              "
+msgstr "             ENTER DRUECKEN           "
+
+msgid "             PLEASE WAIT              "
+msgstr "             BITTE WARTEN             "
+
+msgid "ytnova Version %s %s*"
+msgstr "ytnova Version %s %s*"
+
+msgid "ytnova (UTF8) Version %s %s*"
+msgstr "ytnova (UTF8) Version %s %s*"
+
+msgid "*In Module \""
+msgstr "*Im Modul \""
+
+msgid "\"*Line "
+msgstr "\"*Zeile "
+
+msgid "Framed"
+msgstr "Gerahmt"
+
+msgid "Page break"
+msgstr "Seitenumbruch"
+
+msgid "Raw"
+msgstr "Roh"
+
+msgctxt "runtime-help.footer"
+msgid "open"
+msgstr "oeffnen"
+
+msgctxt "runtime-help.footer"
+msgid "back"
+msgstr "zurueck"
+
+msgctxt "runtime-help.footer"
+msgid "Back"
+msgstr "Zurueck"
+
+msgctxt "runtime-help.footer"
+msgid "Contents"
+msgstr "Inhalt"
+
+msgctxt "runtime-help.footer"
+msgid "Navigation"
+msgstr "Navigation"
+
+msgctxt "runtime-help.footer"
+msgid "Quit"
+msgstr "Beenden"
+
+msgctxt "help-popup.footer"
+msgid "close"
+msgstr "schliessen"
+
+msgctxt "help-popup.footer"
+msgid "scroll"
+msgstr "scrollen"
+
+msgctxt "help-popup.footer"
+msgid "page"
+msgstr "seite"
+
+msgctxt "help-popup.footer"
+msgid "jump"
+msgstr "sprung"
+
+msgctxt "help-popup.footer"
+msgid "OK"
+msgstr "OK"
+
+msgctxt "prompt.hints"
+msgid "browse"
+msgstr "browse"
+
+msgctxt "prompt.hints"
+msgid "history"
+msgstr "Verlauf"
+
+msgctxt "prompt.hints"
+msgid "help"
+msgstr "hilfe"
+
+msgctxt "prompt.hints"
+msgid "OK"
+msgstr "OK"
+
+msgctxt "prompt.hints"
+msgid "cancel"
+msgstr "abbrechen"
+
+msgctxt "applications-menu.commands"
+msgid "help"
+msgstr "hilfe"
+
+msgctxt "applications-menu.commands"
+msgid "select"
+msgstr "waehlen"
+
+msgctxt "applications-menu.commands"
+msgid "edit"
+msgstr "edit"
+
+msgctxt "applications-menu.commands"
+msgid "cancel"
+msgstr "abbrechen"
+
+msgctxt "volume-menu.commands"
+msgid "help"
+msgstr "hilfe"
+
+msgctxt "volume-menu.commands"
+msgid "release"
+msgstr "freigeben"
+
+msgctxt "volume-menu.commands"
+msgid "switch"
+msgstr "wechseln"
+
+msgctxt "volume-menu.commands"
+msgid "cancel"
+msgstr "abbrechen"

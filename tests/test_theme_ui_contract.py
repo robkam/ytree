@@ -20,9 +20,10 @@ def _command_strip_commands(source, array_name):
         re.S,
     )
     assert array, f"missing command strip array {array_name}"
+    body = re.sub(r'NP_\("([^"]*)",\s*"([^"]*)"\)', r'"\2"', array.group("body"))
     return re.findall(
-        r'\{UI_COMMAND_LAYOUT_([A-Z_]+), "([^"]*)", "([^"]*)", (NULL|"([^"]*)")\}',
-        array.group("body"),
+        r'\{UI_COMMAND_LAYOUT_([A-Z_]+),\s*"([^"]*)",\s*"([^"]*)",\s*(NULL|"([^"]*)")(?:,\s*(?:NULL|"[^"]*"))?\}',
+        body,
     )
 
 

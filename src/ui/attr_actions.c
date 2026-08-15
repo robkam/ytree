@@ -17,26 +17,43 @@
 #include <utime.h>
 
 static const UICommandStripCommand attribute_commands_basic[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Mode", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "O", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Mode"), "M", NULL,
+     "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Owner"), "O",
+     NULL, "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Group"), "G",
+     NULL, "attributes.commands"}};
 static const UICommandStripCommand attribute_commands_with_date[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Mode", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "O", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Date", "D", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Mode"), "M", NULL,
+     "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Owner"), "O",
+     NULL, "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Group"), "G",
+     NULL, "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Date"), "D", NULL,
+     "attributes.commands"}};
 static const UICommandStripCommand attribute_commands_tagged[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Mode", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Owner", "O", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Group", "G", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Date", "D", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "tagged date", "^D", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Mode"), "M", NULL,
+     "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Owner"), "O",
+     NULL, "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Group"), "G",
+     NULL, "attributes.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Date"), "D", NULL,
+     "attributes.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("attributes.commands", "tagged date"),
+     "^D", NULL, "attributes.commands"}};
 static const UICommandStripCommand date_change_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scope", "F3", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("change-date.hints", "help"), "F1",
+     NULL, "change-date.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("change-date.hints", "scope"), "F3",
+     NULL, "change-date.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("change-date.hints", "history"), "Up",
+     NULL, "change-date.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("change-date.hints", "OK"), "Enter",
+     NULL, "change-date.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("change-date.hints", "cancel"), "Esc",
+     NULL, "change-date.hints"}};
 
 static const char date_change_help_context[] = "prompt.change-date";
 
