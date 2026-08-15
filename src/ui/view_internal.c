@@ -40,17 +40,26 @@ static struct stat fdstat;
 #define THECOLOR COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT)
 
 static const UICommandStripCommand view_edit_prompt_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "change edit mode", "<TAB>", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("viewer.commands", "Quit"), "Q", NULL,
+     "viewer.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("viewer.commands", "redraw"), "^L",
+     NULL, "viewer.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("viewer.commands", "change edit mode"),
+     "<TAB>", NULL, "viewer.commands"}};
 static const UICommandStripCommand view_readonly_prompt_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Edit hex", "E", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("viewer.commands", "Quit"), "Q", NULL,
+     "viewer.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("viewer.commands", "redraw"), "^L",
+     NULL, "viewer.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("viewer.commands", "Edit hex"), "E", NULL,
+     "viewer.commands"}};
 static const UICommandStripCommand view_navigation_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "NEXT", "RIGHT"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "of line", "HOME", "END"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "line", "DOWN", "UP"}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("viewer.commands", "page"), "NEXT",
+     "RIGHT", "viewer.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("viewer.commands", "of line"), "HOME",
+     "END", "viewer.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("viewer.commands", "line"), "DOWN",
+     "UP", "viewer.commands"}};
 
 static void hex_edit(ViewContext *ctx, char *file_path,
                      const ViewerGeometry *geom);

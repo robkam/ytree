@@ -28,11 +28,16 @@
 #include <unistd.h>
 
 static const UICommandStripCommand config_command_strip[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "config", "C", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "commands", "M", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "themes", "T", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "reload", "R", NULL},
-    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, "quit", "Esc", "Q"}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("config.commands", "config"), "C", NULL,
+     "config.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("config.commands", "commands"), "M", NULL,
+     "config.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("config.commands", "themes"), "T", NULL,
+     "config.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("config.commands", "reload"), "R", NULL,
+     "config.commands"},
+    {UI_COMMAND_LAYOUT_ALT_MNEMONIC, NP_("config.commands", "quit"), "Esc",
+     "Q", "config.commands"}};
 
 typedef struct {
   BOOL bypass_small_window;

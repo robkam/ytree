@@ -19,11 +19,16 @@
 
 
 static const UICommandStripCommand history_help_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Pin/unpin", "P", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("history.commands", "help"), "F1",
+     NULL, "history.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("history.commands", "Delete"), "D", NULL,
+     "history.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("history.commands", "Pin/unpin"), "P",
+     NULL, "history.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("history.commands", "select"), "Enter",
+     NULL, "history.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("history.commands", "cancel"), "Esc",
+     NULL, "history.commands"}};
 
 enum { HISTORY_DIALOG_COMMAND_STRIP_X = 2 };
 
@@ -75,11 +80,11 @@ typedef struct {
 #define FOOTER_COMMAND_COLUMN 9
 #define HELP_LABEL_OVERRIDE_TEXT_LENGTH 160
 #define FOOTER_STATIC(layout, label, key1, key2)                                 \
-  { { layout, label, key1, key2 }, NULL, NULL }
+  { { layout, label, key1, key2, NULL }, NULL, NULL }
 #define FOOTER_ACTION(layout, label, key1, key2, action_id)                      \
-  { { layout, label, key1, key2 }, action_id, NULL }
+  { { layout, label, key1, key2, NULL }, action_id, NULL }
 #define FOOTER_ACTIONS(layout, label, key1, key2, action_id, action_id2)         \
-  { { layout, label, key1, key2 }, action_id, action_id2 }
+  { { layout, label, key1, key2, NULL }, action_id, action_id2 }
 
 static int FooterCommandKeyClass(const UICommandStripCommand *command) {
   const char *key;

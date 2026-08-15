@@ -16,14 +16,21 @@ static const char output_destination_help_context[] =
 static const char output_separator_help_context[] =
     "prompt.output-separator";
 static const UICommandStripCommand output_file_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "format", "F3", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-destination.hints", "format"),
+     "F3", NULL, "output-destination.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-destination.hints", "history"),
+     "Up", NULL, "output-destination.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-destination.hints", "OK"),
+     "Enter", NULL, "output-destination.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-destination.hints", "cancel"),
+     "Esc", NULL, "output-destination.hints"}};
 static const UICommandStripCommand output_command_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-command.hints", "history"),
+     "Up", NULL, "output-command.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-command.hints", "OK"), "Enter",
+     NULL, "output-command.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("output-command.hints", "cancel"),
+     "Esc", NULL, "output-command.hints"}};
 
 enum { OUTPUT_FORMAT_CYCLE_KEY = 3 };
 
@@ -64,12 +71,12 @@ static PrintFormat NextOutputFormat(PrintFormat format) {
 static const char *OutputFormatName(PrintFormat format) {
   switch (format) {
   case PRINT_FORMAT_FRAMED:
-    return "Framed";
+    return _("Framed");
   case PRINT_FORMAT_PAGEBREAK:
-    return "Page break";
+    return _("Page break");
   case PRINT_FORMAT_RAW:
   default:
-    return "Raw";
+    return _("Raw");
   }
 }
 

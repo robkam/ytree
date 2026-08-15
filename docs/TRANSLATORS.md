@@ -23,6 +23,16 @@ ytnova currently has two different documentation/help families plus future runti
 
 The important rule is that these families do different jobs. Do not try to force one translation to sound like the other.
 
+## Canonical-source rule
+
+English is the canonical semantic source for authored help/reference content.
+
+Translators may improve local wording directly when they are preserving the same meaning and structure.
+
+If a locale needs new substantive content that does not yet exist in English — for example a new warning, a new behavioral explanation, or a new help paragraph — add or approve that content in the canonical English source first, then propagate it to localized variants.
+
+Localized files must not introduce semantic or structural divergence from English on their own.
+
 ## What F1 help is for
 
 Contextual `F1` help is not a full manual. Its job is:
@@ -196,7 +206,189 @@ Until the full gettext/po4a workflow lands, a new help-language contribution sho
 - the same separation between contextual pages, command explainers, and shared topics
 - for manual/reference locales, the same authored structure as `etc/help/man.en.md` instead of translating from generated `docs/USAGE.md` or `etc/ytnova.1.md`
 
+For new substantive help/reference content, update the canonical English authored source first, then carry that content into the new locale. Direct locale-only wording improvements are fine as long as they do not change meaning or structure.
+
 If a translation seems to require changing topic IDs, context IDs, or generator schema, that is not a normal translation change; raise it as a maintainer/design issue.
+
+## Add a new locale checklist
+
+Use this checklist when you want to add support for a new locale such as `es`, `fr`, or `pt_BR`.
+
+### 1. Pick the locale code
+
+- Use the short gettext/catalog code for runtime UI catalogs, for example `es` or `fr`.
+- Use the same visible suffix for authored help files, for example `etc/help/f1.es.md`.
+- If you need a region-specific locale such as `pt_BR`, keep that spelling consistent across filenames and install paths.
+
+### 2. Add the runtime UI catalog
+
+Start from the template:
+
+```bash
+cp po/ytnova.pot po/<locale>.po
+```
+
+Then translate the new `po/<locale>.po` file:
+
+- keep every `msgid` unchanged
+- fill in `msgstr`
+- keep any `msgctxt` entries
+- preserve format placeholders such as `%s`, `%d`, or positional forms such as `%1$s`
+
+Current build/install behavior:
+
+- any `po/*.po` file is picked up automatically by `make locale-catalogs`
+- `make install` compiles and installs every discovered catalog automatically
+
+### 3. Compile the catalog locally
+
+Build just the locale catalogs:
+
+```bash
+make locale-catalogs
+```
+
+Or compile one catalog directly:
+
+```bash
+python3 scripts/compile_mo.py po/<locale>.po build/locale/<locale>/LC_MESSAGES/ytnova.mo
+```
+
+### 4. Test the catalog before installing system-wide
+
+For a user-local test, place the compiled catalog under:
+
+```text
+$XDG_DATA_HOME/locale/<locale>/LC_MESSAGES/ytnova.mo
+```
+
+or, if `XDG_DATA_HOME` is unset:
+
+```text
+~/.local/share/locale/<locale>/LC_MESSAGES/ytnova.mo
+```
+
+Then run ytnova with the target locale, for example:
+
+```bash
+LANG=<locale>.UTF-8 LC_ALL=<locale>.UTF-8 build/ytnova
+```
+
+If the catalog is installed in the packaged location instead, ytnova also searches:
+
+```text
+<prefix>/share/locale/<locale>/LC_MESSAGES/ytnova.mo
+```
+
+### 5. Add contextual F1 help for the locale
+
+Runtime contextual help is authored, not stored in gettext catalogs.
+
+Start from the canonical English source:
+
+```bash
+cp etc/help/f1.en.md etc/help/f1.<locale>.md
+```
+
+Translate only the authored prose described earlier in this guide. Do not change:
+
+- topic IDs
+- `contexts:` mappings
+- `topic:` link targets
+- schema structure
+
+After editing, regenerate the help assets:
+
+```bash
+make help-assets
+```
+
+The current generator discovers `etc/help/f1.*.md` locale files and includes them in runtime help assets automatically.
+
+### 6. Handle manual/reference translation separately
+
+Reference/man content is also authored from English:
+
+```bash
+cp etc/help/man.en.md etc/help/man.<locale>.md
+```
+
+Translate that file using the same canonical-source rules.
+
+Important current limitation:
+
+- keep localized authored man/reference files in sync for contributors and future workflow
+- do not translate from generated `docs/USAGE.md` or generated manpage output
+- the fully automated localized man/reference install path is still future workflow, separate from the runtime gettext catalog path
+
+### 7. Install and run
+
+To install the binary plus all discovered locale catalogs:
+
+```bash
+sudo make install
+```
+
+Then run with the target locale:
+
+```bash
+LANG=<locale>.UTF-8 LC_ALL=<locale>.UTF-8 ytnova
+```
+
+### 8. What belongs where
+
+- `po/<locale>.po` -> runtime UI strings
+- `etc/help/f1.<locale>.md` -> contextual F1 help prose
+- `etc/help/man.<locale>.md` -> authored reference/man prose
+- preset/keymap data -> locale-specific mnemonic/keybinding ownership when a language needs different shortcut letters
+
+## Locale comparison for current ytnova
+
+Current ytnova is a left-to-right ncurses TUI with an English-centric terminal key model. Translated labels can change by locale, but key bindings are a separate constraint: mnemonic letters do not map one-to-one across keyboard layouts, and some terminal control keys are effectively fixed or unreliable regardless of language. Common TUI practice is to keep translations separate from keymaps and allow key binding configuration to absorb locale-specific shortcut differences. For current planning, treat right-to-left and complex-script layout support as a separate UI capability, not as ordinary translation work.
+
+### Lowest added difficulty, high value
+
+These are the best near-term candidates after German.
+
+- **fr** — High value, low difficulty. Latin script, left-to-right, no bidi requirement. Main risk: mnemonic collisions on French keyboard layouts.
+- **es** — Very high value, low difficulty. Latin script, left-to-right, broad audience. Main risk: deciding whether generic `es` is enough or whether region-specific variants should split later.
+- **it** — Medium-high value, low difficulty. Latin script, left-to-right. Main risk: mnemonic reassignment, not rendering.
+- **nl** — Medium value, low difficulty. Latin script, left-to-right, close to English command vocabulary in shape and density. Main risk: mnemonic fit.
+- **pt-BR** — High value, low-medium difficulty. Latin script, left-to-right. Main risk: Brazilian Portuguese should usually remain separate from `pt-PT`.
+
+### Medium difficulty, high value
+
+These are still viable, but keyboard and wording pressure rises.
+
+- **pl** — Medium-high value, medium difficulty. Latin script, left-to-right, but denser diacritics and tighter mnemonic choices.
+- **tr** — Medium-high value, medium difficulty. Latin script, left-to-right. Main risk: locale-sensitive casing and mnemonic conflicts.
+- **ru** — High value, medium difficulty. Cyrillic, left-to-right. Main risk: English-letter mnemonic habits do not transfer naturally.
+- **id** — High value, low-medium difficulty. Latin script, left-to-right, generally straightforward. Main risk: contributor coverage more than rendering.
+
+### High value, higher UI risk
+
+These are attractive locales, but they are more likely to expose terminal rendering assumptions.
+
+- **ja** — Very high value, medium-high difficulty. Not right-to-left, but CJK width and terminal rendering behavior make it riskier than Latin-script locales.
+- **ko** — High value, medium-high difficulty. Similar class of issues to Japanese: display width, compact labels, and shortcut expectations.
+- **zh-CN** — Very high value, high difficulty. Large audience, but simplified Chinese adds CJK rendering and width risk.
+- **zh-TW** — High value, high difficulty. Similar technical risks to `zh-CN`, and should remain a separate locale rather than being collapsed into one generic Chinese translation.
+
+### Highest difficulty
+
+These are the locales most likely to require UI adaptation work, not just translation.
+
+- **ar** — High value, very high difficulty. Arabic requires bidirectional text handling in a UI currently arranged left-to-right, affecting prompts, footer strips, truncation, punctuation, and cursor expectations.
+- **he** — Medium value, very high difficulty. Same bidirectional class of problems as Arabic, with smaller likely payoff.
+
+### Practical conclusion
+
+For the current ncurses/LTR implementation, the safest expansion path is:
+
+1. **es, fr, pt-BR**
+2. **it, nl, pl, tr, ru, id**
+3. **ja, ko, zh-CN, zh-TW**
+4. **ar, he** only after explicit bidi-aware UI work is planned
 
 ## Canonical references
 
@@ -204,5 +396,4 @@ If a translation seems to require changing topic IDs, context IDs, or generator 
 - `docs/ROADMAP.md` — Task 43 / Task 61 planning
 - `etc/help/f1.en.md` — contextual F1 source
 - `etc/help/man.en.md` — reference/man source
-- `etc/help/man.de.md` — localized authored reference/man source example
 - `scripts/generate_help_assets.py` — generator and schema enforcement

@@ -10,6 +10,7 @@
 
 #include "ytnova_defs.h"
 #include "ytnova_dialog.h"
+#include "ytnova_i18n.h"
 
 #ifdef WITH_UTF8
 /* In UTF-8 mode, let ncurses handle bytes directly. */
@@ -222,6 +223,7 @@ typedef struct {
   const char *label;
   const char *primary_key;
   const char *secondary_key;
+  const char *translation_context;
 } UICommandStripCommand;
 typedef enum {
   UI_HELP_POPUP_TEXT,

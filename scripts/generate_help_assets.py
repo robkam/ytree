@@ -517,9 +517,21 @@ def render_long_form_projection(topic: HelpTopic, heading: str, *, include_headi
     return "\n".join(lines)
 
 
-def render_runtime_header(topics: list[HelpTopic], *, source_path: str) -> str:
+def render_runtime_header(
+    topics: list[HelpTopic],
+    *,
+    source_path: str,
+    locale_topics: list[tuple[str, str, list[HelpTopic]]] | None = None,
+) -> str:
+    catalogs = [("en", source_path, topics)]
+    if locale_topics:
+        catalogs.extend(locale_topics)
+
+    banner_sources = [source_path] + [path for _, path, _ in catalogs[1:]]
     lines = [
-        f"/* Auto-generated from {source_path} by scripts/generate_help_assets.py. */",
+        "/* Auto-generated from "
+        + ", ".join(banner_sources)
+        + " by scripts/generate_help_assets.py. */",
         "#include <stddef.h>",
         "",
         "typedef struct {",
@@ -543,49 +555,75 @@ def render_runtime_header(topics: list[HelpTopic], *, source_path: str) -> str:
         "    const GeneratedHelpLongFormSection *long_form_sections;",
         "} GeneratedHelpTopic;",
         "",
+        "typedef struct {",
+        "    const char *locale_id;",
+        "    size_t topic_count;",
+        "    const GeneratedHelpTopic *topics;",
+        "} GeneratedHelpCatalog;",
+        "",
     ]
 
-    for topic in topics:
-        stem = topic.topic_id.replace("-", "_")
-        if topic.explainer_links:
-            lines.append(f"static const GeneratedHelpLink generated_help_links_{stem}[] = {{")
-            for link in topic.explainer_links:
+    for locale_id, _, locale_catalog_topics in catalogs:
+        locale_suffix = locale_id.replace("-", "_")
+        for topic in locale_catalog_topics:
+            stem = f"{locale_suffix}_{topic.topic_id.replace('-', '_')}"
+            if topic.explainer_links:
                 lines.append(
-                    f"    {{{c_literal(link.label)}, {c_literal(link.target_topic_id)}}},"
+                    f"static const GeneratedHelpLink generated_help_links_{stem}[] = {{"
+                )
+                for link in topic.explainer_links:
+                    lines.append(
+                        f"    {{{c_literal(link.label)}, {c_literal(link.target_topic_id)}}},"
+                    )
+                lines.append("};")
+                lines.append("")
+            lines.append(
+                f"static const GeneratedHelpLongFormSection generated_help_sections_{stem}[] = {{"
+            )
+            for section in topic.long_form_sections:
+                lines.append(
+                    f"    {{{c_literal(section.title)}, {c_literal(section.body)}}},"
                 )
             lines.append("};")
             lines.append("")
-        lines.append(
-            f"static const GeneratedHelpLongFormSection generated_help_sections_{stem}[] = {{"
-        )
-        for section in topic.long_form_sections:
-            lines.append(
-                f"    {{{c_literal(section.title)}, {c_literal(section.body)}}},"
+
+        lines.append(f"static const GeneratedHelpTopic generated_help_topics_{locale_suffix}[] = {{")
+        for topic in locale_catalog_topics:
+            stem = f"{locale_suffix}_{topic.topic_id.replace('-', '_')}"
+            contexts_csv = ",".join(topic.contexts)
+            link_array = (
+                f"generated_help_links_{stem}" if topic.explainer_links else "NULL"
             )
+            lines.append("    {")
+            lines.append(f"        {c_literal(topic.topic_id)},")
+            lines.append(f"        {c_literal(topic.title)},")
+            lines.append(
+                f"        {c_literal(contexts_csv) if contexts_csv else 'NULL'},"
+            )
+            lines.append(f"        {c_literal(topic.contextual_f1)},")
+            lines.append(f"        {len(topic.explainer_links)},")
+            lines.append(f"        {link_array},")
+            lines.append(f"        {len(topic.long_form_sections)},")
+            lines.append(f"        generated_help_sections_{stem},")
+            lines.append("    },")
         lines.append("};")
         lines.append("")
-
-    lines.append("static const GeneratedHelpTopic generated_help_topics[] = {")
-    for topic in topics:
-        stem = topic.topic_id.replace("-", "_")
-        contexts_csv = ",".join(topic.contexts)
-        link_array = f"generated_help_links_{stem}" if topic.explainer_links else "NULL"
-        lines.append("    {")
-        lines.append(f"        {c_literal(topic.topic_id)},")
-        lines.append(f"        {c_literal(topic.title)},")
         lines.append(
-            f"        {c_literal(contexts_csv) if contexts_csv else 'NULL'},"
+            f"static const size_t generated_help_topic_count_{locale_suffix} = {len(locale_catalog_topics)};"
         )
-        lines.append(f"        {c_literal(topic.contextual_f1)},")
-        lines.append(f"        {len(topic.explainer_links)},")
-        lines.append(f"        {link_array},")
-        lines.append(f"        {len(topic.long_form_sections)},")
-        lines.append(f"        generated_help_sections_{stem},")
-        lines.append("    },")
+        lines.append("")
+
+    lines.append("static const GeneratedHelpCatalog generated_help_catalogs[] = {")
+    for locale_id, _, locale_catalog_topics in catalogs:
+        locale_suffix = locale_id.replace("-", "_")
+        lines.append(
+            f"    {{{c_literal(locale_id)}, {len(locale_catalog_topics)}, generated_help_topics_{locale_suffix}}},"
+        )
     lines.append("};")
     lines.append("")
     lines.append(
-        f"static const size_t generated_help_topic_count = {len(topics)};"
+        "static const size_t generated_help_catalog_count = "
+        f"{len(catalogs)};"
     )
     lines.append("")
     return "\n".join(lines)
@@ -766,9 +804,51 @@ def validate_topic_inventory(
             context_owners[context_id] = topic.topic_id
 
 
+def help_locale_id_from_path(path: Path) -> str:
+    match = re.search(r"\.([a-z][a-z](?:[-_][A-Za-z0-9]+)?)\.md$", path.name)
+    if not match:
+        raise HelpSourceError(f"cannot derive help locale id from {path}")
+    return match.group(1).replace("_", "-").lower()
+
+
+def validate_locale_topic_projection(
+    master_topics: list[HelpTopic], locale_topics: list[HelpTopic], *, locale_id: str
+) -> None:
+    master_ids = {topic.topic_id for topic in master_topics}
+    locale_ids = {topic.topic_id for topic in locale_topics}
+
+    if master_ids != locale_ids:
+        missing = sorted(master_ids - locale_ids)
+        extra = sorted(locale_ids - master_ids)
+        problems = []
+        if missing:
+            problems.append(f"missing from locale {locale_id}: {', '.join(missing)}")
+        if extra:
+            problems.append(f"extra in locale {locale_id}: {', '.join(extra)}")
+        raise HelpSourceError(
+            "locale help source diverged from canonical topic inventory: "
+            + "; ".join(problems)
+        )
+
+    locale_map = {topic.topic_id: topic for topic in locale_topics}
+    for master_topic in master_topics:
+        locale_topic = locale_map[master_topic.topic_id]
+        if locale_topic.contexts != master_topic.contexts:
+            raise HelpSourceError(
+                f"locale {locale_id} topic {master_topic.topic_id!r} changed contexts ownership"
+            )
+        master_targets = [link.target_topic_id for link in master_topic.explainer_links]
+        locale_targets = [link.target_topic_id for link in locale_topic.explainer_links]
+        if locale_targets != master_targets:
+            raise HelpSourceError(
+                f"locale {locale_id} topic {master_topic.topic_id!r} changed explainer link targets"
+            )
+
+
 def build_outputs(
     *,
     f1_source_path: Path,
+    f1_locale_source_paths: list[Path],
     man_source_path: Path,
     man_md: str | None,
     usage_md: str | None,
@@ -779,7 +859,13 @@ def build_outputs(
 ) -> dict[str, str]:
     f1_topics = parse_help_source(f1_source_path.read_text(encoding="utf-8"))
     man_topics = parse_help_source(man_source_path.read_text(encoding="utf-8"))
+    locale_f1_catalogs: list[tuple[str, str, list[HelpTopic]]] = []
     validate_topic_inventory(f1_topics, man_topics)
+    for locale_path in f1_locale_source_paths:
+        locale_id = help_locale_id_from_path(locale_path)
+        locale_topics = parse_help_source(locale_path.read_text(encoding="utf-8"))
+        validate_locale_topic_projection(f1_topics, locale_topics, locale_id=locale_id)
+        locale_f1_catalogs.append((locale_id, str(locale_path), locale_topics))
     outputs: dict[str, str] = {}
     if man_md:
         outputs[man_md] = render_manpage_markdown(
@@ -791,7 +877,9 @@ def build_outputs(
         )
     if runtime_header:
         outputs[runtime_header] = render_runtime_header(
-            f1_topics, source_path=str(f1_source_path)
+            f1_topics,
+            source_path=str(f1_source_path),
+            locale_topics=locale_f1_catalogs,
         )
     if man_roff:
         man_markdown = outputs.get(man_md) or render_manpage_markdown(
@@ -842,6 +930,12 @@ def parse_args() -> argparse.Namespace:
         help="Authored contextual F1 help source to read.",
     )
     parser.add_argument(
+        "--f1-locale-source",
+        action="append",
+        default=[],
+        help="Additional localized contextual F1 help source to embed in the runtime header.",
+    )
+    parser.add_argument(
         "--man-source",
         default="etc/help/man.en.md",
         help="Authored man/USAGE reference source to read.",
@@ -862,6 +956,7 @@ def main() -> int:
     args = parse_args()
     outputs = build_outputs(
         f1_source_path=Path(args.f1_source),
+        f1_locale_source_paths=[Path(path) for path in args.f1_locale_source],
         man_source_path=Path(args.man_source),
         man_md=args.man_md,
         usage_md=args.usage_md,

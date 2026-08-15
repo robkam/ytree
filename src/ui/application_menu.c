@@ -34,10 +34,14 @@ typedef struct {
 } ApplicationMenuEntry;
 
 static const UICommandStripCommand applications_menu_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "edit", "E", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("applications-menu.commands", "help"),
+     "F1", NULL, "applications-menu.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("applications-menu.commands", "select"),
+     "Enter", NULL, "applications-menu.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("applications-menu.commands", "edit"),
+     "E", NULL, "applications-menu.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("applications-menu.commands", "cancel"),
+     "Esc", NULL, "applications-menu.commands"},
 };
 
 static int ShowApplicationsHelpPopup(ViewContext *ctx) {

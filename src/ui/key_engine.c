@@ -398,8 +398,10 @@ int InputChoiceWithHelp(ViewContext *ctx, const char *msg, const char *term,
                    UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   if (help_callback != NULL) {
     static const UICommandStripCommand help_commands[] = {
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("choice-prompt.commands", "help"),
+         "F1", NULL, "choice-prompt.commands"},
+        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("choice-prompt.commands", "cancel"),
+         "Esc", NULL, "choice-prompt.commands"}};
 
     UI_RenderAdaptiveCommandStrip(
         ctx->ctx_border_window, ctx->layout.status_y, 1, help_commands,

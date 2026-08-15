@@ -17,14 +17,21 @@
 #include <unistd.h>
 
 static const UICommandStripCommand tagged_view_message_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "next page/file", "Space", "PgDn"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "prev page", "PgUp", NULL}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("tagged-view.commands", "Quit"), "Q",
+     NULL, "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "next page/file"),
+     "Space", "PgDn", "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "prev page"),
+     "PgUp", NULL, "tagged-view.commands"}};
 static const UICommandStripCommand tagged_view_prompt_commands[] = {
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Next file", "N", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Prev file (wrap)", "P", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "line", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "of line", "Home", "End"}};
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("tagged-view.commands", "Next file"),
+     "N", NULL, "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("tagged-view.commands", "Prev file (wrap)"),
+     "P", NULL, "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "line"), "Up",
+     "Down", "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "of line"),
+     "Home", "End", "tagged-view.commands"}};
 
 static BOOL CopyBoundedStringChecked(char *dst, size_t dst_size,
                                      const char *src) {

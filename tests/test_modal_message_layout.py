@@ -36,13 +36,14 @@ def test_modal_header_and_prompt_center_contract_is_preserved():
 
     map_modal_block = _extract_function_block(
         error_source,
-        "static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,\n"
+        "static void MapModalWindow(ViewContext *ctx, const char *header,\n"
+        "                           const char *prompt,\n"
         "                           ModalSeverity severity) {",
     )
 
     assert "PrintErrorLine(ctx, 1, header);" in map_modal_block
     assert (
-        "MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, prompt);"
+        "MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, (char *)prompt);"
         in map_modal_block
     )
 

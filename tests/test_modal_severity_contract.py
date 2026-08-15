@@ -62,7 +62,8 @@ def test_modal_window_background_rebinds_per_severity_tier():
     error_source = _read_source("src/ui/error.c")
     map_modal_block = _extract_function_block(
         error_source,
-        "static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,\n"
+        "static void MapModalWindow(ViewContext *ctx, const char *header,\n"
+        "                           const char *prompt,\n"
         "                           ModalSeverity severity) {",
     )
 

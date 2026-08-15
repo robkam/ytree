@@ -18,6 +18,7 @@
 #include "ytnova_appstate_visibility.h"
 #include "ytnova_appstate_window.h"
 #include "ytnova_debug.h"
+#include "ytnova_i18n.h"
 #include "default_profile_template.h"
 #include <fcntl.h>
 #include <string.h>
@@ -963,7 +964,7 @@ static int InitPrepareRuntimeDefaults(ViewContext *ctx) {
 }
 
 static int InitStartTerminal(ViewContext *ctx) {
-  setlocale(LC_ALL, "");
+  I18n_Init();
 
   ctx->user_umask = umask(0);
   ctx->configuration_file_path[0] = '\0';

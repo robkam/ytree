@@ -13,15 +13,22 @@
 #define HELP_POPUP_CENTERED_HORIZONTAL_MARGIN 4
 
 static const UICommandStripCommand help_popup_close_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "Esc", "Q"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "close"), "Esc",
+     "Q", "help-popup.footer"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "OK"), "Enter",
+     NULL, "help-popup.footer"}};
 
 static const UICommandStripCommand help_popup_scroll_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "scroll", "Up", "Down"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "page", "PgUp", "PgDn"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "Home", "End"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "close", "Esc", "Q"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "scroll"), "Up",
+     "Down", "help-popup.footer"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "page"), "PgUp",
+     "PgDn", "help-popup.footer"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "jump"), "Home",
+     "End", "help-popup.footer"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "close"), "Esc",
+     "Q", "help-popup.footer"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("help-popup.footer", "OK"), "Enter",
+     NULL, "help-popup.footer"}};
 
 static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
                                 size_t command_count) {
@@ -114,8 +121,11 @@ static void ClearHelpPopupContentArea(WINDOW *win, int start_y, int start_x,
 }
 
 static void RenderHelpPopupFrame(WINDOW *win, int width, const char *title) {
+  const char *translated_title;
+
   if (win == NULL || title == NULL)
     return;
+  translated_title = _(title);
 
   werase(win);
 #ifdef COLOR_SUPPORT
@@ -126,8 +136,9 @@ static void RenderHelpPopupFrame(WINDOW *win, int width, const char *title) {
   wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));
   wattron(win, COLOR_PAIR(UI_ROLE_HELP_HEADING));
 #endif
-  mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength(title)) / 2), "%s",
-            title);
+  mvwprintw(win, 1,
+            MAXIMUM(2, (width - StrVisualLength(translated_title)) / 2), "%s",
+            translated_title);
 #ifdef COLOR_SUPPORT
   wattroff(win, COLOR_PAIR(UI_ROLE_HELP_HEADING));
 #endif
@@ -462,6 +473,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                  const UIHelpPopupRow *rows, size_t row_count,
                                  BOOL dismiss_any_key,
                                  const UIHelpPopupFooterSpec *footer_spec) {
+  const char *translated_title;
   HelpPopupRenderState render_state;
   WINDOW *win;
   int content_width;
@@ -482,6 +494,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
 
   if (ctx == NULL || title == NULL || rows == NULL || row_count == 0)
     return -1;
+  translated_title = _(title);
 
   max_row_width = 0;
   for (i = 0; i < (int)row_count; ++i) {
@@ -508,7 +521,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     int footer_width;
     int max_visible_rows;
 
-    width = StrVisualLength(title) + 8;
+    width = StrVisualLength(translated_title) + 8;
     if (max_row_width + 4 > width)
       width = max_row_width + 4;
     width = MAXIMUM(width, HELP_POPUP_HISTORY_MIN_WIDTH);
@@ -558,7 +571,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   curs_set(0);
 
   wattron(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));
-  RenderHelpPopupFrame(win, width, title);
+  RenderHelpPopupFrame(win, width, translated_title);
   wattroff(win, COLOR_PAIR(UI_ROLE_HELP_BOX_LINES));
   ClearHelpPopupContentArea(win, HELP_POPUP_CONTENT_START_Y,
                             HELP_POPUP_CONTENT_START_X, content_lines + 1,

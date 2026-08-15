@@ -21,11 +21,17 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     f1_topics = helpgen.parse_help_source(
         (REPO_ROOT / "etc" / "help" / "f1.en.md").read_text(encoding="utf-8")
     )
+    de_f1_topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "f1.de.md").read_text(encoding="utf-8")
+    )
     man_topics = helpgen.parse_help_source(
         (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
     )
 
     helpgen.validate_topic_inventory(f1_topics, man_topics)
+    helpgen.validate_locale_topic_projection(
+        f1_topics, de_f1_topics, locale_id="de"
+    )
     manpage = helpgen.render_manpage_markdown(
         man_topics, usage_mode=False, source_path="etc/help/man.en.md"
     )
@@ -33,7 +39,9 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
         man_topics, usage_mode=True, source_path="etc/help/man.en.md"
     )
     header = helpgen.render_runtime_header(
-        f1_topics, source_path="etc/help/f1.en.md"
+        f1_topics,
+        source_path="etc/help/f1.en.md",
+        locale_topics=[("de", "etc/help/f1.de.md", de_f1_topics)],
     )
 
     assert helpgen.generated_banner("etc/help/man.en.md") in manpage
@@ -52,13 +60,18 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert "Start with the page for the screen or prompt you are using now." not in manpage
     assert "Authors and contributors are listed in the AUTHORS.md file." in manpage
     assert "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file." in usage
-    assert "generated_help_topic_count" in header
+    assert "generated_help_topic_count_en" in header
+    assert "generated_help_catalogs" in header
+    assert '\"de\"' in header
+    assert 'generated_help_topics_de' in header
     assert '"main.dir"' in header
     assert '"prompt.compare-target"' in header
     assert '"prompt.output-destination"' in header
     assert '"prompt.output-format"' not in header
-    assert 'generated_help_links_list_jump' in header
-    assert 'generated_help_links_filter' in header
+    assert 'generated_help_links_en_list_jump' in header
+    assert 'generated_help_links_de_list_jump' in header
+    assert 'generated_help_links_en_filter' in header
+    assert 'generated_help_links_de_filter' in header
 
 
 def test_help_generator_rejects_missing_long_form_section():
@@ -139,6 +152,8 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
             str(SCRIPT_PATH),
             "--f1-source",
             "etc/help/f1.en.md",
+            "--f1-locale-source",
+            "etc/help/f1.de.md",
             "--man-source",
             "etc/help/man.en.md",
             "--man-md",
@@ -168,6 +183,8 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
             str(SCRIPT_PATH),
             "--f1-source",
             "etc/help/f1.en.md",
+            "--f1-locale-source",
+            "etc/help/f1.de.md",
             "--man-source",
             "etc/help/man.en.md",
             "--man-md",

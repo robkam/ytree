@@ -15,13 +15,19 @@
 #include <stdlib.h>
 
 static const UICommandStripCommand f2_command_strip[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL},
-    {UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cycle", "<", ">"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("f2-picker.commands", "help"), "F1",
+     NULL, "f2-picker.commands"},
+    {UI_COMMAND_LAYOUT_MNEMONIC, NP_("f2-picker.commands", "Log"), "L", NULL,
+     "f2-picker.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("f2-picker.commands", "cycle"), "<",
+     ">", "f2-picker.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("f2-picker.commands", "dotfiles"), "`",
+     NULL, "f2-picker.commands"}};
 static const UICommandStripCommand f2_context_command_strip[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "select", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("f2-picker.commands", "select"),
+     "Enter", NULL, "f2-picker.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("f2-picker.commands", "cancel"),
+     "Esc", NULL, "f2-picker.commands"}};
 
 typedef struct {
   struct Volume *target_vol;

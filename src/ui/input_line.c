@@ -138,16 +138,24 @@ static int normalize_prompt_escape_key(WINDOW *win, int ch) {
  * Returns: The terminating key (CR or ESC).
  */
 static const UICommandStripCommand read_string_path_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "browse", "F2", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "browse"), "F2", NULL,
+     "prompt.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "history"), "Up", NULL,
+     "prompt.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "OK"), "Enter", NULL,
+     "prompt.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "cancel"), "Esc", NULL,
+     "prompt.hints"}};
 static const UICommandStripCommand read_string_help_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "help"), "F1", NULL,
+     "prompt.hints"}};
 static const UICommandStripCommand read_string_history_hint_commands[] = {
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "history", "Up", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "OK", "Enter", NULL},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, "cancel", "Esc", NULL}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "history"), "Up", NULL,
+     "prompt.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "OK"), "Enter", NULL,
+     "prompt.hints"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("prompt.hints", "cancel"), "Esc", NULL,
+     "prompt.hints"}};
 
 typedef struct {
   ViewContext *ctx;
@@ -641,6 +649,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   WINDOW *win;
   int hints_row;
   int prompt_row;
+  const char *translated_prompt;
   const UICommandStripCommand *hints;
   size_t hint_count;
 
@@ -651,6 +660,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   session.ctx = ctx;
   session.panel = panel;
   session.prompt = prompt;
+  translated_prompt = _(prompt != NULL ? prompt : "");
   session.buffer = buffer;
   session.max_len = max_len;
   session.history_type = history_type;
@@ -695,8 +705,8 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
     int prompt_len;
 
     werase(win);
-    mvwprintw(win, prompt_row, 1, "%s ", prompt);
-    prompt_len = StrVisualLength(prompt) + 2;
+    mvwprintw(win, prompt_row, 1, "%s ", translated_prompt);
+    prompt_len = StrVisualLength(translated_prompt) + 2;
     field_width = COLS - prompt_len - 1;
     session.field_width = field_width;
 
