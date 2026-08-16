@@ -16,9 +16,11 @@ Use all four together. None of them is sufficient by itself.
 Before merging a PR into `main`, require all of the following:
 
 1. Baseline CI is green.
-2. `Up To Date With Main` is green.
-3. If size is `L` or `XL`, the PR body explains why it is large, why it is not split right now, and what could break. Provide this once, updating only if scope materially changes.
-4. At least one human maintainer approves.
+2. PR full QA is green, including the required `Guard and code-quality gate`, `Runtime and security gate`, `Static analyzer gate`, `Full pytest gate`, and `Sanitizer gate`.
+3. `Up To Date With Main` is green.
+4. Any non-trivial PR (the same source/test/script/Makefile/workflow changes that trigger `.github/workflows/full-qa.yml`) includes explicit security validation evidence in the PR body: `make qa-unsafe-apis`, plus `make qa-fileops-integrity` when file/archive mutation flows change.
+5. If size is `L` or `XL`, the PR body explains why it is large, why it is not split right now, and what could break. Provide this once, updating only if scope materially changes.
+6. At least one human maintainer approves.
 
 ## AI-First Review Contract
 

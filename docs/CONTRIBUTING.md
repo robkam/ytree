@@ -144,9 +144,14 @@ Configure GitHub branch protection on `main`:
 1. Settings -> Branches -> Add branch protection rule for `main`.
 2. Enable `Require status checks to pass before merging`.
 3. Select required checks from GitHub Actions:
+   - `.github/workflows/ci.yml`: `Docs gate`.
+   - `.github/workflows/full-qa.yml`: `Guard and code-quality gate`.
    - `.github/workflows/ci.yml`: `Guard fuzz harness sync`.
    - `.github/workflows/ci.yml`: `File mutation integrity gate`.
-   - `.github/workflows/ci.yml`: `Split panel regression gate` for split-touching PRs.
+   - `.github/workflows/full-qa.yml`: `Static analyzer gate`.
+   - `.github/workflows/full-qa.yml`: `Runtime and security gate`.
+   - `.github/workflows/full-qa.yml`: `Full pytest gate`.
+   - `.github/workflows/full-qa.yml`: `Sanitizer gate`.
    - `.github/workflows/ci.yml`: `Full coverage baseline gate`.
    - `.github/workflows/ci.yml`: `Fuzz baseline gate`.
    - `.github/workflows/pr-conflict-assistant.yml`: `Up To Date With Main`.
@@ -211,6 +216,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 
 - During implementation, run focused checks first (`make` + targeted tests for touched scope).
 - Before merge to `main`, require green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent). Local full audit loop is optional unless explicitly requested.
+- Treat any PR that triggers `.github/workflows/full-qa.yml` (`src/**`, `include/**`, `tests/**`, `scripts/**`, `Makefile`, `.github/workflows/**`) as non-trivial: include `make qa-unsafe-apis` in the validation evidence, and include `make qa-fileops-integrity` as well when file/archive mutation flows change.
 - Split-touching PRs must also pass the path-filtered `make qa-split-panel-gates` CI gate before merge.
 - Use the canonical tool order from `AUDIT.md`: `clang-tidy`, `cppcheck`, `scan-build`, `valgrind`, then `pytest` for regression verification.
 
@@ -225,7 +231,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
 - GitHub split panel regression CI (`.github/workflows/ci.yml`) runs `make qa-split-panel-gates` on PRs that touch split-panel paths.
 - GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main` and is the required full pre-merge gate.
-- GitHub PR sanitizer gate in `.github/workflows/full-qa.yml` runs only on manual dispatch or when PR label `qa-sanitize` is present.
+- GitHub PR sanitizer gate in `.github/workflows/full-qa.yml` runs on the same full-QA-triggering PRs as the other pre-merge full-QA jobs.
 - GitHub nightly deep Valgrind CI (`.github/workflows/nightly-deep-valgrind.yml`) runs `make qa-valgrind-full` on schedule (and manual dispatch).
 
 Individual gates:
@@ -310,7 +316,7 @@ Contributions must preserve a secure-by-default codebase:
 - Default to fail-closed behavior on invalid or unexpected states.
 - Use least-privilege file/process handling; avoid broad permissions or escalation unless explicitly required.
 
-Security evidence is part of the required audit flow: include `make qa-unsafe-apis` results per **[AUDIT.md](AUDIT.md)**.
+Security evidence is part of the required audit flow: include `make qa-unsafe-apis` results for every non-trivial PR per **[AUDIT.md](AUDIT.md)**.
 If you change safety-sensitive behavior, update **[TRUST.md](TRUST.md)** so user-facing trust claims stay accurate.
 
 ## Source Comment Policy
