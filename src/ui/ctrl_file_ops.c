@@ -18,6 +18,7 @@
 #include "ytnova_appstate_window.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_runtime_launch.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
 #include <assert.h>
@@ -1423,12 +1424,16 @@ static BOOL HandleTaggedCommandDispatchAction(
 
       filepath[0] = '\0'; /* Initialize buffer to prevent garbage prompt */
       if (GetPipeCommand(ctx, filepath) == 0) {
+        int pipe_status = 0;
+        pid_t pipe_child_pid = -1;
+
         /* Exit ncurses mode */
         endwin();
         SuspendClock(ctx);
 
-        if ((walking_package.function_data.pipe_cmd.pipe_file =
-                 popen(filepath, "w")) == NULL) {
+        if (RuntimeLaunchStartShellWriter(
+                filepath, NULL, &walking_package.function_data.pipe_cmd.pipe_file,
+                &pipe_child_pid) != 0) {
           /* Restore ncurses mode if popen fails */
           InitClock(ctx);
           touchwin(stdscr);
@@ -1439,8 +1444,9 @@ static BOOL HandleTaggedCommandDispatchAction(
           FileTags_SilentWalkTaggedFiles(ctx, PipeTaggedFiles, &walking_package);
 
           /* Close pipe and capture return value */
-          const int pclose_ret =
-              pclose(walking_package.function_data.pipe_cmd.pipe_file);
+          const int close_ret = RuntimeLaunchCloseWriter(
+              walking_package.function_data.pipe_cmd.pipe_file, pipe_child_pid,
+              &pipe_status);
 
           /* Wait for user input */
           HitReturnToContinue();
@@ -1451,8 +1457,8 @@ static BOOL HandleTaggedCommandDispatchAction(
           wnoutrefresh(stdscr);
           doupdate(); /* Restore screen */
 
-          if (pclose_ret) {
-            UI_Warning(ctx, "pclose failed");
+          if (close_ret != 0 || pipe_status != 0) {
+            UI_Warning(ctx, "pipe command failed");
           }
         }
       }

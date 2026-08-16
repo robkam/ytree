@@ -20,17 +20,7 @@ BANNED_CALLS = (
     "posix_spawnp",
 )
 
-LEGACY_ALLOWLIST = {
-    "src/core/quit.c": {'if (system("stty sane")) {'},
-    "src/cmd/system.c": {
-        'result = system(command_line);',
-        'execl("/bin/sh", "sh", "-c", command_line, (char *)NULL);',
-    },
-    "src/cmd/print_ops.c": {'out_fp = popen(dest, "w");'},
-    "src/ui/ctrl_file_ops.c": {'popen(filepath, "w")) == NULL) {'},
-    "src/ui/fileinfo_git.c": {'pipe_fp = popen(command, "r");'},
-    "src/ui/render_file.c": {'pipe_fp = popen(command, "r");'},
-}
+ALLOWLIST: dict[str, set[str]] = {}
 
 
 def _normalize_line(text: str) -> str:
@@ -38,7 +28,7 @@ def _normalize_line(text: str) -> str:
 
 
 def _allowlisted_line_set(rel_path: str) -> set[str]:
-    return {_normalize_line(line) for line in LEGACY_ALLOWLIST.get(rel_path, set())}
+    return {_normalize_line(line) for line in ALLOWLIST.get(rel_path, set())}
 
 
 def find_banned_calls(text: str) -> list[tuple[int, str]]:
@@ -171,7 +161,7 @@ def main() -> int:
         print(f"FAIL: banned unsafe API calls found ({len(violations)})")
         return 1
 
-    print("PASS: no banned unsafe C API calls found outside the audited legacy allowlist")
+    print("PASS: no banned unsafe C API calls found outside the configured allowlist")
     return 0
 
 

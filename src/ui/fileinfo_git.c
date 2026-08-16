@@ -6,8 +6,8 @@
  ***************************************************************************/
 
 #include "ytnova_fs.h"
+#include "ytnova_runtime_launch.h"
 #include "ytnova_ui.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,68 +26,9 @@ static void ClearGitStatusCache(YtreeNovaPanel *panel) {
 void FileInfoGitInvalidate(YtreeNovaPanel *panel) { ClearGitStatusCache(panel); }
 
 static BOOL ReadCommandOutput(const char *command, char **output_ptr) {
-  FILE *pipe_fp;
-  char *buffer = NULL;
-  size_t used = 0;
-  size_t capacity = 0;
-
   if (!command || !output_ptr)
     return FALSE;
-  *output_ptr = NULL;
-
-  pipe_fp = popen(command, "r");
-  if (!pipe_fp)
-    return FALSE;
-
-  for (;;) {
-    size_t chunk_size = 4096;
-    size_t remaining;
-    size_t read_now;
-    char *new_buffer;
-
-    if (capacity - used < chunk_size + 1) {
-      size_t new_capacity = (capacity == 0) ? 8192 : capacity * 2;
-      while (new_capacity - used < chunk_size + 1)
-        new_capacity *= 2;
-      new_buffer = (char *)realloc(buffer, new_capacity);
-      if (!new_buffer) {
-        free(buffer);
-        (void)pclose(pipe_fp);
-        return FALSE;
-      }
-      buffer = new_buffer;
-      capacity = new_capacity;
-    }
-
-    remaining = capacity - used - 1;
-    read_now = fread(buffer + used, 1, remaining, pipe_fp);
-    used += read_now;
-    if (read_now < remaining) {
-      if (ferror(pipe_fp)) {
-        free(buffer);
-        (void)pclose(pipe_fp);
-        return FALSE;
-      }
-      break;
-    }
-  }
-
-  if (buffer == NULL) {
-    buffer = (char *)malloc(1);
-    if (!buffer) {
-      (void)pclose(pipe_fp);
-      return FALSE;
-    }
-  }
-  buffer[used] = '\0';
-
-  if (pclose(pipe_fp) != 0) {
-    free(buffer);
-    return FALSE;
-  }
-
-  *output_ptr = buffer;
-  return TRUE;
+  return RuntimeLaunchCaptureShellOutput(command, NULL, output_ptr) == 0;
 }
 
 static BOOL GitCommandForDir(const char *dir_path, const char *suffix,

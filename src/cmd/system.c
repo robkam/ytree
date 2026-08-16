@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_runtime_launch.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -14,10 +15,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-
-/* Prototypes for functions defined in this file */
-int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s);
-int SilentSystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
 
 static int WriteDetachedLaunchError(int fd, int error_code) {
   return write(fd, &error_code, sizeof(error_code)) == (ssize_t)sizeof(error_code)
@@ -79,37 +76,21 @@ int LaunchDetachedCommand(ViewContext *ctx, const char *command_line,
     if (grandchild_pid > 0)
       _exit(0);
 
-    if (working_directory != NULL && *working_directory != '\0' &&
-        chdir(working_directory) != 0) {
-      child_error = errno;
-      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
-      _exit(1);
-    }
-
     null_fd = open("/dev/null", O_RDWR);
     if (null_fd == -1) {
       child_error = errno;
       (void)WriteDetachedLaunchError(status_pipe[1], child_error);
       _exit(1);
     }
-    if (dup2(null_fd, STDIN_FILENO) == -1 || dup2(null_fd, STDOUT_FILENO) == -1 ||
-        dup2(null_fd, STDERR_FILENO) == -1) {
-      child_error = errno;
-      close(null_fd);
-      (void)WriteDetachedLaunchError(status_pipe[1], child_error);
-      _exit(1);
-    }
-    if (null_fd > STDERR_FILENO)
-      close(null_fd);
-
-    execl("/bin/sh", "sh", "-c", command_line, (char *)NULL);
+    (void)RuntimeLaunchExecShellChild(command_line, working_directory, null_fd,
+                                      null_fd, null_fd, FALSE);
     child_error = errno;
     (void)WriteDetachedLaunchError(status_pipe[1], child_error);
     _exit(1);
   }
 
   close(status_pipe[1]);
-  if (waitpid(child_pid, &child_status, 0) == -1) {
+  if (RuntimeLaunchWait(child_pid, &child_status) != 0) {
     child_error = errno;
     close(status_pipe[0]);
     errno = child_error;
@@ -130,6 +111,7 @@ int LaunchDetachedCommand(ViewContext *ctx, const char *command_line,
 }
 
 int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s) {
+  int command_status;
   int result;
 
   /* Hier ist die einzige Stelle, in der Kommandos aufgerufen werden! */
@@ -137,7 +119,11 @@ int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_c
   if (ctx->hook_suspend_clock)
     ctx->hook_suspend_clock(ctx);
 
-  result = system(command_line);
+  if (RuntimeLaunchRunShell(command_line, NULL, -1, -1, -1, FALSE,
+                            &command_status) != 0)
+    result = -1;
+  else
+    result = command_status;
 
   /* Restore terminal settings. If enable_clock is TRUE, InitClock will
      implicitly call refresh() and restore the curses display later.

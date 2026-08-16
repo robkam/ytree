@@ -7,13 +7,13 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_runtime_launch.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #define PIPE_ARGV_MAX 64
@@ -56,15 +56,12 @@ static int ParsePipeCommand(char *command_line, char **argv, size_t argv_len) {
 
 static int OpenPipeWriter(const char *pipe_command, FILE **pipe_fp_out,
                           pid_t *child_pid_out) {
-  int pipefd[2];
   int copied_len;
-  FILE *pipe_fp;
-  pid_t child_pid;
   size_t argc;
   size_t i;
   char command_line[PATH_LENGTH + 1];
   char *argv[PIPE_ARGV_MAX];
-  char *redirect_path = NULL;
+  const char *redirect_path = NULL;
   BOOL redirect_append = FALSE;
 
   if (!pipe_command || !pipe_fp_out || !child_pid_out) {
@@ -100,70 +97,13 @@ static int OpenPipeWriter(const char *pipe_command, FILE **pipe_fp_out,
     return -1;
   }
 
-  if (pipe(pipefd) != 0) {
-    return -1;
-  }
-
-  child_pid = fork();
-  if (child_pid == -1) {
-    close(pipefd[0]);
-    close(pipefd[1]);
-    return -1;
-  }
-
-  if (child_pid == 0) {
-    if (dup2(pipefd[0], STDIN_FILENO) == -1) {
-      _exit(127);
-    }
-    if (redirect_path) {
-      int out_fd;
-      int flags = O_WRONLY | O_CREAT | (redirect_append ? O_APPEND : O_TRUNC);
-      out_fd = open(redirect_path, flags, 0666);
-      if (out_fd == -1) {
-        _exit(127);
-      }
-      if (dup2(out_fd, STDOUT_FILENO) == -1) {
-        close(out_fd);
-        _exit(127);
-      }
-      close(out_fd);
-    }
-    close(pipefd[0]);
-    close(pipefd[1]);
-    execvp(argv[0], argv);
-    _exit(127);
-  }
-
-  close(pipefd[0]);
-  pipe_fp = fdopen(pipefd[1], "w");
-  if (!pipe_fp) {
-    close(pipefd[1]);
-    (void)waitpid(child_pid, NULL, 0);
-    return -1;
-  }
-
-  *pipe_fp_out = pipe_fp;
-  *child_pid_out = child_pid;
-  return 0;
+  return RuntimeLaunchStartArgvWriter(argv, NULL, redirect_path,
+                                      redirect_append, pipe_fp_out,
+                                      child_pid_out);
 }
 
 static int ClosePipeWriter(FILE *pipe_fp, pid_t child_pid) {
-  int wait_status;
-  int close_status;
-
-  if (!pipe_fp) {
-    return -1;
-  }
-
-  close_status = fclose(pipe_fp);
-  do {
-    wait_status = waitpid(child_pid, NULL, 0);
-  } while (wait_status == -1 && errno == EINTR);
-
-  if (close_status != 0 || wait_status == -1) {
-    return -1;
-  }
-  return 0;
+  return RuntimeLaunchCloseWriter(pipe_fp, child_pid, NULL);
 }
 
 static void RestorePipeCommandUi(ViewContext *ctx, DirEntry *dir_entry) {

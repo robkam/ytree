@@ -16,7 +16,7 @@ sys.modules[GUARD_SPEC.name] = guard
 GUARD_SPEC.loader.exec_module(guard)
 
 
-LEGACY_SNIPPETS = {
+FORMER_LEGACY_SNIPPETS = {
     "src/core/quit.c": 'if (system("stty sane")) {',
     "src/cmd/system.c": 'result = system(command_line);',
     "src/cmd/system.c#shell": 'execl("/bin/sh", "sh", "-c", command_line, (char *)NULL);',
@@ -76,51 +76,69 @@ def test_find_banned_calls_skips_comments_and_strings() -> None:
     assert findings == []
 
 
-def test_guard_allows_current_legacy_runtime_debt_snippets(tmp_path: Path) -> None:
+def test_guard_no_longer_grandfathers_runtime_launch_debt() -> None:
+    assert guard.ALLOWLIST == {}
+
+
+def test_guard_rejects_former_legacy_runtime_debt_snippets(tmp_path: Path) -> None:
     _write(
         tmp_path / "src/core/quit.c",
-        LEGACY_SNIPPETS["src/core/quit.c"] + "\n",
+        FORMER_LEGACY_SNIPPETS["src/core/quit.c"] + "\n",
     )
     _write(
         tmp_path / "src/cmd/system.c",
         "\n".join(
             [
-                LEGACY_SNIPPETS["src/cmd/system.c"],
-                LEGACY_SNIPPETS["src/cmd/system.c#shell"],
+                FORMER_LEGACY_SNIPPETS["src/cmd/system.c"],
+                FORMER_LEGACY_SNIPPETS["src/cmd/system.c#shell"],
             ]
         )
         + "\n",
     )
-    _write(tmp_path / "src/cmd/print_ops.c", LEGACY_SNIPPETS["src/cmd/print_ops.c"] + "\n")
+    _write(
+        tmp_path / "src/cmd/print_ops.c",
+        FORMER_LEGACY_SNIPPETS["src/cmd/print_ops.c"] + "\n",
+    )
     _write(
         tmp_path / "src/ui/ctrl_file_ops.c",
-        LEGACY_SNIPPETS["src/ui/ctrl_file_ops.c"] + "\n",
+        FORMER_LEGACY_SNIPPETS["src/ui/ctrl_file_ops.c"] + "\n",
     )
     _write(
         tmp_path / "src/ui/fileinfo_git.c",
-        LEGACY_SNIPPETS["src/ui/fileinfo_git.c"] + "\n",
+        FORMER_LEGACY_SNIPPETS["src/ui/fileinfo_git.c"] + "\n",
     )
     _write(
         tmp_path / "src/ui/render_file.c",
-        LEGACY_SNIPPETS["src/ui/render_file.c"] + "\n",
+        FORMER_LEGACY_SNIPPETS["src/ui/render_file.c"] + "\n",
     )
 
-    assert guard.iter_violations(tmp_path) == []
+    assert guard.iter_violations(tmp_path) == [
+        ("src/cmd/print_ops.c", 1, "popen("),
+        ("src/cmd/system.c", 1, "system("),
+        ("src/cmd/system.c", 2, "execl("),
+        ("src/core/quit.c", 1, "system("),
+        ("src/ui/ctrl_file_ops.c", 1, "popen("),
+        ("src/ui/fileinfo_git.c", 1, "popen("),
+        ("src/ui/render_file.c", 1, "popen("),
+    ]
 
 
-def test_guard_rejects_new_violation_inside_legacy_path(tmp_path: Path) -> None:
+def test_guard_rejects_runtime_launch_violation_inside_historic_path(tmp_path: Path) -> None:
     _write(
         tmp_path / "src/cmd/system.c",
         "\n".join(
             [
-                LEGACY_SNIPPETS["src/cmd/system.c"],
+                FORMER_LEGACY_SNIPPETS["src/cmd/system.c"],
                 'result = system("id");',
             ]
         )
         + "\n",
     )
 
-    assert guard.iter_violations(tmp_path) == [("src/cmd/system.c", 2, "system(")]
+    assert guard.iter_violations(tmp_path) == [
+        ("src/cmd/system.c", 1, "system("),
+        ("src/cmd/system.c", 2, "system("),
+    ]
 
 
 def test_current_repository_baseline_passes() -> None:

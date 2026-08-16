@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_runtime_launch.h"
 #include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
@@ -148,6 +149,8 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
   int start_dir_fd;
   int write_failed = FALSE;
   int close_failed = FALSE;
+  int child_status = 0;
+  pid_t child_pid = -1;
   void (*old_sigpipe)(int) = SIG_DFL;
 
   if (is_pipe) {
@@ -207,9 +210,10 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
     out_fp = fopen(expanded, "a");
   } else {
     pipe_output = TRUE;
-    out_fp = popen(dest, "w");
-    if (out_fp != NULL) {
+    if (RuntimeLaunchStartShellWriter(dest, NULL, &out_fp, &child_pid) == 0) {
       old_sigpipe = signal(SIGPIPE, SIG_IGN);
+    } else {
+      out_fp = NULL;
     }
   }
 
@@ -268,7 +272,8 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   if (pipe_output) {
-    if (pclose(out_fp) != 0) {
+    if (RuntimeLaunchCloseWriter(out_fp, child_pid, &child_status) != 0 ||
+        child_status != 0) {
       close_failed = TRUE;
     }
     if (old_sigpipe != SIG_ERR) {

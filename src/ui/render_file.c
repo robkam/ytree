@@ -8,6 +8,7 @@
 #include "ytnova_appstate_panel.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include "ytnova_runtime_launch.h"
 #include "ytnova_ui.h"
 
 #include <ctype.h>
@@ -192,9 +193,10 @@ static BOOL BuildFileCommandDetail(const FileEntry *fe_ptr, char *buffer,
   char path[PATH_LENGTH + 1];
   char quoted_path[(PATH_LENGTH * 4) + 3];
   char command[(PATH_LENGTH * 4) + 32];
+  char *command_output = NULL;
   char output[160];
   char normalized[128];
-  FILE *pipe_fp;
+  char *line_break;
 
   if (!buffer || buffer_size == 0)
     return FALSE;
@@ -211,17 +213,18 @@ static BOOL BuildFileCommandDetail(const FileEntry *fe_ptr, char *buffer,
                quoted_path) >= (int)sizeof(command))
     return FALSE;
 
-  pipe_fp = popen(command, "r");
-  if (!pipe_fp)
+  if (RuntimeLaunchCaptureShellOutput(command, NULL, &command_output) != 0)
     return FALSE;
 
-  output[0] = '\0';
-  if (!fgets(output, sizeof(output), pipe_fp)) {
-    (void)pclose(pipe_fp);
+  line_break = strchr(command_output, '\n');
+  if (line_break != NULL)
+    *line_break = '\0';
+  if (snprintf(output, sizeof(output), "%s", command_output) >=
+      (int)sizeof(output)) {
+    free(command_output);
     return FALSE;
   }
-  if (pclose(pipe_fp) != 0)
-    return FALSE;
+  free(command_output);
 
   NormalizeOverlayText((const unsigned char *)output, strlen(output),
                        normalized, sizeof(normalized));
