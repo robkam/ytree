@@ -1,5 +1,10 @@
-> Thank you for your contribution.
-> A brief plain-language summary of this PR is appreciated.
+## Summary
+
+## Validation
+- `make`
+- focused `pytest ...`
+- `make qa-unsafe-apis` (required when this PR triggers `.github/workflows/full-qa.yml` or changes safety-sensitive behavior)
+- `make qa-fileops-integrity` (required when file/archive mutation flows change)
 
 <!--
 Large PRs are difficult to review and carry more regression risk.

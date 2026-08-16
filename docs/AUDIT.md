@@ -39,7 +39,7 @@ The project uses seven QA layers with increasing depth and cost:
 
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
-| CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, path-filtered `qa-split-panel-gates` for split-touching changes, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
+| CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, path-filtered `qa-split-panel-gates` for split-touching changes, docs gate for docs-touching changes, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
 | PR Full QA CI (required) | `.github/workflows/full-qa.yml` (`make qa-all`) | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, dead-history comment guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Must be green before merge to `main` |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
 | Sanitizer QA | `make qa-sanitize` | Main ytnova build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
@@ -52,6 +52,7 @@ The project uses seven QA layers with increasing depth and cost:
 - **Local QA** (`make qa-all`) is optional for faster local confidence and maintainer-requested deep preflight; avoid running it on every iteration by default.
 - **Fileops Integrity Gate** (`make qa-fileops-integrity`) is the dedicated regression wall for mutation integrity/security contracts; run it before merge and whenever file/archive mutation code or prompts change.
 - **Split Panel Regression Gate** (`make qa-split-panel-gates`) is the path-filtered regression wall for split-panel invariants, transition handoff, and split-authority source guards; split-touching PRs must satisfy it before merge.
+- **Non-trivial PRs** are the PRs that trigger `.github/workflows/full-qa.yml` (`src/**`, `include/**`, `tests/**`, `scripts/**`, `Makefile`, `.github/workflows/**`). They must carry explicit security evidence in PR validation notes (`make qa-unsafe-apis`, plus `make qa-fileops-integrity` when file/archive mutation flows change) and must not merge until the required security/full-QA checks are green.
 - **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytnova session under Valgrind and takes ~2-3 minutes. Run it:
   - Before tagging a release
   - After changes to memory management, allocation, or cleanup paths
@@ -89,8 +90,8 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 | Tier | Owner | Trigger | Required checks | Non-overlap default intent |
 |---|---|---|---|---|
 | Tier A (local fast iteration) | Developer | During implementation before first push and between risky edits | `make`; targeted pytest for touched scope; targeted guards (`qa-unsafe-apis`, `qa-fileops-integrity`) when relevant | Keep iteration fast; avoid full-suite duplication unless local risk demands it |
-| Tier B (PR baseline CI) | CI + PR author | Every push while the PR is active | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) plus path-filtered `qa-split-panel-gates` on split-touching PRs | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
-| Tier C (pre-merge full gate) | CI + PR author | Before merge to `main` (or earlier only when explicitly requested) | Green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent); optional local `make qa-all-log` evidence when maintainer-requested; plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Use CI as canonical full-gate signal; avoid duplicate local full-gate reruns during routine iteration |
+| Tier B (PR baseline CI) | CI + PR author | Every push while the PR is active | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) plus path-filtered `Docs gate` on docs-touching PRs and `qa-split-panel-gates` on split-touching PRs | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
+| Tier C (pre-merge full gate) | CI + PR author | Before merge to `main` (or earlier only when explicitly requested) | Green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent); explicit `make qa-unsafe-apis` evidence for full-QA-triggering PRs; optional local `make qa-all-log` evidence when maintainer-requested; plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Use CI as canonical full-gate signal; avoid duplicate local full-gate reruns during routine iteration |
 | Tier D (merge/release gate) | Maintainer + reviewer | Before merge and before release/tag cut | Branch-protection checks green; reviewer signoff; `qa-sanitize`; `qa-valgrind-full` for release-risk changes; `qa-valgrind-interactive` after major feature flows | Reserve deepest runtime checks for merge/release assurance to avoid slowing every draft iteration |
 
 ### branch-protection and PR State Criteria (Mandatory)
@@ -98,8 +99,14 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 - **Open PR:** Branch exists and the PR is open. Red checks are acceptable while iterating. No review requests while checks are red unless the maintainer explicitly asks.
 - **Merge:** All required branch-protection checks are green, reviewer signoff is present, and Tier D evidence is attached for the current diff/risk.
 - Required branch-protection checks (sync with current workflows):
+  - `.github/workflows/ci.yml`: `Docs gate`
+  - `.github/workflows/full-qa.yml`: `Guard and code-quality gate`
   - `.github/workflows/ci.yml`: `Guard fuzz harness sync`
   - `.github/workflows/ci.yml`: `File mutation integrity gate`
+  - `.github/workflows/full-qa.yml`: `Static analyzer gate`
+  - `.github/workflows/full-qa.yml`: `Runtime and security gate`
+  - `.github/workflows/full-qa.yml`: `Full pytest gate`
+  - `.github/workflows/full-qa.yml`: `Sanitizer gate`
   - `.github/workflows/ci.yml`: `Full coverage baseline gate`
   - `.github/workflows/ci.yml`: `Fuzz baseline gate`
   - `.github/workflows/pr-conflict-assistant.yml`: `Up To Date With Main`

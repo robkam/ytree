@@ -1275,7 +1275,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Add explicit QA and merge-gate enforcement that audits the current codebase for security risks and blocks new or reintroduced security findings.
 *   **Scope:** shell-command construction and escaping boundaries, archive path trust policy, tempfile lifecycle, and unsafe API usage.
 *   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
-*   - [~] **Status:** In Progress.
+*   - [x] **Status:** Complete.
 
 #### **Task 51.1: Baseline Security Debt Audit and Classification**
 *   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
@@ -1322,7 +1322,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 51.3: Security Regression Gate in CI + Merge Workflow**
 *   **Goal:** Make security verification non-optional in routine change flow.
 *   **Mechanism:** Require security gate evidence for non-trivial PRs and keep merge blocked until gates pass.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Task 52: Add Security Fuzzing Harness for High-Risk Input Paths**
 *   **Goal:** Add fuzzing coverage (for example libFuzzer) for archive parsing and shell-command construction paths to detect malformed-input crashes and security-critical edge cases early.
