@@ -1,0 +1,40 @@
+Work item: docs/ROADMAP.md Task 51.2.2
+Title: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)
+Acceptance target:
+- All runtime command-launch paths use one shared `fork`/`execvp`/`waitpid` implementation.
+- Zero runtime `system()`/`popen()` call sites remain in production runtime paths.
+- Regression coverage proves launched commands run and exits correctly, ytnova returns to interactive control afterward, and terminal/curses state is restored after command return.
+- QA guard fails CI if new runtime `system()`/`popen()` usage is introduced.
+- Shim cleanup is complete per Task 63.
+Completion objective:
+- Complete Task 51.2.2 by introducing the shared runtime launcher, migrating the remaining runtime launch call paths off `system()`/`popen()`/legacy shell exec variants, updating the guard and canonical docs, and landing focused regression coverage that proves command return + UI restore behavior.
+
+Selected work family:
+- Runtime launch consolidation for synchronous commands, pipe writers, captured command output, detached application launches, and the adjacent QA/doc updates needed to close the remaining unsafe-launch debt.
+
+Inventory and closure:
+- docs/ROADMAP.md Task 51.2.2 source-of-truth status/acceptance wording — addressed; Task 51.2.2 is now marked complete, while the user-requested locale-planning move in the same file remains included in this commit.
+- docs/AUDIT.md Task 51 security baseline rows for shell-command construction and unsafe API usage — addressed; the audit now records the shared launcher migration, the removed runtime-launch debt, and the ongoing shell-template residual risk.
+- scripts/check_c_unsafe_apis.py runtime-launch allowlist/denylist baseline — addressed; runtime-launch grandfathering is gone and the pass message no longer claims a legacy exception set.
+- tests/test_c_unsafe_apis_guard.py guard baseline + allowlist regression coverage — addressed; the guard now proves historic debt snippets fail and the allowlist is empty.
+- tests/test_security_shell_paths.py command-return / curses-restore regression coverage — addressed; existing interactive-return coverage remains, and new source assertions lock the shared-launcher migration across the runtime debt surfaces.
+- include/ytnova_runtime_launch.h shared runtime-launch declarations and call-path exports — addressed; the shared launcher API moved into its own header so core/ui callers do not cross the cmd module boundary.
+- src/cmd/runtime_launch.c shared launcher surface for `fork`/`execvp`/`waitpid` — addressed.
+- src/cmd/system.c synchronous shell command path + detached application launch path — addressed.
+- src/cmd/pipe.c shared writer/wait path used by file piping — addressed.
+- src/cmd/print_ops.c print-to-command runtime pipe path — addressed.
+- src/ui/ctrl_file_ops.c tagged pipe runtime path and execute call-path compatibility — addressed.
+- src/ui/fileinfo_git.c captured git command output runtime path — addressed.
+- src/ui/render_file.c captured `file -b` output runtime path — addressed.
+- src/core/quit.c final terminal-safety command path (`stty sane`) — addressed; it now routes through the shared launcher instead of `system()`.
+- Existing callers that already funnel through `SilentSystemCallEx` / `QuerySystemCall` / `SystemCall` / `LaunchDetachedCommand` (for example `src/cmd/execute.c`, `src/cmd/view.c`, `src/cmd/edit.c`, `src/cmd/usermode.c`, `src/ui/dir_compare.c`, `src/ui/file_compare.c`, `src/ui/tagged_view.c`, `src/ui/application_menu.c`) — intentionally unchanged; they keep their current UI behavior while inheriting the new launcher backend via the migrated shared entry points.
+- Pre-existing working-tree docs changes in `docs/ROADMAP.md` and `docs/TRANSLATORS.md` that the maintainer asked to include in the next commit — addressed; the docs move is included unchanged alongside the runtime-hardening batch.
+
+Focused validation:
+- `make`
+- `source .venv/bin/activate && pytest -q tests/test_c_unsafe_apis_guard.py`
+- `source .venv/bin/activate && pytest -q tests/test_security_shell_paths.py`
+- `source .venv/bin/activate && pytest -q tests/test_c_unsafe_apis_guard.py tests/test_security_shell_paths.py::test_runtime_launch_debt_surfaces_use_shared_runtime_launch_helpers tests/test_security_shell_paths.py::test_shared_runtime_launch_module_owns_execvp_and_waitpid`
+- `python3 scripts/check_module_boundaries.py`
+- `make qa-unsafe-apis`
+- `make qa-cppcheck`

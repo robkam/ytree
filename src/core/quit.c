@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova.h"
+#include "ytnova_runtime_launch.h"
 #include <stdlib.h>
 
 /*
@@ -59,8 +60,14 @@ static void PerformQuit(ViewContext *ctx) {
       quit_ops->cleanup_volume_tree(ctx);
     FreeProfileRuntimeData(ctx);
     /* Final safety net for terminal state */
-    if (system("stty sane")) {
-      ;
+    {
+      int stty_status = 0;
+
+      if (RuntimeLaunchRunShell("stty sane", NULL, -1, -1, -1, FALSE,
+                                &stty_status) == 0 &&
+          stty_status) {
+        ;
+      }
     }
     exit(0);
   }

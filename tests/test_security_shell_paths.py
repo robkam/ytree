@@ -329,3 +329,44 @@ def test_query_system_call_reinitializes_clock_and_dialog_refresh_after_continue
         "redraw the clock, and only then flush the redraw after the continue "
         "prompt."
     )
+
+
+def test_runtime_launch_debt_surfaces_use_shared_runtime_launch_helpers():
+    expected_helpers = {
+        "src/cmd/system.c": [
+            "RuntimeLaunchExecShellChild(",
+            "RuntimeLaunchRunShell(",
+            "RuntimeLaunchWait(",
+        ],
+        "src/cmd/pipe.c": [
+            "RuntimeLaunchStartArgvWriter(",
+            "RuntimeLaunchCloseWriter(",
+        ],
+        "src/cmd/print_ops.c": [
+            "RuntimeLaunchStartShellWriter(",
+            "RuntimeLaunchCloseWriter(",
+        ],
+        "src/ui/ctrl_file_ops.c": [
+            "RuntimeLaunchStartShellWriter(",
+            "RuntimeLaunchCloseWriter(",
+        ],
+        "src/ui/fileinfo_git.c": ["RuntimeLaunchCaptureShellOutput("],
+        "src/ui/render_file.c": ["RuntimeLaunchCaptureShellOutput("],
+        "src/core/quit.c": ["RuntimeLaunchRunShell("],
+    }
+
+    for rel_path, snippets in expected_helpers.items():
+        src = read_repo_source(rel_path)
+        assert "system(" not in src, f"{rel_path} must not use system()."
+        assert "popen(" not in src, f"{rel_path} must not use popen()."
+        for snippet in snippets:
+            assert snippet in src, f"{rel_path} must route through {snippet}."
+
+
+def test_shared_runtime_launch_module_owns_execvp_and_waitpid():
+    src = read_repo_source("src/cmd/runtime_launch.c")
+
+    assert "execvp(" in src, "Shared runtime launch module must own execvp()."
+    assert "waitpid(" in src, "Shared runtime launch module must own waitpid()."
+    assert "system(" not in src, "Shared runtime launch module must not regress to system()."
+    assert "popen(" not in src, "Shared runtime launch module must not regress to popen()."
