@@ -60,6 +60,8 @@ typedef struct {
   char footer_keys[GENERATED_HELP_MAX_FOOTER_COMMANDS][2];
   UIHelpPopupRow rows[GENERATED_HELP_MAX_ROWS];
   char text_lines[GENERATED_HELP_MAX_TEXT_LINES][GENERATED_HELP_MAX_TEXT_WIDTH];
+  size_t item_first_row[GENERATED_HELP_MAX_ITEMS];
+  size_t row_item_index[GENERATED_HELP_MAX_ROWS];
   size_t footer_command_count;
   size_t prefix_row_count;
   size_t row_count;
@@ -144,8 +146,9 @@ static BOOL GetVisibleContextItemRange(const RuntimeHelpPopupState *state,
                                        size_t *visible_end_out) {
   size_t visible_start_row;
   size_t visible_end_row;
-  size_t item_start_row;
-  size_t item_end_row;
+  size_t row;
+  size_t visible_start_item = GENERATED_HELP_NO_SELECTION;
+  size_t visible_end_item = GENERATED_HELP_NO_SELECTION;
 
   if (state == NULL || visible_start_out == NULL || visible_end_out == NULL ||
       state->visible_row_count <= 0 || state->item_count == 0)
@@ -153,19 +156,29 @@ static BOOL GetVisibleContextItemRange(const RuntimeHelpPopupState *state,
 
   visible_start_row = (size_t)MAXIMUM(state->visible_row_offset, 0);
   visible_end_row = visible_start_row + (size_t)state->visible_row_count;
-  item_start_row = state->prefix_row_count;
-  item_end_row = item_start_row + state->item_count;
-  if (visible_end_row <= item_start_row || visible_start_row >= item_end_row)
+  if (visible_end_row > state->row_count)
+    visible_end_row = state->row_count;
+  if (visible_start_row >= visible_end_row)
     return FALSE;
 
-  if (visible_start_row < item_start_row)
-    visible_start_row = item_start_row;
-  if (visible_end_row > item_end_row)
-    visible_end_row = item_end_row;
+  for (row = visible_start_row; row < visible_end_row; ++row) {
+    size_t item_index = state->row_item_index[row];
 
-  *visible_start_out = visible_start_row - item_start_row;
-  *visible_end_out = visible_end_row - item_start_row;
-  return (*visible_start_out < *visible_end_out);
+    if (item_index == GENERATED_HELP_NO_SELECTION || item_index >= state->item_count)
+      continue;
+    if (visible_start_item == GENERATED_HELP_NO_SELECTION)
+      visible_start_item = item_index;
+    visible_end_item = item_index + 1;
+  }
+
+  if (visible_start_item == GENERATED_HELP_NO_SELECTION ||
+      visible_end_item == GENERATED_HELP_NO_SELECTION ||
+      visible_start_item >= visible_end_item)
+    return FALSE;
+
+  *visible_start_out = visible_start_item;
+  *visible_end_out = visible_end_item;
+  return TRUE;
 }
 
 static void UpdateGeneratedHelpViewport(void *user_data, int scroll_offset,
@@ -439,8 +452,10 @@ static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size,
   dest[out] = '\0';
 }
 
-static void AppendHelpText(RuntimeHelpPopupState *state, size_t *row_count,
-                           size_t *line_index, const char *text) {
+static void AppendHelpTextWithSpacing(RuntimeHelpPopupState *state,
+                                      size_t *row_count, size_t *line_index,
+                                      const char *text,
+                                      BOOL compact_with_previous) {
   size_t len;
 
   if (state == NULL || row_count == NULL || line_index == NULL || text == NULL ||
@@ -460,14 +475,65 @@ static void AppendHelpText(RuntimeHelpPopupState *state, size_t *row_count,
   state->rows[*row_count].commands = NULL;
   state->rows[*row_count].command_count = 0;
   state->rows[*row_count].selected = FALSE;
+  state->rows[*row_count].compact_with_previous = compact_with_previous;
   (*row_count)++;
   (*line_index)++;
+}
+
+static void AppendHelpText(RuntimeHelpPopupState *state, size_t *row_count,
+                           size_t *line_index, const char *text) {
+  AppendHelpTextWithSpacing(state, row_count, line_index, text, FALSE);
+}
+
+static size_t NextWrappedHelpChunk(const char **cursor_ptr, int wrap_width,
+                                   char *wrapped, size_t wrapped_size) {
+  const char *cursor;
+  const char *segment_start;
+  size_t len;
+  size_t split;
+
+  if (cursor_ptr == NULL || wrapped == NULL || wrapped_size == 0)
+    return 0;
+
+  cursor = *cursor_ptr;
+  if (cursor == NULL)
+    return 0;
+
+  while (*cursor != '\0' && isspace((unsigned char)*cursor))
+    cursor++;
+  if (*cursor == '\0') {
+    *cursor_ptr = cursor;
+    return 0;
+  }
+
+  segment_start = cursor;
+  len = strlen(segment_start);
+  if ((int)len <= wrap_width) {
+    split = len;
+  } else {
+    split = (size_t)wrap_width;
+    while (split > 0 && !isspace((unsigned char)segment_start[split]))
+      split--;
+    if (split == 0)
+      split = (size_t)wrap_width;
+  }
+
+  while (split > 0 && isspace((unsigned char)segment_start[split - 1]))
+    split--;
+  if (split >= wrapped_size)
+    split = wrapped_size - 1;
+
+  memcpy(wrapped, segment_start, split);
+  wrapped[split] = '\0';
+  *cursor_ptr = segment_start + split;
+  return split;
 }
 
 static void AppendWrappedHelpText(RuntimeHelpPopupState *state, size_t *row_count,
                                   size_t *line_index, const char *text) {
   const char *cursor = text;
   int wrap_width;
+  BOOL compact_with_previous = FALSE;
 
   if (state == NULL || row_count == NULL || line_index == NULL || text == NULL)
     return;
@@ -477,37 +543,66 @@ static void AppendWrappedHelpText(RuntimeHelpPopupState *state, size_t *row_coun
   while (*cursor != '\0' && *row_count < GENERATED_HELP_MAX_ROWS &&
          *line_index < GENERATED_HELP_MAX_TEXT_LINES) {
     char wrapped[GENERATED_HELP_MAX_TEXT_WIDTH];
-    const char *segment_start;
-    size_t len;
-    size_t split;
-
-    while (*cursor != '\0' && isspace((unsigned char)*cursor))
-      cursor++;
-    if (*cursor == '\0')
+    if (NextWrappedHelpChunk(&cursor, wrap_width, wrapped, sizeof(wrapped)) == 0)
       break;
+    AppendHelpTextWithSpacing(state, row_count, line_index, wrapped,
+                              compact_with_previous);
+    compact_with_previous = TRUE;
+  }
+}
 
-    segment_start = cursor;
-    len = strlen(segment_start);
-    if ((int)len <= wrap_width) {
-      AppendHelpText(state, row_count, line_index, segment_start);
-      break;
+static void AppendWrappedContextListRows(RuntimeHelpPopupState *state,
+                                         size_t *row_count,
+                                         size_t *line_index,
+                                         size_t item_index,
+                                         size_t selected_item_index) {
+  const RuntimeHelpItem *item;
+  const char *cursor;
+  BOOL first_row = TRUE;
+  int continuation_width;
+
+  if (state == NULL || row_count == NULL || line_index == NULL ||
+      item_index >= state->item_count)
+    return;
+
+  item = &state->items[item_index];
+  cursor = item->summary;
+  continuation_width = state->wrap_width > 0 ? state->wrap_width
+                                             : GENERATED_HELP_DEFAULT_WRAP_WIDTH;
+  if (continuation_width < 1)
+    continuation_width = 1;
+
+  while (*cursor != '\0' && *row_count < GENERATED_HELP_MAX_ROWS &&
+         *line_index < GENERATED_HELP_MAX_TEXT_LINES) {
+    char wrapped[GENERATED_HELP_MAX_TEXT_WIDTH];
+    int line_width = continuation_width;
+
+    if (first_row && item->label[0] != '\0') {
+      line_width -= StrVisualLength(item->label) + 2;
+      if (line_width < 1)
+        line_width = 1;
     }
 
-    split = (size_t)wrap_width;
-    while (split > 0 && !isspace((unsigned char)segment_start[split]))
-      split--;
-    if (split == 0)
-      split = (size_t)wrap_width;
+    if (NextWrappedHelpChunk(&cursor, line_width, wrapped, sizeof(wrapped)) == 0)
+      break;
 
-    while (split > 0 && isspace((unsigned char)segment_start[split - 1]))
-      split--;
-    if (split >= sizeof(wrapped))
-      split = sizeof(wrapped) - 1;
-
-    memcpy(wrapped, segment_start, split);
-    wrapped[split] = '\0';
-    AppendHelpText(state, row_count, line_index, wrapped);
-    cursor = segment_start + split;
+    if (state->item_first_row[item_index] == GENERATED_HELP_NO_SELECTION)
+      state->item_first_row[item_index] = *row_count;
+    state->row_item_index[*row_count] = item_index;
+    state->rows[*row_count].kind =
+        (first_row && item->selectable) ? UI_HELP_POPUP_LINK_TEXT
+                                        : UI_HELP_POPUP_TEXT;
+    state->rows[*row_count].prefix = first_row ? item->label : NULL;
+    memcpy(state->text_lines[*line_index], wrapped, strlen(wrapped) + 1);
+    state->rows[*row_count].text = state->text_lines[*line_index];
+    state->rows[*row_count].commands = NULL;
+    state->rows[*row_count].command_count = 0;
+    state->rows[*row_count].selected =
+        (first_row && item_index == selected_item_index);
+    state->rows[*row_count].compact_with_previous = !first_row;
+    (*row_count)++;
+    (*line_index)++;
+    first_row = FALSE;
   }
 }
 
@@ -952,6 +1047,7 @@ static size_t BuildContextListRows(RuntimeHelpPopupState *state,
                                    const UIHelpPopupRow *prefix_rows,
                                    size_t prefix_row_count) {
   size_t row_count = 0;
+  size_t line_index = 0;
   size_t index;
 
   for (row_count = 0; row_count < prefix_row_count &&
@@ -959,20 +1055,14 @@ static size_t BuildContextListRows(RuntimeHelpPopupState *state,
        ++row_count) {
     state->rows[row_count] = prefix_rows[row_count];
     state->rows[row_count].selected = FALSE;
+    state->row_item_index[row_count] = GENERATED_HELP_NO_SELECTION;
   }
 
   for (index = 0;
        index < state->item_count && row_count < GENERATED_HELP_MAX_ROWS;
        ++index) {
-    state->rows[row_count].kind = state->items[index].selectable
-                                      ? UI_HELP_POPUP_LINK_TEXT
-                                      : UI_HELP_POPUP_TEXT;
-    state->rows[row_count].prefix = state->items[index].label;
-    state->rows[row_count].text = state->items[index].summary;
-    state->rows[row_count].commands = NULL;
-    state->rows[row_count].command_count = 0;
-    state->rows[row_count].selected = (index == selected_item_index);
-    row_count++;
+    AppendWrappedContextListRows(state, &row_count, &line_index, index,
+                                 selected_item_index);
   }
 
   return row_count;
@@ -1040,7 +1130,7 @@ static size_t BuildTextRows(RuntimeHelpPopupState *state,
         len = sizeof(line) - 1;
       memcpy(line, cursor, len);
       line[len] = '\0';
-      AppendHelpText(state, &row_count, &line_index, line);
+      AppendWrappedHelpText(state, &row_count, &line_index, line);
     } else {
       AppendHelpText(state, &row_count, &line_index, "");
     }
@@ -1309,6 +1399,9 @@ static int GetGeneratedHelpActiveRow(const void *user_data) {
       state->selected_item_index >= state->item_count)
     return -1;
 
+  if (state->item_first_row[state->selected_item_index] == GENERATED_HELP_NO_SELECTION)
+    return -1;
+
   if (state->visible_row_count > 0) {
     if (!GetVisibleContextItemRange(state, &visible_start, &visible_end))
       return -1;
@@ -1318,7 +1411,7 @@ static int GetGeneratedHelpActiveRow(const void *user_data) {
       return -1;
   }
 
-  return (int)(state->prefix_row_count + state->selected_item_index);
+  return (int)state->item_first_row[state->selected_item_index];
 }
 
 int UI_ShowGeneratedContextHelpWithOverrides(
@@ -1350,6 +1443,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     const char *title;
 
     memset(&state, 0, sizeof(state));
+    memset(state.item_first_row, 0xFF, sizeof(state.item_first_row));
+    memset(state.row_item_index, 0xFF, sizeof(state.row_item_index));
     state.topic = current_view.topic;
     state.label_overrides = label_overrides;
     state.label_override_count = label_override_count;

@@ -15,8 +15,13 @@ from ytnova_keys import Keys
 YTNOVA_BIN = str((Path(__file__).resolve().parents[1] / "build" / "ytnova").resolve())
 
 
-def _spawn_help_tui(root, env_extra=None):
-    return YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root), env_extra=env_extra)
+def _spawn_help_tui(root, env_extra=None, dimensions=(36, 120)):
+    return YtreeNovaTUI(
+        executable=YTNOVA_BIN,
+        cwd=str(root),
+        env_extra=env_extra,
+        dimensions=dimensions,
+    )
 
 
 def _root_with_file(tmp_path, name="help_text_contract"):
@@ -429,6 +434,33 @@ def test_contextual_help_down_arrow_eventually_scrolls_visible_page(tmp_path):
 
         assert advanced, screen_text(tui)
         assert "Directory Help" in advanced, advanced
+    finally:
+        tui.quit()
+
+
+def test_contextual_help_wraps_long_directory_rows_to_fit_popup(tmp_path):
+    root = _root_with_file(tmp_path, "contextual_help_wraps_long_rows")
+    tui = _spawn_help_tui(root, dimensions=(36, 90))
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+
+        help_screen = _wait_for_help(tui, "Directory Help")
+        frame = _popup_frame(help_screen, "Directory Help")
+        popup_lines = [
+            line[frame["left"] + 1 : frame["right"]]
+            for line in help_screen.splitlines()[frame["title_row"] + 1 : frame["footer_row"]]
+        ]
+        wrapped_index = next(
+            i for i, line in enumerate(popup_lines) if "Tree versus file window:" in line
+        )
+
+        assert (
+            "Tree versus file window: In directory focus, 5, 7, 8, and 9"
+            in popup_lines[wrapped_index]
+        ), help_screen
+        assert "do not change the tree rows." in popup_lines[wrapped_index + 1], help_screen
+        assert popup_lines[wrapped_index + 2].strip() == "", help_screen
     finally:
         tui.quit()
 

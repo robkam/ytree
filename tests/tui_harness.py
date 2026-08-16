@@ -4,8 +4,16 @@ import time
 import os
 
 class YtreeNovaTUI:
-    def __init__(self, executable="./build/ytnova", cwd=None, env_extra=None, args=None):
+    def __init__(
+        self,
+        executable="./build/ytnova",
+        cwd=None,
+        env_extra=None,
+        args=None,
+        dimensions=(36, 120),
+    ):
         self.time_scale = self._read_time_scale()
+        rows, cols = dimensions
         env = {
             "TERM": "xterm",
             "LC_ALL": "C.UTF-8",
@@ -19,14 +27,14 @@ class YtreeNovaTUI:
             executable,
             args=args or [],
             env=env,
-            dimensions=(36, 120),
+            dimensions=(rows, cols),
             cwd=cwd,
             encoding='utf-8',
             timeout=max(5.0 * self.time_scale, 5.0)
         )
         
         # Initialize an in-memory terminal screen using pyte
-        self.screen = pyte.Screen(120, 36)
+        self.screen = pyte.Screen(cols, rows)
         self.stream = pyte.Stream(self.screen)
         
         # Wait for the main UI tree to be ready (handles startup scan + any error dialogs)

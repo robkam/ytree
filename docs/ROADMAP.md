@@ -1033,7 +1033,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Define and implement distinct theme-role behavior for the contextual `F1` reading surface and the always-visible footer guidance surface now that the base role-based theme system exists.
 *   **Rationale:** Task 60 established the general theme architecture, but it intentionally left `help` overloaded across the footer and the `F1` reading surface. Contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes while the footer keeps an independently tunable low-noise scheme.
 *   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, keep the always-visible main footer on `footer`, give the popup strip its own `help_footer`, and allow narrower help-popup roles such as `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_link`, and `help_link_selection` where the bounded help semantics need them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
-*   **Scope Limit:** This task owns the surface-level help UI roles for the popup body, popup footer strip, frame lines, link text, active link emphasis, help-popup mnemonic emphasis, popup title emphasis, popup term/definition labels, and bounded authored attention/alert tiers. It does **not** open arbitrary free-form per-span theming or raw presentational directives inside help prose; broader semantic expansion remains deferred to Idea FE-7 after the content/IA settles.
+*   **Scope Limit:** This task owns the surface-level help UI roles for the popup body, popup footer strip, frame lines, link text, active link emphasis, help-popup mnemonic emphasis, popup title emphasis, popup term/definition labels, and bounded authored attention/alert tiers. It does **not** open arbitrary free-form per-span theming or raw presentational directives inside help prose; broader semantic expansion remains deferred to Idea FE-9 after the content/IA settles.
 *   **Orthodox Default Direction:** Keep the help page readable and quiet on the orthodox-blue theme: black-on-grey body text, black-on-cyan linked text, and yellow-on-cyan active-link emphasis are acceptable; ordinary body text must remain easier to read than navigation chrome.
 *   The footer must remain concise and lower-noise than modal help while still allowing its own color treatment.
 *   **Acceptance Criteria:**
@@ -1779,19 +1779,32 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Improves old-terminal portability while keeping runtime input handling fast.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-5: Keymap Follow-On Work (Post-Baseline)**
-*   **Description:** Follow-up keymap work beyond Task 11.5 after baseline locale/layout-aware preset support lands (for example richer import/export tooling, advanced diagnostics UX, and any migration notes still needed for future users).
+### **Idea FE-5: Low-Risk Locale Expansion via Keymap/Docs Follow-On**
+*   **Description:** Follow-up locale expansion beyond Task 11.5 that can land anytime without major UI architecture changes because it stays inside the current left-to-right ncurses model and the existing preset/help/manpage surfaces.
 *   **Localized keymap profiles:** The core packaged-preset model is tracked by Task 11.5; any later work here must build on that shared action-based preset architecture rather than invent a second parallel keymap format.
+*   **Can ship incrementally anytime:** These locales are mainly packaged-preset, label, help-text, manpage, and collision-validation work rather than new rendering architecture.
+*   **Implementation order (widest practical audience first):** `es`, `fr`, `pt-BR`, then `it`, `ru`, `tr`, `pl`, `nl`, `id`.
+*   **Scope examples:** Richer import/export tooling, advanced diagnostics UX, `F1` text updates, manpage/help updates, and migration notes for users or packagers.
 *   **Best-practice guardrails:** Preserve a universal core of stable bindings (function keys/Ctrl/digits/arrows), allow locale mnemonic aliases where safe, and enforce strict collision/unbound-action validation with clear diagnostics.
-*   **Locale expansion planning for current ytnova:** Current ytnova is a left-to-right ncurses TUI with an English-centric terminal key model. Translated labels can change by locale, but key bindings are a separate constraint: mnemonic letters do not map one-to-one across keyboard layouts, and some terminal control keys are effectively fixed or unreliable regardless of language. Common TUI practice is to keep translations separate from keymaps and allow key binding configuration to absorb locale-specific shortcut differences. For current planning, treat right-to-left and complex-script layout support as a separate UI capability, not as ordinary translation work.
-*   **Lowest added difficulty, high value:** Best near-term candidates after German are `fr` (high value, low difficulty; Latin script, left-to-right, no bidirectional requirement; main risk is mnemonic collisions on French keyboard layouts), `es` (very high value, low difficulty; Latin script, left-to-right, broad audience; main risk is whether generic `es` is enough before later regional splits), `it` (medium-high value, low difficulty; Latin script, left-to-right; main risk is mnemonic reassignment rather than rendering), `nl` (medium value, low difficulty; Latin script, left-to-right, close to English command vocabulary in shape and density; main risk is mnemonic fit), and `pt-BR` (high value, low-medium difficulty; Latin script, left-to-right; main risk is keeping Brazilian Portuguese separate from `pt-PT`).
-*   **Medium difficulty, high value:** Viable next locales include `pl` (Latin script, left-to-right, but denser diacritics and tighter mnemonic choices), `tr` (locale-sensitive casing and mnemonic conflicts), `ru` (Cyrillic, left-to-right; English-letter mnemonic habits do not transfer naturally), and `id` (generally straightforward, with contributor coverage more likely to be the issue than rendering).
-*   **High value, higher UI risk:** `ja`, `ko`, `zh-CN`, and `zh-TW` are attractive locales, but they are more likely to expose terminal rendering assumptions. They are not right-to-left, yet CJK width, compact labels, and terminal rendering behavior make them riskier than Latin-script locales. `zh-CN` and `zh-TW` should remain separate locales rather than being collapsed into one generic Chinese translation.
-*   **Highest difficulty:** `ar` and `he` are the locales most likely to require UI adaptation work, not just translation. Arabic has high value but very high difficulty because it requires bidirectional text handling in a UI currently arranged left-to-right, affecting prompts, footer strips, truncation, punctuation, and cursor expectations. Hebrew has the same bidirectional class of problems, with smaller likely payoff.
-*   **Practical rollout order:** For the current ncurses/LTR implementation, the safest expansion path is `(1) es, fr, pt-BR`, `(2) it, nl, pl, tr, ru, id`, `(3) ja, ko, zh-CN, zh-TW`, and `(4) ar, he` only after explicit bidirectional-aware UI work is planned.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6: Optional Guided Common-Options Config Panel**
+### **Idea FE-6: Complex-Width Locale Readiness Before Higher-Risk Translation Expansion**
+*   **Description:** Future work only. Current ytnova continues unchanged for now; do not partially reshape existing UI flows just to chase individual locale issues before a deliberate width-aware pass is planned.
+*   **Due to difficulty with:** CJK width behavior, terminal cell accounting, compact labels, truncation/clipping policy, footer fit, prompt field rendering, and cursor positioning in mixed-width text.
+*   **Need to do first:** Follow established terminal-application convention: make shared rendering/input surfaces width-aware by display columns rather than bytes, keep text storage separate from screen-geometry calculations, harden truncation/prompt/footer behavior centrally, and add compensating fixes plus regression coverage before shipping higher-risk non-RTL locales.
+*   **Primary target locales after this work:** `ja`, `ko`, `zh-CN`, `zh-TW`.
+*   **Rationale:** These locales do not require bidirectional UI, but they are still more likely than Latin/Cyrillic locales to expose layout assumptions that would otherwise cause regressions.
+*   - [ ] **Status:** Not Started.
+
+### **Idea FE-7: Bidirectional / RTL UI Capability Before Arabic and Hebrew**
+*   **Description:** Future work only. Current ytnova continues unchanged for now; do not treat Arabic/Hebrew as ordinary translation work and do not auto-mirror the whole application unless later design work proves a specific surface should do so.
+*   **Due to difficulty with:** Bidirectional ordering, punctuation in mixed RTL/LTR strings, prompt/edit-field cursor expectations, footer-strip ordering, truncation of mixed-direction text, and the question of whether any surfaces should mirror.
+*   **Need to do first:** Follow established terminal-application convention: keep text in logical order, add display-time bidi handling with explicit base-direction rules for affected text regions, keep technical strings stable, and make prompts/help/footer surfaces bidi-safe before offering `ar` or `he`.
+*   **Primary target locales after this work:** `ar`, `he`.
+*   **Rationale:** Arabic and Hebrew are the highest-difficulty locales for current ytnova because the present UI is left-to-right and terminal-native bidi behavior is not something ordinary translation alone can solve.
+*   - [ ] **Status:** Not Started.
+
+### **Idea FE-8: Optional Guided Common-Options Config Panel**
 *   **Goal:** Add an optional shallow guided editor for a small set of common options without replacing the current `F10` hub or the raw-text config/theme/commands authority.
 *   **Behavior Contract:**
     *   `F10` keeps the current common path (`F10 -> Enter -> edit config`) and the existing config/commands/themes/reload hub.
@@ -1801,21 +1814,21 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Leaves room for a friendlier common-options surface later without replacing the current Unix-style text-edit workflow.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-7: Semantic F1 Help Styling Without Theme Bloat**
+### **Idea FE-9: Semantic F1 Help Styling Without Theme Bloat**
 *   **Goal:** Allow authored `F1` help topics to request a small bounded set of semantic text styles while keeping `ytnova.themes` compact and stable.
-*   **Dependency/Sequencing Note:** Evaluate this only after Task 43.4 has stabilized the help information architecture/content shape and Task 43.2 has settled the base help/footer surface-role contract. FE-7 is a follow-on enhancement for proven emphasis needs, not a prerequisite for making `F1` useful.
+*   **Dependency/Sequencing Note:** Evaluate this only after Task 43.4 has stabilized the help information architecture/content shape and Task 43.2 has settled the base help/footer surface-role contract. FE-9 is a follow-on enhancement for proven emphasis needs, not a prerequisite for making `F1` useful.
 *   **Design Direction:**
     *   Use semantic markup roles in `etc/help/f1.en.md` rather than raw color/attribute requests.
     *   Initial role set should stay intentionally small (for example `help_text`, `help_key`, `help_code`, `help_heading`, `help_note`, `help_warning`).
     *   `ytnova.themes` maps those semantic roles to ncurses-supported attributes/colors.
     *   Missing theme entries must fall back deterministically to the normal help-text style.
-*   **Non-Goal:** Do not allow arbitrary per-span foreground/background pairs or unlimited raw `bold`/`inverse`/`underline` directives directly in help source; that would balloon theme surface area and couple authored help text to presentation internals. FE-7 does not replace Task 43.2's surface-role ownership; it only adds a bounded semantic layer within already-settled help surfaces.
+*   **Non-Goal:** Do not allow arbitrary per-span foreground/background pairs or unlimited raw `bold`/`inverse`/`underline` directives directly in help source; that would balloon theme surface area and couple authored help text to presentation internals. FE-9 does not replace Task 43.2's surface-role ownership; it only adds a bounded semantic layer within already-settled help surfaces.
 *   **Rationale:** Users may want richer help emphasis, but the safe path is a bounded semantic layer so help authors describe meaning and the theme decides appearance.
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 2: UI/UX Enhancements and Cleanup**
 
-### **Idea FE-8: Configurable VCS Provider for `0` FileInfo Band**
+### **Idea FE-10: Configurable VCS Provider for `0` FileInfo Band**
 *   **Goal:** Keep `0` as one stable VCS info band while allowing users to choose which backend powers it.
 *   **Config Direction (`ytnova.conf`):** Add a single-provider selector (for example `VCS_PROVIDER=off|git|hg|svn|fossil|auto`).
 *   **Behavior Contract:**
@@ -1825,7 +1838,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Preserves key stability and avoids renumbering while keeping a path open for non-Git users.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-9: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
+### **Idea FE-11: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
 *   **Goal:** Extend file filtering with explicit typed terms while preserving today's glob-first behavior and key flow.
 *   **User-Facing Behavior:**
     *   Keep existing glob syntax as default (`*.c`, `*.c,*.h`, `-*.tmp`).
@@ -1845,18 +1858,18 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Adds regex/fuzzy power in a Unix-style, scriptable format without breaking existing wildcard workflows or adding submenu friction.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-10: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
+### **Idea FE-12: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
 *   **Goal:** Replace prompt-path manual ESC sequence parsing with curses/terminfo-first decoding, while keeping legacy manual ESC parsing as controlled fallback (or config-gated compatibility mode).
 *   **Rationale:** Reduces xterm-specific assumptions in prompt entry and improves cross-terminal correctness on older UNIX environments.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-11: Input Portability Regression Matrix (`TERM`)**
+### **Idea FE-13: Input Portability Regression Matrix (`TERM`)**
 *   **Goal:** Expand UI regression coverage with a terminal-profile matrix and action-level assertions for keyboard behavior.
 *   **Initial Matrix Target:** `xterm`, `vt100`, `screen`, `tmux`, `linux`.
 *   **Rationale:** Existing UI tests prove behavior well in xterm-like sequences, but matrix runs provide stronger evidence for old/variant terminal compatibility.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-12: Extended `sYsinfo` in Directory-Window Mode**
+### **Idea FE-14: Extended `sYsinfo` in Directory-Window Mode**
 *   **Goal:** Add an on-demand extended stats/system-info surface (`sYsinfo`) for directory-window workflows without replacing the default compact stats panel.
 *   **Rationale:** Advanced disk/system context is useful for planning operations, but should stay opt-in to avoid clutter in normal navigation.
 *   **Keybinding Direction:** Keep context-specific `Y` behavior collision-free: directory-window `Y` may expose `sYsinfo`; file-window `Y` may expose sync workflow entry.
@@ -1866,12 +1879,12 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/manpage wording explicitly documents context split where `Y` differs by mode.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-13: Implement Mouse Support**
+### **Idea FE-15: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** In capable terminal environments, mouse support can improve speed and ease of use for navigation and selection without changing the keyboard-first design.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-14: Configurable Split Header Path Display (`active` or `both`)**
+### **Idea FE-16: Configurable Split Header Path Display (`active` or `both`)**
 *   **Goal:** Add a user option for split-mode header path display so users can choose active-panel-only path or both-panel paths.
 *   **Rationale:** Active-only header is cleaner by default, while dual-path header can improve orientation for users managing two distant locations.
 *   **Scope Lock:** Header display policy only; no split navigation, selection, or command behavior changes.
@@ -1882,7 +1895,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer keybinding hints, F1 help, and config docs are updated when the option lands.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-15: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
+### **Idea FE-17: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
 *   **Goal:** Replace the current history-biased prompt input with a first-class path-entry workflow that is good enough for deep navigation, destination entry, and command prompts.
 *   **Scope:** This task subsumes the previous separate ideas for shell-style tab completion, deep path jump, and advanced ncurses-native command-line editing.
 *   **Behavior to Deliver:**
@@ -1893,7 +1906,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt entry should be strong enough that common path-based workflows stay direct: "type path -> complete/adjust -> Enter -> result" without forcing a separate browser/menu detour.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-16: Tagged-Only Results View**
+### **Idea FE-18: Tagged-Only Results View**
 *   **Goal:** Add a tagged-only filter mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
     *   In file lists, Showall, Global, and archive file views, users can open `Filter`, then press `Tab` when tagged files exist to toggle a **Tagged-Only** filter that temporarily narrows the visible list to currently tagged items.
@@ -1902,13 +1915,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
 *   - [x] **Status:** Completed.
 
-### **Idea FE-17: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
+### **Idea FE-19: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
 *   **Rationale:** Recursive tagging may reduce steps in some trees, but can also add command ambiguity and accidental broad-selection risk.
 *   **Investigation Output:** Document concrete user workflows, interaction-depth impact, and safety tradeoffs; propose either (a) no change, or (b) a minimal, default-safe recursive tagging design with clear scope/confirmation semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-18: Richer Compare Result Views**
+### **Idea FE-20: Richer Compare Result Views**
 *   **Goal:** Extend compare workflows so the result can be viewed directly, not just turned into tags on the active side.
 *   **User-Facing Behavior:**
     *   After comparing two directories/trees, users can narrow the result to categories such as **left/source only**, **right/target only**, **newer**, **older**, **size different**, **content different**, or **identical**.
@@ -1917,7 +1930,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Current compare behavior is useful but blunt. A richer result view makes compare a practical review tool rather than only a tag generator.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-19: Recent-Directory Bookmarks and Pinned Favorites**
+### **Idea FE-21: Recent-Directory Bookmarks and Pinned Favorites**
 *   **Goal:** Add a first-class recent-directory and pinned-favorites picker for fast return to commonly visited locations.
 *   **User-Facing Behavior:**
     *   Show a compact list of recently visited directories together with user-pinned favorites.
@@ -1927,7 +1940,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt history helps when the user remembers what they typed. A dedicated recent-directory/favorites list helps when the user remembers the place, not the exact command string.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-20: Dual-Preview Split Mode**
+### **Idea FE-22: Dual-Preview Split Mode**
 *   **Goal:** Allow each `F8` split panel to enter and retain its own `F7`-style preview state independently.
 *   **User-Facing Behavior:**
     *   In split mode, each panel can independently enter preview without forcing preview state changes in the other panel.
@@ -1943,7 +1956,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves per-panel state retention, panel switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-21: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
+### **Idea FE-23: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
 *   **Goal:** In directory focus, allow `Shift+Up/Down/Page/Home/End` to scroll the small file window for the selected directory without switching to full file-window focus.
 *   **Rationale:** This gives a fast "peek and keep tree focus" workflow and mirrors the existing `Shift`-navigation feel used in `F7` preview.
 *   **Scope Lock:** Directory-focus small-file-window navigation only; no new submenu flow, no change to normal unshifted tree navigation, and no change to `F7` preview behavior.
@@ -1956,7 +1969,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for shifted small-window navigation bounds/offset behavior and isolation from directory navigation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-22: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
+### **Idea FE-24: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
 *   **Goal:** Replace the narrow `NewFile` entry point with a single explicit `Create` chooser whose available options are filtered by the active backend and context.
 *   **User-Facing Behavior:**
     *   Where creation is supported, `n`/`N` opens `Create:` with only the actions that are valid for the active backend/context.
@@ -1980,81 +1993,81 @@ Ordering policy (for all editors, including AI editors):
 *   Symlink creation is available natively where supported, with explicit prompts and focused regression coverage for both selected-target and explicit-target flows.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-23: Per-Window Filter State (Split Screen Prerequisite)**
+### **Idea FE-25: Per-Window Filter State (Split Screen Prerequisite)**
 *   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left panel versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-24: State Preservation on Reload (`^L`)**
+### **Idea FE-26: State Preservation on Reload (`^L`)**
 *   Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-25: Preserve Tree Expansion on Refresh**
+### **Idea FE-27: Preserve Tree Expansion on Refresh**
 *   Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-26: Scroll Bars**
+### **Idea FE-28: Scroll Bars**
 *   On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list (configurable to char or line).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-27: Callback API Constification Cleanup (cppcheck strict mode)**
+### **Idea FE-29: Callback API Constification Cleanup (cppcheck strict mode)**
 *   `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 3: Long-Horizon Experiments**
 
-### **Idea FE-28: Implement VFS Abstraction Layer** (Use the Architect persona here)
+### **Idea FE-30: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytnova` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 *   **Follow-on Direction:** Include remote logging backends under this VFS model (FTP/SFTP candidates), with final protocol choice deferred until security and maintenance review.
 
-### **Idea FE-29: Define VFS Interface & Volume Integration** (Use the Architect persona here)
+### **Idea FE-31: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytnova_vfs.h`.
     *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
     *   Update `include/ytnova_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 
-### **Idea FE-30: Implement VFS Registry** (Use the Architect persona here)
+### **Idea FE-32: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
     *   Implement `VFS_Init()` (registers built-in drivers).
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 
-### **Idea FE-31: Implement "Local" VFS Driver** (Use the Architect persona here)
+### **Idea FE-33: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
     *   Move logic from `src/fs/tree_read.c` into the driver's `.scan` method.
     *   Ensure it populates `DirEntry` structures exactly as before.
 
-### **Idea FE-32: Implement "Archive" VFS Driver** (Use the Architect persona here)
+### **Idea FE-34: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
     *   Move logic from `src/fs/archive_read.c` and `src/fs/archive_write.c` into the driver.
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 
-### **Idea FE-33: Switch `LogDisk` to VFS** (Use the Architect persona here)
+### **Idea FE-35: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
     *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 
-### **Idea FE-34: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
+### **Idea FE-36: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 
-### **Idea FE-35: Database Browsing and Editing via Virtual Filesystem Drivers**
+### **Idea FE-37: Database Browsing and Editing via Virtual Filesystem Drivers**
 *   **Goal:** After the driver-based VFS abstraction exists, allow ytnova to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
 *   **User-Facing Direction:** Treat a database as a structured volume (for example database -> tables -> rows/records or exported views) rather than as one opaque file blob.
 *   **Rationale:** This is a specialized extension of the VFS model, not a core file-manager requirement. Keep it as a future experiment until a clear driver design and real use-case exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-36: Implement Recursive Directory Watching**
+### **Idea FE-38: Implement Recursive Directory Watching**
 *   **Goal:** Keep visible tree and file-list state fresh by watching all currently expanded filesystem directories, not only the active cursor directory.
 *   **Rationale:** Without recursive watch coverage, edits in visible sibling/child directories can leave the UI stale until manual refresh.
 *   **Scope Lock:** Filesystem watcher behavior only; no archive-internal recursive watching.
@@ -2070,18 +2083,18 @@ Ordering policy (for all editors, including AI editors):
     *   `ENOSPC` fallback is explicit, stable, and non-fatal.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-37: Implement Shell Script Generator**
+### **Idea FE-39: Implement Shell Script Generator**
 *   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-38: Keyboard Macros (F12 Record/Playback)**
+### **Idea FE-40: Keyboard Macros (F12 Record/Playback)**
 *   **Goal:** Record and replay simple keystroke sequences.
 *   **Rationale:** Useful for repeating safe, local interaction sequences.
 *   **Status:** Deferred.
 *   **Note:** Revisit only after a safe design exists that cannot turn traces into a secret-capturing scripting surface.
 
-### **Idea FE-39: Enhance Built-In Viewer**
+### **Idea FE-41: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytnova's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
 *   **Builds On:** Current-delivery viewer work such as `Add Configurable Bypass for External Viewers` and `Standardize Internal Viewer Layout`.
 *   **Candidate Scope:**
@@ -2093,7 +2106,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** A stronger built-in viewer would make ytnova more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-40: Investigate Optional Enhanced Terminal Input Protocols**
+### **Idea FE-42: Investigate Optional Enhanced Terminal Input Protocols**
 *   **Goal:** Investigate whether opt-in enhanced keyboard/input protocols can safely improve ytnova's TUI input model without replacing the portable baseline path.
 *   **Input-protocol spike:** Start with kitty keyboard protocol and evaluate whether richer key events can distinguish collided control inputs such as `^M` versus `Enter`.
 *   **Fallback contract:** If enhanced keyboard negotiation is unavailable, rejected, or stripped by the active terminal path, keep the current portable bindings and help semantics (for example `^N` for tagged move) rather than making any enhanced protocol a requirement.
@@ -2101,20 +2114,20 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** This is an input-capability investigation intended to determine whether optional terminal features can relieve current control-key collisions while keeping ytnova portable.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-41: Investigate Replacing ncurses with a Better TUI Backend**
+### **Idea FE-43: Investigate Replacing ncurses with a Better TUI Backend**
 *   **Goal:** Investigate whether ytnova should replace or meaningfully decouple from ncurses in favor of a better TUI/runtime layer while preserving current interaction semantics.
 *   **Investigation scope:** Evaluate candidate backends on portability, rendering/control over redraw behavior, input handling, testability, packaging friction, and migration risk for the current architecture.
 *   **Compatibility contract:** Any replacement path must preserve the portable baseline terminal workflow and must not require a single terminal family or GUI-specific runtime stack.
 *   **Rationale:** This is a platform/runtime architecture effort intended to determine whether ncurses remains the right long-term foundation for ytnova's TUI.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-42: Implement "Safe Delete" (Trash Can)**
+### **Idea FE-44: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
 *   **Config:** Add a `ytnova.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-43: Port to other platforms**
+### **Idea FE-45: Port to other platforms**
 *   **Validation:** Currently practical via WSL and QEMU
 *   **Possible:** OmniOS (illumos), GNU Hurd, FreeBSD
 *   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris, Redox OS
