@@ -35,14 +35,6 @@ static int HelpPopupFooterWidth(const UICommandStripCommand *commands,
   return UI_CommandStripVisualLength(commands, command_count);
 }
 
-static int HelpPopupVisibleRowCapacity(int height) {
-  int content_lines = height - 6;
-
-  if (content_lines < 1)
-    return 1;
-  return (content_lines + 1) / 2;
-}
-
 static int HelpPopupContentLineCapacity(int height) {
   int content_lines = height - 6;
 
@@ -51,10 +43,10 @@ static int HelpPopupContentLineCapacity(int height) {
   return content_lines;
 }
 
-static int HelpPopupHeightForVisibleRows(int visible_rows) {
-  if (visible_rows < 1)
-    visible_rows = 1;
-  return (visible_rows * 2) + 5;
+static int HelpPopupHeightForContentLines(int content_lines) {
+  if (content_lines < 1)
+    content_lines = 1;
+  return content_lines + 5;
 }
 
 static void HelpPopupResolveFooterCommands(
@@ -180,80 +172,106 @@ static void RenderHelpInlineText(WINDOW *win, int y, int column, int max_width,
   wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
 }
 
+static int HelpPopupRowStartLine(const UIHelpPopupRow *rows, int row_count,
+                                 int row_index) {
+  int line = 0;
+  int i;
+
+  if (rows == NULL || row_count <= 0 || row_index <= 0)
+    return 0;
+  if (row_index >= row_count)
+    row_index = row_count - 1;
+
+  for (i = 1; i <= row_index; ++i)
+    line += rows[i].compact_with_previous ? 1 : 2;
+
+  return line;
+}
+
+static int HelpPopupTotalContentLines(const UIHelpPopupRow *rows, int row_count) {
+  if (rows == NULL || row_count <= 0)
+    return 0;
+  return HelpPopupRowStartLine(rows, row_count, row_count - 1) + 1;
+}
+
+static void HelpPopupVisibleRowWindow(const UIHelpPopupRow *rows, int row_count,
+                                      int line_scroll, int content_lines,
+                                      int *visible_start_row,
+                                      int *visible_row_count) {
+  int start_row = row_count;
+  int count = 0;
+  int i;
+
+  if (visible_start_row == NULL || visible_row_count == NULL) {
+    return;
+  }
+  *visible_start_row = row_count;
+  *visible_row_count = 0;
+  if (rows == NULL || row_count <= 0 || content_lines <= 0)
+    return;
+
+  for (i = 0; i < row_count; ++i) {
+    int row_line = HelpPopupRowStartLine(rows, row_count, i);
+
+    if (row_line < line_scroll)
+      continue;
+    if (row_line >= line_scroll + content_lines)
+      break;
+    if (start_row == row_count)
+      start_row = i;
+    count++;
+  }
+
+  *visible_start_row = start_row;
+  *visible_row_count = count;
+}
+
 static void SyncHelpPopupActiveRowScroll(
-    const UIHelpPopupFooterSpec *footer_spec, int visible_rows,
-    int content_lines, int row_count, int *scroll_row_offset,
-    int *scroll_line_phase) {
+    const UIHelpPopupFooterSpec *footer_spec, const UIHelpPopupRow *rows,
+    int row_count, int content_lines, int *scroll_line_offset) {
   int active_row;
-  int effective_visible_rows;
-  int line_scroll;
   int max_line_scroll;
 
   if (footer_spec == NULL || footer_spec->active_row_handler == NULL ||
-      scroll_row_offset == NULL || scroll_line_phase == NULL ||
-      visible_rows <= 0 || content_lines <= 0 || row_count <= 0)
+      scroll_line_offset == NULL || rows == NULL || content_lines <= 0 ||
+      row_count <= 0)
     return;
 
   active_row = footer_spec->active_row_handler(footer_spec->key_data);
-  effective_visible_rows = visible_rows - (*scroll_line_phase != 0 ? 1 : 0);
-  if (effective_visible_rows < 1)
-    effective_visible_rows = 1;
-
-  line_scroll = (*scroll_row_offset * 2) + (*scroll_line_phase != 0 ? 1 : 0);
-  max_line_scroll = ((row_count * 2) - 1) - content_lines;
+  max_line_scroll = HelpPopupTotalContentLines(rows, row_count) - content_lines;
   if (max_line_scroll < 0)
     max_line_scroll = 0;
 
   if (active_row >= 0 && active_row < row_count) {
-    int visible_start_row =
-        *scroll_row_offset + (*scroll_line_phase != 0 ? 1 : 0);
+    int active_line = HelpPopupRowStartLine(rows, row_count, active_row);
 
-    if (active_row < visible_start_row) {
-      *scroll_row_offset = active_row;
-      *scroll_line_phase = 0;
-    } else if (active_row >= visible_start_row + effective_visible_rows) {
-      *scroll_row_offset = active_row - effective_visible_rows + 1;
-      *scroll_line_phase = 0;
+    if (active_line < *scroll_line_offset) {
+      *scroll_line_offset = active_line;
+    } else if (active_line >= *scroll_line_offset + content_lines) {
+      *scroll_line_offset = active_line - content_lines + 1;
     }
-    line_scroll =
-        (*scroll_row_offset * 2) + (*scroll_line_phase != 0 ? 1 : 0);
   }
 
-  if (line_scroll < 0)
-    line_scroll = 0;
-  if (line_scroll > max_line_scroll)
-    line_scroll = max_line_scroll;
-  *scroll_row_offset = line_scroll / 2;
-  *scroll_line_phase = line_scroll % 2;
+  if (*scroll_line_offset < 0)
+    *scroll_line_offset = 0;
+  if (*scroll_line_offset > max_line_scroll)
+    *scroll_line_offset = max_line_scroll;
 }
 
 static void UpdateHelpPopupViewport(const UIHelpPopupFooterSpec *footer_spec,
-                                    int scroll_row_offset,
-                                    int scroll_line_phase, int visible_rows,
-                                    int row_count) {
-  int effective_visible_rows;
+                                    const UIHelpPopupRow *rows, int row_count,
+                                    int scroll_line_offset,
+                                    int content_lines) {
+  int visible_start_row;
+  int visible_row_count;
 
   if (footer_spec == NULL || footer_spec->viewport_handler == NULL)
     return;
 
-  effective_visible_rows = visible_rows - (scroll_line_phase != 0 ? 1 : 0);
-  if (effective_visible_rows < 1)
-    effective_visible_rows = 1;
-  {
-    int visible_start_row = scroll_row_offset + (scroll_line_phase != 0 ? 1 : 0);
-
-    if (visible_start_row < 0)
-      visible_start_row = 0;
-    if (visible_start_row > row_count)
-      visible_start_row = row_count;
-    if (visible_start_row + effective_visible_rows > row_count)
-      effective_visible_rows = row_count - visible_start_row;
-    if (effective_visible_rows < 0)
-      effective_visible_rows = 0;
-
-    footer_spec->viewport_handler(footer_spec->key_data, visible_start_row,
-                                  effective_visible_rows, row_count);
-  }
+  HelpPopupVisibleRowWindow(rows, row_count, scroll_line_offset, content_lines,
+                            &visible_start_row, &visible_row_count);
+  footer_spec->viewport_handler(footer_spec->key_data, visible_start_row,
+                                visible_row_count, row_count);
 }
 
 static int HelpPopupRowWidth(const UIHelpPopupRow *row) {
@@ -338,36 +356,29 @@ typedef struct {
   int height;
   int content_lines;
   int content_width;
-  int visible_rows;
   const UIHelpPopupRow *rows;
   size_t row_count;
   const UIHelpPopupFooterSpec *footer_spec;
   const UICommandStripCommand *effective_footer_commands;
   size_t effective_footer_count;
-  int *scroll_row_offset;
-  int *scroll_line_phase;
+  int *scroll_line_offset;
 } HelpPopupRenderState;
 
 static void RenderHelpPopupPage(const HelpPopupRenderState *state) {
   int active_row = -1;
-  int render_visible_rows;
   int i;
 
   if (state == NULL || state->win == NULL || state->rows == NULL ||
-      state->row_count == 0 || state->scroll_row_offset == NULL ||
-      state->scroll_line_phase == NULL)
+      state->row_count == 0 || state->scroll_line_offset == NULL)
     return;
 
-  UpdateHelpPopupViewport(state->footer_spec, *state->scroll_row_offset,
-                          *state->scroll_line_phase, state->visible_rows,
-                          (int)state->row_count);
-  SyncHelpPopupActiveRowScroll(state->footer_spec, state->visible_rows,
-                               state->content_lines, (int)state->row_count,
-                               state->scroll_row_offset,
-                               state->scroll_line_phase);
-  UpdateHelpPopupViewport(state->footer_spec, *state->scroll_row_offset,
-                          *state->scroll_line_phase, state->visible_rows,
-                          (int)state->row_count);
+  UpdateHelpPopupViewport(state->footer_spec, state->rows, (int)state->row_count,
+                          *state->scroll_line_offset, state->content_lines);
+  SyncHelpPopupActiveRowScroll(state->footer_spec, state->rows,
+                               (int)state->row_count, state->content_lines,
+                               state->scroll_line_offset);
+  UpdateHelpPopupViewport(state->footer_spec, state->rows, (int)state->row_count,
+                          *state->scroll_line_offset, state->content_lines);
   if (state->footer_spec != NULL &&
       state->footer_spec->active_row_handler != NULL) {
     active_row =
@@ -377,29 +388,26 @@ static void RenderHelpPopupPage(const HelpPopupRenderState *state) {
   ClearHelpPopupContentArea(state->win, HELP_POPUP_CONTENT_START_Y,
                             HELP_POPUP_CONTENT_START_X, state->content_lines + 1,
                             state->content_width);
-  render_visible_rows =
-      state->visible_rows - (*state->scroll_line_phase != 0 ? 1 : 0);
-  if (render_visible_rows < 1)
-    render_visible_rows = 1;
+  for (i = 0; i < (int)state->row_count; ++i) {
+    int row_y = HELP_POPUP_CONTENT_START_Y +
+                HelpPopupRowStartLine(state->rows, (int)state->row_count, i) -
+                *state->scroll_line_offset;
 
-  for (i = 0; i < render_visible_rows &&
-              *state->scroll_row_offset + *state->scroll_line_phase + i <
-                  (int)state->row_count;
-       ++i) {
-    UIHelpPopupRow render_row =
-        state->rows[*state->scroll_row_offset + *state->scroll_line_phase + i];
+    if (row_y < HELP_POPUP_CONTENT_START_Y)
+      continue;
+    if (row_y >= HELP_POPUP_CONTENT_START_Y + state->content_lines)
+      break;
 
-    if (state->footer_spec != NULL &&
-        state->footer_spec->active_row_handler != NULL) {
-      render_row.selected =
-          (*state->scroll_row_offset + *state->scroll_line_phase + i ==
-           active_row);
+    {
+      UIHelpPopupRow render_row = state->rows[i];
+
+      if (state->footer_spec != NULL &&
+          state->footer_spec->active_row_handler != NULL) {
+        render_row.selected = (i == active_row);
+      }
+      RenderHelpPopupRow(state->win, row_y, HELP_POPUP_CONTENT_START_X,
+                         state->content_width, &render_row);
     }
-    RenderHelpPopupRow(state->win,
-                       HELP_POPUP_CONTENT_START_Y + *state->scroll_line_phase +
-                           (i * 2),
-                       HELP_POPUP_CONTENT_START_X,
-                       state->content_width, &render_row);
   }
 
   RenderHelpPopupFooter(state->win, state->height - 2, 2,
@@ -411,58 +419,52 @@ static void RenderHelpPopupPage(const HelpPopupRenderState *state) {
   wrefresh(state->win);
 }
 
-static void ScrollHelpPopupLine(int delta, int row_count, int content_lines,
-                                int *scroll_row_offset,
-                                int *scroll_line_phase) {
-  int line_scroll;
+static void ScrollHelpPopupLine(int delta, const UIHelpPopupRow *rows,
+                                int row_count, int content_lines,
+                                int *scroll_line_offset) {
   int max_line_scroll;
 
-  if (scroll_row_offset == NULL || scroll_line_phase == NULL || row_count <= 0 ||
+  if (scroll_line_offset == NULL || rows == NULL || row_count <= 0 ||
       content_lines <= 0 || delta == 0)
     return;
 
-  line_scroll = (*scroll_row_offset * 2) + *scroll_line_phase + delta;
-  max_line_scroll = (row_count * 2) - 1 - content_lines;
+  max_line_scroll = HelpPopupTotalContentLines(rows, row_count) - content_lines;
   if (max_line_scroll < 0)
     max_line_scroll = 0;
-  if (line_scroll < 0)
-    line_scroll = 0;
-  if (line_scroll > max_line_scroll)
-    line_scroll = max_line_scroll;
-  *scroll_row_offset = line_scroll / 2;
-  *scroll_line_phase = line_scroll % 2;
+  *scroll_line_offset += delta;
+  if (*scroll_line_offset < 0)
+    *scroll_line_offset = 0;
+  if (*scroll_line_offset > max_line_scroll)
+    *scroll_line_offset = max_line_scroll;
 }
 
-static void HandleHelpPopupScrollKey(int ch, int row_count, int content_lines,
-                                     int *scroll_row_offset,
-                                     int *scroll_line_phase) {
+static void HandleHelpPopupScrollKey(int ch, const UIHelpPopupRow *rows,
+                                     int row_count, int content_lines,
+                                     int *scroll_line_offset) {
   int page_delta;
 
-  if (scroll_row_offset == NULL || scroll_line_phase == NULL)
+  if (scroll_line_offset == NULL)
     return;
 
   switch (ch) {
   case KEY_UP:
-    ScrollHelpPopupLine(-1, row_count, content_lines, scroll_row_offset,
-                        scroll_line_phase);
+    ScrollHelpPopupLine(-1, rows, row_count, content_lines, scroll_line_offset);
     break;
   case KEY_DOWN:
-    ScrollHelpPopupLine(1, row_count, content_lines, scroll_row_offset,
-                        scroll_line_phase);
+    ScrollHelpPopupLine(1, rows, row_count, content_lines, scroll_line_offset);
     break;
   case KEY_PPAGE:
   case KEY_NPAGE:
     page_delta = (ch == KEY_PPAGE) ? -content_lines : content_lines;
-    ScrollHelpPopupLine(page_delta, row_count, content_lines, scroll_row_offset,
-                        scroll_line_phase);
+    ScrollHelpPopupLine(page_delta, rows, row_count, content_lines,
+                        scroll_line_offset);
     break;
   case KEY_HOME:
-    *scroll_row_offset = 0;
-    *scroll_line_phase = 0;
+    *scroll_line_offset = 0;
     break;
   case KEY_END:
-    ScrollHelpPopupLine(row_count * 2, row_count, content_lines,
-                        scroll_row_offset, scroll_line_phase);
+    ScrollHelpPopupLine(HelpPopupTotalContentLines(rows, row_count), rows,
+                        row_count, content_lines, scroll_line_offset);
     break;
   default:
     break;
@@ -482,11 +484,10 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   int height;
   int i;
   int max_row_width;
-  int scroll_line_phase = 0;
-  int scroll_row_offset = 0;
+  int scroll_line_offset = 0;
   BOOL scrollable;
   int content_lines;
-  int visible_rows;
+  int total_content_lines;
   int width;
   int win_x;
   int win_y;
@@ -497,6 +498,7 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   translated_title = _(title);
 
   max_row_width = 0;
+  total_content_lines = HelpPopupTotalContentLines(rows, (int)row_count);
   for (i = 0; i < (int)row_count; ++i) {
     int row_width = HelpPopupRowWidth(&rows[i]);
 
@@ -519,7 +521,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     win_y = 2;
   } else {
     int footer_width;
-    int max_visible_rows;
+    int visible_content_lines;
+    int max_content_lines;
 
     width = StrVisualLength(translated_title) + 8;
     if (max_row_width + 4 > width)
@@ -527,12 +530,12 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     width = MAXIMUM(width, HELP_POPUP_HISTORY_MIN_WIDTH);
     width = MINIMUM(width, COLS - HELP_POPUP_CENTERED_HORIZONTAL_MARGIN);
 
-    max_visible_rows = HelpPopupVisibleRowCapacity(LINES - 2);
-    visible_rows = (int)row_count;
-    if (visible_rows > max_visible_rows)
-      visible_rows = max_visible_rows;
+    max_content_lines = HelpPopupContentLineCapacity(LINES - 2);
+    visible_content_lines = total_content_lines;
+    if (visible_content_lines > max_content_lines)
+      visible_content_lines = max_content_lines;
 
-    scrollable = ((int)row_count > visible_rows);
+    scrollable = (total_content_lines > visible_content_lines);
     HelpPopupResolveFooterCommands(scrollable, footer_spec,
                                    &effective_footer_commands,
                                    &effective_footer_count);
@@ -542,16 +545,15 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
       width = MINIMUM(footer_width + 4,
                       COLS - HELP_POPUP_CENTERED_HORIZONTAL_MARGIN);
 
-    height = HelpPopupHeightForVisibleRows(visible_rows);
+    height = HelpPopupHeightForContentLines(visible_content_lines);
     height = MAXIMUM(height, HELP_POPUP_MIN_HEIGHT);
     height = MINIMUM(height, LINES - 2);
     win_x = MAXIMUM(1, (COLS - width) / 2);
     win_y = MAXIMUM(1, (LINES - height) / 2);
   }
 
-  visible_rows = HelpPopupVisibleRowCapacity(height);
   content_lines = HelpPopupContentLineCapacity(height);
-  scrollable = (((int)row_count * 2) - 1 > content_lines);
+  scrollable = (total_content_lines > content_lines);
   HelpPopupResolveFooterCommands(scrollable, footer_spec,
                                  &effective_footer_commands,
                                  &effective_footer_count);
@@ -586,12 +588,10 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
   render_state.height = height;
   render_state.content_lines = content_lines;
   render_state.content_width = content_width;
-  render_state.visible_rows = visible_rows;
   render_state.rows = rows;
   render_state.row_count = row_count;
   render_state.footer_spec = footer_spec;
-  render_state.scroll_row_offset = &scroll_row_offset;
-  render_state.scroll_line_phase = &scroll_line_phase;
+  render_state.scroll_line_offset = &scroll_line_offset;
 
   while (1) {
     int ch;
@@ -624,8 +624,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
 
     if (!scrollable)
       continue;
-    HandleHelpPopupScrollKey(ch, (int)row_count, content_lines,
-                             &scroll_row_offset, &scroll_line_phase);
+    HandleHelpPopupScrollKey(ch, rows, (int)row_count, content_lines,
+                             &scroll_line_offset);
   }
 
   UI_Dialog_Close(ctx, win);

@@ -237,6 +237,7 @@ typedef struct {
   const UICommandStripCommand *commands;
   size_t command_count;
   BOOL selected;
+  BOOL compact_with_previous;
 } UIHelpPopupRow;
 typedef struct {
   const char *canonical_label;
