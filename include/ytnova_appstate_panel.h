@@ -34,6 +34,8 @@ BOOL AppStateCommitPanelSizeUnitMode(YtreeNovaPanel *panel,
                                      BOOL human_size_units);
 BOOL AppStateCommitPanelSymlinkTargetMode(YtreeNovaPanel *panel,
                                           BOOL show_symlink_targets);
+BOOL AppStateCommitPanelStatsVisibility(YtreeNovaPanel *panel,
+                                        BOOL show_stats);
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name);

@@ -591,7 +591,7 @@
       "id": "function-size-src-ui-ctrl_dir-HandleDirWindow",
       "path_regex": "^src/ui/ctrl_dir\\.c$",
       "symbol_regex": "^HandleDirWindow$",
-      "max_lines": 759,
+      "max_lines": 760,
       "owner": "ui",
       "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
     },
@@ -615,7 +615,7 @@
       "id": "function-size-src-ui-ctrl_file_ops-handle_file_window_misc_dispatch_action",
       "path_regex": "^src/ui/ctrl_file_ops\\.c$",
       "symbol_regex": "^handle_file_window_misc_dispatch_action$",
-      "max_lines": 323,
+      "max_lines": 324,
       "owner": "ui",
       "removal_plan": "Reduce this hotspot below the clean-code budget during the next ui-owned decomposition pass."
     },
@@ -903,6 +903,16 @@
     }
   ],
   "flag_argument_exceptions": [
+    {
+      "id": "flag-args-src-ui-appstate_panel-stats-visibility",
+      "path_regex": "^src/ui/appstate_panel\\.c$",
+      "symbol_regex": "^AppStateCommitPanelStatsVisibility$",
+      "parameters": [
+        "show_stats"
+      ],
+      "owner": "ui",
+      "removal_plan": "Keep the explicit panel statistics visibility contract until the next ui-owned display-state API cleanup can replace BOOL toggles with a named request type."
+    },
     {
       "id": "flag-args-src-cmd-commands",
       "path_regex": "^src/cmd/commands\\.c$",

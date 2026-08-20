@@ -6502,6 +6502,8 @@ def test_panel_window_geometry_commits_through_appstate_helper() -> None:
         "panel->big_file_y = geometry->big_file_y;",
         "panel->big_file_w = geometry->big_file_w;",
         "panel->big_file_h = geometry->big_file_h;",
+        "panel->stats_x = geometry->stats_x;",
+        "panel->stats_width = geometry->stats_width;",
     ]
 
     assert validation in helper_body
@@ -6514,7 +6516,7 @@ def test_panel_window_geometry_commits_through_appstate_helper() -> None:
     layout_body = init_source[layout_start:layout_end]
     direct_geometry_write = (
         r"\bctx->(?:active|left|right)->"
-        r"(?:dir_[xywh]|small_file_[xywh]|big_file_[xywh])\s*=[^=]"
+        r"(?:dir_[xywh]|small_file_[xywh]|big_file_[xywh]|stats_(?:x|width))\s*=[^=]"
     )
 
     assert "AppStateCommitPanelWindowGeometry(" in layout_body
@@ -7310,17 +7312,25 @@ def test_panel_file_display_state_commits_through_appstate_helper() -> None:
     helper = Path("src/ui/appstate_panel.c").read_text(encoding="utf-8")
     init_source = Path("src/core/init.c").read_text(encoding="utf-8")
     render_file = Path("src/ui/render_file.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file_ops = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    split_transition = Path("src/ui/split_transition.c").read_text(encoding="utf-8")
 
     owner_fields = json.loads(
         Path("registry/appstate/appstate_owner_fields.json").read_text(
             encoding="utf-8"
         )
     )["owner_fields"]
-    assert any(
-        record["field"] == "panel.file_display_state" for record in owner_fields
+    display_state = next(
+        record
+        for record in owner_fields
+        if record["field"] == "panel.file_display_state"
     )
+    assert "show_stats" in display_state["runtime_carrier"]
+    assert "statistics-visibility" in display_state["mutation_rule"]
     assert "BOOL AppStateCommitPanelFileDisplayMode(" in header
     assert "BOOL AppStateCommitPanelFileMaxColumn(" in header
+    assert "BOOL AppStateCommitPanelStatsVisibility(" in header
     assert 'include "ytnova_appstate_panel.h"' in init_source
     assert 'include "ytnova_appstate_panel.h"' in render_file
 
@@ -7342,6 +7352,13 @@ def test_panel_file_display_state_commits_through_appstate_helper() -> None:
     assert column_write in helper_body
     assert helper_body.index(validation) < helper_body.index(column_write)
 
+    helper_start = helper.index("BOOL AppStateCommitPanelStatsVisibility(")
+    helper_body = helper[helper_start:]
+    stats_write = "panel->show_stats = show_stats ? TRUE : FALSE;"
+    assert validation in helper_body
+    assert stats_write in helper_body
+    assert helper_body.index(validation) < helper_body.index(stats_write)
+
     for source in [init_source, render_file]:
         assert not re.search(r"\b(?:ctx->(?:left|right)|p)->file_mode\s*=[^=]", source)
         assert not re.search(r"\b(?:ctx->(?:left|right)|p)->max_column\s*=[^=]", source)
@@ -7350,6 +7367,11 @@ def test_panel_file_display_state_commits_through_appstate_helper() -> None:
     assert "AppStateCommitPanelFileDisplayMode(ctx->right, MODE_1)" in init_source
     assert "AppStateCommitPanelFileDisplayMode(p, new_file_mode)" in render_file
     assert "AppStateCommitPanelFileMaxColumn(p, max_column)" in render_file
+    for source in [ctrl_dir, ctrl_file_ops, split_transition]:
+        assert "AppStateCommitPanelStatsVisibility(" in source
+        assert not re.search(
+            r"ctx->(?:active|left|right)->show_stats\s*=[^=]", source
+        )
 
 
 def test_panel_file_rendering_metrics_commit_through_appstate_helper() -> None:

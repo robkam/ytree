@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #define SORT_BY_NAME 1
+#define STATS_PANEL_WIDTH 24
 
 #define F2_WINDOW_X(ctx) ((ctx)->layout.dir_win_x)
 #define F2_WINDOW_Y(ctx) ((ctx)->layout.dir_win_y)
@@ -197,55 +198,37 @@ void Layout_Recalculate(ViewContext *ctx) {
   layout.status_y = LINES - 1;
   layout.bottom_border_y = LINES - 4;
 
-  /*
-   * Calculate available vertical space for windows.
-   * Top Border is at row 1. Windows start at row 2.
-   * Bottom Border is at row LINES-4. Windows end at row LINES-5.
-   * Available height = (LINES - 4) - 2 = LINES - 6.
-   */
   int available_height = LINES - 6;
   if (available_height < 1)
     available_height = 1;
 
-  /*
-   * Preview Mode Logic:
-   * If Preview Mode is active, we override the standard layout.
-   * Left Panel: Narrow File List (approx 20% width).
-   * Right Panel: Preview Window (Remaining width).
-   * Stats and Directory Tree are hidden.
-   */
   if (ctx->preview_mode) {
     layout.stats_width = 0;
-    layout.dir_win_height = 0; /* Hidden */
+    layout.dir_win_height = 0;
 
-    /* Calculate File List Width (20% of COLS, min 16 chars) */
     int file_list_width = COLS * 0.20;
     if (file_list_width < 16)
       file_list_width = 16;
-    /* Ensure it doesn't take up the whole screen */
     if (file_list_width > COLS - 4)
       file_list_width = COLS - 4;
 
-    layout.main_win_width = COLS - 2; /* Full width for history etc */
+    layout.main_win_width = COLS - 2;
 
-    /* Left Panel (File List) Geometry - Uses Big File Window slots */
     layout.big_file_win_x = 1;
     layout.big_file_win_y = 2;
     layout.big_file_win_width = file_list_width;
     layout.big_file_win_height = available_height;
 
-    /* Unused windows in this mode, set to minimal valid values */
     layout.dir_win_x = 1;
     layout.dir_win_y = 2;
     layout.dir_win_width = file_list_width;
-    layout.dir_win_height = 0; /* Will be clamped to 1 by Subwin */
+    layout.dir_win_height = 0;
 
     layout.small_file_win_x = 1;
     layout.small_file_win_y = 2;
     layout.small_file_win_width = file_list_width;
     layout.small_file_win_height = 0;
 
-    /* Preview Window Geometry */
     layout.preview_win_x = file_list_width + 2;
     layout.preview_win_y = 2;
     layout.preview_win_width = COLS - file_list_width - 3;
@@ -272,20 +255,16 @@ void Layout_Recalculate(ViewContext *ctx) {
       geometry.big_file_y = layout.big_file_win_y;
       geometry.big_file_w = layout.big_file_win_width;
       geometry.big_file_h = available_height;
+      geometry.stats_x = 0;
+      geometry.stats_width = 0;
 
       if (!AppStateCommitPanelWindowGeometry(ctx->active, &geometry))
         return;
     }
 
-    /* Inactive Panel is not used for file listing in Preview Mode */
     return;
   }
 
-  /*
-   * Stats Panel Logic:
-   * If SplitScreen is active, force stats off to save space.
-   * Otherwise respect user preference.
-   */
   if (ctx->is_split_screen) {
     layout.stats_width = 0;
   } else {
@@ -300,16 +279,26 @@ void Layout_Recalculate(ViewContext *ctx) {
                               ? (COLS - layout.stats_width - 2)
                               : (COLS - 2);
 
-  /* Left Panel Geometry (Always active) */
   int panel_width;
+  int split_left_width = 0;
+  int split_right_width = 0;
+  int left_stats_width = 0;
+  int right_stats_width = 0;
   if (ctx->is_split_screen) {
     /* Reserve space for separator (the -1) */
-    panel_width = (layout.main_win_width - 1) / 2;
+    split_left_width = (layout.main_win_width - 1) / 2;
+    split_right_width = layout.main_win_width - split_left_width - 1;
+    if (ctx->left && ctx->left->show_stats &&
+        split_left_width > STATS_PANEL_WIDTH)
+      left_stats_width = STATS_PANEL_WIDTH;
+    if (ctx->right && ctx->right->show_stats &&
+        split_right_width > STATS_PANEL_WIDTH)
+      right_stats_width = STATS_PANEL_WIDTH;
+    panel_width = split_left_width - left_stats_width;
   } else {
     panel_width = layout.main_win_width;
   }
 
-  /* Common Heights */
   int dir_h = (available_height * 6) / 10;
   if (dir_h < 1)
     dir_h = 1;
@@ -317,16 +306,11 @@ void Layout_Recalculate(ViewContext *ctx) {
   if (small_file_h < 1)
     small_file_h = 1;
 
-  /* Combined height of both stacked panels must fit in available_height */
   layout.dir_win_height = dir_h;
   layout.small_file_win_height = small_file_h;
 
-  /* Left Panel Geometry: STRICT NESTING
-     Left border at x=0, Mid/Right border at main_win_width+1.
-     Inner window x=1, width=panel_width.
-  */
   layout.dir_win_x = 1;
-  layout.dir_win_y = 2; /* Row 0=Header, Row 1=Top Border */
+  layout.dir_win_y = 2;
   layout.dir_win_width = panel_width;
 
   layout.small_file_win_x = 1;
@@ -357,14 +341,16 @@ void Layout_Recalculate(ViewContext *ctx) {
     geometry.big_file_y = layout.big_file_win_y;
     geometry.big_file_w = layout.big_file_win_width;
     geometry.big_file_h = available_height;
+    geometry.stats_x = layout.dir_win_x + layout.dir_win_width;
+    geometry.stats_width = left_stats_width;
 
     if (!AppStateCommitPanelWindowGeometry(ctx->left, &geometry))
       return;
   }
 
   if (ctx->right && ctx->is_split_screen) {
-    int right_x = layout.dir_win_x + panel_width + 1;
-    int right_w = layout.main_win_width - panel_width - 1;
+    int right_x = layout.dir_win_x + split_left_width + 1;
+    int right_w = split_right_width - right_stats_width;
     YtreeNovaPanelWindowGeometry geometry;
 
     geometry.dir_x = right_x;
@@ -379,6 +365,8 @@ void Layout_Recalculate(ViewContext *ctx) {
     geometry.big_file_y = 2;
     geometry.big_file_w = right_w;
     geometry.big_file_h = available_height;
+    geometry.stats_x = right_x + right_w;
+    geometry.stats_width = right_stats_width;
 
     if (!AppStateCommitPanelWindowGeometry(ctx->right, &geometry))
       return;
@@ -426,7 +414,8 @@ void InitView(ViewContext *ctx) {
                                               FILEINFO_OVERLAY_NONE) ||
       !AppStateCommitPanelFixedColumnWidth(ctx->left, 0) ||
       !AppStateCommitPanelSizeUnitMode(ctx->left, FALSE) ||
-      !AppStateCommitPanelSymlinkTargetMode(ctx->left, FALSE)) {
+      !AppStateCommitPanelSymlinkTargetMode(ctx->left, FALSE) ||
+      !AppStateCommitPanelStatsVisibility(ctx->left, FALSE)) {
     fprintf(stderr, "InitView: failed to initialize left panel fileinfo state\n");
     free(ctx->left);
     ctx->left = NULL;
@@ -479,7 +468,8 @@ void InitView(ViewContext *ctx) {
                                               FILEINFO_OVERLAY_NONE) ||
       !AppStateCommitPanelFixedColumnWidth(ctx->right, 0) ||
       !AppStateCommitPanelSizeUnitMode(ctx->right, FALSE) ||
-      !AppStateCommitPanelSymlinkTargetMode(ctx->right, FALSE)) {
+      !AppStateCommitPanelSymlinkTargetMode(ctx->right, FALSE) ||
+      !AppStateCommitPanelStatsVisibility(ctx->right, FALSE)) {
     fprintf(stderr, "InitView: failed to initialize right panel fileinfo state\n");
     free(ctx->right);
     free(ctx->left);

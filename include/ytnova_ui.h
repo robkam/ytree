@@ -453,6 +453,7 @@ extern void DisplayDiskTagged(ViewContext *ctx, const Statistic *s);
 extern void DisplayFileParameter(ViewContext *ctx, FileEntry *fe);
 extern void DisplayFileStatistic(ViewContext *ctx, const FileEntry *fe,
                                  const Statistic *s);
+extern void DisplayPanelStatistics(ViewContext *ctx, YtreeNovaPanel *panel);
 extern void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry,
                              const Statistic *s);
 extern void DisplayFilter(ViewContext *ctx, const Statistic *s);

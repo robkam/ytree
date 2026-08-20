@@ -23,6 +23,8 @@ typedef struct {
   int big_file_y;
   int big_file_w;
   int big_file_h;
+  int stats_x;
+  int stats_width;
 } YtreeNovaPanelWindowGeometry;
 
 BOOL AppStateCommitSplitScreenLayout(ViewContext *ctx, BOOL is_split_screen);

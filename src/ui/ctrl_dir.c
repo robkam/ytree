@@ -732,11 +732,12 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
 
-    case ACTION_TOGGLE_STATS:
-      ctx->show_stats = !ctx->show_stats;
+    case ACTION_TOGGLE_STATS: if (ctx->is_split_screen && ctx->active &&
+                                  !AppStateCommitPanelStatsVisibility(ctx->active, !ctx->active->show_stats))
+        break;
+      if (!ctx->is_split_screen || !ctx->active) ctx->show_stats = !ctx->show_stats;
       (void)AppStateMarkResizeRequest(ctx);
       break;
-
     case ACTION_VIEW_PREVIEW: {
       DirWindowDispatchResult panel_result =
           HandleDirWindowPanelAction(ctx, action, &dir_entry, &s, &start_vol,

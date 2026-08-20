@@ -9,6 +9,7 @@
 
 #include "ytnova_appstate_volume.h"
 #include "ytnova_cmd.h"
+#include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
 
 #include <curses.h>
@@ -16,12 +17,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Geometry Definitions */
-#define STAT_W (ctx->layout.stats_width)
-#define STAT_X (COLS - STAT_W)
-#define L_BORDER (STAT_X - 1)
-#define R_BORDER (COLS - 1)
-#define INNER_W (STAT_W - 2)
+typedef struct {
+  const YtreeNovaPanel *panel;
+  int width;
+  int x;
+  int left_border;
+  int right_border;
+} StatsProjection;
+
+#define STAT_W (projection->width)
+#define STAT_X (projection->x)
+#define L_BORDER (projection->left_border)
+#define R_BORDER (projection->right_border)
+#define INNER_W (projection->width - 2)
 
 /* Y-Coordinates (Dynamic) */
 #define Y_TOP 1
@@ -37,16 +45,28 @@ static void SetStatsBaseColor(ViewContext *ctx);
 static void SetStatsStaticColor(ViewContext *ctx);
 static void SetStatsDynamicColor(ViewContext *ctx);
 static void SetStatsBorderColor(ViewContext *ctx);
-static void DrawBoxFrame(ViewContext *ctx);
-static void DrawSeparator(ViewContext *ctx, int y, const char *title);
-static void PrintStatRow(ViewContext *ctx, int y, const char *label,
+static BOOL ResolveStatsProjection(const ViewContext *ctx,
+                                   const YtreeNovaPanel *panel,
+                                   StatsProjection *projection);
+static void DrawBoxFrame(ViewContext *ctx, const StatsProjection *projection);
+static void DrawSeparator(ViewContext *ctx, const StatsProjection *projection,
+                          int y, const char *title);
+static void PrintStatRow(ViewContext *ctx, const StatsProjection *projection,
+                         int y, const char *label,
                          long long count, long long bytes);
-static void PrintStatsDynamicLine(ViewContext *ctx, int y, const char *value);
-static void PrintStatsLabelValue(ViewContext *ctx, int y, const char *label,
+static void PrintStatsDynamicLine(ViewContext *ctx,
+                                  const StatsProjection *projection, int y,
+                                  const char *value);
+static void PrintStatsLabelValue(ViewContext *ctx,
+                                 const StatsProjection *projection, int y,
+                                 const char *label,
                                  const char *value);
-static void DescribeDirViewState(const ViewContext *ctx, char *buf, size_t size);
-static void DescribeFileViewState(const ViewContext *ctx, char *buf, size_t size);
-static void DrawAttributes(ViewContext *ctx, const char *name,
+static void DescribeDirViewState(const YtreeNovaPanel *panel, char *buf,
+                                 size_t size);
+static void DescribeFileViewState(const YtreeNovaPanel *panel, char *buf,
+                                  size_t size);
+static void DrawAttributes(ViewContext *ctx, const StatsProjection *projection,
+                           const char *name,
                            const struct stat *s, const FileEntry *fe);
 static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s);
 
@@ -80,6 +100,34 @@ static void RecalcLayout(ViewContext *ctx) {
     ctx->layout.stats_y_attr_sep = 17;
     ctx->layout.stats_y_attr_val = 18;
   }
+}
+
+static BOOL ResolveStatsProjection(const ViewContext *ctx,
+                                   const YtreeNovaPanel *panel,
+                                   StatsProjection *projection) {
+  if (!ctx || !projection || !ctx->ctx_border_window)
+    return FALSE;
+
+  projection->panel = panel ? panel : ctx->active;
+  if (ctx->is_split_screen) {
+    if (!projection->panel || !projection->panel->show_stats ||
+        projection->panel->stats_width <= 0)
+      return FALSE;
+    projection->width = projection->panel->stats_width;
+    projection->x = projection->panel->stats_x;
+    projection->left_border = projection->x;
+    projection->right_border = projection->x + projection->width;
+  } else {
+    if (ctx->layout.stats_width <= 0)
+      return FALSE;
+    projection->width = ctx->layout.stats_width;
+    projection->x = COLS - projection->width;
+    projection->left_border = projection->x - 1;
+    projection->right_border = COLS - 1;
+  }
+
+  return projection->width > 2 && projection->left_border >= 0 &&
+         projection->right_border < COLS;
 }
 
 static void RecalcDir(BOOL hide_dot_files, DirEntry *d, Statistic *s) {
@@ -234,6 +282,8 @@ static void FormatDisplaySize(char *buf, size_t size, long long val) {
 }
 
 static void SetStatsBaseColor(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_border_window)
+    return;
 #ifdef COLOR_SUPPORT
   wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #else
@@ -242,6 +292,8 @@ static void SetStatsBaseColor(ViewContext *ctx) {
 }
 
 static void SetStatsStaticColor(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_border_window)
+    return;
 #ifdef COLOR_SUPPORT
   wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_STATIC_TEXT));
 #else
@@ -250,6 +302,8 @@ static void SetStatsStaticColor(ViewContext *ctx) {
 }
 
 static void SetStatsDynamicColor(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_border_window)
+    return;
 #ifdef COLOR_SUPPORT
   wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_DYNAMIC_TEXT));
 #else
@@ -258,6 +312,8 @@ static void SetStatsDynamicColor(ViewContext *ctx) {
 }
 
 static void SetStatsBorderColor(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_border_window)
+    return;
 #ifdef COLOR_SUPPORT
   wattrset(ctx->ctx_border_window, COLOR_PAIR(UI_ROLE_BOX_LINES));
 #else
@@ -265,9 +321,24 @@ static void SetStatsBorderColor(ViewContext *ctx) {
 #endif
 }
 
-static void DrawBoxFrame(ViewContext *ctx) {
+static void DrawBoxFrame(ViewContext *ctx, const StatsProjection *projection) {
   int y;
-  int sep_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
+  int sep_y;
+  const YtreeNovaPanel *panel;
+  BOOL shared_split_border = FALSE;
+  BOOL right_big_file = FALSE;
+
+  if (!ctx || !projection || !ctx->ctx_border_window)
+    return;
+
+  sep_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
+  panel = projection->panel;
+
+  if (ctx->is_split_screen && panel == ctx->left && ctx->right) {
+    shared_split_border = TRUE;
+    right_big_file =
+        ctx->right->pan_file_window == ctx->right->pan_big_file_window;
+  }
 
   SetStatsBorderColor(ctx);
   wattron(ctx->ctx_border_window, A_ALTCHARSET);
@@ -304,7 +375,7 @@ static void DrawBoxFrame(ViewContext *ctx) {
   mvwhline(ctx->ctx_border_window, ctx->layout.bottom_border_y, L_BORDER + 1,
            ACS_HLINE, R_BORDER - L_BORDER - 1);
   mvwaddch(ctx->ctx_border_window, ctx->layout.bottom_border_y, R_BORDER,
-           ACS_LRCORNER);
+           shared_split_border ? ACS_BTEE : ACS_LRCORNER);
 
   /* --- Vertical Lines --- */
   for (y = Y_TOP + 1; y < ctx->layout.bottom_border_y; y++) {
@@ -317,10 +388,14 @@ static void DrawBoxFrame(ViewContext *ctx) {
            ACS_TTEE); /* Connects to Path bar in main win */
 
   /* Handle File Window artifact */
-  if (ctx->ctx_file_window == ctx->ctx_big_file_window) {
+  if (panel && panel->pan_file_window == panel->pan_big_file_window) {
     mvwaddch(ctx->ctx_border_window, sep_y, L_BORDER, ACS_VLINE);
   } else {
     mvwaddch(ctx->ctx_border_window, sep_y, L_BORDER, ACS_RTEE);
+  }
+  if (shared_split_border) {
+    mvwaddch(ctx->ctx_border_window, sep_y, R_BORDER,
+             right_big_file ? ACS_VLINE : ACS_LTEE);
   }
   mvwaddch(ctx->ctx_border_window, ctx->layout.bottom_border_y, L_BORDER,
            ACS_BTEE);
@@ -329,7 +404,8 @@ static void DrawBoxFrame(ViewContext *ctx) {
   SetStatsBaseColor(ctx);
 }
 
-static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
+static void DrawSeparator(ViewContext *ctx, const StatsProjection *projection,
+                          int y, const char *title) {
   int text_len = title ? strlen(title) : 0;
   int total_inner_width = R_BORDER - L_BORDER - 1;
 
@@ -384,7 +460,8 @@ static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
   SetStatsBaseColor(ctx);
 }
 
-static void PrintStatRow(ViewContext *ctx, int y, const char *label,
+static void PrintStatRow(ViewContext *ctx, const StatsProjection *projection,
+                         int y, const char *label,
                          long long count, long long bytes) {
   char count_buf[32];
   char size_buf[32];
@@ -420,7 +497,9 @@ static void PrintStatRow(ViewContext *ctx, int y, const char *label,
   SetStatsBaseColor(ctx);
 }
 
-static void PrintStatsDynamicLine(ViewContext *ctx, int y, const char *value) {
+static void PrintStatsDynamicLine(ViewContext *ctx,
+                                  const StatsProjection *projection, int y,
+                                  const char *value) {
   char clipped[256];
 
   if (y >= ctx->layout.bottom_border_y)
@@ -434,7 +513,9 @@ static void PrintStatsDynamicLine(ViewContext *ctx, int y, const char *value) {
   SetStatsBaseColor(ctx);
 }
 
-static void PrintStatsLabelValue(ViewContext *ctx, int y, const char *label,
+static void PrintStatsLabelValue(ViewContext *ctx,
+                                 const StatsProjection *projection, int y,
+                                 const char *label,
                                  const char *value) {
   int label_len;
   int value_width;
@@ -495,14 +576,12 @@ static const char *PrimaryFileInfoName(const YtreeNovaPanel *panel) {
   return BaseViewName(panel->file_mode);
 }
 
-static void DescribeDirViewState(const ViewContext *ctx, char *buf, size_t size) {
-  const YtreeNovaPanel *panel;
-
+static void DescribeDirViewState(const YtreeNovaPanel *panel, char *buf,
+                                 size_t size) {
   if (!buf || size == 0)
     return;
 
   buf[0] = '\0';
-  panel = (ctx) ? ctx->active : NULL;
   if (panel &&
       (panel->fileinfo_overlay_mode != FILEINFO_OVERLAY_NONE ||
        panel->fixed_col_width != 0)) {
@@ -512,18 +591,17 @@ static void DescribeDirViewState(const ViewContext *ctx, char *buf, size_t size)
   snprintf(buf, size, "%s", BaseViewName(panel ? panel->dir_mode : MODE_3));
 }
 
-static void DescribeFileViewState(const ViewContext *ctx, char *buf, size_t size) {
-  const YtreeNovaPanel *panel;
-
+static void DescribeFileViewState(const YtreeNovaPanel *panel, char *buf,
+                                  size_t size) {
   if (!buf || size == 0)
     return;
 
   buf[0] = '\0';
-  panel = (ctx) ? ctx->active : NULL;
   snprintf(buf, size, "%s", PrimaryFileInfoName(panel));
 }
 
-static void DrawAttributes(ViewContext *ctx, const char *name,
+static void DrawAttributes(ViewContext *ctx, const StatsProjection *projection,
+                           const char *name,
                            const struct stat *s, const FileEntry *fe) {
   char buf[128];
   char num_buf[32];
@@ -532,17 +610,18 @@ static void DrawAttributes(ViewContext *ctx, const char *name,
   if (!name || !s)
     return;
 
-  DrawSeparator(ctx, ctx->layout.stats_y_attr_sep, "ATTRIBUTES");
+  DrawSeparator(ctx, projection, ctx->layout.stats_y_attr_sep, "ATTRIBUTES");
 
   (void)fe;
-  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_attr_val, name);
+  PrintStatsDynamicLine(ctx, projection, ctx->layout.stats_y_attr_val, name);
 
   FormatDisplaySize(num_buf, sizeof(num_buf), s->st_size);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 1, "Size: ",
-                       num_buf);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_attr_val + 1,
+                       "Size: ", num_buf);
 
   GetAttributes(s->st_mode, buf);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 2, "Attr: ", buf);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_attr_val + 2,
+                       "Attr: ", buf);
 
   {
     const char *owner = GetDisplayPasswdName(s->st_uid);
@@ -561,25 +640,28 @@ static void DrawAttributes(ViewContext *ctx, const char *name,
     char full_own[64];
     snprintf(full_own, sizeof(full_own), "%s:%s", owner, group);
     CutName(buf, full_own, INNER_W - 6); /* "Own : " is 6 chars */
-    PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 3, "Own : ", buf);
+    PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_attr_val + 3,
+                         "Own : ", buf);
   }
 
   CTime(s->st_mtime, time_buf);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_attr_val + 4, "Mod : ",
-                       time_buf);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_attr_val + 4,
+                       "Mod : ", time_buf);
 }
 
 /* ************************************************************************* */
 /*                           DISPLAY FUNCTIONS */
 /* ************************************************************************* */
 
-void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
+static void DisplayDiskNameProjected(ViewContext *ctx,
+                                     const StatsProjection *projection,
+                                     const Statistic *s) {
   char buf[128];
   char path_buf[PATH_LENGTH + 1];
   int total_volumes = HASH_COUNT(ctx->volumes_head);
   int current_index = 0;
 
-  if (ctx->layout.stats_width == 0)
+  if (!s)
     return;
 
   /* Recalculate layout based on current terminal height */
@@ -601,7 +683,7 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
     current_index = 1;
 
   SetStatsBaseColor(ctx);
-  DrawBoxFrame(ctx);
+  DrawBoxFrame(ctx, projection);
 
   CutName(buf, s->file_spec, INNER_W);
   SetStatsBaseColor(ctx);
@@ -616,7 +698,7 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
   SetStatsBaseColor(ctx);
 
   snprintf(buf, sizeof(buf), "VOLUME %d/%d", current_index, total_volumes);
-  DrawSeparator(ctx, ctx->layout.stats_y_vol_sep, buf);
+  DrawSeparator(ctx, projection, ctx->layout.stats_y_vol_sep, buf);
 
   if (ctx->view_mode == ARCHIVE_MODE)
     strncpy(path_buf, s->log_path, PATH_LENGTH);
@@ -624,7 +706,8 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
     strncpy(path_buf, s->path, PATH_LENGTH);
   path_buf[PATH_LENGTH] = '\0';
 
-  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_vol_info, path_buf);
+  PrintStatsDynamicLine(ctx, projection, ctx->layout.stats_y_vol_info,
+                        path_buf);
 
   char fs_buf[64];
   if (ctx->view_mode == ARCHIVE_MODE)
@@ -632,7 +715,8 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
   else
     snprintf(fs_buf, sizeof(fs_buf), "%s", s->disk_name);
   CutName(buf, fs_buf, INNER_W - 4);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_vol_info + 1, "FS: ", buf);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_vol_info + 1,
+                       "FS: ", buf);
 
   if (ctx->view_mode == ARCHIVE_MODE) {
     snprintf(fs_buf, sizeof(fs_buf), "-");
@@ -653,8 +737,201 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
     else
       snprintf(fs_buf, sizeof(fs_buf), "%s", size_buf);
   }
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_vol_info + 2, "Free: ",
-                       fs_buf);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_vol_info + 2,
+                       "Free: ", fs_buf);
+}
+
+static void DisplayDiskStatisticProjected(ViewContext *ctx,
+                                          const StatsProjection *projection,
+                                          const Statistic *s) {
+  if (!s)
+    return;
+
+  DisplayDiskNameProjected(ctx, projection, s);
+  DrawSeparator(ctx, projection, ctx->layout.stats_y_vstat_sep,
+                "VOLUME STATS");
+
+  PrintStatRow(ctx, projection, ctx->layout.stats_y_vstat_val, "Tot:",
+               s->disk_total_files, s->disk_total_bytes);
+  PrintStatRow(ctx, projection, ctx->layout.stats_y_vstat_val + 1, "Mat:",
+               s->disk_matching_files, s->disk_matching_bytes);
+  PrintStatRow(ctx, projection, ctx->layout.stats_y_vstat_val + 2, "Tag:",
+               s->disk_tagged_files, s->disk_tagged_bytes);
+}
+
+static void DisplayDirStatisticProjected(ViewContext *ctx,
+                                         const StatsProjection *projection,
+                                         const DirEntry *de,
+                                         const char *title,
+                                         const Statistic *s) {
+  if (!de)
+    return;
+
+  /* Use provided title, or fallback to default logic */
+  if (title) {
+    DrawSeparator(ctx, projection, ctx->layout.stats_y_dstat_sep, title);
+  } else if (de->global_flag) {
+    DrawSeparator(ctx, projection, ctx->layout.stats_y_dstat_sep, "SHOW ALL");
+  } else {
+    if (ctx->view_mode == ARCHIVE_MODE) {
+      DrawSeparator(ctx, projection, ctx->layout.stats_y_dstat_sep, "ARCHIVE");
+    } else {
+      DrawSeparator(ctx, projection, ctx->layout.stats_y_dstat_sep,
+                    "CURRENT DIR");
+    }
+  }
+
+  PrintStatsDynamicLine(ctx, projection, ctx->layout.stats_y_dstat_val,
+                        de->name);
+  {
+    char view_buf[64];
+    DescribeDirViewState(projection->panel, view_buf, sizeof(view_buf));
+    PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_dstat_val + 1,
+                         "View: ", view_buf);
+  }
+
+  if (de->global_flag) {
+    /* In Show All mode, display global totals */
+    PrintStatRow(ctx, projection, ctx->layout.stats_y_dstat_val + 2, "Tot:",
+                 s->disk_total_files, s->disk_total_bytes);
+    PrintStatRow(ctx, projection, ctx->layout.stats_y_dstat_val + 3, "Mat:",
+                 s->disk_matching_files, s->disk_matching_bytes);
+  } else {
+    /* In Normal mode, display current directory totals */
+    PrintStatRow(ctx, projection, ctx->layout.stats_y_dstat_val + 2, "Tot:",
+                 de->total_files, de->total_bytes);
+    PrintStatRow(ctx, projection, ctx->layout.stats_y_dstat_val + 3, "Mat:",
+                 de->matching_files, de->matching_bytes);
+  }
+
+  /* Tag count always shows global disk total in Show All mode, but we use the
+   * disk stats directly if global_flag is set. */
+  if (de->global_flag) {
+    PrintStatRow(ctx, projection, ctx->layout.stats_y_dstat_val + 4, "Tag:",
+                 s->disk_tagged_files, s->disk_tagged_bytes);
+  } else {
+    PrintStatRow(ctx, projection, ctx->layout.stats_y_dstat_val + 4, "Tag:",
+                 de->tagged_files, de->tagged_bytes);
+  }
+}
+
+/*
+ * DisplayFileStatistic
+ * Shows individual file information in the "CURRENT DIR" statistics area
+ * when the user is navigating files (small or big window mode).
+ */
+static void DisplayFileStatisticProjected(ViewContext *ctx,
+                                          const StatsProjection *projection,
+                                          const FileEntry *fe,
+                                          const Statistic *s) {
+  char size_buf[32];
+  char time_buf[20];
+
+  if (!fe)
+    return;
+
+  DrawSeparator(ctx, projection, ctx->layout.stats_y_dstat_sep,
+                "CURRENT FILE");
+
+  PrintStatsDynamicLine(ctx, projection, ctx->layout.stats_y_dstat_val,
+                        fe->name);
+  {
+    char view_buf[64];
+    DescribeFileViewState(projection->panel, view_buf, sizeof(view_buf));
+    PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_dstat_val + 1,
+                         "View: ", view_buf);
+  }
+
+  FormatDisplaySize(size_buf, sizeof(size_buf), fe->stat_struct.st_size);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_dstat_val + 2,
+                       "Size: ", size_buf);
+
+  {
+    char attr_buf[16];
+    GetAttributes(fe->stat_struct.st_mode, attr_buf);
+    PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_dstat_val + 3,
+                         "Perm: ", attr_buf);
+  }
+
+  CTime(fe->stat_struct.st_mtime, time_buf);
+  PrintStatsLabelValue(ctx, projection, ctx->layout.stats_y_dstat_val + 4,
+                       "Mod : ", time_buf);
+}
+
+static void DisplayFileParameterProjected(ViewContext *ctx,
+                                          const StatsProjection *projection,
+                                          FileEntry *fe) {
+  if (fe) {
+    DrawAttributes(ctx, projection, fe->name, &fe->stat_struct, fe);
+  }
+}
+
+static void DisplayDirParameterProjected(ViewContext *ctx,
+                                         const StatsProjection *projection,
+                                         DirEntry *de) {
+  if (de)
+    DrawAttributes(ctx, projection, de->name, &de->stat_struct, NULL);
+}
+
+static BOOL ResolveDefaultStatsProjection(const ViewContext *ctx,
+                                          StatsProjection *projection) {
+  return ResolveStatsProjection(ctx,
+                                ctx && ctx->is_split_screen ? ctx->active : NULL,
+                                projection);
+}
+
+void DisplayPanelStatistics(ViewContext *ctx, YtreeNovaPanel *panel) {
+  StatsProjection projection;
+  const Statistic *s;
+  DirEntry *de;
+  FileEntry *fe = NULL;
+  int y;
+
+  if (!ctx || !panel || !panel->vol ||
+      !ResolveStatsProjection(ctx, panel, &projection))
+    return;
+
+  s = &panel->vol->vol_stats;
+  /* Split separator redraws can leave a horizontal rule in an otherwise
+   * untouched statistics interior. Clear the projected strip before filling
+   * it so the panel frame remains self-contained. */
+  for (y = Y_TOP + 1; y < ctx->layout.bottom_border_y; y++)
+    mvwhline(ctx->ctx_border_window, y, projection.left_border + 1, ' ',
+             projection.right_border - projection.left_border - 1);
+  de = GetPanelDirEntry(panel);
+  if (panel->saved_focus == FOCUS_FILE &&
+      panel->file_selection_dir_path[0] != '\0') {
+    DirEntry *file_dir = ResolvePanelAnchorTarget(
+        panel, panel->vol, panel->file_selection_dir_path);
+    if (file_dir)
+      de = file_dir;
+  }
+
+  DisplayDiskStatisticProjected(ctx, &projection, s);
+  if (!de)
+    return;
+
+  if (panel->saved_focus == FOCUS_FILE && panel->file_entry_list &&
+      panel->file_count > 0) {
+    int file_index = panel->start_file + panel->file_cursor_pos;
+    if (file_index >= 0 && (unsigned int)file_index < panel->file_count)
+      fe = panel->file_entry_list[file_index].file;
+  }
+
+  if (fe) {
+    DisplayFileStatisticProjected(ctx, &projection, fe, s);
+    DisplayFileParameterProjected(ctx, &projection, fe);
+  } else {
+    DisplayDirStatisticProjected(ctx, &projection, de,
+                                 de->global_flag ? "SHOW ALL" : NULL, s);
+    DisplayDirParameterProjected(ctx, &projection, de);
+  }
+}
+
+void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
+  StatsProjection projection;
+  if (ResolveDefaultStatsProjection(ctx, &projection))
+    DisplayDiskNameProjected(ctx, &projection, s);
 }
 
 void DisplayAvailBytes(ViewContext *ctx, const Statistic *s) {
@@ -666,123 +943,29 @@ void DisplayFilter(ViewContext *ctx, const Statistic *s) {
 }
 
 void DisplayDiskStatistic(ViewContext *ctx, const Statistic *s) {
-  if (ctx->layout.stats_width == 0)
-    return;
-
-  DisplayDiskName(ctx, s);
-
-  DrawSeparator(ctx, ctx->layout.stats_y_vstat_sep, "VOLUME STATS");
-
-  PrintStatRow(ctx, ctx->layout.stats_y_vstat_val, "Tot:", s->disk_total_files,
-               s->disk_total_bytes);
-  PrintStatRow(ctx, ctx->layout.stats_y_vstat_val + 1,
-               "Mat:", s->disk_matching_files, s->disk_matching_bytes);
-  PrintStatRow(ctx, ctx->layout.stats_y_vstat_val + 2,
-               "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
+  StatsProjection projection;
+  if (ResolveDefaultStatsProjection(ctx, &projection))
+    DisplayDiskStatisticProjected(ctx, &projection, s);
 }
 
 void DisplayDirStatistic(ViewContext *ctx, const DirEntry *de,
                          const char *title, const Statistic *s) {
-  if (ctx->layout.stats_width == 0)
-    return;
-
-  if (!de)
-    return;
-
-  /* Use provided title, or fallback to default logic */
-  if (title) {
-    DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, title);
-  } else if (de->global_flag) {
-    DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "SHOW ALL");
-  } else {
-    if (ctx->view_mode == ARCHIVE_MODE) {
-      DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "ARCHIVE");
-    } else {
-      DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "CURRENT DIR");
-    }
-  }
-
-  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_dstat_val, de->name);
-  {
-    char view_buf[64];
-    DescribeDirViewState(ctx, view_buf, sizeof(view_buf));
-    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 1, "View: ",
-                         view_buf);
-  }
-
-  if (de->global_flag) {
-    /* In Show All mode, display global totals */
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 2,
-                 "Tot:", s->disk_total_files, s->disk_total_bytes);
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
-                 "Mat:", s->disk_matching_files, s->disk_matching_bytes);
-  } else {
-    /* In Normal mode, display current directory totals */
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 2,
-                 "Tot:", de->total_files, de->total_bytes);
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
-                 "Mat:", de->matching_files, de->matching_bytes);
-  }
-
-  /* Tag count always shows global disk total in Show All mode, but we use the
-   * disk stats directly if global_flag is set. */
-  if (de->global_flag) {
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 4,
-                 "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
-  } else {
-    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 4,
-                 "Tag:", de->tagged_files, de->tagged_bytes);
-  }
+  StatsProjection projection;
+  if (ResolveDefaultStatsProjection(ctx, &projection))
+    DisplayDirStatisticProjected(ctx, &projection, de, title, s);
 }
 
-/*
- * DisplayFileStatistic
- * Shows individual file information in the "CURRENT DIR" statistics area
- * when the user is navigating files (small or big window mode).
- */
 void DisplayFileStatistic(ViewContext *ctx, const FileEntry *fe,
                           const Statistic *s) {
-  char size_buf[32];
-  char time_buf[20];
-
-  if (ctx->layout.stats_width == 0)
-    return;
-
-  if (!fe)
-    return;
-
-  DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "CURRENT FILE");
-
-  PrintStatsDynamicLine(ctx, ctx->layout.stats_y_dstat_val, fe->name);
-  {
-    char view_buf[64];
-    DescribeFileViewState(ctx, view_buf, sizeof(view_buf));
-    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 1, "View: ",
-                         view_buf);
-  }
-
-  FormatDisplaySize(size_buf, sizeof(size_buf), fe->stat_struct.st_size);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 2, "Size: ",
-                       size_buf);
-
-  {
-    char attr_buf[16];
-    GetAttributes(fe->stat_struct.st_mode, attr_buf);
-    PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 3, "Perm: ",
-                         attr_buf);
-  }
-
-  CTime(fe->stat_struct.st_mtime, time_buf);
-  PrintStatsLabelValue(ctx, ctx->layout.stats_y_dstat_val + 4, "Mod : ",
-                       time_buf);
+  StatsProjection projection;
+  if (ResolveDefaultStatsProjection(ctx, &projection))
+    DisplayFileStatisticProjected(ctx, &projection, fe, s);
 }
 
 void DisplayFileParameter(ViewContext *ctx, FileEntry *fe) {
-  if (ctx->layout.stats_width == 0)
-    return;
-  if (fe) {
-    DrawAttributes(ctx, fe->name, &fe->stat_struct, fe);
-  }
+  StatsProjection projection;
+  if (ResolveDefaultStatsProjection(ctx, &projection))
+    DisplayFileParameterProjected(ctx, &projection, fe);
 }
 
 /* ************************************************************************* */
@@ -790,28 +973,20 @@ void DisplayFileParameter(ViewContext *ctx, FileEntry *fe) {
 /* ************************************************************************* */
 
 void DisplayDiskTagged(ViewContext *ctx, const Statistic *s) {
-  if (ctx->layout.stats_width == 0)
-    return;
   DisplayDiskStatistic(ctx, s);
 }
 
 void DisplayDirTagged(ViewContext *ctx, const DirEntry *de,
                       const Statistic *s) {
-  if (ctx->layout.stats_width == 0)
-    return;
   DisplayDirStatistic(ctx, de, NULL, s);
 }
 
 void DisplayDirParameter(ViewContext *ctx, DirEntry *de) {
-  if (ctx->layout.stats_width == 0)
-    return;
-  if (de) {
-    DrawAttributes(ctx, de->name, &de->stat_struct, NULL);
-  }
+  StatsProjection projection;
+  if (ResolveDefaultStatsProjection(ctx, &projection))
+    DisplayDirParameterProjected(ctx, &projection, de);
 }
 
 void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *fe) {
-  if (ctx->layout.stats_width == 0)
-    return;
   DisplayFileParameter(ctx, fe);
 }

@@ -245,6 +245,14 @@ static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreeNovaPanel *panel,
   return panel->file_count > 0;
 }
 
+static BOOL ResetSplitStatsVisibility(ViewContext *ctx) {
+  if (!ctx || !ctx->left || !ctx->right)
+    return FALSE;
+
+  return AppStateCommitPanelStatsVisibility(ctx->left, FALSE) &&
+         AppStateCommitPanelStatsVisibility(ctx->right, FALSE);
+}
+
 BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction action,
                                             DirEntry *dir_entry,
                                             YtreeNovaPanel *owner_panel,
@@ -314,13 +322,13 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction ac
           !DonatePanelState(ctx, ctx->left, ctx->right))
         return FALSE;
 
-      if (!AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen))
+      if (!ResetSplitStatsVisibility(ctx) ||
+          !AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen))
         return FALSE;
       if (closing_split && !AppStateCommitActivePanel(ctx, ctx->left))
         return FALSE;
       ReCreateWindows(ctx);
-      if (!ctx->is_split_screen)
-        SyncActivePanelWindows(ctx);
+      if (!ctx->is_split_screen) SyncActivePanelWindows(ctx);
 
       if (ctx->is_split_screen) {
         if (ctx->right && ctx->left) {
@@ -542,13 +550,13 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction act
       if (closing_active &&
           !AppStateCommitPanelFocus(ctx, closing_active, FOCUS_TREE))
         return FALSE;
-      if (!AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen))
+      if (!ResetSplitStatsVisibility(ctx) ||
+          !AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen))
         return FALSE;
       if (closing_split && !AppStateCommitActivePanel(ctx, ctx->left))
         return FALSE;
       ReCreateWindows(ctx);
-      if (!ctx->is_split_screen)
-        SyncActivePanelWindows(ctx);
+      if (!ctx->is_split_screen) SyncActivePanelWindows(ctx);
 
       if (ctx->is_split_screen) {
         if (ctx->right && ctx->left) {

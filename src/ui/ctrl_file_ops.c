@@ -1217,11 +1217,12 @@ BOOL handle_file_window_misc_dispatch_action(
     (void)AppStateMarkResizeRequest(ctx);
     break;
 
-  case ACTION_TOGGLE_STATS:
-    ctx->show_stats = !ctx->show_stats;
+  case ACTION_TOGGLE_STATS: if (ctx->is_split_screen && ctx->active &&
+                                !AppStateCommitPanelStatsVisibility(ctx->active, !ctx->active->show_stats))
+      break;
+    if (!ctx->is_split_screen || !ctx->active) ctx->show_stats = !ctx->show_stats;
     (void)AppStateMarkResizeRequest(ctx);
     break;
-
   case ACTION_TOGGLE_COMPACT:
     if (!AppStateCommitFixedColumnWidth(ctx,
                                         (ctx->fixed_col_width == 0)

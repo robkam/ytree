@@ -586,7 +586,7 @@ static const FooterCommandSpec preview_footer_specs[] = {
 static const FooterCommandSpec dir_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats(active)", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -596,7 +596,7 @@ static const FooterCommandSpec dir_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats(active)", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -606,7 +606,7 @@ static const FooterCommandSpec file_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats(active)", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -1150,6 +1150,35 @@ static void RenderFooterNavRow(ViewContext *ctx, const char *signpost,
   if (available_width < 0)
     available_width = 0;
   pack = PackFooterCommands(commands, spec_count, available_width, 1, FALSE);
+  if (pack.truncated && spec_count > 0) {
+    UICommandStripCommand fallback_commands[16];
+    size_t command_index;
+    size_t fallback_count = 0;
+    BOOL dropped_stats = FALSE;
+
+    for (command_index = 0; command_index < spec_count; ++command_index) {
+      if (!dropped_stats && strcmp(commands[command_index].primary_key, "F6") == 0 &&
+          strcmp(commands[command_index].label, "stats(active)") == 0) {
+        dropped_stats = TRUE;
+        continue;
+      }
+      fallback_commands[fallback_count++] = commands[command_index];
+    }
+
+    if (dropped_stats) {
+      FooterPackResult fallback_pack =
+          PackFooterCommands(fallback_commands, fallback_count, available_width, 1,
+                             FALSE);
+
+      if (!fallback_pack.truncated ||
+          fallback_pack.visible_count > pack.visible_count ||
+          (fallback_pack.visible_count == pack.visible_count &&
+           fallback_pack.truncated_index > pack.truncated_index)) {
+        memcpy(commands, fallback_commands, fallback_count * sizeof(commands[0]));
+        pack = fallback_pack;
+      }
+    }
+  }
   RenderPackedFooterLine(ctx->ctx_menu_window, 2, signpost, commands,
                          pack.line_counts[0],
                          pack.truncated ? &commands[pack.truncated_index] : NULL,
@@ -1550,6 +1579,18 @@ void DisplayHeaderPath(ViewContext *ctx, const char *path) {
   wnoutrefresh(ctx->ctx_path_window);
 }
 
+static int PanelDataRightX(const YtreeNovaPanel *panel) {
+  if (!panel)
+    return 0;
+  return panel->dir_x + panel->dir_w + panel->stats_width;
+}
+
+static int SplitSeparatorX(const YtreeNovaPanel *panel) {
+  if (!panel)
+    return 0;
+  return panel->dir_x + panel->dir_w + panel->stats_width;
+}
+
 static void DisplaySplitTopFilter(ViewContext *ctx, const YtreeNovaPanel *panel,
                                   int start_x, int available_width) {
   char filter_label[FILE_SPEC_LENGTH + 3];
@@ -1573,19 +1614,12 @@ static void DisplaySplitTopFilter(ViewContext *ctx, const YtreeNovaPanel *panel,
 }
 
 static void DisplaySplitTopFilters(ViewContext *ctx) {
-  int split_x;
-  int data_right_x;
-
   if (!ctx || !ctx->ctx_border_window || !ctx->is_split_screen || !ctx->left ||
       !ctx->right)
     return;
 
-  split_x = ctx->left->dir_x + ctx->left->dir_w;
-  data_right_x = COLS - ctx->layout.stats_width - 1;
-
-  DisplaySplitTopFilter(ctx, ctx->left, 1, split_x - 1);
-  DisplaySplitTopFilter(ctx, ctx->right, split_x + 1,
-                        data_right_x - split_x - 1);
+  DisplaySplitTopFilter(ctx, ctx->left, ctx->left->dir_x, ctx->left->dir_w);
+  DisplaySplitTopFilter(ctx, ctx->right, ctx->right->dir_x, ctx->right->dir_w);
 }
 
 void DisplayMenu(ViewContext *ctx) {
@@ -1630,7 +1664,7 @@ void DisplayMenu(ViewContext *ctx) {
   } else {
     /* Vertical Split Separator */
     if (ctx->is_split_screen && ctx->left) {
-      int split_x = ctx->left->dir_x + ctx->left->dir_w;
+      int split_x = SplitSeparatorX(ctx->left);
       mvwvline(ctx->ctx_border_window, 2, split_x, ACS_VLINE, bottom_y - 2);
       mvwaddch(ctx->ctx_border_window, 1, split_x, ACS_TTEE);
       mvwaddch(ctx->ctx_border_window, bottom_y, split_x, ACS_BTEE);
@@ -1660,7 +1694,7 @@ void SwitchToSmallFileWindow(ViewContext *ctx) {
 
   /* Restore Split Screen Junction if visible */
   if (ctx->is_split_screen && ctx->left) {
-    int split_x = ctx->left->dir_x + ctx->left->dir_w;
+    int split_x = SplitSeparatorX(ctx->left);
     mvwaddch(ctx->ctx_border_window, separator_y, split_x, ACS_PLUS);
   }
   wattroff(ctx->ctx_border_window, A_ALTCHARSET);
@@ -1934,8 +1968,9 @@ static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big,
     return;
 
   separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
-  data_right_x = COLS - ctx->layout.stats_width - 1;
-  split_x = ctx->left->dir_x + ctx->left->dir_w;
+  data_right_x = ctx->right ? PanelDataRightX(ctx->right)
+                            : COLS - ctx->layout.stats_width - 1;
+  split_x = SplitSeparatorX(ctx->left);
 
   /* Clear the entire separator row before redrawing split-aware junctions. */
   wmove(ctx->ctx_border_window, separator_y, 0);
@@ -1984,12 +2019,18 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   const Statistic *s = &ctx->active->vol->vol_stats;
   BOOL needs_window_recreate = FALSE;
   BOOL active_big_mode;
+  int previous_left_width = ctx->left ? ctx->left->dir_w : 0;
+  int previous_right_width = ctx->right ? ctx->right->dir_w : 0;
 
   if (ctx->active == NULL)
     MESSAGE(ctx, "FATAL: RefreshView called with NULL ctx->active");
 
   /* 1. Re-evaluate Layout; only recreate windows on actual resize */
   Layout_Recalculate(ctx);
+  if ((ctx->left && previous_left_width != ctx->left->dir_w) ||
+      (ctx->right && previous_right_width != ctx->right->dir_w)) {
+    needs_window_recreate = TRUE;
+  }
   if (ctx->cached_lines != LINES || ctx->cached_cols != COLS) {
     if (!AppStateCommitTerminalGeometryCache(ctx, LINES, COLS))
       return;
@@ -2018,8 +2059,10 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* 4. Render Stats (updates ctx_border_window) */
   if (!ctx->preview_mode) {
-    DisplayDiskStatistic(ctx, s);
-    UpdateStatsPanel(ctx, dir_entry, s);
+    if (!ctx->is_split_screen) {
+      DisplayDiskStatistic(ctx, s);
+      UpdateStatsPanel(ctx, dir_entry, s);
+    }
   }
 
   /* 5. Refresh Background/Border Window SECOND (z=0) */
@@ -2077,6 +2120,10 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
       AppStateSetPanelFileWindowHandle(ctx, ctx->active, active_big_mode);
 
       DrawSplitSeparatorRow(ctx, left_big_mode, right_big_mode);
+      /* Draw after the separator, which clears its full row. */
+      DisplayPanelStatistics(ctx, ctx->left);
+      DisplayPanelStatistics(ctx, ctx->right);
+      wnoutrefresh(ctx->ctx_border_window);
 
       if (!active_big_mode && ctx->active->pan_dir_window) {
         BOOL tree_highlight = (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE);

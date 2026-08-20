@@ -54,6 +54,7 @@ ytnova.1.*.gz
 .ytnova-hst
 .ytnova-*.chdir
 .serena/
+.agent/handoffs/
 
 # Secrets and Local Environment
 *.env

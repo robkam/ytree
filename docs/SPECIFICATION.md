@@ -243,6 +243,7 @@ Split mode is a two-panel session entered/exited by `F8`.
 *   **Inactive Panel:** Does not process direct input while inactive; its own cursor/selection context is retained until focus is switched back.
 *   **Freeze/Resume Rule:** When a panel loses focus, its panel-local state is frozen; when it becomes active again (via `Tab`), it must resume exactly where it left off.
 *   **Active-Only Mutation Rule:** Commands mutate only the active panel's panel-local state. Cross-panel updates are limited to shared topology mirroring defined in §5.3.
+*   **Statistics Visibility:** Entering split mode initializes both statistics strips as hidden. `F6` toggles only the active panel's 24-column strip, `Tab` preserves both visibility states, and either or both panel-local strips may be visible. Single-panel statistics retain their session-wide behavior.
 
 ### 5.2 State Persistence
 Switching panels via `Tab` must restore the exact state held when that panel last had focus for panel-local state:
