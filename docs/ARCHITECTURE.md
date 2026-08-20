@@ -158,7 +158,7 @@ The record must capture, at minimum:
 *   **Tree state:** selected directory identity, cursor position, viewport origin, and any stable tree anchor needed to restore the visible selection. Expand/collapse tree topology itself remains shared `Volume` state and must not be duplicated as panel-local expansion depth.
 *   **File state:** selected file identity, file-window cursor position, file-window anchor, and the last visible file selection.
 *   **Visibility state:** dotfile visibility and any other visibility filter that changes which rows are rendered.
-*   **Context state:** per-volume anchors, per-panel filter text, and any mode flag that affects how the same tree/file model is presented.
+*   **Context state:** per-volume anchors, per-panel filter text, statistics-strip visibility, and any mode flag that affects how the same tree/file model is presented.
 
 Ownership rules:
 *   `YtreeNovaPanel` owns the live UI state record for its window/panel instance.

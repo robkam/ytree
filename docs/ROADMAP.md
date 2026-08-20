@@ -502,6 +502,47 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves synchronized redraw across normal, split, and overlay transitions.
 *   - [ ] **Status:** Not Started.
 
+#### **Task 21.3: Unify Main-Screen Frame and Junction Ownership**
+*   **Goal:** Replace patched line-drawing fixes with one architecturally clean main-screen frame-rendering contract.
+*   **Rationale:** The current defect family is not just "wrong glyph here or there"; it comes from fragmented border ownership across layout code, stats rendering, preview-family rendering, and transition-time redraw helpers. As long as multiple paths can write the same seam cells, missing or overwritten junctions will keep returning in new layout combinations.
+*   **Relationship to Task 21.1:** Task 21.1 aligns redraw timing; this subtask aligns frame ownership so the synchronized redraw has one authoritative border/junction source.
+*   **Ownership Rule (mandatory):** The frame compositor owns every outer-border cell, divider cell, split-separator cell, stats-touching border cell, and every junction-bearing seam cell. Non-frame renderers may draw interior content and renderer-local internal separators only; they must not paint shared frame/seam cells.
+*   **Scope Lock:** Main-screen frame composition, seam ownership, and regression coverage only; no keybinding, command-surface, or theme-design changes.
+
+##### **Task 21.3.1: Canonicalize Main-Screen Geometry**
+*   **Goal:** Define one authoritative geometry model for the outer frame, dir/file divider, split separator, stats column boundary, preview-family border seams, and every junction-bearing seam cell before glyph selection occurs.
+*   **Acceptance Criteria:** All main-screen border-bearing cells are derived from one shared layout model rather than recomputed independently by multiple render paths.
+*   - [ ] **Status:** Not Started.
+
+##### **Task 21.3.2: Introduce a Unified Frame Compositor / Junction Resolver**
+*   **Goal:** Choose main-screen border glyphs from declarative edge connectivity instead of scattered imperative `ACS_*` writes.
+*   **Mechanism:** Add one frame-composition path that resolves top/middle/bottom junctions, corners, and straight runs from the canonical geometry model and applies unchanged across single, split, and preview-family layouts.
+*   - [ ] **Status:** Not Started.
+
+##### **Task 21.3.3: Remove Shared Seam Ownership from Non-Frame Renderers**
+*   **Goal:** Restrict stats and other non-frame renderers to interior content and renderer-local internal separators so frame-touching seam cells have one owner.
+*   **Acceptance Criteria:** No shared seam cell is written by both the main layout/frame path and any non-frame renderer, including stats and preview-family content renderers.
+*   - [ ] **Status:** Not Started.
+
+##### **Task 21.3.4: Remove Transition-Time Border Fragment Repaints**
+*   **Goal:** Eliminate mode/layout helpers that repaint border fragments directly instead of requesting a full recomposition from the frame owner.
+*   **Acceptance Criteria:** Mode/layout transitions do not paint ad-hoc border fragments outside the unified frame-render path.
+*   - [ ] **Status:** Not Started.
+
+##### **Task 21.3.5: Add Seam-Family Regression Coverage and Final Ownership Documentation**
+*   **Goal:** Prove the new ownership model across the full seam family and document the final architectural boundary.
+*   **Acceptance Criteria:**
+*   Focused regression coverage proves seam correctness across left-only/right-only/both/none stats combinations and representative small/large terminal geometries.
+*   Single, split, and preview-family layouts use the same junction-resolution mechanism.
+*   `docs/ARCHITECTURE.md` documents the final ownership boundary: frame composition owns shared border/junction cells, while non-frame renderers own interior content and renderer-local internal separators only.
+*   - [ ] **Status:** Not Started.
+
+*   **Parent Acceptance Criteria:**
+*   One authoritative render owner chooses all main-screen frame glyphs, including the outer box, dir/file divider, split separator, stats-touching borders, preview-family frame seams, and all top/middle/bottom junctions.
+*   No non-frame renderer paints shared frame/seam cells.
+*   The Task 21.3.x subtasks land without introducing keybinding, command-surface, or theme-design drift.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 22: Clarify Internal `^V` Navigation for File vs Hit Traversal**
 *   **Goal:** Make internal `View Tagged` (`^V`) navigation unambiguous by separating file-to-file movement from hit-to-hit movement.
 *   **Rationale:** Current flow is easy to misinterpret (`Space` paging, `S` sort, and `^S` tagged search/filter context), which increases user friction during review workflows.
@@ -847,6 +888,18 @@ Ordering policy (for all editors, including AI editors):
 *   `docs/SPECIFICATION.md` stays aligned with the implemented restore contract and fallback order.
 *   Task 30 closure requires green evidence for all Task 30 subtasks.
 *   - [ ] **Status:** Not Started.
+
+#### **Task 30.5: Panel-Local Split Statistics**
+*   **Goal:** Make `F6` statistics an independent view property of each `F8` split panel instead of a single global sidebar.
+*   **Scope Lock:** Panel-owned stats visibility, split geometry, rendering projection, and focused regression coverage only. Do not alter single-panel statistics behavior.
+*   **Acceptance Criteria:**
+*   Entering `F8` initializes both panels with statistics hidden.
+*   `F6` toggles only the active panel's statistics; switching with `Tab` neither changes nor redraws the other panel's state.
+*   An enabled panel reserves a 24-column statistics strip at its own right edge; both strips can be visible simultaneously.
+*   Stats rendering projects each owning panel's selection and view state without changing active-panel ownership or other panel state.
+*   Focused PTY coverage proves left-only, right-only, both-visible, both-hidden, and split re-entry behavior with layout-resilient assertions.
+*   Footer and F1 help describe the panel-local `F6` behavior when implementation lands.
+*   - [x] **Status:** Completed.
 
 ### **Task 31: Enable Practical Command Subset in `F7` Preview (Keep `F8`/`Tab` Blocked)**
 *   **Goal:** Finish `F7` as an in-place work mode: users can run common file actions without leaving preview, while `F8`/`Tab` stay blocked for preview-state safety.
@@ -1728,7 +1781,6 @@ Ordering policy (for all editors, including AI editors):
     *   Zero compatibility shims remain for overlay/submode dispatch in production paths.
     *   `docs/ARCHITECTURE.md` is updated to document the unified model and migration endpoint.
 *   - [ ] **Status:** Not Started.
-
 ---
 
 ## **Future Enhancements / Wishlist**
@@ -1941,19 +1993,21 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-22: Dual-Preview Split Mode**
-*   **Goal:** Allow each `F8` split panel to enter and retain its own `F7`-style preview state independently.
+*   **Goal:** Let `F7` from an `F8` split enter a stacked dual-autoview layout: each panel previews its selected file while retaining independent preview and list state.
 *   **User-Facing Behavior:**
-    *   In split mode, each panel can independently enter preview without forcing preview state changes in the other panel.
-    *   Switching active panel preserves the preview/list state already held by each side.
-    *   Entering or leaving preview on one panel must not unexpectedly reset scroll position, selection, or return-state on the other panel.
-    *   The design must keep panel ownership obvious so users can still tell which side is active, which side is in preview, and what `Enter`/`Tab`/`F7` will affect next.
-*   **Rationale:** Active-panel-only preview is useful, but independent per-panel preview would make split review/compare workflows more powerful for users who want to inspect both sides without repeatedly toggling state back and forth.
+    *   `F8` continues to create the normal vertical two-panel split. Pressing `F7` from that split enters dual preview for both panels, changing the presentation to a stacked layout.
+    *   Each preview uses its owning panel's selected file and preserves its own scroll position, selection, and return-to-list state.
+    *   `Tab` switches the active preview panel without merging or resetting either panel's state.
+    *   `F7` or `Esc` exits dual preview to the normal vertical split, restoring both list panels exactly as they were before preview.
+    *   Active/inactive indicators make it unambiguous which preview will receive `Enter`, `Tab`, and `F7`.
+*   **Rationale:** `J`/`FILEDIFF` is the direct file-comparison path. Dual preview is complementary: it makes logs, reports, and configuration files convenient to inspect side by side without repeatedly toggling state.
 *   **Scope Lock:** This is an advanced split/preview state feature only. It does not require a broader orthodox-style layout redesign and should preserve ytnova's existing xtree/unixtree/ztree-derived interaction style.
 *   **Acceptance Criteria:**
-*   Both panels can hold independent preview/list state without leaking state across panels.
-*   `Tab`, `F7`, and return-to-list behavior are deterministic and documented in footer/F1/manpage text.
-*   Split-panel active/inactive indicators remain unambiguous while one or both panels are in preview.
-*   Focused regression coverage proves per-panel state retention, panel switching, and exit/return behavior.
+*   Both panels enter dual preview together, retain independent preview/list state, and do not leak state across the split boundary.
+*   `Tab`, `F7`, `Esc`, and return-to-list behavior are deterministic and documented in footer/F1/manpage text.
+*   Leaving dual preview restores the normal vertical split without altering either panel's selection, viewport, or focus state.
+*   Split-panel active/inactive indicators remain unambiguous throughout dual preview.
+*   Focused regression coverage proves layout transitions, per-panel state retention, panel switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-23: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**

@@ -845,6 +845,7 @@ typedef struct {
   int dir_x, dir_y, dir_w, dir_h;
   int small_file_x, small_file_y, small_file_w, small_file_h;
   int big_file_x, big_file_y, big_file_w, big_file_h;
+  int stats_x, stats_width;
   int cursor_pos;
   int disp_begin_pos;
   char tree_viewport_top_dir_path[2][PATH_LENGTH + 1];
@@ -876,6 +877,7 @@ typedef struct {
   BOOL git_status_is_worktree;
   BOOL reverse_sort;
   BOOL show_symlink_targets;
+  BOOL show_stats;
   BOOL hide_dot_files; /* Panel-local visibility. */
 } YtreeNovaPanel;
 

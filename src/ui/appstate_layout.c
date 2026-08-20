@@ -69,6 +69,8 @@ BOOL AppStateCommitPanelWindowGeometry(
   panel->big_file_y = geometry->big_file_y;
   panel->big_file_w = geometry->big_file_w;
   panel->big_file_h = geometry->big_file_h;
+  panel->stats_x = geometry->stats_x;
+  panel->stats_width = geometry->stats_width;
   return TRUE;
 }
 

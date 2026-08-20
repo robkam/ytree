@@ -115,7 +115,7 @@
       "field": "ctx.layout",
       "owner_region": "render/projection/invalidation state",
       "canonical_owner": "ViewContext.layout_region",
-      "runtime_carrier": "ViewContext layout geometry fields",
+      "runtime_carrier": "ViewContext and YtreeNovaPanel layout projection geometry fields",
       "mutation_rule": "May change only during resize/reflow transitions executed in the main loop.",
       "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
@@ -163,8 +163,8 @@
       "field": "panel.file_display_state",
       "owner_region": "panel-local state",
       "canonical_owner": "YtreeNovaPanel.file display projection state",
-      "runtime_carrier": "YtreeNovaPanel.file_mode, fileinfo_overlay_mode, fixed_col_width, max_column, max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len, human_size_units, reverse_sort, and show_symlink_targets",
-      "mutation_rule": "May change only through file display mode, file-info overlay, size-unit, symlink-rendering, width, render metric, or sort-order commits that validate supported presentation modes, derived column bounds, cached file rendering widths, and file ordering projection.",
+      "runtime_carrier": "YtreeNovaPanel.file_mode, fileinfo_overlay_mode, fixed_col_width, max_column, max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len, human_size_units, reverse_sort, show_symlink_targets, and show_stats",
+      "mutation_rule": "May change only through file display mode, file-info overlay, size-unit, symlink-rendering, statistics-visibility, width, render metric, or sort-order commits that validate supported presentation modes, derived column bounds, cached file rendering widths, and file ordering projection.",
       "migration_status": "covered_by_runtime_registry",
       "invariant_checks": [
         "invariant.inactive-panel-frozen",

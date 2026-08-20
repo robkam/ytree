@@ -173,6 +173,17 @@ BOOL AppStateCommitPanelSymlinkTargetMode(YtreeNovaPanel *panel,
   return TRUE;
 }
 
+BOOL AppStateCommitPanelStatsVisibility(YtreeNovaPanel *panel,
+                                        BOOL show_stats) {
+  if (!AppStateValidatedOwnerField("panel.file_display_state"))
+    return FALSE;
+  if (!panel)
+    return FALSE;
+
+  panel->show_stats = show_stats ? TRUE : FALSE;
+  return TRUE;
+}
+
 BOOL AppStateCommitPanelFileSelection(YtreeNovaPanel *panel,
                                       const char *dir_path,
                                       const char *file_name) {

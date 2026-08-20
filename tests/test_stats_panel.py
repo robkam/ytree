@@ -92,6 +92,72 @@ def _stats_area(screen_or_lines):
     return stats_lines
 
 
+def _stats_strip_bounds(screen_or_lines):
+    bounds = []
+    for line in _screen_lines(screen_or_lines):
+        marker_start = 0
+        while True:
+            marker_x = line.find("FILTER", marker_start)
+            if marker_x == -1:
+                break
+            left_x = line.rfind("w", 0, marker_x)
+            right_x = line.find("k", marker_x)
+            if left_x != -1 and right_x != -1:
+                bounds.append((left_x, right_x))
+            marker_start = marker_x + len("FILTER")
+    return bounds
+
+
+def _stats_strip_count(screen_or_lines):
+    return len(_stats_strip_bounds(screen_or_lines))
+
+
+def _stats_strip_texts(screen_or_lines):
+    lines = _screen_lines(screen_or_lines)
+    return [
+        "\n".join(line[left_x : right_x + 1] for line in lines[:-3])
+        for left_x, right_x in _stats_strip_bounds(lines)
+    ]
+
+
+def _has_split_stats_seam_artifact(screen_or_lines):
+    return any("xn" in line for line in _screen_lines(screen_or_lines))
+
+
+def _has_split_stats_shared_border_artifact(screen_or_lines):
+    bounds = _stats_strip_bounds(screen_or_lines)
+    if not bounds:
+        return False
+
+    _, right_x = bounds[0]
+    for line in _screen_lines(screen_or_lines):
+        if right_x + 1 >= len(line):
+            continue
+        if line[right_x] in ("x", "j") and line[right_x + 1] == "q":
+            return True
+    return False
+
+
+def _send_and_wait_for_stats_count(tui, keys, expected_count):
+    lines = tui.send_and_wait_for_condition(
+        keys,
+        lambda current_lines: current_lines
+        if _stats_strip_count(current_lines) == expected_count
+        else False,
+        timeout=1.0,
+    )
+    assert lines, (
+        f"Expected {expected_count} visible statistics strips after {keys!r}.\n"
+        + _screen_text(tui.get_screen_dump())
+    )
+    widths = [right_x - left_x for left_x, right_x in _stats_strip_bounds(lines)]
+    assert all(width == 24 for width in widths), (
+        "Each enabled panel should reserve its own 24-column statistics strip.\n"
+        + _screen_text(lines)
+    )
+    return lines
+
+
 def _stats_view_value(screen_or_lines):
     view_line = _line_with_text(_stats_area(screen_or_lines), "View:")
     return view_line.split("View:", 1)[1].split("x", 1)[0].strip()
@@ -375,7 +441,7 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     """
     BUG: Footer can drift away from the advertised numeric FileInfo band.
     EXPECTED: Footer should keep "1..9 file view" in the main file command
-    band, advertise "F6 stats" in the function-key footer row, keep 0
+    band, advertise "F6 stats(active)" in the function-key footer row, keep 0
     unassigned, and should not show Brief/About.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
@@ -390,8 +456,11 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     if "1..9 file view" not in footer:
         pytest.fail(f"BUG: Footer missing unified FileInfo band\nFooter:\n{footer}\n\nFull screen:\n{screen}")
 
-    if "f6 stats" not in footer:
-        pytest.fail(f"BUG: Footer missing F6 stats binding\nFooter:\n{footer}\n\nFull screen:\n{screen}")
+    if "f6 statsactive" not in footer:
+        pytest.fail(
+            "BUG: Footer missing active-panel F6 stats binding\n"
+            f"Footer:\n{footer}\n\nFull screen:\n{screen}"
+        )
 
     if "0 stats" in footer:
         pytest.fail(f"BUG: Footer still advertises stats on 0\nFooter:\n{footer}")
@@ -403,9 +472,9 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
             f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
         )
 
-    if "f6 stats" not in footer_lines[2].lower():
+    if "f6 stats(active)" not in footer_lines[2].lower():
         pytest.fail(
-            "BUG: Function-key footer row should advertise F6 stats\n"
+            "BUG: Function-key footer row should advertise active-panel F6 stats\n"
             f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
         )
 
@@ -1094,6 +1163,113 @@ def test_f6_toggles_stats_panel_and_zero_remains_noop(tmp_path, ytnova_binary):
         "Resetting to Name should clear the extra compact/detail state from the visible row.\n"
         f"{reset_line}\n\nFull screen:\n{screen}"
     )
+
+
+def test_split_stats_visibility_is_panel_local_and_resets_on_reentry(
+    tmp_path, ytnova_binary
+):
+    test_root = tmp_path / "split_stats_visibility"
+    test_root.mkdir()
+    (test_root / "left_stats").mkdir()
+    (test_root / "right_stats").mkdir()
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary, cwd=str(test_root), dimensions=(36, 160)
+    )
+    initial_lines = tui.get_screen_dump()
+    assert _stats_strip_count(initial_lines) == 1
+    assert [
+        right_x - left_x
+        for left_x, right_x in _stats_strip_bounds(initial_lines)
+    ] == [24]
+
+    _send_and_wait_for_stats_count(tui, Keys.F8, 0)
+
+    # Left-only visibility survives switching away from the left panel.
+    _send_and_wait(tui, Keys.DOWN)
+    _send_and_wait_for_stats_count(tui, Keys.F6, 1)
+    _send_and_wait_for_stats_count(tui, Keys.TAB, 1)
+
+    # The right panel can enable its own strip without replacing the left strip.
+    _send_and_wait(tui, Keys.DOWN)
+    _send_and_wait(tui, Keys.DOWN)
+    both_lines = _send_and_wait_for_stats_count(tui, Keys.F6, 2)
+    both_lines = tui.wait_for_condition(
+        lambda lines: lines
+        if len(_stats_strip_texts(lines)) == 2
+        and "left_stats" in _stats_strip_texts(lines)[0]
+        and "right_stats" in _stats_strip_texts(lines)[1]
+        else False,
+        timeout=1.0,
+    )
+    assert both_lines, _screen_text(tui.get_screen_dump())
+    left_stats, right_stats = _stats_strip_texts(both_lines)
+    assert "left_stats" in left_stats
+    assert "right_stats" in right_stats
+    _send_and_wait_for_stats_count(tui, Keys.TAB, 2)
+
+    # Disabling only the left strip leaves a right-only layout, also across Tab.
+    _send_and_wait_for_stats_count(tui, Keys.F6, 1)
+    _send_and_wait_for_stats_count(tui, Keys.TAB, 1)
+
+    # Disabling the right strip reaches the independent both-hidden state.
+    _send_and_wait_for_stats_count(tui, Keys.F6, 0)
+
+    # Both strips may be enabled again before leaving split mode.
+    _send_and_wait_for_stats_count(tui, Keys.F6, 1)
+    _send_and_wait_for_stats_count(tui, Keys.TAB, 1)
+    _send_and_wait_for_stats_count(tui, Keys.F6, 2)
+
+    # Single-panel statistics keep their session preference, while split re-entry
+    # always starts with both panel-local strips hidden.
+    _send_and_wait_for_stats_count(tui, Keys.F8, 1)
+    _send_and_wait_for_stats_count(tui, Keys.F8, 0)
+
+    tui.quit()
+
+
+def test_split_left_stats_share_the_center_separator_without_double_border(
+    tmp_path, ytnova_binary
+):
+    test_root = tmp_path / "split_left_stats_separator"
+    test_root.mkdir()
+    (test_root / "left_stats").mkdir()
+    (test_root / "right_stats").mkdir()
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary, cwd=str(test_root), dimensions=(36, 160)
+    )
+
+    _send_and_wait_for_stats_count(tui, Keys.F8, 0)
+    _send_and_wait(tui, Keys.DOWN)
+    lines = _send_and_wait_for_stats_count(tui, Keys.F6, 1)
+
+    assert _screen_text(lines).count("FILTER") == 1, _screen_text(lines)
+    assert not _has_split_stats_seam_artifact(lines), _screen_text(lines)
+    assert not _has_split_stats_shared_border_artifact(lines), _screen_text(lines)
+
+    tui.quit()
+
+
+def test_split_both_stats_keep_the_center_junctions(tmp_path, ytnova_binary):
+    test_root = tmp_path / "split_both_stats_separator"
+    test_root.mkdir()
+    (test_root / "left_stats").mkdir()
+    (test_root / "right_stats").mkdir()
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary, cwd=str(test_root), dimensions=(36, 160)
+    )
+
+    _send_and_wait_for_stats_count(tui, Keys.F8, 0)
+    _send_and_wait(tui, Keys.DOWN)
+    _send_and_wait_for_stats_count(tui, Keys.F6, 1)
+    _send_and_wait_for_stats_count(tui, Keys.TAB, 1)
+    _send_and_wait(tui, Keys.DOWN)
+    _send_and_wait(tui, Keys.DOWN)
+    lines = _send_and_wait_for_stats_count(tui, Keys.F6, 2)
+
+    assert not _has_split_stats_shared_border_artifact(lines), _screen_text(lines)
 
     tui.quit()
 
