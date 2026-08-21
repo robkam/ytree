@@ -326,3 +326,27 @@ def test_tagged_move_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_pat
         _assert_file_tag_state(tui, "beta.txt", False)
     finally:
         tui.quit()
+
+
+def test_ctrl_key_dispatch_exposes_only_supported_tagged_operations():
+    source = read_repo_source("src/ui/key_engine.c")
+    start = source.index("YtreeNovaAction GetKeyAction(")
+    end = source.index("\nint WGetch(", start)
+    key_action = source[start:end]
+
+    assert "case 0x1C:" not in key_action
+    assert "case 0x17:" not in key_action
+    assert (
+        "case 0x1A:\n    return AppStateValidatedKeyAction(ACTION_CMD_I);"
+        in key_action
+    )
+
+
+def test_tagged_attribute_prompt_uses_one_date_action_hint():
+    source = read_repo_source("src/ui/attr_actions.c")
+    start = source.index("static const UICommandStripCommand attribute_commands_tagged[]")
+    end = source.index("static const UICommandStripCommand date_change_hint_commands[]", start)
+    tagged_commands = source[start:end]
+
+    assert '"tagged date"' not in tagged_commands
+    assert tagged_commands.count('"Date"') == 1

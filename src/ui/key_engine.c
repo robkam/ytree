@@ -967,14 +967,12 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
     return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_S);
   case 0x16:
     return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_V);
-  case 0x17:
-    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_PRINT);
   case 0x18:
     return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_X);
   case 0x19:
     return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_Y);
-  case 0x1C:
-    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_P);
+  case 0x1A:
+    return AppStateValidatedKeyAction(ACTION_CMD_I);
 
 #ifdef KEY_F
   case KEY_F(1):

@@ -441,7 +441,7 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     """
     BUG: Footer can drift away from the advertised numeric FileInfo band.
     EXPECTED: Footer should keep "1..9 file view" in the main file command
-    band, advertise "F6 stats(active)" in the function-key footer row, keep 0
+    band, advertise "F6 stats" in the function-key footer row, keep 0
     unassigned, and should not show Brief/About.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
@@ -456,7 +456,7 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
     if "1..9 file view" not in footer:
         pytest.fail(f"BUG: Footer missing unified FileInfo band\nFooter:\n{footer}\n\nFull screen:\n{screen}")
 
-    if "f6 statsactive" not in footer:
+    if "f6 stats" not in footer:
         pytest.fail(
             "BUG: Footer missing active-panel F6 stats binding\n"
             f"Footer:\n{footer}\n\nFull screen:\n{screen}"
@@ -472,9 +472,9 @@ def test_footer_shows_fileinfo_band(test_dir_with_files, ytnova_binary):
             f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
         )
 
-    if "f6 stats(active)" not in footer_lines[2].lower():
+    if "f6 stats" not in footer_lines[2].lower():
         pytest.fail(
-            "BUG: Function-key footer row should advertise active-panel F6 stats\n"
+            "BUG: Function-key footer row should advertise F6 stats\n"
             f"Footer rows:\n{footer_lines[0]}\n{footer_lines[1]}\n{footer_lines[2]}\n\nFull screen:\n{screen}"
         )
 

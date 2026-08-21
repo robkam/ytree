@@ -1,0 +1,52 @@
+# Contextual F1 Help: Tagged Calibration
+
+## Delivered change
+
+- Branch: `fix/context-help-styling`.
+- The approved English `topic:tagged` text is in `etc/help/f1.en.md`.
+- `etc/help/f1.de.md` has the equivalent German topic with the same `topic:tagged`,
+  `contexts: none`, and link targets.
+- The Help Index includes the restored `tagged-viewer` topic in both locales, so all
+  generated links resolve.
+- Generated assets are current: `src/core/generated_help_topics.h`,
+  `src/core/default_commands_catalog.h`, and
+  `src/core/default_command_presets_catalog.h`.
+
+## Related footer binding
+
+- Tagged copy is advertised as `C/^Copy` in file, archive-file, and preview
+  footers. `C-c` is the configured tagged-copy binding; `C-k` remains accepted
+  as an unadvertised input alias.
+- Command catalog sources and focused footer tests use `C/^C` consistently.
+
+## Scope reconciliation
+
+- Addressed: English/German Tagged F1 guidance, generated help/catalog assets,
+  footer copy label, command presets, focused source contracts, and the existing
+  maintainer `docs/ROADMAP.md` wording/status edit.
+- Intentionally unchanged: man-reference sources, generated man/usage assets,
+  runtime help implementation, translations beyond the equivalent German topic,
+  and unrelated help topics.
+
+## Validation
+
+- Passed: `make help-assets`.
+- Passed: `make commands-catalog` and `make command-presets-catalog`.
+- Passed: `make -j"$(nproc)"`.
+- Passed: `pytest -q tests/test_command_strip_visibility.py` (9 passed).
+- Passed: `pytest -q tests/test_help_source_schema.py tests/test_help_generator.py`
+  (19 passed).
+- Normal-width event-driven harness inspection at `36x120` opened the Help Index,
+  selected `Tagged`, and showed the `Tagged` popup with semantic wrapping, inline
+  links, and the `Left back`, `Index`, `Navigation`, `Esc/Q quit` help strip.
+- Re-run the focused help-text and archive/print tests plus the narrow `36x70`
+  event-driven popup inspection after any further history rewrite before merging.
+
+## Git and PR recovery
+
+- The approved change is currently in follow-up commit `c53c6b0` after contextual
+  help commit `3f45e3d`; fold it into that existing contextual-help commit before
+  the PR, preserving the intermediate unrelated commits.
+- Push the rewritten branch with force-with-lease, create a regular PR (not a
+  draft), start `make ci-repair-start`, and keep the repair loop running until
+  required checks are green. Do not merge without green PR checks and review.

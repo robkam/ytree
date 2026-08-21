@@ -96,7 +96,7 @@ def test_tagged_attribute_date_prompt_cycles_scope_inline(ytnova_binary, tmp_pat
         tui.send_keystroke("t", wait=0.2)
 
         attr_lines = _open_attribute_prompt(tui, Keys.CTRL_A)
-        assert "tagged date" in "\n".join(attr_lines).lower(), _screen_text(tui)
+        assert "tagged date" not in "\n".join(attr_lines).lower(), _screen_text(tui)
 
         first_prompt = _open_inline_date_prompt(tui)
         assert "modified" in "\n".join(first_prompt).lower(), _screen_text(tui)

@@ -140,6 +140,7 @@ static void RenderHelpInlineText(WINDOW *win, int y, int column, int max_width,
                                  const char *text,
                                  UISemanticRolePair base_role) {
   BOOL attention = FALSE;
+  BOOL term = FALSE;
   int used_width = 0;
 
   if (win == NULL || text == NULL || max_width <= 0)
@@ -148,21 +149,30 @@ static void RenderHelpInlineText(WINDOW *win, int y, int column, int max_width,
   while (*text != '\0' && used_width < max_width) {
     size_t len = 0;
     int available = max_width - used_width;
+    UISemanticRolePair role;
 
     if (text[0] == '*' && text[1] == '*') {
       attention = !attention;
       text += 2;
       continue;
     }
+    if (*text == '`') {
+      term = !term;
+      text++;
+      continue;
+    }
 
-    while (text[len] != '\0' && !(text[len] == '*' && text[len + 1] == '*'))
+    while (text[len] != '\0' && !(text[len] == '*' && text[len + 1] == '*') &&
+           text[len] != '`')
       ++len;
     if (len == 0)
       break;
     if ((int)len > available)
       len = (size_t)available;
 
-    wattrset(win, COLOR_PAIR(attention ? UI_ROLE_HELP_ATTENTION : base_role));
+    role = attention ? UI_ROLE_HELP_ATTENTION
+                     : (term ? UI_ROLE_HELP_TOPIC : base_role);
+    wattrset(win, COLOR_PAIR(role));
     mvwprintw(win, y, column, "%.*s", (int)len, text);
     column += (int)len;
     used_width += (int)len;
@@ -320,7 +330,7 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int start_x,
       mvwprintw(win, y, x, "%s", row->prefix);
       wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
     } else {
-      wattrset(win, COLOR_PAIR(UI_ROLE_HELP_TERM));
+      wattrset(win, COLOR_PAIR(UI_ROLE_HELP_TOPIC));
       mvwprintw(win, y, x, "%s", row->prefix);
       wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
     }
@@ -604,6 +614,10 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
     RenderHelpPopupPage(&render_state);
 
     ch = WGetch(ctx, win);
+    if (ctx->resize_request) {
+      UI_Dialog_Close(ctx, win);
+      return 1;
+    }
     if (ch == ERR)
       continue;
 

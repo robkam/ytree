@@ -84,7 +84,7 @@ Minor/trivial fixes are tracked in git history.
 - Display format improvements.
 
 ## [2.08]
-- "Show tagged files only" in file windows (Shift-F4 or Ctrl-F4).
+- "Show tagged files only" in file windows (Shift-F4 or C-f4).
 - Lots of UTF_8 improvements/bugfixes.
 - Improve compatibility with old unix systems / some minor fixes.
 

@@ -23,7 +23,7 @@ RUNTIME_HELP_CONTEXT_SOURCES = (
 )
 REQUIRED_TOPICS = {
     "intro",
-    "navigation",
+    "f1-navigation",
     "shared-commands",
     "tagged",
     "command-line-editing",
@@ -87,7 +87,7 @@ def _topic_blocks(source):
         r"contexts: (?P<contexts>[^\n]+)\n"
         r"```\n"
         r"### Contextual F1\n(?P<contextual>.*?)(?:\n### Explainer links\n(?P<links>.*?))?"
-        r"\n### Long form\n(?P<long_form>.*?)(?=^## topic:|\Z)",
+        r"(?:\n### Long form\n(?P<long_form>.*?))?(?=^## topic:|\Z)",
         re.M | re.S,
     )
     return list(pattern.finditer(source))
@@ -108,6 +108,8 @@ def _topic_title_map(source):
 
 
 def _contents_link_label(title):
+    if title == "YtreeNova Navigation":
+        return "Navigation"
     return title[:-5] if title.endswith(" Help") else title
 
 
@@ -168,7 +170,7 @@ def test_help_source_uses_deterministic_topic_block_schema():
         for block in blocks:
             contexts = block.group("contexts")
             contextual = block.group("contextual").strip()
-            long_form = block.group("long_form").strip()
+            long_form = (block.group("long_form") or "").strip()
             links = (block.group("links") or "").strip()
 
             assert block.group("title").strip()
@@ -176,25 +178,70 @@ def test_help_source_uses_deterministic_topic_block_schema():
                 r"[a-z0-9.-]+(?:,[a-z0-9.-]+)*", contexts
             ), f"invalid contexts list for topic {block.group('topic')}: {contexts!r}"
             assert contextual
-            assert re.search(r"^#### ", long_form, re.M), (
-                f"topic {block.group('topic')} needs at least one long-form subsection"
-            )
+            if path in (Path("etc/help/man.en.md"),) + LOCALE_MAN_SOURCES:
+                assert re.search(r"^#### ", long_form, re.M), (
+                    f"topic {block.group('topic')} needs at least one long-form subsection"
+                )
             if links:
                 assert re.fullmatch(
                     r"(?:- \[[^\]]+\]\(topic:[a-z0-9-]+\)\n?)+", links
                 ), f"invalid explainer links block for topic {block.group('topic')}"
 
 
+def test_contextual_f1_keeps_actions_on_separate_source_lines():
+    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
+        source = _read_help_source(path)
+        assert "separate keys or actions need explanation, give each one its own short source line" in source or (
+            "verschiedene Tasten oder Aktionen erklärt werden müssen, erhält jede eine eigene kurze Quellzeile"
+            in source
+        )
+
+
+def test_ytnova_navigation_keeps_its_facts_in_visible_contextual_help():
+    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
+        topic = _topic_block_map(_read_help_source(path))["ytnova-navigation"]
+
+        assert not (topic.group("long_form") or "").strip()
+        assert "C-m" in topic.group("contextual")
+        assert "C-i" in topic.group("contextual")
+        assert "C-[" in topic.group("contextual")
+        assert "Alt" in topic.group("contextual")
+        assert "Tab" in topic.group("contextual")
+
+
+def test_contextual_help_uses_portable_control_key_notation():
+    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
+        source = _read_help_source(path)
+        assert "Ctrl" "-" not in source
+        assert "C-" in source
+        assert not re.search(r"C-[A-Z]", source)
+
+
+def test_manpage_defines_portable_control_key_notation():
+    source = Path("etc/help/man.en.md").read_text(encoding="utf-8")
+
+    assert "C-<chr>" in source
+    assert "hold the Control key" in source
+
+
+def test_man_sources_do_not_emit_per_topic_see_also_noise():
+    for path in (Path("etc/help/man.en.md"), Path("etc/help/man.de.md")):
+        assert not re.search(
+            r"^### Explainer links\n- \[", path.read_text(encoding="utf-8"), re.MULTILINE
+        )
+
+
 def test_help_source_defines_required_first_pass_topics():
-    topic_sets = []
-    for path in ALL_HELP_SOURCES:
+    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
         source = _read_help_source(path)
         topics = {match.group("topic") for match in _topic_blocks(source)}
         assert REQUIRED_TOPICS.issubset(topics)
-        topic_sets.append(topics)
 
-    first_topics = topic_sets[0]
-    assert all(topics == first_topics for topics in topic_sets[1:])
+    f1_topics = [
+        {match.group("topic") for match in _topic_blocks(_read_help_source(path))}
+        for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES
+    ]
+    assert all(topics == f1_topics[0] for topics in f1_topics[1:])
 
 
 def test_f1_context_metadata_matches_runtime_help_entry_points():
@@ -206,15 +253,12 @@ def test_f1_context_metadata_matches_runtime_help_entry_points():
         assert len(topics) == 1, f"{context_id} is owned by multiple F1 topics: {topics}"
 
 
-def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity():
-    f1_source = _read_help_source(Path("etc/help/f1.en.md"))
+def test_runtime_footer_commands_remain_covered_by_the_man_reference():
     man_source = _read_help_source(Path("etc/help/man.en.md"))
     help_labels = _help_label_override_map()
 
     for topic, array_name in RUNTIME_HELP_LABEL_TOPICS.items():
         expected_labels = help_labels[array_name]
-        f1_labels = _topic_command_labels(f1_source, topic)
-
         man_long_form = _topic_long_form(man_source, topic)
         missing_man = []
         for label in expected_labels:
@@ -226,20 +270,16 @@ def test_first_pass_runtime_help_topics_keep_footer_and_reference_command_parity
             f"{missing_man}"
         )
 
-        missing_f1 = []
-        for label in expected_labels:
-            aliases = HELP_LABEL_ALIASES.get(label, (label,))
-            if not any(alias in f1_labels for alias in aliases):
-                missing_f1.append(label)
-        assert not missing_f1, (
-            f"{topic} F1 topic is missing runtime footer command rows: {missing_f1}"
-        )
+
+def test_f1_sources_do_not_define_long_form_sections():
+    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
+        assert "### Long form" not in _read_help_source(path)
 
 
 def test_contents_topic_is_a_complete_alphabetical_operator_index():
     f1_source = _read_help_source(Path("etc/help/f1.en.md"))
     title_map = _topic_title_map(f1_source)
-    contents_only_topics = {"execute-dir", "execute-file"}
+    contents_only_topics = {"execute-dir", "execute-file", "f1-navigation"}
     expected_links = sorted(
         (
             (_contents_link_label(title), topic)

@@ -49,7 +49,7 @@ def test_multi_column_rendering_metrics(ytnova_binary, tmp_path):
                 break
         if found_multi_column:
             break
-        tui.send_keystroke("\x06", wait=0.35)  # Ctrl-F: Toggle Mode
+        tui.send_keystroke("\x06", wait=0.35)  # C-f: Toggle Mode
 
     screen = "\n".join(tui.get_screen_dump())
     assert "FILE" in screen
@@ -84,7 +84,7 @@ def _ensure_multi_column_layout(tui, split_x, max_toggles=5):
         lines = tui.get_screen_dump()
         if _has_two_short_file_columns(lines, split_x):
             return lines
-        tui.send_keystroke("\x06", wait=0.4)  # Ctrl-F: rotate file mode
+        tui.send_keystroke("\x06", wait=0.4)  # C-f: rotate file mode
     return None
 
 
@@ -186,7 +186,7 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytnova_binary, tmp_p
 def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytnova_binary, tmp_path):
     """
     Regression:
-    At 120x36 in split file view, Ctrl-F detail modes must clip per-row output.
+    At 120x36 in split file view, C-f detail modes must clip per-row output.
     Attributes/dates must not spill into adjacent lines (observed around cursor
     and bottom rows).
     """
@@ -208,7 +208,7 @@ def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytnova_binary, t
     tui.send_keystroke(Keys.F8, wait=0.5)     # split
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke("\x06", wait=0.3)      # Ctrl-F once (your repro)
+    tui.send_keystroke("\x06", wait=0.3)      # C-f once (your repro)
 
     lines = tui.get_screen_dump()
     split_x = _detect_panel_split_x(lines)
@@ -362,7 +362,7 @@ def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytnova_binary, t
         screen = "\n".join(tui.get_screen_dump())
         if re.search(r"\d{4}-\d{2}-\d{2}", screen):
             break
-        tui.send_keystroke("\x06", wait=0.35)  # Ctrl-F
+        tui.send_keystroke("\x06", wait=0.35)  # C-f
 
     dump = tui.get_screen_dump()
     candidate_lines = [line[:stats_split_x] for line in dump[2:24]]

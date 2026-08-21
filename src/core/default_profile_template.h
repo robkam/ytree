@@ -39,7 +39,7 @@ static const char default_profile_template[] =
     "\n"
     "# VI_KEYS note:\n"
     "#   Runtime profile setting (0=off, 1=on).\n"
-    "#   When enabled, h/j/k/l and Ctrl-D/Ctrl-U are reserved for navigation.\n"
+    "#   When enabled, h/j/k/l and C-d/C-u are reserved for navigation.\n"
     "#   Colliding commands move to uppercase (H/J/K/L, plus file-view D/U).\n"
     "\n"
     "# HIGHLIGHT_FULL_LINE: Set to 1 to highlight the entire line for the selected\n"

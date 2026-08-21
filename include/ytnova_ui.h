@@ -520,6 +520,9 @@ extern void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry,
                            YtreeNovaPanel *p);
 extern void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry,
                             YtreeNovaPanel *p);
+extern const DirEntry *DirNav_FindVisibleSibling(const YtreeNovaPanel *panel,
+                                                 const DirEntry *dir_entry,
+                                                 int direction);
 
 /* file_nav.c */
 extern void FileNav_MoveDown(ViewContext *ctx, DirEntry *dir_entry,

@@ -12,8 +12,8 @@ def test_screen_wipe_after_error(ytnova_binary, tmp_path):
 
     # 1. Open Filter (f)
     tui.send_keystroke("f")
-    # 2. Clear default '*' (Ctrl-U or backspaces) and enter bad filter
-    tui.send_keystroke("\x15") # Ctrl-U
+    # 2. Clear default '*' (C-u or backspaces) and enter bad filter
+    tui.send_keystroke("\x15") # C-u
     tui.send_keystroke("-*.nonexistent\r")
     time.sleep(0.5)
 

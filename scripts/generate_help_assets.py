@@ -56,23 +56,23 @@ Unlike file managers that rescan directories on demand, ytnova "logs" (scans) di
 ### Auto-Refresh
 ytnova monitors the **currently selected directory** for changes (created/deleted/modified files) and updates the file list automatically.
 
-**Note:** This monitoring is **active only for the current directory**. Changes occurring in parent or sibling directories while they are not selected will not be detected automatically. Use **^L** (Reload) or **F5** to refresh the view when navigating back to previously modified areas. Additionally, auto-refresh relies on kernel notifications. It may not function on network shares (NFS, SMB) or non-native mounts (e.g., WSL Windows drives) where the operating system does not propagate change events.
+**Note:** This monitoring is **active only for the current directory**. Changes occurring in parent or sibling directories while they are not selected will not be detected automatically. Use **C-l** (Reload) or **F5** to refresh the view when navigating back to previously modified areas. Additionally, auto-refresh relies on kernel notifications. It may not function on network shares (NFS, SMB) or non-native mounts (e.g., WSL Windows drives) where the operating system does not propagate change events.
 """
 
 MANPAGE_STATIC_GLOBAL_KEYS = """# KEY BINDINGS
 
-**Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-`Ctrl` footer variant, and Ctrl-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
+**Note:** All keys are case insensitive unless otherwise noted. `C-<key>` means hold the Control key while pressing `<key>`. For most commands, pressing **C-key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-Control footer variant, and control-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
 
 ### Global Commands
 These commands work in most modes:
 
 *   **F1**: Help. Opens a context-sensitive popup for the active runtime surface: directory/file/archive views, Showall/Global lists, `F7` preview, split-panel targeting notes, picker dialogs, and prompt-specific syntax such as `{}` placeholders or tagged-flow semantics.
-*   **F5**: Refresh (same as **^L**).
+*   **F5**: Refresh (same as **C-l**).
 *   **F6**: Toggle the stats panel itself on and off. This does not change the current file or directory view selection.
 *   **F7**: Toggle File Preview Pane.
 *   **F8**: Toggle Split Screen Mode.
 *   **F9**: Open the Applications menu. This picker lists external app presets from `applications.conf` or the packaged defaults; use `{}` for the selected path and `{input}` for prompted text.
-*   **F10**: Open the configuration command surface: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **M** to edit `commands.conf`, **T** to edit themes, or **R** to reload the current config/theme/commands set. The commands path owns preset selection plus local command overrides; packaged command presets stay read-only shared data. The Applications catalog lives in `applications.conf` and is edited from `F9`. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
+*   **F10**: Open configuration. Press **Enter** or **C** to edit the main config, **M** to edit `commands.conf`, **T** to edit themes, or **R** to reload the current config/theme/commands set. The commands path owns preset selection plus local command overrides; packaged command presets stay read-only shared data. The Applications catalog lives in `applications.conf` and is edited from `F9`. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
 *   **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
 *   **1 .. 9**: File or directory info band for the active panel (disabled in `F7` preview).
@@ -96,15 +96,15 @@ These commands work in most modes:
     *   `5`, `7`, `8`, and `9` do not change tree rows; they change the panel's file projection instead, so in tree focus they update the small file window and in file focus they update the file window.
     *   Extra view states do not stack in the stats label; it names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`).
     *   `0`: Currently unused; silent no-op.
-*   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
+*   **C-l**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
-*   **^Q**: **Quit to Directory**. If you exit ytnova with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
+*   **C-q**: **Quit to Directory**. If you exit ytnova with C-q, the last selected directory becomes your current working directory. See shell wrapper function below.
 *   **Q**: **Quit**. Exit ytnova.
 
 ### Vi Keys Mode (Profile Option)
 When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
-`h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
+`h/j/k/l` and `C-d/C-u` (page down/up). To avoid collisions:
 
 *   Use **H/L/K/J** for **Hex/Log/Volume Menu/Compare**.
 *   In file-view contexts, use **D** for **Delete Tagged** and **U** for
@@ -119,13 +119,13 @@ MANPAGE_STATIC_COMMAND_LINE = """# COMMAND LINE EDITING
 
 Input prompts support standard text-editing shortcuts:
 
-*   **^A / Home**: Start of line.
-*   **^E / End**: End of line.
-*   **^K**: Delete to end of line.
-*   **^U**: Delete to start of line.
-*   **^W**: Delete word left.
-*   **^D / Del**: Delete character.
-*   **^H / Backspace**: Backspace.
+*   **C-a / Home**: Start of line.
+*   **C-e / End**: End of line.
+*   **C-k**: Delete to end of line.
+*   **C-u**: Delete to start of line.
+*   **C-w**: Delete word left.
+*   **C-d / Del**: Delete character.
+*   **C-h / Backspace**: Backspace.
 
 ### Prompt Navigation Keys
 
@@ -159,12 +159,12 @@ user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
-`help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`,
+`help_footer`, `help_heading`, `help_topic`, `help_attention`, `help_alert`,
 `help_keybind`, `help_link`, `help_link_selection`, `help_box_lines`,
 `warning`, `error`, and
 `search_hit`. `footer` owns the always-visible main-app keybinding strip, while
 `help` owns the F1 reading surface. `help_footer` owns the F1 popup strip,
-`help_heading` owns popup titles, `help_term` owns term-style labels,
+`help_heading` owns popup titles, `help_topic` owns term-style labels,
 `help_attention` owns bounded authored callouts, and `help_alert` is the
 reserved stronger urgency tier. `help_keybind` owns help-popup mnemonic emphasis;
 when it is omitted, runtime falls back to `keybind` on the `help_footer`
@@ -210,7 +210,7 @@ for the selected path and `{input}` for prompted text.
 
 # QUIT TO DIRECTORY
 
-To allow `^Q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
+To allow `C-q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
 
 ```bash
 yt() {
@@ -327,7 +327,9 @@ CONTEXTS_RE = re.compile(r"^[a-z0-9.-]+(?:,[a-z0-9.-]+)*$")
 LINK_RE = re.compile(r"^- \[([^\]]+)\]\(topic:([a-z0-9-]+)\)$")
 
 
-def parse_help_source(source_text: str) -> list[HelpTopic]:
+def parse_help_source(
+    source_text: str, *, require_long_form: bool = False
+) -> list[HelpTopic]:
     lines = source_text.splitlines()
     topic_lines = [idx for idx, line in enumerate(lines) if line.startswith("## topic:")]
     if not topic_lines:
@@ -403,11 +405,17 @@ def parse_help_source(source_text: str) -> list[HelpTopic]:
                     )
                 links.append(HelpLink(match.group(1), match.group(2)))
 
-        if pos >= len(block) or block[pos] != "### Long form":
-            raise HelpSourceError(f"line {line_no}: topic {topic_id!r} is missing ### Long form")
-        pos += 1
-        long_form_lines = block[pos:]
-        sections = _parse_long_form_sections(topic_id, line_no + pos, long_form_lines)
+        sections: list[LongFormSection] = []
+        if pos < len(block) and block[pos] == "### Long form":
+            pos += 1
+            long_form_lines = block[pos:]
+            sections = _parse_long_form_sections(
+                topic_id, line_no + pos, long_form_lines
+            )
+        elif require_long_form:
+            raise HelpSourceError(
+                f"line {line_no}: topic {topic_id!r} is missing ### Long form"
+            )
         topics.append(
             HelpTopic(
                 topic_id=topic_id,
@@ -540,19 +548,12 @@ def render_runtime_header(
         "} GeneratedHelpLink;",
         "",
         "typedef struct {",
-        "    const char *title;",
-        "    const char *body;",
-        "} GeneratedHelpLongFormSection;",
-        "",
-        "typedef struct {",
         "    const char *topic_id;",
         "    const char *title;",
         "    const char *contexts_csv;",
         "    const char *contextual_f1;",
         "    size_t explainer_link_count;",
         "    const GeneratedHelpLink *explainer_links;",
-        "    size_t long_form_section_count;",
-        "    const GeneratedHelpLongFormSection *long_form_sections;",
         "} GeneratedHelpTopic;",
         "",
         "typedef struct {",
@@ -577,16 +578,6 @@ def render_runtime_header(
                     )
                 lines.append("};")
                 lines.append("")
-            lines.append(
-                f"static const GeneratedHelpLongFormSection generated_help_sections_{stem}[] = {{"
-            )
-            for section in topic.long_form_sections:
-                lines.append(
-                    f"    {{{c_literal(section.title)}, {c_literal(section.body)}}},"
-                )
-            lines.append("};")
-            lines.append("")
-
         lines.append(f"static const GeneratedHelpTopic generated_help_topics_{locale_suffix}[] = {{")
         for topic in locale_catalog_topics:
             stem = f"{locale_suffix}_{topic.topic_id.replace('-', '_')}"
@@ -603,8 +594,6 @@ def render_runtime_header(
             lines.append(f"        {c_literal(topic.contextual_f1)},")
             lines.append(f"        {len(topic.explainer_links)},")
             lines.append(f"        {link_array},")
-            lines.append(f"        {len(topic.long_form_sections)},")
-            lines.append(f"        generated_help_sections_{stem},")
             lines.append("    },")
         lines.append("};")
         lines.append("")
@@ -768,29 +757,8 @@ def c_literal(text: str) -> str:
     return f'"{escaped}"'
 
 
-def validate_topic_inventory(
-    f1_topics: list[HelpTopic], man_topics: list[HelpTopic]
-) -> None:
+def validate_topic_inventory(f1_topics: list[HelpTopic]) -> None:
     context_owners: dict[str, str] = {}
-    f1_ids = {topic.topic_id for topic in f1_topics}
-    man_ids = {topic.topic_id for topic in man_topics}
-
-    if f1_ids != man_ids:
-        missing_from_man = sorted(f1_ids - man_ids)
-        missing_from_f1 = sorted(man_ids - f1_ids)
-        problems: list[str] = []
-        if missing_from_man:
-            problems.append(
-                f"missing from man source: {', '.join(missing_from_man)}"
-            )
-        if missing_from_f1:
-            problems.append(
-                f"missing from f1 source: {', '.join(missing_from_f1)}"
-            )
-        raise HelpSourceError(
-            "split help sources do not share the same topic inventory: "
-            + "; ".join(problems)
-        )
 
     for topic in f1_topics:
         for context_id in topic.contexts:
@@ -858,9 +826,11 @@ def build_outputs(
     versiondate: str,
 ) -> dict[str, str]:
     f1_topics = parse_help_source(f1_source_path.read_text(encoding="utf-8"))
-    man_topics = parse_help_source(man_source_path.read_text(encoding="utf-8"))
+    man_topics = parse_help_source(
+        man_source_path.read_text(encoding="utf-8"), require_long_form=True
+    )
     locale_f1_catalogs: list[tuple[str, str, list[HelpTopic]]] = []
-    validate_topic_inventory(f1_topics, man_topics)
+    validate_topic_inventory(f1_topics)
     for locale_path in f1_locale_source_paths:
         locale_id = help_locale_id_from_path(locale_path)
         locale_topics = parse_help_source(locale_path.read_text(encoding="utf-8"))

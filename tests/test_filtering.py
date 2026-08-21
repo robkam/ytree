@@ -28,7 +28,7 @@ def test_filter_stats_recalculation(filter_env):
     tui.send_keystroke(Keys.FILTER)
     time.sleep(0.2)
     # The prompt might already have something, let's clear it
-    tui.send_keystroke("\x15") # Ctrl-U
+    tui.send_keystroke("\x15") # C-u
     tui.send_keystroke("*.c\r")
     time.sleep(0.5)
     

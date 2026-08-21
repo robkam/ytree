@@ -586,7 +586,7 @@ static const FooterCommandSpec preview_footer_specs[] = {
 static const FooterCommandSpec dir_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats(active)", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -596,7 +596,7 @@ static const FooterCommandSpec dir_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats(active)", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -606,7 +606,7 @@ static const FooterCommandSpec file_footer_nav_specs[] = {
 static const FooterCommandSpec file_footer_nav_to_dir_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "help", "F1", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "refresh", "F5", NULL),
-    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats(active)", "F6", NULL),
+    FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "stats", "F6", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "autoview", "F7", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "split", "F8", NULL),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL),
@@ -1158,7 +1158,7 @@ static void RenderFooterNavRow(ViewContext *ctx, const char *signpost,
 
     for (command_index = 0; command_index < spec_count; ++command_index) {
       if (!dropped_stats && strcmp(commands[command_index].primary_key, "F6") == 0 &&
-          strcmp(commands[command_index].label, "stats(active)") == 0) {
+          strcmp(commands[command_index].label, "stats") == 0) {
         dropped_stats = TRUE;
         continue;
       }

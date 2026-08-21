@@ -772,13 +772,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       DirNav_Moveup(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_SIBLING_NEXT: {
-      const DirEntry *target = dir_entry->next;
-      if (target == NULL) {
-        /* Wrap to first sibling */
-        if (dir_entry->up_tree != NULL) {
-          target = dir_entry->up_tree->sub_tree;
-        }
-      }
+      const DirEntry *target =
+          DirNav_FindVisibleSibling(ctx->active, dir_entry, 1);
 
       if (target != NULL && target != dir_entry) {
         (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, target,
@@ -788,16 +783,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     }
       break;
     case ACTION_MOVE_SIBLING_PREV: {
-      DirEntry *target = dir_entry->prev;
-      if (target == NULL) {
-        /* Wrap to last sibling */
-        if (dir_entry->up_tree != NULL) {
-          target = dir_entry->up_tree->sub_tree;
-          while (target && target->next != NULL) {
-            target = target->next;
-          }
-        }
-      }
+      const DirEntry *target =
+          DirNav_FindVisibleSibling(ctx->active, dir_entry, -1);
 
       if (target != NULL && target != dir_entry) {
         (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, target,

@@ -22,11 +22,11 @@ When `VI_KEYS` is enabled, these six keys are reserved for navigation:
 - `j` -> down
 - `k` -> up
 - `l` -> right
-- `Ctrl-U` (`0x15`) -> page up
-- `Ctrl-D` (`0x04`) -> page down
+- `C-u` (`0x15`) -> page up
+- `C-d` (`0x04`) -> page down
 
 Note: control-key notation is terminal-byte based and case-insensitive.
-Use `Ctrl-U` / `Ctrl-D` wording to prevent ambiguity.
+Use `C-u` / `C-d` wording to prevent ambiguity.
 
 Any command bound to these keys must remain reachable without breaking vi navigation.
 Preferred rule: keep vi navigation on lowercase and move command bindings to uppercase
@@ -41,7 +41,7 @@ When keybindings change, update and verify all relevant surfaces:
 3. Tests and centralized key abstractions.
 4. Any docs that describe command keys.
 5. `VI_KEYS` behavior:
-   - With `VI_KEYS` enabled, lowercase `h/j/k/l` and `Ctrl-U`/`Ctrl-D` still navigate.
+   - With `VI_KEYS` enabled, lowercase `h/j/k/l` and `C-u`/`C-d` still navigate.
    - Command actions that previously used those keys remain reachable via uppercase
      or explicit alternative bindings.
 
