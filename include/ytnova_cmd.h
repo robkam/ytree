@@ -205,13 +205,11 @@ extern char *GetHistory(ViewContext *ctx, int type);
 extern char *GetMatches(ViewContext *ctx, char *base);
 
 /* passwd.c */
-extern int ReadPasswdEntries(void);
 extern char *GetPasswdName(unsigned int uid);
 extern char *GetDisplayPasswdName(unsigned int uid);
 extern int GetPasswdUid(char *name);
 
 /* group.c */
-extern int ReadGroupEntries(void);
 extern char *GetGroupName(unsigned int gid);
 extern char *GetDisplayGroupName(unsigned int gid);
 extern int GetGroupId(char *name);
@@ -231,7 +229,6 @@ extern int GetRenameParameter(ViewContext *ctx, const char *old_name,
 extern int GetPipeCommand(ViewContext *ctx, char *pipe_command);
 
 /* sort.c */
-extern void GetKindOfSort(void); /* Compatibility shim for the UI sort prompt. */
 extern void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
                           int start_x);
 extern void UI_SetKindOfSort(int kind_of_sort, Statistic *s);
@@ -258,8 +255,6 @@ extern int InternalView(ViewContext *ctx, char *file_path,
                         const ViewerGeometry *geometry);
 extern int View(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
 extern int ViewHex(ViewContext *ctx, char *file_path);
-extern int
-ViewTaggedFiles(DirEntry *dir_entry); /* Compatibility shim for tagged-file viewing. */
 extern int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry);
 
 /* Added for utility decoupling integration */

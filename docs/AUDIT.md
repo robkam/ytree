@@ -40,7 +40,7 @@ The project uses seven QA layers with increasing depth and cost:
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
 | CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, path-filtered `qa-split-panel-gates` for split-touching changes, docs gate for docs-touching changes, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
-| PR Full QA CI (required) | `.github/workflows/full-qa.yml` (`make qa-all`) | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, dead-history comment guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Must be green before merge to `main` |
+| PR Full QA CI (required) | `.github/workflows/full-qa.yml` (`make qa-all`) | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, dead-history comment guard, compatibility-shim guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Must be green before merge to `main` |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
 | Sanitizer QA | `make qa-sanitize` | Main ytnova build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
@@ -257,8 +257,9 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-module-boundaries`
 - `make qa-clean-code`
 - `make qa-dead-history-comments`
+- `make qa-compatibility-shims`
 - `make qa-ai-config`
-- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-clean-code`, `qa-appstate-contract`, `qa-ai-config`, and the generated catalog/template sync guards)
+- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-dead-history-comments`, `qa-compatibility-shims`, `qa-clean-code`, `qa-appstate-contract`, `qa-ai-config`, and the generated catalog/template sync guards)
 - `make qa-split-panel-gates` (runs the split-panel invariants, transition-handoff, and split-authority regression subset)
 - `make qa-fuzz`
 - `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-code-quality`, `qa-gitleaks`, `qa-fuzz` in order; run `qa-fileops-integrity` separately when touching mutation flows)

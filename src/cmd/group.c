@@ -10,12 +10,6 @@
 #include <grp.h>
 #include <sys/types.h>
 
-/* Compatibility shim for startup callers; group lookups happen on demand. */
-int ReadGroupEntries(void)
-{
-  return( 0 );
-}
-
 /*
  * GetGroupName
  * Returns the group name for a given GID.

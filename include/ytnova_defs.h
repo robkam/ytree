@@ -943,8 +943,6 @@ typedef struct {
 } CoreQuitOps;
 
 typedef struct {
-  int (*read_group_entries)(void);
-  int (*read_passwd_entries)(void);
   int (*read_profile)(ViewContext *ctx, const char *filename);
   int (*load_commands)(ViewContext *ctx);
   int (*load_startup_theme)(ViewContext *ctx);
@@ -1058,8 +1056,6 @@ extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
 extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void FreeProfileRuntimeData(ViewContext *ctx);
 extern int ReadHistory(ViewContext *ctx, const char *Filename);
-extern int ReadPasswdEntries(void);
-extern int ReadGroupEntries(void);
 extern void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p,
                              int new_file_mode);
 extern void InitClock(ViewContext *ctx);
