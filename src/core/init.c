@@ -1239,22 +1239,6 @@ int Init(ViewContext *ctx, const char *configuration_file,
   if (InitStartTerminal(ctx) != 0)
     return -1;
 
-  DEBUG_LOG("Init: Calling ReadGroupEntries");
-  if (ctx->core_init_ops.read_group_entries != NULL &&
-      ctx->core_init_ops.read_group_entries()) {
-    CoreInitUINotice(ctx, "ReadGroupEntries failed*ABORT");
-    exit(1);
-  }
-  DEBUG_LOG("Init: ReadGroupEntries done");
-
-  DEBUG_LOG("Init: Calling ReadPasswdEntries");
-  if (ctx->core_init_ops.read_passwd_entries != NULL &&
-      ctx->core_init_ops.read_passwd_entries()) {
-    CoreInitUINotice(ctx, "ReadPasswdEntries failed*ABORT");
-    exit(1);
-  }
-  DEBUG_LOG("Init: ReadPasswdEntries done");
-
   InitLoadProfileData(ctx, configuration_file, buffer, sizeof(buffer));
 
   if (ctx->core_init_ops.load_commands != NULL &&

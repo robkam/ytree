@@ -10,12 +10,6 @@
 #include <pwd.h>
 #include <sys/types.h>
 
-/* Compatibility shim for startup callers; passwd lookups happen on demand. */
-int ReadPasswdEntries(void)
-{
-  return( 0 );
-}
-
 /*
  * GetPasswdName
  * Returns the username for a given UID.

@@ -508,6 +508,11 @@ Ordering policy (for all editors, including AI editors):
 *   **Relationship to Task 21.1:** Task 21.1 aligns redraw timing; this subtask aligns frame ownership so the synchronized redraw has one authoritative border/junction source.
 *   **Ownership Rule (mandatory):** The frame compositor owns every outer-border cell, divider cell, split-separator cell, stats-touching border cell, and every junction-bearing seam cell. Non-frame renderers may draw interior content and renderer-local internal separators only; they must not paint shared frame/seam cells.
 *   **Scope Lock:** Main-screen frame composition, seam ownership, and regression coverage only; no keybinding, command-surface, or theme-design changes.
+*   **Acceptance Criteria:**
+*   One authoritative render owner chooses all main-screen frame glyphs, including the outer box, dir/file divider, split separator, stats-touching borders, preview-family frame seams, and all top/middle/bottom junctions.
+*   No non-frame renderer paints shared frame/seam cells.
+*   The Task 21.3.x subtasks land without introducing keybinding, command-surface, or theme-design drift.
+*   - [ ] **Status:** Not Started.
 
 ##### **Task 21.3.1: Canonicalize Main-Screen Geometry**
 *   **Goal:** Define one authoritative geometry model for the outer frame, dir/file divider, split separator, stats column boundary, preview-family border seams, and every junction-bearing seam cell before glyph selection occurs.
@@ -535,12 +540,6 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves seam correctness across left-only/right-only/both/none stats combinations and representative small/large terminal geometries.
 *   Single, split, and preview-family layouts use the same junction-resolution mechanism.
 *   `docs/ARCHITECTURE.md` documents the final ownership boundary: frame composition owns shared border/junction cells, while non-frame renderers own interior content and renderer-local internal separators only.
-*   - [ ] **Status:** Not Started.
-
-*   **Parent Acceptance Criteria:**
-*   One authoritative render owner chooses all main-screen frame glyphs, including the outer box, dir/file divider, split separator, stats-touching borders, preview-family frame seams, and all top/middle/bottom junctions.
-*   No non-frame renderer paints shared frame/seam cells.
-*   The Task 21.3.x subtasks land without introducing keybinding, command-surface, or theme-design drift.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 22: Clarify Internal `^V` Navigation for File vs Hit Traversal**
@@ -1702,7 +1701,7 @@ Ordering policy (for all editors, including AI editors):
     *   A tracked shim inventory exists (file, symbol, owner task, removal condition).
     *   All shims owned by completed tasks are removed.
     *   CI/QA gate fails if orphaned/expired shim markers exist.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Task 64: UI/UX Snappiness Polish (Targeted Optimization)**
 *   **Goal:** Improve perceived responsiveness in high-frequency flows using profiling-driven optimizations.
@@ -1781,6 +1780,7 @@ Ordering policy (for all editors, including AI editors):
     *   Zero compatibility shims remain for overlay/submode dispatch in production paths.
     *   `docs/ARCHITECTURE.md` is updated to document the unified model and migration endpoint.
 *   - [ ] **Status:** Not Started.
+
 ---
 
 ## **Future Enhancements / Wishlist**
