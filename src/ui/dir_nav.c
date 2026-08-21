@@ -120,6 +120,37 @@ static BOOL MoveVisibleSelection(const ViewContext *ctx, YtreeNovaPanel *p,
   return TRUE;
 }
 
+const DirEntry *DirNav_FindVisibleSibling(const YtreeNovaPanel *panel,
+                                          const DirEntry *dir_entry,
+                                          int direction) {
+  const DirEntry *candidate;
+  const DirEntry *first_sibling;
+
+  if (panel == NULL || dir_entry == NULL || dir_entry->up_tree == NULL)
+    return NULL;
+
+  direction = direction < 0 ? -1 : 1;
+  first_sibling = dir_entry->up_tree->sub_tree;
+  if (first_sibling == NULL)
+    return NULL;
+
+  candidate = dir_entry;
+  for (;;) {
+    candidate = direction > 0 ? candidate->next : candidate->prev;
+    if (candidate == NULL) {
+      candidate = first_sibling;
+      if (direction < 0) {
+        while (candidate->next != NULL)
+          candidate = candidate->next;
+      }
+    }
+    if (candidate == dir_entry)
+      return NULL;
+    if (PanelDirIsVisible(panel, candidate))
+      return candidate;
+  }
+}
+
 void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 

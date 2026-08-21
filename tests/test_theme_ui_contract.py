@@ -286,7 +286,7 @@ def test_help_surfaces_use_help_role():
     assert "UI_ROLE_HELP_FOOTER" in defs_source
     assert "UI_ROLE_HELP_KEYBIND" in defs_source
     assert "UI_ROLE_HELP_HEADING" in defs_source
-    assert "UI_ROLE_HELP_TERM" in defs_source
+    assert "UI_ROLE_HELP_TOPIC" in defs_source
     assert "UI_ROLE_HELP_ATTENTION" in defs_source
     assert "UI_ROLE_HELP_ALERT" in defs_source
     assert "UI_ROLE_FOOTER" in defs_source
@@ -299,7 +299,7 @@ def test_help_surfaces_use_help_role():
     assert '{"help", UI_ROLE_HELP, 7, 0}' in color_source
     assert '{"help_footer", UI_ROLE_HELP_FOOTER, 7, 0}' in color_source
     assert '{"help_heading", UI_ROLE_HELP_HEADING, 7, 0}' in color_source
-    assert '{"help_term", UI_ROLE_HELP_TERM, 7, 0}' in color_source
+    assert '{"help_topic", UI_ROLE_HELP_TOPIC, 7, 0}' in color_source
     assert '{"help_attention", UI_ROLE_HELP_ATTENTION, 7, 0}' in color_source
     assert '{"help_alert", UI_ROLE_HELP_ALERT, 7, 0}' in color_source
     assert '{"help_keybind", UI_ROLE_HELP_KEYBIND, 15, 0}' in color_source
@@ -310,7 +310,7 @@ def test_help_surfaces_use_help_role():
     assert '"help"' in theme_source
     assert '"help_footer"' in theme_source
     assert '"help_heading"' in theme_source
-    assert '"help_term"' in theme_source
+    assert '"help_topic"' in theme_source
     assert '"help_attention"' in theme_source
     assert '"help_alert"' in theme_source
     assert '"help_keybind"' in theme_source
@@ -346,7 +346,7 @@ def test_help_surfaces_use_help_role():
     assert "UI_ROLE_HELP_FOOTER, UI_ROLE_HELP_KEYBIND" in help_popup_source
     assert "UI_ROLE_HELP_KEYBIND" in help_popup_source
     assert "UI_ROLE_HELP_HEADING" in help_popup_source
-    assert "UI_ROLE_HELP_TERM" in help_popup_source
+    assert "UI_ROLE_HELP_TOPIC" in help_popup_source
     assert "UI_ROLE_HELP_ATTENTION" in help_popup_source
 
 
@@ -472,6 +472,77 @@ def test_navigation_help_lists_f9_apps_between_split_and_config():
     assert 'FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "apps", "F9", NULL)' in display_source
 
 
+def test_f6_footer_and_help_use_the_compact_stats_label():
+    display_source = _read("src/ui/display.c")
+    help_source = _read("etc/help/f1.en.md")
+
+    assert '"stats", "F6"' in display_source
+    assert "stats(active)" not in display_source
+    assert "Toggle the statistics strip for the active panel." in help_source
+
+
+def test_help_inline_terms_use_the_configurable_term_role():
+    popup_source = _read("src/ui/help_popup.c")
+    runtime_help_source = _read("src/ui/runtime_help.c")
+
+    assert "BOOL term = FALSE;" in popup_source
+    assert "UI_ROLE_HELP_TOPIC" in popup_source
+    assert "if (*source == '`')" in runtime_help_source
+    assert "if (preserve_attention)\n        dest[out++] = *source;" in runtime_help_source
+
+
+def test_help_keybind_uses_its_configured_background():
+    color_source = _read("src/ui/color.c")
+
+    assert "UIColorBackground(UI_ROLE_HELP_KEYBIND)" in color_source
+
+
+def test_navigation_footer_hides_the_current_navigation_link():
+    runtime_help_source = _read("src/ui/runtime_help.c")
+
+    assert (
+        runtime_help_source.count(
+            'if (!TopicIdEquals(state->topic, "f1-navigation"))'
+        )
+        >= 3
+    )
+
+
+def test_f1_help_covers_startup_options_and_configuration_files():
+    help_source = _read("etc/help/f1.en.md")
+
+    assert "title: Command-line Parameters" in help_source
+    assert "`-d depth`" in help_source
+    assert "`--init`" in help_source
+    assert "title: Configuration Files" in help_source
+    assert "`ytnova.conf`" in help_source
+    assert "`applications.conf`" in help_source
+    assert "$XDG_CONFIG_HOME/ytnova" not in help_source
+    assert "packaged defaults" in help_source
+
+
+def test_contents_reaches_f1_navigation_only_from_its_command_strip():
+    help_source = _read("etc/help/f1.en.md")
+    runtime_help_source = _read("src/ui/runtime_help.c")
+
+    intro = help_source[help_source.index("## topic:intro") : help_source.index("## topic:f1-navigation")]
+    help_navigation = help_source[
+        help_source.index("## topic:f1-navigation") : help_source.index("## topic:ytnova-navigation")
+    ]
+    ytnova_navigation = help_source[
+        help_source.index("## topic:ytnova-navigation") : help_source.index("## topic:list-jump")
+    ]
+    assert "[F1 Navigation](topic:f1-navigation)" not in intro
+    assert "[Navigation](topic:ytnova-navigation)" in intro
+    assert "This page explains" not in help_navigation
+    assert "YtreeNova" not in help_navigation
+    assert "[F2 Picker](topic:f2-picker)" not in help_navigation
+    assert "built for keyboard use" in ytnova_navigation
+    assert "Mouse effects may occur, but they are incidental rather than designed controls." in ytnova_navigation
+    assert "C-m" in ytnova_navigation
+    assert 'if (!TopicIdEquals(state->topic, "intro") ||' in runtime_help_source
+
+
 def test_manpage_and_usage_document_f9_applications_menu():
     man_source = _read("etc/ytnova.1.md")
     usage_source = _read("docs/USAGE.md")
@@ -481,7 +552,7 @@ def test_manpage_and_usage_document_f9_applications_menu():
         assert "**F9**: Open the Applications menu." in source
         assert source.index("**F8**: Toggle Split Screen Mode.") < source.index(
             "**F9**: Open the Applications menu."
-        ) < source.index("**F10**: Open the configuration command surface:")
+        ) < source.index("**F10**: Open configuration.")
 
 
 def test_f9_applications_menu_is_wired_in_tree_and_file_controllers():
@@ -717,13 +788,13 @@ def test_theme_loader_does_not_preserve_old_help_footer_role_contract():
     assert 'FindRole(roles, "footer")' not in theme_source
     assert 'FindRole(roles, "help_footer")' in theme_source
     assert 'FindRole(roles, "help_heading")' in theme_source
-    assert 'FindRole(roles, "help_term")' in theme_source
+    assert 'FindRole(roles, "help_topic")' in theme_source
     assert 'FindRole(roles, "help_attention")' in theme_source
     assert 'FindRole(roles, "help_alert")' in theme_source
     assert 'When `footer`, `help_link`, or `help_link_selection` are omitted' not in man_source
     assert 'When `footer`, `help_link`, or `help_link_selection` are omitted' not in usage_source
     assert '`help_footer` owns the F1 popup strip' in man_source
-    assert '`help_term` owns term-style labels' in usage_source
+    assert '`help_topic` owns term-style labels' in usage_source
 
 
 def test_theme_editor_tracks_active_path_and_bootstraps_xdg_for_defaults():

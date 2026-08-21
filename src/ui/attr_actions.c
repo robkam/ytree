@@ -40,9 +40,7 @@ static const UICommandStripCommand attribute_commands_tagged[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Group"), "G",
      NULL, "attributes.commands"},
     {UI_COMMAND_LAYOUT_MNEMONIC, NP_("attributes.commands", "Date"), "D", NULL,
-     "attributes.commands"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("attributes.commands", "tagged date"),
-     "^D", NULL, "attributes.commands"}};
+     "attributes.commands"}};
 static const UICommandStripCommand date_change_hint_commands[] = {
     {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("change-date.hints", "help"), "F1",
      NULL, "change-date.hints"},

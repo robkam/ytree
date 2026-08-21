@@ -79,7 +79,7 @@ msgid "Back"
 msgstr ""
 
 msgctxt "runtime-help.footer"
-msgid "Contents"
+msgid "Index"
 msgstr ""
 
 msgctxt "runtime-help.footer"
@@ -88,6 +88,11 @@ msgstr ""
 
 msgctxt "runtime-help.footer"
 msgid "Quit"
+msgstr ""
+
+#: src/ui/runtime_help.c
+msgctxt "runtime-help"
+msgid "Related help"
 msgstr ""
 
 msgctxt "help-popup.footer"

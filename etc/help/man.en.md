@@ -28,13 +28,6 @@ contexts: none
 ### Contextual F1
 This manual is the fuller reference path for ytnova modes, commands, prompts, and support topics.
 The in-app `F1` popup provides the shorter contextual version for the active surface.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Tagged](topic:tagged)
-- [Shared commands](topic:shared-commands)
-- [F2 picker](topic:f2-picker)
-- [F10 config](topic:f10)
-
 ### Long form
 #### Purpose
 This file is the fuller reference source for the manpage and generated `docs/USAGE.md`.
@@ -54,14 +47,10 @@ contexts: none
 ### Contextual F1
 The help popup uses list-style navigation.
 `Up` and `Down` move, `Enter` or `Right` follow, `Left` goes back, and `Esc` or `Q` closes.
-### Explainer links
-- [Directory mode](topic:dir)
-- [File mode](topic:file)
-- [F7 preview](topic:f7)
-- [F8 split](topic:f8)
-- [F2 picker](topic:f2-picker)
-
 ### Long form
+#### Control-key notation
+`C-<chr>` means hold the Control key while typing `<chr>`. For example, `C-f` means hold Control and type `f`.
+
 #### Help popup keys
 * **Up/Down**: Move between selectable rows or links.
 * **Page Up/Page Down**: Scroll longer help pages.
@@ -82,12 +71,6 @@ contexts: none
 ### Contextual F1
 `/` is ytnova's in-list name jump.
 It is distinct from help-popup navigation and remains scoped to the current runtime list.
-### Explainer links
-- [Directory mode](topic:dir)
-- [File mode](topic:file)
-- [Showall](topic:showall)
-- [Global](topic:global)
-
 ### Long form
 #### Jump model
 `/` opens an incremental jump prompt for the current visible list only.
@@ -107,12 +90,6 @@ contexts: none
 ### Contextual F1
 These function keys keep their high-level meaning across modes.
 Surface-specific details still belong to the relevant mode or prompt topic.
-### Explainer links
-- [F7 preview](topic:f7)
-- [F8 split](topic:f8)
-- [Applications menu](topic:applications-menu)
-- [F10 config](topic:f10)
-
 ### Long form
 #### Shared function keys
 * **F1**: Open contextual help for the active surface.
@@ -132,12 +109,6 @@ contexts: none
 ### Contextual F1
 Tagged files form a working set for bulk actions, narrowed views, searches, and archive/export flows.
 Tag-driven behavior is central to ytnova command workflow.
-### Explainer links
-- [File mode](topic:file)
-- [Showall](topic:showall)
-- [Search tagged](topic:search-tagged)
-- [Filter help](topic:filter)
-
 ### Long form
 #### Tagged basics
 Tags are a working set. They are not a second clipboard and not a saved search.
@@ -172,10 +143,6 @@ contexts: none
 ### Contextual F1
 Most prompts share the same editing keys.
 Prompt-specific syntax and scope rules belong to the relevant command topic.
-### Explainer links
-- [Vi Keys](topic:vi-keys)
-- [F2 picker](topic:f2-picker)
-
 ### Long form
 #### Editing keys
 * **Left/Right**: Move inside the current prompt text.
@@ -201,12 +168,6 @@ Then choose the destination directory.
 The split stays intentional because name/pattern and destination are separate decisions.
 Merging them would hide meaning instead of removing friction.
 Overwrite conflicts compare size/time so you can judge newer/older and bigger/smaller.
-### Explainer links
-- [Directory mode](topic:dir)
-- [File mode](topic:file)
-- [Archive-File mode](topic:archive-file)
-- [F8 split](topic:f8)
-
 ### Long form
 #### Target forms
 Use a directory path when you want the original names preserved under another directory.
@@ -230,14 +191,10 @@ contexts: none
 ### Contextual F1
 When `VI_KEYS=1`, lowercase vi navigation is reserved.
 Conflicting commands move to uppercase or another safe key.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Navigation remap
 With `VI_KEYS=1`, lowercase `h`, `j`, `k`, and `l` become `Left`, `Down`, `Up`, and `Right`.
-`Ctrl-U` and `Ctrl-D` become page up and page down.
+`C-u` and `C-d` become page up and page down.
 
 #### Command collisions
 Commands that would steal those lowercase keys move out of the way.
@@ -251,10 +208,6 @@ contexts: none
 ### Contextual F1
 F10 owns configuration-related actions, including profile editing, command editing, theme editing, and reload.
 It is the setup surface rather than an ordinary file-management command.
-### Explainer links
-- [Theming](topic:theming)
-- [Shared commands](topic:shared-commands)
-
 ### Long form
 #### Config surface
 Use `F10` when you want to change persistent behavior instead of doing one one-off file or directory action.
@@ -273,14 +226,11 @@ contexts: none
 ### Contextual F1
 Themes style semantic UI roles and file-type palettes.
 Theme edits belong in the config/theme files, not in per-screen hard-coded colors.
-### Explainer links
-- [F10 config](topic:f10)
-
 ### Long form
 #### Theme model
-Themes set semantic roles such as `footer`, `help`, `help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.
+Themes set semantic roles such as `footer`, `help`, `help_footer`, `help_heading`, `help_topic`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.
 `footer` owns the always-visible main-app footer, while `help` owns the F1 reading body, `help_footer` owns the popup strip, and `help_box_lines` owns the popup frame.
-Headings/titles use `help_heading`, term-style labels use `help_term`, bounded callouts use `help_attention`, and any future stronger urgency tier can use `help_alert`, so help pages stay readable without hard-coded colors.
+Headings/titles use `help_heading`, term-style labels use `help_topic`, bounded callouts use `help_attention`, and any future stronger urgency tier can use `help_alert`, so help pages stay readable without hard-coded colors.
 
 #### Editing path
 Use `F10` to open the theme or config editing path.
@@ -294,10 +244,6 @@ contexts: main.dir
 ### Contextual F1
 Directory mode is the logged tree view.
 It owns directory navigation, tree expansion, and directory-scoped commands.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Shared commands](topic:shared-commands)
-
 ### Long form
 #### Directory navigation
 * **Enter / Right / Left**: `Enter` opens the file window and finishes logging when the selected directory is not expanded yet. `Right` expands first and then descends. `Left` collapses the current node or climbs to its parent.
@@ -319,11 +265,6 @@ contexts: main.file
 ### Contextual F1
 File mode is the main file-list view.
 It owns file navigation, file-scoped commands, tagged actions, and export entry points.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Tagged](topic:tagged)
-- [Output](topic:output)
-
 ### Long form
 #### File navigation
 * **Presentation**: `1..9 view` stays in file mode and changes Name, Attributes, Owner, and Times plus Compact, size units, Mini preview, File detail, and the Git band where they apply.
@@ -336,7 +277,7 @@ It owns file navigation, file-scoped commands, tagged actions, and export entry 
 * **Working-set control**: `Tag`, `Untag`, `Tag all`, `Untag all`, and `Invert Tags` build or clear the set that later bulk commands consume.
 * **List control**: `Filter`, `Sort`, `Jump`, and `Dotfiles` change how the current file list is projected. The filter prompt still owns the tagged-only scope toggle on `Tab`.
 * **Metadata and creation**: `Attributes`, `Rename`, `Delete`, `New File`, and `Log` edit file state or add/reload content sources.
-* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands `{}` for one file, and `Ctrl-X` reruns the command once per tagged file.
+* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands `{}` for one file, and `C-x` reruns the command once per tagged file.
 * **Cross-surface actions**: `Compare` enters the compare flow, `Search tagged` narrows the tagged set by content, `Volume` switches logged volumes, and `Quit` exits ytnova.
 
 ## topic:archive-dir
@@ -347,10 +288,6 @@ contexts: main.archive-dir
 ### Contextual F1
 Archive-Dir mode is the tree-style view inside a logged archive.
 It mirrors directory work where the archive format permits it.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Directory mode](topic:dir)
-
 ### Long form
 #### Archive directory navigation
 * **Enter / Left / Right**: Navigate the virtual tree the same way as ordinary Directory Mode, but only within the currently opened archive.
@@ -372,11 +309,6 @@ contexts: main.archive-file
 ### Contextual F1
 Archive-File mode is the file-list view for archive-backed content.
 Some filesystem commands are unavailable or become archive-aware here.
-### Explainer links
-- [Navigation](topic:navigation)
-- [File mode](topic:file)
-- [Tagged](topic:tagged)
-
 ### Long form
 #### Archive file navigation
 * **Presentation**: `1..8` keeps the usual file-view bands, while `9` remains a no-op because archive entries do not expose the Git band surface.
@@ -400,12 +332,6 @@ contexts: prompt.filter,prompt.filter-tagged
 Filters apply glob, exclusion, attribute, date, and size selectors to the current file-list family.
 The prompt starts with `*`, which means all files.
 Terms can be stacked by separating them with commas.
-### Explainer links
-- [Tagged](topic:tagged)
-- [Showall](topic:showall)
-- [Global](topic:global)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Syntax
 * **Glob selectors**: `*` shows everything. `*.c` matches one pattern. `*.c,*.h` stacks multiple include terms.
@@ -428,11 +354,6 @@ contexts: none
 ### Contextual F1
 Compare covers diff-style viewing, target selection, scope selection, basis selection, and result handling.
 Use the related compare topics for the prompt-by-prompt details.
-### Explainer links
-- [File mode](topic:file)
-- [Directory mode](topic:dir)
-- [Navigation](topic:navigation)
-
 ### Long form
 #### Compare flow
 Choose the target first.
@@ -454,10 +375,6 @@ contexts: prompt.compare-target
 ### Contextual F1
 The compare target prompt selects the other file, directory, panel, or external viewer target.
 Available choices depend on the active compare mode.
-### Explainer links
-- [Compare Help](topic:compare)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Target rules
 Enter one path.
@@ -471,11 +388,6 @@ contexts: prompt.change-date
 ### Contextual F1
 The date prompt accepts `YYYY-MM-DD` and optional `HH:MM[:SS]` time input for attribute edits.
 `F3` cycles whether the entered value updates the modified time, accessed time, or both.
-### Explainer links
-- [File mode](topic:file)
-- [Directory mode](topic:dir)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Scope choices
 Use `modified` to change only the last-modified timestamp.
@@ -494,9 +406,6 @@ contexts: none
 ### Contextual F1
 The compare scope prompt chooses single-item, tagged-set, current-directory, or wider list-family comparison scope.
 The exact options depend on the active surface.
-### Explainer links
-- [Compare Help](topic:compare)
-
 ### Long form
 #### Scope choices
 Use `Directory` for one level.
@@ -511,9 +420,6 @@ contexts: none
 ### Contextual F1
 The compare basis prompt chooses the matching criteria used for the current compare run.
 Typical bases include name, size, time, and content-oriented comparisons.
-### Explainer links
-- [Compare Help](topic:compare)
-
 ### Long form
 #### Basis choices
 Choose the cheapest basis that answers the question you actually have.
@@ -527,9 +433,6 @@ contexts: none
 ### Contextual F1
 Compare results can be displayed, filtered, and converted into a tagged working set for follow-up commands.
 This topic covers the result-handling side of compare.
-### Explainer links
-- [Compare Help](topic:compare)
-
 ### Long form
 #### Result tagging
 The compare command never rewrites files.
@@ -543,10 +446,6 @@ contexts: prompt.execute-file
 ### Contextual F1
 The file execute prompt runs a shell command against the current file or reruns it once per tagged file.
 `{}` expands to one selected file path.
-### Explainer links
-- [File mode](topic:file)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Placeholder rules
 `{}` stands for one selected file path.
@@ -560,10 +459,6 @@ contexts: prompt.execute-dir
 ### Contextual F1
 The directory execute prompt runs a shell command against the current directory path or reruns it once per tagged scope item.
 `{}` expands to one selected path.
-### Explainer links
-- [Directory mode](topic:dir)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Placeholder rules
 `{}` stands for the current directory path.
@@ -577,10 +472,6 @@ contexts: prompt.search-tagged
 ### Contextual F1
 Search tagged runs a text search over the tagged set and removes tags from non-matching files.
 It is a narrowing operation on an existing working set.
-### Explainer links
-- [Tagged](topic:tagged)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Tagged search rules
 Start by tagging a working set.
@@ -594,10 +485,6 @@ contexts: prompt.create-archive
 ### Contextual F1
 Create archive builds a new archive from the tagged set first, or from the current selection when nothing is tagged.
 Archive format support depends on the chosen suffix.
-### Explainer links
-- [Tagged](topic:tagged)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Archive creation rules
 Directory selections are archived recursively.
@@ -611,11 +498,6 @@ contexts: none
 ### Contextual F1
 Output exports one or more files to a destination using raw, framed, or page-break formats.
 The related output topics cover format, separator, and destination prompts.
-### Explainer links
-- [File mode](topic:file)
-- [Archive file](topic:archive-file)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Output model
 `Output` is a batch export flow, not a viewer.
@@ -635,9 +517,6 @@ contexts: none
 ### Contextual F1
 Output format chooses how each exported file is framed in the batch.
 Raw, framed, and page-break output serve different downstream readers.
-### Explainer links
-- [Output Help](topic:output)
-
 ### Long form
 #### Format choices
 Use `Raw` when another tool will parse the output.
@@ -654,11 +533,6 @@ For file output, `CWD` is the current working directory for bare filenames.
 Press `F3` only on the file destination prompt to cycle `Raw`, `Framed`, and `Page break`.
 Framed and page-break output ask for the separator before returning to the file destination prompt.
 Hardcopy sends raw output to a shell printer command such as `lpr`, `lp`, or `cat > /dev/lp1`.
-### Explainer links
-- [Output Help](topic:output)
-- [Output Format Help](topic:output-format)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### Destination choices
 File output writes exported text to a path.
@@ -672,9 +546,6 @@ contexts: prompt.output-separator
 ### Contextual F1
 Output separator appears only when `F3` selects framed or page-break output.
 Raw output bypasses this prompt.
-### Explainer links
-- [Output Help](topic:output)
-
 ### Long form
 #### Separator rules
 The separator is reused between files for the current framed or page-break export.
@@ -688,11 +559,6 @@ contexts: main.showall
 ### Contextual F1
 Showall lists every file inside the current logged volume in one aggregated file list.
 It keeps single-volume scope while flattening directory boundaries.
-### Explainer links
-- [Navigation](topic:navigation)
-- [File mode](topic:file)
-- [Tagged](topic:tagged)
-
 ### Long form
 #### Showall behavior
 * **Scope**: Showall flattens one logged volume into one file list. It never crosses into other logged volume roots.
@@ -708,11 +574,6 @@ contexts: main.global
 ### Contextual F1
 Global lists files from every logged volume in one aggregated file list.
 It keeps multi-volume scope while flattening directory boundaries.
-### Explainer links
-- [Navigation](topic:navigation)
-- [File mode](topic:file)
-- [Tagged](topic:tagged)
-
 ### Long form
 #### Global behavior
 * **Scope**: Global flattens every logged volume into one file list.
@@ -728,20 +589,15 @@ contexts: overlay.f7-dir,overlay.f7-file
 ### Contextual F1
 F7 preview overlays file preview controls on top of the underlying file-selection context.
 The preview owns scrolling while the underlying selection still owns the file target.
-### Explainer links
-- [Navigation](topic:navigation)
-- [File mode](topic:file)
-- [Applications menu](topic:applications-menu)
-
 ### Long form
 #### Preview navigation
-* **Two scopes stay active**: the underlying file selection still moves with `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End`, while the preview buffer scrolls with `Shift-Up/Shift-Down`, `Ctrl-P/Ctrl-N`, `Shift-PgUp/Shift-PgDn`, and `Shift-Home/Shift-End`.
+* **Two scopes stay active**: the underlying file selection still moves with `Up`, `Down`, `PgUp`, `PgDn`, `Home`, and `End`, while the preview buffer scrolls with `Shift-Up/Shift-Down`, `C-p/C-n`, `Shift-PgUp/Shift-PgDn`, and `Shift-Home/Shift-End`.
 * **Leaving preview**: `F7` or `Esc` returns to the suspended directory/file surface without discarding its current selection.
 * **Blocked overlays**: `F8` split and `Tab` panel switching are disabled while preview is active.
 
 #### Preview command families
 * **File-mode command reuse**: Preview keeps the file-focused command family available: `Attributes`, `Copy`, `Delete`, `Edit`, `Filter`, `Invert Tags`, `Compare`, `Move`, `New File`, `Rename`, `Tag`, `Untag`, `View`, `Output`, `Execute`, `Pathcopy`, `Archive`, `Jump`, and `Dotfiles`.
-* **Tagged and bulk behavior**: `Ctrl-K` still copies the tagged set, and `Ctrl-S` still runs Search Tagged without leaving preview.
+* **Tagged and bulk behavior**: `C-k` still copies the tagged set, and `C-s` still runs Search Tagged without leaving preview.
 * **Applications handoff**: `F9` opens the Applications menu from preview without closing preview first.
 
 ## topic:f8
@@ -752,11 +608,6 @@ contexts: none
 ### Contextual F1
 Split mode keeps two panels active at once, and runtime F1 opens the directory or file split page for the active panel.
 Use the split page for the live footer command list and this page for the shared split model.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Directory split page](topic:f8-dir)
-- [File split page](topic:f8-file)
-
 ### Long form
 #### Split controls
 * **Panel ownership**: Each panel keeps its own selection, tags, logged volume, view bands, and restore state. Split mode changes only which panel is active for the next command.
@@ -771,11 +622,6 @@ contexts: overlay.f8-dir
 ### Contextual F1
 The split-directory page combines split-only rules with the active directory-footer command list.
 It is the runtime F1 page when the split focus is on the tree panel.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Split overview](topic:f8)
-- [Directory mode](topic:dir)
-
 ### Long form
 #### Split controls
 * **Panel ownership**: Each panel keeps its own selection, tags, logged volume, view bands, and restore state. Split mode changes only which panel is active for the next command.
@@ -794,11 +640,6 @@ contexts: overlay.f8-file
 ### Contextual F1
 The split-file page combines split-only rules with the active file-footer command list.
 It is the runtime F1 page when the split focus is on the file panel.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Split overview](topic:f8)
-- [File mode](topic:file)
-
 ### Long form
 #### Split controls
 * **Panel ownership**: Each panel keeps its own selection, tags, logged volume, view bands, and restore state. Split mode changes only which panel is active for the next command.
@@ -817,9 +658,6 @@ contexts: dialog.history
 ### Contextual F1
 The history dialog reuses earlier prompt entries and supports pinning or deletion.
 It is a shared helper surface for prompts that keep history.
-### Explainer links
-- [Navigation](topic:navigation)
-
 ### Long form
 #### History actions
 * **Select entry**: `Up` and `Down` move through the current history list.
@@ -837,9 +675,6 @@ contexts: dialog.volume-menu
 ### Contextual F1
 The volume menu lists loaded volumes, lets you switch to one, and can release a volume.
 Loaded volumes keep independent in-memory state until released or reloaded.
-### Explainer links
-- [Navigation](topic:navigation)
-
 ### Long form
 #### Volume actions
 * **Select volume**: `Up` and `Down` move through the loaded-volume list.
@@ -858,9 +693,6 @@ The applications menu lists configured application presets.
 Use `Enter` to select the highlighted preset, then ytnova returns immediately while the launched application continues on its own.
 Use `E` to edit the applications catalog that backs application presets, and `Esc` to cancel.
 Use `{}` for the file or folder currently selected in ytnova and `{input}` for the text you type when the preset asks for extra input.
-### Explainer links
-- [Navigation](topic:navigation)
-
 ### Long form
 #### Applications actions
 * **Select preset**: `Up` and `Down` move through the preset list.
@@ -880,10 +712,6 @@ contexts: dialog.f2-picker
 ### Contextual F1
 The F2 picker browses for a path or preset supported by the active prompt.
 It is a prompt helper, not a standalone mode, and it also exposes local volume cycling, path logging, and dotfile toggles without leaving the prompt.
-### Explainer links
-- [Navigation](topic:navigation)
-- [Command-line editing](topic:command-line-editing)
-
 ### Long form
 #### F2 picker actions
 * **Move in the tree**: `Up`/`Down` move the selection, while `Left` and `Right` collapse, expand, or enter subtrees.

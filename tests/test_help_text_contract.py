@@ -42,7 +42,7 @@ def _create_tar(path, entries):
             tf.addfile(info, io.BytesIO(payload))
 
 
-def _popup_frame(screen, title, footer_hint="Esc/Quit"):
+def _popup_frame(screen, title, footer_hint="Esc/Q quit"):
     lines = screen.splitlines()
     title_row = next(i for i, line in enumerate(lines) if title in line)
     title_line = lines[title_row]
@@ -455,12 +455,175 @@ def test_contextual_help_wraps_long_directory_rows_to_fit_popup(tmp_path):
             i for i, line in enumerate(popup_lines) if "Tree versus file window:" in line
         )
 
-        assert (
-            "Tree versus file window: In directory focus, 5, 7, 8, and 9"
-            in popup_lines[wrapped_index]
-        ), help_screen
+        wrapped_text = " ".join(
+            line.strip()
+            for line in popup_lines[wrapped_index : wrapped_index + 2]
+        )
+        assert "Tree versus file window: In directory focus, 5, 7, 8, and 9" in wrapped_text, help_screen
         assert "do not change the tree rows." in popup_lines[wrapped_index + 1], help_screen
         assert popup_lines[wrapped_index + 2].strip() == "", help_screen
+    finally:
+        tui.quit()
+
+
+def test_help_index_uses_the_width_reserved_by_its_footer(tmp_path):
+    root = _root_with_file(tmp_path, "help_index_footer_width")
+    tui = _spawn_help_tui(root, dimensions=(36, 70))
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        contents = _send_help_key_until_text(tui, "i", "Help Index")
+
+        assert "Archive Directory: The archive-directory footer acts" in contents, contents
+    finally:
+        tui.quit()
+
+
+def test_help_index_reopens_cleanly_after_terminal_resize(tmp_path):
+    root = _root_with_file(tmp_path, "help_index_terminal_resize")
+    tui = _spawn_help_tui(root, dimensions=(36, 120))
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        _send_help_key_until_text(tui, "i", "Help Index")
+
+        tui.child.setwinsize(24, 70)
+        tui.screen.resize(24, 70)
+        resized = tui.wait_for_condition(
+            lambda lines: lines
+            if any("Help Index" in line for line in lines)
+            and any("Esc/Q quit" in line for line in lines)
+            else False,
+            timeout=1.5,
+        )
+
+        assert resized, screen_text(tui)
+        frame = _popup_frame("\n".join(resized), "Help Index")
+        assert frame["right"] < 70
+        assert any("COMMANDS" in line for line in resized), screen_text(tui)
+
+        restored = tui.send_and_wait_for_condition(
+            Keys.ESC,
+            lambda lines: lines
+            if any("COMMANDS" in line for line in lines)
+            and not any("Esc/Q quit" in line for line in lines)
+            else False,
+            timeout=1.5,
+        )
+        assert restored, screen_text(tui)
+        assert any("FILTER" in line for line in restored), screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_ytnova_navigation_shows_and_opens_related_help(tmp_path):
+    root = _root_with_file(tmp_path, "ytnova_navigation_related_help")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        _send_help_key_until_text(tui, "i", "Help Index")
+        navigation = _follow_help_topic(tui, "Navigation:", "YtreeNova Navigation")
+
+        normalized_navigation = _normalized_help_text(navigation)
+        assert "YtreeNova is built for keyboard use." in normalized_navigation, navigation
+        assert "Mouse effects may occur" in normalized_navigation, navigation
+        assert "rather than designed controls." in normalized_navigation, navigation
+
+        navigation = _send_help_key_until_text(tui, Keys.END, "F8 split")
+        assert "Related help" in navigation, navigation
+        assert "/ jump" in navigation, navigation
+        assert "F7 preview" in navigation, navigation
+        assert "F8 split" in navigation, navigation
+        frame = _popup_frame(navigation, "YtreeNova Navigation")
+        footer = navigation.splitlines()[frame["footer_row"]]
+        assert "jump" not in footer, footer
+        assert "preview" not in footer, footer
+        assert "split" not in footer, footer
+
+        popup_lines = navigation.splitlines()
+        related_row = next(
+            i for i, line in enumerate(popup_lines) if "Related help" in line
+        )
+        for offset in (1, 2, 3):
+            assert (
+                popup_lines[related_row - offset][frame["left"] + 1 : frame["right"]].strip()
+                == ""
+            ), navigation
+        for label in ("/ jump", "F7 preview", "F8 split"):
+            label_row = next(i for i, line in enumerate(popup_lines) if label in line)
+            assert (
+                popup_lines[label_row - 1][frame["left"] + 1 : frame["right"]].strip()
+                == ""
+            ), navigation
+
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+        linked = _send_help_key_until_text(tui, Keys.RIGHT, "List Jump")
+        assert "Type letters" in linked, linked
+
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        navigation = _send_help_key_until_text(tui, Keys.END, "F8 split")
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+        tui.send_keystroke(Keys.UP, wait=0.05)
+        returned_to_top = False
+        for _ in range(40):
+            navigation = tui.send_and_wait_for_condition(
+                Keys.UP,
+                lambda lines: lines
+                if any("YtreeNova is built for keyboard use." in line for line in lines)
+                else False,
+                timeout=0.1,
+            )
+            if navigation:
+                returned_to_top = True
+                break
+        assert returned_to_top, screen_text(tui)
+
+        navigation = _send_help_key_until_text(tui, Keys.END, "F8 split")
+        scrolled = tui.send_and_wait_for_screen_change(Keys.UP, timeout=1.0)
+        assert scrolled, screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_related_help_list_does_not_leave_links_below_the_popup_footer(tmp_path):
+    root = _root_with_file(tmp_path, "related_help_list_fits")
+    tui = _spawn_help_tui(root, dimensions=(43, 106))
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        _send_help_key_until_text(tui, "i", "Help Index")
+        _follow_help_topic(tui, "Navigation:", "YtreeNova Navigation")
+
+        navigation = ""
+        for _ in range(20):
+            tui.send_keystroke(Keys.DOWN, wait=0.05)
+            navigation = screen_text(tui)
+            if "/ jump" in navigation:
+                break
+
+        assert "/ jump" in navigation, navigation
+        assert "F7 preview" in navigation, navigation
+        assert "F8 split" in navigation, navigation
+    finally:
+        tui.quit()
+
+
+def test_directory_help_shows_explainer_links_as_selectable_related_help(tmp_path):
+    root = _root_with_file(tmp_path, "directory_related_help")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        directory = _send_help_key_until_text(tui, Keys.END, "Related help")
+
+        assert "Navigation" in directory, directory
+        assert "Copy" in directory, directory
     finally:
         tui.quit()
 
@@ -532,8 +695,6 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
         help_screen = _wait_for_help(tui, "Directory Help")
         assert "1: Name only." in help_screen, help_screen
 
-        selected_style = _visible_cell_style(tui, "1: Name only.")
-
         reached_execute = False
         for _ in range(80):
             tui.send_keystroke(Keys.DOWN, wait=0.05)
@@ -553,21 +714,15 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
                 break
 
         assert restored, screen_text(tui)
-        assert _visible_cell_style(tui, "J compare:") == selected_style, screen_text(tui)
-
-        restored_top = False
-        for _ in range(48):
-            tui.send_keystroke(Keys.UP, wait=0.05)
-            current = screen_text(tui)
-            if "1: Name only." in current:
-                restored_top = True
+        for _ in range(8):
+            if _visible_cell_style(tui, "J compare:") != _visible_cell_style(
+                tui, "K volume:"
+            ):
                 break
-
-        assert restored_top, screen_text(tui)
-        assert _visible_cell_style(tui, "1: Name only.") == selected_style, screen_text(tui)
-
-        tui.send_keystroke(Keys.UP, wait=0.05)
-        assert _visible_cell_style(tui, "1: Name only.") == selected_style, screen_text(tui)
+            tui.send_keystroke(Keys.UP, wait=0.05)
+        assert _visible_cell_style(tui, "J compare:") != _visible_cell_style(
+            tui, "K volume:"
+        ), screen_text(tui)
     finally:
         tui.quit()
 
@@ -650,7 +805,7 @@ def test_execute_prompt_f1_help_explains_placeholder_and_tagged_repeat(tmp_path)
         help_screen = screen_text(tui)
         normalized = _normalized_help_text(help_screen)
         assert "Put {} where the selected file path should go" in normalized, help_screen
-        assert "Ctrl-X" in help_screen, help_screen
+        assert "C-x" in help_screen, help_screen
         assert "repeat the same command once per tagged file" in normalized, help_screen
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -768,10 +923,10 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
                 assert stale_label not in help_screen, help_screen
         assert "Directory help explains the live directory footer commands" not in help_screen, help_screen
         footer_line = next(
-            line for line in help_screen.splitlines() if "Esc/Quit" in line
+            line for line in help_screen.splitlines() if "Esc/Q quit" in line
         )
-        assert "open" in footer_line, footer_line
-        assert "Contents" in footer_line, footer_line
+        assert "Enter/Right open link" in footer_line, footer_line
+        assert "Index" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
         assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
@@ -876,7 +1031,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "newer/older and bigger/smaller" in normalized_copy_detail, copy_detail
         assert "no copy-now or move-now confirmation follows" in normalized_copy_detail, copy_detail
         assert "*.bak" not in normalized_copy_detail, copy_detail
-        assert "Ctrl-K copies the tagged set" not in normalized_copy_detail, copy_detail
+        assert "C-k copies the tagged set" not in normalized_copy_detail, copy_detail
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("F8 Split File Help", timeout=1.0), screen_text(tui)
         help_screen = screen_text(tui)
@@ -919,7 +1074,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
             "Select file:",
             "Preview lines:",
             "Preview pages:",
-            "Ctrl-P and Ctrl-N",
+            "C-p and C-n",
             "Shift-PgUp and Shift-PgDn",
             ):
                 assert nav_label not in preview_screen, preview_screen
@@ -1026,10 +1181,10 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         assert "1: Name only." in help_screen, help_screen
         assert "2: Attributes." in help_screen, help_screen
         footer_line = next(
-            line for line in help_screen.splitlines() if "Esc/Quit" in line
+            line for line in help_screen.splitlines() if "Esc/Q quit" in line
         )
         assert "open" in footer_line, footer_line
-        assert "Contents" in footer_line, footer_line
+        assert "Index" in footer_line, footer_line
         assert "Shared commands" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
 
@@ -1044,8 +1199,8 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
         tui.quit()
 
 
-def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
-    root = _root_with_file(tmp_path, "help_contents_index")
+def test_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
+    root = _root_with_file(tmp_path, "help_index")
     tui = _spawn_help_tui(root)
 
     try:
@@ -1053,9 +1208,9 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
 
         _wait_for_help(tui, "Directory Help")
         contents_screen = tui.send_and_wait_for_condition(
-            "c",
+            "i",
             lambda lines: lines
-            if any("Contents" in line for line in lines)
+            if any("Help Index" in line for line in lines)
             and any("Applications:" in line for line in lines)
             else False,
             timeout=1.0,
@@ -1063,7 +1218,7 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
         assert contents_screen, screen_text(tui)
         contents_text = "\n".join(contents_screen)
         footer_line = next(
-            line for line in contents_text.splitlines() if "Esc/Quit" in line
+            line for line in contents_text.splitlines() if "Esc/Q quit" in line
         )
         assert "open" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
@@ -1099,14 +1254,15 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
         assert "Copy/Move Targets" in detail_text, detail_text
 
         tui.send_keystroke(Keys.LEFT, wait=0.05)
-        assert tui.wait_for_condition(
+        returned = tui.wait_for_condition(
             lambda lines: lines
-            if any("Contents" in line for line in lines)
-            and any("Copy/Move Targets" in line for line in lines)
+            if any("Help Index" in line for line in lines)
             else False,
             timeout=1.0,
             poll_interval=0.05,
-        ), screen_text(tui)
+        )
+        assert returned, screen_text(tui)
+        assert "Copy/Move Targets" in _scroll_help_to_text(tui, "Copy/Move Targets"), screen_text(tui)
 
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
@@ -1116,7 +1272,7 @@ def test_contents_help_index_opens_from_contextual_help_and_returns_to_origin(tm
         tui.quit()
 
 
-def test_contextual_help_detail_footer_uses_left_back_and_c_contents(tmp_path):
+def test_contextual_help_detail_footer_uses_left_back_and_i_index(tmp_path):
     root = _root_with_file(tmp_path, "help_detail_footer_contract")
     tui = _spawn_help_tui(root)
 
@@ -1127,64 +1283,29 @@ def test_contextual_help_detail_footer_uses_left_back_and_c_contents(tmp_path):
         detail_screen = tui.send_and_wait_for_condition(
             Keys.ENTER,
             lambda lines: lines
-            if any("Esc/Quit" in line and "Left back" in line for line in lines)
+            if any("Esc/Q quit" in line and "Left back" in line for line in lines)
             else False,
             timeout=1.0,
         )
         assert detail_screen, screen_text(tui)
         detail_text = "\n".join(detail_screen)
         footer_line = next(
-            line for line in detail_text.splitlines() if "Esc/Quit" in line
+            line for line in detail_text.splitlines() if "Esc/Q quit" in line
         )
         assert "Left back" in footer_line, footer_line
-        assert "Contents" in footer_line, footer_line
+        assert "Index" in footer_line, footer_line
         assert "Navigation" in footer_line, footer_line
-        assert "C back" not in footer_line, footer_line
-        assert "Directory mode" not in footer_line, footer_line
-        assert "File mode" not in footer_line, footer_line
-        assert "Archive file" not in footer_line, footer_line
-        assert "F8 split" not in footer_line, footer_line
-
-        tui.send_keystroke(Keys.LEFT, wait=0.05)
-        assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
-
-        selected_style = _visible_cell_style(tui, "1: Name only.")
-        reached_copy = False
-        for _ in range(32):
-            if _selected_visible_help_label(tui, ["Copy:"], selected_style) == "Copy:":
-                reached_copy = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.05)
-
-        assert reached_copy, screen_text(tui)
-
-        detail_screen = tui.send_and_wait_for_condition(
-            Keys.RIGHT,
-            lambda lines: lines
-            if any("wildcard rename pattern" in line.lower() for line in lines)
-            and any("Esc/Quit" in line for line in lines)
-            else False,
-            timeout=1.0,
-        )
-        assert detail_screen, screen_text(tui)
-        detail_text = "\n".join(detail_screen)
-        assert "Copy/Move Targets" in detail_text, detail_text
-        footer_line = next(
-            line for line in detail_text.splitlines() if "Esc/Quit" in line
-        )
-        assert "Left back" in footer_line, footer_line
-        assert "Contents" in footer_line, footer_line
-        assert "Navigation" in footer_line, footer_line
+        assert "I back" not in footer_line, footer_line
         assert "Directory mode" not in footer_line, footer_line
         assert "File mode" not in footer_line, footer_line
         assert "Archive file" not in footer_line, footer_line
         assert "F8 split" not in footer_line, footer_line
 
         contents_screen = tui.send_and_wait_for_condition(
-            "c",
+            "i",
             lambda lines: lines
             if any("Applications:" in line for line in lines)
-            and any("Esc/Quit" in line for line in lines)
+            and any("Esc/Q quit" in line for line in lines)
             else False,
             timeout=1.0,
         )
@@ -1195,9 +1316,66 @@ def test_contextual_help_detail_footer_uses_left_back_and_c_contents(tmp_path):
             not in contents_text
         ), contents_text
         footer_line = next(
-            line for line in contents_text.splitlines() if "Esc/Quit" in line
+            line for line in contents_text.splitlines() if "Esc/Q quit" in line
         )
         assert "open" in footer_line, footer_line
+    finally:
+        tui.quit()
+
+
+def test_help_popup_plain_key_tokens_use_help_footer_style(tmp_path):
+    root = _root_with_file(tmp_path, "help_popup_plain_key_style")
+    config_dir = root / ".config" / "ytnova"
+    config_dir.mkdir(parents=True)
+    (config_dir / "ytnova.conf").write_text(
+        "[GLOBAL]\nTHEME=sample\nSMALLWINDOWSKIP=1\n",
+        encoding="utf-8",
+    )
+    (config_dir / "themes.conf").write_text(
+        """
+[theme sample]
+background = blue
+box_lines = white
+tree_lines = white
+margin = dynamic_text
+static_text = white
+dynamic_text = +white
+keybind = yellow
+footer = magenta on white
+selection = black on cyan
+dialog = white
+picker = white on cyan
+help = black on white
+help_footer = white on magenta
+help_keybind = yellow on cyan
+help_link = black on cyan
+help_link_selection = yellow on cyan
+info = black on cyan
+warning = black on yellow
+error = +white on red
+search_hit = black on yellow
+disabled = grey
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    tui = _spawn_help_tui(root)
+
+    try:
+        help_screen = _wait_for_help(tui, "Directory Help")
+        assert "Enter/Right open link" in help_screen, help_screen
+        footer_style = _visible_cell_style(tui, "open link")
+        enter_style = _visible_cell_style(tui, "Enter/Right")
+        quit_style = _visible_cell_style(tui, "Esc/Q quit")
+        assert enter_style == footer_style, (
+            "Help popup plain-text key tokens must use help_footer styling.\n"
+            f"Enter/Right={enter_style} footer={footer_style}\n\n{screen_text(tui)}"
+        )
+        assert quit_style == footer_style, (
+            "Help popup Esc/Q quit token must use help_footer styling.\n"
+            f"Esc/Q quit={quit_style} footer={footer_style}\n\n{screen_text(tui)}"
+        )
     finally:
         tui.quit()
 

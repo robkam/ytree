@@ -583,6 +583,54 @@ def test_dir_window_navigation_selects_expected_directory(ytnova_binary, tmp_pat
     tui.quit()
 
 
+def test_tab_wraps_to_the_next_visible_tree_sibling(ytnova_binary, tmp_path):
+    home = tmp_path / "home"
+    root = tmp_path / "tab_visible_sibling_wrap"
+    home.mkdir()
+    root.mkdir()
+    (home / ".ytnova").write_text(
+        "[GLOBAL]\nHIDEDOTFILES=1\nTREEDEPTH=1\nSMALLWINDOWSKIP=1\n",
+        encoding="utf-8",
+    )
+    for name in (".hidden_first_sibling", "visible_first_sibling", "visible_last_sibling"):
+        (root / name).mkdir()
+
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary, cwd=str(root), env_extra={"HOME": str(home)}
+    )
+    try:
+        assert tui.wait_for_content("visible_last_sibling", timeout=1.5), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+        reached_last = tui.send_and_wait_for_condition(
+            Keys.DOWN,
+            lambda lines: lines
+            if any("Path:" in line and "visible_last_sibling" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert reached_last, _screen_text(tui)
+
+        wrapped = tui.send_and_wait_for_condition(
+            Keys.TAB,
+            lambda lines: lines
+            if any("Path:" in line and "visible_first_sibling" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert wrapped, _screen_text(tui)
+
+        reverse_wrapped = tui.send_and_wait_for_condition(
+            Keys.SHIFT_TAB,
+            lambda lines: lines
+            if any("Path:" in line and "visible_last_sibling" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert reverse_wrapped, _screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_dir_window_compare_prompt_round_trip(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_compare_prompt"
     root.mkdir()

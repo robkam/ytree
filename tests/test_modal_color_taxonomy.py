@@ -36,7 +36,7 @@ def test_shared_help_popup_uses_help_palette():
     assert "UI_ROLE_HELP_FOOTER, UI_ROLE_HELP_KEYBIND" in footer_block
     assert "UI_ROLE_HELP_KEYBIND" in footer_block
     assert "UI_ROLE_HELP_HEADING" in help_source
-    assert "UI_ROLE_HELP_TERM" in help_source
+    assert "UI_ROLE_HELP_TOPIC" in help_source
     assert "UI_ROLE_HELP_ATTENTION" in help_source
     assert "COLOR_PAIR(UI_ROLE_WARNING)" not in popup_block
     assert "COLOR_PAIR(UI_ROLE_ERROR)" not in popup_block

@@ -147,8 +147,8 @@ class YtreeNovaController:
             raise pexpect.TIMEOUT(f"Filtered file {filename!r} did not appear")
 
     def input_text(self, text):
-        """Clears line with Ctrl-U and types text."""
-        # Use Ctrl-U (\x15) instead of Ctrl-K (\x0b) because UI_ReadString
+        """Clears line with C-u and types text."""
+        # Use C-u (\x15) instead of C-k (\x0b) because UI_ReadString
         # starts with the cursor at the end of the line.
         self.child.send("\x15")
         self._read_output(timeout=0.0)

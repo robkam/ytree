@@ -342,7 +342,7 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytnova_bin
 
     tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke("\x10", wait=0.3)  # Ctrl-P history-up
+    tui.send_keystroke("\x10", wait=0.3)  # C-p history-up
     assert tui.wait_for_content("Pin/unpin", timeout=1.0)
     assert "Delete" in _screen_text(tui), _screen_text(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -872,10 +872,10 @@ def test_file_view_ctrl_k_remains_tagged_copy(ytnova_binary, tmp_path):
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
     tui.send_keystroke("t", wait=0.2)       # tag current file
-    tui.send_keystroke("\x0b", wait=0.35)   # Ctrl-K in file view
+    tui.send_keystroke("\x0b", wait=0.35)   # C-k in file view
 
     screen = _screen_text(tui)
-    assert "COPY: TAGGED FILES" in screen, f"Ctrl-K in file view should keep tagged-copy behavior:\n{screen}"
+    assert "COPY: TAGGED FILES" in screen, f"C-k in file view should keep tagged-copy behavior:\n{screen}"
 
     tui.send_keystroke(Keys.ESC, wait=0.2)
     tui.quit()

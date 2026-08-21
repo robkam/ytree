@@ -28,7 +28,10 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
         (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
     )
 
-    helpgen.validate_topic_inventory(f1_topics, man_topics)
+    helpgen.validate_topic_inventory(f1_topics)
+    assert {topic.topic_id for topic in f1_topics} != {
+        topic.topic_id for topic in man_topics
+    }
     helpgen.validate_locale_topic_projection(
         f1_topics, de_f1_topics, locale_id="de"
     )
@@ -66,16 +69,29 @@ def test_help_generator_renders_runtime_topics_and_usage_projection():
     assert 'generated_help_topics_de' in header
     assert '"main.dir"' in header
     assert '"prompt.compare-target"' in header
+
+
     assert '"prompt.output-destination"' in header
     assert '"prompt.output-format"' not in header
     assert 'generated_help_links_en_list_jump' in header
     assert 'generated_help_links_de_list_jump' in header
     assert 'generated_help_links_en_filter' in header
     assert 'generated_help_links_de_filter' in header
+    assert "GeneratedHelpLongFormSection" not in header
+    assert "long_form_section_count" not in header
 
 
-def test_help_generator_rejects_missing_long_form_section():
-    broken_source = """## topic:test
+def test_help_generator_uses_portable_control_key_notation():
+    source = (REPO_ROOT / "scripts" / "generate_help_assets.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "The symbol `^` denotes" not in source
+    assert "`C-<key>` means hold the Control key" in source
+
+
+def test_help_generator_allows_f1_topics_without_long_form_sections():
+    f1_source = """## topic:test
 ```ytnova-help-meta
 title: Test
 contexts: main.test
@@ -84,8 +100,23 @@ contexts: main.test
 One line.
 """
 
+    topics = helpgen.parse_help_source(f1_source)
+
+    assert topics[0].long_form_sections == ()
+
+
+def test_help_generator_requires_long_form_sections_for_man_source():
+    man_source = """## topic:test
+```ytnova-help-meta
+title: Test
+contexts: none
+```
+### Contextual F1
+One line.
+"""
+
     with pytest.raises(helpgen.HelpSourceError, match="missing ### Long form"):
-        helpgen.parse_help_source(broken_source)
+        helpgen.parse_help_source(man_source, require_long_form=True)
 
 
 def test_help_generator_rejects_duplicate_runtime_context_ownership():
@@ -138,7 +169,7 @@ Body.
     man_topics = helpgen.parse_help_source(man_source)
 
     with pytest.raises(helpgen.HelpSourceError, match="prompt.shared"):
-        helpgen.validate_topic_inventory(f1_topics, man_topics)
+        helpgen.validate_topic_inventory(f1_topics)
 
 
 def test_help_generator_drift_checker_rejects_stale_output(tmp_path):

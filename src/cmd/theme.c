@@ -52,7 +52,7 @@ static const char *required_roles[THEME_ROLE_COUNT] = {
     "background",  "box_lines", "tree_lines",  "margin",
     "static_text", "dynamic_text", "keybind",   "footer",
     "selection",   "dialog",    "picker",      "picker_selection",
-    "help",        "help_footer", "help_heading", "help_term",
+    "help",        "help_footer", "help_heading", "help_topic",
     "help_attention", "help_alert", "help_keybind", "help_link",
     "help_link_selection", "help_box_lines",
     "info",        "warning",   "error",       "search_hit",
@@ -215,7 +215,7 @@ static BOOL ThemeRoleIsOptional(const char *name) {
          (strcmp(name, "picker_selection") == 0 ||
           strcmp(name, "help_footer") == 0 ||
           strcmp(name, "help_heading") == 0 ||
-          strcmp(name, "help_term") == 0 ||
+          strcmp(name, "help_topic") == 0 ||
           strcmp(name, "help_attention") == 0 ||
           strcmp(name, "help_alert") == 0 ||
           strcmp(name, "help_keybind") == 0 ||
@@ -368,7 +368,7 @@ static void ApplyThemeRoles(ViewContext *ctx, ThemeRoleValue *roles) {
 
     if (strcmp(roles[i].name, "help_footer") == 0 ||
         strcmp(roles[i].name, "help_heading") == 0 ||
-        strcmp(roles[i].name, "help_term") == 0 ||
+        strcmp(roles[i].name, "help_topic") == 0 ||
         strcmp(roles[i].name, "help_attention") == 0 ||
         strcmp(roles[i].name, "help_alert") == 0 ||
         strcmp(roles[i].name, "help_keybind") == 0 ||
@@ -794,7 +794,7 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
         FindRole(roles, "picker_selection");
     ThemeRoleValue *help_footer_role = FindRole(roles, "help_footer");
     ThemeRoleValue *help_heading_role = FindRole(roles, "help_heading");
-    ThemeRoleValue *help_term_role = FindRole(roles, "help_term");
+    ThemeRoleValue *help_topic_role = FindRole(roles, "help_topic");
     ThemeRoleValue *help_attention_role = FindRole(roles, "help_attention");
     ThemeRoleValue *help_alert_role = FindRole(roles, "help_alert");
     ThemeRoleValue *help_keybind_role = FindRole(roles, "help_keybind");
@@ -819,14 +819,14 @@ static ThemeLoadStatus ReadThemeLineSourceInternal(THEME_LOAD_CTX *ctx,
                "help");
       help_heading_role->is_set = TRUE;
     }
-    if (help_term_role != NULL) {
-      snprintf(help_term_role->value, sizeof(help_term_role->value), "%s",
+    if (help_topic_role != NULL) {
+      snprintf(help_topic_role->value, sizeof(help_topic_role->value), "%s",
                "help_heading");
-      help_term_role->is_set = TRUE;
+      help_topic_role->is_set = TRUE;
     }
     if (help_attention_role != NULL) {
       snprintf(help_attention_role->value,
-               sizeof(help_attention_role->value), "%s", "help_term");
+               sizeof(help_attention_role->value), "%s", "help_topic");
       help_attention_role->is_set = TRUE;
     }
     if (help_alert_role != NULL) {

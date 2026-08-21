@@ -440,7 +440,6 @@ Ordering policy (for all editors, including AI editors):
 *   Behavior is deterministic and static (no marquee/auto-scrolling text).
 *   Footer keybinding hints and F1 help document these keys in file contexts where they apply.
 *   Add focused regression coverage for width adjust left/right/reset behavior and bounds handling.
-*   **Related:** Task 22 (F7 pane-width tuning).
 *   - [ ] **Status:** Not Started.
 
 ### **Task 19: Adjustable List/Preview Width in `F7` Mode**
@@ -1084,7 +1083,7 @@ Ordering policy (for all editors, including AI editors):
 #### **Task 43.2: Theme the Contextual F1 Reading Surface and Separate Footer Guidance Role**
 *   **Goal:** Define and implement distinct theme-role behavior for the contextual `F1` reading surface and the always-visible footer guidance surface now that the base role-based theme system exists.
 *   **Rationale:** Task 60 established the general theme architecture, but it intentionally left `help` overloaded across the footer and the `F1` reading surface. Contextual help now needs its own follow-on theming pass so the reading surface, linked text, and active linked target remain readable, restrained, and consistent across bundled themes while the footer keeps an independently tunable low-noise scheme.
-*   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, keep the always-visible main footer on `footer`, give the popup strip its own `help_footer`, and allow narrower help-popup roles such as `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_link`, and `help_link_selection` where the bounded help semantics need them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
+*   **Theme Contract:** All footer and `F1` visual styling belongs in `etc/ytnova.themes` / runtime theme data, not `ytnova.conf`. Reserve `help` for the `F1` reading surface, keep the always-visible main footer on `footer`, give the popup strip its own `help_footer`, and allow narrower help-popup roles such as `help_heading`, `help_topic`, `help_attention`, `help_alert`, `help_link`, and `help_link_selection` where the bounded help semantics need them. Prompt/dialog surfaces remain separate concerns unless a later task explicitly gives them their own theme role.
 *   **Scope Limit:** This task owns the surface-level help UI roles for the popup body, popup footer strip, frame lines, link text, active link emphasis, help-popup mnemonic emphasis, popup title emphasis, popup term/definition labels, and bounded authored attention/alert tiers. It does **not** open arbitrary free-form per-span theming or raw presentational directives inside help prose; broader semantic expansion remains deferred to Idea FE-9 after the content/IA settles.
 *   **Orthodox Default Direction:** Keep the help page readable and quiet on the orthodox-blue theme: black-on-grey body text, black-on-cyan linked text, and yellow-on-cyan active-link emphasis are acceptable; ordinary body text must remain easier to read than navigation chrome.
 *   The footer must remain concise and lower-noise than modal help while still allowing its own color treatment.
@@ -1147,28 +1146,41 @@ Ordering policy (for all editors, including AI editors):
 *   Any "tips and tricks" guidance admitted into `F1` is curated as reusable operator guidance rather than leaking one-off editorial advice into arbitrary local pages.
 *   - [x] **Status:** Completed.
 
-#### **Task 43.5: Rewrite Contextual F1 Prose for Unix-Quality Clarity**
-*   **Goal:** Make the authored `F1` text properly presented, well written, informative, concise, and readable under popup constraints now that Task 43.4 has established the runtime/shared-topic structure.
-*   **Rationale:** Good help structure is necessary but not sufficient. Even with correct routing and topic ownership, `F1` still fails if the prose reads like rough implementation notes. Users need operator-facing help that is calm, direct, and useful on the first read.
-*   **Unix Writing Principle:** Follow Unix documentation layering and tone. `F1` is the short contextual operator path, not the full manual. It must explain what matters now in plain language, leave exhaustive edge-case reference to the manpage/usage docs, and never feel like a dumped internal design note.
-*   **Writing Contract:** Prefer short direct sentences, compact bullets, and stable repeated terminology. Avoid filler, throat-clearing, self-referential “this page explains...” prose, unnecessary implementation detail, and over-technical wording when a simpler operator-facing phrase will do. Do not replace one giant paragraph with several smaller but still unfocused blobs; each local page must be intentionally chunked for scanning.
-*   **Presentation Contract:** Each contextual popup must feel like one or two readable popup pages, not a wall of text. The opening section must answer the active question quickly, command rows must be brief and concrete, and shared-topic pages must teach the reusable rule once without becoming mini-manuals. Where a topic needs more detail than fits comfortably, split it into clearer sibling/shared topics rather than letting one page bloat. The reading surface must preserve full text in constrained widths through wrapping/scroll rather than silently clipping the right edge.
-*   **Prompt-Proliferation Guard:** Do not spawn dedicated prompt pages merely because a command happens to open a prompt. Prompt pages must earn their existence by owning non-obvious input semantics; otherwise the prose must stay on the parent surface/shared topic and the prompt footer must stay simpler.
-*   **Source-Authoring Contract:** `etc/help/f1.en.md` must remain an intelligible authored document, not just a schema-valid generator input. Maintainers must be able to open one topic block and understand its purpose, owner topic, and local/shared boundary without mentally reconstructing hidden machinery. If the structure becomes awkward enough that ordinary editing feels like working around the generator instead of editing help, that is a defect.
-*   **Editorial Ownership Contract:** Local pages own only the wording needed for the active surface. Shared topics own the reusable explanation. When the same rule family appears in multiple places, keep the durable phrasing in one owner topic and keep local rows to the local consequence. The common path must be one short local summary plus one owning explanation, not a chain of half-explanations spread across a surface row, an intermediate detail page, and a shared explainer. If an intermediate detail page exists, it must own a clearly different concept rather than the missing half of the same explanation. When tags, wildcard rules, or other syntax materially change a command's behavior, the owning local/shared explanation must say so plainly rather than leaving the reader to infer it. The prose pass must reconcile duplicated awkward wording, not merely copy-edit each duplicate independently.
+#### **Task 43.5: Make Contextual F1 Help Accurate, Direct, and Task-Focused**
+*   **Goal:** Make `etc/help/f1.en.md` and `etc/help/f1.de.md` reliable, plain-language contextual help for using YtreeNova now. `F1` help must explain the current screen, prompt, or action directly without turning into a manual page.
+*   **Rationale:** Task 43.4 established the runtime/topic structure, but structure alone does not make `F1` trustworthy. Users still lose confidence when contextual help is vague, misnamed, overly indirect, inconsistently scoped, or inaccurate about what the program actually does. This task makes the authored `F1` help read like operator-facing help instead of rough implementation notes while also reconciling the terminology, parity, and narrow presentation fallout needed to make that help true and usable.
+*   **Standalone Ownership Contract:** This task fully owns the remaining contextual-`F1` prose pass and the narrow supporting cleanup required to complete it. Do not defer necessary `F1` terminology, topic-label, locale-parity, help-only styling, generator, or focused test fixes to the already-completed Task 43.4. If a side issue must be corrected for `F1` help to be accurate, direct, distinguishable, or readable, it is in scope here.
+*   **Source Boundary:** Edit contextual `F1` help only in `etc/help/f1.en.md` and locale equivalents. `etc/help/man.en.md`, generated manpages, and `docs/USAGE.md` are separate reference documentation and are out of scope unless the maintainer explicitly approves cross-boundary edits.
+*   **Permitted Supporting Scope:** Narrow runtime, generator, theme-role, and focused test changes are allowed when required to support corrected `F1` behavior or presentation. This includes terminology cleanup, topic/title renames, locale inventory reconciliation, `help_topic` / `help_footer` / `help_keybind` presentation fixes, and small generation/runtime adjustments that keep the resulting popup truthful and readable. Broad theming work, reference-doc rewrites, or unrelated architecture changes remain out of scope.
+*   **Terminology Contract:**
+    *   `Footer` means YtreeNova’s always-visible bottom command strip.
+    *   `Help strip` means the command row at the bottom of the `F1` popup.
+    *   `Help Index` means the `F1` topic index. Its help-strip command is `I Index`.
+    *   `F1 Navigation` means how to use the help popup and `Help Index`.
+    *   `YtreeNova Navigation` means how to move through YtreeNova lists and screens. These are separate topics.
+    *   `Help topic` means an `F1` page or destination.
+    *   Theme role `help_topic` means visually distinct term/definition labels and inline backticked terms in `F1` where users need to identify or distinguish them.
+*   **Writing Contract:** Start with what the user can do, in ordinary language. Prefer `Enter` or `Right` opens the selected link over unexplained bare `open`. Avoid self-narration, internal jargon, vague abstractions, and filler such as `this page explains`, `surface`, `familiar list navigation`, or `topic index`. Keep sentences short, concrete, and scannable under popup constraints. A local page should answer the immediate question first, note only the local exception that matters there, and point once to the deeper owning explanation if needed.
+*   **Navigation/Usage Contract:** Do not repeat program-navigation rules on the `F1 Navigation` page. The `YtreeNova Navigation` page owns list/navigation-key explanation, including `/` jump, keyboard-first design, incidental mouse behavior, terminal key collisions, `Alt` portability, and where `Tab` is specific to `F8` or prompts. Local pages should state only the local consequence of those rules unless a local exception materially changes behavior.
+*   **Information-Architecture Contract:** `Help Index` lists `Navigation`, which opens the `YtreeNova Navigation` topic, not `F1 Navigation`. `F1 Navigation` is reached from the help strip’s `Navigation` command. `Help Index` does not show its own `I Index` command. Each local page must answer: what this screen or prompt is for; what the user can do here; what local exception or trap matters; and where the one deeper explanation lives if needed. A reusable explanation has one owner. Local pages give only the local consequence and one direct link. Do not create prompt pages unless the prompt owns non-obvious syntax, scope, placeholders, wildcard behavior, or special controls that users need at input time.
+*   **Accuracy Audit Contract:** For every factual statement in English `F1` help, verify it against implementation, specification, or intentionally approved behavior. Correct misleading keys, defaults, conditions, paths, terminology, scope, and command descriptions rather than smoothing the prose around them. Mirror each meaning change in German `F1` help. If a claim cannot be verified, remove it, correct it, or leave the task explicitly blocked on that unresolved point rather than guessing.
+*   **Locale-Parity Contract:** English and German `F1` sources must keep the same topic IDs, context ownership, and link targets even when wording differs by language. Terminology may be localized, but help structure and destination mapping must remain aligned.
+*   **Presentation Contract:** `F1` text must remain readable at narrow popup widths. Backticked terms and distinct term/definition labels that users need to identify must visibly use `help_topic`. Mnemonic-highlighted help-strip commands must visibly use configured `help_keybind` styling. Plain-text help-strip key-token labels such as `Enter/Right` and `Esc/Quit` must use `help_footer`. Help presentation must stay contextual and readable without depending on right-edge clipping or hard-coded color assumptions.
 *   **Acceptance Criteria:**
-*   Local contextual pages are scannable on first read and do not present dense walls of prose.
-*   Shared topics are informative without becoming overly verbose or too technical for ordinary operator use.
-*   Command rows use short, concrete, surface-accurate wording instead of gobbets of text or implementation narration.
-*   Repeated rule families use consistent wording owned by the correct shared/local topic boundary.
-*   The common read path for a reusable rule is normally “surface summary -> one owning explanation,” not “surface summary -> intermediate partial explanation -> real explanation elsewhere,” unless each hop owns a clearly different concept.
-*   Shared explainers read coherently on their own and do not depend on users collecting half the explanation from the surface row and the other half from some third page.
-*   Tag-sensitive or syntax-heavy commands are not left underexplained: the owning local/shared help path gives a complete operator-facing explanation rather than a placeholder-grade summary.
-*   Popup text reads as intentionally presented help, not as rough generated notes or patchwork editorial residue.
-*   Popup text remains readable in narrow layouts without losing right-edge content.
-*   The authored `etc/help/f1.en.md` source remains human-intelligible to edit directly, with topic ownership and local/shared boundaries obvious from the file itself rather than only from generator/runtime knowledge.
-*   The resulting authored help remains compatible with Task 43.3's translator/editability constraints and with Task 43.4's runtime follow-path structure.
-*   - [~] **Status:** In Progress.
+    *   English and German contextual `F1` help is accurate, direct, and operator-facing rather than manual-like or implementation-narrated.
+    *   Every changed factual claim in English `F1` help has been verified against code, spec, or intentionally approved behavior during implementation.
+    *   Misleading or unverified claims are corrected, removed, or explicitly left as blockers; none are papered over with vaguer prose.
+    *   English and German `F1` sources have identical topic IDs, context ownership, and link targets.
+    *   `Help Index`, `F1 Navigation`, and `YtreeNova Navigation` use the intended terminology and remain clearly distinct.
+    *   `Help Index` lists `Navigation` as the entry label for the `YtreeNova Navigation` topic, while `F1 Navigation` remains a separate help-strip destination.
+    *   Local pages stay task-focused, and reusable explanations are owned once rather than half-repeated across multiple pages.
+    *   Prompt pages exist only where prompt-specific syntax or controls justify them.
+    *   Tagged or syntax-sensitive command variants are explained where they materially change what the user can do.
+    *   `F1` help remains distinct from manpage/reference prose and does not require man-source edits to complete this task.
+    *   Required help-only styling and terminology fallout is resolved, including correct `help_topic`, `help_footer`, and `help_keybind` usage where needed for readable `F1` presentation.
+    *   The `F1` popup remains readable at narrow widths.
+    *   `make help-assets`, `make`, and focused help/theme tests pass.
+- [ ] **Status:** Not Started.
 
 #### **Task 43.6: Bring Manpage/Usage Reference Prose in Line with Unix Manpage Conventions**
 *   **Goal:** Make the authored manpage/usage reference text follow expected Unix manpage conventions for structure, tone, scannability, and level of detail instead of reading like an over-dense dump of command rows, repeated boilerplate, or mechanically projected popup content.
@@ -1701,7 +1713,7 @@ Ordering policy (for all editors, including AI editors):
     *   A tracked shim inventory exists (file, symbol, owner task, removal condition).
     *   All shims owned by completed tasks are removed.
     *   CI/QA gate fails if orphaned/expired shim markers exist.
-*   - [x] **Status:** Complete.
+*   - [ ] **Status:** Not Started.
 
 ### **Task 64: UI/UX Snappiness Polish (Targeted Optimization)**
 *   **Goal:** Improve perceived responsiveness in high-frequency flows using profiling-driven optimizations.

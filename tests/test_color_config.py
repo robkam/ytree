@@ -18,7 +18,7 @@ THEME_ROLES = {
     "help",
     "help_footer",
     "help_heading",
-    "help_term",
+    "help_topic",
     "help_attention",
     "help_alert",
     "help_keybind",
@@ -131,7 +131,7 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     classic = _theme_section(source, "theme quiet-blue")
     bash_black = _theme_section(source, "theme bash-black")
 
-    assert "help = black on white\nhelp_footer = help\nhelp_heading = blue\nhelp_term = help_heading\nhelp_attention = help_term\nhelp_alert = help_attention\nhelp_keybind = yellow\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\n# help_box_lines = black on white\n# uses fallback from help fg/bg\n" in norton_blue
+    assert "help = black on white\nhelp_footer = help\nhelp_heading = blue\nhelp_topic = blue\nhelp_attention = red\nhelp_alert = red on yellow\nhelp_keybind = yellow on cyan\nhelp_link = black on cyan\nhelp_link_selection = yellow on cyan\n# help_box_lines = black on white\n# uses fallback from help fg/bg\n" in norton_blue
 
     for section in (classic, bash_black):
         assert _theme_role_names(section) == THEME_ROLES
@@ -157,8 +157,8 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "help = white\n" in classic
     assert "help_footer = help\n" in classic
     assert "help_heading = help\n" in classic
-    assert "help_term = help_heading\n" in classic
-    assert "help_attention = help_term\n" in classic
+    assert "help_topic = help_heading\n" in classic
+    assert "help_attention = help_topic\n" in classic
     assert "help_alert = help_attention\n" in classic
     assert "# help_keybind = keybind" in classic
     assert "# uses fallback from keybind on help_footer background" in classic
@@ -177,8 +177,8 @@ def test_packaged_theme_catalog_defines_required_semantic_roles():
     assert "help = white\n" in bash_black
     assert "help_footer = help\n" in bash_black
     assert "help_heading = help\n" in bash_black
-    assert "help_term = help_heading\n" in bash_black
-    assert "help_attention = help_term\n" in bash_black
+    assert "help_topic = help_heading\n" in bash_black
+    assert "help_attention = help_topic\n" in bash_black
     assert "help_alert = help_attention\n" in bash_black
     assert "# help_keybind = keybind" in bash_black
     assert "help_link = cyan\n" in bash_black
@@ -282,7 +282,7 @@ def test_spec_documents_user_visible_theme_contract():
     assert "`footer`" in spec_source
     assert "`help_footer`" in spec_source
     assert "`help_heading`" in spec_source
-    assert "`help_term`" in spec_source
+    assert "`help_topic`" in spec_source
     assert "`help_attention`" in spec_source
     assert "`help_alert`" in spec_source
     assert "`help_link`" in spec_source
@@ -309,7 +309,8 @@ def test_manpage_documents_user_visible_theme_contract():
     usage_source = _read_source("docs/USAGE.md")
 
     for source in (man_source, usage_source):
-        assert "(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit" in source
+        assert "Press **Enter** or **C** to edit the main config" in source
+        assert "(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit" not in source
         assert (
             "By default this creates `~/.config/ytnova/ytnova.conf`, `~/.config/ytnova/commands.conf`, `~/.config/ytnova/themes.conf`, and `~/.config/ytnova/applications.conf`"
             in source

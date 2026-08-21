@@ -15,6 +15,7 @@ class Keys:
     ENTER = "\r"
     ESC = "\033"
     TAB = "\t"
+    SHIFT_TAB = "\033[Z"
     CTRL_A = "\x01"
     CTRL_S = "\x13"
     CTRL_T = "\x14"

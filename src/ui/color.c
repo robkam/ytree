@@ -16,7 +16,7 @@ UIColor ui_colors[] = {{"dynamic_text", UI_ROLE_DYNAMIC_TEXT, 7, 0},
                        {"help", UI_ROLE_HELP, 7, 0},
                        {"help_footer", UI_ROLE_HELP_FOOTER, 7, 0},
                        {"help_heading", UI_ROLE_HELP_HEADING, 7, 0},
-                       {"help_term", UI_ROLE_HELP_TERM, 7, 0},
+                       {"help_topic", UI_ROLE_HELP_TOPIC, 7, 0},
                        {"help_attention", UI_ROLE_HELP_ATTENTION, 7, 0},
                        {"help_alert", UI_ROLE_HELP_ALERT, 7, 0},
                        {"help_keybind", UI_ROLE_HELP_KEYBIND, 15, 0},
@@ -330,7 +330,8 @@ void ReinitColorPairs(ViewContext *ctx) {
     init_pair(UI_HELP_KEYBIND_BASE_PAIR + (i - 1),
               NormalizeColorIndex(UIColorForeground(UI_ROLE_HELP_KEYBIND),
                                   COLORS),
-              NormalizeColorIndex(UIColorBackground(i), COLORS));
+              NormalizeColorIndex(UIColorBackground(UI_ROLE_HELP_KEYBIND),
+                                  COLORS));
   }
 
   /* Initialize file type colors */

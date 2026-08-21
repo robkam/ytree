@@ -1776,7 +1776,7 @@ int main(int argc, char **argv) {
     return 1;
   if (expect_color("help_heading", COLOR_YELLOW, COLOR_WHITE) != 0)
     return 1;
-  if (expect_color("help_term", COLOR_YELLOW, COLOR_WHITE) != 0)
+  if (expect_color("help_topic", COLOR_YELLOW, COLOR_WHITE) != 0)
     return 1;
   if (expect_color("help_attention", COLOR_YELLOW, COLOR_WHITE) != 0)
     return 1;

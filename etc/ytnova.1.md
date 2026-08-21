@@ -37,7 +37,7 @@ Unlike file managers that rescan directories on demand, ytnova "logs" (scans) di
 ### Auto-Refresh
 ytnova monitors the **currently selected directory** for changes (created/deleted/modified files) and updates the file list automatically.
 
-**Note:** This monitoring is **active only for the current directory**. Changes occurring in parent or sibling directories while they are not selected will not be detected automatically. Use **^L** (Reload) or **F5** to refresh the view when navigating back to previously modified areas. Additionally, auto-refresh relies on kernel notifications. It may not function on network shares (NFS, SMB) or non-native mounts (e.g., WSL Windows drives) where the operating system does not propagate change events.
+**Note:** This monitoring is **active only for the current directory**. Changes occurring in parent or sibling directories while they are not selected will not be detected automatically. Use **C-l** (Reload) or **F5** to refresh the view when navigating back to previously modified areas. Additionally, auto-refresh relies on kernel notifications. It may not function on network shares (NFS, SMB) or non-native mounts (e.g., WSL Windows drives) where the operating system does not propagate change events.
 
 # MODES AND NAVIGATION
 
@@ -45,76 +45,56 @@ ytnova monitors the **currently selected directory** for changes (created/delete
 
 This manual is the fuller reference path for ytnova modes, commands, prompts, and support topics.
 The in-app `F1` popup provides the shorter contextual version for the active surface.
-
-See also: Navigation, Tagged, Shared commands, F2 picker, F10 config.
 ### Navigation
 
 The help popup uses list-style navigation.
 `Up` and `Down` move, `Enter` or `Right` follow, `Left` goes back, and `Esc` or `Q` closes.
-
-See also: Directory mode, File mode, F7 preview, F8 split, F2 picker.
 ### Directory Mode
 
 Directory mode is the logged tree view.
 It owns directory navigation, tree expansion, and directory-scoped commands.
-
-See also: Navigation, Shared commands.
 ### File Mode
 
 File mode is the main file-list view.
 It owns file navigation, file-scoped commands, tagged actions, and export entry points.
-
-See also: Navigation, Tagged, Output.
 ### Archive-Dir Mode
 
 Archive-Dir mode is the tree-style view inside a logged archive.
 It mirrors directory work where the archive format permits it.
-
-See also: Navigation, Directory mode.
 ### Archive-File Mode
 
 Archive-File mode is the file-list view for archive-backed content.
 Some filesystem commands are unavailable or become archive-aware here.
-
-See also: Navigation, File mode, Tagged.
 ### Showall Mode
 
 Showall lists every file inside the current logged volume in one aggregated file list.
 It keeps single-volume scope while flattening directory boundaries.
-
-See also: Navigation, File mode, Tagged.
 ### Global Mode
 
 Global lists files from every logged volume in one aggregated file list.
 It keeps multi-volume scope while flattening directory boundaries.
-
-See also: Navigation, File mode, Tagged.
 ### File Preview Mode
 
 F7 preview overlays file preview controls on top of the underlying file-selection context.
 The preview owns scrolling while the underlying selection still owns the file target.
-
-See also: Navigation, File mode, Applications menu.
 ### Split Screen Mode
 
 Split mode keeps two panels active at once, and runtime F1 opens the directory or file split page for the active panel.
 Use the split page for the live footer command list and this page for the shared split model.
-
-See also: Navigation, Directory split page, File split page.
 # KEY BINDINGS
 
-**Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-`Ctrl` footer variant, and Ctrl-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
+**Note:** All keys are case insensitive unless otherwise noted. `C-<key>` means hold the Control key while pressing `<key>`. For most commands, pressing **C-key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope. The live footer stays low-noise: there is no held-Control footer variant, and control-only tagged/search semantics are explained in the active prompt/**F1** help instead of being shown all the time.
 
 ### Global Commands
 These commands work in most modes:
 
 *   **F1**: Help. Opens a context-sensitive popup for the active runtime surface: directory/file/archive views, Showall/Global lists, `F7` preview, split-panel targeting notes, picker dialogs, and prompt-specific syntax such as `{}` placeholders or tagged-flow semantics.
-*   **F5**: Refresh (same as **^L**).
+*   **F5**: Refresh (same as **C-l**).
 *   **F6**: Toggle the stats panel itself on and off. This does not change the current file or directory view selection.
 *   **F7**: Toggle File Preview Pane.
 *   **F8**: Toggle Split Screen Mode.
 *   **F9**: Open the Applications menu. This picker lists external app presets from `applications.conf` or the packaged defaults; use `{}` for the selected path and `{input}` for prompted text.
-*   **F10**: Open the configuration command surface: `(C)onfig  co(M)mands  (T)hemes  (R)eload  (Esc)/(Q)uit`. Press **Enter** or **C** to edit the main config, **M** to edit `commands.conf`, **T** to edit themes, or **R** to reload the current config/theme/commands set. The commands path owns preset selection plus local command overrides; packaged command presets stay read-only shared data. The Applications catalog lives in `applications.conf` and is edited from `F9`. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
+*   **F10**: Open configuration. Press **Enter** or **C** to edit the main config, **M** to edit `commands.conf`, **T** to edit themes, or **R** to reload the current config/theme/commands set. The commands path owns preset selection plus local command overrides; packaged command presets stay read-only shared data. The Applications catalog lives in `applications.conf` and is edited from `F9`. A successful reload silently repaints; a failed reload keeps the previous working config/theme/commands state and reports the error in the status/footer area.
 *   **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\` is a no-op.
 *   **1 .. 9**: File or directory info band for the active panel (disabled in `F7` preview).
@@ -138,15 +118,15 @@ These commands work in most modes:
     *   `5`, `7`, `8`, and `9` do not change tree rows; they change the panel's file projection instead, so in tree focus they update the small file window and in file focus they update the file window.
     *   Extra view states do not stack in the stats label; it names the one visible active state (`Compact`, `Mini preview`, `File`, or `Git`).
     *   `0`: Currently unused; silent no-op.
-*   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
+*   **C-l**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
-*   **^Q**: **Quit to Directory**. If you exit ytnova with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
+*   **C-q**: **Quit to Directory**. If you exit ytnova with C-q, the last selected directory becomes your current working directory. See shell wrapper function below.
 *   **Q**: **Quit**. Exit ytnova.
 
 ### Vi Keys Mode (Profile Option)
 When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
-`h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
+`h/j/k/l` and `C-d/C-u` (page down/up). To avoid collisions:
 
 *   Use **H/L/K/J** for **Hex/Log/Volume Menu/Compare**.
 *   In file-view contexts, use **D** for **Delete Tagged** and **U** for
@@ -191,7 +171,7 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **Working-set control**: `Tag`, `Untag`, `Tag all`, `Untag all`, and `Invert Tags` build or clear the set that later bulk commands consume.
 * **List control**: `Filter`, `Sort`, `Jump`, and `Dotfiles` change how the current file list is projected. The filter prompt still owns the tagged-only scope toggle on `Tab`.
 * **Metadata and creation**: `Attributes`, `Rename`, `Delete`, `New File`, and `Log` edit file state or add/reload content sources.
-* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands `{}` for one file, and `Ctrl-X` reruns the command once per tagged file.
+* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands `{}` for one file, and `C-x` reruns the command once per tagged file.
 * **Cross-surface actions**: `Compare` enters the compare flow, `Search tagged` narrows the tagged set by content, `Volume` switches logged volumes, and `Quit` exits ytnova.
 ### Archive-Dir Mode
 
@@ -240,13 +220,13 @@ Finally choose which result class to tag on the source side.
 
 Input prompts support standard text-editing shortcuts:
 
-*   **^A / Home**: Start of line.
-*   **^E / End**: End of line.
-*   **^K**: Delete to end of line.
-*   **^U**: Delete to start of line.
-*   **^W**: Delete word left.
-*   **^D / Del**: Delete character.
-*   **^H / Backspace**: Backspace.
+*   **C-a / Home**: Start of line.
+*   **C-e / End**: End of line.
+*   **C-k**: Delete to end of line.
+*   **C-u**: Delete to start of line.
+*   **C-w**: Delete word left.
+*   **C-d / Del**: Delete character.
+*   **C-h / Backspace**: Backspace.
 
 ### Prompt Navigation Keys
 
@@ -326,7 +306,7 @@ Tree/directory views jump among visible directory names, while file-oriented vie
 
 #### Navigation remap
 With `VI_KEYS=1`, lowercase `h`, `j`, `k`, and `l` become `Left`, `Down`, `Up`, and `Right`.
-`Ctrl-U` and `Ctrl-D` become page up and page down.
+`C-u` and `C-d` become page up and page down.
 
 #### Command collisions
 Commands that would steal those lowercase keys move out of the way.
@@ -344,9 +324,9 @@ Profile settings, command labels, themes, and reload all live here.
 ### Theming
 
 #### Theme model
-Themes set semantic roles such as `footer`, `help`, `help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.
+Themes set semantic roles such as `footer`, `help`, `help_footer`, `help_heading`, `help_topic`, `help_attention`, `help_alert`, `help_keybind`, `help_link`, `help_link_selection`, `selection`, `picker`, and `warning`.
 `footer` owns the always-visible main-app footer, while `help` owns the F1 reading body, `help_footer` owns the popup strip, and `help_box_lines` owns the popup frame.
-Headings/titles use `help_heading`, term-style labels use `help_term`, bounded callouts use `help_attention`, and any future stronger urgency tier can use `help_alert`, so help pages stay readable without hard-coded colors.
+Headings/titles use `help_heading`, term-style labels use `help_topic`, bounded callouts use `help_attention`, and any future stronger urgency tier can use `help_alert`, so help pages stay readable without hard-coded colors.
 
 #### Editing path
 Use `F10` to open the theme or config editing path.
@@ -374,12 +354,12 @@ user theme file. Run `ytnova --init` to bootstrap an editable starter catalog.
 
 Theme roles use semantic names such as `dynamic_text`, `static_text`, `keybind`,
 `footer`, `selection`, `dialog`, `picker`, `picker_selection`, `help`,
-`help_footer`, `help_heading`, `help_term`, `help_attention`, `help_alert`,
+`help_footer`, `help_heading`, `help_topic`, `help_attention`, `help_alert`,
 `help_keybind`, `help_link`, `help_link_selection`, `help_box_lines`,
 `warning`, `error`, and
 `search_hit`. `footer` owns the always-visible main-app keybinding strip, while
 `help` owns the F1 reading surface. `help_footer` owns the F1 popup strip,
-`help_heading` owns popup titles, `help_term` owns term-style labels,
+`help_heading` owns popup titles, `help_topic` owns term-style labels,
 `help_attention` owns bounded authored callouts, and `help_alert` is the
 reserved stronger urgency tier. `help_keybind` owns help-popup mnemonic emphasis;
 when it is omitted, runtime falls back to `keybind` on the `help_footer`
@@ -425,7 +405,7 @@ for the selected path and `{input}` for prompted text.
 
 # QUIT TO DIRECTORY
 
-To allow `^Q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
+To allow `C-q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
 
 ```bash
 yt() {
