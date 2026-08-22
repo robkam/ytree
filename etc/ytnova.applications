@@ -35,10 +35,13 @@ ssh connect preset | Host | ssh {input}
 # Convert the selected media file to the output path entered at launch time.
 format convert preset | Output path | ffmpeg -nostdin -hide_banner -i {} {input}
 
+# Requires a graphical desktop session. In a terminal-only environment, leave commented out.
 # open selected item |  | xdg-open {}
 
+# Requires a graphical desktop session. In a terminal-only environment, leave commented out.
 # open typed URL | URL | xdg-open {input}
 
+# Open selected media in mpv. Video playback normally needs a graphical display.
 # open selected media in mpv |  | mpv {}
 
 # Write same-content files in the selected directory to a report in ytnova's current directory.
