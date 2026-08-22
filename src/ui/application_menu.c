@@ -422,7 +422,7 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
                                        sizeof(applications_menu_commands[0])));
     win_width = MINIMUM(win_width, COLS - ctx->layout.stats_width - 2);
 
-    win_height = entry_count + 5;
+    win_height = entry_count + 6;
     win_height = MAXIMUM(win_height, 8);
     win_height = MINIMUM(win_height, ctx->layout.bottom_border_y);
 
@@ -431,7 +431,7 @@ int UI_OpenApplicationsMenu(ViewContext *ctx) {
       win_x = 1;
     win_y = (LINES - win_height) / 2;
 
-    visible_lines = win_height - 5;
+    visible_lines = win_height - 6;
     visible_lines = MAXIMUM(1, visible_lines);
     if (selected_index >= entry_count)
       selected_index = entry_count - 1;

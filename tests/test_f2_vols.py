@@ -707,6 +707,37 @@ def test_f9_applications_menu_selection_only_covers_current_item(tmp_path):
         tui.quit()
 
 
+def test_f9_applications_menu_keeps_a_blank_row_above_command_strip(tmp_path):
+    root = tmp_path / "applications_menu_command_strip_gap"
+    config_dir = root / ".config" / "ytnova"
+    root.mkdir()
+    config_dir.mkdir(parents=True)
+    (root / "seed.txt").write_text("seed", encoding="utf-8")
+    (config_dir / "applications.conf").write_text(
+        "first application |  | true\n"
+        "second application |  | true\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
+
+    try:
+        assert tui.wait_for_content("seed.txt", timeout=1.5), get_screen_text(tui)
+        tui.send_keystroke(Keys.F9, wait=0.4)
+        assert tui.wait_for_content("second application", timeout=1.0), get_screen_text(tui)
+
+        lines = tui.get_screen_dump()
+        last_application_row = next(
+            index for index, line in enumerate(lines) if "second application" in line
+        )
+        command_strip_row = next(
+            index for index, line in enumerate(lines) if "F1 help" in line
+        )
+        assert lines[last_application_row + 1 : command_strip_row], get_screen_text(tui)
+    finally:
+        tui.quit()
+
+
 def test_f9_applications_menu_navigation_keys_and_edit_action(tmp_path):
     root = tmp_path / "applications_menu_edit_nav"
     root.mkdir()
@@ -735,11 +766,11 @@ def test_f9_applications_menu_navigation_keys_and_edit_action(tmp_path):
 
         assert _has_exact_span_text(tui, "wget fetch preset"), get_screen_text(tui)
         tui.send_keystroke(Keys.END, wait=0.3)
-        assert _has_exact_span_text(tui, "format convert preset"), get_screen_text(tui)
+        assert _has_exact_span_text(tui, "duplicate report"), get_screen_text(tui)
         tui.send_keystroke(Keys.HOME, wait=0.3)
         assert _has_exact_span_text(tui, "wget fetch preset"), get_screen_text(tui)
         tui.send_keystroke(Keys.PGDN, wait=0.3)
-        assert _has_exact_span_text(tui, "format convert preset"), get_screen_text(tui)
+        assert _has_exact_span_text(tui, "duplicate report"), get_screen_text(tui)
         tui.send_keystroke(Keys.PGUP, wait=0.3)
         assert _has_exact_span_text(tui, "wget fetch preset"), get_screen_text(tui)
 
