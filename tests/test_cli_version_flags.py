@@ -71,6 +71,7 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     assert "# applications.conf starter for YtreeNova F9 application presets." in created_applications
     assert "# label | prompt | command" in created_applications
     assert "open selected item |  | xdg-open {}" in created_applications
+    assert "duplicate report |  | jdupes {} > ytnova-duplicates.txt" in created_applications
 
     profile.write_text("SENTINEL\n", encoding="utf-8")
     commands.write_text("COMMANDS SENTINEL\n", encoding="utf-8")
