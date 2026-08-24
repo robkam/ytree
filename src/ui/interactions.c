@@ -737,13 +737,13 @@ int GetCommandLine(ViewContext *ctx, char *command_line) {
   int result = -1;
   PromptHelpTopic help_topic = PROMPT_HELP_EXECUTE_FILE;
   UIPromptOptions options = {0};
-  const char *prompt = "COMMAND (append {} to operate on file):";
+  const char *prompt = "COMMAND ({} inserts selected path):";
 
   if (!ctx || !ctx->active || !command_line)
     return -1;
 
   ClearHelp(ctx);
-  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", " {}");
+  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", " {} ");
   options.help_callback = ShowPromptHelpCallback;
   options.help_data = &help_topic;
   options.cursor_at_start = TRUE;
@@ -769,13 +769,13 @@ int GetTaggedCommandLine(ViewContext *ctx, char *command_line) {
   int result = -1;
   PromptHelpTopic help_topic = PROMPT_HELP_EXECUTE_FILE;
   UIPromptOptions options = {0};
-  const char *prompt = "COMMAND (append {} to operate on tagged files):";
+  const char *prompt = "COMMAND ({} inserts selected path):";
 
   if (!ctx || !ctx->active || !command_line)
     return -1;
 
   ClearHelp(ctx);
-  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", " {}");
+  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", " {} ");
   options.help_callback = ShowPromptHelpCallback;
   options.help_data = &help_topic;
   options.cursor_at_start = TRUE;

@@ -174,8 +174,11 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
 int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
                    WalkingPackage *walking_package, Statistic *s) {
   char command_line[COMMAND_LINE_LENGTH + 1];
+  char path[PATH_LENGTH + 1];
   char raw_path[PATH_LENGTH + 1];
   const char *template_ptr;
+  int result = -1;
+  int start_dir_fd;
 
   walking_package->new_fe_ptr = fe_ptr;
 
@@ -199,5 +202,18 @@ int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
     return -1;
   }
 
-  return SilentSystemCallEx(ctx, command_line, FALSE, s);
+  start_dir_fd = open(".", O_RDONLY);
+  if (start_dir_fd == -1) {
+    return -1;
+  }
+
+  if (chdir(GetPath(fe_ptr->dir_entry, path)) == 0) {
+    result = SilentSystemCallEx(ctx, command_line, FALSE, s);
+    if (fchdir(start_dir_fd) == -1) {
+      result = -1;
+    }
+  }
+
+  close(start_dir_fd);
+  return result;
 }

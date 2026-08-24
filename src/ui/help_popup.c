@@ -347,8 +347,8 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int start_x,
     if (row->text != NULL && row->text[0] != '\0' &&
         x < start_x + content_width) {
       if (row->prefix != NULL && row->prefix[0] != '\0') {
-        mvwprintw(win, y, x, ": ");
-        x += 2;
+        mvwprintw(win, y, x, row->kind == UI_HELP_POPUP_LINK_TEXT ? " " : ": ");
+        x += row->kind == UI_HELP_POPUP_LINK_TEXT ? 1 : 2;
       }
       if (x < start_x + content_width)
         RenderHelpInlineText(win, y, x, content_width - (x - start_x),
@@ -568,6 +568,12 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                  &effective_footer_commands,
                                  &effective_footer_count);
   content_width = width - 4;
+  if (footer_spec != NULL && footer_spec->initial_visible_row > 0)
+    scroll_line_offset = HelpPopupRowStartLine(
+        rows, (int)row_count,
+        MINIMUM(footer_spec->initial_visible_row, (int)row_count - 1));
+  if (scroll_line_offset > total_content_lines - content_lines)
+    scroll_line_offset = MAXIMUM(total_content_lines - content_lines, 0);
 
   win = newwin(height, width, win_y, win_x);
   if (win == NULL)

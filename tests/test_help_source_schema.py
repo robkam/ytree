@@ -207,6 +207,10 @@ def test_ytnova_navigation_keeps_its_facts_in_visible_contextual_help():
         assert "C-[" in topic.group("contextual")
         assert "Alt" in topic.group("contextual")
         assert "Tab" in topic.group("contextual")
+        assert "topic:list-jump" in topic.group("contextual")
+        assert "topic:f7" in topic.group("contextual")
+        assert "topic:f8" in topic.group("contextual")
+        assert not (topic.group("links") or "").strip()
 
 
 def test_contextual_help_uses_portable_control_key_notation():

@@ -277,7 +277,7 @@ It owns file navigation, file-scoped commands, tagged actions, and export entry 
 * **Working-set control**: `Tag`, `Untag`, `Tag all`, `Untag all`, and `Invert Tags` build or clear the set that later bulk commands consume.
 * **List control**: `Filter`, `Sort`, `Jump`, and `Dotfiles` change how the current file list is projected. The filter prompt still owns the tagged-only scope toggle on `Tab`.
 * **Metadata and creation**: `Attributes`, `Rename`, `Delete`, `New File`, and `Log` edit file state or add/reload content sources.
-* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands `{}` for one file, and `C-x` reruns the command once per tagged file.
+* **Output and shell handoff**: `Output`, `Pipe`, `Execute`, and `Archive` export the current file or tagged set. `Execute` expands the prefilled `{}` path, and `C-x` reruns the command once per tagged file.
 * **Cross-surface actions**: `Compare` enters the compare flow, `Search tagged` narrows the tagged set by content, `Volume` switches logged volumes, and `Quit` exits ytnova.
 
 ## topic:archive-dir
@@ -444,11 +444,10 @@ title: Execute File Help
 contexts: prompt.execute-file
 ```
 ### Contextual F1
-The file execute prompt runs a shell command against the current file or reruns it once per tagged file.
-`{}` expands to one selected file path.
+The file execute prompt starts with `{}` for the selected file path. Type the command before it and any following shell syntax after it.
 ### Long form
 #### Placeholder rules
-`{}` stands for one selected file path.
+`{}` stands for one selected file path, such as `mv {} /tmp` or `wc {} > count`.
 When you use the tagged rerun path, the same command is repeated once per tagged file.
 
 ## topic:execute-dir
@@ -457,11 +456,10 @@ title: Execute Directory Help
 contexts: prompt.execute-dir
 ```
 ### Contextual F1
-The directory execute prompt runs a shell command against the current directory path or reruns it once per tagged scope item.
-`{}` expands to one selected path.
+The directory execute prompt starts with `{}` for the current directory path. Type the command before it and any following shell syntax after it.
 ### Long form
 #### Placeholder rules
-`{}` stands for the current directory path.
+`{}` stands for the current directory path, such as `tar -cf archive.tar {}`.
 The tagged rerun path still walks tagged files from the active list, not tagged directories from somewhere else.
 
 ## topic:search-tagged

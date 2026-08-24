@@ -38,6 +38,8 @@ typedef struct {
   const GeneratedHelpTopic *topic;
   size_t selected_item_index;
   size_t current_detail_index;
+  size_t active_inline_link_index;
+  int scroll_line_offset;
   BOOL contextual_origin;
 } RuntimeHelpView;
 
@@ -71,6 +73,11 @@ typedef struct {
   size_t related_link_first_row;
   size_t related_link_count;
   size_t active_related_link_index;
+  size_t inline_link_rows[GENERATED_HELP_MAX_ITEMS];
+  char inline_link_labels[GENERATED_HELP_MAX_ITEMS][64];
+  char inline_link_targets[GENERATED_HELP_MAX_ITEMS][64];
+  size_t inline_link_count;
+  size_t active_inline_link_index;
   size_t reselection_anchor_index;
   size_t previous_visible_start;
   size_t previous_visible_end;
@@ -391,6 +398,18 @@ static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size,
     return;
 
   while (*source != '\0' && out + 1 < dest_size) {
+    if (!in_code && *source == '[') {
+      const char *label_end = strstr(source, "](topic:");
+      const char *target_end = label_end != NULL ? strchr(label_end, ')') : NULL;
+
+      if (label_end != NULL && target_end != NULL) {
+        source++;
+        while (source < label_end && out + 1 < dest_size)
+          dest[out++] = *source++;
+        source = target_end + 1;
+        continue;
+      }
+    }
     if (*source == '\\' && source[1] != '\0') {
       source++;
       dest[out++] = *source++;
@@ -435,11 +454,12 @@ static void AppendHelpTextWithSpacing(RuntimeHelpPopupState *state,
       *line_index >= GENERATED_HELP_MAX_TEXT_LINES)
     return;
 
-  len = strlen(text);
+  StripHelpMarkdown(text, state->text_lines[*line_index],
+                    sizeof(state->text_lines[*line_index]), TRUE);
+  len = strlen(state->text_lines[*line_index]);
   if (len >= GENERATED_HELP_MAX_TEXT_WIDTH)
     len = GENERATED_HELP_MAX_TEXT_WIDTH - 1;
 
-  memcpy(state->text_lines[*line_index], text, len);
   state->text_lines[*line_index][len] = '\0';
   state->rows[*row_count].kind = UI_HELP_POPUP_TEXT;
   state->rows[*row_count].prefix = NULL;
@@ -450,6 +470,57 @@ static void AppendHelpTextWithSpacing(RuntimeHelpPopupState *state,
   state->rows[*row_count].compact_with_previous = compact_with_previous;
   (*row_count)++;
   (*line_index)++;
+}
+
+static void RecordInlineTopicLink(RuntimeHelpPopupState *state,
+                                  const char *source, size_t first_row,
+                                  size_t row_count) {
+  const char *target;
+  const char *end;
+  size_t target_len;
+  const char *label_start;
+  const char *label_end;
+  size_t label_len;
+
+  if (state == NULL || source == NULL ||
+      state->inline_link_count >= GENERATED_HELP_MAX_ITEMS)
+    return;
+  label_start = strchr(source, '[');
+  label_end = label_start != NULL ? strstr(label_start, "](topic:") : NULL;
+  if (label_start == NULL || label_end == NULL)
+    return;
+  target = label_end + strlen("](topic:");
+  end = strchr(target, ')');
+  if (end == NULL || end == target)
+    return;
+  target_len = (size_t)(end - target);
+  if (target_len >= sizeof(state->inline_link_targets[0]))
+    return;
+  label_len = (size_t)(label_end - label_start - 1);
+  if (label_len == 0 || label_len >= sizeof(state->inline_link_labels[0]))
+    return;
+  memcpy(state->inline_link_targets[state->inline_link_count], target,
+         target_len);
+  state->inline_link_targets[state->inline_link_count][target_len] = '\0';
+  memcpy(state->inline_link_labels[state->inline_link_count], label_start + 1,
+         label_len);
+  state->inline_link_labels[state->inline_link_count][label_len] = '\0';
+  state->inline_link_rows[state->inline_link_count] = first_row;
+  if (first_row < row_count) {
+    char *text = (char *)state->rows[first_row].text;
+
+    if (strncmp(text, state->inline_link_labels[state->inline_link_count],
+                label_len) == 0) {
+      text += label_len;
+      while (*text == ' ')
+        text++;
+      memmove((char *)state->rows[first_row].text, text, strlen(text) + 1);
+      state->rows[first_row].kind = UI_HELP_POPUP_LINK_TEXT;
+      state->rows[first_row].prefix =
+          state->inline_link_labels[state->inline_link_count];
+    }
+  }
+  state->inline_link_count++;
 }
 
 static size_t NextWrappedHelpChunk(const char **cursor_ptr, int wrap_width,
@@ -1069,12 +1140,14 @@ static size_t BuildTextRows(RuntimeHelpPopupState *state,
 
     if (len > 0) {
       char line[GENERATED_HELP_MAX_TEXT_WIDTH];
+      size_t first_row = row_count;
 
       if (len >= sizeof(line))
         len = sizeof(line) - 1;
       memcpy(line, cursor, len);
       line[len] = '\0';
       AppendWrappedHelpText(state, &row_count, &line_index, line);
+      RecordInlineTopicLink(state, line, first_row, row_count);
     } else {
       AppendHelpTextWithSpacing(state, &row_count, &line_index, "", FALSE);
     }
@@ -1329,7 +1402,8 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
   if (state->contextual_list_mode)
     return HandleContextualListFooterKey(state, ch);
 
-  if (state->contextual_origin && state->related_link_count == 0)
+  if (state->contextual_origin && state->related_link_count == 0 &&
+      state->inline_link_count == 0)
     return HandleContextualOriginFooterKey(state, ch);
 
   key = islower(ch) ? toupper(ch) : ch;
@@ -1347,14 +1421,48 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
 
   if (ch == KEY_UP || ch == KEY_DOWN) {
     size_t link_row;
-    size_t visible_start;
-    size_t visible_end;
+    size_t visible_start = (size_t)MAXIMUM(state->visible_row_offset, 0);
+    size_t visible_end =
+        visible_start + (size_t)MAXIMUM(state->visible_row_count, 0);
+
+    if (state->inline_link_count > 0) {
+      size_t index;
+
+      if (state->active_inline_link_index == GENERATED_HELP_NO_SELECTION) {
+        if (ch != KEY_DOWN)
+          return 0;
+        for (index = 0; index < state->inline_link_count; ++index) {
+          link_row = state->inline_link_rows[index];
+          if (link_row >= visible_start && link_row < visible_end) {
+            state->active_inline_link_index = index;
+            return -1;
+          }
+        }
+        return 0;
+      }
+      index = state->active_inline_link_index;
+      if (ch == KEY_UP) {
+        if (index == 0) {
+          state->active_inline_link_index = GENERATED_HELP_NO_SELECTION;
+          return 0;
+        }
+        index--;
+      } else if (index + 1 < state->inline_link_count) {
+        index++;
+      } else {
+        state->active_inline_link_index = GENERATED_HELP_NO_SELECTION;
+        return 0;
+      }
+      link_row = state->inline_link_rows[index];
+      if (link_row < visible_start || link_row >= visible_end)
+        return 0;
+      state->active_inline_link_index = index;
+      return -1;
+    }
 
     if (state->related_link_count == 0)
       return 0;
 
-    visible_start = (size_t)MAXIMUM(state->visible_row_offset, 0);
-    visible_end = visible_start + (size_t)MAXIMUM(state->visible_row_count, 0);
     if (state->active_related_link_index == GENERATED_HELP_NO_SELECTION) {
       if (ch != KEY_DOWN || state->related_link_first_row < visible_start ||
           state->related_link_first_row >= visible_end)
@@ -1386,6 +1494,11 @@ static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
   }
 
   if (ch == KEY_RIGHT || ch == CR || ch == LF) {
+    if (state->active_inline_link_index < state->inline_link_count) {
+      state->next_topic_id =
+          state->inline_link_targets[state->active_inline_link_index];
+      return 1;
+    }
     if (state->related_link_count == 0 ||
         state->active_related_link_index >= state->related_link_count)
       return 0;
@@ -1411,6 +1524,10 @@ static int GetGeneratedHelpActiveRow(const void *user_data) {
       state->active_related_link_index < state->related_link_count)
     return (int)(state->related_link_first_row +
                  state->active_related_link_index);
+
+  if (!state->contextual_list_mode &&
+      state->active_inline_link_index < state->inline_link_count)
+    return (int)state->inline_link_rows[state->active_inline_link_index];
 
   if (!state->contextual_list_mode && state->related_links_snap_pending &&
       state->related_link_count > 0)
@@ -1458,6 +1575,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
   current_view.topic = topic;
   current_view.selected_item_index = GENERATED_HELP_NO_SELECTION;
   current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
+  current_view.active_inline_link_index = GENERATED_HELP_NO_SELECTION;
+  current_view.scroll_line_offset = 0;
   current_view.contextual_origin =
       TopicUsesContextualItemList(topic, prefix_row_count);
 
@@ -1475,6 +1594,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     state.label_override_count = label_override_count;
     state.selected_item_index = current_view.selected_item_index;
     state.current_detail_index = current_view.current_detail_index;
+    state.active_inline_link_index = current_view.active_inline_link_index;
+    state.visible_row_offset = current_view.scroll_line_offset;
     state.contextual_origin = current_view.contextual_origin;
     state.next_detail_index = GENERATED_HELP_NO_SELECTION;
     state.has_history = history_count > 0;
@@ -1522,6 +1643,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     footer_spec.key_handler = HandleGeneratedHelpFooterKey;
     footer_spec.active_row_handler = GetGeneratedHelpActiveRow;
     footer_spec.viewport_handler = UpdateGeneratedHelpViewport;
+    footer_spec.initial_visible_row = current_view.scroll_line_offset;
     footer_spec.key_data = &state;
 
     title = (state.contextual_list_mode &&
@@ -1537,6 +1659,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     }
 
     current_view.selected_item_index = state.selected_item_index;
+    current_view.active_inline_link_index = state.active_inline_link_index;
+    current_view.scroll_line_offset = state.visible_row_offset;
 
     if (state.detail_back_requested) {
       current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
@@ -1566,6 +1690,8 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     current_view.topic = next_topic;
     current_view.selected_item_index = 0;
     current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
+    current_view.active_inline_link_index = GENERATED_HELP_NO_SELECTION;
+    current_view.scroll_line_offset = 0;
     current_view.contextual_origin =
         current_view.contextual_origin || state.contextual_list_mode;
   }
