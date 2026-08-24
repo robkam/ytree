@@ -1562,7 +1562,7 @@ static BOOL HandleTaggedCommandDispatchAction(
 
       *need_dsp_help_ptr = TRUE;
       *command_line = '\0';
-      if (GetCommandLine(ctx, command_line) == 0) {
+      if (GetTaggedCommandLine(ctx, command_line) == 0) {
         NormalizeQuotedExecPlaceholders(
             command_line, (size_t)COMMAND_LINE_LENGTH + 1U);
         endwin();

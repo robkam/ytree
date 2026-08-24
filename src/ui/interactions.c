@@ -760,6 +760,38 @@ int GetCommandLine(ViewContext *ctx, char *command_line) {
   return (result);
 }
 
+int GetTaggedCommandLine(ViewContext *ctx, char *command_line) {
+  int result = -1;
+  PromptHelpTopic help_topic = PROMPT_HELP_EXECUTE_FILE;
+  UIPromptOptions options = {0};
+  const char *prompt = "COMMAND (append {} to operate on tagged files):";
+
+  if (!ctx || !ctx->active || !command_line)
+    return -1;
+
+  ClearHelp(ctx);
+  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", "{}");
+  options.help_callback = ShowPromptHelpCallback;
+  options.help_data = &help_topic;
+  options.cursor_at_start = TRUE;
+
+  if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE) {
+    help_topic = PROMPT_HELP_EXECUTE_DIRECTORY;
+  }
+
+  if (UI_ReadStringWithPromptOptions(ctx, ctx->active, prompt, command_line,
+                                     COMMAND_LINE_LENGTH, HST_EXEC,
+                                     &options) == CR) {
+    result = 0;
+  }
+
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
+
+  return (result);
+}
+
 int GetSearchCommandLine(ViewContext *ctx, char *command_line,
                          char *search_pattern) {
   int result = -1;
