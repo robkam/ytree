@@ -939,10 +939,36 @@ static void CommandStripMeasureCommandFull(int *len,
     break;
   }
   case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+  {
+    const char *inline_key =
+        CommandStripFindInlineLabelKey(label, command->primary_key);
+
+    if (inline_key != NULL && command->secondary_key != NULL) {
+      CommandStripAddLength(len, label);
+      CommandStripAddLength(len, "/");
+      CommandStripAddVisibleKeyLength(len, command->secondary_key);
+      break;
+    }
     CommandStripAddVisibleKeyLength(len, command->primary_key);
     CommandStripAddLength(len, "/");
     CommandStripAddMnemonicLabelLength(len, label, command->secondary_key);
     break;
+  }
+  case UI_COMMAND_LAYOUT_CTRL_MNEMONIC:
+  {
+    const char *inline_key =
+        CommandStripFindInlineLabelKey(label, command->primary_key + 1);
+
+    if (inline_key != NULL) {
+      CommandStripAddVisibleKeyLength(len, command->primary_key);
+      CommandStripAddLength(len, inline_key + 1);
+      break;
+    }
+    CommandStripAddVisibleKeyLength(len, command->primary_key);
+    CommandStripAddLength(len, " ");
+    CommandStripAddLength(len, label);
+    break;
+  }
   case UI_COMMAND_LAYOUT_LABEL_FIRST:
     CommandStripAddLength(len, label);
     CommandStripAddLength(len, " ");
@@ -1068,11 +1094,41 @@ int UI_FormatCommandStripEntryText(const UICommandStripCommand *command,
     break;
   }
   case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+  {
+    const char *inline_key =
+        CommandStripFindInlineLabelKey(label, command->primary_key);
+
+    if (inline_key != NULL && command->secondary_key != NULL) {
+      CommandStripAppendSpan(buf, buf_size, &offset, label,
+                             (size_t)(inline_key - label));
+      CommandStripAppendChar(buf, buf_size, &offset,
+                             (char)toupper((unsigned char)*inline_key));
+      CommandStripAppendText(buf, buf_size, &offset, "/");
+      CommandStripAppendText(buf, buf_size, &offset, command->secondary_key);
+      CommandStripAppendText(buf, buf_size, &offset, inline_key + 1);
+      break;
+    }
     CommandStripAppendText(buf, buf_size, &offset, command->primary_key);
     CommandStripAppendText(buf, buf_size, &offset, "/");
     CommandStripAppendMnemonicLabel(buf, buf_size, &offset, label,
                                     command->secondary_key);
     break;
+  }
+  case UI_COMMAND_LAYOUT_CTRL_MNEMONIC:
+  {
+    const char *inline_key =
+        CommandStripFindInlineLabelKey(label, command->primary_key + 1);
+
+    if (inline_key != NULL) {
+      CommandStripAppendText(buf, buf_size, &offset, command->primary_key);
+      CommandStripAppendText(buf, buf_size, &offset, inline_key + 1);
+      break;
+    }
+    CommandStripAppendText(buf, buf_size, &offset, command->primary_key);
+    CommandStripAppendText(buf, buf_size, &offset, " ");
+    CommandStripAppendText(buf, buf_size, &offset, label);
+    break;
+  }
   case UI_COMMAND_LAYOUT_LABEL_FIRST:
     CommandStripAppendText(buf, buf_size, &offset, label);
     CommandStripAppendText(buf, buf_size, &offset, " ");
@@ -1220,6 +1276,31 @@ static void CommandStripRenderCommandFull(WINDOW *win, int y, int *x, int max_x,
     break;
   }
   case UI_COMMAND_LAYOUT_ALT_MNEMONIC:
+  {
+    const char *inline_key =
+        CommandStripFindInlineLabelKey(label, command->primary_key);
+
+    if (inline_key != NULL && command->secondary_key != NULL) {
+      while (label < inline_key && *x < max_x) {
+        char ch[2];
+
+        ch[0] = *label++;
+        ch[1] = '\0';
+        CommandStripRenderText(win, y, x, max_x, ch, normal_attr);
+      }
+      {
+        char key[2];
+
+        key[0] = (char)toupper((unsigned char)*inline_key);
+        key[1] = '\0';
+        CommandStripRenderText(win, y, x, max_x, key, key_attr);
+      }
+      CommandStripRenderText(win, y, x, max_x, "/", normal_attr);
+      CommandStripRenderText(win, y, x, max_x, command->secondary_key,
+                             key_attr);
+      CommandStripRenderText(win, y, x, max_x, inline_key + 1, normal_attr);
+      break;
+    }
     CommandStripRenderKeySequence(win, y, x, max_x, command->primary_key, NULL,
                                   normal_attr, key_attr, FALSE);
     CommandStripRenderText(win, y, x, max_x, "/", normal_attr);
@@ -1227,6 +1308,22 @@ static void CommandStripRenderCommandFull(WINDOW *win, int y, int *x, int max_x,
                                     command->secondary_key, normal_attr,
                                     key_attr);
     break;
+  }
+  case UI_COMMAND_LAYOUT_CTRL_MNEMONIC:
+  {
+    const char *inline_key =
+        CommandStripFindInlineLabelKey(label, command->primary_key + 1);
+
+    if (inline_key != NULL) {
+      CommandStripRenderText(win, y, x, max_x, command->primary_key, key_attr);
+      CommandStripRenderText(win, y, x, max_x, inline_key + 1, normal_attr);
+      break;
+    }
+    CommandStripRenderText(win, y, x, max_x, command->primary_key, key_attr);
+    CommandStripRenderText(win, y, x, max_x, " ", normal_attr);
+    CommandStripRenderText(win, y, x, max_x, label, normal_attr);
+    break;
+  }
   case UI_COMMAND_LAYOUT_LABEL_FIRST:
     CommandStripRenderText(win, y, x, max_x, label, normal_attr);
     CommandStripRenderText(win, y, x, max_x, " ", normal_attr);
