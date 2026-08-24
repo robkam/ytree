@@ -404,6 +404,7 @@ typedef struct {
   UIPromptActionHandler action_handler;
   void *action_data;
   BOOL suppress_final_refresh;
+  BOOL cursor_at_start;
 } UIPromptOptions;
 extern int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel,
                          const char *prompt, char *buffer, int max_len,

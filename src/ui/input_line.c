@@ -680,6 +680,8 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
   }
 
   PromptSessionPrepareInitialState(&session);
+  if (options != NULL && options->cursor_at_start)
+    session.p = 0;
   PromptSessionResolveHints(&session, options ? options->hints_override : NULL,
                             options ? options->hints_override_count : 0);
   hints = session.hints;
