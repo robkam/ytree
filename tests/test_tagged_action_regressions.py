@@ -350,10 +350,39 @@ def test_tagged_execute_prefills_a_trailing_file_placeholder(ytnova_binary, tmp_
             else False,
             timeout=1.5,
         ), _screen_text(tui)
-        assert "COMMAND (append {} to operate on tagged files): {}" in _screen_text(tui)
+        assert "COMMAND (append {} to operate on tagged files):  {}" in _screen_text(tui)
 
-        tui.send_keystroke("wc ", wait=0.2)
+        tui.send_keystroke("wc", wait=0.2)
         assert "COMMAND (append {} to operate on tagged files): wc {}" in _screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_file_execute_prefills_a_trailing_file_placeholder(ytnova_binary, tmp_path):
+    work_dir = tmp_path / "file_execute_placeholder"
+    work_dir.mkdir()
+    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
+
+    try:
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("alpha.txt" in line for line in lines) else False,
+            timeout=1.5,
+        ), _screen_text(tui)
+
+        assert tui.send_and_wait_for_condition(
+            "x",
+            lambda lines: lines
+            if any("append {} to operate on file" in line for line in lines)
+            else False,
+            timeout=1.5,
+        ), _screen_text(tui)
+        assert "COMMAND (append {} to operate on file):  {}" in _screen_text(tui)
+
+        tui.send_keystroke("wc", wait=0.2)
+        assert "COMMAND (append {} to operate on file): wc {}" in _screen_text(tui)
     finally:
         tui.quit()
 

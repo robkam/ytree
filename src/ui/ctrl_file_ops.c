@@ -270,48 +270,6 @@ static void NormalizeQuotedExecPlaceholders(char *command_template,
   command_template[write_idx] = '\0';
 }
 
-static BOOL IsShellBarewordSafe(const char *path) {
-  const unsigned char *cptr = (const unsigned char *)path;
-
-  if (!cptr || *cptr == '\0')
-    return FALSE;
-
-  while (*cptr) {
-    if (!isalnum(*cptr) && strchr("_@%+=:,./-", (int)*cptr) == NULL)
-      return FALSE;
-    cptr++;
-  }
-
-  return TRUE;
-}
-
-static BOOL BuildExecutableCommandPrefill(const char *file_name,
-                                          char *command_template,
-                                          size_t command_template_size) {
-  char relative_path[PATH_LENGTH + 3];
-  int written;
-
-  if (!file_name || !command_template || command_template_size == 0)
-    return FALSE;
-
-  written = snprintf(relative_path, sizeof(relative_path), "./%s", file_name);
-  if (written < 0 || (size_t)written >= sizeof(relative_path)) {
-    return FALSE;
-  }
-
-  if (IsShellBarewordSafe(relative_path)) {
-    written = snprintf(command_template, command_template_size, "%s",
-                       relative_path);
-    if (written < 0 || (size_t)written >= command_template_size) {
-      command_template[command_template_size - 1] = '\0';
-      return FALSE;
-    }
-    return TRUE;
-  }
-
-  return Path_ShellQuote(relative_path, command_template, command_template_size);
-}
-
 BOOL handle_file_window_preview_action(
     ViewContext *ctx, YtreeNovaAction action, DirEntry **dir_entry_ptr,
     YtreeNovaAction *loop_action_ptr, Statistic **stats_ptr,
@@ -877,13 +835,6 @@ static BOOL HandleFileCommandDispatchAction(ViewContext *ctx,
     {
       char command_template[COMMAND_LINE_LENGTH + 1];
       command_template[0] = '\0';
-      if (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-        if (!BuildExecutableCommandPrefill(fe_ptr->name, command_template,
-                                           sizeof(command_template))) {
-          WARNING(ctx, "Command line too long.");
-          return TRUE;
-        }
-      }
       if (GetCommandLine(ctx, command_template) == 0) {
         NormalizeQuotedExecPlaceholders(command_template,
                                         sizeof(command_template));

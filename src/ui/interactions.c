@@ -736,20 +736,25 @@ int UI_ArchiveCallback(int status, const char *msg, void *user_data) {
 int GetCommandLine(ViewContext *ctx, char *command_line) {
   int result = -1;
   PromptHelpTopic help_topic = PROMPT_HELP_EXECUTE_FILE;
-  const char *prompt = "COMMAND:";
+  UIPromptOptions options = {0};
+  const char *prompt = "COMMAND (append {} to operate on file):";
 
   if (!ctx || !ctx->active || !command_line)
     return -1;
 
   ClearHelp(ctx);
+  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", " {}");
+  options.help_callback = ShowPromptHelpCallback;
+  options.help_data = &help_topic;
+  options.cursor_at_start = TRUE;
 
   if (AppStateResolveActivePanelFocus(ctx) == FOCUS_TREE) {
     help_topic = PROMPT_HELP_EXECUTE_DIRECTORY;
   }
 
-  if (UI_ReadStringWithHelp(ctx, ctx->active, prompt, command_line,
-                            COMMAND_LINE_LENGTH, HST_EXEC, NULL, 0,
-                            ShowPromptHelpCallback, &help_topic) == CR) {
+  if (UI_ReadStringWithPromptOptions(ctx, ctx->active, prompt, command_line,
+                                     COMMAND_LINE_LENGTH, HST_EXEC,
+                                     &options) == CR) {
     result = 0;
   }
 
@@ -770,7 +775,7 @@ int GetTaggedCommandLine(ViewContext *ctx, char *command_line) {
     return -1;
 
   ClearHelp(ctx);
-  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", "{}");
+  (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", " {}");
   options.help_callback = ShowPromptHelpCallback;
   options.help_data = &help_topic;
   options.cursor_at_start = TRUE;
