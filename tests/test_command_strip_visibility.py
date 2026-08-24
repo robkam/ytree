@@ -271,10 +271,8 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         file_lines = footer_lines(tui)
         file_footer = "\n".join(file_lines)
-        assert "C/^K copy" in file_footer
-        assert "C/^K Copy" not in file_footer
-        assert "M/^N move" in file_footer
-        assert "M/^N Move" not in file_footer
+        assert "C/^Kopy" in file_footer
+        assert "M/^Nove" in file_footer
         assert "K volume" in file_footer, file_footer
         assert "Tag" in file_footer, file_footer
         assert "Untag" in file_footer, file_footer
@@ -292,7 +290,7 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         _assert_no_duplicate_footer_entries(file_lines)
         assert "Output" in file_footer, file_footer
         assert "Write" not in file_footer, file_footer
-        assert file_footer.index("Output") < file_footer.index("eXecute"), file_footer
+        assert "O/^Output" in file_footer, file_footer
         assert file_lines[2].find("F9 apps") < file_lines[2].find("F10 config"), file_lines[2]
         assert file_lines[2].rstrip().endswith("Esc cancel"), file_lines[2]
         assert "1..9 file view" in file_lines[0], "\n".join(file_lines)
@@ -448,5 +446,39 @@ def test_narrow_sort_and_viewer_takeovers_use_ellipsis_for_overflow(tmp_path):
             "Narrow viewer navigation strip should truncate the final command with an ellipsis.\n"
             + viewer_text
         )
+    finally:
+        tui.quit()
+
+
+def test_extra_wide_footers_advertise_tagged_variants(tmp_path):
+    root = _root_with_file(tmp_path)
+    tui = _spawn_sized_tui(root, cols=240)
+
+    try:
+        dir_footer = "\n".join(footer_lines(tui))
+        assert "T/^Tag" in dir_footer, dir_footer
+        assert "U/^Untag" in dir_footer, dir_footer
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        file_footer = "\n".join(footer_lines(tui))
+        for variant in (
+            "A/^Attributes",
+            "C/^Kopy",
+            "D/^Delete",
+            "M/^Nove",
+            "O/^Output",
+            "P/^Pipe",
+            "R/^Rename",
+            "^Search",
+            "T/^Tag",
+            "U/^Untag",
+            "V/^View",
+            "eX/^Xecute",
+            "pathcopY/^Y",
+            "Z/^Z archive",
+        ):
+            assert variant in file_footer, file_footer
+        assert file_footer.index("Sort") < file_footer.index("^Search")
+        assert file_footer.index("^Search") < file_footer.index("T/^Tag")
     finally:
         tui.quit()

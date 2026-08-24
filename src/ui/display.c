@@ -85,6 +85,8 @@ typedef struct {
   { { layout, label, key1, key2, NULL }, action_id, NULL }
 #define FOOTER_ACTIONS(layout, label, key1, key2, action_id, action_id2)         \
   { { layout, label, key1, key2, NULL }, action_id, action_id2 }
+#define FOOTER_ACTION_ALT_KEY(layout, label, key1, key2, action_id)              \
+  { { layout, label, key1, key2, NULL }, action_id, NULL }
 
 static int FooterCommandKeyClass(const UICommandStripCommand *command) {
   const char *key;
@@ -97,6 +99,8 @@ static int FooterCommandKeyClass(const UICommandStripCommand *command) {
     return 2;
   if (isdigit((unsigned char)key[0]))
     return 0;
+  if (key[0] == '^' && isalpha((unsigned char)key[1]) && key[2] == '\0')
+    return 1;
   if (isalpha((unsigned char)key[0]))
     return 1;
   return 2;
@@ -157,6 +161,8 @@ static BOOL FooterCommandKeyIsNumericRange(const char *key) {
 }
 
 static int CompareFooterCommandKeys(const char *left, const char *right) {
+  const char *left_sort;
+  const char *right_sort;
   int left_group;
   int right_group;
   int cmp;
@@ -166,8 +172,17 @@ static int CompareFooterCommandKeys(const char *left, const char *right) {
   if (right == NULL || right[0] == '\0')
     return -1;
 
-  left_group = FooterCommandKeySortGroup(left);
-  right_group = FooterCommandKeySortGroup(right);
+  left_sort = (left[0] == '^' && isalpha((unsigned char)left[1]) &&
+               left[2] == '\0')
+                  ? left + 1
+                  : left;
+  right_sort = (right[0] == '^' && isalpha((unsigned char)right[1]) &&
+                right[2] == '\0')
+                   ? right + 1
+                   : right;
+
+  left_group = FooterCommandKeySortGroup(left_sort);
+  right_group = FooterCommandKeySortGroup(right_sort);
   if (left_group != right_group)
     return left_group - right_group;
 
@@ -204,6 +219,13 @@ static int CompareFooterCommandKeys(const char *left, const char *right) {
       return cmp;
   }
 
+  cmp = strcasecmp(left_sort, right_sort);
+  if (cmp != 0)
+    return cmp;
+  if (left_sort != left && right_sort == right)
+    return 1;
+  if (left_sort == left && right_sort != right)
+    return -1;
   return strcasecmp(left, right);
 }
 
@@ -342,9 +364,10 @@ static const FooterCommandSpec dir_footer_standard_specs[] = {
                   "ACTION_CMD_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "movedir", "V", NULL,
                   "ACTION_CMD_V"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
@@ -364,9 +387,10 @@ static const FooterCommandSpec dir_footer_ll_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "reload", "^L", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
                   "ACTION_QUIT")};
 
@@ -395,9 +419,10 @@ static const FooterCommandSpec dir_footer_archive_to_root_specs[] = {
                   "ACTION_CMD_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "root", "\\", NULL),
@@ -429,9 +454,10 @@ static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
                   "ACTION_CMD_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Showall", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "exit", "\\", NULL),
@@ -440,12 +466,12 @@ static const FooterCommandSpec dir_footer_archive_exit_specs[] = {
 
 static const FooterCommandSpec file_footer_standard_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
-                  "ACTION_CMD_A"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Attributes", "A", "^A",
+                   "ACTION_CMD_A", "ACTION_CMD_TAGGED_A"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
-                  "ACTION_CMD_D"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Delete", "D", "^D",
+                   "ACTION_CMD_D", "ACTION_CMD_TAGGED_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Edit", "E", NULL,
                   "ACTION_CMD_E"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
@@ -463,27 +489,30 @@ static const FooterCommandSpec file_footer_standard_specs[] = {
                    "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
                   "ACTION_CMD_MKFILE"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
-                  "ACTION_CMD_P"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Pipe", "P", "^P",
+                   "ACTION_CMD_P", "ACTION_CMD_TAGGED_P"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
                   "ACTION_QUIT"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
-                  "ACTION_CMD_R"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Rename", "R", "^R",
+                   "ACTION_CMD_R", "ACTION_CMD_TAGGED_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL,
-                  "ACTION_CMD_V"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Output", "O", NULL,
-                  "ACTION_CMD_PRINT"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
-                  "ACTION_CMD_X"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
-                  "ACTION_CMD_Y"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL,
-                  "ACTION_CMD_I"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_CTRL_MNEMONIC, "Search", "^S", NULL,
+                  "ACTION_CMD_TAGGED_S"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "view", "V", "^V",
+                   "ACTION_CMD_V", "ACTION_CMD_TAGGED_V"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Output", "O", "^O",
+                   "ACTION_CMD_PRINT", "ACTION_CMD_TAGGED_PRINT"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "execute", "X", "^X",
+                   "ACTION_CMD_X", "ACTION_CMD_TAGGED_X"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "pathcopy", "Y", "^Y",
+                   "ACTION_CMD_Y", "ACTION_CMD_TAGGED_Y"),
+    FOOTER_ACTION_ALT_KEY(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", "^Z",
+                          "ACTION_CMD_I"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
@@ -497,9 +526,12 @@ static const FooterCommandSpec file_footer_ll_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "redraw", "^L", NULL),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_CTRL_MNEMONIC, "Search", "^S", NULL,
+                  "ACTION_CMD_TAGGED_S"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
                   "ACTION_QUIT")};
 
@@ -507,8 +539,8 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
-                  "ACTION_CMD_D"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Delete", "D", "^D",
+                   "ACTION_CMD_D", "ACTION_CMD_TAGGED_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
                   "ACTION_FILTER"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Hex", "H", NULL,
@@ -522,39 +554,44 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Log", "L", NULL, "ACTION_LOG"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "move", "M", "^N",
                    "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Pipe", "P", NULL,
-                  "ACTION_CMD_P"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Output", "O", NULL,
-                  "ACTION_CMD_PRINT"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Pipe", "P", "^P",
+                   "ACTION_CMD_P", "ACTION_CMD_TAGGED_P"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Output", "O", "^O",
+                   "ACTION_CMD_PRINT", "ACTION_CMD_TAGGED_PRINT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Quit", "Q", NULL,
                   "ACTION_QUIT"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
-                  "ACTION_CMD_R"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Rename", "R", "^R",
+                   "ACTION_CMD_R", "ACTION_CMD_TAGGED_R"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Sort", "S", NULL,
                   "ACTION_CMD_S"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL,
-                  "ACTION_CMD_V"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
-                  "ACTION_CMD_Y"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_CTRL_MNEMONIC, "Search", "^S", NULL,
+                  "ACTION_CMD_TAGGED_S"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "view", "V", "^V",
+                   "ACTION_CMD_V", "ACTION_CMD_TAGGED_V"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "pathcopy", "Y", "^Y",
+                   "ACTION_CMD_Y", "ACTION_CMD_TAGGED_Y"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
                   "ACTION_TOGGLE_HIDDEN")};
 
 static const FooterCommandSpec preview_footer_specs[] = {
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Attributes", "A", NULL,
-                  "ACTION_CMD_A"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Attributes", "A", "^A",
+                   "ACTION_CMD_A", "ACTION_CMD_TAGGED_A"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Delete", "D", NULL,
-                  "ACTION_CMD_D"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Delete", "D", "^D",
+                   "ACTION_CMD_D", "ACTION_CMD_TAGGED_D"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Edit", "E", NULL,
                   "ACTION_CMD_E"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Filter", "F", NULL,
                   "ACTION_FILTER"),
+    FOOTER_ACTION(UI_COMMAND_LAYOUT_CTRL_MNEMONIC, "Search", "^S", NULL,
+                  "ACTION_CMD_TAGGED_S"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Invert", "I", NULL,
                   "ACTION_INVERT"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "compare", "J", NULL,
@@ -563,21 +600,22 @@ static const FooterCommandSpec preview_footer_specs[] = {
                    "ACTION_CMD_M", "ACTION_CMD_TAGGED_M"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Newfile", "N", NULL,
                   "ACTION_CMD_MKFILE"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Rename", "R", NULL,
-                  "ACTION_CMD_R"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Tag", "T", NULL, "ACTION_TAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Untag", "U", NULL,
-                  "ACTION_UNTAG"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "view", "V", NULL,
-                  "ACTION_CMD_V"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_MNEMONIC, "Output", "O", NULL,
-                  "ACTION_CMD_PRINT"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "execute", "X", NULL,
-                  "ACTION_CMD_X"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "pathcopy", "Y", NULL,
-                  "ACTION_CMD_Y"),
-    FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", NULL,
-                  "ACTION_CMD_I"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Rename", "R", "^R",
+                   "ACTION_CMD_R", "ACTION_CMD_TAGGED_R"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Tag", "T", "^T",
+                   "ACTION_TAG", "ACTION_TAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Untag", "U", "^U",
+                   "ACTION_UNTAG", "ACTION_UNTAG_ALL"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "view", "V", "^V",
+                   "ACTION_CMD_V", "ACTION_CMD_TAGGED_V"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Output", "O", "^O",
+                   "ACTION_CMD_PRINT", "ACTION_CMD_TAGGED_PRINT"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "execute", "X", "^X",
+                   "ACTION_CMD_X", "ACTION_CMD_TAGGED_X"),
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "pathcopy", "Y", "^Y",
+                   "ACTION_CMD_Y", "ACTION_CMD_TAGGED_Y"),
+    FOOTER_ACTION_ALT_KEY(UI_COMMAND_LAYOUT_KEY_PREFIX, "archive", "Z", "^Z",
+                          "ACTION_CMD_I"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "jump", "/", NULL,
                   "ACTION_LIST_JUMP"),
     FOOTER_ACTION(UI_COMMAND_LAYOUT_KEY_PREFIX, "dotfiles", "`", NULL,
