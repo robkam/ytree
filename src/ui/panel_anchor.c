@@ -76,9 +76,6 @@ BOOL CapturePanelAnchorPath(const YtreeNovaPanel *panel, const struct Volume *vo
   assert(!panel->vol || panel->vol == vol);
   if (panel->vol != vol)
     return FALSE;
-  assert(panel->saved_focus != FOCUS_FILE ||
-         panel->file_selection_dir_path[0] != '\0');
-
   if (panel->saved_focus == FOCUS_FILE) {
     if (panel->file_selection_dir_path[0]) {
       (void)snprintf(out_path, out_path_size, "%s",
