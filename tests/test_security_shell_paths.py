@@ -185,9 +185,9 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("x", wait=0.35)
-    assert tui.wait_for_content("COMMAND:", timeout=1.0)
+    assert tui.wait_for_content("COMMAND (append {} to operate on file):", timeout=1.0)
     tui.send_keystroke(
-        Keys.CTRL_U + str(helper_path) + " {}" + Keys.ENTER,
+        "\x05" + Keys.CTRL_U + str(helper_path) + " {}" + Keys.ENTER,
         wait=0.55,
     )
 
@@ -220,9 +220,9 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("x", wait=0.35)
-    assert tui.wait_for_content("COMMAND:", timeout=1.0)
+    assert tui.wait_for_content("COMMAND (append {} to operate on file):", timeout=1.0)
     tui.send_keystroke(
-        Keys.CTRL_U + str(helper_path) + " '{}'" + Keys.ENTER,
+        "\x05" + Keys.CTRL_U + str(helper_path) + " '{}'" + Keys.ENTER,
         wait=0.55,
     )
 
@@ -241,39 +241,7 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
     tui.quit()
 
 
-def test_execute_default_prefill_runs_executable_from_current_directory(
-    ytnova_binary, tmp_path
-):
-    root = tmp_path / "execute_default_prefill_current_dir"
-    root.mkdir()
-
-    script_path = root / "run me.sh"
-    marker_path = root / "script_ran.marker"
-    script_path.write_text(
-        "#!/bin/sh\n"
-        f"printf 'ran\\n' > {shlex.quote(str(marker_path))}\n",
-        encoding="utf-8",
-    )
-    script_path.chmod(0o755)
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
-    tui.send_keystroke("x", wait=0.35)
-    assert tui.wait_for_content("COMMAND:", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.8)
-
-    assert _wait_for_file(marker_path, timeout=2.0), (
-        "Default execute command should run the selected executable from the "
-        "current directory."
-    )
-    if tui.wait_for_content("Hit return to continue", timeout=1.0):
-        tui.send_keystroke(Keys.ENTER, wait=0.3)
-
-    tui.quit()
-
-
-def test_execute_default_prefill_shows_plain_dot_slash_for_simple_script_name(
+def test_file_execute_prefill_omits_executable_path(
     ytnova_binary, tmp_path
 ):
     root = tmp_path / "execute_default_prefill_prompt"
@@ -289,7 +257,7 @@ def test_execute_default_prefill_shows_plain_dot_slash_for_simple_script_name(
     tui.send_keystroke("x", wait=0.35)
 
     screen = screen_text(tui)
-    assert "COMMAND: ./blob.sh" in screen, screen
+    assert "COMMAND (append {} to operate on file):  {}" in screen, screen
     assert "COMMAND: ./'blob.sh'" not in screen, screen
 
     tui.quit()
