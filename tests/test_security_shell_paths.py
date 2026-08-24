@@ -185,7 +185,9 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("x", wait=0.35)
-    assert tui.wait_for_content("COMMAND (append {} to operate on file):", timeout=1.0)
+    assert tui.wait_for_content(
+        "COMMAND ({} inserts selected path):", timeout=1.0
+    )
     tui.send_keystroke(
         "\x05" + Keys.CTRL_U + str(helper_path) + " {}" + Keys.ENTER,
         wait=0.55,
@@ -220,7 +222,9 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("x", wait=0.35)
-    assert tui.wait_for_content("COMMAND (append {} to operate on file):", timeout=1.0)
+    assert tui.wait_for_content(
+        "COMMAND ({} inserts selected path):", timeout=1.0
+    )
     tui.send_keystroke(
         "\x05" + Keys.CTRL_U + str(helper_path) + " '{}'" + Keys.ENTER,
         wait=0.55,
@@ -257,7 +261,7 @@ def test_file_execute_prefill_omits_executable_path(
     tui.send_keystroke("x", wait=0.35)
 
     screen = screen_text(tui)
-    assert "COMMAND (append {} to operate on file):  {}" in screen, screen
+    assert "COMMAND ({} inserts selected path):  {}" in screen, screen
     assert "COMMAND: ./'blob.sh'" not in screen, screen
 
     tui.quit()

@@ -518,7 +518,7 @@ def test_help_index_reopens_cleanly_after_terminal_resize(tmp_path):
         tui.quit()
 
 
-def test_ytnova_navigation_shows_and_opens_related_help(tmp_path):
+def test_ytnova_navigation_opens_inline_help_links(tmp_path):
     root = _root_with_file(tmp_path, "ytnova_navigation_related_help")
     tui = _spawn_help_tui(root)
 
@@ -534,57 +534,25 @@ def test_ytnova_navigation_shows_and_opens_related_help(tmp_path):
         assert "rather than designed controls." in normalized_navigation, navigation
 
         navigation = _send_help_key_until_text(tui, Keys.END, "F8 split")
-        assert "Related help" in navigation, navigation
         assert "/ jump" in navigation, navigation
         assert "F7 preview" in navigation, navigation
         assert "F8 split" in navigation, navigation
-        frame = _popup_frame(navigation, "YtreeNova Navigation")
-        footer = navigation.splitlines()[frame["footer_row"]]
-        assert "jump" not in footer, footer
-        assert "preview" not in footer, footer
-        assert "split" not in footer, footer
-
-        popup_lines = navigation.splitlines()
-        related_row = next(
-            i for i, line in enumerate(popup_lines) if "Related help" in line
-        )
-        for offset in (1, 2, 3):
-            assert (
-                popup_lines[related_row - offset][frame["left"] + 1 : frame["right"]].strip()
-                == ""
-            ), navigation
-        for label in ("/ jump", "F7 preview", "F8 split"):
-            label_row = next(i for i, line in enumerate(popup_lines) if label in line)
-            assert (
-                popup_lines[label_row - 1][frame["left"] + 1 : frame["right"]].strip()
-                == ""
-            ), navigation
+        assert "topic:" not in navigation, navigation
+        assert "Related help" not in navigation, navigation
 
         tui.send_keystroke(Keys.DOWN, wait=0.05)
         linked = _send_help_key_until_text(tui, Keys.RIGHT, "List Jump")
         assert "Type letters" in linked, linked
 
         tui.send_keystroke(Keys.LEFT, wait=0.05)
-        navigation = _send_help_key_until_text(tui, Keys.END, "F8 split")
-        tui.send_keystroke(Keys.DOWN, wait=0.05)
-        tui.send_keystroke(Keys.UP, wait=0.05)
-        returned_to_top = False
-        for _ in range(40):
-            navigation = tui.send_and_wait_for_condition(
-                Keys.UP,
-                lambda lines: lines
-                if any("YtreeNova is built for keyboard use." in line for line in lines)
-                else False,
-                timeout=0.1,
-            )
-            if navigation:
-                returned_to_top = True
-                break
-        assert returned_to_top, screen_text(tui)
+        _send_help_key_until_text(tui, Keys.RIGHT, "List Jump")
 
-        navigation = _send_help_key_until_text(tui, Keys.END, "F8 split")
-        scrolled = tui.send_and_wait_for_screen_change(Keys.UP, timeout=1.0)
-        assert scrolled, screen_text(tui)
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        _send_help_key_until_text(tui, Keys.END, "F8 split")
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+        linked = _send_help_key_until_text(tui, Keys.RIGHT, "F8 Split")
+        assert "active panel" in _normalized_help_text(linked), linked
     finally:
         tui.quit()
 
@@ -1211,7 +1179,7 @@ def test_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
             "i",
             lambda lines: lines
             if any("Help Index" in line for line in lines)
-            and any("Applications:" in line for line in lines)
+            and any("Applications" in line for line in lines)
             else False,
             timeout=1.0,
         )
@@ -1225,14 +1193,14 @@ def test_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
         assert "Applications" in contents_text, contents_text
         assert "Archive Directory" in contents_text, contents_text
 
-        selected_style = _visible_cell_style(tui, "Applications:")
+        selected_style = _visible_cell_style(tui, "Applications")
         reached_copy_targets = False
         for _ in range(24):
             if (
                 _selected_visible_help_label(
-                    tui, ["Copy/Move Targets:"], selected_style
+                    tui, ["Copy/Move Targets"], selected_style
                 )
-                == "Copy/Move Targets:"
+                == "Copy/Move Targets"
             ):
                 reached_copy_targets = True
                 break
@@ -1262,12 +1230,49 @@ def test_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
             poll_interval=0.05,
         )
         assert returned, screen_text(tui)
-        assert "Copy/Move Targets" in _scroll_help_to_text(tui, "Copy/Move Targets"), screen_text(tui)
+        returned_text = "\n".join(returned)
+        assert "Copy/Move Targets" in returned_text, returned_text
+        assert (
+            _selected_visible_help_label(
+                tui, ["Copy/Move Targets"], selected_style
+            )
+            == "Copy/Move Targets"
+        ), returned_text
 
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ESC, wait=0.05)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_contextual_help_return_restores_scrolled_related_link(tmp_path):
+    root = _root_with_file(tmp_path, "contextual_help_related_link_history")
+    tui = _spawn_help_tui(root, dimensions=(40, 118))
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        _send_help_key_until_text(tui, Keys.PGDN, "Makedir")
+        source = _send_help_key_until_text(tui, Keys.PGDN, "Related help")
+        assert "Navigation" in source, source
+
+        tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
+        _send_help_key_until_text(tui, Keys.RIGHT, "YtreeNova Navigation")
+
+        returned = tui.send_and_wait_for_condition(
+            Keys.LEFT,
+            lambda lines: lines
+            if any("Directory Help" in line for line in lines)
+            and any("Related help" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert returned, screen_text(tui)
+        assert "Navigation" in "\n".join(returned), returned
+
+        _send_help_key_until_text(tui, Keys.RIGHT, "YtreeNova Navigation")
     finally:
         tui.quit()
 

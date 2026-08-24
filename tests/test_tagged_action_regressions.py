@@ -328,7 +328,7 @@ def test_tagged_move_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_pat
         tui.quit()
 
 
-def test_tagged_execute_prefills_a_trailing_file_placeholder(ytnova_binary, tmp_path):
+def test_tagged_execute_prefills_the_selected_path_placeholder(ytnova_binary, tmp_path):
     work_dir = tmp_path / "tagged_execute_placeholder"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
@@ -346,19 +346,19 @@ def test_tagged_execute_prefills_a_trailing_file_placeholder(ytnova_binary, tmp_
         assert tui.send_and_wait_for_condition(
             "\x18",
             lambda lines: lines
-            if any("append {} to operate on tagged files" in line for line in lines)
+            if any("COMMAND ({} inserts selected path):" in line for line in lines)
             else False,
             timeout=1.5,
         ), _screen_text(tui)
-        assert "COMMAND (append {} to operate on tagged files):  {}" in _screen_text(tui)
+        assert "COMMAND ({} inserts selected path):  {}" in _screen_text(tui)
 
         tui.send_keystroke("wc", wait=0.2)
-        assert "COMMAND (append {} to operate on tagged files): wc {}" in _screen_text(tui)
+        assert "COMMAND ({} inserts selected path): wc {}" in _screen_text(tui)
     finally:
         tui.quit()
 
 
-def test_file_execute_prefills_a_trailing_file_placeholder(ytnova_binary, tmp_path):
+def test_file_execute_prefills_the_selected_path_placeholder(ytnova_binary, tmp_path):
     work_dir = tmp_path / "file_execute_placeholder"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
@@ -375,16 +375,25 @@ def test_file_execute_prefills_a_trailing_file_placeholder(ytnova_binary, tmp_pa
         assert tui.send_and_wait_for_condition(
             "x",
             lambda lines: lines
-            if any("append {} to operate on file" in line for line in lines)
+            if any("COMMAND ({} inserts selected path):" in line for line in lines)
             else False,
             timeout=1.5,
         ), _screen_text(tui)
-        assert "COMMAND (append {} to operate on file):  {}" in _screen_text(tui)
+        assert "COMMAND ({} inserts selected path):  {}" in _screen_text(tui)
 
         tui.send_keystroke("wc", wait=0.2)
-        assert "COMMAND (append {} to operate on file): wc {}" in _screen_text(tui)
+        assert "COMMAND ({} inserts selected path): wc {}" in _screen_text(tui)
     finally:
         tui.quit()
+
+
+def test_tagged_execute_uses_the_tagged_file_directory_as_its_working_directory():
+    source = read_repo_source("src/cmd/execute.c")
+    start = source.index("int ExecuteCommand(")
+    body = source[start:]
+
+    assert "GetPath(fe_ptr->dir_entry, path)" in body
+    assert "fchdir(start_dir_fd)" in body
 
 
 def test_ctrl_key_dispatch_exposes_only_supported_tagged_operations():

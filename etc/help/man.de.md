@@ -440,11 +440,10 @@ title: Execute File Help
 contexts: prompt.execute-file
 ```
 ### Contextual F1
-Der File-Execute-Prompt führt einen Shell-Befehl für die aktuelle Datei aus oder wiederholt ihn einmal pro markierter Datei.
-`{}` expandiert zu genau einem Dateipfad.
+Der File-Execute-Prompt beginnt mit `{}` für den Pfad der gewählten Datei. Gib den Befehl davor und folgende Shell-Syntax danach ein.
 ### Long form
 #### Platzhalterregeln
-`{}` steht für einen ausgewählten Dateipfad.
+`{}` steht für einen ausgewählten Dateipfad, zum Beispiel `mv {} /tmp` oder `wc {} > count`.
 Beim Tagged-Rerun wird derselbe Befehl einmal pro markierter Datei wiederholt.
 
 ## topic:execute-dir
@@ -453,11 +452,10 @@ title: Execute Directory Help
 contexts: prompt.execute-dir
 ```
 ### Contextual F1
-Der Directory-Execute-Prompt führt einen Shell-Befehl für den aktuellen Verzeichnispfad aus oder wiederholt ihn einmal pro markiertem Scope-Element.
-`{}` expandiert zu genau einem Pfad.
+Der Directory-Execute-Prompt beginnt mit `{}` für den aktuellen Verzeichnispfad. Gib den Befehl davor und folgende Shell-Syntax danach ein.
 ### Long form
 #### Platzhalterregeln
-`{}` steht für den aktuellen Verzeichnispfad.
+`{}` steht für den aktuellen Verzeichnispfad, zum Beispiel `tar -cf archive.tar {}`.
 Der Tagged-Rerun läuft trotzdem über markierte Dateien der aktiven Liste und nicht über irgendeine andere Verzeichnisliste.
 
 ## topic:search-tagged
