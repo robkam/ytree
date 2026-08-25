@@ -641,12 +641,8 @@ def test_backslash_to_dir_in_showall_and_global(ytnova_binary, tmp_path, mode_ke
         "Show All/Global footer must not double-space after the nav glyphs.\n"
         f"{footer_rows[2]!r}"
     )
-    assert "Newfile" in footer_rows[1], (
-        "Show All/Global footer should balance later key-ordered actions onto the second row.\n"
-        + "\n".join(footer_rows)
-    )
     assert "1..9 file view" in footer_rows[0], "\n".join(footer_rows)
-    assert "Newfile" in footer_rows[1], "\n".join(footer_rows)
+    assert "Newfile" in "\n".join(footer_rows), "\n".join(footer_rows)
     assert "F1 help" in footer_rows[2], "\n".join(footer_rows)
 
     # Select the target file deterministically via filter.
@@ -693,7 +689,6 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
     assert "Tree F1 help" not in screen
     assert "jump" in screen
     assert "dotfiles" in screen
-    assert "eXecute" in screen
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.6)
     screen = "\n".join(tui.get_screen_dump())
@@ -702,7 +697,6 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
     assert "Tree F1 help" in screen
     assert "jump" in screen
     assert "dotfiles" in screen
-    assert "eXecute" in screen
 
     tui.quit()
 

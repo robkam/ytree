@@ -62,7 +62,7 @@ RUNTIME_HELP_LABEL_TOPICS = {
 HELP_LABEL_ALIASES = {
     "Archive": ("Archive", "Z archive"),
     "Compare": ("Compare", "J compare"),
-    "Copy": ("Copy", "C/^K copy"),
+    "Copy": ("Copy", "C/^Copy"),
     "Dotfiles": ("Dotfiles", "` dotfiles", "\\` dotfiles"),
     "Execute": ("Execute", "eXecute"),
     "Invert Tags": ("Invert Tags", "Invert"),
@@ -218,7 +218,27 @@ def test_contextual_help_uses_portable_control_key_notation():
         source = _read_help_source(path)
         assert "Ctrl" "-" not in source
         assert "C-" in source
-        assert not re.search(r"C-[A-Z]", source)
+    assert not re.search(r"C-[A-Z]", source)
+
+
+def test_tagged_help_explains_control_key_operations_and_footer_marker():
+    expected = {
+        Path("etc/help/f1.en.md"): (
+            "Hold the Control key with the letter after `C-`",
+            "`^` in a footer label means the same tagged operation",
+        ),
+        Path("etc/help/f1.de.md"): (
+            "Halte die Steuerungstaste mit dem Buchstaben nach `C-` gedrückt",
+            "`^` in einem Footer-Label bedeutet denselben Markierungsvorgang",
+        ),
+    }
+
+    for path, phrases in expected.items():
+        contextual = _topic_block_map(_read_help_source(path))["tagged"].group(
+            "contextual"
+        )
+        for phrase in phrases:
+            assert phrase in contextual
 
 
 def test_manpage_defines_portable_control_key_notation():
@@ -226,6 +246,18 @@ def test_manpage_defines_portable_control_key_notation():
 
     assert "C-<chr>" in source
     assert "hold the Control key" in source
+
+
+def test_manpage_documents_terminal_text_size_controls_for_small_footers():
+    source = Path("etc/help/man.en.md").read_text(encoding="utf-8")
+
+    assert "`C--`" in source
+    assert "`C-+`" in source
+    assert "small terminal windows" in source
+    for path in (Path("etc/ytnova.1.md"), Path("docs/USAGE.md")):
+        generated = path.read_text(encoding="utf-8")
+        assert "`C--`" in generated
+        assert "`C-+`" in generated
 
 
 def test_man_sources_do_not_emit_per_topic_see_also_noise():
@@ -275,9 +307,15 @@ def test_runtime_footer_commands_remain_covered_by_the_man_reference():
         )
 
 
-def test_f1_sources_do_not_define_long_form_sections():
+def test_f1_sources_limit_long_form_sections_to_tagged_viewer_help():
     for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
-        assert "### Long form" not in _read_help_source(path)
+        blocks = _topic_block_map(_read_help_source(path))
+        long_form_topics = {
+            topic
+            for topic, block in blocks.items()
+            if (block.group("long_form") or "").strip()
+        }
+        assert long_form_topics == {"tagged-viewer"}
 
 
 def test_contents_topic_is_a_complete_alphabetical_operator_index():

@@ -147,7 +147,7 @@ def test_stale_output_commands_conf_does_not_abort_startup():
                 "[FILE]\n"
                 "A | A | Attributes | ACTION_CMD_A |\n"
                 "C | C | Copy | ACTION_CMD_C |\n"
-                "Ctrl+K | ^K | Copy tagged | ACTION_CMD_TAGGED_C |\n"
+                "Ctrl+C | ^C | Copy tagged | ACTION_CMD_TAGGED_C |\n"
                 "D | D | Delete | ACTION_CMD_D |\n"
                 "E | E | Edit | ACTION_CMD_E |\n"
                 "F | F | Filter | ACTION_FILTER |\n"

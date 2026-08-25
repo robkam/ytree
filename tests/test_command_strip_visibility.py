@@ -271,7 +271,7 @@ def test_wide_footer_keeps_space_before_jump_label(tmp_path):
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         file_lines = footer_lines(tui)
         file_footer = "\n".join(file_lines)
-        assert "C/^Kopy" in file_footer
+        assert "C/^Copy" in file_footer
         assert "M/^Nove" in file_footer
         assert "K volume" in file_footer, file_footer
         assert "Tag" in file_footer, file_footer
@@ -463,7 +463,7 @@ def test_extra_wide_footers_advertise_tagged_variants(tmp_path):
         file_footer = "\n".join(footer_lines(tui))
         for variant in (
             "A/^Attributes",
-            "C/^Kopy",
+            "C/^Copy",
             "D/^Delete",
             "M/^Nove",
             "O/^Output",

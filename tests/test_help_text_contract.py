@@ -180,6 +180,47 @@ def _follow_help_topic(
     assert False, screen_text(tui)
 
 
+def _open_tagged_help_from_index(tui):
+    _send_help_key_until_text(tui, Keys.END, "Tagged:")
+    tracked_labels = ("Tagged:", "Tagged Viewer:", "Theming:", "Vi Keys:", "K volume:")
+
+    for _ in range(12):
+        tagged_style = _visible_cell_style(tui, "Tagged:")
+        viewer_style = _visible_cell_style(tui, "Tagged Viewer:")
+        theming_style = _visible_cell_style(tui, "Theming:")
+        if viewer_style != tagged_style and viewer_style != theming_style:
+            before = tuple(_visible_cell_style(tui, label) for label in tracked_labels)
+            tui.child.send(Keys.UP)
+            tui.wait_for_condition(
+                lambda lines: lines
+                if tuple(_visible_cell_style(tui, label) for label in tracked_labels)
+                != before
+                else False,
+                timeout=0.5,
+            )
+            opened = tui.send_and_wait_for_condition(
+                Keys.RIGHT,
+                lambda lines: lines
+                if any("Tags select several files" in line for line in lines)
+                else False,
+                timeout=1.0,
+            )
+            assert opened, screen_text(tui)
+            return "\n".join(opened)
+
+        before = tuple(_visible_cell_style(tui, label) for label in tracked_labels)
+        tui.child.send(Keys.UP)
+        tui.wait_for_condition(
+            lambda lines: lines
+            if tuple(_visible_cell_style(tui, label) for label in tracked_labels)
+            != before
+            else False,
+            timeout=0.5,
+        )
+
+    assert False, screen_text(tui)
+
+
 def _open_current_help_detail_title(tui, direction_key=Keys.RIGHT):
     before = screen_text(tui)
     tui.send_keystroke(direction_key, wait=0.05)
@@ -323,6 +364,17 @@ def test_contextual_help_accepts_application_arrow_sequences(tmp_path):
         ), "\n".join(returned)
     finally:
         tui.quit()
+
+
+def test_help_popup_does_not_turn_fragmented_arrow_prefixes_into_escape():
+    source = _read_source("src/ui/key_engine.c")
+    normalizer = _extract_function_block(
+        source,
+        "static int NormalizeEscSequenceForWindow(WINDOW *win, int ch)",
+    )
+
+    assert "nodelay(win, TRUE)" not in normalizer
+    assert "wtimeout(win, ESC_SEQUENCE_TIMEOUT_MS)" in normalizer
 
 
 def test_contextual_help_down_arrow_advances_hidden_active_link(tmp_path):
@@ -551,8 +603,86 @@ def test_ytnova_navigation_opens_inline_help_links(tmp_path):
         _send_help_key_until_text(tui, Keys.END, "F8 split")
         tui.send_keystroke(Keys.DOWN, wait=0.05)
         tui.send_keystroke(Keys.DOWN, wait=0.05)
+        tui.send_keystroke(Keys.DOWN, wait=0.05)
+        linked = _send_help_key_until_text(tui, Keys.RIGHT, "F7 Preview Help")
+        assert "Keep moving the selected file" in _normalized_help_text(linked), linked
+
+        tui.send_keystroke(Keys.LEFT, wait=0.05)
+        tui.send_keystroke(Keys.UP, wait=0.05)
         linked = _send_help_key_until_text(tui, Keys.RIGHT, "F8 Split")
         assert "active panel" in _normalized_help_text(linked), linked
+    finally:
+        tui.quit()
+
+
+def test_tagged_help_renders_and_opens_inline_topic_links(tmp_path):
+    root = _root_with_file(tmp_path, "tagged_inline_help")
+    tui = _spawn_help_tui(root)
+
+    try:
+        assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
+        _wait_for_help(tui, "Directory Help")
+        _send_help_key_until_text(tui, "i", "Help Index")
+        tagged = _open_tagged_help_from_index(tui)
+
+        assert "Tags select several files" in tagged, tagged
+        assert "topic:" not in tagged, tagged
+        assert "[copy]" not in tagged, tagged
+
+        target = "searched tagged files"
+        for _ in range(60):
+            current = screen_text(tui)
+            if target in current:
+                break
+            changed = tui.send_and_wait_for_condition(
+                Keys.DOWN,
+                lambda lines: lines
+                if any(target in line for line in lines)
+                or "\n".join(lines) != current
+                else False,
+                timeout=0.4,
+            )
+            if changed and any(target in line for line in changed):
+                break
+
+        tagged = screen_text(tui)
+        assert target in tagged, tagged
+        assert "(topic:" not in tagged, tagged
+        assert any(target in line for line in tagged.splitlines()), tagged
+
+        link_style = _visible_cell_style(tui, target)
+        prose_style = _visible_cell_style(tui, "untags files")
+        assert link_style != prose_style, tagged
+        assert not link_style[3], tagged
+
+        for _ in range(16):
+            if _visible_cell_style(tui, target) != link_style:
+                break
+            tui.child.send(Keys.DOWN)
+            tui.wait_for_condition(
+                lambda lines: lines
+                if _visible_cell_style(tui, target) != link_style
+                else False,
+                timeout=0.4,
+            )
+
+        assert _visible_cell_style(tui, target) != link_style, screen_text(tui)
+        opened = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if any("Enter plain search text only" in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert opened, screen_text(tui)
+        returned = tui.send_and_wait_for_condition(
+            Keys.LEFT,
+            lambda lines: lines
+            if any(target in line for line in lines)
+            else False,
+            timeout=1.0,
+        )
+        assert returned, screen_text(tui)
     finally:
         tui.quit()
 
@@ -714,12 +844,12 @@ def test_split_file_help_arrows_follow_rows_without_wrapping(tmp_path):
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
         help_screen = _wait_for_help(tui, "F8 Split File Help")
-        help_screen = _scroll_help_to_text(tui, "C/^K copy:")
-        assert "C/^K copy:" in help_screen, help_screen
+        help_screen = _scroll_help_to_text(tui, "C/^Copy:")
+        assert "C/^Copy:" in help_screen, help_screen
 
         help_screen = _send_help_key_until_text(tui, Keys.HOME, "1: Name only.")
         first_detail = _follow_help_topic(
-            tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
+            tui, "C/^Copy:", "Copy/Move Targets", timeout=1.0
         )
         assert "Copy/Move Targets" in first_detail, first_detail
         tui.send_keystroke(Keys.LEFT, wait=0.05)
@@ -751,8 +881,7 @@ def test_vi_file_footer_uses_runtime_vi_keys(tmp_path):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         footer = "\n".join(footer_lines(tui))
 
-        assert "delete" in footer, footer
-        assert "Delete" not in footer, footer
+        assert "D/^Delete" in footer, footer
     finally:
         tui.quit()
 
@@ -772,7 +901,7 @@ def test_execute_prompt_f1_help_explains_placeholder_and_tagged_repeat(tmp_path)
         tui.send_keystroke(Keys.F1, wait=0.3)
         help_screen = screen_text(tui)
         normalized = _normalized_help_text(help_screen)
-        assert "Put {} where the selected file path should go" in normalized, help_screen
+        assert "The prompt starts with {} for the selected file path" in normalized, help_screen
         assert "C-x" in help_screen, help_screen
         assert "repeat the same command once per tagged file" in normalized, help_screen
 
@@ -971,7 +1100,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "Right Arrow:" not in help_screen, help_screen
         assert "Enter:" not in help_screen, help_screen
         for label, stale_label in (
-            ("C/^K copy:", "Copy tagged:"),
+            ("C/^Copy:", "Copy tagged:"),
             ("J compare:", "Compare:"),
             ("K volume:", "Volume:"),
             ("M/^N move:", "Move tagged:"),
@@ -985,9 +1114,9 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
             assert label in help_screen, help_screen
             assert stale_label not in help_screen, help_screen
         help_screen = _send_help_key_until_text(tui, Keys.HOME, "1: Name only.")
-        help_screen = _scroll_help_to_text(tui, "C/^K copy:")
+        help_screen = _scroll_help_to_text(tui, "C/^Copy:")
         copy_detail = _follow_help_topic(
-            tui, "C/^K copy:", "Copy/Move Targets", timeout=1.0
+            tui, "C/^Copy:", "Copy/Move Targets", timeout=1.0
         )
         normalized_copy_detail = _normalized_help_text(copy_detail)
         assert "two explicit prompts" in normalized_copy_detail, copy_detail
@@ -998,7 +1127,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "Overwrite conflicts compare size/time" in normalized_copy_detail, copy_detail
         assert "newer/older and bigger/smaller" in normalized_copy_detail, copy_detail
         assert "no copy-now or move-now confirmation follows" in normalized_copy_detail, copy_detail
-        assert "*.bak" not in normalized_copy_detail, copy_detail
+        assert "*.bak" in normalized_copy_detail, copy_detail
         assert "C-k copies the tagged set" not in normalized_copy_detail, copy_detail
         tui.send_keystroke(Keys.LEFT, wait=0.05)
         assert tui.wait_for_content("F8 Split File Help", timeout=1.0), screen_text(tui)
@@ -1025,7 +1154,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         assert "COMMANDS" not in preview_body, preview_screen
         for label in (
             "Attributes:",
-            "C/^K copy:",
+            "C/^Copy:",
             "Filter:",
             "J compare:",
             "M/^N move:",
@@ -1051,7 +1180,7 @@ def test_main_f1_help_tracks_directory_file_preview_and_split_contexts(tmp_path)
         tui.quit()
 
 
-def test_showall_help_opens_scope_explainer_and_returns(tmp_path):
+def test_showall_help_keeps_scope_details_and_returns(tmp_path):
     root = _root_with_file(tmp_path, "showall_global_help_navigation")
     tui = _spawn_help_tui(root)
 
@@ -1063,25 +1192,6 @@ def test_showall_help_opens_scope_explainer_and_returns(tmp_path):
         assert "Showall lists every file inside the current logged volume only." in showall_help, showall_help
         assert "Return to the previously selected directory." in showall_help, showall_help
         assert "owner directory" in showall_help, showall_help
-
-        scope_help_screen = tui.send_and_wait_for_condition(
-            Keys.RIGHT,
-            lambda lines: lines
-            if any("Scope" in line for line in lines)
-            and not any("Showall Help" in line for line in lines)
-            else False,
-            timeout=1.5,
-        )
-        assert scope_help_screen, screen_text(tui)
-        scope_help = "\n".join(scope_help_screen)
-        assert "Showall lists every file inside the current logged volume only." in scope_help, scope_help
-
-        showall_again = tui.send_and_wait_for_condition(
-            Keys.LEFT,
-            lambda lines: lines if any("Showall Help" in line for line in lines) else False,
-            timeout=1.5,
-        )
-        assert showall_again, screen_text(tui)
 
         showall_help = _scroll_help_to_text(tui, "Sort:")
         assert "Repeating S changes sort" in showall_help, showall_help
@@ -1552,7 +1662,7 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         seen_screens = [help_screen]
         for label in (
             "1: Name only.",
-            "C/^K copy:",
+            "C/^Copy:",
             "Delete:",
             "Filter:",
             "Hex:",
@@ -1563,7 +1673,7 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
             help_screen = _scroll_help_to_text(tui, label)
             seen_screens.append(help_screen)
         file_help = "\n".join(seen_screens).lower()
-        for label in ("1: name only.", "c/^k copy:", "delete:", "filter:", "hex:", "j compare:", "k volume:", "m/^n move:"):
+        for label in ("1: name only.", "c/^copy:", "delete:", "filter:", "hex:", "j compare:", "k volume:", "m/^n move:"):
             assert label in file_help, help_screen
         assert "archive file help only covers" not in file_help, help_screen
         assert "see file for the normal file-mode baseline" not in file_help, help_screen
@@ -1707,3 +1817,84 @@ def test_integrated_help_source_covers_archive_showall_and_history_surfaces():
     f2_source = _read_source("src/ui/f2_picker.c")
     assert "case ACTION_HELP:" in f2_source
     assert 'UI_ShowGeneratedContextHelp(ctx, "dialog.f2-picker", NULL, 0)' in f2_source
+
+
+def test_help_popup_styles_inline_topic_links_as_links():
+    source = _read_source("src/ui/help_popup.c")
+    renderer = _extract_function_block(
+        source,
+        "static void RenderHelpInlineText(WINDOW *win, int y, int column, int max_width,",
+    )
+
+    assert "UI_HELP_POPUP_SPAN_LINK" in renderer
+    assert "UI_ROLE_HELP_LINK" in renderer
+    assert "UI_ROLE_HELP_LINK_SELECTION" in renderer
+    assert "selected_link_index" in renderer
+    assert "A_UNDERLINE" not in renderer
+    assert "wattrset(win, COLOR_PAIR(base_role));\n      size_t rendered" in renderer
+
+
+def test_runtime_help_history_restores_the_popup_viewport():
+    source = _read_source("src/ui/runtime_help.c")
+    popup_source = _read_source("src/ui/help_popup.c")
+
+    assert "int scroll_line_offset;" in source
+    assert "state.visible_row_offset = current_view.scroll_line_offset;" in source
+    assert "current_view.scroll_line_offset = state.visible_row_offset;" in source
+    assert "footer_spec->final_scroll_line" in popup_source
+
+
+def test_runtime_help_strips_inline_topic_links_before_wrapping():
+    source = _read_source("src/ui/runtime_help.c")
+    build_rows = _extract_function_block(
+        source,
+        "static size_t BuildTextRows(RuntimeHelpPopupState *state,",
+    )
+
+    assert "ParseHelpMarkdown(state, line, &parsed_line)" in build_rows
+    assert build_rows.index("ParseHelpMarkdown(state, line, &parsed_line)") < build_rows.index(
+        "AppendWrappedParsedHelpLine(state, &row_count, &line_index,"
+    )
+
+    parser = _extract_function_block(
+        source,
+        "static void ParseHelpMarkdown(RuntimeHelpPopupState *state, const char *source,",
+    )
+    assert '"](topic:"' in parser
+    assert "UI_HELP_POPUP_SPAN_LINK" in parser
+    assert "target_topic_id" in parser
+
+    wrapper = _extract_function_block(
+        source,
+        "static size_t NextWrappedParsedChunk(const ParsedHelpLine *line,",
+    )
+    assert "StrVisualLength(segment)" in wrapper
+    assert "VisualPositionToBytePosition(segment, wrap_width)" in wrapper
+    assert "UI_HELP_POPUP_SPAN_LINK" in wrapper
+
+
+def test_final_inline_help_link_remains_selected_at_navigation_boundary():
+    source = _read_source("src/ui/runtime_help.c")
+    handler = _extract_function_block(
+        source,
+        "static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,",
+    )
+
+    boundary = handler.index("if (next_index == GENERATED_HELP_NO_SELECTION)")
+    assert "return 0;" in handler[boundary:]
+    assert "SelectInlineHelpLink(state, next_index)" in handler
+    assert "FindVisibleInlineHelpLink(state, reverse)" in handler
+
+
+def test_runtime_help_marks_inline_topic_links_for_rendering():
+    source = _read_source("src/ui/runtime_help.c")
+    parser = _extract_function_block(
+        source,
+        "static void ParseHelpMarkdown(RuntimeHelpPopupState *state, const char *source,",
+    )
+    header = _read_source("include/ytnova_ui.h")
+
+    assert "UIHelpPopupSpan" in header
+    assert "const UIHelpPopupSpan *spans" in header
+    assert "AppendParsedHelpSpan(line, UI_HELP_POPUP_SPAN_LINK" in parser
+    assert "GENERATED_HELP_LINK_MARKER" not in source

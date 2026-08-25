@@ -52,7 +52,7 @@ audio = green: mp3,wav,flac,ogg,m4a,wma,aac,mid,midi,ac3,ape,awb,dts,it,med,mod,
 video = green: mp4,avi,mkv,mov,wmv,flv,webm,3gp,asf,m4v,mol,mpl,mp2,mpeg,mpg,ogv,ts,vob,y4m
 graphics = +magenta: jpg,jpeg,gif,png,tif,tiff,pcx,bmp,xpm,xbm,eps,pic,rle,ico,wmf,omf,ai,cdr,svg,dwg,avif,heic,heif,hif,jp2,jxl,psb,psd,xcf,webp
 documents = yellow: pdf,txt,md,markdown,doc,docx,rtf,chm,css,ctl,diz,docm,dtd,fodg,fodp,fods,fodt,htm,html,json,letter,lsm,mail,man,me,mkd,msg,nroff,odg,odp,ods,odt,po,ppt,pptm,pptx,ps,sgml,shtml,tex,text,xls,xlsm,xlsx,xml,xsd,xslt,yaml,toml
-links = grey: LINK
+links = blue: LINK
 executables = +green: EXEC
 
 [theme quiet-blue]

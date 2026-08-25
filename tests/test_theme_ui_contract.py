@@ -485,10 +485,10 @@ def test_help_inline_terms_use_the_configurable_term_role():
     popup_source = _read("src/ui/help_popup.c")
     runtime_help_source = _read("src/ui/runtime_help.c")
 
-    assert "BOOL term = FALSE;" in popup_source
+    assert "UI_HELP_POPUP_SPAN_TERM" in popup_source
     assert "UI_ROLE_HELP_TOPIC" in popup_source
     assert "if (*source == '`')" in runtime_help_source
-    assert "if (preserve_attention)\n        dest[out++] = *source;" in runtime_help_source
+    assert "AppendParsedHelpSpan(line, UI_HELP_POPUP_SPAN_TERM" in runtime_help_source
 
 
 def test_help_keybind_uses_its_configured_background():

@@ -145,6 +145,9 @@ When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 * **F9**: Open the Applications menu.
 * **F10**: Open the configuration command surface.
 * **Esc**: Back out of the current overlay, prompt, or popup.
+
+#### Footer space
+When the footer is truncated in small terminal windows, use `C--` to reduce the terminal text size or `C-+` to increase it.
 ### Directory Mode
 
 #### Directory navigation

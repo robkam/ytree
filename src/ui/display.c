@@ -468,7 +468,7 @@ static const FooterCommandSpec file_footer_standard_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Attributes", "A", "^A",
                    "ACTION_CMD_A", "ACTION_CMD_TAGGED_A"),
-    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^C",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Delete", "D", "^D",
                    "ACTION_CMD_D", "ACTION_CMD_TAGGED_D"),
@@ -537,7 +537,7 @@ static const FooterCommandSpec file_footer_ll_specs[] = {
 
 static const FooterCommandSpec file_footer_archive_specs[] = {
     FOOTER_STATIC(UI_COMMAND_LAYOUT_KEY_PREFIX, "file view", "1..9", NULL),
-    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^C",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Delete", "D", "^D",
                    "ACTION_CMD_D", "ACTION_CMD_TAGGED_D"),
@@ -582,7 +582,7 @@ static const FooterCommandSpec file_footer_archive_specs[] = {
 static const FooterCommandSpec preview_footer_specs[] = {
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Attributes", "A", "^A",
                    "ACTION_CMD_A", "ACTION_CMD_TAGGED_A"),
-    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^K",
+    FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "copy", "C", "^C",
                    "ACTION_CMD_C", "ACTION_CMD_TAGGED_C"),
     FOOTER_ACTIONS(UI_COMMAND_LAYOUT_ALT_MNEMONIC, "Delete", "D", "^D",
                    "ACTION_CMD_D", "ACTION_CMD_TAGGED_D"),
@@ -782,6 +782,11 @@ static void ResolveFooterCommandSpec(const ViewContext *ctx, BOOL is_dir,
   ResolveFooterActionKey(ctx, is_dir, spec->secondary_action_id,
                          spec->command.secondary_key, resolved->secondary_key,
                          sizeof(resolved->secondary_key));
+  if (spec->secondary_action_id != NULL &&
+      strcmp(spec->secondary_action_id, "ACTION_CMD_TAGGED_C") == 0) {
+    (void)snprintf(resolved->secondary_key, sizeof(resolved->secondary_key),
+                   "%s", "^C");
+  }
 
   if (!is_dir && IsViKeysEnabled(ctx) && spec->primary_action_id != NULL) {
     if (strcmp(spec->primary_action_id, "ACTION_CMD_D") == 0) {

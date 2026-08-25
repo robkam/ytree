@@ -35,6 +35,7 @@ static int term_putc(int c) { return fputc(c, stdout); }
 
 #define CONFLICT_SIZE_SCALE_THRESHOLD 999.5
 #define CONFLICT_SIZE_MAX_UNIT_INDEX 5
+#define ESC_SEQUENCE_TIMEOUT_MS 100
 
 static int NormalizeChoiceKey(int c) {
   if (c >= 0 && c <= UCHAR_MAX && islower((unsigned char)c))
@@ -379,6 +380,11 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
 int InputChoiceWithHelp(ViewContext *ctx, const char *msg, const char *term,
                         int (*help_callback)(ViewContext *, void *),
                         void *help_data) {
+  static const UICommandStripCommand help_commands[] = {
+      {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("choice-prompt.commands", "help"),
+       "F1", NULL, "choice-prompt.commands"},
+      {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("choice-prompt.commands", "cancel"),
+       "Esc", NULL, "choice-prompt.commands"}};
   int c;
 
   if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
@@ -397,12 +403,6 @@ int InputChoiceWithHelp(ViewContext *ctx, const char *msg, const char *term,
   PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
                    UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
   if (help_callback != NULL) {
-    static const UICommandStripCommand help_commands[] = {
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("choice-prompt.commands", "help"),
-         "F1", NULL, "choice-prompt.commands"},
-        {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("choice-prompt.commands", "cancel"),
-         "Esc", NULL, "choice-prompt.commands"}};
-
     UI_RenderAdaptiveCommandStrip(
         ctx->ctx_border_window, ctx->layout.status_y, 1, help_commands,
         sizeof(help_commands) / sizeof(help_commands[0]), UI_ROLE_STATIC_TEXT,
@@ -416,6 +416,14 @@ int InputChoiceWithHelp(ViewContext *ctx, const char *msg, const char *term,
       curs_set(0);
       (void)help_callback(ctx, help_data);
       curs_set(1);
+      mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+      mvwhline(ctx->ctx_border_window, ctx->layout.status_y, 1, ' ', COLS - 2);
+      PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
+                       (char *)msg, UI_ROLE_STATIC_TEXT, UI_ROLE_KEYBIND);
+      UI_RenderAdaptiveCommandStrip(
+          ctx->ctx_border_window, ctx->layout.status_y, 1, help_commands,
+          sizeof(help_commands) / sizeof(help_commands[0]), UI_ROLE_STATIC_TEXT,
+          UI_ROLE_KEYBIND);
       touchwin(ctx->ctx_border_window);
       wnoutrefresh(ctx->ctx_border_window);
       doupdate();
@@ -926,9 +934,6 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'v':
   case 'V':
     return AppStateValidatedKeyAction(ACTION_CMD_V);
-  case 'w':
-  case 'W':
-    return AppStateValidatedKeyAction(ACTION_CMD_PRINT);
   case 'x':
   case 'X':
     return AppStateValidatedKeyAction(ACTION_CMD_X);
@@ -1045,23 +1050,23 @@ static int NormalizeEscSequenceForWindow(WINDOW *win, int ch) {
   if (win == NULL)
     win = stdscr;
 
-  nodelay(win, TRUE);
+  wtimeout(win, ESC_SEQUENCE_TIMEOUT_MS);
   seq1 = wgetch(win);
   if (seq1 == ERR) {
-    nodelay(win, FALSE);
+    wtimeout(win, -1);
     return ESC;
   }
 
   if (seq1 != '[' && seq1 != 'O') {
     ungetch(seq1);
-    nodelay(win, FALSE);
+    wtimeout(win, -1);
     return ESC;
   }
 
   seq2 = wgetch(win);
   if (seq2 == ERR) {
     ungetch(seq1);
-    nodelay(win, FALSE);
+    wtimeout(win, -1);
     return ESC;
   }
 
@@ -1107,7 +1112,7 @@ static int NormalizeEscSequenceForWindow(WINDOW *win, int ch) {
     break;
   }
 
-  nodelay(win, FALSE);
+  wtimeout(win, -1);
   return ch;
 }
 
