@@ -82,6 +82,47 @@ def test_internal_viewer_return_restores_full_ui_frame(tmp_path, ytnova_binary):
         tui.quit()
 
 
+def test_internal_tagged_viewer_separates_file_and_hit_navigation(
+    tmp_path, ytnova_binary
+):
+    root = tmp_path / "internal_tagged_navigation"
+    root.mkdir()
+    (root / "first.txt").write_text(
+        "needle one\n" + ("padding\n" * 40) + "needle two\n", encoding="utf-8"
+    )
+    (root / "second.txt").write_text("needle three\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTAGGEDVIEWER=internal\n", encoding="utf-8")
+
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
+    try:
+        tui.wait_for_text("Path:")
+        tui.send_keystroke(Keys.ENTER)
+        tui.wait_for_text("file view")
+        tui.send_keystroke("T")
+        tui.send_keystroke(Keys.DOWN)
+        tui.send_keystroke("T")
+        tui.send_keystroke(Keys.CTRL_S)
+        tui.wait_for_text("SEARCH TAGGED:")
+        tui.send_keystroke("needle")
+        tui.send_keystroke(Keys.ENTER)
+        tui.wait_for_text("file view")
+        tui.send_keystroke(Keys.CTRL_V)
+        tui.wait_for_text("View tagged files")
+
+        footer = _footer_text(tui).lower()
+        assert "next page/file" not in footer, footer
+        assert "next page" in footer and "next file" in footer, footer
+        assert "next hit" in footer and "prev hit" in footer, footer
+
+        tui.send_keystroke("/")
+        tui.send_keystroke("/")
+        tui.wait_for_text("needle two")
+        tui.send_keystroke("?")
+        tui.wait_for_text("needle one")
+    finally:
+        tui.quit()
+
+
 def test_internal_viewer_return_in_archive_mode_restores_full_ui_frame(
     tmp_path, ytnova_binary
 ):

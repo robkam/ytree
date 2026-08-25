@@ -62,6 +62,7 @@ static const GeneratedHelpLink generated_help_links_en_intro[] = {
     {"Shared Commands", "shared-commands"},
     {"Showall", "showall"},
     {"Tagged", "tagged"},
+    {"Tagged Viewer", "tagged-viewer"},
     {"Theming", "theming"},
     {"Vi Keys", "vi-keys"},
     {"Volume", "volume-menu"},
@@ -119,6 +120,10 @@ static const GeneratedHelpLink generated_help_links_en_tagged[] = {
 static const GeneratedHelpLongFormSection generated_help_sections_en_tagged[] = {
     {"Tagged basics", "Tags are a working set. They are not a second clipboard and not a saved search.\nBuild a set, act on it, narrow it, then clear or invert it."},
     {"Common tagged flows", "* **Tag** and **Untag**: Add or remove the current row from the working set.\n* **Invert Tags**: Flip tag state inside the current visible scope.\n* **Filter**: Press `F`, then `Tab` to switch the current file-list scope between all rows and tagged-only rows without changing tag state.\n* **Copy tagged** and **Move tagged**: Send the whole tagged set to one destination.\n* **View tagged**: Open the tagged files one after another.\n* **Search tagged**: Search only the tagged files, then untag non-matches.\n* **Archive**: Archive the tagged set first. When nothing is tagged, archive falls back to the current selection."},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_en_tagged_viewer[] = {
+    {"Navigation scopes", "The internal viewer separates file traversal from search-hit traversal so paging never changes files.\n\nSee [Tagged](topic:tagged)."},
 };
 
 static const GeneratedHelpLink generated_help_links_en_command_line_editing[] = {
@@ -492,7 +497,7 @@ static const GeneratedHelpTopic generated_help_topics_en[] = {
         "Contents",
         NULL,
         "Browse this index when you know the question but not the page.\nPress `Enter` or `Right` on a topic to open it.\nUse `Left` to come back here or `Esc` to leave help.",
-        36,
+        37,
         generated_help_links_en_intro,
         2,
         generated_help_sections_en_intro,
@@ -536,6 +541,16 @@ static const GeneratedHelpTopic generated_help_topics_en[] = {
         generated_help_links_en_tagged,
         2,
         generated_help_sections_en_tagged,
+    },
+    {
+        "tagged-viewer",
+        "Tagged Viewer",
+        "viewer.tagged",
+        "`View tagged` opens the tagged search results in the internal viewer.\nUse `n` and `p` to move to the next or previous tagged file.\nUse `Space`, `PgDn`, and `PgUp` only to move by pages in the current file.\nAfter `C-s` searches the tagged set, use `/` for the next hit and `?` for the previous hit in the current file.\n`C-s` remains the tagged-list search action outside this viewer.\nWith `TAGGEDVIEWER=external`, the configured pager owns search and hit navigation.",
+        0,
+        NULL,
+        1,
+        generated_help_sections_en_tagged_viewer,
     },
     {
         "command-line-editing",
@@ -879,7 +894,7 @@ static const GeneratedHelpTopic generated_help_topics_en[] = {
     },
 };
 
-static const size_t generated_help_topic_count_en = 39;
+static const size_t generated_help_topic_count_en = 40;
 
 static const GeneratedHelpLink generated_help_links_de_intro[] = {
     {"Applications", "applications-menu"},
@@ -915,6 +930,7 @@ static const GeneratedHelpLink generated_help_links_de_intro[] = {
     {"Shared Commands", "shared-commands"},
     {"Showall", "showall"},
     {"Tagged", "tagged"},
+    {"Markierungsanzeige", "tagged-viewer"},
     {"Theming", "theming"},
     {"Vi Keys", "vi-keys"},
     {"Volume", "volume-menu"},
@@ -972,6 +988,10 @@ static const GeneratedHelpLink generated_help_links_de_tagged[] = {
 static const GeneratedHelpLongFormSection generated_help_sections_de_tagged[] = {
     {"Grundlagen", "Markierungen sind eine Arbeitsmenge. Sie sind weder eine zweite Zwischenablage noch eine gespeicherte Suche.\nBaue eine Menge auf, arbeite damit, verenge sie weiter und leere oder invertiere sie danach."},
     {"Häufige Abläufe", "* **Tag** und **Untag**: Die aktuelle Zeile zur Arbeitsmenge hinzufügen oder daraus entfernen.\n* **Invert Tags**: Den Markierungszustand im aktuellen sichtbaren Bereich umkehren.\n* **Filter**: Mit `F` und danach `Tab` zwischen allen Zeilen und nur markierten Zeilen umschalten, ohne die Markierungen selbst zu ändern.\n* **Copy tagged** und **Move tagged**: Die ganze markierte Menge an ein Ziel schicken.\n* **View tagged**: Die markierten Dateien nacheinander öffnen.\n* **Search tagged**: Nur die markierten Dateien durchsuchen und Nicht-Treffer wieder entmarkieren.\n* **Archive**: Zuerst die markierte Menge archivieren. Wenn nichts markiert ist, fällt Archivieren auf die aktuelle Auswahl zurück."},
+};
+
+static const GeneratedHelpLongFormSection generated_help_sections_de_tagged_viewer[] = {
+    {"Navigationsbereiche", "Die interne Anzeige trennt Dateinavigation von Treffernavigation, damit Blättern nie die Datei wechselt.\n\nSiehe [Markierungen](topic:tagged)."},
 };
 
 static const GeneratedHelpLink generated_help_links_de_command_line_editing[] = {
@@ -1365,7 +1385,7 @@ static const GeneratedHelpTopic generated_help_topics_de[] = {
         "Inhalt",
         NULL,
         "Benutze diesen Index, wenn du die Frage kennst, aber nicht weißt, welche Seite sie beantwortet.\nDrücke auf einem Thema `Enter` oder `Right`, um es zu öffnen.\nGehe mit `Left` zurück hierher oder mit `Esc` aus der Hilfe.",
-        36,
+        37,
         generated_help_links_de_intro,
         2,
         generated_help_sections_de_intro,
@@ -1409,6 +1429,16 @@ static const GeneratedHelpTopic generated_help_topics_de[] = {
         generated_help_links_de_tagged,
         2,
         generated_help_sections_de_tagged,
+    },
+    {
+        "tagged-viewer",
+        "Markierungsanzeige",
+        "viewer.tagged",
+        "`Markierte anzeigen` öffnet die markierten Suchergebnisse in der internen Anzeige.\nMit `n` und `p` wechseln Sie zur nächsten oder vorherigen markierten Datei.\n`Leertaste`, `BildAb`, und `BildAuf` bewegen nur seitenweise in der aktuellen Datei.\nNach `C-s` für die Suche in der Markierung wechselt `/` zum nächsten und `?` zum vorherigen Treffer in der aktuellen Datei.\nAußerhalb dieser Anzeige bleibt `C-s` die Suchaktion für die Markierungsliste.\nMit `TAGGEDVIEWER=external` übernimmt das konfigurierte Anzeigeprogramm Suche und Treffernavigation.",
+        0,
+        NULL,
+        1,
+        generated_help_sections_de_tagged_viewer,
     },
     {
         "command-line-editing",
@@ -1752,11 +1782,11 @@ static const GeneratedHelpTopic generated_help_topics_de[] = {
     },
 };
 
-static const size_t generated_help_topic_count_de = 39;
+static const size_t generated_help_topic_count_de = 40;
 
 static const GeneratedHelpCatalog generated_help_catalogs[] = {
-    {"en", 39, generated_help_topics_en},
-    {"de", 39, generated_help_topics_de},
+    {"en", 40, generated_help_topics_en},
+    {"de", 40, generated_help_topics_de},
 };
 
 static const size_t generated_help_catalog_count = 2;

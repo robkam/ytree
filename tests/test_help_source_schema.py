@@ -18,6 +18,7 @@ RUNTIME_HELP_CONTEXT_SOURCES = (
     Path("src/ui/f2_picker.c"),
     Path("src/ui/interactions.c"),
     Path("src/ui/print_controller.c"),
+    Path("src/ui/tagged_view.c"),
     Path("src/ui/volume_menu.c"),
 )
 REQUIRED_TOPICS = {
@@ -150,7 +151,7 @@ def _help_label_override_map():
 
 def _runtime_help_contexts():
     contexts = set()
-    pattern = re.compile(r'"((?:main|overlay|prompt|dialog)\.[a-z0-9.-]+)"')
+    pattern = re.compile(r'"((?:main|overlay|prompt|dialog|viewer)\.[a-z0-9.-]+)"')
     for path in RUNTIME_HELP_CONTEXT_SOURCES:
         contexts.update(pattern.findall(path.read_text(encoding="utf-8")))
     return contexts

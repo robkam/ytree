@@ -154,6 +154,18 @@ Du baust einen Satz auf, arbeitest damit, verengst ihn und löschst oder inverti
 * **Search tagged**: Nur im getaggten Satz suchen und Nicht-Treffer enttaggen.
 * **Archive**: Vorrangig den getaggten Satz archivieren; ohne Tags fällt der Befehl auf die aktuelle Auswahl zurück.
 
+## topic:tagged-viewer
+```ytnova-help-meta
+title: Markierungsanzeige
+contexts: viewer.tagged
+```
+### Contextual F1
+Mit `n` und `p` wechseln Sie Dateien, mit Seitentasten und `Leertaste` blättern Sie in der aktuellen Datei, und mit `/` oder `?` wechseln Sie zwischen Treffern der Markierungssuche. `C-s` durchsucht außerhalb der Anzeige die Markierungsliste.
+
+### Long form
+#### Navigationsbereiche
+Die interne Markierungsanzeige trennt Datei-, Seiten- und Treffernavigation. Eine externe Markierungsanzeige überlässt Suche und Treffernavigation dem konfigurierten Pager.
+
 ## topic:command-line-editing
 ```ytnova-help-meta
 title: Command-line Editing
