@@ -151,6 +151,7 @@ PR and wording rules:
 Validation rules:
 - Run focused local validation only unless repo policy or the maintainer explicitly requires more.
 - For bugfixes, follow strict red-green: prove the failure first, then implement the fix, then rerun to green.
+- For all work, do not implement from inference. Inspect the exact current behavior and relevant implementation path before editing, then make the smallest change that directly produces the requested result. Do not add speculative support layers or report success until the requested result itself has been checked. Do not change behavior, interfaces, docs, or tests outside the requested scope without first reporting the necessity and obtaining approval.
 - Do not present routine test passes as progress.
 - Use validation evidence only where required for PR, handoff, or merge decisions, and keep it concise.
 - Do not stream full CI logs or paste long test output.

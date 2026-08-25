@@ -64,7 +64,7 @@ static const CommandActionSpec kCommandActions[] = {
     {"archive_dir", "ACTION_TOGGLE_HIDDEN", '`'},
     {"file", "ACTION_CMD_A", 'a'},
     {"file", "ACTION_CMD_C", 'c'},
-    {"file", "ACTION_CMD_TAGGED_C", 0x0B},
+    {"file", "ACTION_CMD_TAGGED_C", 0x03},
     {"file", "ACTION_CMD_D", 'd'},
     {"file", "ACTION_CMD_E", 'e'},
     {"file", "ACTION_FILTER", 'f'},

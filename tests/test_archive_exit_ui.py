@@ -2170,7 +2170,7 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     _assert_footer_segments_in_order(
         top_footer,
         "1..9 file view",
-        "C/^K copy",
+        "C/^Copy",
         "Delete",
         "Filter",
         "Hex",
@@ -2178,7 +2178,7 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
         "J compare",
         "K volume",
         "Log",
-        "M/^N move",
+        "M/^N",
         "Pipe",
         "Quit",
         "Rename",

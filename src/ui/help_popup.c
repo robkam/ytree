@@ -136,49 +136,107 @@ static void RenderHelpPopupFrame(WINDOW *win, int width, const char *title) {
 #endif
 }
 
+static size_t RenderHelpTextSlice(WINDOW *win, int y, int column,
+                                  int available_width, const char *text,
+                                  size_t length, int *rendered_width) {
+  char fragment[256];
+  size_t byte_count;
+  int width;
+
+  if (rendered_width != NULL)
+    *rendered_width = 0;
+  if (win == NULL || text == NULL || length == 0 || available_width <= 0)
+    return 0;
+
+  byte_count = MINIMUM(length, sizeof(fragment) - 1);
+  memcpy(fragment, text, byte_count);
+  fragment[byte_count] = '\0';
+  if (StrVisualLength(fragment) > available_width) {
+    int fitted_bytes =
+        VisualPositionToBytePosition(fragment, available_width);
+
+    if (fitted_bytes < 0)
+      return 0;
+    byte_count = (size_t)fitted_bytes;
+    fragment[byte_count] = '\0';
+  }
+  if (byte_count == 0)
+    return 0;
+
+  width = StrVisualLength(fragment);
+  mvwprintw(win, y, column, "%s", fragment);
+  if (rendered_width != NULL)
+    *rendered_width = width;
+  return byte_count;
+}
+
 static void RenderHelpInlineText(WINDOW *win, int y, int column, int max_width,
-                                 const char *text,
+                                 const UIHelpPopupRow *row,
                                  UISemanticRolePair base_role) {
-  BOOL attention = FALSE;
-  BOOL term = FALSE;
+  const char *text;
+  size_t offset = 0;
+  size_t span_index;
+  size_t text_length;
   int used_width = 0;
 
-  if (win == NULL || text == NULL || max_width <= 0)
+  if (win == NULL || row == NULL || row->text == NULL || max_width <= 0)
     return;
+  text = row->text;
+  text_length = strlen(text);
 
-  while (*text != '\0' && used_width < max_width) {
-    size_t len = 0;
-    int available = max_width - used_width;
+  for (span_index = 0; span_index < row->span_count &&
+                       used_width < max_width;
+       ++span_index) {
+    const UIHelpPopupSpan *span = &row->spans[span_index];
     UISemanticRolePair role;
+    int rendered_width;
 
-    if (text[0] == '*' && text[1] == '*') {
-      attention = !attention;
-      text += 2;
+    if (span->start < offset || span->start >= text_length ||
+        span->length == 0)
       continue;
-    }
-    if (*text == '`') {
-      term = !term;
-      text++;
-      continue;
+    if (span->start > offset) {
+      wattrset(win, COLOR_PAIR(base_role));
+      size_t rendered = RenderHelpTextSlice(
+          win, y, column + used_width, max_width - used_width, text + offset,
+          span->start - offset, &rendered_width);
+
+      used_width += rendered_width;
+      offset += rendered;
+      if (offset < span->start || used_width >= max_width)
+        break;
     }
 
-    while (text[len] != '\0' && !(text[len] == '*' && text[len + 1] == '*') &&
-           text[len] != '`')
-      ++len;
-    if (len == 0)
-      break;
-    if ((int)len > available)
-      len = (size_t)available;
-
-    role = attention ? UI_ROLE_HELP_ATTENTION
-                     : (term ? UI_ROLE_HELP_TOPIC : base_role);
+    role = base_role;
+    if (span->kind == UI_HELP_POPUP_SPAN_TERM)
+      role = UI_ROLE_HELP_TOPIC;
+    else if (span->kind == UI_HELP_POPUP_SPAN_ATTENTION)
+      role = UI_ROLE_HELP_ATTENTION;
+    else if (span->kind == UI_HELP_POPUP_SPAN_LINK)
+      role = row->selected && span->link_index == row->selected_link_index
+                 ? UI_ROLE_HELP_LINK_SELECTION
+                 : UI_ROLE_HELP_LINK;
     wattrset(win, COLOR_PAIR(role));
-    mvwprintw(win, y, column, "%.*s", (int)len, text);
-    column += (int)len;
-    used_width += (int)len;
-    text += len;
+    {
+      size_t span_length = MINIMUM(span->length, text_length - span->start);
+      size_t rendered = RenderHelpTextSlice(
+          win, y, column + used_width, max_width - used_width,
+          text + span->start, span_length, &rendered_width);
+
+      used_width += rendered_width;
+      offset = span->start + rendered;
+      if (rendered < span_length)
+        break;
+    }
   }
 
+  if (offset < text_length && used_width < max_width) {
+    int rendered_width;
+
+    wattrset(win, COLOR_PAIR(base_role));
+    (void)RenderHelpTextSlice(win, y, column + used_width,
+                              max_width - used_width, text + offset,
+                              text_length - offset, &rendered_width);
+  }
   wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
 }
 
@@ -347,12 +405,12 @@ static void RenderHelpPopupRow(WINDOW *win, int y, int start_x,
     if (row->text != NULL && row->text[0] != '\0' &&
         x < start_x + content_width) {
       if (row->prefix != NULL && row->prefix[0] != '\0') {
-        mvwprintw(win, y, x, row->kind == UI_HELP_POPUP_LINK_TEXT ? " " : ": ");
-        x += row->kind == UI_HELP_POPUP_LINK_TEXT ? 1 : 2;
+        mvwprintw(win, y, x, ": ");
+        x += 2;
       }
       if (x < start_x + content_width)
-        RenderHelpInlineText(win, y, x, content_width - (x - start_x),
-                             row->text, text_role);
+        RenderHelpInlineText(win, y, x, content_width - (x - start_x), row,
+                             text_role);
       wattrset(win, COLOR_PAIR(UI_ROLE_HELP));
     }
     break;
@@ -568,7 +626,9 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                                  &effective_footer_commands,
                                  &effective_footer_count);
   content_width = width - 4;
-  if (footer_spec != NULL && footer_spec->initial_visible_row > 0)
+  if (footer_spec != NULL && footer_spec->initial_scroll_line >= 0)
+    scroll_line_offset = footer_spec->initial_scroll_line;
+  else if (footer_spec != NULL && footer_spec->initial_visible_row > 0)
     scroll_line_offset = HelpPopupRowStartLine(
         rows, (int)row_count,
         MINIMUM(footer_spec->initial_visible_row, (int)row_count - 1));
@@ -621,6 +681,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
 
     ch = WGetch(ctx, win);
     if (ctx->resize_request) {
+      if (footer_spec != NULL && footer_spec->final_scroll_line != NULL)
+        *footer_spec->final_scroll_line = scroll_line_offset;
       UI_Dialog_Close(ctx, win);
       return 1;
     }
@@ -648,6 +710,8 @@ static int ShowHelpPopupInternal(ViewContext *ctx, const char *title,
                              &scroll_line_offset);
   }
 
+  if (footer_spec != NULL && footer_spec->final_scroll_line != NULL)
+    *footer_spec->final_scroll_line = scroll_line_offset;
   UI_Dialog_Close(ctx, win);
   return 0;
 }

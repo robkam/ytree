@@ -231,12 +231,26 @@ typedef enum {
   UI_HELP_POPUP_COMMAND_STRIP,
   UI_HELP_POPUP_LINK_TEXT
 } UIHelpPopupRowKind;
+typedef enum {
+  UI_HELP_POPUP_SPAN_TERM,
+  UI_HELP_POPUP_SPAN_ATTENTION,
+  UI_HELP_POPUP_SPAN_LINK
+} UIHelpPopupSpanKind;
+typedef struct {
+  size_t start;
+  size_t length;
+  size_t link_index;
+  UIHelpPopupSpanKind kind;
+} UIHelpPopupSpan;
 typedef struct {
   UIHelpPopupRowKind kind;
   const char *prefix;
   const char *text;
   const UICommandStripCommand *commands;
+  const UIHelpPopupSpan *spans;
   size_t command_count;
+  size_t span_count;
+  size_t selected_link_index;
   BOOL selected;
   BOOL compact_with_previous;
 } UIHelpPopupRow;
@@ -253,6 +267,8 @@ typedef struct {
   int (*active_row_handler)(const void *);
   void (*viewport_handler)(void *, int, int, int);
   int initial_visible_row;
+  int initial_scroll_line;
+  int *final_scroll_line;
   void *key_data;
 } UIHelpPopupFooterSpec;
 extern int UI_CommandStripVisualLength(const UICommandStripCommand *commands,

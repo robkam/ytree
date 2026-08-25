@@ -12,7 +12,7 @@ cffi==2.1.1
     # via cryptography
 charset-normalizer==3.5.1
     # via requests
-cryptography==50.0.0
+cryptography==50.0.1
     # via google-auth
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
@@ -23,14 +23,14 @@ google-api-core[grpc]==2.33.0
     #   google-generativeai
 google-api-python-client==2.199.0
     # via google-generativeai
-google-auth==2.56.3
+google-auth==2.57.0
     # via
     #   google-ai-generativelanguage
     #   google-api-core
     #   google-api-python-client
     #   google-auth-httplib2
     #   google-generativeai
-google-auth-httplib2==0.4.1
+google-auth-httplib2==0.4.2
     # via google-api-python-client
 google-generativeai==0.8.6
     # via -r scripts/requirements.in
@@ -97,11 +97,11 @@ pytest==9.1.1
     # via -r scripts/requirements.in
 requests==2.34.2
     # via google-api-core
-temporalio==1.31.0
+temporalio==1.32.0
     # via -r scripts/requirements.in
 tqdm==4.70.0
     # via google-generativeai
-types-protobuf==7.35.1.20260821
+types-protobuf==7.35.1.20260826
     # via temporalio
 typing-extensions==4.16.0
     # via
