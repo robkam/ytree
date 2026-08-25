@@ -104,7 +104,7 @@ static const char default_profile_template[] =
     "# PAGER=less -cen\n"
     "# TAGGEDVIEWER controls `^V` (View Tagged) mode:\n"
     "#   external = use PAGER (default, less-style behavior)\n"
-    "#   internal = use YtreeNova internal tagged viewer (space/n/p handling in YtreeNova)\n"
+    "#   internal = use YtreeNova tagged viewer (page, file, and search-hit navigation)\n"
     "TAGGEDVIEWER=internal\n"
     "\n"
     "# THEME checks ~/.config/ytnova/themes.conf first, then the home fallback\n"

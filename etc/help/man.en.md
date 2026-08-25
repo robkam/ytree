@@ -148,9 +148,21 @@ You can build a set, act on it, narrow it, then clear or invert it.
 * **Invert Tags**: Flip the tag state inside the current visible scope.
 * **Filter**: Press `F`, then `Tab` to switch the current file-list scope between all rows and tagged-only rows without changing tag state.
 * **Copy tagged** and **Move tagged**: Send the whole tagged set to one destination.
-* **View tagged**: Open the tagged files one after another.
+* **View tagged**: Open the tagged files one after another. In the internal viewer, `n`/`p` change file, `Space`/page keys scroll only the current file, and `/`/`?` move between tagged-search hits in that file. `TAGGEDVIEWER=external` keeps pager-native search and hit navigation.
 * **Search tagged**: Search only the tagged files, then untag non-matches.
 * **Archive**: Archive the tagged set first. When nothing is tagged, archive falls back to the current selection.
+
+## topic:tagged-viewer
+```ytnova-help-meta
+title: Tagged Viewer
+contexts: viewer.tagged
+```
+### Contextual F1
+Use `n` and `p` for files, page keys and `Space` within the current file, and `/` or `?` for tagged-search hits. `C-s` searches the tagged list outside the viewer.
+
+### Long form
+#### Navigation scopes
+The internal tagged viewer keeps file, page, and search-hit navigation separate. An external tagged viewer leaves search and hit navigation to the configured pager.
 
 ## topic:command-line-editing
 ```ytnova-help-meta

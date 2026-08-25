@@ -19,19 +19,54 @@
 static const UICommandStripCommand tagged_view_message_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, NP_("tagged-view.commands", "Quit"), "Q",
      NULL, "tagged-view.commands"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "next page/file"),
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "next page"),
      "Space", "PgDn", "tagged-view.commands"},
     {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "prev page"),
-     "PgUp", NULL, "tagged-view.commands"}};
+     "PgUp", NULL, "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "help"), "F1",
+     NULL, "tagged-view.commands"}};
 static const UICommandStripCommand tagged_view_prompt_commands[] = {
     {UI_COMMAND_LAYOUT_MNEMONIC, NP_("tagged-view.commands", "Next file"),
      "N", NULL, "tagged-view.commands"},
     {UI_COMMAND_LAYOUT_MNEMONIC, NP_("tagged-view.commands", "Prev file (wrap)"),
      "P", NULL, "tagged-view.commands"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "line"), "Up",
-     "Down", "tagged-view.commands"},
-    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "of line"),
-     "Home", "End", "tagged-view.commands"}};
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "next hit"), "/",
+     NULL, "tagged-view.commands"},
+    {UI_COMMAND_LAYOUT_KEY_PREFIX, NP_("tagged-view.commands", "prev hit"), "?",
+     NULL, "tagged-view.commands"}};
+
+static long FindTaggedViewHit(const char *path, const char *term,
+                              long current_line, int direction) {
+  FILE *fp;
+  char line[4096];
+  long line_number = 0;
+  long first_hit = -1;
+  long previous_hit = -1;
+  long last_hit = -1;
+
+  if (!path || !term || !*term)
+    return -1;
+  fp = fopen(path, "r");
+  if (!fp)
+    return -1;
+  while (fgets(line, sizeof(line), fp)) {
+    if (strcasestr(line, term)) {
+      if (first_hit < 0)
+        first_hit = line_number;
+      last_hit = line_number;
+      if (direction > 0 && line_number > current_line) {
+        fclose(fp);
+        return line_number;
+      }
+      if (direction < 0 && line_number < current_line)
+        previous_hit = line_number;
+    }
+    line_number++;
+  }
+  fclose(fp);
+  return direction > 0 ? first_hit :
+                         (previous_hit >= 0 ? previous_hit : last_hit);
+}
 
 static BOOL CopyBoundedStringChecked(char *dst, size_t dst_size,
                                      const char *src) {
@@ -219,6 +254,7 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
   int ch;
   BOOL quit = FALSE;
   long line_offset = 0;
+  long current_hit_line = -1;
 
   if (!ctx || !view_paths || !display_paths || path_count <= 0)
     return -1;
@@ -262,11 +298,13 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
     case 'N':
       current_idx = (current_idx + 1) % path_count;
       line_offset = 0;
+      current_hit_line = -1;
       break;
     case 'p':
     case 'P':
       current_idx = (current_idx + path_count - 1) % path_count;
       line_offset = 0;
+      current_hit_line = -1;
       break;
     case KEY_UP:
       if (line_offset > 0)
@@ -307,16 +345,30 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
 
       RenderFilePreview(ctx, ctx->viewer.view, view_paths[current_idx],
                         &probe_offset, 0);
-      if (probe_offset == old_offset) {
-        if (current_idx < path_count - 1) {
-          current_idx++;
-          line_offset = 0;
-        }
-      } else {
+      if (probe_offset != old_offset) {
         line_offset = probe_offset;
       }
       break;
     }
+    case '/':
+    case '?': {
+      int direction = (ch == '/') ? 1 : -1;
+      long hit_line = FindTaggedViewHit(view_paths[current_idx],
+                                        ctx->global_search_term,
+                                        current_hit_line, direction);
+
+      if (hit_line >= 0) {
+        current_hit_line = hit_line;
+        line_offset = hit_line;
+      }
+      break;
+    }
+#ifdef KEY_F
+    case KEY_F(1):
+      (void)UI_ShowGeneratedContextHelp(ctx, "viewer.tagged", NULL, 0);
+      SetupTaggedViewWindow(ctx);
+      break;
+#endif
     case 'L' & 0x1f:
       clearok(stdscr, TRUE);
       break;

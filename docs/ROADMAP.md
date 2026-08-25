@@ -554,7 +554,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer keybinding hints and F1 help in internal `^V` mode explicitly show file-nav keys and hit-nav keys.
 *   `^S` remains the tagged-list search/filter action outside viewer mode and is documented distinctly.
 *   Add focused regression coverage for key behavior and help discoverability in this mode.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 ### **Task 23: Replace `Write` with an Explicit `Output` / Hardcopy Flow**
 *   **Goal:** Make file-output and hardcopy behavior immediately understandable by repurposing `O` as an explicit `Output` action.
