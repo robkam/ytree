@@ -240,6 +240,13 @@ def test_file_color_pair_exhaustion_cannot_reuse_semantic_roles():
     assert "if (rule->pair_id == FILE_COLOR_PAIR_UNASSIGNED)" in color_source
 
 
+def test_file_color_pairs_are_reused_for_equal_theme_styles():
+    color_source = _read_source("src/ui/color.c")
+
+    assert "FindReusableFileColorPair" in color_source
+    assert "candidate->fg == rule->fg && candidate->bg == rule->bg" in color_source
+
+
 def test_file_type_palette_special_selectors_are_link_and_exec_only():
     theme_source = _read_source("src/cmd/theme.c")
     profile_source = _read_source("src/cmd/profile.c")

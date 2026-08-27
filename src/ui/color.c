@@ -307,6 +307,20 @@ void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg, int bg) {
   tail->next = new_rule;
 }
 
+static int FindReusableFileColorPair(const FileColorRule *head,
+                                     const FileColorRule *rule) {
+  const FileColorRule *candidate;
+
+  for (candidate = head; candidate != NULL && candidate != rule;
+       candidate = candidate->next) {
+    if (candidate->fg == rule->fg && candidate->bg == rule->bg &&
+        candidate->pair_id != FILE_COLOR_PAIR_UNASSIGNED)
+      return candidate->pair_id;
+  }
+
+  return FILE_COLOR_PAIR_UNASSIGNED;
+}
+
 void ReinitColorPairs(ViewContext *ctx) {
   int i;
   FileColorRule *rule;
@@ -334,13 +348,14 @@ void ReinitColorPairs(ViewContext *ctx) {
                                   COLORS));
   }
 
-  /* Initialize file type colors */
+  /* File-type selectors with the same style share one terminal color pair. */
   for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
     if (rule->pair_id == FILE_COLOR_PAIR_UNASSIGNED) {
-      if (next_pair_id < COLOR_PAIRS) {
+      rule->pair_id = FindReusableFileColorPair(ctx->file_color_rules_head, rule);
+      if (rule->pair_id == FILE_COLOR_PAIR_UNASSIGNED) {
+        if (next_pair_id >= COLOR_PAIRS)
+          continue;
         rule->pair_id = next_pair_id++;
-      } else {
-        continue;
       }
     }
     if (rule->pair_id < F_COLOR_PAIR_BASE || rule->pair_id >= COLOR_PAIRS)

@@ -446,3 +446,9 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Define stats as a first-class appstate/render component with one authoritative projection boundary. Consolidate subsection visibility, titles, values, and borders under one render contract so prompt/modal flows cannot partially orphan or preserve only one subsection. Regression coverage should verify that stats either renders as one complete valid unit or is intentionally hidden as one unit.
 *   **Related**: `BUG-28` (split-brain redraw), `BUG-29` (directory copy/move frame drop), `docs/ARCHITECTURE.md` §4.2.3 (`AppState` transition contract), `ROADMAP` Task 21.1 (unified stats + main-pane redraw contract).
 *   **Status**: Confirmed.
+
+### **BUG-31: File-Type Themes Exhaust Terminal Color Pairs Per Selector**
+*   **Description**: File-type palette rules currently consume a terminal `COLOR_PAIRS` entry for every extension selector, even when selectors use the same foreground/background style.
+*   **Impact**: Long palettes can silently leave later selectors, including `LINK` and `EXEC`, without their requested style.
+*   **Expected**: YtreeNova must share one color pair for every identical foreground/background style, preserve selector precedence, and use the finite terminal pair table only for distinct styles.
+*   **Status**: Fixed.

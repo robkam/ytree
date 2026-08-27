@@ -102,6 +102,7 @@ Surface-specific details still belong to the relevant mode or prompt topic.
 * **Esc**: Back out of the current overlay, prompt, or popup.
 
 #### Footer space
+The footer is authoritative for the active command map. `commands.conf` may change bindings and labels, so use the footer for the exact active keys.
 When the footer is truncated in small terminal windows, use `C--` to reduce the terminal text size or `C-+` to increase it.
 
 ## topic:tagged
