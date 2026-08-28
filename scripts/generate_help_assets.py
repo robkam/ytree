@@ -351,41 +351,49 @@ def parse_help_source(
 
         if len(block) < 6:
             raise HelpSourceError(f"line {line_no}: topic {topic_id!r} is incomplete")
-        if block[1] != "```ytnova-help-meta":
-            raise HelpSourceError(
-                f"line {line_no + 1}: topic {topic_id!r} must start metadata with ```ytnova-help-meta"
-            )
-        if not block[2].startswith("title: "):
-            raise HelpSourceError(f"line {line_no + 2}: topic {topic_id!r} is missing title:")
-        if not block[3].startswith("contexts: "):
-            raise HelpSourceError(f"line {line_no + 3}: topic {topic_id!r} is missing contexts:")
-        if block[4] != "```":
-            raise HelpSourceError(f"line {line_no + 4}: topic {topic_id!r} metadata fence is not closed")
-        if block[5] != "### Contextual F1":
-            raise HelpSourceError(f"line {line_no + 5}: topic {topic_id!r} must declare ### Contextual F1")
 
-        title = block[2][len("title: ") :].strip()
-        contexts_raw = block[3][len("contexts: ") :].strip()
+        metadata_start = 1
+        while metadata_start < len(block) and not block[metadata_start]:
+            metadata_start += 1
+        if metadata_start + 4 >= len(block) or block[metadata_start] != "```ytnova-help-meta":
+            raise HelpSourceError(
+                f"line {line_no + metadata_start}: topic {topic_id!r} must start metadata with ```ytnova-help-meta"
+            )
+        if not block[metadata_start + 1].startswith("title: "):
+            raise HelpSourceError(f"line {line_no + metadata_start + 1}: topic {topic_id!r} is missing title:")
+        if not block[metadata_start + 2].startswith("contexts: "):
+            raise HelpSourceError(f"line {line_no + metadata_start + 2}: topic {topic_id!r} is missing contexts:")
+        if block[metadata_start + 3] != "```":
+            raise HelpSourceError(f"line {line_no + metadata_start + 3}: topic {topic_id!r} metadata fence is not closed")
+
+        contextual_heading = metadata_start + 4
+        while contextual_heading < len(block) and not block[contextual_heading]:
+            contextual_heading += 1
+        if contextual_heading >= len(block) or block[contextual_heading] != "### Contextual F1":
+            raise HelpSourceError(f"line {line_no + contextual_heading}: topic {topic_id!r} must declare ### Contextual F1")
+
+        title = block[metadata_start + 1][len("title: ") :].strip()
+        contexts_raw = block[metadata_start + 2][len("contexts: ") :].strip()
         if not title:
-            raise HelpSourceError(f"line {line_no + 2}: topic {topic_id!r} has an empty title")
+            raise HelpSourceError(f"line {line_no + metadata_start + 1}: topic {topic_id!r} has an empty title")
         if contexts_raw != "none" and not CONTEXTS_RE.fullmatch(contexts_raw):
             raise HelpSourceError(
-                f"line {line_no + 3}: topic {topic_id!r} has invalid contexts list {contexts_raw!r}"
+                f"line {line_no + metadata_start + 2}: topic {topic_id!r} has invalid contexts list {contexts_raw!r}"
             )
         contexts = tuple() if contexts_raw == "none" else tuple(contexts_raw.split(","))
         if len(set(contexts)) != len(contexts):
             raise HelpSourceError(
-                f"line {line_no + 3}: topic {topic_id!r} repeats a runtime context in contexts:"
+                f"line {line_no + metadata_start + 2}: topic {topic_id!r} repeats a runtime context in contexts:"
             )
 
-        pos = 6
+        pos = contextual_heading + 1
         contextual_lines: list[str] = []
         while pos < len(block) and block[pos] not in {"### Explainer links", "### Long form"}:
             contextual_lines.append(block[pos])
             pos += 1
         contextual_f1 = "\n".join(contextual_lines).strip()
         if not contextual_f1:
-            raise HelpSourceError(f"line {line_no + 5}: topic {topic_id!r} has an empty Contextual F1 section")
+            raise HelpSourceError(f"line {line_no + contextual_heading}: topic {topic_id!r} has an empty Contextual F1 section")
 
         links: list[HelpLink] = []
         if pos < len(block) and block[pos] == "### Explainer links":

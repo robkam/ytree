@@ -81,13 +81,13 @@ def _read_help_source(path):
 
 def _topic_blocks(source):
     pattern = re.compile(
-        r"^## topic:(?P<topic>[a-z0-9-]+)\n"
+        r"^## topic:(?P<topic>[a-z0-9-]+)\n+"
         r"```ytnova-help-meta\n"
         r"title: (?P<title>[^\n]+)\n"
         r"contexts: (?P<contexts>[^\n]+)\n"
-        r"```\n"
-        r"### Contextual F1\n(?P<contextual>.*?)(?:\n### Explainer links\n(?P<links>.*?))?"
-        r"(?:\n### Long form\n(?P<long_form>.*?))?(?=^## topic:|\Z)",
+        r"```\n+"
+        r"### Contextual F1\n(?P<contextual>.*?)(?:\n+### Explainer links\n(?P<links>.*?))?"
+        r"(?:\n+### Long form\n(?P<long_form>.*?))?(?=^## topic:|\Z)",
         re.M | re.S,
     )
     return list(pattern.finditer(source))
@@ -186,6 +186,26 @@ def test_help_source_uses_deterministic_topic_block_schema():
                 assert re.fullmatch(
                     r"(?:- \[[^\]]+\]\(topic:[a-z0-9-]+\)\n?)+", links
                 ), f"invalid explainer links block for topic {block.group('topic')}"
+
+
+def test_help_source_keeps_blank_lines_around_markdown_headings():
+    for path in ALL_HELP_SOURCES:
+        lines = _read_help_source(path).splitlines()
+        in_fence = False
+
+        for index, line in enumerate(lines):
+            if line.startswith("```"):
+                in_fence = not in_fence
+                continue
+            if in_fence or not re.match(r"^#{1,6} ", line):
+                continue
+
+            assert index == 0 or not lines[index - 1].strip(), (
+                f"heading in {path} needs a blank line before it: {line!r}"
+            )
+            assert index == len(lines) - 1 or not lines[index + 1].strip(), (
+                f"heading in {path} needs a blank line after it: {line!r}"
+            )
 
 
 def test_contextual_f1_keeps_actions_on_separate_source_lines():
