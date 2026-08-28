@@ -94,13 +94,6 @@ static const GeneratedHelpLink generated_help_links_en_configuration_files[] = {
     {"Command-line Parameters", "command-line-parameters"},
 };
 
-static const GeneratedHelpLink generated_help_links_en_copy_move_targets[] = {
-    {"Directory", "dir"},
-    {"File", "file"},
-    {"Archive File", "archive-file"},
-    {"F8 Split", "f8"},
-};
-
 static const GeneratedHelpLink generated_help_links_en_vi_keys[] = {
     {"Navigation", "ytnova-navigation"},
     {"Command-line editing", "command-line-editing"},
@@ -382,9 +375,9 @@ static const GeneratedHelpTopic generated_help_topics_en[] = {
         "copy-move-targets",
         "Copy/Move Targets",
         NULL,
-        "Copy, move, and pathcopy use two explicit prompts.\nFirst choose the replacement name or wildcard rename pattern.\nThen choose the destination directory.\nMerging them would hide meaning instead of removing friction.\nAfter that, only real safety prompts may follow.\nOverwrite conflicts compare size/time so you can judge newer/older and bigger/smaller.\nFor directories, no copy-now or move-now confirmation follows.\n\n`Target forms`\n`Directory path`: Keep the original names under another directory.\n`Replacement name`: Rename one selected item on the way out.\n`Wildcard pattern`: Rewrite each selected basename by pattern, such as `copy-*` or `*.bak`.\n\n`Prompt flow`\n`First prompt`: Choose the replacement name or wildcard pattern.\n`Second prompt`: Choose the destination directory.\n`Tagged copy/move`: Uses the same target syntax as single-item copy/move.\n`Pathcopy`: Preserves the selected file's path relative to the current volume root.\n`Split default`: Starts with the other panel's directory, but you can replace it.\n`Archive-backed copy/move`: Uses the same destination model even when extraction is involved.\n\n`Safety checks`\n`Prompt count`: Only real safety prompts may follow.\n`Missing directory`: If the destination directory does not exist, ytnova asks whether to create it.\n`Conflict details`: Overwrite prompts show source and destination size/time facts when available.\n`Directory flow`: After you accept the destination, ytnova starts the directory copy or move.\nNo extra copy-now or move-now confirmation follows.",
-        4,
-        generated_help_links_en_copy_move_targets,
+        "`Copy`, `move`, and `pathcopy` first ask for a name or rename pattern, then for the destination directory.\n\nWith one file, leave its autofilled name to keep it, or edit it to rename it. You can use wildcards in either case.\n\nFor [Tagged](topic:tagged) files, leave the autofilled `*` to keep their names, or enter a rename pattern:\n`*` keeps the remaining original name. Use `copy-*` to add a prefix or `*.bak` to change the extension.\n`?` keeps one character from the original name. For example, `??-*` keeps the first two characters, adds `-`, then keeps the rest.\nOther characters are used as written.\n\nUse `Up` to reuse a previous name or pattern.\n\nEnter the destination directory in `To Directory`. In [F8 split](topic:f8) mode, it starts as the other panel’s currently selected directory.\n\nUse `Up` to reuse a previous destination, or press [F2](topic:f2-picker) to choose one.\n\nThe same prompts apply to [archive files](topic:archive-file) and [archive directories](topic:archive-dir). Copying an archive file extracts it as needed; moving it copies it, then removes the original. You can also copy into a logged archive.\n\n`pathcopy` recreates the selected file’s existing path below the destination directory.\n\nIf the destination directory is missing, ytnova asks whether to create it. If a destination file already exists, ytnova asks before replacing it.",
+        0,
+        NULL,
     },
     {
         "vi-keys",
@@ -719,13 +712,6 @@ static const GeneratedHelpLink generated_help_links_de_configuration_files[] = {
     {"Kommandozeilenparameter", "command-line-parameters"},
 };
 
-static const GeneratedHelpLink generated_help_links_de_copy_move_targets[] = {
-    {"Directory mode", "dir"},
-    {"File mode", "file"},
-    {"Archive File Help", "archive-file"},
-    {"F8 split", "f8"},
-};
-
 static const GeneratedHelpLink generated_help_links_de_vi_keys[] = {
     {"Navigation", "ytnova-navigation"},
     {"Bearbeitung in Eingabezeilen", "command-line-editing"},
@@ -1007,9 +993,9 @@ static const GeneratedHelpTopic generated_help_topics_de[] = {
         "copy-move-targets",
         "Copy/Move Targets",
         NULL,
-        "Kopieren, Verschieben und Pathcopy benutzen absichtlich zwei Prompts.\nZuerst wählst du neuen Namen oder Wildcard-Muster.\nDanach wählst du das Zielverzeichnis.\nDann startet ytnova die Aktion, solange keine echte Sicherheitsabfrage eingreifen muss.\nÜberschreibkonflikte zeigen Größen- und Zeitdaten, damit du den Konflikt beurteilen kannst.\n\n`Zielformen`\n`Verzeichnispfad`: Die ursprünglichen Namen unter einem anderen Verzeichnis behalten.\n`Ersatzname`: Ein ausgewähltes Objekt beim Kopieren oder Verschieben umbenennen.\n`Wildcard-Muster`: Jeden ausgewählten Basisnamen per Muster umschreiben, zum Beispiel `copy-*` oder `*.bak`.\n\n`Prompt-Ablauf`\n`Erster Prompt`: Ersatzname oder Wildcard-Muster wählen.\n`Zweiter Prompt`: Zielverzeichnis wählen.\n`Markiertes Kopieren/Verschieben`: Benutzt dieselbe Zielsprache wie bei Einzelobjekten.\n`Pathcopy`: Erhält den Pfad der gewählten Datei relativ zur aktuellen Volume-Wurzel.\n`Split-Standardziel`: Belegt das Verzeichnis des inaktiven Panels vor, aber du kannst diesen Standard noch ersetzen.\n`Archivgestützte Pfade`: Behalten dasselbe Zielmodell auch dann, wenn Extraktion beteiligt ist.\n\n`Sicherheitsprüfungen`\n`Prompt-Anzahl`: Danach dürfen nur echte Sicherheitsabfragen folgen.\n`Konfliktdetails`: Überschreibabfragen zeigen wenn möglich Größen- und Zeitdaten von Quelle und Ziel.\n`Verzeichnisablauf`: Verzeichniskopien und -verschiebungen starten sofort nach dem akzeptierten Ziel; es gibt keine zusätzliche Jetzt-kopieren- oder Jetzt-verschieben-Abfrage.",
-        4,
-        generated_help_links_de_copy_move_targets,
+        "`Copy`, `move` und `pathcopy` fragen zuerst nach einem Namen oder Umbenennungsmuster, dann nach dem Zielverzeichnis.\n\nBei einer Datei lässt du ihren vorbelegten Namen stehen, um ihn beizubehalten, oder änderst ihn zum Umbenennen. Du kannst in beiden Fällen Wildcards verwenden.\n\nBei [markierten Dateien](topic:tagged) lässt du das vorbelegte `*` stehen, um ihre Namen beizubehalten, oder gibst ein Umbenennungsmuster ein:\n`*` übernimmt den restlichen ursprünglichen Namen. Nutze `copy-*`, um ein Präfix hinzuzufügen, oder `*.bak`, um die Erweiterung zu ändern.\n`?` übernimmt ein Zeichen des ursprünglichen Namens. Zum Beispiel übernimmt `??-*` die ersten beiden Zeichen, fügt `-` hinzu und übernimmt dann den Rest.\nAndere Zeichen werden wie geschrieben verwendet.\n\nNutze `Up`, um einen früheren Namen oder ein früheres Muster wiederzuverwenden.\n\nGib das Zielverzeichnis in `To Directory` ein. Im [F8-Split](topic:f8)-Modus beginnt es mit dem derzeit ausgewählten Verzeichnis des anderen Panels.\n\nNutze `Up`, um ein früheres Ziel wiederzuverwenden, oder drücke [F2](topic:f2-picker), um eines zu wählen.\n\nDieselben Prompts gelten für [Archivdateien](topic:archive-file) und [Archivverzeichnisse](topic:archive-dir). Beim Kopieren einer Archivdatei extrahiert ytnova sie bei Bedarf; beim Verschieben kopiert ytnova sie und entfernt dann das Original. Du kannst auch in ein geloggtes Archiv kopieren.\n\n`pathcopy` stellt den bestehenden Pfad der ausgewählten Datei unterhalb des Zielverzeichnisses wieder her.\n\nWenn das Zielverzeichnis fehlt, fragt ytnova, ob es erstellt werden soll. Existiert bereits eine Zieldatei, fragt ytnova vor dem Ersetzen.",
+        0,
+        NULL,
     },
     {
         "vi-keys",

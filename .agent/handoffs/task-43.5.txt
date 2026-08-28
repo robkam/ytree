@@ -51,3 +51,12 @@
 - Regression coverage checks the authored source and both generated Markdown manuals.
 - Footer tests accept intentional width-dependent packing, retain the approved `C/^Copy` label, and keep ordinary Showall contextual help checks focused on visible scope content and return behavior.
 - Exact validation: `make help-assets`; `pytest -q tests/test_help_source_schema.py::test_manpage_documents_terminal_text_size_controls_for_small_footers tests/test_help_generator.py`; `pytest -q tests/test_archive_exit_ui.py::test_archive_file_footer_uses_full_labels_and_shows_compare 'tests/test_display_layout.py::test_backslash_to_dir_in_showall_and_global[s]' 'tests/test_display_layout.py::test_backslash_to_dir_in_showall_and_global[g]' tests/test_display_layout.py::test_footer_fkeys_render_as_text_in_dir_and_showall tests/test_help_text_contract.py::test_vi_file_footer_uses_runtime_vi_keys tests/test_help_text_contract.py::test_showall_help_keeps_scope_details_and_returns`.
+
+## Copy/move target calibration recovery
+
+- Branch: `fix/copy-move-help`.
+- `topic:copy-move-targets` remains `contexts: none` in both F1 locales; its English and German contextual text use inline links only and preserve all existing topic targets.
+- The topic covers single-file and tagged rename patterns, `Up` history, `F2` target selection, split-panel defaults, archive source and destination behavior, `pathcopy`, and the visible missing-directory and overwrite confirmations.
+- `etc/help/f1.en.md`, `etc/help/f1.de.md`, `etc/help/man.en.md`, and `etc/help/man.de.md` now keep a blank source line before and after every Markdown heading. `parse_help_source()` accepts those structural blank lines without changing generated popup or manual content.
+- Validation: `pytest -q tests/test_help_source_schema.py`; `pytest -q tests/test_help_generator.py`; `make help-assets`; `make -j"$(nproc)"`; event-driven normal and 80-column popup checks; and a custom-theme popup check for `help_topic`, link, and help-strip colours.
+- The build succeeds with GCC's disabled-trigraph warning for the literal `??-*` example in the generated C string. The authored text is intentional; no runtime behavior changes.
