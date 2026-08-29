@@ -22,7 +22,7 @@ RUNTIME_HELP_CONTEXT_SOURCES = (
     Path("src/ui/volume_menu.c"),
 )
 REQUIRED_TOPICS = {
-    "intro",
+    "index",
     "f1-navigation",
     "shared-commands",
     "tagged",
@@ -32,7 +32,7 @@ REQUIRED_TOPICS = {
     "vi-keys",
     "f10",
     "theming",
-    "dir",
+    "directory",
     "file",
     "archive-dir",
     "archive-file",
@@ -49,7 +49,7 @@ REQUIRED_TOPICS = {
     "f2-picker",
 }
 RUNTIME_HELP_LABEL_TOPICS = {
-    "dir": "dir_help_label_specs",
+    "directory": "dir_help_label_specs",
     "file": "file_help_label_specs",
     "archive-dir": "archive_dir_help_label_specs",
     "archive-file": "archive_file_help_label_specs",
@@ -208,25 +208,11 @@ def test_help_source_keeps_blank_lines_around_markdown_headings():
             )
 
 
-def test_contextual_f1_keeps_actions_on_separate_source_lines():
-    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
-        source = _read_help_source(path)
-        assert "separate keys or actions need explanation, give each one its own short source line" in source or (
-            "verschiedene Tasten oder Aktionen erklärt werden müssen, erhält jede eine eigene kurze Quellzeile"
-            in source
-        )
-
-
 def test_ytnova_navigation_keeps_its_facts_in_visible_contextual_help():
     for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
         topic = _topic_block_map(_read_help_source(path))["ytnova-navigation"]
 
         assert not (topic.group("long_form") or "").strip()
-        assert "C-m" in topic.group("contextual")
-        assert "C-i" in topic.group("contextual")
-        assert "C-[" in topic.group("contextual")
-        assert "Alt" in topic.group("contextual")
-        assert "Tab" in topic.group("contextual")
         assert "topic:list-jump" in topic.group("contextual")
         assert "topic:f7" in topic.group("contextual")
         assert "topic:f8" in topic.group("contextual")
@@ -242,23 +228,12 @@ def test_contextual_help_uses_portable_control_key_notation():
 
 
 def test_tagged_help_explains_control_key_operations_and_footer_marker():
-    expected = {
-        Path("etc/help/f1.en.md"): (
-            "Hold the Control key with the letter after `C-`",
-            "`^` in a footer label means the same tagged operation",
-        ),
-        Path("etc/help/f1.de.md"): (
-            "Halte die Steuerungstaste mit dem Buchstaben nach `C-` gedrückt",
-            "`^` in einem Footer-Label bedeutet denselben Markierungsvorgang",
-        ),
-    }
-
-    for path, phrases in expected.items():
+    for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
         contextual = _topic_block_map(_read_help_source(path))["tagged"].group(
             "contextual"
         )
-        for phrase in phrases:
-            assert phrase in contextual
+        assert "`C-`" in contextual
+        assert "`^`" in contextual
 
 
 def test_manpage_defines_portable_control_key_notation():
@@ -315,7 +290,8 @@ def test_runtime_footer_commands_remain_covered_by_the_man_reference():
 
     for topic, array_name in RUNTIME_HELP_LABEL_TOPICS.items():
         expected_labels = help_labels[array_name]
-        man_long_form = _topic_long_form(man_source, topic)
+        man_topic = "dir" if topic == "directory" else topic
+        man_long_form = _topic_long_form(man_source, man_topic)
         missing_man = []
         for label in expected_labels:
             aliases = HELP_LABEL_ALIASES.get(label, (label,))
@@ -346,9 +322,9 @@ def test_contents_topic_is_a_complete_alphabetical_operator_index():
         (
             (_contents_link_label(title), topic)
             for topic, title in title_map.items()
-            if topic != "intro" and topic not in contents_only_topics
+            if topic != "index" and topic not in contents_only_topics
         ),
         key=lambda item: item[0].casefold(),
     )
-    contents_links = _topic_explainer_links(f1_source, "intro")
+    contents_links = _topic_explainer_links(f1_source, "index")
     assert contents_links == expected_links

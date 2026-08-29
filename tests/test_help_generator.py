@@ -90,6 +90,49 @@ def test_help_generator_uses_portable_control_key_notation():
     assert "`C-<key>` means hold the Control key" in source
 
 
+def test_help_generator_renders_locale_owned_help_strip_configuration():
+    en_topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "f1.en.md").read_text(encoding="utf-8")
+    )
+    de_topics = helpgen.parse_help_source(
+        (REPO_ROOT / "etc" / "help" / "f1.de.md").read_text(encoding="utf-8")
+    )
+
+    header = helpgen.render_runtime_header(
+        en_topics,
+        source_path="etc/help/f1.en.md",
+        locale_topics=[("de", "etc/help/f1.de.md", de_topics)],
+    )
+
+    assert "GeneratedHelpFooter" in header
+    assert '"Index",\n            "I",\n            "Navigation",\n            "N"' in header
+    assert '"Inhalt",\n            "H",\n            "Navigation",\n            "W"' in header
+
+
+def test_help_generator_rejects_invalid_or_duplicate_help_strip_keys():
+    source = """```ytnova-help-strip
+left-back-label: Left back
+index-label: Index
+index-key: I
+navigation-label: Navigation
+navigation-key: I
+follow-label: Right/Enter follow
+quit-label: Esc/Q quit
+```
+
+## topic:test
+```ytnova-help-meta
+title: Test
+contexts: none
+```
+### Contextual F1
+One line.
+"""
+
+    with pytest.raises(helpgen.HelpSourceError, match="distinct"):
+        helpgen.parse_help_source(source, require_help_strip=True)
+
+
 def test_help_generator_allows_f1_topics_without_long_form_sections():
     f1_source = """## topic:test
 ```ytnova-help-meta
