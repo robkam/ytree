@@ -20,3 +20,11 @@ Use this skill when the active persona is `tester`.
 - You MUST write behavior checks instead of implementation checks.
 - Use centralized key abstractions where available.
 - Do not hide sync issues with long timeout hacks.
+
+## CI Local-Reconciliation Checklist
+
+Follow `.ai/shared.md` rules 32 and 33 for validation scope, evidence, and stable test contracts.
+
+- Identify the changed behavior, callers, contracts, and focused regression surface for the inventory.
+- Keep the focused test deterministic and uniquely valuable; assert only documented text/layout contracts and do not add duplicate coverage without a distinct failure mode.
+- Record the exact test command and result for completion evidence.

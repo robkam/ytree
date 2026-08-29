@@ -33,3 +33,11 @@ Use this skill when the active persona is `developer`.
 - Inventory reconciliation summary
 - Build/test commands executed
 - Observed pass/fail results
+
+## CI Local-Reconciliation Checklist
+
+Follow `.ai/shared.md` rules 32 and 33 as the sole CI-readiness and test-contract policy.
+
+- Reconcile the changed-surface inventory before push and completion.
+- Run and record the applicable focused validation matrix; record deliberately unrun gates and approved exceptions.
+- Classify every CI failure before remediation or rerun, fix confirmed root causes locally first, and correct tests that encode volatile presentation.

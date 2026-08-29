@@ -45,3 +45,11 @@ When generating a stateless developer handoff artifact, you MUST also require:
 - If critical context is missing, request only the specific file or behavior detail needed.
 - UX economy gate is mandatory: target `key -> Enter -> result` and no more than one submenu on common path unless justified with equivalent fast path.
 - Documentation signal rule: you MUST plan doc changes only in the most relevant canonical section/file for the target reader; you MUST NOT broadcast AI/process notes across unrelated sections.
+
+## CI Local-Reconciliation Checklist
+
+Follow `.ai/shared.md` rules 32 and 33 as the sole CI-readiness and test-contract policy.
+
+- Add changed symbols, callers, contracts, generated assets, build/CI seams, regression surfaces, and any explicit text/layout contracts to the inventory.
+- Select the rule 32 validation matrix and name any concrete risk that warrants full local QA.
+- Require completion evidence, including unrun gates and any maintainer-approved exception.
