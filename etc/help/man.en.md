@@ -20,7 +20,7 @@ Every topic block in this file follows the same parser-facing contract:
 
 Keep cross-references sparse. This source is the fuller reference path; contextual `F1` help is the shorter in-task path.
 
-## topic:intro
+## topic:index
 
 ```ytnova-help-meta
 title: Contents

@@ -22,7 +22,7 @@ Jeder Themenblock in dieser Datei folgt demselben parserseitigen Vertrag:
 Diese Datei folgt der Themeninventur, den `contexts:`-Zuordnungen und den Linkzielen von `etc/help/man.en.md`.
 Die englische Datei bleibt die kanonische Quelle für Struktur und Inventar; diese deutsche Datei pflegt die lokalisierte Referenzprosa als Autorenquelle und nicht aus einem generierten Artefakt heraus.
 
-## topic:intro
+## topic:index
 
 ```ytnova-help-meta
 title: Inhalt

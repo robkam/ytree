@@ -261,7 +261,7 @@ It will help us to address the issue if you include the following:
 """
 
 MODE_TOPIC_ORDER = [
-    ("intro", "Help System"),
+    ("index", "Help System"),
     ("navigation", "Navigation"),
     ("dir", "Directory Mode"),
     ("file", "File Mode"),
@@ -309,6 +309,28 @@ class LongFormSection:
 
 
 @dataclass(frozen=True)
+class HelpStrip:
+    left_back_label: str
+    index_label: str
+    index_key: str
+    navigation_label: str
+    navigation_key: str
+    follow_label: str
+    quit_label: str
+
+
+DEFAULT_HELP_STRIP = HelpStrip(
+    left_back_label="Left back",
+    index_label="Index",
+    index_key="I",
+    navigation_label="Navigation",
+    navigation_key="N",
+    follow_label="Right/Enter follow",
+    quit_label="Esc/Q quit",
+)
+
+
+@dataclass(frozen=True)
 class HelpTopic:
     topic_id: str
     title: str
@@ -316,6 +338,7 @@ class HelpTopic:
     contextual_f1: str
     explainer_links: tuple[HelpLink, ...]
     long_form_sections: tuple[LongFormSection, ...]
+    help_strip: HelpStrip
 
 
 class HelpSourceError(ValueError):
@@ -325,11 +348,67 @@ class HelpSourceError(ValueError):
 TOPIC_ID_RE = re.compile(r"^[a-z0-9-]+$")
 CONTEXTS_RE = re.compile(r"^[a-z0-9.-]+(?:,[a-z0-9.-]+)*$")
 LINK_RE = re.compile(r"^- \[([^\]]+)\]\(topic:([a-z0-9-]+)\)$")
+HELP_STRIP_RE = re.compile(
+    r"^```ytnova-help-strip\n(?P<body>.*?)^```$", re.MULTILINE | re.DOTALL
+)
+HELP_STRIP_FIELDS = (
+    "left-back-label",
+    "index-label",
+    "index-key",
+    "navigation-label",
+    "navigation-key",
+    "follow-label",
+    "quit-label",
+)
+
+
+def parse_help_strip(source_text: str, *, required: bool) -> HelpStrip:
+    matches = list(HELP_STRIP_RE.finditer(source_text))
+    if not matches:
+        if required:
+            raise HelpSourceError("help source is missing top-level ytnova-help-strip metadata")
+        return DEFAULT_HELP_STRIP
+    if len(matches) != 1:
+        raise HelpSourceError("help source must define exactly one top-level ytnova-help-strip metadata block")
+
+    lines = matches[0].group("body").splitlines()
+    fields = []
+    for line in lines:
+        if ": " not in line:
+            raise HelpSourceError("ytnova-help-strip metadata entries must use key: value")
+        field, value = line.split(": ", 1)
+        if not value:
+            raise HelpSourceError(f"ytnova-help-strip field {field!r} is empty")
+        fields.append((field, value))
+    if tuple(field for field, _ in fields) != HELP_STRIP_FIELDS:
+        raise HelpSourceError("ytnova-help-strip metadata keys must be complete and in schema order")
+
+    values = dict(fields)
+    for field in ("index-key", "navigation-key"):
+        key = values[field]
+        if not re.fullmatch(r"[A-Za-z]", key):
+            raise HelpSourceError(f"ytnova-help-strip {field} must be one ASCII letter")
+    keys = {values["index-key"].upper(), values["navigation-key"].upper()}
+    if len(keys) != 2:
+        raise HelpSourceError("ytnova-help-strip Index and Navigation keys must be distinct")
+    if "Q" in keys:
+        raise HelpSourceError("ytnova-help-strip keys must not conflict with Q quit")
+
+    return HelpStrip(
+        left_back_label=values["left-back-label"],
+        index_label=values["index-label"],
+        index_key=values["index-key"],
+        navigation_label=values["navigation-label"],
+        navigation_key=values["navigation-key"],
+        follow_label=values["follow-label"],
+        quit_label=values["quit-label"],
+    )
 
 
 def parse_help_source(
-    source_text: str, *, require_long_form: bool = False
+    source_text: str, *, require_long_form: bool = False, require_help_strip: bool = False
 ) -> list[HelpTopic]:
+    help_strip = parse_help_strip(source_text, required=require_help_strip)
     lines = source_text.splitlines()
     topic_lines = [idx for idx, line in enumerate(lines) if line.startswith("## topic:")]
     if not topic_lines:
@@ -412,6 +491,9 @@ def parse_help_source(
                         f"line {line_no + pos - len(link_lines) + offset - 1}: topic {topic_id!r} has invalid explainer link {stripped!r}"
                     )
                 links.append(HelpLink(match.group(1), match.group(2)))
+            if link_lines:
+                contextual_lines.extend(link_lines)
+                contextual_f1 = "\n".join(contextual_lines).strip()
 
         sections: list[LongFormSection] = []
         if pos < len(block) and block[pos] == "### Long form":
@@ -432,6 +514,7 @@ def parse_help_source(
                 contextual_f1=contextual_f1,
                 explainer_links=tuple(links),
                 long_form_sections=tuple(sections),
+                help_strip=help_strip,
             )
         )
 
@@ -565,9 +648,20 @@ def render_runtime_header(
         "} GeneratedHelpTopic;",
         "",
         "typedef struct {",
+        "    const char *left_back_label;",
+        "    const char *index_label;",
+        "    const char *index_key;",
+        "    const char *navigation_label;",
+        "    const char *navigation_key;",
+        "    const char *follow_label;",
+        "    const char *quit_label;",
+        "} GeneratedHelpFooter;",
+        "",
+        "typedef struct {",
         "    const char *locale_id;",
         "    size_t topic_count;",
         "    const GeneratedHelpTopic *topics;",
+        "    GeneratedHelpFooter footer;",
         "} GeneratedHelpCatalog;",
         "",
     ]
@@ -613,9 +707,21 @@ def render_runtime_header(
     lines.append("static const GeneratedHelpCatalog generated_help_catalogs[] = {")
     for locale_id, _, locale_catalog_topics in catalogs:
         locale_suffix = locale_id.replace("-", "_")
-        lines.append(
-            f"    {{{c_literal(locale_id)}, {len(locale_catalog_topics)}, generated_help_topics_{locale_suffix}}},"
-        )
+        help_strip = locale_catalog_topics[0].help_strip
+        lines.append("    {")
+        lines.append(f"        {c_literal(locale_id)},")
+        lines.append(f"        {len(locale_catalog_topics)},")
+        lines.append(f"        generated_help_topics_{locale_suffix},")
+        lines.append("        {")
+        lines.append(f"            {c_literal(help_strip.left_back_label)},")
+        lines.append(f"            {c_literal(help_strip.index_label)},")
+        lines.append(f"            {c_literal(help_strip.index_key)},")
+        lines.append(f"            {c_literal(help_strip.navigation_label)},")
+        lines.append(f"            {c_literal(help_strip.navigation_key)},")
+        lines.append(f"            {c_literal(help_strip.follow_label)},")
+        lines.append(f"            {c_literal(help_strip.quit_label)},")
+        lines.append("        },")
+        lines.append("    },")
     lines.append("};")
     lines.append("")
     lines.append(
@@ -833,7 +939,9 @@ def build_outputs(
     version: str,
     versiondate: str,
 ) -> dict[str, str]:
-    f1_topics = parse_help_source(f1_source_path.read_text(encoding="utf-8"))
+    f1_topics = parse_help_source(
+        f1_source_path.read_text(encoding="utf-8"), require_help_strip=True
+    )
     man_topics = parse_help_source(
         man_source_path.read_text(encoding="utf-8"), require_long_form=True
     )
@@ -841,7 +949,9 @@ def build_outputs(
     validate_topic_inventory(f1_topics)
     for locale_path in f1_locale_source_paths:
         locale_id = help_locale_id_from_path(locale_path)
-        locale_topics = parse_help_source(locale_path.read_text(encoding="utf-8"))
+        locale_topics = parse_help_source(
+            locale_path.read_text(encoding="utf-8"), require_help_strip=True
+        )
         validate_locale_topic_projection(f1_topics, locale_topics, locale_id=locale_id)
         locale_f1_catalogs.append((locale_id, str(locale_path), locale_topics))
     outputs: dict[str, str] = {}

@@ -20,6 +20,12 @@ Ordering policy (for all editors, including AI editors):
     *   With `SMALLWINDOWSKIP=0`, cycling away and back from a zoomed file window can return the same location in small-window non-zoom state.
 *   **Status**: Fixed.
 
+### **BUG-1.1: `-` Collapses a Directory Before Releasing Its Files**
+*   **Description**: In directory mode, `-` currently collapses the selected branch before releasing its files. This prevents a user from keeping the visible directory tree for navigation while removing the selected directory’s files from Showall and the statistics.
+*   **Expected**: The first `-` releases the selected directory’s files while keeping its visible subdirectories. The next `-` collapses those subdirectories.
+*   **Reproduction**: Read a directory with subdirectories and files, then press `-`. The branch collapses immediately instead of leaving its subdirectories visible while the selected directory’s files disappear from Showall and the statistics.
+*   **Impact**: Users cannot narrow a logged tree to a wanted branch without also losing the visible path used to reach it.
+
 ### **BUG-2: Split-Panel State Isolation and Restore Authority Family**
 *   **Description**: BUG-2 is the root split-panel family. BUG-2.1 through BUG-2.5 are all visible effects of the same underlying F8 split-state architecture problem.
 *   **Family contract**: each panel must keep its own state record; restore must use stable identity and deterministic fallback; redraw must never become authority; split transitions must not import or guess state from the other panel.

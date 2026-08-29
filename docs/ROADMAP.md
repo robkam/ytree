@@ -2199,3 +2199,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris, Redox OS
 *   **Out of scope:** Windows (ZTreeWin exists), legacy UNIXes including HP-UX
 *   - [ ] **Status:** Not Started.
+
+### **Idea FE-46: Forward Text Search in Contextual F1 Help**
+*   **Goal:** Add a `/query` search to contextual `F1` popups that moves to the first matching rendered help text, including ordinary words that are not links.
+*   **Design Requirements:** Search input, cancellation, backspace, no-match feedback, link-selection interaction, and locale/UTF-8 matching must be designed and covered by focused tests.
+*   **Rendering Requirement:** Search must update the existing popup without closing/reopening it or causing redraw flicker.
+*   **Scope Lock:** Future work only; current contextual-help behavior remains unchanged until this feature has a complete design and implementation.
+*   - [ ] **Status:** Not Started.

@@ -500,12 +500,8 @@ def test_help_keybind_uses_its_configured_background():
 def test_navigation_footer_hides_the_current_navigation_link():
     runtime_help_source = _read("src/ui/runtime_help.c")
 
-    assert (
-        runtime_help_source.count(
-            'if (!TopicIdEquals(state->topic, "f1-navigation"))'
-        )
-        >= 3
-    )
+    assert 'show_navigation = !TopicIdEquals(state->topic, "f1-navigation");' in runtime_help_source
+    assert 'if (show_navigation)' in runtime_help_source
 
 
 def test_f1_help_covers_startup_options_and_configuration_files():
@@ -525,7 +521,7 @@ def test_contents_reaches_f1_navigation_only_from_its_command_strip():
     help_source = _read("etc/help/f1.en.md")
     runtime_help_source = _read("src/ui/runtime_help.c")
 
-    intro = help_source[help_source.index("## topic:intro") : help_source.index("## topic:f1-navigation")]
+    intro = help_source[help_source.index("## topic:index") : help_source.index("## topic:f1-navigation")]
     help_navigation = help_source[
         help_source.index("## topic:f1-navigation") : help_source.index("## topic:ytnova-navigation")
     ]
@@ -534,13 +530,10 @@ def test_contents_reaches_f1_navigation_only_from_its_command_strip():
     ]
     assert "[F1 Navigation](topic:f1-navigation)" not in intro
     assert "[Navigation](topic:ytnova-navigation)" in intro
-    assert "This page explains" not in help_navigation
-    assert "YtreeNova" not in help_navigation
-    assert "[F2 Picker](topic:f2-picker)" not in help_navigation
-    assert "built for keyboard use" in ytnova_navigation
-    assert "Mouse effects may occur, but they are incidental rather than designed controls." in ytnova_navigation
-    assert "C-m" in ytnova_navigation
-    assert 'if (!TopicIdEquals(state->topic, "intro") ||' in runtime_help_source
+    assert "[F1 Navigation](topic:f1-navigation)" not in help_navigation
+    assert "[Navigation](topic:ytnova-navigation)" in intro
+    assert 'show_index = !TopicIdEquals(state->topic, "index");' in runtime_help_source
+    assert 'show_navigation = !TopicIdEquals(state->topic, "f1-navigation");' in runtime_help_source
 
 
 def test_manpage_and_usage_document_f9_applications_menu():

@@ -122,6 +122,21 @@ static const GeneratedHelpCatalog *ActiveGeneratedHelpCatalog(void) {
   return &generated_help_catalogs[0];
 }
 
+static const GeneratedHelpFooter *ActiveGeneratedHelpFooter(void) {
+  const GeneratedHelpCatalog *catalog = ActiveGeneratedHelpCatalog();
+
+  return catalog != NULL ? &catalog->footer : NULL;
+}
+
+static BOOL FooterKeyMatches(int ch, const char *footer_key) {
+  int key;
+
+  if (footer_key == NULL || footer_key[0] == '\0' || footer_key[1] != '\0')
+    return FALSE;
+  key = islower((unsigned char)ch) ? toupper((unsigned char)ch) : ch;
+  return key == toupper((unsigned char)footer_key[0]);
+}
+
 static const GeneratedHelpTopic *ActiveGeneratedHelpTopics(size_t *topic_count) {
   const GeneratedHelpCatalog *catalog = ActiveGeneratedHelpCatalog();
 
@@ -344,85 +359,6 @@ static const GeneratedHelpTopic *FindGeneratedTopicByContext(
 static BOOL TopicIdEquals(const GeneratedHelpTopic *topic, const char *topic_id) {
   return topic != NULL && topic->topic_id != NULL && topic_id != NULL &&
          strcmp(topic->topic_id, topic_id) == 0;
-}
-
-static const char *FindExplainerTopicForLabel(const GeneratedHelpTopic *topic,
-                                              const char *label) {
-  size_t i;
-
-  if (topic == NULL || label == NULL || label[0] == '\0')
-    return NULL;
-
-  for (i = 0; i < topic->explainer_link_count; ++i) {
-    if (topic->explainer_links[i].label != NULL &&
-        strcmp(topic->explainer_links[i].label, label) == 0) {
-      return topic->explainer_links[i].target_topic_id;
-    }
-  }
-
-  return NULL;
-}
-
-static void TrimWhitespaceInPlace(char *text) {
-  char *start;
-  char *end;
-
-  if (text == NULL || text[0] == '\0')
-    return;
-
-  start = text;
-  while (*start != '\0' && isspace((unsigned char)*start))
-    start++;
-  if (start != text)
-    memmove(text, start, strlen(start) + 1);
-
-  end = text + strlen(text);
-  while (end > text && isspace((unsigned char)end[-1]))
-    --end;
-  *end = '\0';
-}
-
-static void StripHelpMarkdown(const char *source, char *dest, size_t dest_size,
-                              BOOL preserve_attention) {
-  size_t out = 0;
-  BOOL in_code = FALSE;
-
-  if (dest == NULL || dest_size == 0)
-    return;
-  dest[0] = '\0';
-  if (source == NULL)
-    return;
-
-  while (*source != '\0' && out + 1 < dest_size) {
-    if (*source == '\\' && source[1] != '\0') {
-      source++;
-      dest[out++] = *source++;
-      continue;
-    }
-    if (*source == '`') {
-      in_code = !in_code;
-      source++;
-      continue;
-    }
-    if (!in_code && source[0] == '*' && source[1] == '*') {
-      if (preserve_attention && out + 2 < dest_size) {
-        dest[out++] = *source++;
-        dest[out++] = *source++;
-      } else {
-        source += 2;
-      }
-      continue;
-    }
-    if (!in_code && *source == '*') {
-      source++;
-      continue;
-    }
-    dest[out++] = *source++;
-  }
-
-  while (out > 0 && isspace((unsigned char)dest[out - 1]))
-    out--;
-  dest[out] = '\0';
 }
 
 static void AppendParsedHelpSpan(ParsedHelpLine *line,
@@ -847,407 +783,59 @@ static void AppendWrappedContextListRows(RuntimeHelpPopupState *state,
   }
 }
 
-static void ExtractItemLabel(const char *heading, char *label,
-                             size_t label_size) {
-  char stripped[GENERATED_HELP_MAX_TEXT_WIDTH];
-  char *open;
-  char *close;
-  size_t len;
-
-  if (label == NULL || label_size == 0) {
-    return;
-  }
-  label[0] = '\0';
-  if (heading == NULL)
-    return;
-
-  StripHelpMarkdown(heading, stripped, sizeof(stripped), FALSE);
-  TrimWhitespaceInPlace(stripped);
-  if (stripped[0] == '\0')
-    return;
-
-  open = strchr(stripped, '(');
-  close = open != NULL ? strchr(open + 1, ')') : NULL;
-  if (open != NULL && close != NULL &&
-      !isdigit((unsigned char)stripped[0])) {
-    char *comma;
-
-    *close = '\0';
-    open++;
-    comma = strchr(open, ',');
-    if (comma != NULL)
-      *comma = '\0';
-    TrimWhitespaceInPlace(open);
-    snprintf(label, label_size, "%s", open);
-    return;
-  }
-
-  len = strlen(stripped);
-  if (len >= label_size)
-    len = label_size - 1;
-  memcpy(label, stripped, len);
-  label[len] = '\0';
-}
-
-static void ExtractSummary(const char *detail, char *summary,
-                           size_t summary_size) {
-  const char *cursor;
-  size_t len;
-
-  if (summary == NULL || summary_size == 0) {
-    return;
-  }
-  summary[0] = '\0';
-  if (detail == NULL)
-    return;
-
-  cursor = strchr(detail, '.');
-  len = cursor != NULL ? (size_t)(cursor - detail + 1) : strlen(detail);
-  if (len >= summary_size)
-    len = summary_size - 1;
-  memcpy(summary, detail, len);
-  summary[len] = '\0';
-  TrimWhitespaceInPlace(summary);
-}
-
-static void FinalizeHelpItem(RuntimeHelpPopupState *state, const char *heading,
-                             const char *body) {
-  RuntimeHelpItem *item;
-  char detail[GENERATED_HELP_MAX_ITEM_DETAIL];
-  size_t detail_len;
-  const char *linked_topic_id;
-
-  if (state == NULL || heading == NULL || body == NULL ||
-      state->item_count >= GENERATED_HELP_MAX_ITEMS)
-    return;
-
-  StripHelpMarkdown(body, detail, sizeof(detail), TRUE);
-  TrimWhitespaceInPlace(detail);
-  if (detail[0] == '\0')
-    return;
-
-  item = &state->items[state->item_count];
-  memset(item, 0, sizeof(*item));
-  ExtractItemLabel(heading, item->label, sizeof(item->label));
-  if (item->label[0] == '\0')
-    return;
-  linked_topic_id = FindExplainerTopicForLabel(state->topic, item->label);
-  detail_len = strlen(detail);
-  if (detail_len >= sizeof(item->detail))
-    detail_len = sizeof(item->detail) - 1;
-  memcpy(item->detail, detail, detail_len);
-  item->detail[detail_len] = '\0';
-  ExtractSummary(detail, item->summary, sizeof(item->summary));
-  if (item->summary[0] == '\0')
-    snprintf(item->summary, sizeof(item->summary), "%s", detail);
-  item->linked_topic_id = linked_topic_id;
-  item->selectable =
-      (item->linked_topic_id != NULL || strcmp(item->summary, item->detail) != 0);
-  state->item_count++;
-}
-
-static size_t BuildExplainerLinkItems(RuntimeHelpPopupState *state) {
-  size_t link_index;
-
-  if (state == NULL || state->topic == NULL)
-    return 0;
-
-  state->item_count = 0;
-  for (link_index = 0;
-       link_index < state->topic->explainer_link_count &&
-       state->item_count < GENERATED_HELP_MAX_ITEMS;
-       ++link_index) {
-    const GeneratedHelpLink *link = &state->topic->explainer_links[link_index];
-    const GeneratedHelpTopic *target = NULL;
-    const char *detail = NULL;
-
-    if (link->label == NULL || link->label[0] == '\0')
-      continue;
-    if (link->target_topic_id != NULL && link->target_topic_id[0] != '\0')
-      target = FindGeneratedTopicById(link->target_topic_id);
-    if (target != NULL && target->contextual_f1 != NULL &&
-        target->contextual_f1[0] != '\0') {
-      detail = target->contextual_f1;
-    } else if (target != NULL && target->title != NULL && target->title[0] != '\0') {
-      detail = target->title;
-    } else {
-      detail = link->label;
-    }
-    FinalizeHelpItem(state, link->label, detail);
-  }
-
-  return state->item_count;
-}
-
-static size_t BuildContextItems(RuntimeHelpPopupState *state) {
-  const char *cursor;
-
-  if (state == NULL || state->topic == NULL ||
-      state->topic->contextual_f1 == NULL)
-    return 0;
-  if (TopicIdEquals(state->topic, "intro"))
-    return BuildExplainerLinkItems(state);
-
-  state->item_count = 0;
-  state->related_link_start_index = GENERATED_HELP_NO_SELECTION;
-  cursor = state->topic->contextual_f1;
-  while (*cursor != '\0' && state->item_count < GENERATED_HELP_MAX_ITEMS) {
-    const char *line_break = strchr(cursor, '\n');
-    size_t len =
-        line_break != NULL ? (size_t)(line_break - cursor) : strlen(cursor);
-    char line[GENERATED_HELP_MAX_ITEM_DETAIL];
-    char *content;
-    char *colon;
-
-    if (len >= sizeof(line))
-      len = sizeof(line) - 1;
-    memcpy(line, cursor, len);
-    line[len] = '\0';
-    content = line;
-    while (*content != '\0' && isspace((unsigned char)*content))
-      content++;
-    colon = strchr(content, ':');
-    if (colon != NULL) {
-      char heading[GENERATED_HELP_MAX_TEXT_WIDTH];
-      size_t heading_len;
-
-      *colon = '\0';
-      heading_len = strlen(content);
-      if (heading_len >= sizeof(heading))
-        heading_len = sizeof(heading) - 1;
-      memcpy(heading, content, heading_len);
-      heading[heading_len] = '\0';
-      TrimWhitespaceInPlace(heading);
-      content = colon + 1;
-      while (*content != '\0' && isspace((unsigned char)*content))
-        content++;
-      if (heading[0] != '\0' && content[0] != '\0')
-        FinalizeHelpItem(state, heading, content);
-    }
-
-    if (line_break == NULL)
-      break;
-    cursor = line_break + 1;
-  }
-
-  if (state->topic->explainer_link_count > 0) {
-    size_t link_index;
-
-    state->related_link_start_index = state->item_count;
-    for (link_index = 0;
-         link_index < state->topic->explainer_link_count &&
-         state->item_count < GENERATED_HELP_MAX_ITEMS;
-         ++link_index) {
-      const GeneratedHelpLink *link =
-          &state->topic->explainer_links[link_index];
-      const GeneratedHelpTopic *target;
-      const char *detail;
-
-      if (link->label == NULL || link->label[0] == '\0' ||
-          link->target_topic_id == NULL || link->target_topic_id[0] == '\0')
-        continue;
-      target = FindGeneratedTopicById(link->target_topic_id);
-      detail = (target != NULL && target->contextual_f1 != NULL &&
-                target->contextual_f1[0] != '\0')
-                   ? target->contextual_f1
-                   : link->label;
-      FinalizeHelpItem(state, link->label, detail);
-    }
-  }
-
-  return state->item_count;
-}
-
-static void ApplyLabelOverrides(RuntimeHelpPopupState *state) {
-  size_t item_index;
-  size_t override_index;
-
-  if (state == NULL || state->label_overrides == NULL)
-    return;
-
-  for (item_index = 0; item_index < state->item_count; ++item_index) {
-    for (override_index = 0; override_index < state->label_override_count;
-         ++override_index) {
-      const UIHelpLabelOverride *override = &state->label_overrides[override_index];
-
-      if (override->canonical_label == NULL || override->display_label == NULL)
-        continue;
-      if (strcmp(state->items[item_index].label, override->canonical_label) == 0) {
-        snprintf(state->items[item_index].label,
-                 sizeof(state->items[item_index].label), "%s",
-                 override->display_label);
-        break;
-      }
-    }
-  }
-}
-
 static BOOL TopicUsesContextualItemList(const GeneratedHelpTopic *topic,
-                                        size_t prefix_row_count) {
-  if (topic == NULL || prefix_row_count != 0)
-    return FALSE;
+                                        BOOL contextual_origin) {
+  (void)topic;
+  (void)contextual_origin;
+  return FALSE;
+}
 
-  return topic->topic_id != NULL &&
-         (strcmp(topic->topic_id, "intro") == 0 ||
-         (strcmp(topic->topic_id, "dir") == 0 ||
-          strcmp(topic->topic_id, "file") == 0 ||
-          strcmp(topic->topic_id, "archive-dir") == 0 ||
-          strcmp(topic->topic_id, "archive-file") == 0 ||
-          strcmp(topic->topic_id, "showall") == 0 ||
-          strcmp(topic->topic_id, "global") == 0 ||
-          strcmp(topic->topic_id, "f7") == 0 ||
-          strcmp(topic->topic_id, "f8-dir") == 0 ||
-          strcmp(topic->topic_id, "f8-file") == 0));
+static void AppendFooterCommand(RuntimeHelpPopupState *state,
+                                size_t *command_count,
+                                UICommandStripLayout layout, const char *label,
+                                const char *primary_key) {
+  UICommandStripCommand *command;
+
+  if (state == NULL || command_count == NULL ||
+      *command_count >= GENERATED_HELP_MAX_FOOTER_COMMANDS)
+    return;
+  command = &state->footer_commands[(*command_count)++];
+  command->layout = layout;
+  command->label = label;
+  command->primary_key = primary_key;
+  command->secondary_key = NULL;
+  command->translation_context = NULL;
 }
 
 static size_t BuildFooterCommands(RuntimeHelpPopupState *state) {
+  const GeneratedHelpFooter *footer = ActiveGeneratedHelpFooter();
   size_t command_count = 0;
+  BOOL show_index;
+  BOOL show_navigation;
 
-  if (state == NULL || state->topic == NULL)
+  if (state == NULL || state->topic == NULL || footer == NULL)
     return 0;
 
   state->related_link_first_row = GENERATED_HELP_NO_SELECTION;
   state->related_link_count = 0;
   state->active_related_link_index = GENERATED_HELP_NO_SELECTION;
-
-  if (state->contextual_list_mode) {
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-    state->footer_commands[command_count].label =
-        state->current_detail_index == GENERATED_HELP_NO_SELECTION
-            ? NP_("runtime-help.footer", "Enter/Right open link")
-            : NP_("runtime-help.footer", "Left back");
-    state->footer_commands[command_count].primary_key = NULL;
-    state->footer_commands[command_count].secondary_key = NULL;
-    state->footer_commands[command_count].translation_context =
-        "runtime-help.footer";
-    command_count++;
-
-    if (state->current_detail_index == GENERATED_HELP_NO_SELECTION &&
-        state->has_history) {
-      state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-      state->footer_commands[command_count].label =
-          NP_("runtime-help.footer", "Left back");
-      state->footer_commands[command_count].primary_key = NULL;
-      state->footer_commands[command_count].secondary_key = NULL;
-      state->footer_commands[command_count].translation_context =
-          "runtime-help.footer";
-      command_count++;
-    }
-
-    if (!TopicIdEquals(state->topic, "intro") ||
-        state->current_detail_index != GENERATED_HELP_NO_SELECTION) {
-      state->footer_commands[command_count].layout =
-          UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label =
-          NP_("runtime-help.footer", "Index");
-      state->footer_commands[command_count].primary_key = "I";
-      state->footer_commands[command_count].secondary_key = NULL;
-      state->footer_commands[command_count].translation_context =
-          "runtime-help.footer";
-      command_count++;
-    }
-
-    if (!TopicIdEquals(state->topic, "f1-navigation")) {
-      state->footer_commands[command_count].layout =
-          UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label =
-          NP_("runtime-help.footer", "Navigation");
-      state->footer_commands[command_count].primary_key = "N";
-      state->footer_commands[command_count].secondary_key = NULL;
-      state->footer_commands[command_count].translation_context =
-          "runtime-help.footer";
-      command_count++;
-    }
-
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-    state->footer_commands[command_count].label =
-        NP_("runtime-help.footer", "Esc/Q quit");
-    state->footer_commands[command_count].primary_key = NULL;
-    state->footer_commands[command_count].secondary_key = NULL;
-    state->footer_commands[command_count].translation_context =
-        "runtime-help.footer";
-    command_count++;
-    state->link_command_count = 0;
-    state->active_link_index = GENERATED_HELP_NO_SELECTION;
-    return command_count;
-  }
-
-  if (state->contextual_origin && state->topic->explainer_link_count == 0) {
-    if (state->has_history) {
-      state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-      state->footer_commands[command_count].label =
-          NP_("runtime-help.footer", "Left back");
-      state->footer_commands[command_count].primary_key = NULL;
-      state->footer_commands[command_count].secondary_key = NULL;
-      state->footer_commands[command_count].translation_context =
-          "runtime-help.footer";
-      command_count++;
-    }
-
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label =
-        NP_("runtime-help.footer", "Index");
-    state->footer_commands[command_count].primary_key = "I";
-    state->footer_commands[command_count].secondary_key = NULL;
-    state->footer_commands[command_count].translation_context =
-        "runtime-help.footer";
-    command_count++;
-
-    if (!TopicIdEquals(state->topic, "f1-navigation")) {
-      state->footer_commands[command_count].layout =
-          UI_COMMAND_LAYOUT_KEY_PREFIX;
-      state->footer_commands[command_count].label =
-          NP_("runtime-help.footer", "Navigation");
-      state->footer_commands[command_count].primary_key = "N";
-      state->footer_commands[command_count].secondary_key = NULL;
-      state->footer_commands[command_count].translation_context =
-          "runtime-help.footer";
-      command_count++;
-    }
-
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-    state->footer_commands[command_count].label =
-        NP_("runtime-help.footer", "Esc/Q quit");
-    state->footer_commands[command_count].primary_key = NULL;
-    state->footer_commands[command_count].secondary_key = NULL;
-    state->footer_commands[command_count].translation_context =
-        "runtime-help.footer";
-    command_count++;
-    state->link_command_count = 0;
-    state->active_link_index = GENERATED_HELP_NO_SELECTION;
-    return command_count;
-  }
+  show_index = !TopicIdEquals(state->topic, "index");
+  show_navigation = !TopicIdEquals(state->topic, "f1-navigation");
 
   state->link_command_count = 0;
   state->active_link_index = GENERATED_HELP_NO_SELECTION;
-  if (!TopicIdEquals(state->topic, "intro")) {
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-    state->footer_commands[command_count].label =
-        NP_("runtime-help.footer", "Left back");
-    state->footer_commands[command_count].primary_key = NULL;
-    state->footer_commands[command_count].secondary_key = NULL;
-    state->footer_commands[command_count].translation_context =
-        "runtime-help.footer";
-    command_count++;
-
-    state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_KEY_PREFIX;
-    state->footer_commands[command_count].label =
-        NP_("runtime-help.footer", "Index");
-    state->footer_commands[command_count].primary_key = "I";
-    state->footer_commands[command_count].secondary_key = NULL;
-    state->footer_commands[command_count].translation_context =
-        "runtime-help.footer";
-    command_count++;
-  }
-  state->footer_commands[command_count].layout = UI_COMMAND_LAYOUT_MNEMONIC;
-  state->footer_commands[command_count].label =
-      NP_("runtime-help.footer", "Esc/Q quit");
-  state->footer_commands[command_count].primary_key = NULL;
-  state->footer_commands[command_count].secondary_key = NULL;
-  state->footer_commands[command_count].translation_context =
-      "runtime-help.footer";
-  command_count++;
-
+  AppendFooterCommand(state, &command_count, UI_COMMAND_LAYOUT_MNEMONIC,
+                      footer->left_back_label, NULL);
+  AppendFooterCommand(state, &command_count, UI_COMMAND_LAYOUT_MNEMONIC,
+                      footer->follow_label, NULL);
+  if (show_index)
+    AppendFooterCommand(state, &command_count, UI_COMMAND_LAYOUT_KEY_PREFIX,
+                        footer->index_label, footer->index_key);
+  if (show_navigation)
+    AppendFooterCommand(state, &command_count, UI_COMMAND_LAYOUT_KEY_PREFIX,
+                        footer->navigation_label, footer->navigation_key);
+  AppendFooterCommand(state, &command_count, UI_COMMAND_LAYOUT_MNEMONIC,
+                      footer->quit_label, NULL);
   return command_count;
 }
 
@@ -1370,52 +958,6 @@ static size_t BuildTextRows(RuntimeHelpPopupState *state,
     cursor = line_break + 1;
   }
 
-  if (state->topic->explainer_link_count > 0 &&
-      row_count + GENERATED_HELP_RELATED_LINK_MIN_ROWS <=
-          GENERATED_HELP_MAX_ROWS &&
-      line_index < GENERATED_HELP_MAX_TEXT_LINES) {
-    size_t link_index;
-
-    AppendHelpText(state, &row_count, &line_index, "");
-    state->rows[row_count].kind = UI_HELP_POPUP_TEXT;
-    state->rows[row_count].prefix = NP_("runtime-help", "Related help");
-    state->rows[row_count].text = NULL;
-    state->rows[row_count].commands = NULL;
-    state->rows[row_count].spans = NULL;
-    state->rows[row_count].command_count = 0;
-    state->rows[row_count].span_count = 0;
-    state->rows[row_count].selected_link_index = GENERATED_HELP_NO_SELECTION;
-    state->rows[row_count].selected = FALSE;
-    state->rows[row_count].compact_with_previous = FALSE;
-    row_count++;
-    state->related_link_first_row = row_count;
-
-    for (link_index = 0;
-         link_index < state->topic->explainer_link_count &&
-         row_count < GENERATED_HELP_MAX_ROWS;
-         ++link_index) {
-      const GeneratedHelpLink *link =
-          &state->topic->explainer_links[link_index];
-
-      if (link->label == NULL || link->label[0] == '\0')
-        continue;
-      state->rows[row_count].kind = UI_HELP_POPUP_LINK_TEXT;
-      state->rows[row_count].prefix = link->label;
-      state->rows[row_count].text = NULL;
-      state->rows[row_count].commands = NULL;
-      state->rows[row_count].spans = NULL;
-      state->rows[row_count].command_count = 0;
-      state->rows[row_count].span_count = 0;
-      state->rows[row_count].selected_link_index = GENERATED_HELP_NO_SELECTION;
-      state->rows[row_count].selected = FALSE;
-      state->rows[row_count].compact_with_previous = FALSE;
-      row_count++;
-      state->related_link_count++;
-    }
-    if (state->related_link_count == 0)
-      state->related_link_first_row = GENERATED_HELP_NO_SELECTION;
-  }
-
   return row_count;
 }
 
@@ -1428,57 +970,32 @@ static void ResetContextualHelpSelection(RuntimeHelpPopupState *state) {
   state->reselection_anchor_index = GENERATED_HELP_NO_SELECTION;
 }
 
-static int HandleContextualOriginFooterKey(RuntimeHelpPopupState *state,
-                                           int ch) {
-  int key;
-
-  if (state == NULL)
-    return 0;
-
-  key = islower(ch) ? toupper(ch) : ch;
-  if (ch == KEY_LEFT && state->has_history) {
-    state->back_requested = TRUE;
-    return 1;
-  }
-  if (key == 'I') {
-    if (!TopicIdEquals(state->topic, "intro")) {
-      state->next_topic_id = "intro";
-      return 1;
-    }
-    return -1;
-  }
-  if (key == 'N') {
-    if (!TopicIdEquals(state->topic, "f1-navigation")) {
-      state->next_topic_id = "f1-navigation";
-      return 1;
-    }
-    return -1;
-  }
-  return 0;
-}
-
 static int HandleContextualListFooterKey(RuntimeHelpPopupState *state, int ch) {
   size_t visible_start;
   size_t visible_end;
-  int key;
+  const GeneratedHelpFooter *footer = ActiveGeneratedHelpFooter();
 
-  if (state == NULL)
+  if (state == NULL || footer == NULL)
     return 0;
-
-  key = islower(ch) ? toupper(ch) : ch;
 
   if (state->current_detail_index != GENERATED_HELP_NO_SELECTION) {
     if (ch == KEY_LEFT) {
       state->detail_back_requested = TRUE;
       return 1;
     }
-    if (key == 'I') {
-      state->next_topic_id = "intro";
-      return 1;
+    if (FooterKeyMatches(ch, footer->index_key)) {
+      if (!TopicIdEquals(state->topic, "index")) {
+        state->next_topic_id = "index";
+        return 1;
+      }
+      return -1;
     }
-    if (key == 'N') {
-      state->next_topic_id = "f1-navigation";
-      return 1;
+    if (FooterKeyMatches(ch, footer->navigation_key)) {
+      if (!TopicIdEquals(state->topic, "f1-navigation")) {
+        state->next_topic_id = "f1-navigation";
+        return 1;
+      }
+      return -1;
     }
     return 0;
   }
@@ -1591,15 +1108,15 @@ static int HandleContextualListFooterKey(RuntimeHelpPopupState *state, int ch) {
     return 1;
   }
 
-  if (key == 'I') {
+  if (FooterKeyMatches(ch, footer->index_key)) {
     if (state->topic->topic_id != NULL &&
-        strcmp(state->topic->topic_id, "intro") != 0) {
-      state->next_topic_id = "intro";
+        strcmp(state->topic->topic_id, "index") != 0) {
+      state->next_topic_id = "index";
       return 1;
     }
     return -1;
   }
-  if (key == 'N') {
+  if (FooterKeyMatches(ch, footer->navigation_key)) {
     if (state->topic->topic_id != NULL &&
         strcmp(state->topic->topic_id, "f1-navigation") != 0) {
       state->next_topic_id = "f1-navigation";
@@ -1698,27 +1215,33 @@ static size_t FindAdjacentInlineHelpLink(const RuntimeHelpPopupState *state,
 static int HandleGeneratedHelpFooterKey(ViewContext *ctx, int ch,
                                         void *user_data) {
   RuntimeHelpPopupState *state = (RuntimeHelpPopupState *)user_data;
-  int key;
+  const GeneratedHelpFooter *footer = ActiveGeneratedHelpFooter();
 
   (void)ctx;
-  if (state == NULL || state->topic == NULL)
+  if (state == NULL || state->topic == NULL || footer == NULL)
     return 0;
 
   if (state->contextual_list_mode)
     return HandleContextualListFooterKey(state, ch);
 
-  if (state->contextual_origin && state->related_link_count == 0 &&
-      state->inline_link_count == 0)
-    return HandleContextualOriginFooterKey(state, ch);
-
-  key = islower(ch) ? toupper(ch) : ch;
   if (ch == KEY_LEFT) {
-    state->back_requested = TRUE;
-    return 1;
+    if (state->has_history) {
+      state->back_requested = TRUE;
+      return 1;
+    }
+    return 0;
   }
-  if (key == 'I') {
-    if (!TopicIdEquals(state->topic, "intro")) {
-      state->next_topic_id = "intro";
+  if (FooterKeyMatches(ch, footer->index_key)) {
+    if (!TopicIdEquals(state->topic, "index")) {
+      state->next_topic_id = "index";
+      return 1;
+    }
+    return -1;
+  }
+
+  if (FooterKeyMatches(ch, footer->navigation_key)) {
+    if (!TopicIdEquals(state->topic, "f1-navigation")) {
+      state->next_topic_id = "f1-navigation";
       return 1;
     }
     return -1;
@@ -1924,16 +1447,6 @@ int UI_ShowGeneratedContextHelpWithOverrides(
             : GENERATED_HELP_DEFAULT_WRAP_WIDTH;
     state.contextual_list_mode =
         TopicUsesContextualItemList(current_view.topic, prefix_row_count);
-    if (state.contextual_list_mode) {
-      (void)BuildContextItems(&state);
-      ApplyLabelOverrides(&state);
-      if (state.current_detail_index == GENERATED_HELP_NO_SELECTION &&
-          state.selected_item_index == GENERATED_HELP_NO_SELECTION &&
-          state.item_count > 0) {
-        state.selected_item_index =
-            FindNextSelectableItem(&state, 0, state.item_count);
-      }
-    }
     if (state.selected_item_index >= state.item_count)
       state.selected_item_index = GENERATED_HELP_NO_SELECTION;
     if (state.current_detail_index >= state.item_count)
@@ -1960,10 +1473,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     footer_spec.final_scroll_line = &state.visible_row_offset;
     footer_spec.key_data = &state;
 
-    title = (state.contextual_list_mode &&
-             state.current_detail_index != GENERATED_HELP_NO_SELECTION)
-                ? state.items[state.current_detail_index].label
-                : current_view.topic->title;
+    title = current_view.topic->title;
     if (UI_ShowHelpPopupWithFooter(ctx, title, state.rows, state.row_count,
                                    &footer_spec) > 0 &&
         ctx->resize_request) {
@@ -2006,8 +1516,7 @@ int UI_ShowGeneratedContextHelpWithOverrides(
     current_view.current_detail_index = GENERATED_HELP_NO_SELECTION;
     current_view.active_inline_link_index = GENERATED_HELP_NO_SELECTION;
     current_view.scroll_line_offset = 0;
-    current_view.contextual_origin =
-        current_view.contextual_origin || state.contextual_list_mode;
+    current_view.contextual_origin = FALSE;
   }
 
   RefreshView(ctx, GetSelectedDirEntry(ctx, ctx->active->vol));
