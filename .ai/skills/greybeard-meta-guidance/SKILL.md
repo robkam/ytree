@@ -27,3 +27,10 @@ Use this skill when the active persona is `greybeard`.
 - Keep guidance evidence-based and concise.
 - You MUST NOT introduce speculative process changes without a clear payoff.
 - Enforce documentation signal-over-noise: recommend putting new guidance only in the section/file where readers need it, not repeating it broadly.
+
+## CI Local-Reconciliation Checklist
+
+Use `.ai/shared.md` rules 32 and 33 as the sole CI-readiness and test-contract policy.
+
+- Recommend CI changes only from historical telemetry and unique-failure evidence.
+- Require a concrete risk trigger for expensive local QA and maintainer approval for deferred checks.

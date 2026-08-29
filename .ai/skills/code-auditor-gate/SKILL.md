@@ -74,3 +74,11 @@ When this lens finds a problem, identify:
 - Raise at least `high` severity when common-path submenu depth exceeds 1 without explicit justification and equivalent fast path.
 - Raise at least `medium` severity for stale or misleading comments that can cause maintenance errors.
 - Raise at least `medium` severity for doc noise patterns (duplicated AI/process guidance in unrelated sections) that reduce contributor readability.
+
+## CI Local-Reconciliation Checklist
+
+Review against `.ai/shared.md` rules 32 and 33; do not restate or weaken their policy.
+
+- Verify the changed-surface inventory, exact validation evidence, and reasons for unrun gates.
+- Require concrete proof for a claimed pre-existing, infrastructure, or flaky failure.
+- Flag unjustified full-QA scope, missing generated-asset checks, unsupported coverage changes, and tests that encode volatile text or layout.
