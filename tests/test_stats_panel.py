@@ -854,7 +854,11 @@ def test_tree_focus_git_view_uses_single_column_overlay_rows(
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_root))
 
-    screen = tui.get_screen_dump()
+    screen = tui.wait_for_condition(
+        lambda lines: lines if _file_lines_with_names(lines, *names) else False,
+        timeout=3.0,
+        description="initial embedded file rows",
+    )
     assert _file_lines_with_names(screen, *names), (
         f"Expected embedded file rows on startup.\n{_screen_text(screen)}"
     )

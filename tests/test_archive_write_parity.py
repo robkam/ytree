@@ -31,6 +31,31 @@ def _archive_read_text(path, name):
         return fobj.read().decode("utf-8")
 
 
+def _wait_for_archive_names(controller, archive_path, predicate, description):
+    def archive_matches(_lines):
+        try:
+            return predicate(_archive_names(archive_path))
+        except (OSError, tarfile.TarError):
+            return False
+
+    assert controller.wait_for_condition(
+        archive_matches, timeout=5.0, description=description
+    )
+    return _archive_names(archive_path)
+
+
+def _wait_for_file_payload(controller, path, payload, description):
+    def file_matches(_lines):
+        try:
+            return path.exists() and path.read_text(encoding="utf-8") == payload
+        except OSError:
+            return False
+
+    assert controller.wait_for_condition(
+        file_matches, timeout=5.0, description=description
+    )
+
+
 def _screen_text(controller):
     before = controller.child.before if isinstance(controller.child.before, str) else ""
     after = controller.child.after if isinstance(controller.child.after, str) else ""
@@ -137,8 +162,9 @@ def test_archive_copy_matrix_vfs_to_fs(ytnova_binary, tmp_path):
     _copy_selected_file(yt, "copied_to_fs.txt", out_dir)
 
     copied = out_dir / "copied_to_fs.txt"
-    assert copied.exists()
-    assert copied.read_text(encoding="utf-8") == "from archive"
+    _wait_for_file_payload(
+        yt, copied, "from archive", "filesystem payload after archive copy"
+    )
 
     yt.quit()
 
@@ -177,8 +203,12 @@ def test_archive_traversal_rejection_copy_vfs_to_fs_never_writes_outside_destina
         _copy_selected_file(yt, "copied_safe.txt", out_dir)
 
         copied = out_dir / "copied_safe.txt"
-        assert copied.exists()
-        assert copied.read_text(encoding="utf-8") == "from archive"
+        _wait_for_file_payload(
+            yt,
+            copied,
+            "from archive",
+            "safe filesystem payload after archive traversal rejection",
+        )
         assert sorted(path.name for path in out_dir.iterdir()) == ["copied_safe.txt"]
         assert not dotdot_escape_path.exists()
         assert not absolute_escape_path.exists()
@@ -205,7 +235,12 @@ def test_archive_copy_matrix_vfs_to_vfs(ytnova_binary, tmp_path):
     _copy_selected_file(yt, "copied_from_vfs.txt", dst_archive)
 
     src_names = _archive_names(src_archive)
-    dst_names = _archive_names(dst_archive)
+    dst_names = _wait_for_archive_names(
+        yt,
+        dst_archive,
+        lambda names: "copied_from_vfs.txt" in names,
+        "destination member after archive copy",
+    )
     assert "src.txt" in src_names
     assert "copied_from_vfs.txt" in dst_names
     assert _archive_read_text(dst_archive, "copied_from_vfs.txt") == "vfs payload"
@@ -229,8 +264,18 @@ def test_archive_move_matrix_fs_to_vfs(ytnova_binary, tmp_path):
     yt.select_file("fs_source.txt")
     _move_selected_file(yt, "moved_from_fs.txt", dst_archive)
 
+    assert yt.wait_for_condition(
+        lambda _lines: not (root / "fs_source.txt").exists(),
+        timeout=5.0,
+        description="filesystem source removal after archive move",
+    )
     assert not (root / "fs_source.txt").exists()
-    assert "moved_from_fs.txt" in _archive_names(dst_archive)
+    _wait_for_archive_names(
+        yt,
+        dst_archive,
+        lambda names: "moved_from_fs.txt" in names,
+        "archive member after filesystem-to-archive move",
+    )
     assert _archive_read_text(dst_archive, "moved_from_fs.txt") == "fs move payload"
 
     yt.quit()
@@ -253,9 +298,15 @@ def test_archive_move_matrix_vfs_to_fs(ytnova_binary, tmp_path):
     _move_selected_file(yt, "moved_to_fs.txt", out_dir)
 
     moved = out_dir / "moved_to_fs.txt"
-    assert moved.exists()
-    assert moved.read_text(encoding="utf-8") == "archive move payload"
-    assert "src.txt" not in _archive_names(src_archive)
+    _wait_for_file_payload(
+        yt, moved, "archive move payload", "filesystem payload after archive move"
+    )
+    _wait_for_archive_names(
+        yt,
+        src_archive,
+        lambda names: "src.txt" not in names,
+        "source removal after archive-to-filesystem move",
+    )
 
     yt.quit()
 
@@ -278,8 +329,18 @@ def test_archive_move_matrix_vfs_to_vfs(ytnova_binary, tmp_path):
 
     _move_selected_file(yt, "moved_to_other_vfs.txt", dst_archive)
 
-    src_names = _archive_names(src_archive)
-    dst_names = _archive_names(dst_archive)
+    src_names = _wait_for_archive_names(
+        yt,
+        src_archive,
+        lambda names: "src.txt" not in names,
+        "source removal after archive-to-archive move",
+    )
+    dst_names = _wait_for_archive_names(
+        yt,
+        dst_archive,
+        lambda names: "moved_to_other_vfs.txt" in names,
+        "destination member after archive-to-archive move",
+    )
     assert "src.txt" not in src_names
     assert "moved_to_other_vfs.txt" in dst_names
     assert _archive_read_text(dst_archive, "moved_to_other_vfs.txt") == "archive move"

@@ -543,6 +543,11 @@ def test_archive_create_overwrite_prompt_respects_no_then_yes(ytnova_binary, tmp
         assert tui.wait_for_content("Overwrite z_existing.zip? (y/n)", timeout=3.0)
         tui.send_keystroke("y", wait=0.6)
 
+        assert tui.wait_for_condition(
+            lambda _lines: "0_source.txt" in _zip_names(archive_path),
+            timeout=5.0,
+            description="overwritten archive payload",
+        )
         assert "0_source.txt" in _zip_names(archive_path)
         assert _zip_read_text(archive_path, "0_source.txt") == "new payload"
     finally:
@@ -613,6 +618,11 @@ def test_archive_create_overwrite_excludes_destination_from_payload(
         assert tui.wait_for_content("Overwrite out.zip? (y/n)", timeout=3.0)
         tui.send_keystroke("y", wait=0.8)
 
+        assert tui.wait_for_condition(
+            lambda _lines: _zip_names(destination) == ["child/a.txt", "child/b.txt"],
+            timeout=5.0,
+            description="overwritten archive payload without destination",
+        )
         names = _zip_names(destination)
         assert names == ["child/a.txt", "child/b.txt"]
         assert "out.zip" not in names

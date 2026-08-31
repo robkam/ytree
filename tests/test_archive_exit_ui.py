@@ -92,12 +92,22 @@ def _assert_footer_segments_in_order(line, *segments):
         start = pos + len(segment)
 
 
-def _graceful_quit(tui, *, wait=0.8):
-    tui.send_keystroke("q", wait=wait)
-    if tui.child.isalive():
-        tui.child.close(force=True)
-    else:
-        tui.child.close()
+def _graceful_quit(tui):
+    tui.send_keystroke("q", wait=0)
+    assert tui.wait_for_exit(timeout=3.0), "ytnova did not complete orderly quit"
+    tui.child.close()
+
+
+def _open_config_and_wait_for_effect(tui, effect, description):
+    assert tui.send_and_wait_for_screen_change("\x1b[21~", timeout=2.0), (
+        "F10 did not open the configuration command strip."
+    )
+    result = tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda lines: lines if effect() else False,
+        timeout=3.0,
+    )
+    assert result, f"F10 configuration edit did not complete {description}."
 
 
 def _cell_style_for_text(tui, needle, *, exclude_substrings=()):
@@ -391,10 +401,13 @@ def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytnova_bi
         tui.send_keystroke(Keys.UP, wait=0.2)
         tui.send_keystroke(Keys.UP, wait=0.2)
         tui.send_keystroke(Keys.UP, wait=0.2)     # root
-        _send_left_arrow(tui, wait=0.6)           # reset root
-        tui.send_keystroke(Keys.RIGHT, wait=0.6)  # expand root again
-
-        after_lines = tui.get_screen_dump()
+        assert tui.send_and_wait_for_screen_change(Keys.LEFT, timeout=1.5)
+        after_lines = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines if any("alpha" in line for line in lines) else False,
+            timeout=2.0,
+        )
+        assert after_lines, "Root re-expand did not reveal the immediate child."
         after_reexpand = "\n".join(after_lines)
         tree_and_footer = "\n".join(after_lines[1:])
         assert "alpha" in after_reexpand, (
@@ -652,8 +665,16 @@ def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
             f"{before}"
         )
 
-        tui.send_keystroke(Keys.ENTER, wait=0.6)
-        after = _screen_text(tui)
+        after_lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if any("child_a" in line for line in lines)
+            and any("child_b" in line for line in lines)
+            else False,
+            timeout=2.0,
+        )
+        assert after_lines, "Enter on the unlogged directory did not relog children."
+        after = "\n".join(after_lines)
         footer = _footer_text(tui).lower()
 
         assert "child_a" in after and "child_b" in after, (
@@ -774,9 +795,20 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
 
     try:
-        tui.send_keystroke(Keys.DOWN, wait=0.3)
-        tui.send_keystroke("*", wait=0.7)
-        expanded = _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines if any("cmd" in line for line in lines) else False,
+            timeout=2.0,
+        )
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        expanded_lines = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines if any("deeper" in line for line in lines) else False,
+            timeout=2.0,
+        )
+        assert expanded_lines, "Could not expand the fixture tree to the deep node."
+        expanded = "\n".join(expanded_lines)
         assert "deeper" in expanded, (
             "Precondition failed: expected deep expansion before root reset.\n"
             f"{expanded}"
@@ -806,8 +838,13 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
             f"{after_left}"
         )
 
-        tui.send_keystroke(Keys.RIGHT, wait=0.9)
-        after_right = _screen_text(tui)
+        after_right_lines = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines if any("src" in line for line in lines) else False,
+            timeout=2.0,
+        )
+        assert after_right_lines, "Right on the reset root did not relog its child."
+        after_right = "\n".join(after_right_lines)
         assert "src/" in after_right, (
             "Right on reset root should relog to configured TREEDEPTH and show "
             "first-level directory placeholders.\n"
@@ -1010,10 +1047,14 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         )
         tui.send_keystroke(Keys.ENTER, wait=0.5)  # back to dir
 
-        # Edit config via F10 and let the configured editor switch value to 1.
-        tui.send_keystroke("\x1b[21~", wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.9)
         xdg_profile = root / ".config" / "ytnova" / "ytnova.conf"
+        # Edit config via F10 and let the configured editor switch value to 1.
+        _open_config_and_wait_for_effect(
+            tui,
+            lambda: xdg_profile.exists()
+            and "SMALLWINDOWSKIP=1" in xdg_profile.read_text(encoding="utf-8"),
+            "the XDG profile update",
+        )
         assert "SMALLWINDOWSKIP=1" in xdg_profile.read_text(encoding="utf-8"), (
             "Config edit flow should migrate the edited session into the preferred "
             "XDG profile file."
@@ -1063,8 +1104,12 @@ def test_smallwindowskip_config_edit_uses_startup_selected_profile_path(
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
-        tui.send_keystroke("\x1b[21~", wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.9)
+        _open_config_and_wait_for_effect(
+            tui,
+            lambda: "SMALLWINDOWSKIP=1"
+            in custom_profile.read_text(encoding="utf-8"),
+            "the selected profile update",
+        )
 
         assert "SMALLWINDOWSKIP=1" in custom_profile.read_text(encoding="utf-8"), (
             "F10 config edit must target the startup-selected -p profile path.\n"
@@ -1111,8 +1156,13 @@ def test_f10_reload_repaints_theme_from_tree_focus(tmp_path, ytnova_binary):
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         before_style = _cell_style_for_text(tui, "Path:")
 
-        tui.send_keystroke("\x1b[21~", wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.9)
+        updated_profile = root / ".config" / "ytnova" / "ytnova.conf"
+        _open_config_and_wait_for_effect(
+            tui,
+            lambda: updated_profile.exists()
+            and "THEME=bash-black" in updated_profile.read_text(encoding="utf-8"),
+            "the selected theme update",
+        )
 
         after_style = _wait_for_style_change(tui, "Path:", before_style)
         assert after_style != before_style, (
@@ -1149,8 +1199,13 @@ def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         before_style = _cell_style_for_text(tui, "Path:")
 
-        tui.send_keystroke("\x1b[21~", wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.9)
+        updated_profile = root / ".config" / "ytnova" / "ytnova.conf"
+        _open_config_and_wait_for_effect(
+            tui,
+            lambda: updated_profile.exists()
+            and "THEME=bash-black" in updated_profile.read_text(encoding="utf-8"),
+            "the selected theme update",
+        )
 
         after_style = _wait_for_style_change(tui, "Path:", before_style)
         assert after_style != before_style, (
@@ -2040,12 +2095,17 @@ def test_log_command_on_current_volume_reloads_tree_state(
             f"{before_log}"
         )
 
-        tui.send_keystroke(Keys.LOG, wait=0.3)
-        tui.send_keystroke(Keys.CTRL_U, wait=0.1)
-        tui.send_keystroke(str(root), wait=0.1)
-        tui.send_keystroke(Keys.ENTER, wait=0.9)
-
-        after_log = _screen_text(tui)
+        tui.send_keystroke(Keys.LOG, wait=0.1)
+        tui.send_keystroke(Keys.CTRL_U + str(root), wait=0)
+        after_log_lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if any("vol_new_name_dir" in line for line in lines)
+            else False,
+            timeout=3.0,
+        )
+        assert after_log_lines, "Logging the current volume did not refresh its tree."
+        after_log = "\n".join(after_log_lines)
         assert "vol_new_name_dir" in after_log, (
             "Logging the current volume should refresh the tree from disk.\n"
             f"{after_log}"

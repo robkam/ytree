@@ -44,6 +44,7 @@ def f7_preview_sandbox(tmp_path):
     return {
         "root": root,
         "long_name": long_name,
+        "long_name_token": long_name[:24],
         "marker": marker,
     }
 
@@ -77,11 +78,24 @@ def _launch_preview(ytnova_binary, sandbox_info):
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(sandbox_info["root"]))
 
-    tui.send_keystroke(Keys.EXPAND_ALL, wait=0.25)
-    tui.send_keystroke(Keys.DOWN, wait=0.25)
-    tui.send_keystroke(Keys.F7, wait=0.35)
-
-    lines = tui.get_screen_dump()
+    assert tui.wait_for_content("preview_dir", timeout=2.0)
+    assert tui.send_and_wait_for_screen_change(Keys.EXPAND_ALL, timeout=2.0)
+    assert tui.send_and_wait_for_condition(
+        Keys.DOWN,
+        lambda current: current
+        if sandbox_info["long_name_token"] in _screen_text(current)
+        else False,
+        timeout=2.0,
+    ), "Preview directory did not finish loading its fixture file."
+    lines = tui.send_and_wait_for_condition(
+        Keys.F7,
+        lambda current: current
+        if sandbox_info["marker"] in _screen_text(current)
+        else False,
+        timeout=2.0,
+    )
+    if not lines:
+        lines = tui.get_screen_dump()
     screen = _screen_text(lines)
     if sandbox_info["marker"] not in screen:
         tui.quit()

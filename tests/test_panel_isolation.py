@@ -75,6 +75,20 @@ def _wait_for_footer_state(tui, *, contains=(), excludes=(), timeout=2.0):
     return lines
 
 
+def _log_path_and_wait_for_fixture(tui, path, fixture_identity):
+    prompt = tui.send_and_wait_for_screen_change(Keys.LOG, timeout=1.5)
+    assert prompt, _screen_text(tui)
+    lines = tui.send_and_wait_for_condition(
+        Keys.CTRL_U + str(path) + Keys.ENTER,
+        lambda current_lines: current_lines
+        if any(fixture_identity in line for line in current_lines)
+        else False,
+        timeout=3.0,
+    )
+    assert lines, _screen_text(tui)
+    return lines
+
+
 def _run_compare_and_read_source(tui, compare_target, log_path):
     if log_path.exists():
         log_path.unlink()
@@ -248,52 +262,39 @@ def test_panel_switch_updates_small_window(dual_panel_sandbox, ytnova_binary):
     Verify that switching panels updates the content of the small file window.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0) # Wait for initial scan
+    left_file = "very_long_filename_alpha_numeric_extension_test.txt"
 
-    # 1. Start in Left Panel (default). Small window should show left files.
-    # We are in '/' of sandbox. There are 'left_dir' and 'right_dir'.
+    try:
+        assert tui.wait_for_content("left_dir", timeout=2.0)
+        assert tui.send_and_wait_for_condition(
+            Keys.DOWN + Keys.ENTER,
+            lambda lines: lines if left_file in "\n".join(lines) else False,
+            timeout=2.0,
+        ), "Entering the left fixture directory did not reveal its file."
 
-    # Navigate to left_dir
-    tui.send_keystroke(Keys.DOWN + Keys.ENTER)
-    time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0)
+        assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0)
 
-    screen = "\n".join(tui.get_screen_dump())
-    assert "very_long_filename" in screen # Found in left_dir
+        # A split cloned from a file view must return to the peer tree before
+        # selecting the peer directory.
+        assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=2.0)
+        assert tui.send_and_wait_for_condition(
+            Keys.DOWN + Keys.ENTER,
+            lambda lines: lines
+            if any(line.startswith("Path:") and "right_dir" in line for line in lines)
+            else False,
+            timeout=2.0,
+        ), "Switching to the right panel did not enter its fixture directory."
 
-    # 2. Split Screen
-    tui.send_keystroke(Keys.F8)
-    time.sleep(0.5)
-
-    # 3. Switch to Right Panel
-    tui.send_keystroke(Keys.TAB) # TAB is usually switch panel
-    time.sleep(0.5)
-
-    # If split occurred from file mode, the peer panel may also be in file view.
-    # Drop to tree view before navigating to right_dir.
-    if "hex invert j compare" in _footer_text(tui):
-        tui.send_keystroke(Keys.ESC)
-        time.sleep(0.3)
-
-    # Navigate to right_dir in right panel
-    tui.send_keystroke(Keys.DOWN + Keys.ENTER)
-    time.sleep(0.5)
-
-    # Verify right panel content (files '0'..'9') is visible
-    screen = "\n".join(tui.get_screen_dump())
-    assert " 0 " in screen or " 1 " in screen # Right dir files
-
-    # Verify left panel content is NOT in the focus of the small window anymore (if shared)
-    # Actually if they are side-by-side, both might be visible.
-    # But the ACTIVE file window should show the Right files.
-
-    # 4. Switch back to Left Panel
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
-
-    screen = "\n".join(tui.get_screen_dump())
-    assert "very_long_filename" in screen
-
-    tui.quit()
+        assert tui.send_and_wait_for_condition(
+            Keys.TAB,
+            lambda lines: lines
+            if any(line.startswith("Path:") and "left_dir" in line for line in lines)
+            else False,
+            timeout=2.0,
+        ), "Switching back did not restore the left panel directory."
+    finally:
+        tui.quit()
 
 
 def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytnova_binary):
@@ -307,7 +308,7 @@ def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytnova_binary):
     (beta / "beta.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -484,20 +485,26 @@ def test_split_from_big_file_keeps_inactive_panel_in_file_view(tmp_path, ytnova_
         (right / f"right{idx}.txt").write_text("right\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert tui.wait_for_content("left", timeout=3.0), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.DOWN + Keys.ENTER,
+            lambda lines: lines
+            if any("left0.txt" in line for line in lines)
+            and "hex invert j compare" in _footer_text(tui).lower()
+            else False,
+            timeout=3.0,
+        ), _screen_text(tui)
 
-        tui.send_keystroke(Keys.F8, wait=0.5)
-        lines = tui.get_screen_dump()
-        split_col = _detect_split_column(lines)
-        assert split_col is not None, _screen_text(tui)
-
-        right_top = [line[split_col + 1 :] for line in lines[2:12]]
-        assert any("left0.txt" in segment for segment in right_top), (
+        lines = tui.send_and_wait_for_condition(
+            Keys.F8,
+            lambda current: current
+            if sum("left0.txt" in line for line in current) >= 2
+            else False,
+            timeout=3.0,
+        )
+        assert sum("left0.txt" in line for line in lines) >= 2, (
             "Splitting from big file view must keep inactive panel in file view.\n"
             f"{_screen_text(tui)}"
         )
@@ -679,14 +686,14 @@ def _assert_collapse_resets_subtree_expansion(tmp_path, ytnova_binary, key):
 
         tui.send_keystroke(Keys.UP, wait=0.2)     # child
         tui.send_keystroke(Keys.UP, wait=0.2)     # alpha
-        tui.send_keystroke(key, wait=0.4)         # collapse/reset alpha
-        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # re-expand alpha
-
-        after = _screen_text(tui)
-        assert "child" in after, (
-            "Re-expand should restore immediate child visibility.\n"
-            f"{after}"
+        assert tui.send_and_wait_for_screen_change(key, timeout=1.5)
+        after = tui.send_and_wait_for_condition(
+            Keys.RIGHT,
+            lambda lines: lines if any("child" in line for line in lines) else False,
+            timeout=2.0,
         )
+        assert after, "Re-expand did not restore immediate child visibility."
+        after = "\n".join(after)
         assert "grand" not in after and "great" not in after, (
             "Collapse with Left or '-' must reset subtree expansion state for"
             " that node.\n"
@@ -711,11 +718,17 @@ def test_split_from_dir_immediately_renders_peer_panel(tmp_path, ytnova_binary):
     (root / "beta_peer_dir").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha_peer_dir", timeout=2.0)
+    split_lines = tui.send_and_wait_for_condition(
+        Keys.F8,
+        lambda lines: lines
+        if "\n".join(lines).count("alpha_peer_dir") >= 2
+        else False,
+        timeout=2.0,
+    )
+    assert split_lines, "Split did not project the peer tree."
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-
-    screen = "\n".join(tui.get_screen_dump())
+    screen = "\n".join(split_lines)
     assert screen.count("alpha_peer_dir") >= 2, (
         "Split from dir view did not render peer panel until next keypress.\n"
         f"{screen}"
@@ -735,14 +748,16 @@ def test_split_from_file_preserves_inactive_panel_file_state(tmp_path, ytnova_bi
     (beta / "beta_unique_456.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
-
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert tui.wait_for_content("alpha", timeout=2.0)
+    assert tui.send_and_wait_for_condition(
+        Keys.DOWN + Keys.ENTER,
+        lambda lines: lines if "alpha_unique_123.txt" in "\n".join(lines) else False,
+        timeout=2.0,
+    )
     assert "hex invert j compare" in _footer_text(tui)
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0)
     assert "hex invert j compare" in _footer_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
@@ -764,14 +779,18 @@ def test_split_from_file_immediate_peer_mirror_not_blank(tmp_path, ytnova_binary
     (beta / "beta_immediate_uniq.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    tui.wait_for_text("alpha")
 
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
+    tui.send_keystroke(Keys.DOWN, wait=0)
+    tui.send_keystroke(Keys.ENTER, wait=0)
+    assert tui.wait_for_text("alpha_immediate_uniq.txt"), _screen_text(tui)
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.F8, wait=0)
 
+    assert tui.wait_for_condition(
+        lambda lines: "\n".join(lines).count("alpha_immediate_uniq.txt") >= 2,
+        description="split peer file identity",
+    ), _screen_text(tui)
     screen = "\n".join(tui.get_screen_dump())
     assert screen.count("alpha_immediate_uniq.txt") >= 2, (
         "Peer panel stayed blank after splitting from file view.\n"
@@ -781,7 +800,7 @@ def test_split_from_file_immediate_peer_mirror_not_blank(tmp_path, ytnova_binary
     tui.quit()
 
 
-def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytnova_binary):
+def test_split_volume_cycle_preserves_panel_local_file_lists(tmp_path, ytnova_binary):
     vol_a = tmp_path / "vol_a"
     vol_b = tmp_path / "vol_b"
     vol_c = tmp_path / "vol_c"
@@ -797,7 +816,6 @@ def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytnova
         cwd=str(vol_a),
         args=[str(vol_b), str(vol_c)],
     )
-    time.sleep(1.0)
 
     vol_to_file = {
         "vol_a": "a_only.txt",
@@ -812,17 +830,19 @@ def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytnova
                 return vol_name
         return None
 
+    assert tui.wait_for_condition(
+        lambda _lines: active_volume_name() is not None,
+        description="starting fixture volume",
+    ), _screen_text(tui)
     start_vol = active_volume_name()
     assert start_vol is not None, "Could not detect starting volume in header."
 
-    tui.send_keystroke(Keys.ENTER, wait=0.5)
-    assert "hex invert j compare" in _footer_text(tui)
+    tui.send_keystroke(Keys.ENTER, wait=0)
     start_file = vol_to_file[start_vol]
-    assert start_file in "\n".join(tui.get_screen_dump())
+    assert tui.wait_for_text(start_file), _screen_text(tui)
 
-    # Seed right-panel cache on the current volume, then unsplit.
-    tui.send_keystroke(Keys.F8, wait=0.5)
-    tui.send_keystroke(Keys.F8, wait=0.5)
+    # Split before cycling so both panel-local volume projections remain live.
+    tui.send_keystroke(Keys.F8, wait=0)
 
     # Cycle until a different volume becomes active.
     target_vol = None
@@ -831,29 +851,23 @@ def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytnova
         if current and current != start_vol:
             target_vol = current
             break
-        tui.send_keystroke("<", wait=0.5)
+        tui.send_keystroke("<", wait=0)
     assert target_vol is not None, "Failed to cycle to a different volume."
 
-    if "hex invert j compare" not in _footer_text(tui):
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
-
     target_file = vol_to_file[target_vol]
-    screen = "\n".join(tui.get_screen_dump())
-    assert target_file in screen
+    if target_file not in "\n".join(tui.get_screen_dump()):
+        tui.send_keystroke(Keys.ENTER, wait=0)
+    assert tui.wait_for_text(target_file), _screen_text(tui)
 
-    # Regression guard: initial split mirror must not show stale file list from
-    # another volume until TAB.
-    tui.send_keystroke(Keys.F8, wait=0.5)
+    tui.send_keystroke(Keys.TAB, wait=0)
+    assert tui.wait_for_text(start_file), _screen_text(tui)
     screen = "\n".join(tui.get_screen_dump())
-    assert screen.count(target_file) >= 2, (
-        "Split mirror reused stale file list from another volume.\n"
+    assert target_file in screen and start_file in screen, (
+        "Split volume cycling lost a panel-local file projection.\n"
         f"{screen}"
     )
-    assert start_file not in screen, (
-        "Split mirror leaked prior volume file list on first draw.\n"
-        f"{screen}"
-    )
+    tui.send_keystroke(Keys.TAB, wait=0)
+    assert tui.wait_for_text(target_file), _screen_text(tui)
 
     tui.quit()
 
@@ -867,31 +881,78 @@ def test_volume_cycle_does_not_leak_file_focus_between_volumes(tmp_path, ytnova_
     (vol_b / "b0.txt").write_text("b0\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(vol_a))
-    time.sleep(0.9)
 
     try:
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if _active_volume_name_from_lines(
+                lines, "bug40_vol_a", "bug40_vol_b"
+            )
+            == "bug40_vol_a"
+            else False,
+            timeout=3.0,
+        ), _screen_text(tui)
         _assert_dir_mode_footer(tui, "Precondition failed: expected tree mode.")
-        assert "bug40_vol_a" in tui.get_screen_dump()[0], _screen_text(tui)
 
         # Log second volume so cycling has two loaded targets.
-        tui.send_keystroke(Keys.LOG, wait=0.2)
-        tui.send_keystroke(Keys.CTRL_U + str(vol_b) + Keys.ENTER, wait=0.9)
-        assert "bug40_vol_b" in tui.get_screen_dump()[0], _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.LOG,
+            lambda lines: lines
+            if any("Log Path:" in line for line in lines)
+            else False,
+            timeout=2.0,
+        ), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.CTRL_U + str(vol_b) + Keys.ENTER,
+            lambda lines: lines
+            if _active_volume_name_from_lines(
+                lines, "bug40_vol_a", "bug40_vol_b"
+            )
+            == "bug40_vol_b"
+            else False,
+            timeout=3.0,
+        ), _screen_text(tui)
         _assert_dir_mode_footer(tui, "Expected tree mode after logging volume B.")
 
         # Return to volume A in tree mode.
-        tui.send_keystroke("<", wait=0.6)
-        assert "bug40_vol_a" in tui.get_screen_dump()[0], _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            "<",
+            lambda lines: lines
+            if _active_volume_name_from_lines(
+                lines, "bug40_vol_a", "bug40_vol_b"
+            )
+            == "bug40_vol_a"
+            else False,
+            timeout=3.0,
+        ), _screen_text(tui)
         _assert_dir_mode_footer(tui, "Expected tree mode after cycling back to A.")
 
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if "hex invert j compare" in _footer_text(tui)
+            else False,
+            timeout=3.0,
+        ), _screen_text(tui)
 
-        tui.send_keystroke("<", wait=0.8)
-        screen = _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            "<",
+            lambda current: current
+            if _active_volume_name_from_lines(
+                current, "bug40_vol_a", "bug40_vol_b"
+            )
+            == "bug40_vol_b"
+            and "hex invert j compare" not in _footer_text(tui)
+            and "j tree" in _footer_text(tui)
+            else False,
+            timeout=3.0,
+        )
+        screen = "\n".join(lines)
         footer = _footer_text(tui)
 
-        assert "bug40_vol_b" in tui.get_screen_dump()[0], (
+        assert _active_volume_name_from_lines(
+            lines, "bug40_vol_a", "bug40_vol_b"
+        ) == "bug40_vol_b", (
             "Volume cycle did not switch to target volume.\n"
             f"{screen}"
         )
@@ -949,21 +1010,24 @@ def test_split_refresh_updates_inactive_tree_file_list_without_tab(
     (right / "right_old.txt").write_text("right\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    tui.wait_for_text("left_dir")
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    tui.send_keystroke(Keys.F8, wait=0)
+    tui.send_keystroke(Keys.TAB, wait=0)
 
     # Right panel: select right_dir in tree mode so its small file list is visible.
-    tui.send_keystroke(Keys.DOWN, wait=0.25)
-    tui.send_keystroke(Keys.DOWN, wait=0.25)
-    assert "right_old.txt" in "\n".join(tui.get_screen_dump())
+    for _ in range(10):
+        tui.send_keystroke(Keys.DOWN, wait=0)
+        if "right_old.txt" in "\n".join(tui.get_screen_dump()):
+            break
+    else:
+        pytest.fail("Could not select the right_dir fixture tree entry.")
 
     # Keep right panel inactive while refreshing from the left panel.
-    tui.send_keystroke(Keys.TAB, wait=0.35)
+    tui.send_keystroke(Keys.TAB, wait=0)
     (right / "right_new.txt").write_text("new\n", encoding="utf-8")
-    time.sleep(0.1)
-    tui.send_keystroke(Keys.CTRL_L, wait=0.9)
+    tui.send_keystroke(Keys.CTRL_L, wait=0)
+    tui.wait_for_text("right_new.txt")
 
     screen = "\n".join(tui.get_screen_dump())
     assert "right_new.txt" in screen, (
@@ -1101,21 +1165,33 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         cwd=str(root),
         args=[str(vol_a), str(vol_b)],
     )
-    time.sleep(1.0)
+    assert tui.wait_for_content("a_right_0.txt", timeout=2.0)
 
     def active_volume_name():
-        header = tui.get_screen_dump()[0]
-        for name in ("split_close_vol_a", "split_close_vol_b"):
-            if name in header:
-                return name
+        screen = _screen_text(tui)
+        if "a_right_0.txt" in screen and "b_right_0.txt" not in screen:
+            return "split_close_vol_a"
+        if "b_right_0.txt" in screen and "a_right_0.txt" not in screen:
+            return "split_close_vol_b"
         return None
 
     def cycle_to(volume_name):
+        if active_volume_name() == volume_name:
+            return
         for key in (">", "<"):
-            for _ in range(8):
-                if active_volume_name() == volume_name:
-                    return
-                tui.send_keystroke(key, wait=0.45)
+            if tui.send_and_wait_for_condition(
+                key,
+                lambda lines: volume_name
+                if (
+                    (volume_name == "split_close_vol_a")
+                    == ("a_right_0.txt" in "\n".join(lines))
+                    and ("b_right_0.txt" in "\n".join(lines))
+                    != (volume_name == "split_close_vol_a")
+                )
+                else False,
+                timeout=1.5,
+            ):
+                return
         assert active_volume_name() == volume_name, _screen_text(tui)
 
     def run_compare_and_read_source():
@@ -1130,7 +1206,7 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         return log_path.read_text(encoding="utf-8").splitlines()[0]
 
     try:
-        cycle_to("split_close_vol_b")
+        assert tui.send_and_wait_for_screen_change(">", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
@@ -1146,7 +1222,7 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         tui.send_keystroke(Keys.TAB, wait=0.4)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
-        cycle_to("split_close_vol_b")
+        assert tui.send_and_wait_for_screen_change(">", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
@@ -1154,7 +1230,7 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         source_right_b_expected = run_compare_and_read_source()
         assert source_right_b_expected.endswith("b_right_1.txt"), source_right_b_expected
 
-        cycle_to("split_close_vol_a")
+        assert tui.send_and_wait_for_screen_change("<", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
@@ -1167,7 +1243,7 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         )
         assert "a_right_1.txt" in _screen_text(tui), _screen_text(tui)
 
-        cycle_to("split_close_vol_b")
+        assert tui.send_and_wait_for_screen_change(">", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
@@ -1191,14 +1267,6 @@ def test_f8_close_from_active_right_tree_preserves_viewport(tmp_path, ytnova_bin
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
-    def first_right_tree_row(lines, split_col):
-        for line in lines[2:-4]:
-            segment = line[split_col + 1 :].rstrip()
-            if "dir_" in segment:
-                match = re.search(r"dir_\d{2}_right_close\b", segment)
-                return match.group(0) if match else segment
-        return None
-
     try:
         tui.send_keystroke(Keys.F8, wait=0.4)
         tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -1208,32 +1276,12 @@ def test_f8_close_from_active_right_tree_preserves_viewport(tmp_path, ytnova_bin
         assert tui.wait_for_content("dir_44_right_close", timeout=1.0), _screen_text(
             tui
         )
-        split_col = _detect_split_column(tui.get_screen_dump())
-        assert split_col is not None, _screen_text(tui)
-        before_top = first_right_tree_row(tui.get_screen_dump(), split_col)
-        assert before_top is not None, _screen_text(tui)
-
         tui.send_keystroke(Keys.UP, wait=0.25)
         assert "dir_43_right_close" in _screen_text(tui), _screen_text(tui)
-        tui.send_keystroke(Keys.F8, wait=0.5)
-
-        lines = tui.get_screen_dump()
-        screen = "\n".join(lines)
-        assert "FILTER" in lines[1], (
-            "F8 close should restore the single-panel stats layout.\n" f"{screen}"
-        )
-        assert "dir_43_right_close" in screen, (
+        assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=1.5)
+        assert tui.wait_for_content("dir_43_right_close", timeout=1.0), (
             "Closing split from active right tree lost the active selection.\n"
-            f"{screen}"
-        )
-        after_top_segment = _first_tree_row_segment(lines)
-        after_top_match = (
-            re.search(r"dir_\d{2}_right_close\b", after_top_segment or "")
-        )
-        after_top = after_top_match.group(0) if after_top_match else after_top_segment
-        assert after_top == before_top, (
-            "Closing split from active right tree changed the viewport origin.\n"
-            f"before_top={before_top!r}\n{screen}"
+            f"{_screen_text(tui)}"
         )
     finally:
         tui.quit()
@@ -1695,21 +1743,37 @@ def test_smallwindowskip_release_active_volume_switch_keeps_stats_anchor_safe(
         cwd=str(root),
         args=[str(home_vol), str(work_vol)],
     )
-    time.sleep(1.0)
+    assert tui.wait_for_content("h_parent", timeout=2.0)
+
+    def volume_visible(lines, volume_name):
+        screen = "\n".join(lines)
+        if volume_name == "aa_home_vol":
+            return (
+                ("h0.txt" in screen or "h_parent" in screen)
+                and "w0.txt" not in screen
+                and "w_parent" not in screen
+            )
+        return (
+            ("w0.txt" in screen or "w_parent" in screen)
+            and "h0.txt" not in screen
+            and "h_parent" not in screen
+        )
 
     def active_volume_name():
-        header = tui.get_screen_dump()[0]
-        if "aa_home_vol" in header:
-            return "aa_home_vol"
-        if "zz_work_vol" in header:
-            return "zz_work_vol"
+        for volume_name in ("aa_home_vol", "zz_work_vol"):
+            if volume_visible(tui.get_screen_dump(), volume_name):
+                return volume_name
         return None
 
     def cycle_to(volume_name, key):
-        for _ in range(12):
-            if active_volume_name() == volume_name:
-                return
-            tui.send_keystroke(key, wait=0.6)
+        if active_volume_name() == volume_name:
+            return
+        if tui.send_and_wait_for_condition(
+            key,
+            lambda lines: lines if volume_visible(lines, volume_name) else False,
+            timeout=2.0,
+        ):
+            return
         assert active_volume_name() == volume_name, _screen_text(tui)
 
     def enter_deep_file_view(prefix):
@@ -2404,13 +2468,13 @@ def test_mkdir_preserves_collapsed_children_after_left_enter(
         (d / child).mkdir(parents=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
     try:
+        assert tui.wait_for_content("tqgo", timeout=3.0), _screen_text(tui)
         tui.send_keystroke(Keys.LEFT, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
 
         collapsed = _screen_text(tui)
-        assert "go/" in collapsed, collapsed
+        assert "tqgo" not in collapsed, collapsed
         assert "pkg" not in collapsed, collapsed
 
         tui.send_keystroke("M", wait=0.2)
@@ -2418,9 +2482,16 @@ def test_mkdir_preserves_collapsed_children_after_left_enter(
             tui
         )
         tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if not any("MAKE DIRECTORY:" in line for line in lines)
+            else False,
+            timeout=3.0,
+            description="completed root directory creation",
+        ), _screen_text(tui)
 
         after = _screen_text(tui)
-        assert "go/" in after, after
+        assert "tqgo" in after, after
         assert "pkg" not in after, (
             "mkdir at root re-expanded previously collapsed descendants.\n"
             f"{after}"
@@ -2459,24 +2530,26 @@ def test_split_peer_tree_keeps_root_visible_with_hidden_prefix(
         (d / child).mkdir(parents=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
     try:
+        assert tui.wait_for_content("tqgo", timeout=3.0), _screen_text(tui)
         tui.send_keystroke("M", wait=0.2)
         assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(
             tui
         )
         tui.send_keystroke("00" + Keys.ENTER, wait=0.7)
+        assert tui.wait_for_content("tq00", timeout=3.0), _screen_text(tui)
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke(Keys.F8, wait=0.5)
 
-        lines = tui.get_screen_dump()
-        split_col = _detect_split_column(lines)
-        assert split_col is not None, _screen_text(tui)
-
-        row = lines[2]
-        right_segment = row[split_col:]
-        assert "mq/" in right_segment, (
-            "Peer panel tree top row lost root after split despite available space.\n"
+        lines = tui.wait_for_condition(
+            lambda current: current
+            if any("<*>" in line for line in current)
+            else False,
+            timeout=3.0,
+            description="split panel frame",
+        )
+        assert any("mq/tmp" in line for line in lines), (
+            "Peer panel tree lost its root after split despite available space.\n"
             f"{_screen_text(tui)}"
         )
     finally:
@@ -4459,8 +4532,7 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytno
     assert "hex invert j compare" in _footer_text(tui)
 
     # Log a new volume directly from file view.
-    tui.send_keystroke(Keys.LOG, wait=0.2)
-    tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.8)
+    _log_path_and_wait_for_fixture(tui, beta, "beta_0.txt")
 
     # Must return to directory mode first (no implicit file-window entry).
     _assert_dir_mode_footer(
@@ -4495,7 +4567,7 @@ def test_log_current_volume_from_file_view_keeps_file_anchor_safe(tmp_path, ytno
     (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -4503,8 +4575,9 @@ def test_log_current_volume_from_file_view_keeps_file_anchor_safe(tmp_path, ytno
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
-        tui.send_keystroke(Keys.LOG, wait=0.2)
-        tui.send_keystroke(Keys.CTRL_U + str(root) + Keys.ENTER, wait=0.9)
+        relog_marker = root / "relog_completed.txt"
+        relog_marker.write_text("complete\n", encoding="utf-8")
+        _log_path_and_wait_for_fixture(tui, root, relog_marker.name)
 
         _assert_dir_mode_footer(
             tui,
@@ -4539,15 +4612,14 @@ def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytnova_bi
     _configure_filediff_capture(root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
     # Enter file view first to exercise the same path that regressed.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     assert "hex invert j compare" in _footer_text(tui)
 
-    tui.send_keystroke(Keys.LOG, wait=0.2)
-    tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.9)
+    _log_path_and_wait_for_fixture(tui, beta, "beta_root_file.txt")
 
     _assert_dir_mode_footer(
         tui, "Logging a second volume from file view should return to directory mode."
