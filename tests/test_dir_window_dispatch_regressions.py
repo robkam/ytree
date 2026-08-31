@@ -1,6 +1,5 @@
 from pathlib import Path
 import re
-import time
 
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_source import extract_function_block as _extract_function_block
@@ -481,7 +480,6 @@ def test_tree_viewport_edge_scroll_after_end_up_keeps_top_visible_row(
         (root / f"dir_{idx:02d}_edge_scroll").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke("\033OF", wait=0.35)
     assert tui.wait_for_content(
@@ -502,8 +500,15 @@ def test_tree_viewport_edge_scroll_after_end_up_keeps_top_visible_row(
         f"top_after_end={top_after_end!r}\n{screen}"
     )
 
-    for _ in range(16):
+    steps = 0
+    while "dir_27_edge_scroll" not in tui.get_screen_dump()[0]:
+        if steps >= 45:
+            raise AssertionError(
+                "Could not select dir_27_edge_scroll at the viewport edge.\n"
+                f"{_screen_text(tui)}"
+            )
         tui.send_keystroke(Keys.UP, wait=0.05)
+        steps += 1
 
     screen = _screen_text(tui)
     assert "dir_27_edge_scroll" in screen, (
@@ -563,7 +568,6 @@ def test_dir_window_navigation_selects_expected_directory(ytnova_binary, tmp_pat
     (beta / "beta_only_file.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.DOWN, wait=0.25)
@@ -638,7 +642,6 @@ def test_dir_window_compare_prompt_round_trip(ytnova_binary, tmp_path):
     (root / "right").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
@@ -805,7 +808,6 @@ def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
     (beta / "beta_split_focus.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.ENTER, wait=0.45)
@@ -863,7 +865,6 @@ def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
     tui = YtreeNovaTUI(
         executable=ytnova_binary, cwd=str(repo), env_extra={"HOME": str(home)}
     )
-    time.sleep(0.8)
 
     try:
         def stats_current_dir_contains(marker):
@@ -884,23 +885,25 @@ def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
                         return True
             return False
 
-        found_src = False
-        for _ in range(80):
-            if stats_current_dir_contains("src"):
-                found_src = True
-                break
+        steps = 0
+        while not stats_current_dir_contains("src"):
+            if steps >= 80:
+                raise AssertionError(
+                    f"Could not focus the src fixture directory.\n{_screen_text(tui)}"
+                )
             tui.send_keystroke(Keys.DOWN, wait=0.12)
-        assert found_src, _screen_text(tui)
+            steps += 1
 
         tui.send_keystroke(Keys.RIGHT, wait=0.25)
 
-        found_cmd = False
-        for _ in range(80):
-            if stats_current_dir_contains("cmd"):
-                found_cmd = True
-                break
+        steps = 0
+        while not stats_current_dir_contains("cmd"):
+            if steps >= 80:
+                raise AssertionError(
+                    f"Could not focus the cmd fixture directory.\n{_screen_text(tui)}"
+                )
             tui.send_keystroke(Keys.DOWN, wait=0.12)
-        assert found_cmd, _screen_text(tui)
+            steps += 1
 
         tui.send_keystroke(Keys.RIGHT, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.45)
@@ -977,7 +980,6 @@ def test_dir_right_arrow_drills_into_first_child_when_already_expanded(
     (child / "child_only_marker.txt").write_text("child\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)  # select parent_dir_dispatch
     tui.send_keystroke(Keys.RIGHT, wait=0.35)  # expand parent

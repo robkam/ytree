@@ -73,7 +73,12 @@ def _scroll_help_to_text(tui, text, *, steps=80):
     if text in current:
         return current
 
-    for _ in range(steps):
+    attempts = 0
+    while text not in current:
+        if attempts >= steps:
+            raise AssertionError(
+                f"Could not navigate help to {text!r}.\n{current}"
+            )
         tui.send_keystroke(Keys.DOWN, wait=0.05)
         next_screen = screen_text(tui)
         if text in next_screen:
@@ -89,6 +94,7 @@ def _scroll_help_to_text(tui, text, *, steps=80):
         else:
             unchanged_steps = 0
         current = next_screen
+        attempts += 1
     return current
 
 
@@ -108,7 +114,12 @@ def _open_help_detail(
     detail_title = label[:-1] if label.endswith(":") else label
     _scroll_help_to_text(tui, label)
 
-    for _ in range(steps):
+    attempts = 0
+    while True:
+        if attempts >= steps:
+            raise AssertionError(
+                f"Could not open help detail {detail_title!r}.\n{screen_text(tui)}"
+            )
         before = screen_text(tui)
         tui.send_keystroke(direction_key, wait=0.05)
         current = screen_text(tui)
@@ -125,8 +136,7 @@ def _open_help_detail(
         if label not in current:
             _scroll_help_to_text(tui, label)
         tui.send_keystroke(Keys.DOWN, wait=0.05)
-
-    assert False, screen_text(tui)
+        attempts += 1
 
 
 def _follow_help_topic(
@@ -134,7 +144,12 @@ def _follow_help_topic(
 ):
     _scroll_help_to_text(tui, label)
 
-    for _ in range(steps):
+    attempts = 0
+    while True:
+        if attempts >= steps:
+            raise AssertionError(
+                f"Could not follow help topic {topic_title!r}.\n{screen_text(tui)}"
+            )
         tui.send_keystroke(Keys.DOWN, wait=0.05)
         screen = tui.send_and_wait_for_condition(
             direction_key,
@@ -149,8 +164,7 @@ def _follow_help_topic(
             current = screen_text(tui)
         if label not in current:
             _scroll_help_to_text(tui, label)
-
-    assert False, screen_text(tui)
+        attempts += 1
 
 
 def _open_tagged_help_from_index(tui):

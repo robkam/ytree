@@ -5,7 +5,6 @@ These tests detect specific regressions that were not caught by the original tes
 - Directory attributes display issues
 - Footer visibility and flicker issues
 """
-import time
 import pytest
 from pathlib import Path
 from tui_harness import YtreeNovaTUI
@@ -41,7 +40,6 @@ class TestDirectoryAttributesDisplay:
         EXPECTED: ATTRIBUTES section appears immediately on startup.
         """
         tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
-        time.sleep(1.0)
 
         screen = "\n".join(tui.get_screen_dump())
 
@@ -65,19 +63,14 @@ class TestDirectoryAttributesDisplay:
         dir3.mkdir(exist_ok=True)
 
         tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(parent))
-        time.sleep(1.0)
-
-        # Move down one directory
-        tui.send_keystroke(Keys.DOWN)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.DOWN)
 
         screen2 = "\n".join(tui.get_screen_dump())
         lines = screen2.split('\n')
         attr_section = '\n'.join([line[90:] if len(line) > 90 else "" for line in lines[18:24]])
 
         # Move down again
-        tui.send_keystroke(Keys.DOWN)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.DOWN)
 
         screen3 = "\n".join(tui.get_screen_dump())
         lines3 = screen3.split('\n')
@@ -96,7 +89,6 @@ class TestFooterVisibility:
     def test_footer_visible_in_directory_mode(self, test_dir_with_files, ytnova_binary):
         """Footer should always be visible and non-blank in directory mode."""
         tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
-        time.sleep(1.0)
 
         screen = "\n".join(tui.get_screen_dump())
         footer = '\n'.join(screen.split('\n')[-3:])
@@ -113,11 +105,7 @@ class TestFooterVisibility:
         EXPECTED: Footer remains visible during transition to small file window.
         """
         tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
-        time.sleep(1.0)
-
-        # Enter file window (small window mode)
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.2)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
 
         screen = "\n".join(tui.get_screen_dump())
         footer = '\n'.join(screen.split('\n')[-3:])
@@ -136,26 +124,20 @@ class TestFooterVisibility:
                       unexpected and disconcerting"
         """
         tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
-        time.sleep(1.0)
-
-        # Enter big window mode (ENTER twice) and sample screen multiple times
         # to catch any momentary blank footer
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.05)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
 
         # Sample screen immediately after first ENTER
         screen1 = "\n".join(tui.get_screen_dump())
         footer1 = '\n'.join(screen1.split('\n')[-3:])
         footer1_text = footer1.replace('x', '').replace('m', '').replace('q', '').replace(' ', '').replace('\n', '')
 
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.05)  # Sample immediately after second ENTER
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)  # Sample immediately after second ENTER
 
         screen2 = "\n".join(tui.get_screen_dump())
         footer2 = '\n'.join(screen2.split('\n')[-3:])
         footer2_text = footer2.replace('x', '').replace('m', '').replace('q', '').replace(' ', '').replace('\n', '')
 
-        time.sleep(0.2)  # Wait for stabilization
 
         screen3 = "\n".join(tui.get_screen_dump())
         footer3 = '\n'.join(screen3.split('\n')[-3:])
@@ -178,13 +160,8 @@ class TestFooterVisibility:
     def test_footer_visible_after_escape_from_file_window(self, test_dir_with_files, ytnova_binary):
         """Footer should remain visible when exiting file window back to directory."""
         tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
-        time.sleep(1.0)
-
-        # Enter and exit file window
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.2)
-        tui.send_keystroke(Keys.ESC)
-        time.sleep(0.2)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
+        assert tui.send_and_wait_for_screen_change(Keys.ESC)
 
         screen = "\n".join(tui.get_screen_dump())
         footer = '\n'.join(screen.split('\n')[-3:])
@@ -207,16 +184,11 @@ class TestFooterVisibility:
             executable=ytnova_binary,
             cwd=str(test_dir_with_files.parent)
         )
-        time.sleep(1.0)
-        # Move down to highlight test_dir_with_files
-        tui.send_keystroke(Keys.DOWN)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.DOWN)
         # Enter small file window
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
         # Enter big file window
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
 
         screen = "\n".join(tui.get_screen_dump())
         lines = screen.split('\n')
@@ -251,13 +223,9 @@ class TestFooterVisibility:
             cwd=str(test_dir_with_files),
             env_extra={"SMALLWINDOWSKIP": "1"}
         )
-        time.sleep(1.0)
-        # Enter big file window
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
         # Press 'r' to trigger the rename prompt
-        tui.send_keystroke('r')
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change('r')
         screen = tui.get_screen_dump()
 
         # Find the row containing the rename prompt

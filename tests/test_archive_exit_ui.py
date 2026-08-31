@@ -1,6 +1,5 @@
 import shutil
 import tarfile
-import time
 
 from helpers_ui import footer_lines as _footer_lines
 from helpers_ui import footer_text as _footer_text
@@ -121,18 +120,21 @@ def _cell_style_for_text(tui, needle, *, exclude_substrings=()):
 def _wait_for_style_change(
     tui, needle, before_style, *, exclude_substrings=(), timeout=2.0
 ):
-    deadline = time.time() + timeout
-    current_style = before_style
-
-    while time.time() < deadline:
-        current_style = _cell_style_for_text(
-            tui, needle, exclude_substrings=exclude_substrings
-        )
-        if current_style != before_style:
-            return current_style
-        time.sleep(0.1)
-
-    return current_style
+    changed_style = tui.wait_for_condition(
+        lambda _: (
+            current_style
+            if (
+                current_style := _cell_style_for_text(
+                    tui, needle, exclude_substrings=exclude_substrings
+                )
+            )
+            != before_style
+            else False
+        ),
+        timeout=timeout,
+        description=f"style change for {needle!r}",
+    )
+    return changed_style or before_style
 
 
 def _write_test_theme_catalog(root):
@@ -223,7 +225,6 @@ def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     _create_archive(root, "Absolutely MAD.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     # Enter file view and log selected archive file.
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -273,7 +274,6 @@ def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytnova_binary):
     (leaf / "leaf_file.txt").write_text("leaf", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke("-", wait=0.4)
@@ -301,7 +301,6 @@ def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytnova_binary
     archive_path = _create_archive(root, "l.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -311,11 +310,15 @@ def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytnova_binary
     assert tui.wait_for_content("ARCHIVE", timeout=3.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke("*", wait=0.6)
-    for _ in range(12):
-        if "inside_dir/nested" in tui.get_screen_dump()[0]:
-            break
+    steps = 0
+    while "inside_dir/nested" not in tui.get_screen_dump()[0]:
+        if steps >= 12:
+            raise AssertionError(
+                "Could not select inside_dir/nested in the archive tree.\n"
+                f"{_screen_text(tui)}"
+            )
         tui.send_keystroke(Keys.DOWN, wait=0.25)
-    assert "inside_dir/nested" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+        steps += 1
 
     _send_left_arrow(tui, wait=0.6)
 
@@ -335,7 +338,6 @@ def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     (root / "child_b").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         before_left = "\n".join(tui.get_screen_dump())
@@ -372,7 +374,6 @@ def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytnova_bi
     (root / "alpha" / "child" / "grand").mkdir(parents=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)   # alpha
@@ -417,7 +418,6 @@ def test_archive_root_unlogged_right_does_not_show_permission_denied(
     _create_archive(root, "roundtrip.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -450,7 +450,6 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytnova_bina
     archive_path = _create_archive(root, "b.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -480,7 +479,6 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
     _create_archive(root, "noop.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -489,12 +487,15 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
     assert tui.wait_for_content("ARCHIVE", timeout=2.0), _screen_text(tui)
 
     tui.send_keystroke("*", wait=0.6)
-    for _ in range(10):
-        header = tui.get_screen_dump()[0]
-        if "inside_dir/nested" in header:
-            break
+    steps = 0
+    while "inside_dir/nested" not in tui.get_screen_dump()[0]:
+        if steps >= 10:
+            raise AssertionError(
+                "Could not select inside_dir/nested in the archive tree.\n"
+                f"{_screen_text(tui)}"
+            )
         tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "inside_dir/nested" in tui.get_screen_dump()[0], _screen_text(tui)
+        steps += 1
     assert "\\" in _footer_text(tui), (
         "Archive non-root footer should advertise backslash jump-to-root behavior."
     )
@@ -539,7 +540,6 @@ def test_archive_file_backslash_is_silent_noop(tmp_path, ytnova_binary):
     _create_archive(root, "archive_file_noop.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -574,7 +574,6 @@ def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytnova_bi
     (root / "beta.txt").write_text("beta", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     dir_before = _screen_text(tui)
     dir_before_footer = _footer_text(tui)
@@ -612,7 +611,6 @@ def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytnova_binary
     (node / "child.txt").write_text("payload", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke("-", wait=0.4)
@@ -643,7 +641,6 @@ def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
     (node / "child_a" / "nested.txt").write_text("payload", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -686,7 +683,6 @@ def test_unlogged_directory_with_subdirs_shows_slash_suffix(
     (top / "child").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -709,7 +705,6 @@ def test_unlogged_placeholder_with_subdirs_shows_slash_suffix(
     (top / "child").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.4)
@@ -732,7 +727,6 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
                                          encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -778,7 +772,6 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
     (deep / "leaf.txt").write_text("payload", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -790,11 +783,15 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
         )
 
         tui.send_keystroke(Keys.HOME, wait=0.3)
-        for _ in range(8):
-            header = tui.get_screen_dump()[0]
-            if str(root) in header:
-                break
+        steps = 0
+        while str(root) not in tui.get_screen_dump()[0]:
+            if steps >= 8:
+                raise AssertionError(
+                    "Could not return selection to the fixture root.\n"
+                    f"{_screen_text(tui)}"
+                )
             tui.send_keystroke(Keys.LEFT, wait=0.3)
+            steps += 1
 
         at_root_before = _screen_text(tui)
         assert str(root) in tui.get_screen_dump()[0], (
@@ -839,7 +836,6 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
     (src / "ui").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -886,7 +882,6 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
     (src / "ui").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -931,7 +926,6 @@ def test_smallwindowskip_negative_value_falls_back_to_default_profile(
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -964,7 +958,6 @@ def test_smallwindowskip_trailing_junk_value_falls_back_to_default_profile(
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -1003,7 +996,6 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)  # select target dir
@@ -1068,7 +1060,6 @@ def test_smallwindowskip_config_edit_uses_startup_selected_profile_path(
         cwd=str(root),
         args=["-p", str(custom_profile)],
     )
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -1115,7 +1106,6 @@ def test_f10_reload_repaints_theme_from_tree_focus(tmp_path, ytnova_binary):
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -1153,7 +1143,6 @@ def test_f10_reload_repaints_theme_from_file_focus(tmp_path, ytnova_binary):
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -1199,17 +1188,17 @@ def test_missing_profile_f10_unchanged_edit_creates_profile(tmp_path, ytnova_bin
         cwd=str(root),
         env_extra={"EDITOR": str(unchanged_editor)},
     )
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
 
-        for _ in range(20):
-            if editor_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: editor_capture.exists(),
+            timeout=2.0,
+            description="editor_capture creation",
+        )
         assert editor_capture.exists(), (
             "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
@@ -1270,7 +1259,6 @@ def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_b
         cwd=str(root),
         env_extra={"EDITOR": str(unchanged_editor)},
     )
-    time.sleep(0.8)
 
     try:
         themes_path.unlink(missing_ok=True)
@@ -1280,10 +1268,11 @@ def test_missing_themes_f10_unchanged_edit_keeps_starter_file(tmp_path, ytnova_b
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke("t", wait=0.2)
 
-        for _ in range(20):
-            if editor_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: editor_capture.exists(),
+            timeout=2.0,
+            description="editor_capture creation",
+        )
         assert editor_capture.exists(), (
             "F10 -> Themes on a missing themes file must open an editable default themes buffer."
         )
@@ -1329,7 +1318,6 @@ def test_missing_commands_f10_unchanged_edit_keeps_starter_file(
         cwd=str(root),
         env_extra={"EDITOR": str(unchanged_editor)},
     )
-    time.sleep(0.8)
 
     try:
         commands_path.unlink(missing_ok=True)
@@ -1339,10 +1327,11 @@ def test_missing_commands_f10_unchanged_edit_keeps_starter_file(
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke("m", wait=0.2)
 
-        for _ in range(20):
-            if editor_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: editor_capture.exists(),
+            timeout=2.0,
+            description="editor_capture creation",
+        )
         assert editor_capture.exists(), (
             "F10 -> Commands on a missing commands file must open an editable default commands buffer."
         )
@@ -1459,17 +1448,17 @@ search_hit = black on yellow
         cwd=str(root),
         env_extra={"EDITOR": str(touch_editor)},
     )
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke("t", wait=0.2)
 
-        for _ in range(20):
-            if edited_path_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: edited_path_capture.exists(),
+            timeout=2.0,
+            description="edited_path_capture creation",
+        )
 
         assert edited_path_capture.exists(), "F10 -> Themes must invoke the editor."
         assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
@@ -1522,17 +1511,17 @@ def test_legacy_profile_f10_migrates_to_xdg_profile(tmp_path, ytnova_binary):
     assert not profile_path.exists()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
 
-        for _ in range(20):
-            if edited_path_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: edited_path_capture.exists(),
+            timeout=2.0,
+            description="edited_path_capture creation",
+        )
 
         assert edited_path_capture.exists(), "F10 -> Enter must invoke the editor."
         assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
@@ -1587,7 +1576,6 @@ def test_removed_legacy_profile_f10_recreates_xdg_not_dotfile(
     assert not profile_path.exists()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         legacy_profile_path.unlink()
@@ -1597,10 +1585,11 @@ def test_removed_legacy_profile_f10_recreates_xdg_not_dotfile(
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
 
-        for _ in range(20):
-            if edited_path_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: edited_path_capture.exists(),
+            timeout=2.0,
+            description="edited_path_capture creation",
+        )
 
         assert edited_path_capture.exists(), "F10 -> Enter must invoke the editor."
         assert edited_path_capture.read_text(encoding="utf-8").strip() == str(
@@ -1646,7 +1635,6 @@ def test_default_history_save_uses_xdg_state_home(tmp_path, ytnova_binary):
         cwd=str(root),
         env_extra={"XDG_STATE_HOME": str(state_home)},
     )
-    time.sleep(0.8)
 
     try:
         pass
@@ -1671,7 +1659,6 @@ def test_default_history_save_uses_local_state_fallback(tmp_path, ytnova_binary)
     history_path = root / ".local" / "state" / "ytnova" / "ytnova.hst"
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         pass
@@ -1703,12 +1690,8 @@ def test_custom_history_path_from_h_overrides_default_state_path(
         args=["-h", str(custom_history)],
         env_extra={"XDG_STATE_HOME": str(state_home)},
     )
-    time.sleep(0.8)
 
-    try:
-        time.sleep(1.1)
-    finally:
-        _graceful_quit(tui)
+    _graceful_quit(tui)
 
     assert custom_history.exists(), (
         "An explicit -h history path must remain authoritative for quit-time saves."
@@ -1732,7 +1715,6 @@ def test_legacy_history_is_loaded_and_migrated_to_state_path(tmp_path, ytnova_bi
     legacy_history.write_text("0:0:legacy-history-entry\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         pass
@@ -1772,17 +1754,17 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
         cwd=str(root),
         env_extra={"EDITOR": str(save_editor)},
     )
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         tui.send_keystroke("\x1b[21~", wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.9)
 
-        for _ in range(20):
-            if editor_capture.exists():
-                break
-            time.sleep(0.1)
+        tui.wait_for_condition(
+            lambda _: editor_capture.exists(),
+            timeout=2.0,
+            description="editor_capture creation",
+        )
         assert editor_capture.exists(), (
             "F10 -> Enter on a missing profile must open an editable default profile buffer."
         )
@@ -1806,7 +1788,6 @@ def test_smallwindowskip_zero_enter_chain_is_small_then_big_then_tree(
     (root / ".ytnova").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -1862,7 +1843,6 @@ def test_logged_empty_vs_unlogged_labels(tmp_path, ytnova_binary):
     (root / "probe.txt").write_text("probe", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     root_screen = tui.get_screen_dump()
     root_file_row = next((line for line in root_screen if "probe.txt" in line), "")
@@ -1911,7 +1891,6 @@ def test_small_window_tagged_symlink_and_empty_labels_share_name_column(
     (root / "current").symlink_to(target.name)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         initial_lines = tui.get_screen_dump()
@@ -1971,7 +1950,6 @@ def test_placeholder_dir_shows_unlogged_not_no_files(tmp_path, ytnova_binary):
                                          encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.4)
@@ -1999,7 +1977,6 @@ def test_volume_menu_enter_on_current_volume_preserves_existing_state(
     stale_dir.mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -2010,7 +1987,6 @@ def test_volume_menu_enter_on_current_volume_preserves_existing_state(
         )
 
         stale_dir.rename(root / "vol_new_name_dir")
-        time.sleep(0.4)
 
         before_relog = _screen_text(tui)
         assert "vol_old_name_dir" in before_relog, (
@@ -2047,7 +2023,6 @@ def test_log_command_on_current_volume_reloads_tree_state(
     stale_dir.mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -2058,7 +2033,6 @@ def test_log_command_on_current_volume_reloads_tree_state(
         )
 
         stale_dir.rename(root / "vol_new_name_dir")
-        time.sleep(0.4)
 
         before_log = _screen_text(tui)
         assert "vol_old_name_dir" in before_log, (
@@ -2101,7 +2075,6 @@ def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytnova_binary
     (ai / "WORKFLOW.md").write_text("workflow", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     # root -> docs -> expand docs -> select docs/ai
     tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -2142,7 +2115,6 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova
     shutil.rmtree(archive_source)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     # Enter file view first, then log the selected archive file.
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -2217,7 +2189,6 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
     shutil.rmtree(archive_source)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     # Enter file view first, then log the selected archive file.
     tui.send_keystroke(Keys.ENTER, wait=0.4)

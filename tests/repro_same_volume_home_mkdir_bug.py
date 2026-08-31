@@ -38,25 +38,21 @@ def _stats_current_dir_contains(lines, marker):
 
 
 def _navigate_to_src_cmd_file_mode(tui):
-    found_src = False
-    for _ in range(80):
-        if _stats_current_dir_contains(tui.get_screen_dump(), "src"):
-            found_src = True
-            break
+    attempts = 0
+    while not _stats_current_dir_contains(tui.get_screen_dump(), "src"):
+        if attempts >= 80:
+            return False, f"SETUP_FAIL: could not focus src\n{_screen_text(tui)}"
         tui.send_keystroke(Keys.DOWN, wait=0.12)
-    if not found_src:
-        return False, "SETUP_FAIL: could not focus src"
+        attempts += 1
 
     tui.send_keystroke(Keys.RIGHT, wait=0.25)
 
-    found_cmd = False
-    for _ in range(80):
-        if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-            found_cmd = True
-            break
+    attempts = 0
+    while not _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+        if attempts >= 80:
+            return False, f"SETUP_FAIL: could not focus src/cmd\n{_screen_text(tui)}"
         tui.send_keystroke(Keys.DOWN, wait=0.12)
-    if not found_cmd:
-        return False, "SETUP_FAIL: could not focus src/cmd"
+        attempts += 1
 
     tui.send_keystroke(Keys.RIGHT, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.45)
@@ -116,21 +112,22 @@ def _run_sequence_b(tui, home):
         return 2, "SETUP_FAIL: variant B did not reach file mode", _screen_text(tui)
     if "src_file_0.c" not in _screen_text(tui):
         tui.send_keystroke(Keys.ESC, wait=0.25)
-        found_cmd = False
-        for _ in range(40):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-                found_cmd = True
+        attempts = 0
+        while not _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+            if attempts >= 40:
                 break
             tui.send_keystroke(Keys.UP, wait=0.12)
-        for _ in range(120):
-            if found_cmd:
-                break
-            if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-                found_cmd = True
-                break
+            attempts += 1
+        attempts = 0
+        while not _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+            if attempts >= 120:
+                return (
+                    2,
+                    "SETUP_FAIL: variant B could not re-focus src/cmd",
+                    _screen_text(tui),
+                )
             tui.send_keystroke(Keys.DOWN, wait=0.12)
-        if not found_cmd:
-            return 2, "SETUP_FAIL: variant B could not re-focus src/cmd", _screen_text(tui)
+            attempts += 1
         tui.send_keystroke(Keys.ENTER, wait=0.45)
         if "src_file_0.c" not in _screen_text(tui):
             return 2, "SETUP_FAIL: variant B did not enter src/cmd file mode", _screen_text(tui)

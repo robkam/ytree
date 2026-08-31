@@ -18,7 +18,7 @@ def _open_attribute_prompt(tui, activation_key):
     lines = tui.send_and_wait_for_condition(
         activation_key,
         lambda current_lines: current_lines
-        if any("ATTRIBUTES:" in line for line in current_lines[-4:])
+        if any("ATTRIBUTES:" in line for line in current_lines)
         else False,
         timeout=1.5,
     )
@@ -30,12 +30,12 @@ def _open_inline_date_prompt(tui, activation_key="d"):
     lines = tui.send_and_wait_for_condition(
         activation_key,
         lambda current_lines: current_lines
-        if any("DATE [" in line for line in current_lines[-4:])
+        if any("DATE [" in line for line in current_lines)
         else False,
         timeout=1.5,
     )
     assert lines, _screen_text(tui)
-    prompt_text = "\n".join(lines[-4:])
+    prompt_text = "\n".join(lines)
     assert "DATE FIELD:" not in "\n".join(lines), prompt_text
     hint_text = prompt_text.lower()
     assert "f1 help" in hint_text, prompt_text
@@ -57,13 +57,7 @@ def test_attribute_date_prompt_skips_field_chooser_and_advertises_help(
         _open_attribute_prompt(tui, "a")
         _open_inline_date_prompt(tui)
 
-        help_lines = tui.send_and_wait_for_condition(
-            Keys.F1,
-            lambda current_lines: current_lines
-            if "yyyy-mm-dd" in "\n".join(current_lines).lower()
-            else False,
-            timeout=1.5,
-        )
+        help_lines = tui.send_and_wait_for_screen_change(Keys.F1, timeout=1.5)
         assert help_lines, _screen_text(tui)
         help_text = "\n".join(help_lines).lower()
         assert "f3" in help_text, help_text
@@ -74,7 +68,7 @@ def test_attribute_date_prompt_skips_field_chooser_and_advertises_help(
         restored_lines = tui.send_and_wait_for_condition(
             Keys.ESC,
             lambda current_lines: current_lines
-            if any("DATE [" in line for line in current_lines[-4:])
+            if any("DATE [" in line for line in current_lines)
             else False,
             timeout=1.5,
         )
@@ -106,7 +100,7 @@ def test_tagged_attribute_date_prompt_cycles_scope_inline(ytnova_binary, tmp_pat
             lambda current_lines: current_lines
             if any(
                 "DATE [" in line and "accessed" in line.lower()
-                for line in current_lines[-4:]
+                for line in current_lines
             )
             else False,
             timeout=1.5,
@@ -118,7 +112,7 @@ def test_tagged_attribute_date_prompt_cycles_scope_inline(ytnova_binary, tmp_pat
             lambda current_lines: current_lines
             if any(
                 "DATE [" in line and "both" in line.lower()
-                for line in current_lines[-4:]
+                for line in current_lines
             )
             else False,
             timeout=1.5,

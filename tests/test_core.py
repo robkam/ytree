@@ -1,5 +1,4 @@
 import pytest
-import time
 import os
 import pexpect
 import shutil
@@ -60,9 +59,11 @@ def test_simple_copy(controller, sandbox):
     yt.select_file("root_file.txt")
 
     # 2. Copy
-    time.sleep(0.5)
-    yt.child.send(Keys.COPY)
-    yt.child.expect("COPY")
+    assert yt.send_and_wait_for_condition(
+        Keys.COPY,
+        lambda lines: any("COPY" in line for line in lines),
+        timeout=1.5,
+    )
 
     # 3. Input New Name
     yt.input_text("copy.txt")
@@ -85,8 +86,11 @@ def test_rename(controller, sandbox):
     yt.select_file("root_file.txt")
 
     # 2. Rename
-    time.sleep(0.5)
-    yt.child.send(Keys.RENAME)
+    assert yt.send_and_wait_for_condition(
+        Keys.RENAME,
+        lambda lines: any("RENAME" in line for line in lines),
+        timeout=1.5,
+    )
     # Updated to match src/cmd/rename.c: "RENAME TO:"
     # Use a partial prompt match so wording changes do not break the flow.
     yt.child.expect("RENAME")
@@ -108,9 +112,11 @@ def test_move(controller, sandbox):
     yt.select_file("root_file.txt")
 
     # 2. Move
-    time.sleep(0.5)
-    yt.child.send(Keys.MOVE)
-    yt.child.expect("MOVE")
+    assert yt.send_and_wait_for_condition(
+        Keys.MOVE,
+        lambda lines: any("MOVE" in line for line in lines),
+        timeout=1.5,
+    )
 
     # 3. Input New Name
     yt.input_text("moved.txt")
@@ -169,14 +175,16 @@ def test_tagged_copy_overwrite_all_applies_to_remaining_conflicts(controller, sa
 
         expected_alpha = dest_dir / "alpha.txt"
         expected_beta = dest_dir / "beta.txt"
-        deadline = time.time() + 3.0
-        while time.time() < deadline:
-            if (
-                expected_alpha.read_text(encoding="utf-8") == "alpha source content"
+        assert yt.wait_for_condition(
+            lambda _lines: (
+                expected_alpha.exists()
+                and expected_beta.exists()
+                and expected_alpha.read_text(encoding="utf-8") == "alpha source content"
                 and expected_beta.read_text(encoding="utf-8") == "beta source content"
-            ):
-                break
-            time.sleep(0.1)
+            ),
+            timeout=3.0,
+            description="both tagged copies to finish",
+        )
 
         assert expected_alpha.read_text(encoding="utf-8") == "alpha source content"
         assert expected_beta.read_text(encoding="utf-8") == "beta source content"
@@ -229,16 +237,18 @@ def test_tagged_move_overwrite_all_applies_to_remaining_conflicts(controller, sa
         expected_beta = dest_dir / "beta.txt"
         source_alpha = source_dir / "alpha.txt"
         source_beta = source_dir / "beta.txt"
-        deadline = time.time() + 3.0
-        while time.time() < deadline:
-            if (
-                expected_alpha.read_text(encoding="utf-8") == "alpha source content"
+        assert yt.wait_for_condition(
+            lambda _lines: (
+                expected_alpha.exists()
+                and expected_beta.exists()
+                and expected_alpha.read_text(encoding="utf-8") == "alpha source content"
                 and expected_beta.read_text(encoding="utf-8") == "beta source content"
                 and not source_alpha.exists()
                 and not source_beta.exists()
-            ):
-                break
-            time.sleep(0.1)
+            ),
+            timeout=3.0,
+            description="both tagged moves to finish",
+        )
 
         assert expected_alpha.read_text(encoding="utf-8") == "alpha source content"
         assert expected_beta.read_text(encoding="utf-8") == "beta source content"
@@ -256,18 +266,21 @@ def test_wildcard_rename(controller, sandbox):
 
     yt.select_file("root_file.txt")
 
-    time.sleep(0.5)
-    yt.child.send(Keys.RENAME)
-    yt.child.expect("RENAME")
+    assert yt.send_and_wait_for_condition(
+        Keys.RENAME,
+        lambda lines: any("RENAME" in line for line in lines),
+        timeout=1.5,
+    )
     yt.input_text("new.*")
 
     expected = sandbox / "source" / "new.txt"
     bad_result = sandbox / "source" / "new.root_file.txt"
 
-    # Poll for file existence
-    for _ in range(5):
-        if expected.exists(): break
-        time.sleep(0.2)
+    assert yt.wait_for_condition(
+        lambda _lines: expected.exists(),
+        timeout=1.0,
+        description=f"renamed file {expected}",
+    )
 
     if bad_result.exists():
         pytest.fail("Regression: 'new.*' resulted in 'new.root_file.txt'")
@@ -293,8 +306,11 @@ def test_path_copy(controller, sandbox):
     yt.select_file("deep_file.txt")
 
     # 2. Initiate PathCopy
-    time.sleep(0.5)
-    yt.child.send(Keys.PATHCOPY)
+    assert yt.send_and_wait_for_condition(
+        Keys.PATHCOPY,
+        lambda lines: any("PATHCOPY" in line for line in lines),
+        timeout=1.5,
+    )
 
     # 3. Verify Prompt 1 (Filename)
     # Expect "PATHCOPY: " or "AS:"
@@ -318,7 +334,6 @@ def test_path_copy(controller, sandbox):
         index = yt.child.expect([r"[Cc]reate", pexpect.TIMEOUT], timeout=1.0)
         if index == 0:
             # If prompt appeared, confirm Yes
-            time.sleep(0.2)
             yt.child.send(Keys.CONFIRM_YES)
     except Exception:
         pass
@@ -328,10 +343,11 @@ def test_path_copy(controller, sandbox):
     # PathCopy should append 'source/deep/nested' to 'dest'.
     expected_path = sandbox / "dest" / "source" / "deep" / "nested" / "deep_file.txt"
 
-    # Wait briefly for FS operations to complete
-    start = time.time()
-    while not expected_path.exists() and time.time() - start < 2.0:
-        time.sleep(0.1)
+    assert yt.wait_for_condition(
+        lambda _lines: expected_path.exists(),
+        timeout=2.0,
+        description=f"path copy destination {expected_path}",
+    )
 
     # Tripartite Verification
     # System Layer: Does file exist?

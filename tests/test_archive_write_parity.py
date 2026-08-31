@@ -38,15 +38,13 @@ def _screen_text(controller):
 
 
 def _log_archive(controller, archive_path):
-    controller.child.send(Keys.LOG)
-    time.sleep(0.2)
+    assert controller.send_and_wait_for_screen_change(Keys.LOG)
     controller.input_text(str(archive_path))
     controller.child.expect("ARCHIVE")
 
 
 def _log_archive_dismissing_unsafe_warnings(controller, archive_path):
-    controller.child.send(Keys.LOG)
-    time.sleep(0.2)
+    assert controller.send_and_wait_for_screen_change(Keys.LOG)
     controller.input_text(str(archive_path))
     for _ in range(8):
         idx = controller.child.expect(
@@ -54,8 +52,7 @@ def _log_archive_dismissing_unsafe_warnings(controller, archive_path):
             timeout=0.8,
         )
         if idx == 0:
-            controller.child.send(Keys.ENTER)
-            time.sleep(0.2)
+            assert controller.send_and_wait_for_screen_change(Keys.ENTER)
             continue
         if idx == 1:
             return
@@ -63,13 +60,11 @@ def _log_archive_dismissing_unsafe_warnings(controller, archive_path):
 
 
 def _exit_archive_keep_volume(controller):
-    controller.child.send("\\")
-    time.sleep(0.7)
+    assert controller.send_and_wait_for_screen_change("\\")
 
 
 def _exit_archive_plain(controller):
-    controller.child.send(Keys.LEFT)
-    time.sleep(0.7)
+    assert controller.send_and_wait_for_screen_change(Keys.LEFT)
 
 
 def _copy_selected_file(controller, new_name, to_dir):
@@ -78,7 +73,6 @@ def _copy_selected_file(controller, new_name, to_dir):
     controller.input_text(new_name)
     controller.child.expect("To Directory")
     controller.input_text(str(to_dir))
-    time.sleep(0.7)
 
 
 def _move_selected_file(controller, new_name, to_dir):
@@ -87,20 +81,17 @@ def _move_selected_file(controller, new_name, to_dir):
     controller.input_text(new_name)
     controller.child.expect("To Directory")
     controller.input_text(str(to_dir))
-    time.sleep(0.7)
 
 
 def _enter_archive_member_list_dismissing_unsafe_warnings(controller, anchor_member):
-    controller.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert controller.send_and_wait_for_screen_change(Keys.ENTER)
     for _ in range(8):
         idx = controller.child.expect(
             [r"Skipped unsafe archive member path", anchor_member, pexpect.TIMEOUT],
             timeout=0.6,
         )
         if idx == 0:
-            controller.child.send(Keys.ENTER)
-            time.sleep(0.2)
+            assert controller.send_and_wait_for_screen_change(Keys.ENTER)
             continue
         if idx == 1:
             return
@@ -118,8 +109,7 @@ def test_archive_copy_matrix_fs_to_vfs(ytnova_binary, tmp_path):
     yt.wait_for_startup()
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
-    yt.child.send(Keys.ESC)
-    time.sleep(0.3)
+    assert yt.send_and_wait_for_screen_change(Keys.ESC)
 
     yt.select_file("fs_source.txt")
     _copy_selected_file(yt, "copied_from_fs.txt", dst_archive)
@@ -141,8 +131,7 @@ def test_archive_copy_matrix_vfs_to_fs(ytnova_binary, tmp_path):
     yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, src_archive)
-    yt.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert yt.send_and_wait_for_screen_change(Keys.ENTER)
     yt.child.expect("src.txt")
 
     _copy_selected_file(yt, "copied_to_fs.txt", out_dir)
@@ -210,8 +199,7 @@ def test_archive_copy_matrix_vfs_to_vfs(ytnova_binary, tmp_path):
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
     _log_archive(yt, src_archive)
-    yt.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert yt.send_and_wait_for_screen_change(Keys.ENTER)
     yt.child.expect("src.txt")
 
     _copy_selected_file(yt, "copied_from_vfs.txt", dst_archive)
@@ -236,8 +224,7 @@ def test_archive_move_matrix_fs_to_vfs(ytnova_binary, tmp_path):
     yt.wait_for_startup()
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
-    yt.child.send(Keys.ESC)
-    time.sleep(0.3)
+    assert yt.send_and_wait_for_screen_change(Keys.ESC)
 
     yt.select_file("fs_source.txt")
     _move_selected_file(yt, "moved_from_fs.txt", dst_archive)
@@ -260,8 +247,7 @@ def test_archive_move_matrix_vfs_to_fs(ytnova_binary, tmp_path):
     yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, src_archive)
-    yt.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert yt.send_and_wait_for_screen_change(Keys.ENTER)
     yt.child.expect("src.txt")
 
     _move_selected_file(yt, "moved_to_fs.txt", out_dir)
@@ -287,8 +273,7 @@ def test_archive_move_matrix_vfs_to_vfs(ytnova_binary, tmp_path):
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
     _log_archive(yt, src_archive)
-    yt.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert yt.send_and_wait_for_screen_change(Keys.ENTER)
     yt.child.expect("src.txt")
 
     _move_selected_file(yt, "moved_to_other_vfs.txt", dst_archive)
@@ -316,14 +301,12 @@ def test_archive_create_rename_parity(ytnova_binary, tmp_path):
     yt.child.expect("MAKE DIRECTORY")
     yt.input_text("newdir")
 
-    yt.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert yt.send_and_wait_for_screen_change(Keys.ENTER)
     yt.child.expect("old.txt")
 
     yt.child.send(Keys.RENAME)
     yt.child.expect("RENAME")
     yt.input_text("renamed.txt")
-    time.sleep(0.5)
 
     names = _archive_names(archive_path)
     assert "newdir" in names
@@ -343,14 +326,12 @@ def test_archive_delete_parity(ytnova_binary, tmp_path):
     yt.wait_for_startup()
     _log_archive(yt, archive_path)
 
-    yt.child.send(Keys.ENTER)
-    time.sleep(0.4)
+    assert yt.send_and_wait_for_screen_change(Keys.ENTER)
     yt.child.expect("delete_me.txt")
 
     yt.child.send(Keys.DELETE)
     yt.child.expect("Delete this file")
-    yt.child.send("Y")
-    time.sleep(0.7)
+    assert yt.send_and_wait_for_screen_change("Y")
 
     assert "delete_me.txt" not in _archive_names(archive_path)
 

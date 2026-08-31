@@ -48,7 +48,15 @@ def _copy_selected_file(controller: YtreeNovaController, source_name: str, new_n
     controller.input_text(new_name)
     controller.child.expect("To Directory")
     controller.input_text(str(to_dir))
-    time.sleep(0.7)
+    if to_dir.is_file():
+        complete = lambda _lines: new_name in _snapshot_archive(to_dir)
+    else:
+        complete = lambda _lines: (to_dir / new_name).exists()
+    assert controller.wait_for_condition(
+        complete,
+        timeout=2.0,
+        description=f"copy destination {to_dir / new_name}",
+    )
 
 
 def _move_selected_file(controller: YtreeNovaController, source_name: str, new_name: str, to_dir: Path) -> None:
@@ -58,23 +66,42 @@ def _move_selected_file(controller: YtreeNovaController, source_name: str, new_n
     controller.input_text(new_name)
     controller.child.expect("To Directory")
     controller.input_text(str(to_dir))
-    time.sleep(0.7)
+    assert controller.wait_for_condition(
+        lambda _lines: (to_dir / new_name).exists(),
+        timeout=2.0,
+        description=f"move destination {to_dir / new_name}",
+    )
 
 
-def _rename_selected_file(controller: YtreeNovaController, source_name: str, new_name: str) -> None:
+def _rename_selected_file(
+    controller: YtreeNovaController,
+    source_name: str,
+    new_name: str,
+    expected_path: Path,
+) -> None:
     controller.select_file(source_name)
     controller.child.send(Keys.RENAME)
     controller.child.expect("RENAME")
     controller.input_text(new_name)
-    time.sleep(0.6)
+    assert controller.wait_for_condition(
+        lambda _lines: expected_path.exists(),
+        timeout=2.0,
+        description=f"rename destination {expected_path}",
+    )
 
 
-def _delete_selected_file(controller: YtreeNovaController, source_name: str) -> None:
+def _delete_selected_file(
+    controller: YtreeNovaController, source_name: str, source_path: Path
+) -> None:
     controller.select_file(source_name)
     controller.child.send(Keys.DELETE)
     controller.child.expect("Delete this file")
     controller.child.send("Y")
-    time.sleep(0.7)
+    assert controller.wait_for_condition(
+        lambda _lines: not source_path.exists(),
+        timeout=2.0,
+        description=f"deletion of {source_path}",
+    )
 
 
 def _read(relpath: str) -> str:
@@ -136,7 +163,9 @@ def test_rename_mutation_preserves_file_hash(ytnova_binary, tmp_path):
     controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
-        _rename_selected_file(controller, "gamma.txt", "gamma_renamed.txt")
+        _rename_selected_file(
+            controller, "gamma.txt", "gamma_renamed.txt", root / "gamma_renamed.txt"
+        )
     finally:
         controller.quit()
 
@@ -155,7 +184,7 @@ def test_delete_mutation_removes_only_selected_file(ytnova_binary, tmp_path):
     controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
-        _delete_selected_file(controller, "remove.txt")
+        _delete_selected_file(controller, "remove.txt", root / "remove.txt")
     finally:
         controller.quit()
 
@@ -179,8 +208,7 @@ def test_copy_prompt_cancel_keeps_tree_snapshot_identical(ytnova_binary, tmp_pat
         controller.child.expect("COPY")
         controller.input_text("cancel_copy.txt")
         controller.child.expect("To Directory")
-        controller.child.send(Keys.ESC)
-        time.sleep(0.4)
+        assert controller.send_and_wait_for_screen_change(Keys.ESC, timeout=1.0)
     finally:
         controller.quit()
 
@@ -203,7 +231,11 @@ def test_same_path_copy_rejection_keeps_tree_snapshot_identical(ytnova_binary, t
         controller.input_text("same.txt")
         controller.child.expect("To Directory")
         controller.input_text("")
-        time.sleep(0.6)
+        assert controller.wait_for_condition(
+            lambda _lines: _snapshot_tree(root) == before,
+            timeout=1.0,
+            description="same-path copy rejection",
+        )
     finally:
         controller.quit()
 
@@ -232,14 +264,11 @@ def test_archive_copy_rewrite_updates_member_hashes_deterministically(ytnova_bin
     controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
-        controller.child.send(Keys.LOG)
-        time.sleep(0.2)
+        assert controller.send_and_wait_for_screen_change(Keys.LOG, timeout=1.0)
         controller.input_text(str(archive_path))
         controller.child.expect("ARCHIVE")
-        controller.child.send("\\")
-        time.sleep(0.7)
-        controller.child.send(Keys.ESC)
-        time.sleep(0.3)
+        assert controller.send_and_wait_for_screen_change("\\", timeout=1.5)
+        assert controller.send_and_wait_for_screen_change(Keys.ESC, timeout=1.0)
 
         _copy_selected_file(controller, "archive_source.txt", "copied_into_archive.txt", archive_path)
     finally:

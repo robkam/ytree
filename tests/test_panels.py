@@ -1,5 +1,4 @@
 import pytest
-import time
 import re
 import os
 import pexpect
@@ -51,7 +50,6 @@ def test_f8_split_memory_corruption_bug(controller, dual_panel_sandbox):
     yt.wait_for_startup()
 
     # 1. Setup multi-column list on Left (left_dir)
-    time.sleep(0.5)
     yt.child.send(Keys.EXPAND_ALL)
     sync_state(yt)
     yt.child.send(Keys.DOWN)  # Move to left_dir
@@ -96,7 +94,6 @@ def test_f8_cross_panel_autoview_sourcing_bug(controller, dual_panel_sandbox):
     yt = controller(cwd=str(dual_panel_sandbox))
     yt.wait_for_startup()
 
-    time.sleep(0.5)
     yt.child.send(Keys.EXPAND_ALL)
     sync_state(yt)
 
@@ -113,8 +110,7 @@ def test_f8_cross_panel_autoview_sourcing_bug(controller, dual_panel_sandbox):
     sync_state(yt)
 
     # Trigger Autoview (F7)
-    yt.child.send(Keys.F7)
-    time.sleep(1.0)
+    assert yt.send_and_wait_for_screen_change(Keys.F7)
     sync_state(yt)
 
     screen = get_clean_screen(yt)
@@ -123,8 +119,7 @@ def test_f8_cross_panel_autoview_sourcing_bug(controller, dual_panel_sandbox):
         pytest.fail("BUG: Autoview content pane is not displaying data for the selected file '0'.")
 
     # NEW TEST: Press F8 during F7
-    yt.child.send(Keys.F8)
-    time.sleep(0.5)
+    assert yt.send_and_wait_for_screen_change(Keys.F8)
     sync_state(yt)
 
     screen_after_f8 = get_clean_screen(yt)
@@ -142,17 +137,13 @@ def test_f7_header_shows_directory_only(controller, dual_panel_sandbox):
     yt = controller(cwd=str(dual_panel_sandbox))
     yt.wait_for_startup()
 
-    time.sleep(0.5)
     yt.child.send(Keys.EXPAND_ALL)
     sync_state(yt)
-    time.sleep(1.0) # Explicit wait before down
 
     yt.child.send(Keys.DOWN) # left_dir
     sync_state(yt)
-    time.sleep(1.0) # Explicit wait after down
 
-    yt.child.send(Keys.F7)
-    time.sleep(0.5)
+    assert yt.send_and_wait_for_screen_change(Keys.F7)
     sync_state(yt)
 
     screen = get_clean_screen(yt)
@@ -174,7 +165,6 @@ def test_f7_visual_layout(ytnova_binary, dual_panel_sandbox):
     """
     from tui_harness import YtreeNovaTUI
     from ytnova_keys import Keys
-    import time
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
 
@@ -182,8 +172,7 @@ def test_f7_visual_layout(ytnova_binary, dual_panel_sandbox):
     tui.send_keystroke(Keys.EXPAND_ALL)
 
     # Trigger Autoview (F7)
-    tui.send_keystroke(Keys.F7)
-    time.sleep(1.0) # Wait for view
+    assert tui.send_and_wait_for_screen_change(Keys.F7) # Wait for view
 
     # Get the screen content
     screen = tui.get_screen_dump()

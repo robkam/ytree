@@ -17,13 +17,16 @@ def test_mkdir_command(ytnova_binary, tmp_path):
     d = tmp_path / "mkdir_test"
     d.mkdir()
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-    
-    tui.send_keystroke("M")
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_condition(
+        "M", lambda lines: any("MAKE DIRECTORY" in line for line in lines), timeout=1.0
+    )
     # The prompt is "MAKE DIRECTORY:"
-    tui.send_keystroke("new_dir\r")
-    time.sleep(0.5)
+    tui.child.send("new_dir\r")
+    assert tui.wait_for_condition(
+        lambda _lines: (d / "new_dir").is_dir(),
+        timeout=1.5,
+        description="new directory creation",
+    )
     
     print("\n==== SCREEN ====")
     print("\n".join(tui.get_screen_dump()))
@@ -38,13 +41,16 @@ def test_mkfile_command(ytnova_binary, tmp_path):
     d = tmp_path / "mkfile_test"
     d.mkdir()
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-    
-    tui.send_keystroke("n") # Touch is 'n'
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_condition(
+        "n", lambda lines: any("MAKE FILE" in line for line in lines), timeout=1.0
+    )
     # The prompt is "MAKE FILE:"
-    tui.send_keystroke("new_file.txt\r")
-    time.sleep(0.5)
+    tui.child.send("new_file.txt\r")
+    assert tui.wait_for_condition(
+        lambda _lines: (d / "new_file.txt").exists(),
+        timeout=1.5,
+        description="new file creation",
+    )
     
     assert (d / "new_file.txt").exists()
     
@@ -58,18 +64,24 @@ def test_delete_file_command(ytnova_binary, tmp_path):
     target.write_text("junk")
     
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-    
     # Enter file window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.2)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda lines: any("to_delete.txt" in line for line in lines),
+        timeout=1.0,
+    )
     
     # Delete
-    tui.send_keystroke("d")
-    time.sleep(0.2)
+    assert tui.send_and_wait_for_condition(
+        "d", lambda lines: any("Delete" in line for line in lines), timeout=1.0
+    )
     # It might ask "Delete ... (Y/N)?"
-    tui.send_keystroke("y")
-    time.sleep(0.5)
+    tui.child.send("y")
+    assert tui.wait_for_condition(
+        lambda _lines: not target.exists(),
+        timeout=1.5,
+        description="selected file deletion",
+    )
     
     assert not target.exists()
     
@@ -83,18 +95,20 @@ def test_delete_dir_command(ytnova_binary, tmp_path):
     target.mkdir()
     
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-    
     # Navigate to subdir
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
     
     # Delete Dir (Shift-D)
-    tui.send_keystroke("D")
-    time.sleep(0.2)
+    assert tui.send_and_wait_for_condition(
+        "D", lambda lines: any("Delete" in line for line in lines), timeout=1.0
+    )
     # Confirm
-    tui.send_keystroke("y")
-    time.sleep(0.5)
+    tui.child.send("y")
+    assert tui.wait_for_condition(
+        lambda _lines: not target.exists(),
+        timeout=1.5,
+        description="selected directory deletion",
+    )
     
     assert not target.exists()
     
@@ -110,22 +124,24 @@ def test_chmod_command(ytnova_binary, tmp_path):
     os.chmod(target, 0o644)
     
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-    
     # Enter file window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.2)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER, lambda lines: any("test.txt" in line for line in lines), timeout=1.0
+    )
     
     # Attributes submenu (a -> m)
-    tui.send_keystroke("a")
-    time.sleep(0.1)
-    tui.send_keystroke("m")
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change("a", timeout=1.0)
+    assert tui.send_and_wait_for_condition(
+        "m", lambda lines: any("MODE" in line for line in lines), timeout=1.0
+    )
     tui.send_keystroke(Keys.CTRL_U)  # Ctrl+U clears prefilled mode
-    time.sleep(0.05)
     # Change to 0755 using octal input
-    tui.send_keystroke("755\r")
-    time.sleep(0.5)
+    tui.child.send("755\r")
+    assert tui.wait_for_condition(
+        lambda _lines: os.stat(target).st_mode & 0o777 == 0o755,
+        timeout=1.5,
+        description="chmod 0755",
+    )
     
     # Verify
     mode = os.stat(target).st_mode & 0o777
@@ -142,19 +158,23 @@ def test_chmod_4digit_octal_command(ytnova_binary, tmp_path):
     os.chmod(target, 0o644)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda lines: any("suid_test.sh" in line for line in lines),
+        timeout=1.0,
+    )
 
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.2)
-
-    tui.send_keystroke("a")
-    time.sleep(0.1)
-    tui.send_keystroke("m")
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change("a", timeout=1.0)
+    assert tui.send_and_wait_for_condition(
+        "m", lambda lines: any("MODE" in line for line in lines), timeout=1.0
+    )
     tui.send_keystroke(Keys.CTRL_U)  # Ctrl+U clears prefilled mode
-    time.sleep(0.05)
-    tui.send_keystroke("4755\r")
-    time.sleep(0.5)
+    tui.child.send("4755\r")
+    assert tui.wait_for_condition(
+        lambda _lines: os.stat(target).st_mode & 0o7777 == 0o4755,
+        timeout=1.5,
+        description="chmod 04755",
+    )
 
     mode = os.stat(target).st_mode & 0o7777
     assert mode == 0o4755
@@ -170,22 +190,20 @@ def test_chown_command(ytnova_binary, tmp_path):
     target.write_text("junk")
     
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-    
     # Enter file window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.2)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER, lambda lines: any("test.txt" in line for line in lines), timeout=1.0
+    )
     
     # Attributes submenu -> Owner
-    tui.send_keystroke("a")
-    time.sleep(0.1)
-    tui.send_keystroke("o")
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change("a", timeout=1.0)
+    assert tui.send_and_wait_for_condition(
+        "o", lambda lines: any("OWNER" in line for line in lines), timeout=1.0
+    )
     # It should prompt for owner name. We'll use the current user.
     import getpass
     user = getpass.getuser()
-    tui.send_keystroke(f"{user}\r")
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(f"{user}\r", timeout=1.5)
     
     # Verify (even if it didn't change, we just want to see it didn't crash)
     assert target.exists()
@@ -199,21 +217,17 @@ def test_dir_date_change_no_footer_artifact(ytnova_binary, tmp_path):
     (d / "subdir").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-
     # Try to move off the current root entry so we exercise a real dir entry path.
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
 
     # Directory attributes -> date prompt (modified is the default scope)
-    tui.send_keystroke("a")
-    time.sleep(0.1)
-    tui.send_keystroke("d")
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change("a", timeout=1.0)
+    assert tui.send_and_wait_for_condition(
+        "d", lambda lines: any("DATE" in line for line in lines), timeout=1.0
+    )
 
     # Full-width overwrite input
-    tui.send_keystroke("2026-03-15 10:11:12\r")
-    time.sleep(0.6)
+    assert tui.send_and_wait_for_screen_change("2026-03-15 10:11:12\r", timeout=1.5)
 
     screen = tui.get_screen_dump()
     footer_lines = screen[-3:]
@@ -238,17 +252,14 @@ def test_dir_mkdir_cancel_no_footer_artifact(ytnova_binary, tmp_path):
     (d / "subdir").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-
     # Move to a real directory entry if present.
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.1)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
 
     # Open mkdir prompt then cancel.
-    tui.send_keystroke("M")
-    time.sleep(0.1)
-    tui.send_keystroke(Keys.ESC)
-    time.sleep(0.4)
+    assert tui.send_and_wait_for_condition(
+        "M", lambda lines: any("MAKE DIRECTORY" in line for line in lines), timeout=1.0
+    )
+    assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=1.0)
 
     screen = tui.get_screen_dump()
     footer_lines = screen[-3:]
@@ -281,23 +292,25 @@ def test_file_date_change_modified_updates_mtime(ytnova_binary, tmp_path):
     os.utime(target, (old_epoch, old_epoch))
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(1.0)
-
     # Enter file window and trigger Attributes -> Date.
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.2)
-    tui.send_keystroke("a")
-    time.sleep(0.1)
-    tui.send_keystroke("d")
-    time.sleep(0.1)
-    tui.send_keystroke("2026-03-15 10:11:12\r")
-    time.sleep(0.6)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER, lambda lines: any("sample.txt" in line for line in lines), timeout=1.0
+    )
+    assert tui.send_and_wait_for_screen_change("a", timeout=1.0)
+    assert tui.send_and_wait_for_condition(
+        "d", lambda lines: any("DATE" in line for line in lines), timeout=1.0
+    )
+    tui.child.send("2026-03-15 10:11:12\r")
+    expected_mtime = int(time.mktime((2026, 3, 15, 10, 11, 12, 0, 0, -1)))
+    assert tui.wait_for_condition(
+        lambda _lines: abs(int(os.stat(target).st_mtime) - expected_mtime) <= 1,
+        timeout=1.5,
+        description="file modified time update",
+    )
 
     st = os.stat(target)
     new_mtime = int(st.st_mtime)
     new_atime = int(st.st_atime)
-    expected_mtime = int(time.mktime((2026, 3, 15, 10, 11, 12, 0, 0, -1)))
-
     assert abs(new_mtime - expected_mtime) <= 1, \
         f"mtime mismatch: expected ~{expected_mtime}, got {new_mtime}"
     assert new_atime == old_epoch, \

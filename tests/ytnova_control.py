@@ -27,6 +27,7 @@ class YtreeNovaController:
         self.child.logfile = self.log_file
         self.screen = pyte.Screen(160, 24)
         self.stream = pyte.Stream(self.screen)
+        self.last_wait_diagnostic = None
 
     def __del__(self):
         if hasattr(self, 'log_file'):
@@ -52,11 +53,12 @@ class YtreeNovaController:
 
     def _read_output(self, timeout=0.1):
         try:
-            time.sleep(self._scaled(timeout))
+            read_timeout = self._scaled(timeout)
             while True:
-                data = self.child.read_nonblocking(size=4096, timeout=self._scaled(0.1))
+                data = self.child.read_nonblocking(size=4096, timeout=read_timeout)
                 self.stream.feed(data)
                 self._mirror_child_buffers(data)
+                read_timeout = 0
         except (pexpect.TIMEOUT, pexpect.EOF):
             pass
 
@@ -67,18 +69,23 @@ class YtreeNovaController:
         self._read_output(timeout=0.05)
         return self.peek_screen_dump()
 
-    def wait_for_condition(self, predicate, timeout=5.0, poll_interval=0.02):
+    def wait_for_condition(self, predicate, timeout=5.0, poll_interval=0.02, description=None):
         deadline = time.monotonic() + self._scaled(timeout)
 
         while True:
-            self._read_output(timeout=0.0)
+            remaining = max(0.0, deadline - time.monotonic())
+            self._read_output(timeout=min(self._scaled(poll_interval), remaining))
             lines = self.peek_screen_dump()
             result = predicate(lines)
             if result:
+                self.last_wait_diagnostic = None
                 return result
             if time.monotonic() >= deadline:
+                label = description or getattr(predicate, "__name__", "screen predicate")
+                self.last_wait_diagnostic = (
+                    f"Timed out waiting for {label}; screen={lines!r}"
+                )
                 return False
-            time.sleep(self._scaled(poll_interval))
 
     def wait_for_text(self, target, timeout=5.0, poll_interval=0.02):
         return self.wait_for_condition(
@@ -87,6 +94,7 @@ class YtreeNovaController:
             else False,
             timeout=timeout,
             poll_interval=poll_interval,
+            description=f"text {target!r}",
         )
 
     def send_and_wait_for_condition(
