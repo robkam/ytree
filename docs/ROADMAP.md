@@ -2259,7 +2259,7 @@ Ordering policy (for all editors, including AI editors):
 
 #### Task 99.6 **Document Retained Static-Inspection Reasons**
 *   For every retained baseline source inspection, including every classification under **99.5**, add or retain an assertion message that names the non-observable invariant and why a runtime test cannot prove it safely.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed. Retained generated-source assertions identify the source/generated invariant and explain why runtime execution cannot reveal pre-build drift.
 
 #### Task 99.7 **Prove and Validate Resilience**
 1. Add/reuse semantic test helpers first: popup/modal detection, selected-item identity, footer command presence by action/key, style-role comparison, and event-driven state/file waits.  Do not add helpers that parse terminal coordinates or English prose.
