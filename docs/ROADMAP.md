@@ -2249,7 +2249,7 @@ Ordering policy (for all editors, including AI editors):
 
 #### Task 99.4 **Preserve Documentation Semantics Without Coupling to Prose**
 *   Retain language-independent checks for documented action-to-topic, action-to-link, and context-to-help relationships.  For example, F1 from each supported context must open its owned topic, an authored Markdown link must lead to its declared target, and navigation must return to the source context.  Do not require English wording, translations, line position, or presentation order.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### Task 99.5 **Classify and Preserve Justified External Contracts**
 *   **External command/config/template contracts:** `tests/test_cli_version_flags.py`, `tests/test_profile_template_sync.py`, `tests/test_theme_catalog_sync.py`, `tests/test_theme_config_paths.py`, `tests/test_mcp_doctor.py`, `tests/test_pre_push_guard.py`, `tests/test_ci_repair_loop.py`, and `tests/test_install_shadow_guard.py`.  Exact output/content can be valid where it is a published CLI, config, generated-file, or workflow interface.  Remove only incidental prose and whitespace checks; keep machine- or user-consumed contract checks.

@@ -107,12 +107,6 @@ def _topic_title_map(source):
     }
 
 
-def _contents_link_label(title):
-    if title == "YtreeNova Navigation":
-        return "Navigation"
-    return title[:-5] if title.endswith(" Help") else title
-
-
 def _topic_context_map(source):
     context_map = {}
     for match in _topic_blocks(source):
@@ -316,15 +310,11 @@ def test_f1_sources_limit_long_form_sections_to_tagged_viewer_help():
 
 def test_contents_topic_is_a_complete_alphabetical_operator_index():
     f1_source = _read_help_source(Path("etc/help/f1.en.md"))
-    title_map = _topic_title_map(f1_source)
     contents_only_topics = {"execute-dir", "execute-file", "f1-navigation"}
-    expected_links = sorted(
-        (
-            (_contents_link_label(title), topic)
-            for topic, title in title_map.items()
-            if topic != "index" and topic not in contents_only_topics
-        ),
-        key=lambda item: item[0].casefold(),
-    )
+    expected_targets = {
+        topic
+        for topic in _topic_block_map(f1_source)
+        if topic != "index" and topic not in contents_only_topics
+    }
     contents_links = _topic_explainer_links(f1_source, "index")
-    assert contents_links == expected_links
+    assert {target for _, target in contents_links} == expected_targets

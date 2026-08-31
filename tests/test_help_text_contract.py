@@ -13,6 +13,7 @@ from ytnova_keys import Keys
 
 
 YTNOVA_BIN = str((Path(__file__).resolve().parents[1] / "build" / "ytnova").resolve())
+F1_HELP_SOURCE = Path("etc/help/f1.en.md")
 
 
 def _spawn_help_tui(root, env_extra=None, dimensions=(36, 120)):
@@ -54,7 +55,19 @@ def _enter_archive_from_selected_file(tui):
             break
 
 
-def _wait_for_help(tui, title, key=Keys.F1, timeout=1.5):
+def _help_topic_title(topic_id):
+    match = re.search(
+        rf"^## topic:{re.escape(topic_id)}\n+```ytnova-help-meta\n"
+        r"title: (?P<title>[^\n]+)",
+        F1_HELP_SOURCE.read_text(encoding="utf-8"),
+        re.M,
+    )
+    assert match, f"missing authored help topic {topic_id!r}"
+    return match.group("title")
+
+
+def _wait_for_help(tui, topic_id, key=Keys.F1, timeout=1.5):
+    title = _help_topic_title(topic_id)
     screen = tui.send_and_wait_for_condition(
         key,
         lambda lines: lines
@@ -206,7 +219,7 @@ def _capture_help_scroll_output(root, *, down_presses=12, rows=40, cols=142):
         child.logfile_read = raw_output
         child.expect(b"alpha.txt")
         child.send(Keys.F1.encode("ascii"))
-        child.expect(b"Directory Help")
+        child.expect(_help_topic_title("directory").encode("utf-8"))
         raw_output.seek(0)
         raw_output.truncate(0)
         for _ in range(down_presses):
@@ -243,12 +256,12 @@ def test_contextual_help_accepts_csi_arrow_sequences(tmp_path):
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         for sequence in (csi_down, csi_right, csi_left):
             retained = tui.send_and_wait_for_condition(
                 sequence,
                 lambda lines: lines
-                if any("Directory Help" in line for line in lines)
+                if any(_help_topic_title("directory") in line for line in lines)
                 else False,
                 timeout=1.5,
             )
@@ -264,12 +277,12 @@ def test_contextual_help_accepts_application_arrow_sequences(tmp_path):
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         for key in (Keys.DOWN, Keys.RIGHT, Keys.LEFT):
             retained = tui.send_and_wait_for_condition(
                 key,
                 lambda lines: lines
-                if any("Directory Help" in line for line in lines)
+                if any(_help_topic_title("directory") in line for line in lines)
                 else False,
                 timeout=1.5,
             )
@@ -294,9 +307,9 @@ def test_contextual_help_down_arrow_keeps_the_popup_open(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         retained = tui.send_and_wait_for_condition(
-            Keys.DOWN, lambda lines: lines if any("Directory Help" in line for line in lines) else False, timeout=1.0
+            Keys.DOWN, lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False, timeout=1.0
         )
         assert retained, screen_text(tui)
     finally:
@@ -308,7 +321,7 @@ def test_contextual_help_down_arrow_skips_plain_rows_then_scrolls(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
 
         scrolled = _scroll_help_to_text(tui, "Z archive")
         assert "Z archive" in scrolled, scrolled
@@ -321,8 +334,8 @@ def test_contextual_help_down_arrow_scrolls_past_write_to_lower_commands(tmp_pat
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        before = _wait_for_help(tui, "Directory Help")
-        after = tui.send_and_wait_for_condition(Keys.DOWN, lambda lines: lines if any("Directory Help" in line for line in lines) else False, timeout=1.0)
+        before = _wait_for_help(tui, "directory")
+        after = tui.send_and_wait_for_condition(Keys.DOWN, lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False, timeout=1.0)
         assert after, before
     finally:
         tui.quit()
@@ -332,9 +345,9 @@ def test_contextual_help_down_arrow_eventually_scrolls_visible_page(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         for _ in range(4):
-            retained = tui.send_and_wait_for_condition(Keys.DOWN, lambda lines: lines if any("Directory Help" in line for line in lines) else False, timeout=1.0)
+            retained = tui.send_and_wait_for_condition(Keys.DOWN, lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False, timeout=1.0)
             assert retained, screen_text(tui)
     finally:
         tui.quit()
@@ -344,7 +357,7 @@ def test_contextual_help_uses_the_generated_footer_on_narrow_terminals(tmp_path)
     tui = _spawn_help_tui(root, dimensions=(36, 90))
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        help_screen = _wait_for_help(tui, "Directory Help")
+        help_screen = _wait_for_help(tui, "directory")
         assert "Right/Enter follow" in help_screen, help_screen
     finally:
         tui.quit()
@@ -355,7 +368,7 @@ def test_help_index_uses_the_width_reserved_by_its_footer(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         contents = _send_help_key_until_text(tui, "i", "Help Index")
 
         footer_line = next(line for line in contents.splitlines() if "Esc/Q quit" in line)
@@ -371,7 +384,7 @@ def test_help_index_reopens_cleanly_after_terminal_resize(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         _send_help_key_until_text(tui, "i", "Help Index")
 
         tui.child.setwinsize(24, 70)
@@ -407,7 +420,7 @@ def test_ytnova_navigation_opens_inline_help_links(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         index = _send_help_key_until_text(tui, "i", "Help Index")
         assert "Navigation" in index, index
         navigation = _send_help_key_until_text(tui, "n", "Help Navigation")
@@ -427,7 +440,7 @@ def test_tagged_help_opens_from_the_help_index(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         _send_help_key_until_text(tui, "i", "Help Index")
         tagged = _open_tagged_help_from_index(tui)
         assert "Tagged" in tagged, tagged
@@ -439,7 +452,7 @@ def test_help_index_keeps_authored_links_above_the_popup_footer(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         _send_help_key_until_text(tui, "i", "Help Index")
         index = _send_help_key_until_text(tui, "i", "Help Index")
         assert "Related help" not in index, index
@@ -455,7 +468,7 @@ def test_directory_help_exposes_generated_navigation_commands(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        directory = _wait_for_help(tui, "Directory Help")
+        directory = _wait_for_help(tui, "directory")
         assert "Index" in directory and "Navigation" in directory, directory
     finally:
         tui.quit()
@@ -465,7 +478,7 @@ def test_contextual_help_footer_is_present_after_opening(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        help_screen = _wait_for_help(tui, "Directory Help")
+        help_screen = _wait_for_help(tui, "directory")
         assert "Esc/Q quit" in help_screen, help_screen
     finally:
         tui.quit()
@@ -475,7 +488,7 @@ def test_contextual_help_footer_remains_present_after_page_navigation(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        help_screen = _wait_for_help(tui, "Directory Help")
+        help_screen = _wait_for_help(tui, "directory")
         paged = _send_help_key_until_text(tui, Keys.END, "Esc/Q quit")
         assert "Esc/Q quit" in paged, paged
     finally:
@@ -486,8 +499,8 @@ def test_contextual_help_up_arrow_reselects_visible_links_when_scrolling_back(tm
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
-        assert tui.send_and_wait_for_condition(Keys.UP, lambda lines: lines if any("Directory Help" in line for line in lines) else False, timeout=1.0), screen_text(tui)
+        _wait_for_help(tui, "directory")
+        assert tui.send_and_wait_for_condition(Keys.UP, lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False, timeout=1.0), screen_text(tui)
     finally:
         tui.quit()
 
@@ -501,7 +514,7 @@ def test_split_file_help_uses_the_split_file_context_and_generated_strip(tmp_pat
         tui.send_keystroke(Keys.F8)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
         tui.send_keystroke(Keys.F1)
-        assert tui.wait_for_content("F8 Split Directory Help", timeout=1.5), screen_text(
+        assert tui.wait_for_content(_help_topic_title("f8-dir"), timeout=1.5), screen_text(
             tui
         )
         tui.send_keystroke(Keys.ESC)
@@ -509,7 +522,7 @@ def test_split_file_help_uses_the_split_file_context_and_generated_strip(tmp_pat
 
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
-        help_screen = _wait_for_help(tui, "F8 Split File Help")
+        help_screen = _wait_for_help(tui, "f8-file")
         footer_line = next(line for line in help_screen.splitlines() if "Esc/Q quit" in line)
         assert "Left back" in footer_line, footer_line
         assert "Right/Enter follow" in footer_line, footer_line
@@ -543,7 +556,7 @@ def test_execute_prompt_f1_help_explains_placeholder_and_tagged_repeat(tmp_path)
         prompt_screen = screen_text(tui).lower()
         assert "f1 help" in prompt_screen, prompt_screen
 
-        _wait_for_help(tui, "Execute File Help")
+        _wait_for_help(tui, "execute-file")
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("COMMAND", timeout=1.0), screen_text(tui)
@@ -564,7 +577,7 @@ def test_search_tagged_prompt_f1_help_explains_tag_scope(tmp_path):
         prompt_screen = screen_text(tui).lower()
         assert "f1 help" in prompt_screen, prompt_screen
 
-        _wait_for_help(tui, "Search Tagged Help")
+        _wait_for_help(tui, "search-tagged")
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("SEARCH TAGGED", timeout=1.0), screen_text(tui)
@@ -584,7 +597,7 @@ def test_filter_prompt_f1_help_uses_generated_runtime_topic(tmp_path):
         prompt_screen = screen_text(tui).lower()
         assert "f1 help" in prompt_screen, prompt_screen
 
-        _wait_for_help(tui, "Filter Help")
+        _wait_for_help(tui, "filter")
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("FILTER:", timeout=1.0), screen_text(tui)
@@ -604,7 +617,7 @@ def test_archive_prompt_f1_help_explains_suffixes_and_selection_scope(tmp_path):
         prompt_screen = screen_text(tui).lower()
         assert "f1 help" in prompt_screen, prompt_screen
 
-        _wait_for_help(tui, "Create Archive Help")
+        _wait_for_help(tui, "create-archive")
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("Create archive", timeout=1.0), screen_text(tui)
@@ -617,13 +630,13 @@ def test_main_f1_help_tracks_directory_and_file_contexts(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        directory_help = _wait_for_help(tui, "Directory Help")
+        directory_help = _wait_for_help(tui, "directory")
         assert "Index" in directory_help and "Navigation" in directory_help, directory_help
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "File Help")
+        _wait_for_help(tui, "file")
     finally:
         tui.quit()
 
@@ -635,7 +648,7 @@ def test_showall_help_keeps_scope_details_and_returns(tmp_path):
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
         tui.send_keystroke("s", wait=0.4)
 
-        _wait_for_help(tui, "Showall Help")
+        _wait_for_help(tui, "showall")
 
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
@@ -652,19 +665,19 @@ def test_output_prompt_f1_help_uses_generated_runtime_topics(tmp_path):
         tui.send_keystroke("o", wait=0.2)
 
         assert tui.wait_for_content("Output to:", timeout=1.0), screen_text(tui)
-        _wait_for_help(tui, "Output Destination Help")
+        _wait_for_help(tui, "output-destination")
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("Output to:", timeout=1.0), screen_text(tui)
 
         tui.send_keystroke("F", wait=0.2)
         assert tui.wait_for_content("Output file [Raw]", timeout=1.0), screen_text(tui)
-        _wait_for_help(tui, "Output Destination Help")
+        _wait_for_help(tui, "output-destination")
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("Output file [Raw]", timeout=1.0), screen_text(tui)
 
         tui.send_keystroke(Keys.F3, wait=0.2)
         assert tui.wait_for_content("Frame separator", timeout=1.0), screen_text(tui)
-        _wait_for_help(tui, "Output Separator Help")
+        _wait_for_help(tui, "output-separator")
         tui.send_keystroke(Keys.ESC, wait=0.2)
         assert tui.wait_for_content("Frame separator", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ENTER, wait=0.2)
@@ -682,12 +695,12 @@ def test_integrated_help_directory_and_file_modes_do_not_crash(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "File Help")
+        _wait_for_help(tui, "file")
     finally:
         tui.quit()
 
@@ -698,7 +711,7 @@ def test_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
 
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         contents_screen = tui.send_and_wait_for_condition(
             "i",
             lambda lines: lines
@@ -732,7 +745,7 @@ def test_help_index_opens_from_contextual_help_and_returns_to_origin(tmp_path):
         )
         assert returned, screen_text(tui)
         tui.send_keystroke(Keys.LEFT, wait=0.05)
-        assert tui.wait_for_content("Directory Help", timeout=1.0), screen_text(tui)
+        assert tui.wait_for_content(_help_topic_title("directory"), timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ESC, wait=0.05)
         assert tui.wait_for_content("alpha.txt", timeout=1.0), screen_text(tui)
     finally:
@@ -745,13 +758,13 @@ def test_contextual_help_returns_to_the_link_origin(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         tagged = _follow_help_topic(tui, "tag and untag", "Tagged", timeout=1.0)
         assert "Tagged" in tagged, tagged
 
         returned = tui.send_and_wait_for_condition(
             Keys.LEFT,
-            lambda lines: lines if any("Directory Help" in line for line in lines) else False,
+            lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False,
             timeout=1.0,
         )
         assert returned, screen_text(tui)
@@ -764,7 +777,7 @@ def test_contextual_help_inline_links_keep_full_generated_footer(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
 
         tagged_help = _follow_help_topic(tui, "tag and untag", "Tagged", timeout=1.0)
         assert "Tagged" in tagged_help, tagged_help
@@ -776,7 +789,7 @@ def test_contextual_help_inline_links_keep_full_generated_footer(tmp_path):
         assert "Index" in footer_line, footer_line
         returned = tui.send_and_wait_for_condition(
             Keys.LEFT,
-            lambda lines: lines if any("Directory Help" in line for line in lines) else False,
+            lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False,
             timeout=1.0,
         )
         assert returned, screen_text(tui)
@@ -823,7 +836,7 @@ disabled = grey
     tui = _spawn_help_tui(root)
 
     try:
-        help_screen = _wait_for_help(tui, "Directory Help")
+        help_screen = _wait_for_help(tui, "directory")
         assert "Right/Enter follow" in help_screen, help_screen
         footer_style = _visible_cell_style(tui, "follow")
         enter_style = _visible_cell_style(tui, "Right/Enter")
@@ -900,7 +913,7 @@ def test_picker_dialog_f1_help_covers_volume_and_applications(tmp_path):
 
         tui.send_keystroke("K")
         assert tui.wait_for_content("Select Volume", timeout=1.0), screen_text(tui)
-        _wait_for_help(tui, "Volume Help")
+        _wait_for_help(tui, "volume-menu")
         tui.send_keystroke(Keys.ESC)
         assert tui.wait_for_content("Select Volume", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.ESC)
@@ -908,7 +921,7 @@ def test_picker_dialog_f1_help_covers_volume_and_applications(tmp_path):
 
         tui.send_keystroke(Keys.F9)
         assert tui.wait_for_content("Applications", timeout=1.0), screen_text(tui)
-        _wait_for_help(tui, "Applications Help")
+        _wait_for_help(tui, "applications-menu")
     finally:
         tui.quit()
 
@@ -931,7 +944,7 @@ def test_picker_dialog_f1_help_covers_f2_dotfiles_and_local_actions(tmp_path):
         assert tui.wait_for_content("To Directory:", timeout=1.0), screen_text(tui)
         tui.send_keystroke(Keys.F2)
         assert tui.wait_for_content("cycle", timeout=1.0), screen_text(tui)
-        _wait_for_help(tui, "F2 Picker Help")
+        _wait_for_help(tui, "f2-picker")
     finally:
         tui.quit()
 
@@ -947,7 +960,7 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("ARCHIVE", timeout=2.0), screen_text(tui)
 
-        help_screen = _wait_for_help(tui, "Archive Directory Help")
+        help_screen = _wait_for_help(tui, "archive-dir")
         assert "Right/Enter follow" in help_screen, help_screen
         assert _send_help_key_until_text(tui, Keys.END, "Esc/Q quit"), screen_text(tui)
 
@@ -956,7 +969,7 @@ def test_archive_f1_help_uses_archive_specific_context_titles(tmp_path):
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("inside.txt", timeout=1.5), screen_text(tui)
 
-        help_screen = _wait_for_help(tui, "Archive File Help")
+        help_screen = _wait_for_help(tui, "archive-file")
         assert "Right/Enter follow" in help_screen, help_screen
         assert _send_help_key_until_text(tui, Keys.END, "Esc/Q quit"), screen_text(tui)
     finally:
@@ -968,9 +981,9 @@ def test_contextual_help_uses_page_keys_and_only_links_complex_commands(tmp_path
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "Directory Help")
+        _wait_for_help(tui, "directory")
         for key in (Keys.HOME, Keys.END, Keys.PGDN, Keys.PGUP):
-            assert tui.send_and_wait_for_condition(key, lambda lines: lines if any("Directory Help" in line for line in lines) else False, timeout=1.0), screen_text(tui)
+            assert tui.send_and_wait_for_condition(key, lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False, timeout=1.0), screen_text(tui)
     finally:
         tui.quit()
 
@@ -991,7 +1004,7 @@ def test_command_preset_help_layers_packaged_selection_under_local_overrides(tmp
         tui.send_keystroke(Keys.ENTER)
         assert tui.wait_for_content("beta.txt", timeout=1.5), screen_text(tui)
 
-        help_screen = _wait_for_help(tui, "File Help")
+        help_screen = _wait_for_help(tui, "file")
         lower_help = help_screen.lower()
         assert "copy" in lower_help, help_screen
         assert "datei loeschen" in lower_help, help_screen
@@ -1176,7 +1189,7 @@ def test_contextual_help_dispatches_locale_authored_strip_keys(tmp_path):
         ):
             tui = _spawn_help_tui(root, env_extra=env_extra)
             try:
-                help_screen = _wait_for_help(tui, "Directory Help")
+                help_screen = _wait_for_help(tui, "directory")
                 assert label.casefold() in help_screen.casefold(), help_screen
                 opened = tui.send_and_wait_for_condition(
                     key,

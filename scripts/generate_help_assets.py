@@ -921,7 +921,7 @@ def validate_locale_topic_projection(
             )
         master_targets = [link.target_topic_id for link in master_topic.explainer_links]
         locale_targets = [link.target_topic_id for link in locale_topic.explainer_links]
-        if locale_targets != master_targets:
+        if sorted(locale_targets) != sorted(master_targets):
             raise HelpSourceError(
                 f"locale {locale_id} topic {master_topic.topic_id!r} changed explainer link targets"
             )

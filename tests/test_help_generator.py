@@ -215,6 +215,46 @@ Body.
         helpgen.validate_topic_inventory(f1_topics)
 
 
+def test_help_generator_allows_locales_to_reorder_explainer_links():
+    canonical = """## topic:first
+```ytnova-help-meta
+title: First
+contexts: main.first
+```
+### Contextual F1
+One line.
+### Explainer links
+- [Second](topic:second)
+- [Third](topic:third)
+
+## topic:second
+```ytnova-help-meta
+title: Second
+contexts: none
+```
+### Contextual F1
+One line.
+
+## topic:third
+```ytnova-help-meta
+title: Third
+contexts: none
+```
+### Contextual F1
+One line.
+"""
+    localized = canonical.replace(
+        "- [Second](topic:second)\n- [Third](topic:third)",
+        "- [Drittes](topic:third)\n- [Zweites](topic:second)",
+    )
+
+    helpgen.validate_locale_topic_projection(
+        helpgen.parse_help_source(canonical),
+        helpgen.parse_help_source(localized),
+        locale_id="de",
+    )
+
+
 def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
     man_md = tmp_path / "ytnova.1.md"
     usage_md = tmp_path / "USAGE.md"
