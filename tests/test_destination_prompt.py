@@ -43,7 +43,7 @@ def test_copy_name_to_destination_prompt_does_not_redraw_working_view(
         assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(
             tui.get_screen_dump()
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=1.0)
         assert tui.wait_for_text("alpha.txt", timeout=1.5), _screen_text(
             tui.get_screen_dump()
         )
@@ -81,7 +81,7 @@ def test_missing_destination_choice_highlights_default_answer(
         assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(
             tui.get_screen_dump()
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=1.0)
         assert tui.wait_for_text("alpha.txt", timeout=1.5), _screen_text(
             tui.get_screen_dump()
         )
@@ -153,7 +153,7 @@ def test_existing_destination_conflict_shows_size_time_comparison(
         assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(
             tui.get_screen_dump()
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=1.0)
         assert tui.wait_for_text("alpha.txt", timeout=1.5), _screen_text(
             tui.get_screen_dump()
         )

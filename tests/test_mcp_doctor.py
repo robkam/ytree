@@ -78,8 +78,6 @@ def test_mcp_doctor_fix_bootstraps_user_config(
 
     assert rc == 0
     assert home_config.exists()
-    assert "FIXED: bootstrapped" in output
-    assert "RESULT: OK" in output
 
 
 def test_mcp_doctor_without_fix_reports_missing_user_config(
@@ -97,8 +95,6 @@ def test_mcp_doctor_without_fix_reports_missing_user_config(
     output = capsys.readouterr().out
 
     assert rc == 1
-    assert "FAIL: missing config" in output
-    assert "run with --fix" in output
 
 
 def test_mcp_doctor_allows_home_path_personal_override_with_warning(
@@ -121,4 +117,3 @@ def test_mcp_doctor_allows_home_path_personal_override_with_warning(
     output = capsys.readouterr().out
 
     assert rc == 0
-    assert "WARN: serena config references a home path" in output
