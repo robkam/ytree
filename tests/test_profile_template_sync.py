@@ -85,7 +85,10 @@ def test_default_profile_template_header_matches_packaged_config():
         encoding="utf-8"
     )
 
-    assert header_source == _render_profile_header(conf_source)
+    assert header_source == _render_profile_header(conf_source), (
+        "Generated profile header must match its canonical packaged source; runtime "
+        "cannot reveal pre-build source/generated drift."
+    )
 
 
 def test_default_commands_catalog_header_matches_packaged_commands():
@@ -94,7 +97,10 @@ def test_default_commands_catalog_header_matches_packaged_commands():
         encoding="utf-8"
     )
 
-    assert header_source == _render_commands_header(commands_source)
+    assert header_source == _render_commands_header(commands_source), (
+        "Generated commands header must match its canonical packaged source; runtime "
+        "cannot reveal pre-build source/generated drift."
+    )
 
 
 def test_default_command_presets_catalog_header_matches_packaged_presets():
@@ -103,4 +109,7 @@ def test_default_command_presets_catalog_header_matches_packaged_presets():
         encoding="utf-8"
     )
 
-    assert header_source == _render_command_presets_header(source_dir)
+    assert header_source == _render_command_presets_header(source_dir), (
+        "Generated command presets header must match canonical packaged sources; runtime "
+        "cannot reveal pre-build source/generated drift."
+    )

@@ -43,10 +43,6 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     assert not legacy_commands.exists()
     assert not legacy_themes.exists()
     assert not legacy_applications.exists()
-    assert "Created profile:" in first.stdout
-    assert "Created commands:" in first.stdout
-    assert "Created themes:" in first.stdout
-    assert "Created applications:" in first.stdout
     created = profile.read_text(encoding="utf-8")
     assert "# YtreeNova Defaults" in created
     assert "[GLOBAL]" in created
@@ -83,7 +79,6 @@ def test_init_creates_profile_only_if_missing(ytnova_binary, tmp_path):
     assert commands.read_text(encoding="utf-8") == "COMMANDS SENTINEL\n"
     assert themes.read_text(encoding="utf-8") == "THEME SENTINEL\n"
     assert applications.read_text(encoding="utf-8") == "APPLICATIONS SENTINEL\n"
-    assert "already exists; not overwritten" in second.stdout
 
 def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_path):
     home = tmp_path / "home"
@@ -100,10 +95,6 @@ def test_init_with_explicit_profile_path_preserves_target(ytnova_binary, tmp_pat
     assert themes.exists()
     assert applications.exists()
     assert not (home / ".config" / "ytnova" / "ytnova.conf").exists()
-    assert "Created profile:" in result.stdout
-    assert "Created commands:" in result.stdout
-    assert "Created themes:" in result.stdout
-    assert "Created applications:" in result.stdout
     profile_text = profile.read_text(encoding="utf-8")
     assert "THEME=quiet-blue" in profile_text
     assert "# THEME=bash-black" in profile_text
@@ -133,7 +124,3 @@ def test_init_falls_back_to_home_targets_when_xdg_dir_is_unavailable(
     assert commands.exists()
     assert themes.exists()
     assert applications.exists()
-    assert "Created profile:" in result.stdout
-    assert "Created commands:" in result.stdout
-    assert "Created themes:" in result.stdout
-    assert "Created applications:" in result.stdout

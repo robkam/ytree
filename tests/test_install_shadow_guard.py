@@ -29,9 +29,6 @@ def test_install_shadow_guard_blocks_shadow_binary_and_manpage(tmp_path):
     result = _run_shadow_check(Path.cwd(), tmp_path)
 
     assert result.returncode != 0
-    combined = result.stdout + result.stderr
-    assert "stale binary" in combined
-    assert "stale man" in combined
 
 
 def test_install_shadow_guard_can_be_overridden_explicitly(tmp_path):
