@@ -511,13 +511,17 @@ def test_mutating_action_repeat_is_not_undo(ytnova_binary, tmp_path):
     root.mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
-
-    tui.send_keystroke("M", wait=0.25)
-    tui.send_keystroke("first_dir\r", wait=0.6)
-    tui.send_keystroke("M", wait=0.25)
-    tui.send_keystroke("second_dir\r", wait=0.6)
-    tui.quit()
+    try:
+        for name in ("first_dir", "second_dir"):
+            created = root / name
+            assert tui.send_and_wait_for_screen_change("M", timeout=2.0)
+            assert tui.send_and_wait_for_condition(
+                name + "\r",
+                lambda lines: lines if created.is_dir() else False,
+                timeout=2.0,
+            ), f"mkdir action did not create {name}"
+    finally:
+        tui.quit()
 
     assert (root / "first_dir").is_dir(), (
         "First mkdir action should persist after repeating the key."

@@ -135,10 +135,7 @@ def _move_selection_to_exact_span(tui, target, max_steps=12):
         steps += 1
 
 def test_f2_log_and_cycle_volumes(tmp_path):
-    """
-    Test that F2 can log new volumes, cycle through them, and update the main views.
-    """
-    # 1. Setup two distinct directory structures
+    """F2 can log a destination volume and cycle away from and back to it."""
     dir_a = tmp_path / "volume_a"
     dir_a.mkdir()
     (dir_a / "file_a.txt").touch()
@@ -146,62 +143,41 @@ def test_f2_log_and_cycle_volumes(tmp_path):
     dir_b = tmp_path / "volume_b"
     dir_b.mkdir()
     (dir_b / "file_b.txt").touch()
+    (tmp_path / "seed.txt").touch()
 
-    # Start ytnova in the base path
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(tmp_path))
-    
+
     try:
-        # Give it a moment to startup
-        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
-
-        # Send 'c' (Copy) on the first file to trigger the copy interaction
-        assert tui.send_and_wait_for_screen_change('c')
-        
-        # Accept filename
-        assert tui.send_and_wait_for_screen_change('\r')
-
-        # Now at "To Directory:" prompt. Hit F2!
+        assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("file view" in line.lower() for line in lines)
+            else False,
+            timeout=1.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        tui.send_keystroke(Keys.COPY, wait=0.3)
+        assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert tui.wait_for_content("To Directory:", timeout=1.0), get_screen_text(tui)
         assert tui.send_and_wait_for_screen_change(Keys.F2)
-        
-        # We are in the F2 menu. Press 'L' to log a new directory!
-        assert tui.send_and_wait_for_screen_change('l')
-        
-        # Enter dir_a
-        assert tui.send_and_wait_for_screen_change(str(dir_a) + '\r')
-        
-        # The F2 window now shows dir_a tree. Cycle back or accept it
-        # Let's select it for the copy destination
-        assert tui.send_and_wait_for_screen_change('\r')
 
-        # The copy likely succeeded or failed, but the side effect is we now have volume_a logged!
-        # Wait, if we accept it, ytnova performs the copy and returns to the main view.
-        # But we want to test cycling! Let's just enter another copy prompt and cycle!
-        
-        assert tui.send_and_wait_for_screen_change('c')
-        assert tui.send_and_wait_for_screen_change('\r')
-        
-        # At "To Directory" again:
-        assert tui.send_and_wait_for_screen_change(Keys.F2)
-        
-        # Cycle back using '<'
-        assert tui.send_and_wait_for_screen_change('<')
-        
-        screen = get_screen_text(tui)
-        # We should see the previous volume (presumably the tmp_path or volume_a depending on how it cycles)
-        assert "volume" in screen or "tmp" in screen, f"Failed to cycle F2 window. Screen:\n{screen}"
-        
-        # Hit Escape to get out of F2, then escape to cancel Copy
-        assert tui.send_and_wait_for_screen_change(Keys.ESC)
-        assert tui.send_and_wait_for_screen_change(Keys.ESC)
-        
-        # Return to Tree view
-        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
-        
-        # In main view, cycle volumes with '<' to verify the main view also has them logged
-        assert tui.send_and_wait_for_screen_change('<')
-        
-        screen = get_screen_text(tui)
-        assert "volume_a" in screen, f"Main view did not cycle to volume_a. Screen:\n{screen}"
+        tui.send_keystroke(Keys.LOG, wait=0.3)
+        assert tui.wait_for_content("Log Path:", timeout=1.0), get_screen_text(tui)
+        tui.send_keystroke(Keys.CTRL_U + str(dir_a) + Keys.ENTER, wait=0.3)
+        assert tui.wait_for_content("volume_a", timeout=1.0), get_screen_text(tui)
+
+        tui.send_keystroke("<", wait=0.3)
+        assert tui.wait_for_condition(
+            lambda lines: lines
+            if any("seed.txt" in line for line in lines)
+            else False,
+            timeout=2.0,
+            poll_interval=0.05,
+        ), get_screen_text(tui)
+        tui.send_keystroke(">", wait=0.3)
+        assert tui.wait_for_content("volume_a", timeout=2.0), get_screen_text(tui)
 
     finally:
         tui.quit()

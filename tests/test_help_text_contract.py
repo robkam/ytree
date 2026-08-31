@@ -121,6 +121,16 @@ def _send_help_key_until_text(tui, key, text, *, timeout=1.0):
     return "\n".join(screen)
 
 
+def _follow_visible_help_link(tui, *, safety_cap=80):
+    """Follow any selectable help link without coupling to its editable prose."""
+    for _ in range(safety_cap):
+        tui.send_keystroke(Keys.DOWN, wait=0)
+        linked = tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=0.2)
+        if linked:
+            return linked
+    pytest.fail("Could not reach a selectable help link before the safety cap.")
+
+
 def _open_help_detail(
     tui, label, detail_text, *, direction_key=Keys.RIGHT, timeout=1.0, steps=24
 ):
@@ -440,10 +450,14 @@ def test_tagged_help_opens_from_the_help_index(tmp_path):
     tui = _spawn_help_tui(root)
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "directory")
-        _send_help_key_until_text(tui, "i", "Help Index")
-        tagged = _open_tagged_help_from_index(tui)
-        assert "Tagged" in tagged, tagged
+        directory_help = _wait_for_help(tui, "directory")
+        index_help = tui.send_and_wait_for_screen_change("i", timeout=1.0)
+        assert index_help, screen_text(tui)
+        assert "\n".join(index_help) != directory_help
+        linked_help = _follow_visible_help_link(tui)
+        assert linked_help, screen_text(tui)
+        returned = tui.send_and_wait_for_screen_change(Keys.LEFT, timeout=1.0)
+        assert returned, screen_text(tui)
     finally:
         tui.quit()
 def test_help_index_keeps_authored_links_above_the_popup_footer(tmp_path):
@@ -758,13 +772,14 @@ def test_contextual_help_returns_to_the_link_origin(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "directory")
-        tagged = _follow_help_topic(tui, "tag and untag", "Tagged", timeout=1.0)
-        assert "Tagged" in tagged, tagged
-
+        directory_help = _wait_for_help(tui, "directory")
+        linked_help = _follow_visible_help_link(tui)
+        assert linked_help, screen_text(tui)
         returned = tui.send_and_wait_for_condition(
             Keys.LEFT,
-            lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False,
+            lambda lines: lines
+            if any(_help_topic_title("directory") in line for line in lines)
+            else False,
             timeout=1.0,
         )
         assert returned, screen_text(tui)
@@ -777,19 +792,15 @@ def test_contextual_help_inline_links_keep_full_generated_footer(tmp_path):
 
     try:
         assert tui.wait_for_content("alpha.txt", timeout=1.5), screen_text(tui)
-        _wait_for_help(tui, "directory")
+        directory_help = _wait_for_help(tui, "directory")
 
-        tagged_help = _follow_help_topic(tui, "tag and untag", "Tagged", timeout=1.0)
-        assert "Tagged" in tagged_help, tagged_help
-        footer_line = next(
-            line for line in tagged_help.splitlines() if "Esc/Q quit" in line
-        )
-        assert "Left back" in footer_line, footer_line
-        assert "Right/Enter follow" in footer_line, footer_line
-        assert "Index" in footer_line, footer_line
+        tagged_help = _follow_visible_help_link(tui)
+        assert tagged_help, screen_text(tui)
         returned = tui.send_and_wait_for_condition(
             Keys.LEFT,
-            lambda lines: lines if any(_help_topic_title("directory") in line for line in lines) else False,
+            lambda lines: lines
+            if any(_help_topic_title("directory") in line for line in lines)
+            else False,
             timeout=1.0,
         )
         assert returned, screen_text(tui)

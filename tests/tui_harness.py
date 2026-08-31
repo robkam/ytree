@@ -139,6 +139,15 @@ class YtreeNovaTUI:
         """Wait until the target string appearing anywhere on the screen."""
         return bool(self.wait_for_text(target, timeout=timeout, poll_interval=0.1))
 
+    def wait_for_exit(self, timeout=5.0):
+        """Wait for the application to complete its orderly shutdown."""
+        try:
+            self.child.expect(pexpect.EOF, timeout=self._scaled(timeout))
+        except pexpect.TIMEOUT:
+            return False
+        self._read_output(timeout=0)
+        return True
+
     def quit(self):
         """Cleanly exit."""
         self.child.close(force=True)

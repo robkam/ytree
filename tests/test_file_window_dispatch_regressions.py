@@ -50,8 +50,13 @@ def test_make_file_prompt_dispatch_creates_file(ytnova_binary, tmp_path):
         tui.send_keystroke(Keys.MAKE_FILE, wait=0.25)
         assert tui.wait_for_content("MAKE FILE:", timeout=1.0), _screen_text(tui)
 
-        tui.send_keystroke("created_from_prompt.txt" + Keys.ENTER, wait=0.45)
-        assert (root / "created_from_prompt.txt").exists()
+        created = root / "created_from_prompt.txt"
+        tui.send_keystroke("created_from_prompt.txt" + Keys.ENTER, wait=0)
+        assert tui.wait_for_condition(
+            lambda _lines: created.exists(),
+            timeout=2.0,
+            description="created file",
+        )
     finally:
         tui.quit()
 

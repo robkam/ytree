@@ -38,14 +38,22 @@ def test_external_viewer_return_restores_full_ui_frame(tmp_path, ytnova_binary):
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         assert "file" in _footer_text(tui).lower(), _screen_text(tui)
 
         tui.send_keystroke("v", wait=0.8)
-        screen = _screen_text(tui)
+        lines = tui.wait_for_condition(
+            lambda current: current
+            if any("Path:" in line for line in current)
+            and "hex" in _footer_text(tui).lower()
+            and "compare" in _footer_text(tui).lower()
+            else False,
+            timeout=5.0,
+            description="full UI frame after external viewer",
+        )
+        screen = "\n".join(lines)
         footer = _footer_text(tui).lower()
         assert "Path:" in screen, f"Header row not restored after external viewer.\n{screen}"
         assert "hex" in footer and "compare" in footer, (
