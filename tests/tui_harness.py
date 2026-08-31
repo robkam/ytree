@@ -37,12 +37,12 @@ class YtreeNovaTUI:
         self.screen = pyte.Screen(cols, rows)
         self.stream = pyte.Stream(self.screen)
         
+        self.last_wait_diagnostic = None
+
         # Wait for the main UI tree to be ready (handles startup scan + any error dialogs)
         # The tree pane shows box-drawing like "tq" or "mq" once the dir is scanned.
         if not self.wait_for_content("tq", timeout=8.0) and not self.wait_for_content("mq", timeout=1.0):
-            # Fallback: just sleep and drain
-            time.sleep(2.0 * self.time_scale)
-            self._read_output()
+            self._read_output(timeout=2.0)
 
     @staticmethod
     def _read_time_scale():
@@ -59,13 +59,13 @@ class YtreeNovaTUI:
     def _read_output(self, timeout=0.1):
         """Read pending output from the PTY and feed it to the virtual screen."""
         try:
-            # We use a short sleep to allow the application to process and write to the PTY
-            time.sleep(self._scaled(timeout))
-            
-            # Non-blocking read (read_nonblocking could throw Timeout or EOF)
+            # Wait for the first PTY event, then drain everything already available.
+            # pexpect owns the wait; tests never synchronize by wall-clock sleep.
+            read_timeout = self._scaled(timeout)
             while True:
-                data = self.child.read_nonblocking(size=4096, timeout=self._scaled(0.1))
+                data = self.child.read_nonblocking(size=4096, timeout=read_timeout)
                 self.stream.feed(data)
+                read_timeout = 0
         except (pexpect.TIMEOUT, pexpect.EOF):
             pass
 
@@ -84,19 +84,24 @@ class YtreeNovaTUI:
         self._read_output(timeout=0.05)
         return self.peek_screen_dump()
 
-    def wait_for_condition(self, predicate, timeout=5.0, poll_interval=0.02):
+    def wait_for_condition(self, predicate, timeout=5.0, poll_interval=0.02, description=None):
         """Poll until predicate(screen_lines) returns a truthy value or timeout expires."""
         deadline = time.monotonic() + self._scaled(timeout)
 
         while True:
-            self._read_output(timeout=0.0)
+            remaining = max(0.0, deadline - time.monotonic())
+            self._read_output(timeout=min(self._scaled(poll_interval), remaining))
             lines = self.peek_screen_dump()
             result = predicate(lines)
             if result:
+                self.last_wait_diagnostic = None
                 return result
             if time.monotonic() >= deadline:
+                label = description or getattr(predicate, "__name__", "screen predicate")
+                self.last_wait_diagnostic = (
+                    f"Timed out waiting for {label}; screen={lines!r}"
+                )
                 return False
-            time.sleep(self._scaled(poll_interval))
 
     def wait_for_text(self, target, timeout=5.0, poll_interval=0.02):
         """Wait until the target string appears anywhere on the screen."""
@@ -106,6 +111,7 @@ class YtreeNovaTUI:
             else False,
             timeout=timeout,
             poll_interval=poll_interval,
+            description=f"text {target!r}",
         )
 
     def send_and_wait_for_condition(

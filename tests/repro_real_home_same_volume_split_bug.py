@@ -67,11 +67,13 @@ def _discover_track_names(screen):
 
 
 def _goto_marker(tui, marker, steps=300):
-    for _ in range(steps):
-        if _stats_current_dir_contains(tui.get_screen_dump(), marker):
-            return True
+    attempts = 0
+    while not _stats_current_dir_contains(tui.get_screen_dump(), marker):
+        if attempts >= steps:
+            return False
         tui.send_keystroke(Keys.DOWN, wait=0.08)
-    return False
+        attempts += 1
+    return True
 
 
 def main():

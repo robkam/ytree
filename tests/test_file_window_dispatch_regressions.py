@@ -1,4 +1,3 @@
-import time
 
 from helpers_source import extract_function_block as _extract_function_block
 from helpers_source import read_repo_source as _read_source
@@ -21,7 +20,6 @@ def test_navigation_dispatch_updates_current_file_stats(ytnova_binary, tmp_path)
     (root / "cc_three.txt").write_text("three\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -46,7 +44,6 @@ def test_make_file_prompt_dispatch_creates_file(ytnova_binary, tmp_path):
     (root / "seed.txt").write_text("seed\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.35)
@@ -66,7 +63,6 @@ def test_split_and_tab_dispatch_keeps_file_mode_footer(ytnova_binary, tmp_path):
     (root / "right.txt").write_text("right\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.35)

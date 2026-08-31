@@ -2216,7 +2216,7 @@ Ordering policy (for all editors, including AI editors):
     * **Durable assertion:** filesystem/resulting state, mode transition, selected entity, semantic role/style, generated-artifact equivalence, security property, or a user-visible capability reached through its documented action.
     * **Incidental assertion:** an exact editable sentence, translation, command-strip packing/order, terminal row/column, visual grid, wrap point, scroll offset, fixed key-press count, or a particular private function/call branch when another implementation can provide the same behaviour.
     * Exact text remains valid only when the text itself is the external contract: CLI diagnostics/options, a machine-readable format, an intentionally stable config/template syntax, or a documented security warning.  Source inspection remains valid only for a non-observable static property (unsafe API ban, generated-file synchronisation, module-boundary guard, or a security-sensitive construction that cannot be proved safely through runtime execution).
-*   - [ ] **Status:** Not Started.
+*   - [~] **Status:** In Progress.
 
 #### Task 99.1 **Generate and Reconcile a Measurable Brittle-Pattern Baseline**
 *   Generate a checked-in baseline report over every `tests/` Python file for: direct `time.sleep()`; polling/retry loops; hard-coded terminal rows/columns, screen slices, and visual grids; fixed navigation/key-press counts; source reads and implementation-string assertions; and exact user-facing prose assertions.  Each entry must record its file, enclosing test/helper where available, matched pattern, and disposition.
@@ -2229,7 +2229,7 @@ Ordering policy (for all editors, including AI editors):
 *   For menus, footers, help, and documentation, assert the action is available and has the correct effect; do not require exact English labels, the order in which entries wrap, or a fixed number of arrows/pages to reach it unless ordering is explicitly a published user contract.
 *   Replace implementation-source assertions with focused runtime tests where the behaviour is observable.  Keep static guards only for the explicit exceptions above, and state the invariant in each retained guard's test name/message.
 *   Preserve test intent.  Do not delete a regression merely because it is brittle: rewrite it to reproduce the same user-visible failure and verify the post-action state.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete.
 
 #### Task 99.2 **Remediate Waiting and Navigation Mechanisms**
 *   Scope: `tests/tui_harness.py`, `tests/ytnova_control.py`, and every baseline match for sleeps, polling, fixed navigation, or popup detection, including `tests/test_attribute_prompt_flow.py`.  Build event-driven helpers that wait for semantic state and navigate to fixture identity rather than a terminal row or a number of key presses.  This is an independent validation boundary.

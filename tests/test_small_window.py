@@ -1,5 +1,4 @@
 import pytest
-import time
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -21,17 +20,12 @@ def test_small_window_transition(test_dir_with_files, ytnova_binary):
     ytnova_cfg.write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n")
     
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files.parent))
-    time.sleep(1.0)
-    
-    # Navigate to test_small_win directory
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN)
     
     # STATE 1: DIR window (initial state - already here)
     
     # Transition to SMALL window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.8)  # Increase sleep for reliability
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER)  # Increase sleep for reliability
     
     screen_small = "\n".join(tui.get_screen_dump())
     
@@ -40,8 +34,7 @@ def test_small_window_transition(test_dir_with_files, ytnova_binary):
     assert "test_small_win" in screen_small, "Dir name should still be visible"
     
     # Transition to BIG window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.8)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER)
     
     screen_big = "\n".join(tui.get_screen_dump())
     
@@ -49,8 +42,7 @@ def test_small_window_transition(test_dir_with_files, ytnova_binary):
     assert "FILE" in screen_big, "BIG window should show FILE footer"
     
     # Transition back to DIR window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.8)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER)
     
     screen_dir = "\n".join(tui.get_screen_dump())
     

@@ -1,4 +1,3 @@
-import time
 import pytest
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
@@ -8,19 +7,14 @@ def test_screen_wipe_after_error(ytnova_binary, tmp_path):
     BUG: After an error message (e.g., bad filter), the UI borders/stats vanish.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(tmp_path))
-    time.sleep(1.0)
-
-    # 1. Open Filter (f)
     tui.send_keystroke("f")
     # 2. Clear default '*' (C-u or backspaces) and enter bad filter
     tui.send_keystroke("\x15") # C-u
-    tui.send_keystroke("-*.nonexistent\r")
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change("-*.nonexistent\r")
 
     # 3. Expect Error Message (usually blocks or shows briefly)
     # 4. Clear error (Enter/Esc)
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER)
 
     screen = "\n".join(tui.get_screen_dump())
 
@@ -34,11 +28,7 @@ def test_l_key_binding(ytnova_binary, tmp_path):
     BUG: 'L' key moves cursor down (Vi-keys) instead of opening Log/Volume menu.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(tmp_path))
-    time.sleep(1.0)
-
-    # 1. Press 'L' (Shift+l)
-    tui.send_keystroke("L")
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change("L")
 
     screen = "\n".join(tui.get_screen_dump())
 
@@ -51,19 +41,14 @@ def test_split_screen_garbage(dual_panel_sandbox, ytnova_binary):
     BUG: Inactive panel shows '*?^X' garbage when Active panel is used.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0)
-
-    # 1. Split Screen
-    tui.send_keystroke(Keys.F8)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.F8)
 
     # 2. Tab to Right
     tui.send_keystroke(Keys.TAB)
 
     # 3. Do some work (Mkdir)
     tui.send_keystroke("M")
-    tui.send_keystroke("newdir\r")
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change("newdir\r")
 
     screen = "\n".join(tui.get_screen_dump())
 
@@ -79,16 +64,11 @@ def test_hex_view_esc_corruption(tmp_path, ytnova_binary):
     (tmp_path / "hex_test.txt").write_text("dummy binary content")
     
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(tmp_path))
-    time.sleep(1.0)
-    # Enter file window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER)
     # Press 'h' for hex view
-    tui.send_keystroke('h')
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change('h')
     # Press ESC to exit hex view
-    tui.send_keystroke(Keys.ESC)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.ESC)
     
     screen = "\n".join(tui.get_screen_dump())
     

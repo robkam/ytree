@@ -127,7 +127,6 @@ def test_compare_footer_entries_by_view(ytnova_binary, tmp_path):
     (d / "b.txt").write_text("b", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
 
     _open_directory_compare_prompt(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -148,7 +147,6 @@ def test_j_opens_directory_compare_prompt(ytnova_binary, tmp_path):
     (d / "child").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
 
     _open_directory_compare_prompt(tui)
 
@@ -164,7 +162,6 @@ def test_compare_prompt_scope_cycle_preserves_target_prompt(ytnova_binary, tmp_p
     (d / "right").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
     assert "directory | size+date | different" in _screen_text(tui).lower()
@@ -192,7 +189,6 @@ def test_compare_prompt_cycles_to_external_dirdiff_without_extra_prompts(
     log_path = _configure_dirdiff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
     _open_directory_compare_prompt(tui)
@@ -226,7 +222,6 @@ def test_compare_prompt_cycles_to_external_treediff_without_extra_prompts(
     log_path = _configure_dirdiff_capture(source_root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
     _cycle_directory_compare_scope(tui, count=3)
@@ -262,7 +257,6 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytnova_binary, tmp_
     )
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
     _open_directory_compare_prompt(tui)
@@ -294,7 +288,6 @@ def test_non_f8_compare_target_prompting_for_file_dir_tree(ytnova_binary, tmp_pa
     (d / "dir_a").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke("J", wait=0.25)
@@ -327,7 +320,6 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytnova_bin
     log_path = _configure_filediff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
     tui.send_keystroke("J", wait=0.2)
@@ -362,7 +354,6 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytnova_binary, tmp_p
     log_path = _configure_filediff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.7)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -399,7 +390,6 @@ def test_file_compare_placeholder_expansion_passes_source_and_target(ytnova_bina
     log_path = _configure_filediff_capture(d, use_placeholders=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -439,7 +429,6 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
         cwd=str(root),
         args=[str(vol_a), str(vol_b)],
     )
-    time.sleep(0.8)
 
     def active_volume_name():
         header = tui.get_screen_dump()[0]
@@ -462,11 +451,14 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
         )
         tui.send_keystroke(Keys.ESC, wait=0.2)
 
-    for _ in range(8):
-        if active_volume_name() == "vol_a":
-            break
+    steps = 0
+    while active_volume_name() != "vol_a":
+        if steps >= 8:
+            raise AssertionError(
+                f"Failed to select the vol_a fixture volume.\n{_screen_text(tui)}"
+            )
         tui.send_keystroke(">", wait=0.3)
-    assert active_volume_name() == "vol_a"
+        steps += 1
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     ensure_file_compare_prompt_available()
@@ -486,11 +478,14 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
 
     ensure_file_compare_prompt_available()
 
-    for _ in range(8):
-        if active_volume_name() == "vol_a":
-            break
+    steps = 0
+    while active_volume_name() != "vol_a":
+        if steps >= 8:
+            raise AssertionError(
+                f"Failed to cycle back to the vol_a fixture volume.\n{_screen_text(tui)}"
+            )
         tui.send_keystroke(">", wait=0.4)
-    assert active_volume_name() == "vol_a", "Failed to cycle back to first volume."
+        steps += 1
 
     ensure_file_compare_prompt_available()
 
@@ -537,7 +532,6 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytnova_binary, 
     os.utime(beta_diff, (newer_time, newer_time))
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.7)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
     tui.send_keystroke(Keys.F8, wait=0.4)
@@ -577,7 +571,6 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytnova_binary, 
     (other_root / "main_dir" / "tree_diff.txt").write_text("right-tree", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(main_root))
-    time.sleep(0.8)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.3)
@@ -638,7 +631,6 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
     (target_root / "top" / "deep" / "unlogged_diff.txt").write_text("target-change", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
-    time.sleep(0.8)
 
     _open_directory_compare_prompt(tui)
     _cycle_directory_compare_scope(tui)
@@ -662,7 +654,6 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytnova_binary, tmp
     (d / "x").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
     tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -702,7 +693,6 @@ def test_file_compare_cancel_path_is_safe(ytnova_binary, tmp_path):
     log_path = _configure_filediff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -720,7 +710,6 @@ def test_file_compare_rejects_same_file_target(ytnova_binary, tmp_path):
     log_path = _configure_filediff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -741,7 +730,6 @@ def test_compare_prompt_labels_and_result_text(ytnova_binary, tmp_path):
     (d / "alpha").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
     screen_lower = _screen_text(tui).lower()
@@ -772,7 +760,6 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytnova_binary, tmp_path):
     (d / "alpha").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
 
@@ -798,7 +785,6 @@ def test_split_filemode_toggle_truncates_footer_without_wrapping(ytnova_binary, 
     (d / "b.txt").write_text("b", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke("J", wait=0.25)
@@ -837,7 +823,6 @@ def test_file_compare_target_help_is_file_specific_and_f2_browse_keeps_footer_cl
     (d / "browse_here").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     tui.send_keystroke("J", wait=0.2)
@@ -868,7 +853,6 @@ def test_file_view_ctrl_k_remains_tagged_copy(ytnova_binary, tmp_path):
     (d / "f2.txt").write_text("y", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
     tui.send_keystroke("t", wait=0.2)       # tag current file
@@ -895,7 +879,6 @@ def test_file_compare_j_flow_uses_current_file_source_and_prompt_behavior(
     log_path = _configure_filediff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # b_source.txt
     tui.send_keystroke("J", wait=0.25)
@@ -928,7 +911,6 @@ def test_compare_external_tree_falls_back_to_dirdiff_when_treediff_unset(
     log_path = _configure_dirdiff_only_capture(source_root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
     _cycle_directory_compare_scope(tui, count=3)
@@ -964,7 +946,6 @@ def test_external_compare_launch_does_not_modify_file_tag_state(ytnova_binary, t
     log_path = _configure_dirdiff_capture(d)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
     _open_directory_compare_prompt(tui)
@@ -994,7 +975,6 @@ def test_compare_help_close_with_f1_and_esc_returns_to_same_prompt(
     (d / "alpha").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    time.sleep(0.6)
 
     _open_directory_compare_prompt(tui)
 

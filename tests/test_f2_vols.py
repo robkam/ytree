@@ -1,7 +1,6 @@
 import pytest
 import os
 import re
-import time
 from helpers_ui import _panel_path_header, _path_label
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
@@ -123,16 +122,17 @@ def _left_row_containing(tui, target, max_x=70):
 
 
 def _move_selection_to_exact_span(tui, target, max_steps=12):
-    for _ in range(max_steps):
-        if _has_exact_span_text(tui, target):
-            return
+    steps = 0
+    while not _has_exact_span_text(tui, target):
+        if steps >= max_steps:
+            raise AssertionError(
+                f"Could not move F2 selection to {target!r}.\n{get_screen_text(tui)}"
+            )
         if not _screen_contains_text(tui, target):
             tui.send_keystroke(Keys.RIGHT, wait=0.6)
-            continue
-        tui.send_keystroke(Keys.DOWN, wait=0.3)
-    raise AssertionError(
-        f"Could not move F2 selection to {target!r}.\n{get_screen_text(tui)}"
-    )
+        else:
+            tui.send_keystroke(Keys.DOWN, wait=0.3)
+        steps += 1
 
 def test_f2_log_and_cycle_volumes(tmp_path):
     """
@@ -152,71 +152,53 @@ def test_f2_log_and_cycle_volumes(tmp_path):
     
     try:
         # Give it a moment to startup
-        time.sleep(1.0)
-        
-        # Enter file view
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
 
         # Send 'c' (Copy) on the first file to trigger the copy interaction
-        tui.send_keystroke('c')
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change('c')
         
         # Accept filename
-        tui.send_keystroke('\r')
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change('\r')
 
         # Now at "To Directory:" prompt. Hit F2!
-        tui.send_keystroke(Keys.F2)
-        time.sleep(1.0)
+        assert tui.send_and_wait_for_screen_change(Keys.F2)
         
         # We are in the F2 menu. Press 'L' to log a new directory!
-        tui.send_keystroke('l')
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change('l')
         
         # Enter dir_a
-        tui.send_keystroke(str(dir_a) + '\r')
-        time.sleep(1.0)
+        assert tui.send_and_wait_for_screen_change(str(dir_a) + '\r')
         
         # The F2 window now shows dir_a tree. Cycle back or accept it
         # Let's select it for the copy destination
-        tui.send_keystroke('\r')
-        time.sleep(1.0)
+        assert tui.send_and_wait_for_screen_change('\r')
 
         # The copy likely succeeded or failed, but the side effect is we now have volume_a logged!
         # Wait, if we accept it, ytnova performs the copy and returns to the main view.
         # But we want to test cycling! Let's just enter another copy prompt and cycle!
         
-        tui.send_keystroke('c')
-        time.sleep(0.5)
-        tui.send_keystroke('\r')
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change('c')
+        assert tui.send_and_wait_for_screen_change('\r')
         
         # At "To Directory" again:
-        tui.send_keystroke(Keys.F2)
-        time.sleep(1.0)
+        assert tui.send_and_wait_for_screen_change(Keys.F2)
         
         # Cycle back using '<'
-        tui.send_keystroke('<')
-        time.sleep(1.0)
+        assert tui.send_and_wait_for_screen_change('<')
         
         screen = get_screen_text(tui)
         # We should see the previous volume (presumably the tmp_path or volume_a depending on how it cycles)
         assert "volume" in screen or "tmp" in screen, f"Failed to cycle F2 window. Screen:\n{screen}"
         
         # Hit Escape to get out of F2, then escape to cancel Copy
-        tui.send_keystroke(Keys.ESC)
-        time.sleep(0.5)
-        tui.send_keystroke(Keys.ESC)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.ESC)
+        assert tui.send_and_wait_for_screen_change(Keys.ESC)
         
         # Return to Tree view
-        tui.send_keystroke(Keys.ENTER)
-        time.sleep(0.5)
+        assert tui.send_and_wait_for_screen_change(Keys.ENTER)
         
         # In main view, cycle volumes with '<' to verify the main view also has them logged
-        tui.send_keystroke('<')
-        time.sleep(1.0)
+        assert tui.send_and_wait_for_screen_change('<')
         
         screen = get_screen_text(tui)
         assert "volume_a" in screen, f"Main view did not cycle to volume_a. Screen:\n{screen}"
@@ -236,7 +218,6 @@ def test_f2_right_expands_then_enters_and_left_collapses_or_returns_parent(tmp_p
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
 
     try:
-        time.sleep(0.8)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         tui.send_keystroke(Keys.COPY, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -474,7 +455,6 @@ def test_f2_escape_can_abort_right_expand_scan(tmp_path):
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
 
     try:
-        time.sleep(0.8)
         assert _total_items_count(tui) == 1
 
         tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -508,7 +488,6 @@ def test_history_selection_only_covers_the_current_item(tmp_path):
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
 
     try:
-        time.sleep(0.8)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         tui.send_keystroke(Keys.COPY, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.2)
@@ -539,7 +518,6 @@ def test_f2_selection_stops_before_the_synthetic_expand_suffix(tmp_path):
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
 
     try:
-        time.sleep(0.8)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         tui.send_keystroke(Keys.COPY, wait=0.3)
         tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -567,8 +545,15 @@ def test_f2_picker_down_moves_highlight_before_scrolling(tmp_path):
 
     try:
         assert tui.wait_for_content("seed.txt", timeout=2.0), get_screen_text(tui)
-        for _ in range(35):
+        steps = 0
+        while "dir_34" not in tui.get_screen_dump()[0]:
+            if steps >= 80:
+                raise AssertionError(
+                    "Could not select dir_34 before opening the F2 picker.\n"
+                    f"{get_screen_text(tui)}"
+                )
             tui.send_keystroke(Keys.DOWN, wait=0.03)
+            steps += 1
 
         tui.send_keystroke(Keys.ENTER, wait=0.2)
         tui.send_keystroke(Keys.COPY, wait=0.2)
@@ -663,7 +648,6 @@ def test_volume_menu_selection_only_covers_current_item(tmp_path):
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
 
     try:
-        time.sleep(0.8)
         tui.send_keystroke("K", wait=0.6)
 
         _, _, _, _, text = _span_containing(tui, f"[*] {root}")
@@ -689,7 +673,6 @@ def test_f9_applications_menu_selection_only_covers_current_item(tmp_path):
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
 
     try:
-        time.sleep(0.8)
         tui.send_keystroke(Keys.F9, wait=0.6)
 
         _, _, _, _, text = _span_containing(tui, "wget fetch preset")
