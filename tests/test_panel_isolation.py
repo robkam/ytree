@@ -126,6 +126,32 @@ def _run_compare_and_read_source(tui, compare_target, log_path):
     return log_path.read_text(encoding="utf-8").splitlines()[0]
 
 
+def _enter_file_view_for_fixture(tui, fixture_name):
+    lines = tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda current_lines: current_lines
+        if any(fixture_name in line for line in current_lines)
+        else False,
+        timeout=1.5,
+    )
+    if lines:
+        return lines
+
+    assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=1.5), _screen_text(tui)
+    assert tui.send_and_wait_for_screen_change(
+        ">", timeout=1.5
+    ), _screen_text(tui)
+    lines = tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda current_lines: current_lines
+        if any(fixture_name in line for line in current_lines)
+        else False,
+        timeout=1.5,
+    )
+    assert lines, _screen_text(tui)
+    return lines
+
+
 def _configure_filediff_capture(tmp_dir):
     log_path = tmp_dir / "filediff_args.log"
     helper_path = tmp_dir / ".capture_filediff.sh"
@@ -2146,30 +2172,7 @@ def test_split_file_selection_preserves_panel_local_volume_cycle_state(
     volume_names = ("split_cycle_vol_a", "split_cycle_vol_b")
 
     try:
-        if _active_volume_name_from_lines(tui.get_screen_dump(), *volume_names) != "split_cycle_vol_a":
-            for _ in range(8):
-                lines = tui.send_and_wait_for_condition(
-                    ">",
-                    lambda current_lines: current_lines
-                    if _active_volume_name_from_lines(current_lines, *volume_names)
-                    == "split_cycle_vol_a"
-                    else False,
-                    timeout=1.5,
-                )
-                if lines:
-                    break
-            else:
-                lines = False
-            assert lines, _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda current_lines: current_lines
-            if "hex invert j compare" in _footer_text_from_lines(current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
+        _enter_file_view_for_fixture(tui, "a_state_0.txt")
         tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
         tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
         source_left_expected = _run_compare_and_read_source(tui, compare_target, log_path)
@@ -2944,38 +2947,41 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
     (sibling_dir / "sibling_file.txt").write_text("sibling\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_content("parent_dir", timeout=2.0), _screen_text(tui)
 
     # Expand tree so parent/child are visible in both panels.
-    tui.send_keystroke(Keys.EXPAND_ALL)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_condition(
+        Keys.EXPAND_ALL,
+        lambda lines: lines if any("child_dir" in line for line in lines) else False,
+        timeout=2.0,
+    ), _screen_text(tui)
 
     # Left panel (active): move to parent_dir.
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=2.0), _screen_text(tui)
 
     # Split and move to right panel.
-    tui.send_keystroke(Keys.F8)
-    time.sleep(0.5)
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
 
     # Right panel: move inside collapsed target branch (parent -> child).
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=2.0), _screen_text(tui)
 
     # Back to left panel and collapse parent_dir.
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
-    tui.send_keystroke(Keys.LEFT)
-    time.sleep(0.6)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
+    assert tui.send_and_wait_for_condition(
+        Keys.LEFT,
+        lambda lines: lines if not any("child_dir" in line for line in lines) else False,
+        timeout=2.0,
+    ), _screen_text(tui)
 
     # Return to right panel and enter selected directory.
     # Expected: selection was re-anchored to parent_dir.
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.6)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda lines: lines if any("parent_file.txt" in line for line in lines) else False,
+        timeout=2.0,
+    ), _screen_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     if "parent_file.txt" not in screen:
@@ -3011,7 +3017,7 @@ def test_f8_inactive_selection_delete_falls_to_next_visible_sibling(
     (after_dir / "after_marker.txt").write_text("after\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_content("bbb_target_dir", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -3027,13 +3033,20 @@ def test_f8_inactive_selection_delete_falls_to_next_visible_sibling(
         tui.child.send(Keys.DELETE)
         tui.child.expect(r"(Delete this directory|PRUNE)", timeout=2.0)
         tui.child.send("Y")
-        tui.send_keystroke("", wait=0.9)
+        assert tui.wait_for_condition(
+            lambda lines: lines if not target_dir.exists() else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         _assert_dir_mode_footer(
             tui, "Expected right panel tree mode after mirrored delete."
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("after_marker.txt" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
         screen = _screen_text(tui)
         header = screen.splitlines()[0] if screen else ""
@@ -3063,7 +3076,7 @@ def test_f8_inactive_selection_delete_falls_to_visible_ancestor(
     (selected_dir / "selected_marker.txt").write_text("selected\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_content("grand_dir", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -3082,13 +3095,20 @@ def test_f8_inactive_selection_delete_falls_to_visible_ancestor(
         tui.child.send(Keys.DELETE)
         tui.child.expect(r"(Delete this directory|PRUNE)", timeout=2.0)
         tui.child.send("Y")
-        tui.send_keystroke("", wait=1.0)
+        assert tui.wait_for_condition(
+            lambda lines: lines if not deleted_ancestor.exists() else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         _assert_dir_mode_footer(
             tui, "Expected right panel tree mode after ancestor delete."
         )
-        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("grand_marker.txt" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
         screen = _screen_text(tui)
         assert "grand_marker.txt" in screen, (
