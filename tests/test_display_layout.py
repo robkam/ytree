@@ -10,6 +10,21 @@ from helpers_ui import footer_text as _footer_text
 from ytnova_keys import Keys
 from tui_harness import YtreeNovaTUI
 
+
+def _select_tree_header_marker(tui, marker, timeout=3.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        lines = tui.get_screen_dump()
+        if lines and marker in lines[0]:
+            return lines
+        lines = tui.send_and_wait_for_screen_change(
+            Keys.DOWN, timeout=min(0.5, max(0.05, deadline - time.monotonic()))
+        )
+        if lines and marker in lines[0]:
+            return lines
+    screen = "\n".join(tui.get_screen_dump())
+    pytest.fail(f"Could not select {marker!r}.\n{screen}")
+
 def get_clean_screen(yt):
     try:
         yt.child.expect(pexpect.TIMEOUT, timeout=0.2)
@@ -133,8 +148,7 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytnova_binary, tmp_p
     # Make the window wide enough for multi-column rendering of short names.
     tui.child.setwinsize(36, 160)
     tui.screen.resize(36, 160)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(test_dir.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.5)
     lines = tui.get_screen_dump()
@@ -201,8 +215,7 @@ def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytnova_binary, t
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 120)
     tui.screen.resize(36, 120)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(d.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.5)  # file view
     tui.send_keystroke(Keys.F8, wait=0.5)     # split
@@ -275,8 +288,7 @@ def test_file_window_left_right_edge_no_wrap(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     tui.child.setwinsize(48, 160)
     tui.screen.resize(48, 160)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(test_dir.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.5)
     lines = tui.get_screen_dump()
@@ -348,8 +360,7 @@ def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytnova_binary, t
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(32, 84)
     tui.screen.resize(32, 84)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(d.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.5)
 
@@ -397,8 +408,7 @@ def test_file_window_one_column_edges_preserve_row(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     tui.child.setwinsize(36, 160)
     tui.screen.resize(36, 160)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(test_dir.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.5)
     lines = tui.get_screen_dump()
@@ -614,8 +624,7 @@ def test_backslash_to_dir_in_showall_and_global(ytnova_binary, tmp_path, mode_ke
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(mode_key, wait=0.6)
     screen = "\n".join(tui.get_screen_dump())
@@ -683,8 +692,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path)
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(d.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     screen = "\n".join(tui.get_screen_dump())
     assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
@@ -719,8 +727,7 @@ def test_sort_prompt_uses_full_footer_without_bleed(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(d.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     # Enter file mode and open sort prompt.
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -759,8 +766,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     # Select src_dir (first child of logged root in this fixture).
     tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -824,8 +830,7 @@ def test_dir_copy_to_missing_destination_decline_reopens_prompt_without_frame_co
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.child.send("c")
@@ -890,8 +895,7 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.child.send("c")
@@ -932,8 +936,7 @@ def test_dir_copy_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.child.send("c")
@@ -951,8 +954,7 @@ def test_file_move_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_condition(
@@ -983,8 +985,7 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text("source_bucket", timeout=2.0), "\n".join(tui.get_screen_dump())
 
     # root -> source_bucket -> src_dir
     tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -1010,11 +1011,7 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_
     assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
     # Move to target_bucket and verify the copied branch is visible immediately.
-    for _ in range(16):
-        if "target_bucket" in tui.get_screen_dump()[0]:
-            break
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "target_bucket" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    _select_tree_header_marker(tui, "target_bucket")
 
     tui.send_keystroke(Keys.ENTER, wait=0.6)
     after_target_enter = "\n".join(tui.get_screen_dump())
@@ -1024,11 +1021,7 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_
         f"{after_target_enter}"
     )
 
-    for _ in range(16):
-        if "new_parent" in tui.get_screen_dump()[0]:
-            break
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "new_parent" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    _select_tree_header_marker(tui, "new_parent")
 
     tui.send_keystroke(Keys.ENTER, wait=0.6)
     after_new_parent_enter = "\n".join(tui.get_screen_dump())
@@ -1056,8 +1049,7 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytnova_binary, t
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text("source_bucket", timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke(Keys.RIGHT, wait=0.6)
@@ -1082,18 +1074,10 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytnova_binary, t
     assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
     # Navigate to created destination directory and delete it.
-    for _ in range(16):
-        if "target_bucket" in tui.get_screen_dump()[0]:
-            break
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "target_bucket" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    _select_tree_header_marker(tui, "target_bucket")
     tui.send_keystroke(Keys.ENTER, wait=0.6)
 
-    for _ in range(16):
-        if "new_parent" in tui.get_screen_dump()[0]:
-            break
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "new_parent" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    _select_tree_header_marker(tui, "new_parent")
 
     tui.child.send(Keys.DELETE)
     tui.child.expect(r"(Delete this directory|PRUNE)", timeout=2.0)
@@ -1128,8 +1112,7 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytnova_binary, tm
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text("source_bucket", timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke(Keys.RIGHT, wait=0.6)
@@ -1153,11 +1136,7 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytnova_binary, tm
     assert created, "Directory copy to absolute destination did not complete"
     assert "Copy directory now" not in "\n".join(tui.get_screen_dump())
 
-    for _ in range(16):
-        if "target_bucket" in tui.get_screen_dump()[0]:
-            break
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "target_bucket" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    _select_tree_header_marker(tui, "target_bucket")
     tui.send_keystroke(Keys.ENTER, wait=0.6)
     after_target_enter = "\n".join(tui.get_screen_dump())
     assert "new_parent" in after_target_enter, (
@@ -1182,8 +1161,7 @@ def test_jump_prompt_uses_footer_without_bleed(ytnova_binary, tmp_path):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
-    time.sleep(1.0)
-    tui.send_keystroke("", wait=0.2)
+    assert tui.wait_for_text(d.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke("/", wait=0.4)
