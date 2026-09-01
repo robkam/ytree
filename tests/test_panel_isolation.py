@@ -258,6 +258,24 @@ def _move_to_stats_dir(tui, marker, *, max_steps=160):
     pytest.fail(f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}")
 
 
+def _select_tree_dir_by_marker(tui, marker, timeout=5.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        current_lines = tui.get_screen_dump()
+        header = current_lines[0] if current_lines else ""
+        if marker in header:
+            return current_lines
+        lines = tui.send_and_wait_for_screen_change(
+            Keys.DOWN,
+            timeout=min(0.5, max(0.05, deadline - time.monotonic())),
+        )
+        if lines:
+            header = lines[0] if lines else ""
+            if marker in header:
+                return lines
+    pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
+
+
 def test_tree_viewport_helper_uses_current_row_and_exact_labels():
     left_width = 60
     lines = [
@@ -1558,26 +1576,26 @@ def test_smallwindowskip_volume_cycle_restores_deep_file_context(
         "smallskip_cycle_home",
     )
 
-    def cycle_to(volume_name, key=">"):
-        if _active_volume_name_from_lines(tui.get_screen_dump(), *volume_names) == volume_name:
+    def cycle_to(volume_name, ready_marker, key=">"):
+        def volume_ready(lines):
+            return (
+                _active_volume_name_from_lines(lines, *volume_names) == volume_name
+                and any(ready_marker in line for line in lines)
+            )
+        if volume_ready(tui.get_screen_dump()):
             return
         for _ in range(12):
             lines = tui.send_and_wait_for_condition(
                 key,
-                lambda current_lines: current_lines
-                if _active_volume_name_from_lines(current_lines, *volume_names)
-                == volume_name
-                else False,
+                lambda current_lines: current_lines if volume_ready(current_lines) else False,
                 timeout=1.5,
             )
             if lines:
                 return
-        assert _active_volume_name_from_lines(tui.get_screen_dump(), *volume_names) == volume_name, (
-            _screen_text(tui)
-        )
+        assert volume_ready(tui.get_screen_dump()), _screen_text(tui)
 
     try:
-        cycle_to("smallskip_cycle_vol_a")
+        cycle_to("smallskip_cycle_vol_a", "a_parent")
 
         tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=0.8)
         tui.send_and_wait_for_condition(
@@ -1609,7 +1627,7 @@ def test_smallwindowskip_volume_cycle_restores_deep_file_context(
         source_a_expected = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_a_expected.endswith("a_deep_1.txt"), source_a_expected
 
-        cycle_to("smallskip_cycle_vol_b")
+        cycle_to("smallskip_cycle_vol_b", "b_parent")
         if "hex invert j compare" in _footer_text(tui):
             tui.send_and_wait_for_condition(
                 Keys.ESC,
@@ -1649,7 +1667,7 @@ def test_smallwindowskip_volume_cycle_restores_deep_file_context(
         source_b_expected = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_b_expected.endswith("b_deep_2.txt"), source_b_expected
 
-        cycle_to("smallskip_cycle_home")
+        cycle_to("smallskip_cycle_home", "zz_release_anchor")
         if "hex invert j compare" in _footer_text(tui):
             tui.send_and_wait_for_condition(
                 Keys.ESC,
@@ -1690,7 +1708,7 @@ def test_smallwindowskip_volume_cycle_restores_deep_file_context(
                 timeout=1.5,
             )
 
-        cycle_to("smallskip_cycle_vol_a")
+        cycle_to("smallskip_cycle_vol_a", "a_parent")
         _wait_for_footer_state(tui, contains=("hex invert j compare",))
 
         source_a_after_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
@@ -1729,7 +1747,7 @@ def test_smallwindowskip_volume_cycle_restores_deep_file_context(
             timeout=1.5,
         )
 
-        cycle_to("smallskip_cycle_vol_b")
+        cycle_to("smallskip_cycle_vol_b", "b_parent")
         _wait_for_footer_state(tui, contains=("hex invert j compare",))
         source_b_after_cycle = _run_compare_and_read_source(tui, compare_target, log_path)
         assert source_b_after_cycle == source_b_expected, (
@@ -3145,34 +3163,34 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytnov
     (sibling_dir / "sibling_file.txt").write_text("sibling\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_content("parent_dir", timeout=2.0), _screen_text(tui)
 
     # Left panel (active): select parent_dir.
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.4)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=2.0), _screen_text(tui)
 
     # Split and move to right panel (mirrored tree state).
-    tui.send_keystroke(Keys.F8)
-    time.sleep(0.4)
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.4)
+    assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
 
     # Right panel (inactive target): select sibling_dir.
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.4)
+    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=2.0), _screen_text(tui)
 
     # Back to left panel and expand parent_dir.
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.4)
-    tui.send_keystroke(Keys.RIGHT)
-    time.sleep(0.6)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
+    assert tui.send_and_wait_for_condition(
+        Keys.RIGHT,
+        lambda lines: lines if any("child_dir" in line for line in lines) else False,
+        timeout=2.0,
+    ), _screen_text(tui)
 
     # Return to right panel and enter the selected directory.
     # Expected: still sibling_dir (stable identity), not parent_dir/child_dir.
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.4)
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.6)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda lines: lines if any("sibling_file.txt" in line for line in lines) else False,
+        timeout=2.0,
+    ), _screen_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     if "sibling_file.txt" not in screen:
@@ -3206,19 +3224,8 @@ def test_bug_f_eight_mkdir_additions_keep_inactive_selection_identity(
     (active_branch / "child_existing").mkdir()
     (tail_dir / "tail_file.txt").write_text("tail\n", encoding="utf-8")
 
-    def _active_path_contains(tui, marker):
-        screen = _screen_text(tui)
-        header = screen.splitlines()[0] if screen else ""
-        return marker in header
-
     def _select_dir_by_marker(tui, marker):
-        for _ in range(40):
-            if _active_path_contains(tui, marker):
-                return
-            tui.send_keystroke(Keys.DOWN, wait=0.2)
-        raise AssertionError(
-            f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}"
-        )
+        return _select_tree_dir_by_marker(tui, marker)
 
     def _assert_right_panel_opens_tail_dir(tui, label):
         tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -3234,7 +3241,7 @@ def test_bug_f_eight_mkdir_additions_keep_inactive_selection_identity(
         tui.send_keystroke(Keys.TAB, wait=0.4)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.9)
+    assert tui.wait_for_content("active_branch", timeout=2.0), _screen_text(tui)
     try:
         _select_dir_by_marker(tui, "active_branch")
         tui.send_keystroke(Keys.F8, wait=0.4)
@@ -3287,19 +3294,8 @@ def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
     (anchor_dir / "anchor_file.txt").write_text("anchor\n", encoding="utf-8")
     (tail_dir / "tail_file.txt").write_text("tail\n", encoding="utf-8")
 
-    def _active_path_contains(tui, marker):
-        screen = _screen_text(tui)
-        header = screen.splitlines()[0] if screen else ""
-        return marker in header
-
     def _select_dir_by_marker(tui, marker):
-        for _ in range(40):
-            if _active_path_contains(tui, marker):
-                return
-            tui.send_keystroke(Keys.DOWN, wait=0.2)
-        raise AssertionError(
-            f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}"
-        )
+        return _select_tree_dir_by_marker(tui, marker)
 
     def _assert_right_panel_opens_tail_dir(tui, label):
         tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -3317,7 +3313,7 @@ def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
         tui.send_keystroke(Keys.TAB, wait=0.4)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.9)
+    assert tui.wait_for_content("active_dir", timeout=2.0), _screen_text(tui)
     try:
         _select_dir_by_marker(tui, "active_dir")
 
@@ -3370,22 +3366,11 @@ def test_bug_f_eight_dotfiles_toggle_is_panel_local_visibility(
     (tail_dir / "tail_visible.txt").write_text("visible\n", encoding="utf-8")
     (tail_dir / ".tail_hidden.txt").write_text("hidden\n", encoding="utf-8")
 
-    def _active_path_contains(tui, marker):
-        screen = _screen_text(tui)
-        header = screen.splitlines()[0] if screen else ""
-        return marker in header
-
     def _select_dir_by_marker(tui, marker):
-        for _ in range(40):
-            if _active_path_contains(tui, marker):
-                return
-            tui.send_keystroke(Keys.DOWN, wait=0.2)
-        raise AssertionError(
-            f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}"
-        )
+        return _select_tree_dir_by_marker(tui, marker)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.9)
+    assert tui.wait_for_content("active_dir", timeout=2.0), _screen_text(tui)
     try:
         _select_dir_by_marker(tui, "active_dir")
         tui.send_keystroke(Keys.F8, wait=0.4)
