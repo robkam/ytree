@@ -22,26 +22,29 @@ def test_invert_tags_i_and_upper_i_on_mixed_set(ytnova_binary, tmp_path):
     (work_dir / "gamma.txt").write_text("gamma", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-    time.sleep(0.5)
 
     try:
-        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("alpha.txt" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
-        tui.send_keystroke("t", wait=0.2)  # alpha.txt
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke("t", wait=0.2)  # gamma.txt
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
+        assert tui.send_and_wait_for_screen_change(Keys.DOWN + Keys.DOWN, timeout=2.0)
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
 
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
         _assert_file_tag_state(tui, "gamma.txt", True)
 
-        tui.send_keystroke("i", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("i", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", False)
         _assert_file_tag_state(tui, "beta.txt", True)
         _assert_file_tag_state(tui, "gamma.txt", False)
 
-        tui.send_keystroke("I", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("I", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
         _assert_file_tag_state(tui, "gamma.txt", True)
@@ -56,21 +59,21 @@ def test_invert_tags_i_and_upper_i_in_directory_window(ytnova_binary, tmp_path):
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-    time.sleep(0.5)
 
     try:
+        assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
         footer = _footer_text(tui)
         assert "j tree" in footer, f"Expected dir-window footer before invert.\n{footer}"
 
-        tui.send_keystroke("t", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", True)
 
-        tui.send_keystroke("i", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("i", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", False)
         _assert_file_tag_state(tui, "beta.txt", False)
 
-        tui.send_keystroke("I", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("I", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", True)
     finally:
@@ -88,18 +91,18 @@ def test_invert_tags_i_and_upper_i_in_archive_directory_window(
     tui = YtreeNovaTUI(
         executable=ytnova_binary, cwd=str(tmp_path), args=[str(archive_path)]
     )
-    time.sleep(0.6)
 
     try:
-        tui.send_keystroke("t", wait=0.25)
+        assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", True)
 
-        tui.send_keystroke("i", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("i", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", False)
         _assert_file_tag_state(tui, "beta.txt", False)
 
-        tui.send_keystroke("I", wait=0.25)
+        assert tui.send_and_wait_for_screen_change("I", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", True)
     finally:
@@ -285,18 +288,22 @@ def test_tagged_copy_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_pat
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-    time.sleep(0.5)
 
     try:
-        tui.send_keystroke(Keys.ENTER, wait=0.35)
-        tui.send_keystroke("t", wait=0.2)
+        assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("alpha.txt" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
 
         tui.send_keystroke("\x03", wait=0.35)  # Ctrl+C (copy tagged)
         assert tui.wait_for_content("COPY: TAGGED FILES", timeout=1.0), _screen_text(tui)
 
-        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
     finally:
@@ -310,18 +317,22 @@ def test_tagged_move_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_pat
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-    time.sleep(0.5)
 
     try:
-        tui.send_keystroke(Keys.ENTER, wait=0.35)
-        tui.send_keystroke("t", wait=0.2)
+        assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("alpha.txt" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
 
         tui.send_keystroke("\x0e", wait=0.35)  # Ctrl+N (move tagged)
         assert tui.wait_for_content("MOVE: TAGGED FILES", timeout=1.0), _screen_text(tui)
 
-        tui.send_keystroke(Keys.ESC, wait=0.2)
+        assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
     finally:
