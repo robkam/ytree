@@ -123,6 +123,16 @@ def _run_compare_and_read_source(tui, compare_target, log_path):
         assert lines, _screen_text(tui)
 
     assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    lines = tui.get_screen_dump()
+    if any("Hit return to continue" in line for line in lines):
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if not any("Hit return to continue" in line for line in current_lines)
+            else False,
+            timeout=1.5,
+        )
+        assert lines, _screen_text(tui)
     return log_path.read_text(encoding="utf-8").splitlines()[0]
 
 

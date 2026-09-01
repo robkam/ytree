@@ -20,69 +20,86 @@ def vi_mode_test_dir(tmp_path):
 
 def test_vi_uppercase_u_untags_all(ytnova_binary, vi_mode_test_dir):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(vi_mode_test_dir))
-    time.sleep(1.0)
+    try:
+        assert tui.wait_for_text("a.txt", timeout=2.0), "\n".join(tui.get_screen_dump())
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current: current
+            if any("a.txt" in line for line in current)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, "\n".join(tui.get_screen_dump())
 
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.4)
+        lines = tui.send_and_wait_for_condition(
+            "\x14",
+            lambda current: current
+            if all(f"* {name}" in "\n".join(current) for name in ("a.txt", "b.txt", "c.txt"))
+            else False,
+            timeout=2.0,
+        )
+        assert lines, "\n".join(tui.get_screen_dump())
 
-    tui.send_keystroke("\x14")  # Ctrl+T = tag all
-    time.sleep(0.4)
-
-    screen_before = "\n".join(tui.get_screen_dump())
-    assert "* a.txt" in screen_before
-    assert "* b.txt" in screen_before
-    assert "* c.txt" in screen_before
-
-    tui.send_keystroke("U")
-    time.sleep(0.4)
-
-    screen_after = "\n".join(tui.get_screen_dump())
-    assert "* a.txt" not in screen_after
-    assert "* b.txt" not in screen_after
-    assert "* c.txt" not in screen_after
-
-    tui.quit()
+        lines = tui.send_and_wait_for_condition(
+            "U",
+            lambda current: current
+            if all(f"* {name}" not in "\n".join(current) for name in ("a.txt", "b.txt", "c.txt"))
+            else False,
+            timeout=2.0,
+        )
+        assert lines, "\n".join(tui.get_screen_dump())
+    finally:
+        tui.quit()
 
 
 def test_vi_uppercase_d_deletes_tagged_after_single_confirmation(
     ytnova_binary, vi_mode_test_dir
 ):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(vi_mode_test_dir))
-    time.sleep(1.0)
-
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.4)
-
-    tui.send_keystroke("t")
-    time.sleep(0.2)
-    tui.send_keystroke("t")
-    time.sleep(0.2)
-
-    tui.send_keystroke("D")
-    assert tui.wait_for_text("Delete 2 tagged files", timeout=1.5), "\n".join(
-        tui.get_screen_dump()
-    )
-    prompt_screen = "\n".join(tui.get_screen_dump())
-    assert "Delete 2 tagged files" in prompt_screen, prompt_screen
-    assert "Ask for confirmation for each file" not in prompt_screen, prompt_screen
-
-    raw_output = io.StringIO()
-    tui.child.logfile_read = raw_output
     try:
+        assert tui.wait_for_text("a.txt", timeout=2.0), "\n".join(tui.get_screen_dump())
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current: current
+            if any("a.txt" in line for line in current)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, "\n".join(tui.get_screen_dump())
+        assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
+        lines = tui.send_and_wait_for_condition(
+            "t",
+            lambda current: current
+            if "* a.txt" in "\n".join(current) and "* b.txt" in "\n".join(current)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, "\n".join(tui.get_screen_dump())
+
+        lines = tui.send_and_wait_for_condition(
+            "D",
+            lambda current: current
+            if any("Delete 2 tagged files" in line for line in current)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, "\n".join(tui.get_screen_dump())
+        prompt_screen = "\n".join(lines)
+        assert "Ask for confirmation for each file" not in prompt_screen, prompt_screen
+
+        raw_output = io.StringIO()
+        tui.child.logfile_read = raw_output
         tui.send_keystroke("y")
         deleted = tui.wait_for_condition(
-            lambda _lines: (
-                not (vi_mode_test_dir / "a.txt").exists()
-                and not (vi_mode_test_dir / "b.txt").exists()
-            ),
+            lambda _lines: not (vi_mode_test_dir / "a.txt").exists()
+            and not (vi_mode_test_dir / "b.txt").exists(),
             timeout=2.0,
         )
         assert deleted, "\n".join(tui.get_screen_dump())
         assert "Ask for confirmation for each file" not in raw_output.getvalue()
     finally:
         tui.child.logfile_read = None
-
-    tui.quit()
+        tui.quit()
 
     assert not (vi_mode_test_dir / "a.txt").exists()
     assert not (vi_mode_test_dir / "b.txt").exists()
