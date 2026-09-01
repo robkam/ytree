@@ -286,6 +286,22 @@ def _select_tree_dir_by_marker(tui, marker, timeout=5.0):
     pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
 
 
+def _enter_fixture_file_view(tui, markers, file_marker):
+    assert tui.wait_for_content(markers[0], timeout=2.0), _screen_text(tui)
+    for marker in markers:
+        _select_tree_dir_by_marker(tui, marker)
+        assert tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=2.0), _screen_text(tui)
+    lines = tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda current_lines: current_lines
+        if any(file_marker in line for line in current_lines)
+        else False,
+        timeout=2.0,
+    )
+    assert lines, _screen_text(tui)
+    return lines
+
+
 def test_tree_viewport_helper_uses_current_row_and_exact_labels():
     left_width = 60
     lines = [
@@ -3682,32 +3698,22 @@ def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytnova_b
         (tests_dir / f"t{idx}.txt").write_text(f"{idx}\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.9)
 
     try:
         # Tree -> src -> cmd -> file window
-        found_src = False
-        for _ in range(20):
-            lines = tui.get_screen_dump()
-            if _stats_current_dir_contains(lines, "src"):
-                found_src = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.2)
-        assert found_src, _screen_text(tui)
+        assert tui.wait_for_content("src", timeout=2.0), _screen_text(tui)
+        _select_tree_dir_by_marker(tui, "src")
 
-        tui.send_keystroke(Keys.RIGHT, wait=0.3)
+        assert tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=2.0), _screen_text(tui)
 
-        found_cmd = False
-        for _ in range(20):
-            lines = tui.get_screen_dump()
-            if _stats_current_dir_contains(lines, "cmd"):
-                found_cmd = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.2)
-        assert found_cmd, _screen_text(tui)
+        _select_tree_dir_by_marker(tui, "cmd")
 
-        tui.send_keystroke(Keys.RIGHT, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines if any("f0.txt" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         # Tag three files in source.
@@ -3726,8 +3732,11 @@ def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytnova_b
         tui.send_keystroke(Keys.HOME, wait=0.3)
         tui.send_keystroke("M", wait=0.2)
         assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke("00" + Keys.ENTER, wait=0.7)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert tui.send_and_wait_for_condition(
+            "00" + Keys.ENTER,
+            lambda lines: lines if any("00" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
         screen_while_right_active = _screen_text(tui)
         assert "f0.txt" in screen_while_right_active and "f1.txt" in screen_while_right_active, (
@@ -3803,31 +3812,23 @@ def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
     tui = YtreeNovaTUI(
         executable=ytnova_binary, cwd=str(repo), env_extra={"HOME": str(home)}
     )
-    time.sleep(0.9)
 
     try:
-        found_src = False
-        for _ in range(80):
-            lines = tui.get_screen_dump()
-            if _stats_current_dir_contains(lines, "src"):
-                found_src = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.12)
-        assert found_src, _screen_text(tui)
+        assert tui.wait_for_content("src", timeout=2.0), _screen_text(tui)
+        _select_tree_dir_by_marker(tui, "src")
 
-        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        assert tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=2.0), _screen_text(tui)
 
-        found_cmd = False
-        for _ in range(80):
-            lines = tui.get_screen_dump()
-            if _stats_current_dir_contains(lines, "cmd"):
-                found_cmd = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.12)
-        assert found_cmd, _screen_text(tui)
+        _select_tree_dir_by_marker(tui, "cmd")
 
-        tui.send_keystroke(Keys.RIGHT, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        assert tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda lines: lines
+            if any("src_file_0.c" in line for line in lines)
+            else False,
+            timeout=2.0,
+        ), _screen_text(tui)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke("t", wait=0.2)
@@ -3843,7 +3844,11 @@ def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
         tui.send_keystroke(Keys.HOME, wait=0.35)
         tui.send_keystroke("M", wait=0.2)
         assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+        assert tui.send_and_wait_for_condition(
+            "00" + Keys.ENTER,
+            lambda lines: lines if any("00" in line for line in lines) else False,
+            timeout=2.0,
+        ), _screen_text(tui)
 
         screen_while_right_active = _screen_text(tui)
         assert "src_file_0.c" in screen_while_right_active, screen_while_right_active
@@ -4071,41 +4076,19 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
     tui = YtreeNovaTUI(
         executable=ytnova_binary, cwd=str(home), env_extra={"HOME": str(home)}
     )
-    time.sleep(0.9)
 
     try:
-        found_ytnova = False
-        for _ in range(200):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "ytnova"):
-                found_ytnova = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
-        assert found_ytnova, _screen_text(tui)
-
-        tui.send_keystroke(Keys.RIGHT, wait=0.25)
-        found_src = False
-        for _ in range(200):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "src"):
-                found_src = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
-        assert found_src, _screen_text(tui)
-
-        tui.send_keystroke(Keys.RIGHT, wait=0.25)
-        found_cmd = False
-        for _ in range(200):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-                found_cmd = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
-        assert found_cmd, _screen_text(tui)
-
-        tui.send_keystroke(Keys.RIGHT, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        _enter_fixture_file_view(tui, ("ytnova", "src", "cmd"), "src_file_0.c")
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
-        for _ in range(3):
-            tui.send_keystroke("t", wait=0.2)
+        tagged = tui.send_and_wait_for_condition(
+            "ttt",
+            lambda lines: lines
+            if all(f"* {name}" in "\n".join(lines) for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"))
+            else False,
+            timeout=2.0,
+        )
+        assert tagged, _screen_text(tui)
         pre_screen = _screen_text(tui)
         pre_tag_state = {}
         for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
@@ -4204,41 +4187,19 @@ def test_bug2_copy_cancel_then_destination_mkdir_keeps_source_anchor(
     tui = YtreeNovaTUI(
         executable=ytnova_binary, cwd=str(home), env_extra={"HOME": str(home)}
     )
-    time.sleep(0.9)
 
     try:
-        found_ytnova = False
-        for _ in range(200):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "ytnova"):
-                found_ytnova = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
-        assert found_ytnova, _screen_text(tui)
-
-        tui.send_keystroke(Keys.RIGHT, wait=0.25)
-        found_src = False
-        for _ in range(200):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "src"):
-                found_src = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
-        assert found_src, _screen_text(tui)
-
-        tui.send_keystroke(Keys.RIGHT, wait=0.25)
-        found_cmd = False
-        for _ in range(200):
-            if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-                found_cmd = True
-                break
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
-        assert found_cmd, _screen_text(tui)
-
-        tui.send_keystroke(Keys.RIGHT, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        _enter_fixture_file_view(tui, ("ytnova", "src", "cmd"), "a.c")
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
-        for _ in range(3):
-            tui.send_keystroke("t", wait=0.2)
+        tagged = tui.send_and_wait_for_condition(
+            "ttt",
+            lambda lines: lines
+            if all(f"* {name}" in "\n".join(lines) for name in ("a.c", "b.c", "c.c"))
+            else False,
+            timeout=2.0,
+        )
+        assert tagged, _screen_text(tui)
         pre_screen = _screen_text(tui)
         pre_tag_state = {}
         for name in ("a.c", "b.c", "c.c"):
