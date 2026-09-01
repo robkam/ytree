@@ -1405,34 +1405,27 @@ def test_f8_active_header_sync(dual_panel_sandbox, ytnova_binary):
     BUG 4: Verifies the top 'Path:' header updates to match the ACTIVE panel's volume path.
     """
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0)
+    try:
+        assert tui.wait_for_content("left_dir", timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
 
-    # Split screen
-    tui.send_keystroke(Keys.F8)
-    time.sleep(0.5)
+        _select_tree_dir_by_marker(tui, "right_dir")
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if any(line.startswith("Path:") and "right_dir" in line for line in current_lines)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, _screen_text(tui)
 
-    # Tab to Right Panel
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
-
-    # Move down to 'right_dir' and ENTER
-    screen = "\n".join(tui.get_screen_dump())
-    if "child" in screen: print("CHILD ALREADY VISIBLE")
-    tui.send_keystroke(Keys.DOWN + Keys.DOWN)
-    time.sleep(0.5)
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
-
-    screen = "\n".join(tui.get_screen_dump())
-
-    # The header should show the active panel's path (right_dir)
-    # Extract the first line (header)
-    header_line = screen.split('\n')[0]
-
-    if "right_dir" not in header_line:
-        pytest.fail(f"HEADER SYNC BUG: Expected 'right_dir' in header, but got:\n{header_line}")
-
-    tui.quit()
+        # The header should show the active panel's path (right_dir).
+        header_line = lines[0]
+        if "right_dir" not in header_line:
+            pytest.fail(f"HEADER SYNC BUG: Expected 'right_dir' in header, but got:\n{header_line}")
+    finally:
+        tui.quit()
 
 
 def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytnova_binary):
@@ -2818,22 +2811,36 @@ def test_delete_first_visible_dir_keeps_visible_selection(
 def test_header_path_clearing(dual_panel_sandbox, ytnova_binary):
     """BUG 6: Header doesn't clear old long paths when moving to short paths."""
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0)
+    try:
+        assert tui.wait_for_content("left_dir", timeout=2.0), _screen_text(tui)
 
-    # 1. Navigate deep to a long path
-    tui.send_keystroke(Keys.DOWN)
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+        # 1. Navigate deep to a long path.
+        _select_tree_dir_by_marker(tui, "left_dir")
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if any(line.startswith("Path:") and "left_dir" in line for line in current_lines)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, _screen_text(tui)
 
-    # 2. Navigate back up to a short path (ESC returns from file window to tree view)
-    tui.send_keystroke(Keys.ESC)
-    time.sleep(0.5)
-    tui.send_keystroke(Keys.LEFT)
-    time.sleep(0.5)
+        # 2. Navigate back up to a short path (ESC returns from file window to tree view).
+        assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=2.0), _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            Keys.LEFT,
+            lambda current_lines: current_lines
+            if current_lines and current_lines[0].startswith("Path:")
+            and "left_dir" not in current_lines[0]
+            else False,
+            timeout=2.0,
+        )
+        assert lines, _screen_text(tui)
 
-    screen = "\n".join(tui.get_screen_dump())
-    # The header should NOT contain the old directory name
-    assert "left_dir" not in screen.splitlines()[0], "Header path was not cleared properly!"
+        # The header should NOT contain the old directory name.
+        assert "left_dir" not in lines[0], "Header path was not cleared properly!"
+    finally:
+        tui.quit()
 
 def test_dialog_screen_wiping(dual_panel_sandbox, ytnova_binary):
     """BUG 4: Returning from a dialog leaves the screen missing separator lines."""
@@ -2874,26 +2881,31 @@ def test_split_screen_memory_isolation(dual_panel_sandbox, ytnova_binary):
     (dual_panel_sandbox / "left_dir" / "target_file.txt").touch()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0)
+    try:
+        assert tui.wait_for_content("left_dir", timeout=2.0), _screen_text(tui)
 
-    # Left Panel: Enter left_dir to see target_file.txt
-    tui.send_keystroke(Keys.DOWN)
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+        # Left Panel: Enter left_dir to see target_file.txt.
+        _select_tree_dir_by_marker(tui, "left_dir")
+        lines = tui.send_and_wait_for_condition(
+            Keys.ENTER,
+            lambda current_lines: current_lines
+            if any("target_file.txt" in line for line in current_lines)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, _screen_text(tui)
 
-    # Split & Tab to Right Panel
-    tui.send_keystroke(Keys.F8)
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
+        # Split, switch to the peer panel, then exercise its navigation.
+        assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=2.0), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change(Keys.LEFT, timeout=2.0), _screen_text(tui)
 
-    # Right Panel: Scroll and collapse
-    tui.send_keystroke(Keys.DOWN)
-    tui.send_keystroke(Keys.LEFT)
-    time.sleep(0.5)
-
-    screen = "\n".join(tui.get_screen_dump())
-    # If memory is corrupted or state is lost, target_file.txt will turn into garbage (e.g., *?^X)
-    assert "target_file.txt" in screen, "Inactive panel lost its memory state or was overwritten by garbage!"
+        screen = _screen_text(tui)
+        # If memory is corrupted or state is lost, target_file.txt will turn into garbage (e.g., *?^X)
+        assert "target_file.txt" in screen, "Inactive panel lost its memory state or was overwritten by garbage!"
+    finally:
+        tui.quit()
 
 def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytnova_binary):
     """
