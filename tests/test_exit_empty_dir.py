@@ -1,5 +1,4 @@
 import os
-import time
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -31,12 +30,13 @@ def is_file_window(tui):
     return "file" in footer_top[:5]
 
 def wait_for_dir_window(tui, timeout=2.0):
-    deadline = time.time() + timeout * _time_scale()
-    while time.time() < deadline:
-        if is_dir_window(tui):
-            return True
-        time.sleep(0.1)
-    return False
+    return bool(
+        tui.wait_for_condition(
+            lambda _lines: is_dir_window(tui),
+            timeout=timeout * _time_scale(),
+            description="directory window after emptying file view",
+        )
+    )
 
 def test_exit_on_delete(ytnova_binary, tmp_path):
     """

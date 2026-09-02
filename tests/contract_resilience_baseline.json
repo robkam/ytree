@@ -18198,8 +18198,8 @@
     {
       "disposition": "out_of_scope",
       "evidence": "footer_top = screen[33].lower()",
-      "id": "screen-slice-or-grid:tests/test_exit_empty_dir.py:21:c4947574847c51e1",
-      "line": 21,
+      "id": "screen-slice-or-grid:tests/test_exit_empty_dir.py:20:91cd30638fd82186",
+      "line": 20,
       "owner": "geometry and presentation remediation",
       "path": "tests/test_exit_empty_dir.py",
       "pattern_id": "screen-slice-or-grid",
@@ -18209,35 +18209,13 @@
     {
       "disposition": "out_of_scope",
       "evidence": "footer_top = screen[33].lower()",
-      "id": "screen-slice-or-grid:tests/test_exit_empty_dir.py:30:0b47db61b9873c42",
-      "line": 30,
+      "id": "screen-slice-or-grid:tests/test_exit_empty_dir.py:29:0091ca460db50256",
+      "line": 29,
       "owner": "geometry and presentation remediation",
       "path": "tests/test_exit_empty_dir.py",
       "pattern_id": "screen-slice-or-grid",
       "reason": "Screen-grid assertions require semantic visual-state replacement.",
       "symbol": "is_file_window"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "while time.time() < deadline:",
-      "id": "polling-or-retry-loop:tests/test_exit_empty_dir.py:35:693613416f56d92c",
-      "line": 35,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_exit_empty_dir.py",
-      "pattern_id": "polling-or-retry-loop",
-      "reason": "Polling and retry mechanisms belong to the semantic waiting boundary.",
-      "symbol": "wait_for_dir_window"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.1)",
-      "id": "direct-time-sleep:tests/test_exit_empty_dir.py:38:b4438b5f75f3af2b",
-      "line": 38,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_exit_empty_dir.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "wait_for_dir_window"
     },
     {
       "disposition": "out_of_scope",
