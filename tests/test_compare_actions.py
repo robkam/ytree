@@ -26,6 +26,11 @@ def _has_border_glyphs(tui):
 
 
 def _assert_no_footer_artifacts(tui):
+    lines = tui.wait_for_condition(
+        lambda current: current if any("pipe" in line.lower() for line in current) else False,
+        timeout=2.0,
+    )
+    assert lines, _screen_text(tui)
     footer_lines = _footer_lines(tui)
     footer_text = "\n".join(footer_lines).lower()
     assert "pipe" in footer_text, f"Footer action line missing.\nFooter:\n{footer_text}"
