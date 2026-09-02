@@ -10,22 +10,19 @@ def debug_run():
     os.system("touch /tmp/dummy_test_file.txt")
     
     tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd="/tmp")
-    time.sleep(1.0)
+    assert tui.wait_for_text("dummy_test_file.txt", timeout=2.0)
     
     # Enter file view
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=2.0)
     
     # Send 'c' (Copy)
     print("\nSending 'c' (Copy)...")
-    tui.send_keystroke('c')
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change('c', timeout=2.0)
     
     # First prompt: "COPY: dummy_test_file.txt" (asking for filename)
     # We press Enter to accept default
     print("\nSending Enter...")
-    tui.send_keystroke('\r')
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change('\r', timeout=2.0)
     
     # Second prompt: "To Directory:" (this takes F2!)
     screen = tui.get_screen_dump()
@@ -34,8 +31,7 @@ def debug_run():
         print(repr(line))
         
     print("\nSending F2 (\\033OQ)...")
-    tui.send_keystroke("\033OQ")
-    time.sleep(1.0)
+    assert tui.send_and_wait_for_screen_change("\033OQ", timeout=2.0)
     
     screen = tui.get_screen_dump()
     print("F2 SCREEN:")
