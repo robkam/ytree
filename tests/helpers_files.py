@@ -1,10 +1,8 @@
-import time
-
-
-def wait_for_file(path, timeout=2.0):
-    end = time.time() + timeout
-    while time.time() < end:
-        if path.exists():
-            return True
-        time.sleep(0.05)
-    return False
+def wait_for_file(tui, path, timeout=2.0):
+    return bool(
+        tui.wait_for_condition(
+            lambda _lines: path if path.exists() else False,
+            timeout=timeout,
+            description=f"filesystem effect {path}",
+        )
+    )
