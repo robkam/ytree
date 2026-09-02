@@ -1,6 +1,7 @@
 import time
 import shlex
 import os
+from itertools import repeat
 
 from helpers_files import wait_for_file as _wait_for_file
 from helpers_ui import (
@@ -110,20 +111,20 @@ def _open_compare_prompt_help(tui):
 
 
 def _cycle_directory_compare_scope(tui, count=1):
-    for _ in range(count):
-        tui.send_keystroke(Keys.F3, wait=0.2)
+    for _ in repeat(None, count):
+        assert tui.send_and_wait_for_screen_change(Keys.F3, timeout=1.0), _screen_text(tui)
     assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
 
 
 def _cycle_directory_compare_basis(tui, count=1):
-    for _ in range(count):
-        tui.send_keystroke(Keys.F4, wait=0.2)
+    for _ in repeat(None, count):
+        assert tui.send_and_wait_for_screen_change(Keys.F4, timeout=1.0), _screen_text(tui)
     assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
 
 
 def _cycle_directory_compare_tag(tui, count=1):
-    for _ in range(count):
-        tui.send_keystroke(Keys.F5, wait=0.2)
+    for _ in repeat(None, count):
+        assert tui.send_and_wait_for_screen_change(Keys.F5, timeout=1.0), _screen_text(tui)
     assert tui.wait_for_content("COMPARE TARGET [", timeout=1.0), _screen_text(tui)
 
 
