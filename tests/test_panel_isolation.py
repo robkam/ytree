@@ -128,7 +128,7 @@ def _run_compare_and_read_source(tui, compare_target, log_path):
         )
         assert lines, _screen_text(tui)
 
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     lines = tui.get_screen_dump()
     if any("Hit return to continue" in line for line in lines):
         lines = tui.send_and_wait_for_condition(
@@ -1174,7 +1174,7 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytnova_binary):
     _send_and_wait_for_transition(tui, Keys.ENTER)
     _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
     assert logged[0] == str(alpha / "alpha_2.txt"), (
@@ -1223,7 +1223,7 @@ def test_f8_close_from_active_file_panel_preserves_file_focus_and_selection(
         if tui.wait_for_content("Hit return to continue", timeout=1.0):
             _send_and_wait_for_transition(tui, Keys.ENTER)
 
-        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
         logged = log_path.read_text(encoding="utf-8").splitlines()
         assert logged[0] == str(alpha / "alpha_2.txt"), (
             "Closing split changed the selected file in the surviving panel.\n"
@@ -1292,7 +1292,7 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
         if tui.wait_for_content("Hit return to continue", timeout=1.0):
             tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
         return log_path.read_text(encoding="utf-8").splitlines()[0]
 
     try:
@@ -2129,7 +2129,6 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
         cwd=str(root),
         args=[str(vol_a), str(vol_b)],
     )
-    time.sleep(1.0)
 
     def active_volume_name():
         header = tui.get_screen_dump()[0]
@@ -2138,21 +2137,41 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
                 return name
         return None
 
+    def wait_for_active_volume(key, expected):
+        lines = tui.send_and_wait_for_condition(
+            key,
+            lambda current_lines: current_lines
+            if expected in (current_lines[0] if current_lines else "")
+            else False,
+            timeout=2.0,
+        )
+        assert lines, _screen_text(tui)
+
+    lines = tui.send_and_wait_for_condition(
+        Keys.F5,
+        lambda current_lines: current_lines
+        if any(
+            name in (current_lines[0] if current_lines else "")
+            for name in ("cycle_state_vol_a", "cycle_state_vol_b")
+        )
+        else False,
+        timeout=2.0,
+    )
+    assert lines, _screen_text(tui)
+
     def run_compare_and_read_source():
         if log_path.exists():
             log_path.unlink()
         tui.send_keystroke("J", wait=0.25)
         assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
         tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
         if tui.wait_for_content("Hit return to continue", timeout=1.0):
-            tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+            _send_and_wait_for_transition(tui, Keys.ENTER)
         return log_path.read_text(encoding="utf-8").splitlines()[0]
 
-    for _ in range(8):
-        if active_volume_name() == "cycle_state_vol_a":
-            break
-        tui.send_keystroke(">", wait=0.3)
+    if active_volume_name() != "cycle_state_vol_a":
+        wait_for_active_volume(">", "cycle_state_vol_a")
     assert active_volume_name() == "cycle_state_vol_a", _screen_text(tui)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -2162,7 +2181,7 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
     source_a_expected = run_compare_and_read_source()
     assert source_a_expected.endswith("a_state_2.txt"), source_a_expected
 
-    tui.send_keystroke(">", wait=0.8)
+    wait_for_active_volume(">", "cycle_state_vol_b")
     assert active_volume_name() == "cycle_state_vol_b", _screen_text(tui)
 
     if "hex invert j compare" not in _footer_text(tui):
@@ -2172,7 +2191,7 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
     source_b_expected = run_compare_and_read_source()
     assert source_b_expected.endswith("b_state_1.txt"), source_b_expected
 
-    tui.send_keystroke("<", wait=0.8)
+    wait_for_active_volume("<", "cycle_state_vol_a")
     assert active_volume_name() == "cycle_state_vol_a", _screen_text(tui)
     if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -2184,7 +2203,7 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
         f"Actual:   {source_a_after_cycle}\n{_screen_text(tui)}"
     )
 
-    tui.send_keystroke(">", wait=0.8)
+    wait_for_active_volume(">", "cycle_state_vol_b")
     assert active_volume_name() == "cycle_state_vol_b", _screen_text(tui)
     if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -4434,7 +4453,7 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytnova_
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     _send_and_wait_for_transition(tui, Keys.ENTER)
     _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
     assert logged[0] == str(alpha / "alpha_1.txt"), (
@@ -4484,7 +4503,7 @@ def test_split_from_file_keeps_inactive_file_selection_independent(tmp_path, ytn
     _send_and_wait_for_transition(tui, Keys.ENTER)
     _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
     assert logged[0] == str(alpha / "alpha_1.txt"), (
@@ -4537,7 +4556,7 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytno
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
     assert logged[0] == str(beta / "beta_0.txt"), (

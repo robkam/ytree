@@ -136,7 +136,7 @@ def test_compare_placeholder_expansion_preserves_metacharacter_paths(
     _send_and_wait_for_transition(tui, Keys.CTRL_U + str(target_path) + Keys.ENTER)
     _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(source_path), str(target_path)], (
         "Compare placeholder expansion must pass literal source/target paths without "
@@ -165,7 +165,7 @@ def test_view_launch_passes_metacharacter_path_as_single_literal_argument(
     _send_and_wait_for_transition(tui, Keys.ENTER)  # tree -> file view
     _send_and_wait_for_transition(tui, "v")
 
-    assert _wait_for_file(log_path, timeout=2.0), "PAGER helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "PAGER helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(file_path)], (
         "View command must pass the selected path as one literal argv entry.\n"
@@ -199,7 +199,7 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
         wait=0.55,
     )
 
-    assert _wait_for_file(log_path, timeout=2.0), "Execute helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "Execute helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [filename], (
         "Execute {} placeholder expansion must preserve filename as a single "
@@ -236,7 +236,7 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
         wait=0.55,
     )
 
-    assert _wait_for_file(log_path, timeout=2.0), "Execute helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "Execute helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [filename], (
         "Quoted {} placeholder expansion must still pass the filename as one "

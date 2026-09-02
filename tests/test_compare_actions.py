@@ -204,7 +204,7 @@ def test_compare_prompt_cycles_to_external_dirdiff_without_extra_prompts(
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "DIRDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "DIRDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(alpha), str(beta)], (
         "DIRDIFF should receive source and target directory paths.\n"
@@ -236,7 +236,7 @@ def test_compare_prompt_cycles_to_external_treediff_without_extra_prompts(
     tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "TREEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "TREEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(source_root), str(target_root)], (
         "TREEDIFF should receive source and target logged-root paths.\n"
@@ -323,7 +323,7 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytnova_bin
     tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     _run_file_compare(tui, remembered_target, wait=0.55)
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) == 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
     assert logged[1] == remembered_target, (
@@ -370,7 +370,7 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytnova_binary, tmp_p
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     assert tui.wait_for_content("right.txt", timeout=1.0)
     _run_file_compare(tui, wait=0.55)
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) == 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
     assert logged[0].endswith("left.txt"), f"Unexpected source arg: {logged[0]}"
@@ -393,7 +393,7 @@ def test_file_compare_placeholder_expansion_passes_source_and_target(ytnova_bina
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     _run_file_compare(tui, str(target), wait=0.55)
 
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(source), str(target)], (
         "FILEDIFF %1/%2 placeholder expansion should pass source then target.\n"
@@ -479,7 +479,7 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
     tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     _run_file_compare(tui, str(compare_target), wait=0.55)
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     initial_source = log_path.read_text(encoding="utf-8").splitlines()[0]
 
     tui.send_keystroke("L", wait=0.3)
@@ -875,7 +875,7 @@ def test_file_compare_j_flow_uses_current_file_source_and_prompt_behavior(
     assert "[f2]" not in prompt_screen
 
     _run_file_compare(tui, str(target), wait=0.55)
-    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(source_b), str(target)], (
         "J compare should use current file as source and entered target as destination.\n"
@@ -904,7 +904,7 @@ def test_compare_external_tree_falls_back_to_dirdiff_when_treediff_unset(
     tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "DIRDIFF fallback helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "DIRDIFF fallback helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(source_root), str(target_root)], (
         "When TREEDIFF is unset, J->X->T should fall back to DIRDIFF.\n"
@@ -940,7 +940,7 @@ def test_external_compare_launch_does_not_modify_file_tag_state(ytnova_binary, t
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
-    assert _wait_for_file(log_path, timeout=2.0), "DIRDIFF helper did not run."
+    assert _wait_for_file(tui, log_path, timeout=2.0), "DIRDIFF helper did not run."
 
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     _assert_file_tag_state(tui, diff_name, False)
