@@ -2871,13 +2871,15 @@ def test_header_path_clearing(dual_panel_sandbox, ytnova_binary):
 def test_dialog_screen_wiping(dual_panel_sandbox, ytnova_binary):
     """BUG 4: Returning from a dialog leaves the screen missing separator lines."""
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0)
+    assert tui.wait_for_content("left_dir", timeout=2.0), _screen_text(tui)
 
-    # Trigger a dialog (Makedir) and cancel out
-    tui.send_keystroke("M")
-    time.sleep(0.5)
-    tui.send_keystroke(Keys.ESC)
-    time.sleep(0.5)
+    # Trigger a dialog (Makedir) and cancel out.
+    assert tui.send_and_wait_for_condition(
+        "M", lambda lines: lines if any("MAKE DIRECTORY:" in line for line in lines) else False, timeout=2.0
+    ), _screen_text(tui)
+    assert tui.send_and_wait_for_condition(
+        Keys.ESC, lambda lines: lines if not any("MAKE DIRECTORY:" in line for line in lines) else False, timeout=2.0
+    ), _screen_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     # VT100 mode renders separator lines as 'q' characters (ACS_HLINE).
@@ -2891,12 +2893,11 @@ def test_negative_filter_logic(dual_panel_sandbox, ytnova_binary):
     (dual_panel_sandbox / "code.o").touch()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    time.sleep(1.0)
+    assert tui.wait_for_content("code.c", timeout=2.0), _screen_text(tui)
 
-    tui.send_keystroke("f")
-    tui.send_keystroke("\x15")  # Ctrl+U to clear the pre-filled "*"
-    tui.send_keystroke("-*.o\r")
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_condition(
+        "f\x15-*.o\r", lambda lines: lines if any("code.c" in line for line in lines) and not any("code.o" in line for line in lines) else False, timeout=2.0
+    ), _screen_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     assert "code.c" in screen, "Negative filter hid files that should be visible!"
