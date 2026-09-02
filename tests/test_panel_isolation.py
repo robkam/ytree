@@ -286,6 +286,20 @@ def _select_tree_dir_by_marker(tui, marker, timeout=5.0):
     pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
 
 
+def _select_tree_stats_marker(tui, marker, timeout=5.0):
+    deadline = time.monotonic() + timeout
+    for key in (Keys.UP, Keys.DOWN):
+        while time.monotonic() < deadline:
+            if _stats_current_dir_contains(tui.get_screen_dump(), marker):
+                return
+            lines = tui.send_and_wait_for_screen_change(
+                key, timeout=min(0.5, max(0.05, deadline - time.monotonic()))
+            )
+            if lines and _stats_current_dir_contains(lines, marker):
+                return
+    pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
+
+
 def _enter_fixture_file_view(tui, markers, file_marker):
     assert tui.wait_for_content(markers[0], timeout=2.0), _screen_text(tui)
     for marker in markers:
@@ -3919,7 +3933,7 @@ def test_bug_same_volume_home_mkdir_listjump_sequence_keeps_inactive_source(
     tui = YtreeNovaTUI(
         executable=ytnova_binary, cwd=str(repo), env_extra={"HOME": str(home)}
     )
-    time.sleep(0.9)
+    assert tui.wait_for_content("src", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke("l", wait=0.2)
@@ -3945,21 +3959,12 @@ def test_bug_same_volume_home_mkdir_listjump_sequence_keeps_inactive_source(
             if "hex invert j compare" in _footer_text(tui):
                 tui.send_keystroke(Keys.ESC, wait=0.25)
 
-            found_cmd = False
-            for _ in range(40):
-                if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-                    found_cmd = True
-                    break
-                tui.send_keystroke(Keys.UP, wait=0.12)
-            for _ in range(120):
-                if found_cmd:
-                    break
-                if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-                    found_cmd = True
-                    break
-                tui.send_keystroke(Keys.DOWN, wait=0.12)
-            assert found_cmd, _screen_text(tui)
-            tui.send_keystroke(Keys.ENTER, wait=0.45)
+            _select_tree_stats_marker(tui, "cmd")
+            assert tui.send_and_wait_for_condition(
+                Keys.ENTER,
+                lambda lines: lines if any("src_file_0.c" in line for line in lines) else False,
+                timeout=2.0,
+            ), _screen_text(tui)
 
         pre_screen = _screen_text(tui)
         assert "src_file_0.c" in pre_screen, (

@@ -116,11 +116,16 @@ def test_archive_pipe_return_restores_ui_surfaces(ytnova_binary, tmp_path):
         assert tui.wait_for_content("Pipe-Command:", timeout=2.0)
         tui.send_keystroke(f"cat > {pipe_output}\r", wait=0.8)
         assert tui.wait_for_content("return to continue", timeout=3.0)
-        tui.send_keystroke(Keys.ENTER, wait=0.8)
+        tui.send_keystroke(Keys.ENTER, wait=0.2)
 
         assert pipe_output.exists(), "Pipe command did not run."
 
-        screen = tui.get_screen_dump()
+        screen = tui.wait_for_condition(
+            lambda lines: lines if lines and lines[0].startswith("Path: ") else False,
+            timeout=2.0,
+            description="archive path surface restored after pipe return",
+        )
+        assert screen, "Path surface was not restored after pipe return."
         assert screen[0].startswith("Path: "), (
             "Path surface was not restored after pipe return.\n"
             f"{screen[0]!r}"
