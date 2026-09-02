@@ -429,7 +429,7 @@ def test_split_tab_from_small_file_does_not_expand_inactive_panel(tmp_path, ytno
         (right / f"right{idx}.txt").write_text("right\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.F8, wait=0.4)
@@ -483,7 +483,7 @@ def test_split_tab_enter_tab_keeps_tree_panel_focus_local(tmp_path, ytnova_binar
         (subdir / f"{name}.txt").write_text(f"{name}\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         _assert_dir_mode_footer(tui, "Expected tree focus before split.")
@@ -525,7 +525,7 @@ def test_split_tab_enter_tab_restores_small_file_shape_local(tmp_path, ytnova_bi
         (subdir / f"{name}.txt").write_text(f"{name}\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -613,7 +613,7 @@ def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytnova_binary)
         (alpha / f"panel_tag_{idx}.txt").write_text("tag\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -667,7 +667,7 @@ def test_unreading_directory_clears_panel_local_tags(tmp_path, ytnova_binary):
     (alpha / "child" / "nested.txt").write_text("nested\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)

@@ -20991,28 +20991,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_panel_isolation.py:432:049d9c43d313f8f4",
-      "line": 432,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_split_tab_from_small_file_does_not_expand_inactive_panel"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_panel_isolation.py:486:dba1b5f437b1f305",
-      "line": 486,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_split_tab_enter_tab_keeps_tree_panel_focus_local"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "assert \"hex invert j compare\" in _footer_text(tui), _screen_text(tui)",
       "id": "exact-prose-assertion:tests/test_panel_isolation.py:494:deca958f60cc5864",
       "line": 494,
@@ -21032,17 +21010,6 @@
       "pattern_id": "screen-slice-or-grid",
       "reason": "Screen-grid assertions require semantic visual-state replacement.",
       "symbol": "test_split_tab_enter_tab_keeps_tree_panel_focus_local"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_panel_isolation.py:528:6080f910e64cbda1",
-      "line": 528,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_split_tab_enter_tab_restores_small_file_shape_local"
     },
     {
       "disposition": "out_of_scope",
@@ -21090,17 +21057,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_panel_isolation.py:616:e9f839b6fba66f6a",
-      "line": 616,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_split_same_directory_file_tags_are_panel_local"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "assert \"hex invert j compare\" in _footer_text(tui), _screen_text(tui)",
       "id": "exact-prose-assertion:tests/test_panel_isolation.py:621:53cc7f48eed0fcf2",
       "line": 621,
@@ -21109,17 +21065,6 @@
       "pattern_id": "exact-prose-assertion",
       "reason": "Editable presentation prose requires a durable behavioural replacement.",
       "symbol": "test_split_same_directory_file_tags_are_panel_local"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_panel_isolation.py:670:4dc52013c060e400",
-      "line": 670,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_unreading_directory_clears_panel_local_tags"
     },
     {
       "disposition": "out_of_scope",
