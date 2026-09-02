@@ -1,6 +1,24 @@
 import re
 
 
+def dismiss_archive_unsafe_warnings(tui, warning_text, archive_text, enter_key, timeout=2.0):
+    """Dismiss archive safety warnings until the archive view is rendered."""
+    def archive_or_warning(lines):
+        text = "\n".join(lines)
+        if archive_text in text:
+            return "archive"
+        if warning_text in text:
+            return "warning"
+        return False
+
+    state = tui.wait_for_condition(archive_or_warning, timeout=timeout)
+    while state == "warning":
+        state = tui.send_and_wait_for_condition(
+            enter_key, archive_or_warning, timeout=timeout
+        )
+    return state == "archive"
+
+
 _TREE_CONNECTOR_RE = re.compile(r"(?P<connector>[mt]q)(?!q)(?P<label>.+?)\s*$")
 _PATH_HEADER_RE = re.compile(
     r"\bPath:\s+(?P<path>.*?)(?:\s*\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}:\d{2}\s*)?$"

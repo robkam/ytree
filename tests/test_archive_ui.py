@@ -4,6 +4,7 @@ import re
 import tarfile
 import zipfile
 
+from helpers_ui import dismiss_archive_unsafe_warnings
 from helpers_ui import footer_lines as _footer_lines
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
@@ -51,15 +52,12 @@ def _create_tar_with_empty_dir(path, empty_dir_name, extra_file_count=0):
 
 
 def _enter_archive_from_selected_file(tui):
-    tui.send_keystroke(Keys.ENTER, wait=0.5)
-    tui.send_keystroke(Keys.LOG, wait=0.3)
-    tui.send_keystroke(Keys.ENTER, wait=0.8)
-
-    for _ in range(6):
-        if tui.wait_for_content("Skipped unsafe archive member path", timeout=0.3):
-            tui.send_keystroke(Keys.ENTER, wait=0.3)
-        else:
-            break
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=2.0)
+    assert tui.send_and_wait_for_screen_change(Keys.LOG, timeout=2.0)
+    tui.child.send(Keys.ENTER)
+    assert dismiss_archive_unsafe_warnings(
+        tui, "Skipped unsafe archive member path", "ARCHIVE", Keys.ENTER
+    )
 
 
 def test_archive_dir_footer_pipe_action_visible(ytnova_binary, tmp_path):
