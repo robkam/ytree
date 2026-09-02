@@ -1491,7 +1491,7 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytnova_binary
         cwd=str(tmp_path),
         args=[str(vol_rich), str(vol_sparse_b), str(vol_sparse_c)],
     )
-    time.sleep(1.0)
+    assert tui.wait_for_content("vol_rich_restore_selection", timeout=2.0), _screen_text(tui)
 
     def active_volume_name():
         header = tui.get_screen_dump()[0]
@@ -1505,10 +1505,12 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytnova_binary
         return None
 
     # Normalize to the rich volume first so we can choose a non-trivial index.
-    for _ in range(12):
-        if active_volume_name() == "vol_rich_restore_selection":
-            break
-        tui.send_keystroke(">", wait=0.35)
+    if active_volume_name() != "vol_rich_restore_selection":
+        assert tui.send_and_wait_for_screen_change(">", timeout=1.0), _screen_text(tui)
+    if active_volume_name() != "vol_rich_restore_selection":
+        assert tui.send_and_wait_for_screen_change(">", timeout=1.0), _screen_text(tui)
+    if active_volume_name() != "vol_rich_restore_selection":
+        assert tui.send_and_wait_for_screen_change(">", timeout=1.0), _screen_text(tui)
     assert active_volume_name() == "vol_rich_restore_selection", (
         "Could not switch to rich volume for selection restore test.\n"
         + "\n".join(tui.get_screen_dump())
@@ -1550,16 +1552,11 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytnova_binary
     )
 
     # Cycle away and back.
-    seen_other = False
-    returned = False
-    for _ in range(18):
-        tui.send_keystroke(">", wait=0.45)
-        current = active_volume_name()
-        if current and current != start_vol:
-            seen_other = True
-        if seen_other and current == start_vol:
-            returned = True
-            break
+    assert tui.send_and_wait_for_screen_change(">", timeout=1.0), _screen_text(tui)
+    assert active_volume_name() != start_vol, _screen_text(tui)
+    assert tui.send_and_wait_for_screen_change(">", timeout=1.0), _screen_text(tui)
+    assert tui.send_and_wait_for_screen_change(">", timeout=1.0), _screen_text(tui)
+    returned = active_volume_name() == start_vol
 
     assert returned, "Did not return to start volume while cycling loaded volumes."
 
