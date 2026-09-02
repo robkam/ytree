@@ -709,7 +709,7 @@ def _assert_collapse_action_clears_panel_local_tags(tmp_path, ytnova_binary, key
     (alpha / "child" / "nested.txt").write_text("nested\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -758,7 +758,7 @@ def _assert_collapse_resets_subtree_expansion(tmp_path, ytnova_binary, key):
     (alpha / "child" / "grand" / "great").mkdir(parents=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)   # alpha
@@ -2501,11 +2501,17 @@ def test_tree_jump_ignores_hidden_dot_prefix_descendants(tmp_path, ytnova_binary
         cwd=str(root),
         env_extra={"HOME": str(root)},
     )
-    time.sleep(1.0)
     try:
-        tui.send_keystroke("/src" + Keys.ENTER, wait=0.8)
-
-        screen = _screen_text(tui)
+        assert tui.wait_for_text("ytnova", timeout=3.0), _screen_text(tui)
+        lines = tui.send_and_wait_for_condition(
+            "/src" + Keys.ENTER,
+            lambda current: current
+            if any("visible_src_marker.txt" in line for line in current)
+            else False,
+            timeout=3.0,
+        )
+        assert lines, _screen_text(tui)
+        screen = "\n".join(lines)
         assert "visible_src_marker.txt" in screen, (
             "Visible tree jump should select the visible src directory.\n"
             f"{screen}"
