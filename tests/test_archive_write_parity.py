@@ -71,17 +71,18 @@ def _log_archive(controller, archive_path):
 def _log_archive_dismissing_unsafe_warnings(controller, archive_path):
     assert controller.send_and_wait_for_screen_change(Keys.LOG)
     controller.input_text(str(archive_path))
-    for _ in range(8):
-        idx = controller.child.expect(
-            [r"Skipped unsafe archive member path", r"ARCHIVE", pexpect.TIMEOUT],
-            timeout=0.8,
-        )
-        if idx == 0:
-            assert controller.send_and_wait_for_screen_change(Keys.ENTER)
-            continue
-        if idx == 1:
-            return
-    controller.child.expect("ARCHIVE")
+    _dismiss_unsafe_archive_warning(controller, "ARCHIVE", timeout=0.8)
+
+
+def _dismiss_unsafe_archive_warning(controller, completion, timeout):
+    idx = controller.child.expect(
+        [r"Skipped unsafe archive member path", completion, pexpect.TIMEOUT],
+        timeout=timeout,
+    )
+    if idx == 0:
+        assert controller.send_and_wait_for_screen_change(Keys.ENTER)
+        return _dismiss_unsafe_archive_warning(controller, completion, timeout)
+    assert idx == 1, f"Archive did not reach {completion!r} after safety warnings."
 
 
 def _exit_archive_keep_volume(controller):
@@ -110,17 +111,7 @@ def _move_selected_file(controller, new_name, to_dir):
 
 def _enter_archive_member_list_dismissing_unsafe_warnings(controller, anchor_member):
     assert controller.send_and_wait_for_screen_change(Keys.ENTER)
-    for _ in range(8):
-        idx = controller.child.expect(
-            [r"Skipped unsafe archive member path", anchor_member, pexpect.TIMEOUT],
-            timeout=0.6,
-        )
-        if idx == 0:
-            assert controller.send_and_wait_for_screen_change(Keys.ENTER)
-            continue
-        if idx == 1:
-            return
-    controller.child.expect(anchor_member)
+    _dismiss_unsafe_archive_warning(controller, anchor_member, timeout=0.6)
 
 
 def test_archive_copy_matrix_fs_to_vfs(ytnova_binary, tmp_path):
