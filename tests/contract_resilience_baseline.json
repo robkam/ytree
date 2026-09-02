@@ -3,53 +3,9 @@
   "matches": [
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(1.0)",
-      "id": "direct-time-sleep:tests/debug_screen.py:13:2d961eee9a53030c",
-      "line": 13,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/debug_screen.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "debug_run"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.5)",
-      "id": "direct-time-sleep:tests/debug_screen.py:17:3ae516c1cc84ce50",
-      "line": 17,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/debug_screen.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "debug_run"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.5)",
-      "id": "direct-time-sleep:tests/debug_screen.py:22:015dea8dc31262db",
-      "line": 22,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/debug_screen.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "debug_run"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.5)",
-      "id": "direct-time-sleep:tests/debug_screen.py:28:b8b6da244480c7ad",
-      "line": 28,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/debug_screen.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "debug_run"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "for line in screen[-8:]:",
-      "id": "screen-slice-or-grid:tests/debug_screen.py:33:3bca62622f3ced33",
-      "line": 33,
+      "id": "screen-slice-or-grid:tests/debug_screen.py:30:66810c5451c5a179",
+      "line": 30,
       "owner": "geometry and presentation remediation",
       "path": "tests/debug_screen.py",
       "pattern_id": "screen-slice-or-grid",
@@ -58,20 +14,9 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(1.0)",
-      "id": "direct-time-sleep:tests/debug_screen.py:38:fd98e66a5c925724",
-      "line": 38,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/debug_screen.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "debug_run"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "for line in screen[-20:]:",
-      "id": "screen-slice-or-grid:tests/debug_screen.py:42:6e5406050d5f2db8",
-      "line": 42,
+      "id": "screen-slice-or-grid:tests/debug_screen.py:38:24448cf1a3926795",
+      "line": 38,
       "owner": "geometry and presentation remediation",
       "path": "tests/debug_screen.py",
       "pattern_id": "screen-slice-or-grid",
