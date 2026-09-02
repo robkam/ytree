@@ -471,7 +471,7 @@ def test_global_repeat_key_is_noop_in_global_view(ytnova_binary, tmp_path):
     (root / "b.txt").write_text("b", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke("g", wait=0.5)
     footer = _footer_text(tui)
@@ -496,7 +496,7 @@ def test_showall_repeat_key_sorts_in_showall_view(ytnova_binary, tmp_path):
     (root / "b.txt").write_text("b", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.5)
     footer = _footer_text(tui)
@@ -553,7 +553,7 @@ def test_showall_repeat_stays_in_showall_context(ytnova_binary, tmp_path):
     (beta / "beta_only.txt").write_text("b", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     # Move from root to alpha in tree mode and remember this start context.
     tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -586,7 +586,7 @@ def test_global_repeat_stays_in_global_context(ytnova_binary, tmp_path):
     (beta / "beta_only.txt").write_text("b", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
+    assert tui.wait_for_text(root.name, timeout=2.0), "\n".join(tui.get_screen_dump())
 
     # Move from root to alpha in tree mode and remember this start context.
     tui.send_keystroke(Keys.DOWN, wait=0.3)
