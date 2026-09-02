@@ -27,6 +27,12 @@ def _write_global_profile(tmp_dir, entries):
     (tmp_dir / ".ytnova").write_text("\n".join(body) + "\n", encoding="utf-8")
 
 
+def _send_and_wait_for_transition(tui, keys, timeout=2.0):
+    lines = tui.send_and_wait_for_screen_change(keys, timeout=timeout)
+    assert lines, screen_text(tui)
+    return lines
+
+
 def _read_ctrl_file_ops_source():
     return read_repo_source("src/ui/ctrl_file_ops.c")
 
@@ -123,12 +129,12 @@ def test_compare_placeholder_expansion_preserves_metacharacter_paths(
     _write_global_profile(source_root, [("FILEDIFF", f"{helper_path} %1 %2")])
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
-    time.sleep(0.6)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
-    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content(source_name, timeout=2.0), screen_text(tui)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # tree -> file view
+    _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.CTRL_U + str(target_path) + Keys.ENTER, wait=0.55)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+    _send_and_wait_for_transition(tui, Keys.CTRL_U + str(target_path) + Keys.ENTER)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
 
     assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
@@ -155,9 +161,9 @@ def test_view_launch_passes_metacharacter_path_as_single_literal_argument(
     _write_global_profile(root, [("PAGER", str(helper_path))])
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
-    tui.send_keystroke("v", wait=0.55)
+    assert tui.wait_for_content(filename, timeout=2.0), screen_text(tui)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # tree -> file view
+    _send_and_wait_for_transition(tui, "v")
 
     assert _wait_for_file(log_path, timeout=2.0), "PAGER helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
@@ -182,9 +188,9 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
     helper_path, log_path = _configure_capture_helper(root, "exec_args.log")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
-    tui.send_keystroke("x", wait=0.35)
+    assert tui.wait_for_content(filename, timeout=2.0), screen_text(tui)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # tree -> file view
+    _send_and_wait_for_transition(tui, "x")
     assert tui.wait_for_content(
         "COMMAND ({} inserts selected path):", timeout=1.0
     )
@@ -219,9 +225,9 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
     helper_path, log_path = _configure_capture_helper(root, "exec_quoted_placeholder.log")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
-    tui.send_keystroke("x", wait=0.35)
+    assert tui.wait_for_content(filename, timeout=2.0), screen_text(tui)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # tree -> file view
+    _send_and_wait_for_transition(tui, "x")
     assert tui.wait_for_content(
         "COMMAND ({} inserts selected path):", timeout=1.0
     )
@@ -256,9 +262,9 @@ def test_file_execute_prefill_omits_executable_path(
     script_path.chmod(0o755)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.6)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
-    tui.send_keystroke("x", wait=0.35)
+    assert tui.wait_for_content(script_path.name, timeout=2.0), screen_text(tui)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # tree -> file view
+    _send_and_wait_for_transition(tui, "x")
 
     screen = screen_text(tui)
     assert "COMMAND ({} inserts selected path):  {}" in screen, screen
