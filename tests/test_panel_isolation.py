@@ -2958,25 +2958,20 @@ def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytnova_bina
         executable=ytnova_binary,
         cwd=str(dual_panel_sandbox)
     )
-    time.sleep(1.0)
+    assert tui.wait_for_content("right_dir", timeout=2.0), _screen_text(tui)
     # 1. Split screen
-    tui.send_keystroke(Keys.F8)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
 
     # 2. Swap to right panel
-    tui.send_keystroke(Keys.TAB)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
 
     # 3. Move down to right_dir (which has files)
-    tui.send_keystroke(Keys.DOWN + Keys.DOWN)
-    time.sleep(0.5)
+    _select_tree_dir_by_marker(tui, "right_dir")
 
     # 4. Press Enter to drop into small window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=2.0), _screen_text(tui)
     # 5. Press Enter to drop into big file window
-    tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=2.0), _screen_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     lines = screen.split('\n')
