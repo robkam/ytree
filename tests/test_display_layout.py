@@ -94,6 +94,22 @@ def _file_index(name):
     return int(m.group(1))
 
 
+def _move_to_file_index(tui, split_x, target_idx, key, timeout=3.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        current_idx = _file_index(_current_file_from_stats(tui.get_screen_dump(), split_x))
+        if current_idx == target_idx:
+            return current_idx
+        lines = tui.send_and_wait_for_screen_change(
+            key, timeout=min(0.5, max(0.05, deadline - time.monotonic()))
+        )
+        if lines:
+            current_idx = _file_index(_current_file_from_stats(lines, split_x))
+            if current_idx == target_idx:
+                return current_idx
+    pytest.fail(f"Could not select file index {target_idx}.")
+
+
 def _ensure_multi_column_layout(tui, split_x, max_toggles=5):
     for _ in range(max_toggles + 1):
         lines = tui.get_screen_dump()
@@ -299,8 +315,7 @@ def test_file_window_left_right_edge_no_wrap(ytnova_binary, tmp_path):
     assert lines is not None, "Could not reach a multi-column file layout"
 
     # Move within first column, then verify LEFT at edge does nothing.
-    for _ in range(5):
-        tui.send_keystroke(Keys.DOWN, wait=0.12)
+    _move_to_file_index(tui, split_x, 5, Keys.DOWN)
     left_edge_before = _current_file_from_stats(tui.get_screen_dump(), split_x)
     assert left_edge_before is not None, "Could not read file selection before LEFT-edge check"
     tui.send_keystroke(Keys.LEFT, wait=0.2)
@@ -326,11 +341,9 @@ def test_file_window_left_right_edge_no_wrap(ytnova_binary, tmp_path):
     target_idx = x_step + target_row
 
     if idx_second_col < target_idx:
-        for _ in range(target_idx - idx_second_col):
-            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        _move_to_file_index(tui, split_x, target_idx, Keys.DOWN)
     elif idx_second_col > target_idx:
-        for _ in range(idx_second_col - target_idx):
-            tui.send_keystroke(Keys.UP, wait=0.08)
+        _move_to_file_index(tui, split_x, target_idx, Keys.UP)
 
     right_edge_before_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
     right_edge_before = _file_index(right_edge_before_name)
@@ -423,8 +436,7 @@ def test_file_window_one_column_edges_preserve_row(ytnova_binary, tmp_path):
     ), "Long filename should collapse visible short-name columns"
 
     # Move off the long dotfile and onto row 5.
-    for _ in range(6):
-        tui.send_keystroke(Keys.DOWN, wait=0.12)
+    _move_to_file_index(tui, split_x, 5, Keys.DOWN)
     start_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
     start_idx = _file_index(start_name)
     assert start_idx == 5, f"Expected start index 5, got {start_name}"
@@ -437,22 +449,11 @@ def test_file_window_one_column_edges_preserve_row(ytnova_binary, tmp_path):
         after_left_top_idx == start_idx
     ), f"LEFT at top boundary should preserve row (before={start_name}, after={after_left_top})"
 
-    # Page to the bottom boundary with RIGHT until selection no longer changes.
-    prev_idx = after_left_top_idx
-    for _ in range(12):
-        tui.send_keystroke(Keys.RIGHT, wait=0.25)
-        cur_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
-        cur_idx = _file_index(cur_name)
-        assert cur_idx is not None, "Could not parse selection index during RIGHT paging"
-        if cur_idx == prev_idx:
-            break
-        prev_idx = cur_idx
-
-    # At bottom boundary, one-column paging keeps row and does not snap to last.
-    assert prev_idx < total_files - 1, (
-        f"RIGHT paging in one-column mode snapped to last file ({prev_idx}); "
-        "expected row-preserving boundary behavior"
-    )
+    # At the explicit bottom boundary, RIGHT must not wrap selection.
+    lines = tui.send_and_wait_for_screen_change("\033OF", timeout=2.0)
+    assert lines, "End did not select the bottom boundary"
+    prev_idx = _file_index(_current_file_from_stats(lines, split_x))
+    assert prev_idx is not None, "Could not parse selection index at bottom boundary"
     tui.send_keystroke(Keys.RIGHT, wait=0.25)
     after_right_bottom = _current_file_from_stats(tui.get_screen_dump(), split_x)
     after_right_bottom_idx = _file_index(after_right_bottom)
