@@ -1,6 +1,7 @@
 import pytest
 import time
 import re
+from itertools import repeat
 import pexpect
 import io
 from helpers_stats import current_file_from_stats as _current_file_from_stats
@@ -56,7 +57,7 @@ def test_multi_column_rendering_metrics(ytnova_binary, tmp_path):
 
     # Find a mode where short names visibly render in multiple columns.
     found_multi_column = False
-    for _ in range(6):
+    for _ in repeat(None, 6):
         lines = tui.get_screen_dump()
         for line in lines[2:24]:
             if len(re.findall(r"\bfile_\d{2}\.txt\b", line)) >= 2:
@@ -64,7 +65,7 @@ def test_multi_column_rendering_metrics(ytnova_binary, tmp_path):
                 break
         if found_multi_column:
             break
-        tui.send_keystroke("\x06", wait=0.35)  # C-f: Toggle Mode
+        tui.send_and_wait_for_screen_change("\x06", timeout=1.0)  # C-f: Toggle Mode
 
     screen = "\n".join(tui.get_screen_dump())
     assert "FILE" in screen
@@ -111,11 +112,11 @@ def _move_to_file_index(tui, split_x, target_idx, key, timeout=3.0):
 
 
 def _ensure_multi_column_layout(tui, split_x, max_toggles=5):
-    for _ in range(max_toggles + 1):
+    for _ in repeat(None, max_toggles + 1):
         lines = tui.get_screen_dump()
         if _has_two_short_file_columns(lines, split_x):
             return lines
-        tui.send_keystroke("\x06", wait=0.4)  # C-f: rotate file mode
+        tui.send_and_wait_for_screen_change("\x06", timeout=1.0)  # C-f: rotate file mode
     return None
 
 
@@ -382,11 +383,11 @@ def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytnova_binary, t
     assert stats_split_x is not None, "Could not detect file/stats split border"
 
     # Rotate into a detail-heavy mode that shows dates on file rows.
-    for _ in range(6):
+    for _ in repeat(None, 6):
         screen = "\n".join(tui.get_screen_dump())
         if re.search(r"\d{4}-\d{2}-\d{2}", screen):
             break
-        tui.send_keystroke("\x06", wait=0.35)  # C-f
+        tui.send_and_wait_for_screen_change("\x06", timeout=1.0)  # C-f
 
     dump = tui.get_screen_dump()
     candidate_lines = [line[:stats_split_x] for line in dump[2:24]]
