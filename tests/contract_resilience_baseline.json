@@ -21057,17 +21057,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "for _ in range(max_steps):",
-      "id": "fixed-navigation-loop:tests/test_panel_isolation.py:270:b48a911a0c52fff1",
-      "line": 270,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "_move_to_stats_dir"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "while time.monotonic() < deadline:",
       "id": "polling-or-retry-loop:tests/test_panel_isolation.py:279:eebffb23ede9575c",
       "line": 279,
@@ -21662,17 +21651,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "for _ in range(max_steps):",
-      "id": "fixed-navigation-loop:tests/test_panel_isolation.py:1974:0eb1a9760467621d",
-      "line": 1974,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "move_to_stats_dir"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "assert \"hex invert j compare\" in _footer_text(tui), _screen_text(tui)",
       "id": "exact-prose-assertion:tests/test_panel_isolation.py:2020:c318706d72eae476",
       "line": 2020,
@@ -21692,17 +21670,6 @@
       "pattern_id": "direct-time-sleep",
       "reason": "Direct timing waits require event-driven synchronization redesign.",
       "symbol": "test_split_tab_end_home_preserves_left_tree_viewport"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "for _ in range(max_steps):",
-      "id": "fixed-navigation-loop:tests/test_panel_isolation.py:2064:ac833109b6a5ff15",
-      "line": 2064,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "move_to_stats_dir"
     },
     {
       "disposition": "out_of_scope",

@@ -265,13 +265,13 @@ def _populate_hidden_prefix_viewport_tree(root):
         (d / child).mkdir(parents=True)
 
 
-def _move_to_stats_dir(tui, marker, *, max_steps=160):
-    marker_token = f" {marker} "
-    for _ in range(max_steps):
-        if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
-            return
-        tui.send_keystroke(Keys.DOWN, wait=0.12)
-    pytest.fail(f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}")
+def _move_to_stats_dir(tui, marker, *, timeout=20.0):
+    _select_tree_stats_marker(
+        tui,
+        f" {marker} ",
+        timeout=timeout,
+        keys=(Keys.DOWN,),
+    )
 
 
 def _select_tree_dir_by_marker(tui, marker, timeout=5.0):
@@ -292,9 +292,9 @@ def _select_tree_dir_by_marker(tui, marker, timeout=5.0):
     pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
 
 
-def _select_tree_stats_marker(tui, marker, timeout=5.0):
+def _select_tree_stats_marker(tui, marker, timeout=5.0, keys=(Keys.UP, Keys.DOWN)):
     deadline = time.monotonic() + timeout
-    for key in (Keys.UP, Keys.DOWN):
+    for key in keys:
         while time.monotonic() < deadline:
             if _stats_current_dir_contains(tui.get_screen_dump(), marker):
                 return
@@ -1969,15 +1969,15 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytnova_binary):
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(repo_root))
     time.sleep(1.0)
 
-    def move_to_stats_dir(marker, *, max_steps=140):
-        marker_token = f" {marker} "
-        for _ in range(max_steps):
-            if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
-                return
-            tui.send_keystroke(Keys.DOWN, wait=0.12)
-        pytest.fail(
-            f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
+    def move_to_stats_dir(marker, *, timeout=20.0):
+        """Navigate downward to the selected current-directory marker."""
+        _select_tree_stats_marker(
+            tui,
+            f" {marker} ",
+            timeout=timeout,
+            keys=(Keys.DOWN,),
         )
+
 
     try:
         move_to_stats_dir("src")
@@ -2059,15 +2059,15 @@ def test_split_tab_end_home_preserves_left_tree_viewport(tmp_path, ytnova_binary
     )
     time.sleep(1.0)
 
-    def move_to_stats_dir(marker, *, max_steps=140):
-        marker_token = f" {marker} "
-        for _ in range(max_steps):
-            if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
-                return
-            tui.send_keystroke(Keys.DOWN, wait=0.12)
-        pytest.fail(
-            f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
+    def move_to_stats_dir(marker, *, timeout=20.0):
+        """Navigate downward to the selected current-directory marker."""
+        _select_tree_stats_marker(
+            tui,
+            f" {marker} ",
+            timeout=timeout,
+            keys=(Keys.DOWN,),
         )
+
 
     try:
         move_to_stats_dir("src")
