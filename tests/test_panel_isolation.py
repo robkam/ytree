@@ -75,6 +75,12 @@ def _wait_for_footer_state(tui, *, contains=(), excludes=(), timeout=2.0):
     return lines
 
 
+def _send_and_wait_for_transition(tui, keys, timeout=2.0):
+    lines = tui.send_and_wait_for_screen_change(keys, timeout=timeout)
+    assert lines, _screen_text(tui)
+    return lines
+
+
 def _log_path_and_wait_for_fixture(tui, path, fixture_identity):
     prompt = tui.send_and_wait_for_screen_change(Keys.LOG, timeout=1.5)
     assert prompt, _screen_text(tui)
@@ -1139,34 +1145,34 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytnova_binary):
     log_path = _configure_filediff_capture(root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "hex invert j compare" in _footer_text(tui)
 
     # Select alpha_2.txt in the left panel.
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.F8)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     # Do work in other panel: navigate to beta and enter file view.
     if "hex invert j compare" in _footer_text(tui):
-        tui.send_keystroke(Keys.ESC, wait=0.3)
-    tui.send_keystroke(Keys.DOWN, wait=0.3)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+        _send_and_wait_for_transition(tui, Keys.ESC)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "hex invert j compare" in _footer_text(tui)
 
     # Return to original panel and verify selected file is unchanged.
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.TAB)
     assert "hex invert j compare" in _footer_text(tui)
 
-    tui.send_keystroke("J", wait=0.3)
+    _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.55)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+    _send_and_wait_for_transition(tui, Keys.ENTER)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
 
     assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
@@ -1193,17 +1199,17 @@ def test_f8_close_from_active_file_panel_preserves_file_focus_and_selection(
     log_path = _configure_filediff_capture(root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
     try:
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        _send_and_wait_for_transition(tui, Keys.DOWN)
+        _send_and_wait_for_transition(tui, Keys.ENTER)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.F8, wait=0.4)
-        tui.send_keystroke(Keys.F8, wait=0.5)
+        _send_and_wait_for_transition(tui, Keys.DOWN)
+        _send_and_wait_for_transition(tui, Keys.DOWN)
+        _send_and_wait_for_transition(tui, Keys.F8)
+        _send_and_wait_for_transition(tui, Keys.F8)
 
         assert "hex invert j compare" in _footer_text(tui), (
             "Closing split from an active file panel must keep file focus.\n"
@@ -1211,11 +1217,11 @@ def test_f8_close_from_active_file_panel_preserves_file_focus_and_selection(
         )
         assert "alpha_2.txt" in _screen_text(tui), _screen_text(tui)
 
-        tui.send_keystroke("J", wait=0.3)
+        _send_and_wait_for_transition(tui, "J")
         assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        _send_and_wait_for_transition(tui, Keys.CTRL_U + str(compare_target) + Keys.ENTER)
         if tui.wait_for_content("Hit return to continue", timeout=1.0):
-            tui.send_keystroke(Keys.ENTER, wait=0.3)
+            _send_and_wait_for_transition(tui, Keys.ENTER)
 
         assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
         logged = log_path.read_text(encoding="utf-8").splitlines()
@@ -1382,20 +1388,20 @@ def test_inactive_panel_stays_file_focused_after_tab_away(tmp_path, ytnova_binar
     (right / "right_focus_file_1.txt").write_text("y\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("right_focus_dir_B", timeout=2.0), _screen_text(tui)
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.F8)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     # Move right panel to right_focus_dir_B and enter file view.
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "hex invert j compare" in _footer_text(tui)
 
     # Switch away. Inactive right panel should remain file-focused visually,
     # not revert to tree.
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     screen = "\n".join(tui.get_screen_dump())
     assert "right_focus_file_0.txt" in screen
@@ -4330,16 +4336,16 @@ def test_split_file_focus_survives_tab_round_trip(tmp_path, ytnova_binary):
     (beta / "beta.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "alpha.txt" in "\n".join(tui.get_screen_dump())
     assert "hex invert j compare" in _footer_text(tui)
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.F8)
+    _send_and_wait_for_transition(tui, Keys.TAB)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Left panel lost its file selection after split/tab round-trip.\n{screen}"
@@ -4359,24 +4365,24 @@ def test_split_panels_keep_independent_file_focus_states(tmp_path, ytnova_binary
     (beta / "beta.txt").write_text("beta\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "alpha.txt" in "\n".join(tui.get_screen_dump())
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.F8)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     if "hex invert j compare" in _footer_text(tui):
-        tui.send_keystroke(Keys.ESC, wait=0.3)
+        _send_and_wait_for_transition(tui, Keys.ESC)
 
-    tui.send_keystroke(Keys.DOWN, wait=0.3)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "beta.txt" in "\n".join(tui.get_screen_dump())
     assert "hex invert j compare" in _footer_text(tui)
 
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Returning to the left panel did not restore its file view.\n{screen}"
@@ -4399,35 +4405,42 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytnova_
     log_path = _configure_filediff_capture(root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
     # Left panel: enter alpha file view and select alpha_1.
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
     assert "hex invert j compare" in _footer_text(tui)
 
     # Split and move to right panel.
-    tui.send_keystroke(Keys.F8, wait=0.4)
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.F8)
+    _send_and_wait_for_transition(tui, Keys.TAB)
 
     # Right panel: toggle between dir/file/small-big transitions.
     if "hex invert j compare" in _footer_text(tui):
-        tui.send_keystroke(Keys.ESC, wait=0.3)
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)  # file (small)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)  # file (big)
-    tui.send_keystroke(Keys.ESC, wait=0.4)    # back to tree
-    tui.send_keystroke(Keys.ENTER, wait=0.4)  # file again
+        lines = tui.send_and_wait_for_condition(
+            Keys.ESC,
+            lambda current_lines: current_lines
+            if "hex invert j compare" not in _footer_text_from_lines(current_lines)
+            else False,
+            timeout=2.0,
+        )
+        assert lines, _screen_text(tui)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # file (small)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # file (big)
+    _send_and_wait_for_transition(tui, Keys.ESC)    # back to tree
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # file again
 
     # Left panel must still have file focus and selected alpha_1.
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.TAB)
     assert "hex invert j compare" in _footer_text(tui)
-    tui.send_keystroke("J", wait=0.3)
+    _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.55)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+    _send_and_wait_for_transition(tui, Keys.ENTER)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
     assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
@@ -4452,31 +4465,31 @@ def test_split_from_file_keeps_inactive_file_selection_independent(tmp_path, ytn
     log_path = _configure_filediff_capture(root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_content("alpha", timeout=2.0), _screen_text(tui)
 
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.ENTER, wait=0.4)  # Enter alpha
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # Enter alpha
     assert "hex invert j compare" in _footer_text(tui)
 
     # Set split baseline to alpha_1.
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
 
-    tui.send_keystroke(Keys.F8, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.F8)
     assert "hex invert j compare" in _footer_text(tui)
 
     # Move active panel to alpha_3; inactive panel should remain on alpha_1.
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
-    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
+    _send_and_wait_for_transition(tui, Keys.DOWN)
 
-    tui.send_keystroke(Keys.TAB, wait=0.4)
+    _send_and_wait_for_transition(tui, Keys.TAB)
     if "hex invert j compare" not in _footer_text(tui):
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "hex invert j compare" in _footer_text(tui)
 
-    tui.send_keystroke("J", wait=0.3)
+    _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.55)
-    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+    _send_and_wait_for_transition(tui, Keys.ENTER)
+    _send_and_wait_for_transition(tui, Keys.ENTER)  # HitReturnToContinue
 
     assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
