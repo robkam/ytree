@@ -2407,15 +2407,22 @@ def test_navigation_does_not_expand(tmp_path, ytnova_binary):
     (child_dir / "file.txt").touch()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_content("parent", timeout=2.0), _screen_text(tui)
 
     # Press DOWN to highlight 'parent'. It should NOT expand to show 'child'.
-    screen = "\n".join(tui.get_screen_dump())
+    before = tui.get_screen_dump()
+    screen = "\n".join(before)
     if "child" in screen: print("CHILD ALREADY VISIBLE")
-    tui.send_keystroke(Keys.DOWN)
-    time.sleep(0.5)
+    lines = tui.send_and_wait_for_condition(
+        Keys.DOWN,
+        lambda current_lines: current_lines
+        if current_lines != before and not any("child" in line for line in current_lines)
+        else False,
+        timeout=2.0,
+    )
+    assert lines, _screen_text(tui)
 
-    screen = "\n".join(tui.get_screen_dump())
+    screen = "\n".join(lines)
 
     if "child" in screen:
         pytest.fail(f"AUTO-EXPAND BUG: Pressing DOWN automatically expanded the directory. 'child' is visible:\n{screen}")
