@@ -1,5 +1,4 @@
 import pytest
-import time
 import re
 from itertools import repeat
 import pexpect
@@ -8,21 +7,21 @@ from helpers_stats import current_file_from_stats as _current_file_from_stats
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_lines as _footer_lines
 from helpers_ui import footer_text as _footer_text
+from helpers_ui import drive_action_until
 from ytnova_keys import Keys
 from tui_harness import YtreeNovaTUI
 
 
 def _select_tree_header_marker(tui, marker, timeout=3.0):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        lines = tui.get_screen_dump()
-        if lines and marker in lines[0]:
-            return lines
-        lines = tui.send_and_wait_for_screen_change(
-            Keys.DOWN, timeout=min(0.5, max(0.05, deadline - time.monotonic()))
-        )
-        if lines and marker in lines[0]:
-            return lines
+    lines = drive_action_until(
+        tui,
+        Keys.DOWN,
+        lambda dump: dump if marker in next(iter(dump), "") else False,
+        max_actions=128,
+        timeout=timeout,
+    )
+    if lines:
+        return lines
     screen = "\n".join(tui.get_screen_dump())
     pytest.fail(f"Could not select {marker!r}.\n{screen}")
 
@@ -96,18 +95,19 @@ def _file_index(name):
 
 
 def _move_to_file_index(tui, split_x, target_idx, key, timeout=3.0):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        current_idx = _file_index(_current_file_from_stats(tui.get_screen_dump(), split_x))
-        if current_idx == target_idx:
-            return current_idx
-        lines = tui.send_and_wait_for_screen_change(
-            key, timeout=min(0.5, max(0.05, deadline - time.monotonic()))
-        )
-        if lines:
-            current_idx = _file_index(_current_file_from_stats(lines, split_x))
-            if current_idx == target_idx:
-                return current_idx
+    selected = drive_action_until(
+        tui,
+        key,
+        lambda lines: (
+            lines
+            if _file_index(_current_file_from_stats(lines, split_x)) == target_idx
+            else False
+        ),
+        max_actions=128,
+        timeout=timeout,
+    )
+    if selected is not False:
+        return target_idx
     pytest.fail(f"Could not select file index {target_idx}.")
 
 
