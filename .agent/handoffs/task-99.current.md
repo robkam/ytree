@@ -257,3 +257,42 @@ Evidence: direct-time-sleep baseline rows supplied red contract evidence. Green:
 ## Relay identity
 
 This relay owns the complete Test Contract Resilience Remediation mission. Task 99.2 is an active in-scope work family; Task 99.7 is its final validation acceptance boundary, not a separate or blocking work item. The open PR and review requirement do not block continued remediation on this branch; they block only merge.
+
+## Active family — display target-navigation helper delegation
+
+**Selected defect family:** display layout tests still own two time-driven retry loops for moving to a selected file index and a current tree target. Both belong to the shared event-driven navigation boundary and have the same display/PTy validation path.
+
+### Inventory and closure criteria
+
+- `tests/test_display_layout.py::_move_to_file_index`: **in progress** — replace its deadline polling with a shared bounded action driver whose success predicate reads the selected file identity from the stats projection; its action cap is diagnostic only.
+- `tests/test_display_layout.py::_select_tree_header_marker`: **in progress** — replace its deadline polling with that shared driver; the visible tree header is the selected-current-directory projection used by the existing copy-refresh regressions, not a footer or geometry assertion.
+- `tests/helpers_ui.py`: **in progress** — add the smallest reusable semantic `drive_action_until` primitive. It must await an observable predicate before and after each known action, use no time-driven loop or `range` navigation count, and make the cap an explicit diagnostic safety bound.
+- Callers `test_file_window_left_right_edge_no_wrap`, `test_file_window_one_column_edges_preserve_row`, `test_dir_copy_refreshes_destination_branch_without_relog`, `test_dir_copy_delete_created_destination_updates_in_session`, and `test_dir_copy_absolute_destination_refreshes_without_relog`: **in progress** — preserve their existing edge/mutation contracts via the converted helpers.
+- `tests/tui_harness.py::YtreeNovaTUI.wait_for_condition` and `send_and_wait_for_condition`: **intentionally unchanged** — already own PTY output polling and provide the required event-driven primitive.
+- Display geometry/presentation assertions in `tests/test_display_layout.py`: **deferred** — Task 99.3 has a materially different presentation-contract boundary.
+- Same-volume manual reproducers, archive-volume lifecycle, help, and F7-preview rows: **deferred** — separate state predicates and focused validation paths already recorded above.
+- `tests/contract_resilience_baseline.json`: **in progress** — regenerate only after both local candidates have been removed and the focused callers pass.
+- `docs/ROADMAP.md`: **in progress** — include the maintainer-requested roadmap record while keeping Task 99.2 and Task 99 In Progress until the entire waiting/navigation inventory is reconciled.
+
+**Closure:** the two current `polling-or-retry-loop` rows are absent from the authoritative scan; all five helper callers and the resilience guard pass; baseline and roadmap accurately retain the in-progress overall status.
+
+### Closure reconciliation — display target-navigation helper delegation
+
+- `tests/test_display_layout.py::_move_to_file_index`: **addressed** — delegates repeated Up/Down actions to the semantic driver and succeeds only when the stats-derived selected fixture index matches the requested index.
+- `tests/test_display_layout.py::_select_tree_header_marker`: **addressed** — delegates repeated Down actions and succeeds only when the current tree header projects the target identity.
+- `tests/helpers_ui.py::drive_action_until`: **addressed** — waits on the existing event-driven PTY helper after each action; `max_actions` is only a diagnostic safety cap and is not a navigation assertion.
+- `tests/test_helpers_ui_contract.py`: **addressed** — proves the driver stops when an action produces the visible identity and sends nothing when it is already selected.
+- Five display-layout callers: **addressed** — focused fixture and copy-refresh regression tests preserve the pre-existing edge and mutation contracts through the shared driver.
+- `tests/tui_harness.py` wait primitives: **intentionally unchanged** — existing semantic PTY output synchronization is reused.
+- `tests/contract_resilience_baseline.json`: **addressed** — authoritative scan removed both selected waiting/navigation rows; 40 waiting/navigation rows remain for later coherent families.
+- `docs/ROADMAP.md`: **addressed** — records display target-identity navigation while retaining Task 99 and Task 99.2 In Progress.
+- Geometry/presentation, manual same-volume, archive-volume lifecycle, help, and F7 preview surfaces: **deferred** — unchanged for their recorded separate boundary and validation reasons.
+
+### Validation
+
+- Red: before implementation, `pytest -q tests/test_helpers_ui_contract.py` failed collection because `drive_action_until` did not exist; the authoritative baseline contained the two selected `polling-or-retry-loop` candidates.
+- Green: `source .venv/bin/activate && pytest -q tests/test_helpers_ui_contract.py tests/test_display_layout.py::test_file_window_left_right_edge_no_wrap tests/test_display_layout.py::test_file_window_one_column_edges_preserve_row` — 4 passed.
+- Green: `source .venv/bin/activate && pytest -q tests/test_display_layout.py::test_dir_copy_refreshes_destination_branch_without_relog tests/test_display_layout.py::test_dir_copy_delete_created_destination_updates_in_session tests/test_display_layout.py::test_dir_copy_absolute_destination_refreshes_without_relog` — 3 passed.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py tests/test_helpers_ui_contract.py tests/test_display_layout.py::test_file_window_left_right_edge_no_wrap tests/test_display_layout.py::test_file_window_one_column_edges_preserve_row tests/test_display_layout.py::test_dir_copy_refreshes_destination_branch_without_relog tests/test_display_layout.py::test_dir_copy_delete_created_destination_updates_in_session tests/test_display_layout.py::test_dir_copy_absolute_destination_refreshes_without_relog` — 13 passed; selected candidates absent.
+- Green: `git diff --check`.
+- Deliberately unrun: local full QA and C build; this coherent batch changes Python test synchronization, its metadata baseline, and roadmap recovery only. PR full-QA CI remains the merge gate.

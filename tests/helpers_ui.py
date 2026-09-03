@@ -1,4 +1,20 @@
 import re
+from itertools import repeat
+
+
+def drive_action_until(tui, action, predicate, max_actions, timeout=0.5):
+    """Drive one known action until its semantic target is observable."""
+    result = predicate(tui.get_screen_dump())
+    if result:
+        return result
+
+    for _ in repeat(None, max_actions):
+        result = tui.send_and_wait_for_condition(
+            action, predicate, timeout=min(timeout, 0.5)
+        )
+        if result:
+            return result
+    return False
 
 
 def dismiss_archive_unsafe_warnings(tui, warning_text, archive_text, enter_key, timeout=2.0):
