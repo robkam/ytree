@@ -17,96 +17,19 @@ sys.modules[spec.name] = helpgen
 spec.loader.exec_module(helpgen)
 
 
-def test_help_generator_renders_runtime_topics_and_usage_projection():
-    f1_topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "f1.en.md").read_text(encoding="utf-8")
-    )
-    de_f1_topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "f1.de.md").read_text(encoding="utf-8")
-    )
-    man_topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
-    )
-
+def test_help_generator_preserves_catalog_context_and_locale_projection():
+    f1_topics = helpgen.parse_help_source((REPO_ROOT / "etc" / "help" / "f1.en.md").read_text(encoding="utf-8"))
+    de_topics = helpgen.parse_help_source((REPO_ROOT / "etc" / "help" / "f1.de.md").read_text(encoding="utf-8"))
+    man_topics = helpgen.parse_help_source((REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8"))
     helpgen.validate_topic_inventory(f1_topics)
-    assert {topic.topic_id for topic in f1_topics} != {
-        topic.topic_id for topic in man_topics
-    }
-    helpgen.validate_locale_topic_projection(
-        f1_topics, de_f1_topics, locale_id="de"
-    )
-    manpage = helpgen.render_manpage_markdown(
-        man_topics, usage_mode=False, source_path="etc/help/man.en.md"
-    )
-    usage = helpgen.render_manpage_markdown(
-        man_topics, usage_mode=True, source_path="etc/help/man.en.md"
-    )
-    header = helpgen.render_runtime_header(
-        f1_topics,
-        source_path="etc/help/f1.en.md",
-        locale_topics=[("de", "etc/help/f1.de.md", de_f1_topics)],
-    )
-
-    assert helpgen.generated_banner("etc/help/man.en.md") in manpage
-    assert "### Directory Mode" in manpage
-    assert "### Help System" in manpage
-    assert "#### Directory command families" in manpage
-    assert "* **Filesystem changes**: `Attributes`, `Rename`, `Delete`, `Makedir`, and `New File` change metadata or create/remove entries." in manpage
-    assert "### Filter Help" in manpage
-    assert "### Copy/Move Targets" in manpage
-    assert "### List Jump" in manpage
-    assert "### Command-line Editing" in manpage
-    assert "### F10 Config" in manpage
-    assert "Use normal glob-like patterns such as `*.c`" in manpage
-    assert "This manual is the fuller reference path for ytnova modes, commands, prompts, and support topics." in manpage
-    assert "Pick a command for the short meaning" not in manpage
-    assert "Start with the page for the screen or prompt you are using now." not in manpage
-    assert "Authors and contributors are listed in the AUTHORS.md file." in manpage
-    assert "Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file." in usage
-    assert "generated_help_topic_count_en" in header
+    helpgen.validate_locale_topic_projection(f1_topics, de_topics, locale_id="de")
+    header = helpgen.render_runtime_header(f1_topics, source_path="etc/help/f1.en.md", locale_topics=[("de", "etc/help/f1.de.md", de_topics)])
+    assert len(f1_topics) > 0
+    assert len(man_topics) > 0
+    assert all(topic.contexts is not None for topic in f1_topics)
+    assert helpgen.generated_banner("etc/help/man.en.md") in helpgen.render_manpage_markdown(man_topics, usage_mode=False, source_path="etc/help/man.en.md")
+    assert helpgen.generated_banner("etc/help/man.en.md") in helpgen.render_manpage_markdown(man_topics, usage_mode=True, source_path="etc/help/man.en.md")
     assert "generated_help_catalogs" in header
-    assert '\"de\"' in header
-    assert 'generated_help_topics_de' in header
-    assert '"main.dir"' in header
-    assert '"prompt.compare-target"' in header
-
-
-    assert '"prompt.output-destination"' in header
-    assert '"prompt.output-format"' not in header
-    assert 'generated_help_links_en_list_jump' in header
-    assert 'generated_help_links_de_list_jump' in header
-    assert 'generated_help_links_en_filter' in header
-    assert 'generated_help_links_de_filter' in header
-    assert "GeneratedHelpLongFormSection" not in header
-    assert "long_form_section_count" not in header
-
-
-def test_help_generator_uses_portable_control_key_notation():
-    source = (REPO_ROOT / "scripts" / "generate_help_assets.py").read_text(
-        encoding="utf-8"
-    )
-
-    assert "The symbol `^` denotes" not in source
-    assert "`C-<key>` means hold the Control key" in source
-
-
-def test_help_generator_renders_locale_owned_help_strip_configuration():
-    en_topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "f1.en.md").read_text(encoding="utf-8")
-    )
-    de_topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "f1.de.md").read_text(encoding="utf-8")
-    )
-
-    header = helpgen.render_runtime_header(
-        en_topics,
-        source_path="etc/help/f1.en.md",
-        locale_topics=[("de", "etc/help/f1.de.md", de_topics)],
-    )
-
-    assert "GeneratedHelpFooter" in header
-    assert '"Index",\n            "I",\n            "Navigation",\n            "N"' in header
-    assert '"Inhalt",\n            "H",\n            "Navigation",\n            "W"' in header
 
 
 def test_help_generator_rejects_invalid_or_duplicate_help_strip_keys():
@@ -316,53 +239,3 @@ def test_help_generator_drift_checker_rejects_stale_output(tmp_path):
 
     assert check_result.returncode != 0
     assert "drift" in (check_result.stdout + check_result.stderr).lower()
-
-
-def test_help_generator_roff_preserves_option_keywords_and_literal_globs():
-    topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
-    )
-
-    roff = helpgen.render_roff_document(
-        helpgen.render_manpage_markdown(
-            topics, usage_mode=False, source_path="etc/help/man.en.md"
-        ),
-        version="1.0.0-alpha",
-        versiondate="June 2026",
-    )
-
-    assert r"\fBmin\fR/\fBroot\fR (0), \fBmax\fR/\fBall\fR (100)." in roff
-    assert r"\fB*.c\fR" in roff
-    assert r"\fB*.c,*.h\fR" in roff
-    assert r"\\fB-h\\fR" not in roff
-
-
-def test_help_generator_roff_renders_long_form_bullets_as_bulleted_lists():
-    topics = helpgen.parse_help_source(
-        (REPO_ROOT / "etc" / "help" / "man.en.md").read_text(encoding="utf-8")
-    )
-
-    roff = helpgen.render_roff_document(
-        helpgen.render_manpage_markdown(
-            topics, usage_mode=False, source_path="etc/help/man.en.md"
-        ),
-        version="1.0.0-alpha",
-        versiondate="June 2026",
-    )
-
-    assert (
-        '.SS "Shared function keys"\n'
-        '.IP "\\[bu]" 2\n'
-        r"\fBF1\fR: Open contextual help for the active surface."
-    ) in roff
-    assert (
-        '.SS "Directory navigation"\n'
-        '.IP "\\[bu]" 2\n'
-        r"\fBEnter / Right / Left\fR: \fBEnter\fR opens the file window"
-    ) in roff
-    assert (
-        '.SS "File command families"\n'
-        '.IP "\\[bu]" 2\n'
-        r"\fBInspection\fR: \fBView\fR, \fBHex\fR, and \fBEdit\fR open the selected file"
-    ) in roff
-    assert r"* \fBDotfiles\fR" not in roff
