@@ -1,6 +1,5 @@
-import pytest
-import time
 import os
+from helpers_ui import drive_action_until
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -15,57 +14,26 @@ def test_sort_help_missing_options(ytnova_binary, sandbox):
     env["ASAN_OPTIONS"] = f"log_path={asan_log}"
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(sandbox), env_extra=env)
-    # Note: YtreeNovaTUI handles its own env, but we can't easily pass env to it
-    # without modifying it. Let's modify YtreeNovaTUI in our mind or just
-    # run it differently.
+    assert tui.wait_for_content("source", timeout=2.0)
+    assert drive_action_until(
+        tui,
+        Keys.DOWN,
+        lambda lines: lines if "source" in next(iter(lines), "") else False,
+        max_actions=128,
+    ), "Could not select the source fixture entry."
+    assert tui.send_and_wait_for_condition(
+        Keys.ENTER,
+        lambda lines: lines if any("root_file.txt" in line for line in lines) else False,
+        timeout=2.0,
+    ), "Source fixture file list did not become available after Enter."
+    assert tui.send_and_wait_for_condition(
+        "S",
+        lambda lines: lines if any("SORT by" in line for line in lines) else False,
+        timeout=2.0,
+    ), "Sort prompt did not become available after S."
 
-    # Actually YtreeNovaTUI in tui_harness.py has:
-    # env = { "COLUMNS": "120", "LINES": "36", "TERM": "xterm-256color" }
-    # It doesn't use os.environ.
-
-    time.sleep(1.0)
-
-    # Enter file window
-    tui.send_keystroke(Keys.ENTER)
-    if not tui.wait_for_content("Attribute"):
-        print("DEBUG: Timed out waiting for file window")
-
-    # Press 'S' for sort
-    tui.send_keystroke("S")
-    if not tui.wait_for_content("SORT by"):
-        print("DEBUG: Timed out waiting for sort prompt")
-
-    # Get screen dump
-    screen = tui.get_screen_dump()
-
-    print("DEBUG: Full Screen Dump:")
-    for i, line in enumerate(screen):
-        if line.strip():
-            print(f"{i:2d}: {line}")
-
-    prompt_line_34 = screen[34].strip()
-    prompt_line_35 = screen[35].strip()
-
-    print(f"DEBUG: Prompt line 34: '{prompt_line_34}'")
-    print(f"DEBUG: Prompt line 35: '{prompt_line_35}'")
-
-    # Check if there are ASAN logs
-    log_files = list(sandbox.glob("asan.log*"))
-    if log_files:
-        print(f"DEBUG: ASAN Log found: {log_files[0]}")
-        with open(log_files[0], "r") as f:
-            print(f"DEBUG: ASAN Output:\n{f.read()}")
-
-    full_prompt = prompt_line_34 + " " + prompt_line_35
-
-    missing = []
-    if "(N)ame" not in full_prompt:
-        missing.append("(N)ame")
-    if "(S)ize" not in full_prompt:
-        missing.append("(S)ize")
-    if "o(W)ner" not in full_prompt and "(W)owner" not in full_prompt:
-        missing.append("o(W)ner")
-
-    assert not missing, f"Missing options in sort help: {', '.join(missing)}"
+    prompt = "\n".join(tui.get_screen_dump())
+    missing = [option for option in ("Name", "Size", "OWner") if option not in prompt]
+    assert not missing, f"Missing sort capabilities: {', '.join(missing)}"
 
     tui.quit()

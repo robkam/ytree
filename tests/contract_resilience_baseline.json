@@ -146,39 +146,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(1.0)",
-      "id": "direct-time-sleep:tests/reproduce_sort_bug.py:26:e71e045c7e1ffc70",
-      "line": 26,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/reproduce_sort_bug.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_sort_help_missing_options"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "prompt_line_34 = screen[34].strip()",
-      "id": "screen-slice-or-grid:tests/reproduce_sort_bug.py:46:1871a7fb73f0fca6",
-      "line": 46,
-      "owner": "geometry and presentation remediation",
-      "path": "tests/reproduce_sort_bug.py",
-      "pattern_id": "screen-slice-or-grid",
-      "reason": "Screen-grid assertions require semantic visual-state replacement.",
-      "symbol": "test_sort_help_missing_options"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "prompt_line_35 = screen[35].strip()",
-      "id": "screen-slice-or-grid:tests/reproduce_sort_bug.py:47:5ff5a6b5053673d4",
-      "line": 47,
-      "owner": "geometry and presentation remediation",
-      "path": "tests/reproduce_sort_bug.py",
-      "pattern_id": "screen-slice-or-grid",
-      "reason": "Screen-grid assertions require semantic visual-state replacement.",
-      "symbol": "test_sort_help_missing_options"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "source = Path(\"src/core/main.c\").read_text(encoding=\"utf-8\")",
       "id": "source-read:tests/test_appstate_contract_guard.py:2202:873053d8dd077285",
       "line": 2202,
@@ -26246,17 +26213,6 @@
       "pattern_id": "screen-slice-or-grid",
       "reason": "Screen-grid assertions require semantic visual-state replacement.",
       "symbol": "test_rename_prompt_no_footer_bleed"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(1.0)",
-      "id": "direct-time-sleep:tests/test_ui_layout.py:71:308aabb02553378c",
-      "line": 71,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_ui_layout.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_ui_layout_dynamic_resizing"
     },
     {
       "disposition": "out_of_scope",

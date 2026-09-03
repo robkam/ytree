@@ -419,3 +419,38 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_state_collision.py::test_state_collision_cursor_pos tests/test_contract_resilience_guard.py` — 7 passed; selected row absent.
 - Green: `git diff --check`.
 - Deliberately unrun: local full QA and C build; this batch changes Python PTY synchronization, its generated inventory, and roadmap status only. Required PR full-QA CI remains the merge gate.
+
+## Next active family — observable UI readiness transitions
+
+**Selected defect family:** `tests/reproduce_sort_bug.py::test_sort_help_missing_options` and `tests/test_ui_layout.py::test_ui_layout_dynamic_resizing` are the two remaining direct UI delays outside the concurrency and archive lifecycle boundaries. Both test PTY-rendered state, use existing harness predicates, and can replace elapsed readiness with action-specific observable screen transitions.
+
+### In-scope inventory and closure criteria
+
+- `tests/reproduce_sort_bug.py::test_sort_help_missing_options`: **in progress** — remove the startup sleep; wait for the fixture/tree identity before invoking Enter and then wait for the sort prompt state. Preserve its existing sort-menu capability regression without asserting an assumed redraw duration.
+- `tests/test_ui_layout.py::test_ui_layout_dynamic_resizing`: **in progress** — replace the SIGWINCH sleep with an observable redraw state after resizing. Preserve the existing path/command capability checks without tying completion to elapsed time.
+- `tests/tui_harness.py::{wait_for_content,wait_for_condition,send_and_wait_for_condition}`: **intentionally unchanged** — existing PTY predicates provide the required semantic readiness mechanism.
+- Runtime startup, resize, and prompt controllers: **intentionally unchanged unless focused red evidence demonstrates a runtime defect** — no runtime repair is inferred from direct test sleeps.
+- `tests/contract_resilience_baseline.json`: **pending** — regenerate after both delays are removed; both selected direct-time-sleep rows must be absent.
+- `docs/ROADMAP.md`: **pending** — include a concise in-progress record while retaining Task 99 and Task 99.2 In Progress because other families remain.
+- Help scroll, archive-volume, refresh-race, preview, stats, and harness rows: **deferred** — distinct modal-scroll, lifecycle, concurrency, presentation-scanning, or retained-helper boundaries.
+
+**Closure:** startup identity, sort-prompt transition, and post-resize redraw states are observed; both selected rows are absent after regeneration; focused test matrix and resilience guard pass; handoff and roadmap reconcile every inventoried item.
+
+### Closure reconciliation — observable UI readiness transitions
+
+- `tests/reproduce_sort_bug.py::test_sort_help_missing_options`: **addressed** — fixture-target navigation reaches the source file list before the sort action, and each action waits for its visible result. The test now checks sort capabilities wherever the prompt is rendered rather than treating rows as a stable interface.
+- `tests/test_ui_layout.py::test_ui_layout_dynamic_resizing`: **addressed** — resize completion waits for the path and command capabilities to be observable, with no elapsed SIGWINCH delay.
+- `tests/tui_harness.py::{wait_for_content,wait_for_condition,send_and_wait_for_condition}`: **intentionally unchanged** — existing event-driven PTY synchronization is reused.
+- Runtime startup, resize, and prompt controllers: **intentionally unchanged** — focused validation does not show a runtime defect.
+- `tests/contract_resilience_baseline.json`: **addressed** — regenerated; both selected direct-time-sleep rows are absent and 8 waiting/navigation rows remain for distinct recorded families.
+- `docs/ROADMAP.md`: **addressed** — records observable startup and resize readiness while retaining Task 99 and Task 99.2 In Progress.
+- Help scroll, archive-volume, refresh-race, preview, stats, and harness families: **deferred** — each retains its distinct modal-scroll, lifecycle, concurrency, presentation-scanning, or retained-helper boundary.
+
+### Validation
+
+- Red: the authoritative baseline contained both selected direct-time-sleep rows before implementation.
+- Red: the first semantic sort-action attempt exposed the old row-bound prompt assertion as a test defect; its stable capability assertion now follows the visible prompt rather than terminal rows.
+- Green: `source .venv/bin/activate && pytest -q tests/reproduce_sort_bug.py::test_sort_help_missing_options tests/test_ui_layout.py::test_ui_layout_dynamic_resizing` — 2 passed.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/reproduce_sort_bug.py::test_sort_help_missing_options tests/test_ui_layout.py::test_ui_layout_dynamic_resizing tests/test_contract_resilience_guard.py` — 8 passed; selected rows absent.
+- Green: `git diff --check`.
+- Deliberately unrun: local full QA and C build; this batch changes Python PTY synchronization, a generated inventory, and roadmap status only. Required PR full-QA CI remains the merge gate.
