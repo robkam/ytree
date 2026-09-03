@@ -1,6 +1,3 @@
-import pytest
-import os
-import time
 from tui_harness import YtreeNovaTUI
 
 def test_ui_layout_box_drawing(ytnova_binary, tmp_path):
@@ -67,10 +64,15 @@ def test_ui_layout_dynamic_resizing(ytnova_binary, tmp_path):
     tui.child.setwinsize(new_lines, new_cols)
     tui.screen.resize(new_lines, new_cols)
     
-    # Wait for ytnova to handle SIGWINCH and redraw
-    time.sleep(1.0)
-    
-    screen = tui.get_screen_dump()
+    screen = tui.wait_for_condition(
+        lambda lines: lines
+        if any("Path: " in line for line in lines)
+        and any("COMMANDS" in line for line in lines)
+        else False,
+        timeout=2.0,
+        description="resized UI capabilities",
+    )
+    assert screen, "UI did not expose its path and command capabilities after resize."
     
     # Basic sanity: Path should still be at top
     found_path = any("Path: " in line for line in screen)
