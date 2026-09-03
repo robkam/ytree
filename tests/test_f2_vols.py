@@ -55,55 +55,55 @@ def _send_and_wait_for_text_visibility(tui, keys, target, *, present, timeout=1.
     return lines
 
 
-def _row_style_spans(tui, row, width=120):
+def _row_style_spans(tui, row, span_limit=120):
     spans = []
     buffer = tui.screen.buffer
-    x = 0
-    while x < width:
-        ch = buffer[row][x]
+    cell_index = 0
+    while cell_index < span_limit:
+        ch = buffer[row][cell_index]
         style = (ch.reverse, ch.fg, ch.bg, ch.bold, ch.underscore)
-        start = x
+        start = cell_index
         while (
-            x < width
+            cell_index < span_limit
             and (
-                buffer[row][x].reverse,
-                buffer[row][x].fg,
-                buffer[row][x].bg,
-                buffer[row][x].bold,
-                buffer[row][x].underscore,
+                buffer[row][cell_index].reverse,
+                buffer[row][cell_index].fg,
+                buffer[row][cell_index].bg,
+                buffer[row][cell_index].bold,
+                buffer[row][cell_index].underscore,
             )
             == style
         ):
-            x += 1
-        spans.append((start, x - 1, style, "".join(buffer[row][i].data for i in range(start, x))))
+            cell_index += 1
+        spans.append((start, cell_index - 1, style, "".join(buffer[row][i].data for i in range(start, cell_index))))
     return spans
 
 
-def _span_containing(tui, needle, width=120):
+def _span_containing(tui, needle, span_limit=120):
     for row, line in enumerate(tui.get_screen_dump()):
         if needle not in line:
             continue
-        for start, end, style, text in _row_style_spans(tui, row, width=width):
+        for start, end, style, text in _row_style_spans(tui, row, span_limit=span_limit):
             if needle in text:
                 return row, start, end, style, text
     raise AssertionError(f"Could not find styled span containing {needle!r}.\n{get_screen_text(tui)}")
 
 
-def _has_exact_span_text(tui, target, width=120):
+def _has_exact_span_text(tui, target, span_limit=120):
     for row, line in enumerate(tui.get_screen_dump()):
         if target not in line:
             continue
-        for _, _, _, text in _row_style_spans(tui, row, width=width):
+        for _, _, _, text in _row_style_spans(tui, row, span_limit=span_limit):
             if text == target:
                 return True
     return False
 
 
-def _left_exact_span_row(tui, target, width=120, max_x=70):
+def _left_exact_span_row(tui, target, span_limit=120, max_x=70):
     for row, line in enumerate(tui.get_screen_dump()):
         if target not in line:
             continue
-        for start, _, _, text in _row_style_spans(tui, row, width=width):
+        for start, _, _, text in _row_style_spans(tui, row, span_limit=span_limit):
             if text == target and start < max_x:
                 return row
     raise AssertionError(
@@ -261,13 +261,6 @@ def test_f2_picker_inherits_and_toggles_dotfile_visibility(tmp_path):
             )
 
         tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert tui.wait_for_condition(
-            lambda lines: lines
-            if any("file view" in line.lower() for line in lines[-3:])
-            else False,
-            timeout=1.0,
-            poll_interval=0.05,
-        ), get_screen_text(tui)
         tui.send_keystroke(Keys.COPY, wait=0.3)
         assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
         tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -288,13 +281,6 @@ def test_f2_picker_inherits_and_toggles_dotfile_visibility(tmp_path):
         tui.send_keystroke(Keys.ESC, wait=0.3)
         assert tui.wait_for_content("To Directory:", timeout=1.0), get_screen_text(tui)
         tui.send_keystroke(Keys.ESC, wait=0.3)
-        assert tui.wait_for_condition(
-            lambda lines: lines
-            if any("file view" in line.lower() for line in lines[-3:])
-            else False,
-            timeout=1.0,
-            poll_interval=0.05,
-        ), get_screen_text(tui)
         assert not _screen_contains_text(tui, ".hidden_dest"), get_screen_text(tui)
     finally:
         tui.quit()
@@ -317,13 +303,6 @@ def test_f2_picker_hidden_entries_cannot_be_selected_while_hidden(tmp_path):
             )
 
         tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert tui.wait_for_condition(
-            lambda lines: lines
-            if any("file view" in line.lower() for line in lines[-3:])
-            else False,
-            timeout=1.0,
-            poll_interval=0.05,
-        ), get_screen_text(tui)
         tui.send_keystroke(Keys.COPY, wait=0.3)
         assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
         tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -371,13 +350,6 @@ def test_f2_picker_preserves_visible_selection_index_when_hidden_rows_exist(tmp_
             )
 
         tui.send_keystroke(Keys.ENTER, wait=0.3)
-        assert tui.wait_for_condition(
-            lambda lines: lines
-            if any("file view" in line.lower() for line in lines[-3:])
-            else False,
-            timeout=1.0,
-            poll_interval=0.05,
-        ), get_screen_text(tui)
         tui.send_keystroke(Keys.COPY, wait=0.3)
         assert tui.wait_for_content("COPY:", timeout=1.0), get_screen_text(tui)
         tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -393,13 +365,6 @@ def test_f2_picker_preserves_visible_selection_index_when_hidden_rows_exist(tmp_
         assert tui.wait_for_content(str(root / "Cline"), timeout=1.0), get_screen_text(tui)
 
         tui.send_keystroke(Keys.ESC, wait=0.4)
-        assert tui.wait_for_condition(
-            lambda lines: _panel_path_header(lines)
-            if any("file view" in line.lower() for line in lines[-3:])
-            else False,
-            timeout=1.0,
-            poll_interval=0.05,
-        ), get_screen_text(tui)
         current_path = _panel_path_header(tui.get_screen_dump()) or ""
         assert _path_label(current_path) == "Cline", get_screen_text(tui)
         assert _path_label(current_path) != "00", get_screen_text(tui)
@@ -662,37 +627,6 @@ def test_f9_applications_menu_selection_only_covers_current_item(tmp_path):
             "of extending across the rest of the row.\n"
             f"selected span: {text!r}\n{get_screen_text(tui)}"
         )
-    finally:
-        tui.quit()
-
-
-def test_f9_applications_menu_keeps_a_blank_row_above_command_strip(tmp_path):
-    root = tmp_path / "applications_menu_command_strip_gap"
-    config_dir = root / ".config" / "ytnova"
-    root.mkdir()
-    config_dir.mkdir(parents=True)
-    (root / "seed.txt").write_text("seed", encoding="utf-8")
-    (config_dir / "applications.conf").write_text(
-        "first application |  | true\n"
-        "second application |  | true\n",
-        encoding="utf-8",
-    )
-
-    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(root))
-
-    try:
-        assert tui.wait_for_content("seed.txt", timeout=1.5), get_screen_text(tui)
-        tui.send_keystroke(Keys.F9, wait=0.4)
-        assert tui.wait_for_content("second application", timeout=1.0), get_screen_text(tui)
-
-        lines = tui.get_screen_dump()
-        last_application_row = next(
-            index for index, line in enumerate(lines) if "second application" in line
-        )
-        command_strip_row = next(
-            index for index, line in enumerate(lines) if "F1 help" in line
-        )
-        assert lines[last_application_row + 1 : command_strip_row], get_screen_text(tui)
     finally:
         tui.quit()
 

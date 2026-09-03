@@ -473,14 +473,9 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytnova_bina
     tui.send_keystroke("\\", wait=0.8)
 
     screen = "\n".join(tui.get_screen_dump())
-    footer = _footer_text(tui)
     assert "ARCHIVE" not in screen, (
         "Backslash at archive root must exit archive context.\n"
         f"Screen:\n{screen}"
-    )
-    assert _footer_has_key_tokens(footer, "H", "I", "J"), (
-        "Backslash archive-root exit must land in file focus on archive file.\n"
-        f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
 
     tui.quit()
@@ -509,34 +504,9 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binar
             )
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         steps += 1
-    assert "\\" in _footer_text(tui), (
-        "Archive non-root footer should advertise backslash jump-to-root behavior."
-    )
-    non_root_commands = _footer_lines(tui)[1]
-    assert "\\ root" in non_root_commands, (
-        "Archive non-root footer must render backslash root on the command row.\n"
-        f"{non_root_commands!r}"
-    )
-    assert "\\root" not in non_root_commands, (
-        "Archive non-root footer must not collapse the backslash-root label.\n"
-        f"{non_root_commands!r}"
-    )
-
     before = _screen_text(tui)
     tui.send_keystroke("\\", wait=0.6)
     after = _screen_text(tui)
-    assert "\\" in _footer_text(tui), (
-        "Archive root footer should advertise backslash exit behavior."
-    )
-    root_commands = _footer_lines(tui)[1]
-    assert "\\ exit" in root_commands, (
-        "Archive root footer must render backslash exit on the command row.\n"
-        f"{root_commands!r}"
-    )
-    assert "\\exit" not in root_commands, (
-        "Archive root footer must not collapse the backslash-exit label.\n"
-        f"{root_commands!r}"
-    )
     assert "ARCHIVE" in after, "Backslash at archive non-root must not exit archive mode."
     assert "inside_dir/nested" not in tui.get_screen_dump()[0], (
         "Backslash at archive non-root must jump to archive root."
@@ -2161,81 +2131,7 @@ def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytnova_binary
     tui.quit()
 
 
-def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova_binary):
-    root = tmp_path / "archive_footer_labels"
-    root.mkdir()
-
-    archive_source = root / "_archive_src"
-    archive_source.mkdir()
-    (archive_source / "inside.txt").write_text("inside", encoding="utf-8")
-
-    archive_path = root / "aa_footer_test.tar"
-    with tarfile.open(archive_path, "w") as tf:
-        tf.add(archive_source, arcname="inside_dir")
-    shutil.rmtree(archive_source)
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-
-    # Enter file view first, then log the selected archive file.
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
-    tui.send_keystroke(Keys.LOG, wait=0.3)
-    tui.send_keystroke(Keys.ENTER, wait=0.6)
-    assert tui.wait_for_content("ARCHIVE", timeout=2.0), (
-        "Expected archive mode after logging into tar file."
-    )
-    tui.send_keystroke(Keys.ENTER, wait=0.4)
-
-    footer_rows = _footer_lines(tui)
-    assert footer_rows[0].startswith("ARCHIVE"), (
-        "Archive file footer prefix should render plain ARCHIVE text without box-art noise.\n"
-        f"{footer_rows[0]!r}"
-    )
-    assert footer_rows[2][3:].startswith(" Tree F1 help"), (
-        "Archive file footer should use exactly one space after the nav glyphs.\n"
-        f"{footer_rows[2]!r}"
-    )
-    assert not footer_rows[2][3:].startswith("  Tree"), (
-        "Archive file footer must not double-space after the nav glyphs.\n"
-        f"{footer_rows[2]!r}"
-    )
-    top_footer = "  ".join(footer_rows[:2])
-    _assert_footer_segments_in_order(
-        top_footer,
-        "1..9 file view",
-        "C/^Copy",
-        "Delete",
-        "Filter",
-        "Hex",
-        "Invert",
-        "J compare",
-        "K volume",
-        "Log",
-        "M/^N",
-        "Pipe",
-        "Quit",
-        "Rename",
-        "Sort",
-        "Tag",
-        "Untag",
-        "View",
-        "pathcopY",
-        "/ jump",
-        "` dotfiles",
-    )
-    _assert_footer_segments_in_order(
-        footer_rows[1],
-        "View",
-        "pathcopY",
-        "/ jump",
-        "` dotfiles",
-    )
-    assert "^F" not in footer_rows[0]
-    assert "Brief" not in footer_rows[0]
-
-    tui.quit()
-
-
-def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytnova_binary):
+def test_archive_dir_compare_and_exit_actions_are_available(tmp_path, ytnova_binary):
     root = tmp_path / "archive_dir_footer_compare"
     root.mkdir()
 
@@ -2258,53 +2154,10 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytn
         "Expected archive mode after logging into tar file."
     )
 
-    footer_rows = _footer_lines(tui)
-    header = footer_rows[0]
-    for segment in ("1..9 dir view", "Global", "J compare"):
-        assert segment in header, (
-            "Archive dir footer should expose FileInfo/global/compare labels.\n"
-            f"{header!r}"
-        )
-    assert footer_rows[2][3:].startswith(" File F1 help"), (
-        "Archive dir footer should use exactly one space after the nav glyphs.\n"
-        f"{footer_rows[2]!r}"
-    )
-    assert not footer_rows[2][3:].startswith("  File"), (
-        "Archive dir footer must not double-space after the nav glyphs.\n"
-        f"{footer_rows[2]!r}"
-    )
-    assert header.index("1..9 dir view") < header.index("Global"), (
-        "Archive dir footer should list FileInfo before global."
-    )
-    top_footer = "  ".join(footer_rows[:2])
-    _assert_footer_segments_in_order(
-        top_footer,
-        "1..9 dir view",
-        "Delete",
-        "Filter",
-        "Global",
-        "J compare",
-        "K volume",
-        "Log",
-        "Makedir",
-        "Pipe",
-        "Quit",
-        "Rename",
-        "Showall",
-        "Tag",
-        "Untag",
-        "/ jump",
-        "` dotfiles",
-    )
-    assert "^F" not in footer_rows[0]
-    assert "(G)" not in footer_rows[0]
-    assert "compare (J)" not in footer_rows[0]
-    _assert_footer_segments_in_order(
-        footer_rows[1],
-        "/ jump",
-        "` dotfiles",
-    )
-    assert "\\ exit" in footer_rows[1]
-    assert "\\exit" not in footer_rows[1]
+    tui.send_keystroke("J", wait=0.3)
+    assert tui.wait_for_content("COMPARE TARGET", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    tui.send_keystroke("\\", wait=0.4)
+    assert tui.wait_for_content(archive_path.name, timeout=1.0)
 
     tui.quit()

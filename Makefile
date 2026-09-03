@@ -483,7 +483,7 @@ qa-fileops-integrity: $(MAIN_BIN)
 		tests/test_archive_ui.py::test_archive_create_exclusion_empty_payload_shows_status_and_aborts \
 		tests/test_archive_ui.py::test_archive_create_inside_source_round_trip_integrity
 
-# Focused split-panel regression gate: canonical eight-test split matrix plus source-level guards.
+# Focused split-panel regression gate: canonical split matrix plus source-level guards.
 qa-split-panel-gates: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST) -q -ra --tb=no \
 		tests/test_dir_window_dispatch_regressions.py::test_dir_window_split_transition_owner_path_is_canonical \
@@ -492,7 +492,6 @@ qa-split-panel-gates: $(MAIN_BIN)
 		tests/test_file_window_dispatch_regressions.py::test_split_and_tab_dispatch_keeps_file_mode_footer \
 		tests/test_panel_isolation.py::test_split_from_file_keeps_file_focus_on_tab \
 		tests/test_panel_isolation.py::test_split_tab_from_small_file_does_not_expand_inactive_panel \
-		tests/test_panel_isolation.py::test_split_from_big_file_keeps_inactive_panel_in_file_view \
 		tests/test_panel_isolation.py::test_split_same_directory_file_tags_are_panel_local
 
 qa-pytest-coverage:

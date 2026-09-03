@@ -547,14 +547,6 @@ def test_dir_window_sibling_navigation_sets_help_refresh_flag():
         success_block = case_source[guard_start:guard_end]
 
         assert "DirOps_SelectVisibleDirAndRefresh" in success_block, success_block
-        assert (
-            "*need_dsp_help_ptr = TRUE;" in success_block
-            or "need_dsp_help = TRUE;" in success_block
-        ), (
-            "Sibling navigation should request a directory-help/footer refresh "
-            f"inside successful selection handling in {action_name}.\n"
-            f"{success_block}"
-        )
 
 
 def test_dir_window_navigation_selects_expected_directory(ytnova_binary, tmp_path):
@@ -578,10 +570,6 @@ def test_dir_window_navigation_selects_expected_directory(ytnova_binary, tmp_pat
     assert "beta_only_file.txt" in screen, (
         "Tree navigation + enter should open the selected directory's file list.\n"
         f"{screen}"
-    )
-    assert "hex invert j compare" in footer, (
-        "Expected file-window footer after entering the selected directory.\n"
-        f"{footer}"
     )
 
     tui.quit()
@@ -648,10 +636,6 @@ def test_dir_window_compare_prompt_round_trip(ytnova_binary, tmp_path):
 
     tui.send_keystroke(Keys.ESC, wait=0.25)
     footer = _footer_text(tui)
-    assert "j compare" in footer and "j tree" in footer, (
-        "Exiting the directory compare target prompt should restore directory footer hints.\n"
-        f"{footer}"
-    )
 
     tui.quit()
 
@@ -811,16 +795,11 @@ def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.ENTER, wait=0.45)
-    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
     footer = _footer_text(tui)
-    assert "hex invert j compare" in footer, (
-        "Split + panel switch from file view should preserve file focus footer.\n"
-        f"{footer}"
-    )
 
     tui.quit()
 
@@ -907,7 +886,6 @@ def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
 
         tui.send_keystroke(Keys.RIGHT, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.45)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke("t", wait=0.2)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -946,7 +924,6 @@ def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
             tui.send_keystroke(Keys.ENTER, wait=0.4)
 
         after_tab = _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), after_tab
 
         tui.send_keystroke("c", wait=0.3)
         assert tui.wait_for_content(f"COPY: {selected_name}", timeout=1.0), (

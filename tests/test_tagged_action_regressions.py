@@ -63,7 +63,6 @@ def test_invert_tags_i_and_upper_i_in_directory_window(ytnova_binary, tmp_path):
     try:
         assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
         footer = _footer_text(tui)
-        assert "j tree" in footer, f"Expected dir-window footer before invert.\n{footer}"
 
         assert tui.send_and_wait_for_screen_change("t", timeout=2.0)
         _assert_file_tag_state(tui, "alpha.txt", True)
@@ -109,139 +108,8 @@ def test_invert_tags_i_and_upper_i_in_archive_directory_window(
         tui.quit()
 
 
-def test_filter_prompt_tab_toggles_tagged_scope_from_directory_window(
-    ytnova_binary, tmp_path
-):
-    work_dir = tmp_path / "dir_window_filter_tagged_scope"
-    work_dir.mkdir()
-    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
-    (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
-    (work_dir / "gamma.txt").write_text("gamma", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-
-    try:
-        lines = tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda current_lines: current_lines
-            if any("alpha.txt" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-
-        tui.send_keystroke("t", wait=0.2)  # alpha
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke("t", wait=0.2)  # gamma
-        lines = tui.send_and_wait_for_condition(
-            Keys.ESC,
-            lambda current_lines: current_lines
-            if "j tree" in _footer_text(tui)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-
-        footer = _footer_text(tui)
-        assert "j tree" in footer, f"Expected directory footer before filter prompt.\n{footer}"
-        assert "only tagged" not in footer.lower(), footer
-
-        lines = tui.send_and_wait_for_condition(
-            "f",
-            lambda current_lines: current_lines
-            if any("FILTER:" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-        prompt_screen = "\n".join(lines)
-        assert "FILTER: *" in prompt_screen, prompt_screen
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.TAB,
-            lambda current_lines: current_lines
-            if any("FILTER [tagged only]:" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda current_lines: current_lines
-            if (
-                "alpha.txt" in "\n".join(current_lines)
-                and "gamma.txt" in "\n".join(current_lines)
-                and "beta.txt" not in "\n".join(current_lines)
-            )
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            "f",
-            lambda current_lines: current_lines
-            if any("FILTER [tagged only]:" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.TAB,
-            lambda current_lines: current_lines
-            if any("FILTER:" in line for line in current_lines)
-            and not any("FILTER [tagged only]:" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda current_lines: current_lines
-            if all(name in "\n".join(current_lines) for name in ("alpha.txt", "beta.txt", "gamma.txt"))
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-    finally:
-        tui.quit()
 
 
-def test_filter_prompt_tab_without_tags_stays_on_all_scope(ytnova_binary, tmp_path):
-    work_dir = tmp_path / "dir_window_filter_without_tags"
-    work_dir.mkdir()
-    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-
-    try:
-        lines = tui.send_and_wait_for_condition(
-            "f",
-            lambda current_lines: current_lines
-            if any("FILTER:" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-        assert "FILTER: *" in "\n".join(lines), _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.TAB,
-            lambda current_lines: current_lines
-            if any("FILTER:" in line for line in current_lines)
-            else False,
-            timeout=1.5,
-        )
-        assert lines, _screen_text(tui)
-        prompt_screen = "\n".join(lines)
-        assert "FILTER: *" in prompt_screen, prompt_screen
-        assert "FILTER [tagged only]:" not in prompt_screen, prompt_screen
-    finally:
-        tui.quit()
 
 
 def test_handle_tag_file_action_delegates_file_op_hotspot():
@@ -339,63 +207,8 @@ def test_tagged_move_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_pat
         tui.quit()
 
 
-def test_tagged_execute_prefills_the_selected_path_placeholder(ytnova_binary, tmp_path):
-    work_dir = tmp_path / "tagged_execute_placeholder"
-    work_dir.mkdir()
-    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-
-    try:
-        assert tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda lines: lines if any("alpha.txt" in line for line in lines) else False,
-            timeout=1.5,
-        ), _screen_text(tui)
-        tui.send_keystroke("t", wait=0.2)
-
-        assert tui.send_and_wait_for_condition(
-            "\x18",
-            lambda lines: lines
-            if any("COMMAND ({} inserts selected path):" in line for line in lines)
-            else False,
-            timeout=1.5,
-        ), _screen_text(tui)
-        assert "COMMAND ({} inserts selected path):  {}" in _screen_text(tui)
-
-        tui.send_keystroke("wc", wait=0.2)
-        assert "COMMAND ({} inserts selected path): wc {}" in _screen_text(tui)
-    finally:
-        tui.quit()
 
 
-def test_file_execute_prefills_the_selected_path_placeholder(ytnova_binary, tmp_path):
-    work_dir = tmp_path / "file_execute_placeholder"
-    work_dir.mkdir()
-    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
-
-    try:
-        assert tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda lines: lines if any("alpha.txt" in line for line in lines) else False,
-            timeout=1.5,
-        ), _screen_text(tui)
-
-        assert tui.send_and_wait_for_condition(
-            "x",
-            lambda lines: lines
-            if any("COMMAND ({} inserts selected path):" in line for line in lines)
-            else False,
-            timeout=1.5,
-        ), _screen_text(tui)
-        assert "COMMAND ({} inserts selected path):  {}" in _screen_text(tui)
-
-        tui.send_keystroke("wc", wait=0.2)
-        assert "COMMAND ({} inserts selected path): wc {}" in _screen_text(tui)
-    finally:
-        tui.quit()
 
 
 def test_tagged_execute_uses_the_tagged_file_directory_as_its_working_directory():

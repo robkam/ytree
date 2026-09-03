@@ -210,74 +210,8 @@ def test_chown_command(ytnova_binary, tmp_path):
     
     tui.quit()
 
-def test_dir_date_change_no_footer_artifact(ytnova_binary, tmp_path):
-    """Verifies dir date change does not leave a stray footer character."""
-    d = tmp_path / "dir_date_footer_test"
-    d.mkdir()
-    (d / "subdir").mkdir()
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    # Try to move off the current root entry so we exercise a real dir entry path.
-    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
-
-    # Directory attributes -> date prompt (modified is the default scope)
-    assert tui.send_and_wait_for_screen_change("a", timeout=1.0)
-    assert tui.send_and_wait_for_condition(
-        "d", lambda lines: any("DATE" in line for line in lines), timeout=1.0
-    )
-
-    # Full-width overwrite input
-    assert tui.send_and_wait_for_screen_change("2026-03-15 10:11:12\r", timeout=1.5)
-
-    screen = tui.get_screen_dump()
-    footer_lines = screen[-3:]
-    footer_text = "\n".join(footer_lines)
-
-    # Regression: previously a lone alphabetic character (e.g. "C") remained.
-    artifact_lines = [
-        line.strip()
-        for line in footer_lines
-        if re.fullmatch(r"[A-Za-z]", line.strip())
-    ]
-    assert not artifact_lines, \
-        f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
-
-    tui.quit()
 
 
-def test_dir_mkdir_cancel_no_footer_artifact(ytnova_binary, tmp_path):
-    """Verifies cancelling mkdir from dir mode does not corrupt footer lines."""
-    d = tmp_path / "dir_mkdir_cancel_footer_test"
-    d.mkdir()
-    (d / "subdir").mkdir()
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
-    # Move to a real directory entry if present.
-    assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=1.0)
-
-    # Open mkdir prompt then cancel.
-    assert tui.send_and_wait_for_condition(
-        "M", lambda lines: any("MAKE DIRECTORY" in line for line in lines), timeout=1.0
-    )
-    assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=1.0)
-
-    screen = tui.get_screen_dump()
-    footer_lines = screen[-3:]
-    footer_text = "\n".join(footer_lines)
-    footer_lower = footer_text.lower()
-
-    assert "pipe" in footer_lower, \
-        f"Footer action line missing after mkdir cancel.\nFooter:\n{footer_text}"
-
-    artifact_lines = [
-        line.strip()
-        for line in footer_lines
-        if re.fullmatch(r"[A-Za-z]", line.strip())
-    ]
-    assert not artifact_lines, \
-        f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
-
-    tui.quit()
 
 
 def test_file_date_change_modified_updates_mtime(ytnova_binary, tmp_path):

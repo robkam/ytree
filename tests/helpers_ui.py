@@ -19,8 +19,8 @@ def drive_action_until(tui, action, predicate, max_actions, timeout=0.5):
 
 def dismiss_archive_unsafe_warnings(tui, warning_text, archive_text, enter_key, timeout=2.0):
     """Dismiss archive safety warnings until the archive view is rendered."""
-    def archive_or_warning(lines):
-        text = "\n".join(lines)
+    def archive_or_warning(snapshot):
+        text = "\n".join(snapshot)
         if archive_text in text:
             return "archive"
         if warning_text in text:
@@ -45,25 +45,25 @@ def screen_text(tui):
     return "\n".join(tui.get_screen_dump())
 
 
-def _screen_lines_text(lines):
-    return "\n".join(lines)
+def _screen_lines_text(snapshot):
+    return "\n".join(snapshot)
 
 
-def footer_lines_from_lines(lines):
-    return list(lines[-3:])
+def footer_lines_from_lines(snapshot):
+    return list(snapshot[-3:])
 
 
 def footer_lines(tui):
     return footer_lines_from_lines(tui.get_screen_dump())
 
 
-def footer_text_from_lines(lines):
-    lines = footer_lines_from_lines(lines)
-    raw = "\n".join(lines).lower()
+def footer_text_from_lines(snapshot):
+    snapshot = footer_lines_from_lines(snapshot)
+    raw = "\n".join(snapshot).lower()
     normalized_lines = []
     key_tokens = []
 
-    for line in lines:
+    for line in snapshot:
         normalized = re.sub(r"[()]", "", line.lower())
         normalized = re.sub(r"\s+", " ", normalized).strip()
         nav_match = re.search(r"\b(file|tree)\s+f1\s+help\b", normalized)
@@ -142,21 +142,21 @@ def assert_file_tag_state(tui, filename, expected_tagged):
     )
 
 
-def _detect_split_column(lines):
-    if len(lines) < 3:
+def _detect_split_column(snapshot):
+    if len(snapshot) < 3:
         return None
 
-    top = lines[1]
+    top = snapshot[1]
     for ch in ("w", "┬", "+"):
         idx = top.find(ch, 1)
         if idx != -1:
             return idx
 
     counts = {}
-    for row in lines[2:-4]:
-        for x, ch in enumerate(row):
+    for row in snapshot[2:-4]:
+        for column_index, ch in enumerate(row):
             if ch in ("x", "|"):
-                counts[x] = counts.get(x, 0) + 1
+                counts[column_index] = counts.get(column_index, 0) + 1
 
     if not counts:
         return None
@@ -173,8 +173,8 @@ def _tree_panel_segment(line, split_col, panel):
     raise ValueError(f"Unknown tree panel: {panel!r}")
 
 
-def _tree_panel_rows(lines, split_col=None, panel="left"):
-    return [_tree_panel_segment(line, split_col, panel).rstrip() for line in lines[2:-4]]
+def _tree_panel_rows(snapshot, split_col=None, panel="left"):
+    return [_tree_panel_segment(line, split_col, panel).rstrip() for line in snapshot[2:-4]]
 
 
 def _clean_tree_label(label):
@@ -187,12 +187,12 @@ def _join_tree_path(parent, label):
     return parent.rstrip("/") + "/" + label
 
 
-def _tree_row_infos(lines, split_col=None, panel="left"):
+def _tree_row_infos(snapshot, split_col=None, panel="left"):
     root_connector_col = None
     stack = []
     infos = []
 
-    for segment in _tree_panel_rows(lines, split_col=split_col, panel=panel):
+    for segment in _tree_panel_rows(snapshot, split_col=split_col, panel=panel):
         match = _TREE_CONNECTOR_RE.search(segment)
         if not match:
             continue
@@ -231,24 +231,24 @@ def _tree_row_infos(lines, split_col=None, panel="left"):
     return infos
 
 
-def first_tree_row_segment(lines, split_col=None, panel="left"):
-    for segment in _tree_panel_rows(lines, split_col=split_col, panel=panel):
+def first_tree_row_segment(snapshot, split_col=None, panel="left"):
+    for segment in _tree_panel_rows(snapshot, split_col=split_col, panel=panel):
         if segment.strip():
             return segment
     return None
 
 
-def _first_tree_row_info(lines, split_col=None, panel="left"):
-    infos = _tree_row_infos(lines, split_col=split_col, panel=panel)
+def _first_tree_row_info(snapshot, split_col=None, panel="left"):
+    infos = _tree_row_infos(snapshot, split_col=split_col, panel=panel)
     if not infos:
         return None
     return infos[0]
 
 
-def _panel_path_header(lines, split_col=None, panel="left"):
-    if not lines:
+def _panel_path_header(snapshot, split_col=None, panel="left"):
+    if not snapshot:
         return None
-    header = lines[0]
+    header = snapshot[0]
     match = _PATH_HEADER_RE.search(header)
     if not match:
         return None
@@ -264,16 +264,16 @@ def _strip_panel_border_text(segment):
     return text.strip()
 
 
-def _current_dir_from_stats(lines, split_col=None):
-    for idx, line in enumerate(lines):
+def _current_dir_from_stats(snapshot, split_col=None):
+    for idx, line in enumerate(snapshot):
         segment = line[split_col:] if split_col is not None else line
         if "CURRENT DIR" not in segment:
             continue
         for offset in (1, 2):
             row_idx = idx + offset
-            if row_idx >= len(lines):
+            if row_idx >= len(snapshot):
                 continue
-            candidate = lines[row_idx][split_col:] if split_col is not None else lines[row_idx]
+            candidate = snapshot[row_idx][split_col:] if split_col is not None else snapshot[row_idx]
             text = _strip_panel_border_text(candidate)
             if text:
                 return text.rstrip("/")
@@ -289,21 +289,21 @@ def _path_label(path):
     return stripped.rsplit("/", 1)[-1]
 
 
-def _tree_panel_selected_identity(lines, split_col=None, panel="left"):
-    path = _panel_path_header(lines, split_col=split_col, panel=panel)
+def _tree_panel_selected_identity(snapshot, split_col=None, panel="left"):
+    path = _panel_path_header(snapshot, split_col=split_col, panel=panel)
     if path is not None:
         return {"path": path, "label": _path_label(path)}
 
-    stats_current = _current_dir_from_stats(lines, split_col=split_col)
+    stats_current = _current_dir_from_stats(snapshot, split_col=split_col)
     if stats_current is not None:
         return {"path": stats_current, "label": _path_label(stats_current)}
 
     return {"path": None, "label": None}
 
 
-def tree_panel_selected_label(lines, split_col=None, panel="left"):
+def tree_panel_selected_label(snapshot, split_col=None, panel="left"):
     return _tree_panel_selected_identity(
-        lines, split_col=split_col, panel=panel
+        snapshot, split_col=split_col, panel=panel
     )["label"]
 
 
@@ -318,27 +318,27 @@ def _identity_candidates(value):
     return candidates
 
 
-def tree_row_visible(lines, label, split_col=None, panel="left"):
+def tree_row_visible(snapshot, label, split_col=None, panel="left"):
     if split_col is None:
-        split_col = _detect_split_column(lines)
+        split_col = _detect_split_column(snapshot)
     candidates = _identity_candidates(label)
-    for info in _tree_row_infos(lines, split_col=split_col, panel=panel):
+    for info in _tree_row_infos(snapshot, split_col=split_col, panel=panel):
         for candidate in candidates:
             if candidate in (info["label"], info["path"]):
                 return True
     return False
 
 
-def _tree_identity_visible(lines, identity, split_col=None, panel="left"):
+def _tree_identity_visible(snapshot, identity, split_col=None, panel="left"):
     if split_col is None:
-        split_col = _detect_split_column(lines)
+        split_col = _detect_split_column(snapshot)
     candidates = []
     for value in (identity.get("path"), identity.get("label")):
         for candidate in _identity_candidates(value):
             if candidate not in candidates:
                 candidates.append(candidate)
 
-    for info in _tree_row_infos(lines, split_col=split_col, panel=panel):
+    for info in _tree_row_infos(snapshot, split_col=split_col, panel=panel):
         for candidate in candidates:
             if candidate in (info["label"], info["path"]):
                 return True

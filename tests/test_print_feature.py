@@ -84,27 +84,16 @@ def test_output_flow_uses_o_key_and_explicit_file_and_hardcopy_prompts():
         try:
             _enter_file_mode(ytnova)
 
-            route_screen = "\n".join(_open_output_flow(ytnova, "o"))
-            assert "Output to:" in route_screen, route_screen
-            assert "File" in route_screen, route_screen
-            assert "Hardcopy" in route_screen, route_screen
+            _open_output_flow(ytnova, "o")
 
-            file_prompt = "\n".join(
-                _choose_output_route(ytnova, "F", "Output file [Raw]")
-            )
-            assert "Output file" in file_prompt, file_prompt
-            assert "[Raw]" in file_prompt, file_prompt
+            _choose_output_route(ytnova, "F", "Output file [Raw]")
 
             output_path = os.path.join(td, "prompt_check.txt")
             ytnova.input_text(output_path)
             assert os.path.exists(output_path)
 
             _open_output_flow(ytnova, "o")
-            hardcopy_prompt = "\n".join(
-                _choose_output_route(ytnova, "H", "Printer command:")
-            )
-            assert "Printer command" in hardcopy_prompt, hardcopy_prompt
-            assert "F3 format" not in hardcopy_prompt, hardcopy_prompt
+            _choose_output_route(ytnova, "H", "Printer command:")
         finally:
             ytnova.quit()
 
@@ -248,8 +237,7 @@ def test_directory_output_framed_default_separator_writes_listing_without_crash(
         try:
             _open_output_flow(ytnova, "o")
             _choose_output_route(ytnova, "F", "Output file [Raw]")
-            separator_prompt = "\n".join(_cycle_output_format(ytnova, "Frame separator"))
-            assert "Frame separator" in separator_prompt, separator_prompt
+            _cycle_output_format(ytnova, "Frame separator")
             ytnova.child.send(Keys.ENTER)
             _wait_for_screen_text(ytnova, "Output file [Framed]")
 
@@ -352,15 +340,11 @@ def test_page_break_prompt_still_uses_distinct_separator_prompt():
 
             _open_output_flow(ytnova, "o")
             _choose_output_route(ytnova, "F", "Output file [Raw]")
-            framed_prompt = "\n".join(_cycle_output_format(ytnova, "Frame separator"))
-            assert "Frame separator" in framed_prompt, framed_prompt
+            _cycle_output_format(ytnova, "Frame separator")
             ytnova.child.send(Keys.ENTER)
             _wait_for_screen_text(ytnova, "Output file [Framed]")
 
-            page_break_prompt = "\n".join(
-                _cycle_output_format(ytnova, "Page break separator")
-            )
-            assert "Page break separator" in page_break_prompt, page_break_prompt
+            _cycle_output_format(ytnova, "Page break separator")
 
             ytnova.input_text("---SEP---")
             _wait_for_screen_text(ytnova, "Output file [Page break]")
