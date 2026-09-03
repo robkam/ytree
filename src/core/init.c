@@ -1072,7 +1072,7 @@ static void InitLoadProfileData(ViewContext *ctx,
                                 size_t buffer_size) {
   if (configuration_file != NULL)
     InitLoadExplicitProfile(ctx, configuration_file);
-  else if (getenv("HOME") != NULL)
+  else
     InitLoadDiscoveredProfile(ctx, buffer, buffer_size);
 
   DEBUG_LOG("Init: ReadProfile done");

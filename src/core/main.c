@@ -2255,10 +2255,7 @@ static void SigIntHandler(int sig) {
 
 static int GetDefaultSurfacePath(ConfigSurface surface, char *path,
                                  size_t path_size) {
-  const char *home;
-
-  home = getenv("HOME");
-  if (path == NULL || path_size == 0 || home == NULL || *home == '\0')
+  if (path == NULL || path_size == 0)
     return -1;
   return ConfigPaths_ResolveBootstrapPath(surface, path, path_size, FALSE);
 }

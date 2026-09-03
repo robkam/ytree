@@ -72,22 +72,44 @@ static const char *ConfigPaths_CurrentPath(const ViewContext *ctx,
   }
 }
 
+static BOOL ConfigPaths_UsesXdgConfigHome(void) {
+  const char *xdg_config_home;
+
+  xdg_config_home = getenv("XDG_CONFIG_HOME");
+  return xdg_config_home != NULL && xdg_config_home[0] == '/';
+}
+
+static const char *ConfigPaths_ConfigHome(const char *home) {
+  if (ConfigPaths_UsesXdgConfigHome())
+    return getenv("XDG_CONFIG_HOME");
+  return home;
+}
+
 int ConfigPaths_EnsureHomeDirectory(const char *home) {
   char config_dir[PATH_LENGTH + 1];
   char ytnova_dir[PATH_LENGTH + 1];
   struct stat st;
 
-  if (ConfigPaths_JoinHomePath(config_dir, sizeof(config_dir), home,
-                               PROFILE_CONFIG_HOME_PARENT) != 0)
+  if (ConfigPaths_UsesXdgConfigHome()) {
+    const char *config_home = ConfigPaths_ConfigHome(home);
+    int written;
+
+    written = snprintf(config_dir, sizeof(config_dir), "%s", config_home);
+    if (written < 0 || written >= (int)sizeof(config_dir))
+      return -1;
+  } else if (home == NULL || *home == '\0' ||
+             ConfigPaths_JoinHomePath(config_dir, sizeof(config_dir), home,
+                                      PROFILE_CONFIG_HOME_PARENT) != 0) {
     return -1;
+  }
   if (mkdir(config_dir, S_IRWXU) != 0) {
     if (errno != EEXIST || stat(config_dir, &st) != 0 ||
         !S_ISDIR(st.st_mode))
       return -1;
   }
 
-  if (ConfigPaths_JoinHomePath(ytnova_dir, sizeof(ytnova_dir), home,
-                               PROFILE_CONFIG_HOME_DIR) != 0)
+  if (ConfigPaths_JoinHomePath(ytnova_dir, sizeof(ytnova_dir), config_dir,
+                               "ytnova") != 0)
     return -1;
   if (mkdir(ytnova_dir, S_IRWXU) != 0) {
     if (errno != EEXIST || stat(ytnova_dir, &st) != 0 ||
@@ -112,10 +134,19 @@ int ConfigPaths_ResolvePreferredPath(ConfigSurface surface, char *path,
     return -1;
 
   home = getenv("HOME");
-  if (home == NULL || *home == '\0')
+  if (!ConfigPaths_UsesXdgConfigHome() && (home == NULL || *home == '\0'))
     return -1;
   if (ConfigPaths_EnsureHomeDirectory(home) != 0)
     return -1;
+  if (ConfigPaths_UsesXdgConfigHome()) {
+    const char *config_home = ConfigPaths_ConfigHome(home);
+    const char *xdg_relative_path = strchr(spec->preferred_path, '/');
+
+    if (xdg_relative_path == NULL || xdg_relative_path[1] == '\0')
+      return -1;
+    return ConfigPaths_JoinHomePath(path, path_size, config_home,
+                                    xdg_relative_path + 1);
+  }
   return ConfigPaths_JoinHomePath(path, path_size, home, spec->preferred_path);
 }
 

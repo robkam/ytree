@@ -2493,7 +2493,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -2645,7 +2646,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -2746,7 +2748,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -2837,7 +2840,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -2984,7 +2988,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -3080,7 +3085,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -3206,7 +3212,8 @@ int main(int argc, char **argv) {{
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -3392,7 +3399,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));
@@ -3520,7 +3528,8 @@ int main(int argc, char **argv) {
 
   if (argc != 2)
     return 1;
-  if (setenv("HOME", argv[1], 1) != 0)
+  if (unsetenv("XDG_CONFIG_HOME") != 0 ||
+      setenv("HOME", argv[1], 1) != 0)
     return 1;
 
   memset(&ctx, 0, sizeof(ctx));

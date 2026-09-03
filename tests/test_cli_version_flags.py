@@ -6,6 +6,7 @@ def _run_cmd(binary, args, home=None):
     env = os.environ.copy()
     if home is not None:
         env["HOME"] = str(home)
+        env.pop("XDG_CONFIG_HOME", None)
     return subprocess.run([binary] + args, capture_output=True, text=True, env=env)
 
 
