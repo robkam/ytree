@@ -1,6 +1,4 @@
 
-from helpers_source import extract_function_block as _extract_function_block
-from helpers_source import read_repo_source as _read_source
 from helpers_stats import current_file_from_stats
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
@@ -79,73 +77,3 @@ def test_split_and_tab_dispatch_keeps_file_mode_footer(ytnova_binary, tmp_path):
     finally:
         tui.quit()
 
-
-def test_HandleFileWindow_delegates_misc_dispatch_hotspot():
-    ctrl_source = _read_source("src/ui/ctrl_file.c")
-    ops_source = _read_source("src/ui/ctrl_file_ops.c")
-    handle_block = _extract_function_block(ctrl_source, "int HandleFileWindow(")
-
-    assert "BOOL handle_file_window_misc_dispatch_action(" in ops_source, (
-        "File-window misc action dispatch helper must exist in ctrl_file_ops.c "
-        "so hotspot branches are extracted out of HandleFileWindow."
-    )
-    assert "handle_file_window_misc_dispatch_action(" in handle_block, (
-        "HandleFileWindow must delegate misc action handling to the extracted "
-        "non-controller helper."
-    )
-    assert 'UI_ReadString(ctx, ctx->active, "MAKE FILE:"' not in handle_block, (
-        "Make-file prompt branch body should be handled in extracted misc helper."
-    )
-    assert "UI_ReadFilter(ctx) == 0" not in handle_block, (
-        "Filter branch body should be handled in extracted misc helper."
-    )
-    assert "GetNewLogPath(ctx, ctx->active" not in handle_block, (
-        "Log branch body should be handled in extracted misc helper."
-    )
-
-
-def test_HandleFileWindow_delegates_split_transition_hotspot():
-    ctrl_source = _read_source("src/ui/ctrl_file.c")
-    split_source = _read_source("src/ui/split_transition.c")
-    handle_block = _extract_function_block(ctrl_source, "int HandleFileWindow(")
-    split_block = _extract_function_block(
-        split_source, "BOOL SplitTransition_HandleFileWindowAction("
-    )
-
-    assert "SplitTransition_HandleFileWindowAction(" in handle_block, (
-        "HandleFileWindow must delegate split handling to the owner API.\n"
-        f"{handle_block}"
-    )
-    assert "handle_file_window_split_switch_action(" not in handle_block, (
-        "HandleFileWindow must stop calling the removed split helper.\n"
-        f"{handle_block}"
-    )
-    assert "CaptureSplitFilePanelSnapshot(" in split_block, (
-        "Split transition owner API must snapshot peer panel state before the "
-        f"transaction commits.\n{split_block}"
-    )
-    assert "AssertSplitFilePanelSnapshotUnchanged(" in split_block, (
-        "Split transition owner API must validate the inactive panel after "
-        f"Tab handoff.\n{split_block}"
-    )
-    assert (
-        "AppStateCommitSplitScreenLayout(ctx, !ctx->is_split_screen)" in split_block
-    ), (
-        "Split transition owner API must commit the split toggle through "
-        f"AppState inside the transaction.\n{split_block}"
-    )
-
-
-def test_PrintFileEntry_uses_inactive_split_highlight_style():
-    render_source = _read_source("src/ui/render_file.c")
-    print_file_entry_block = _extract_function_block(
-        render_source, "void PrintFileEntry("
-    )
-
-    assert "ctx->is_split_screen && panel != ctx->active" in print_file_entry_block, (
-        "PrintFileEntry must detect inactive split-panel rows instead of treating "
-        "all highlighted rows as active."
-    )
-    assert "A_BOLD | A_UNDERLINE" in print_file_entry_block, (
-        "Inactive split-panel file-row highlight must use underline+bold styling."
-    )

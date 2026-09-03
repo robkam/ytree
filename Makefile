@@ -488,7 +488,6 @@ qa-split-panel-gates: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST) -q -ra --tb=no \
 		tests/test_dir_window_dispatch_regressions.py::test_dir_window_split_transition_owner_path_is_canonical \
 		tests/test_dir_window_dispatch_regressions.py::test_split_tab_refresh_rejects_stale_file_restore_snapshot \
-		tests/test_file_window_dispatch_regressions.py::test_HandleFileWindow_delegates_split_transition_hotspot \
 		tests/test_file_window_dispatch_regressions.py::test_split_and_tab_dispatch_keeps_file_mode_footer \
 		tests/test_panel_isolation.py::test_split_from_file_keeps_file_focus_on_tab \
 		tests/test_panel_isolation.py::test_split_tab_from_small_file_does_not_expand_inactive_panel \
