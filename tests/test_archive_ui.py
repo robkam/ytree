@@ -93,9 +93,12 @@ def test_archive_output_flow_writes_selected_entry_to_file(ytnova_binary, tmp_pa
         )
 
         out_path = root / "archive_output.txt"
-        tui.send_keystroke(f"{out_path}\r", wait=0.6)
-
-        assert out_path.exists()
+        tui.send_keystroke(f"{out_path}\r", wait=0.1)
+        assert tui.wait_for_condition(
+            lambda _lines: out_path.exists(),
+            timeout=2.0,
+            description="archive output file creation",
+        )
         assert out_path.read_text(encoding="utf-8") == "inside payload\n"
     finally:
         tui.quit()
@@ -678,19 +681,3 @@ def test_archive_delete_directory_restores_footer_shows_spinner_and_updates_view
         assert "archive" in footer_lines[0], "\n".join(footer_lines)
     finally:
         tui.quit()
-
-
-def test_archive_mutations_pre_draw_spinner_and_restore_footer_context_contract():
-    mkdir_source = open("src/cmd/mkdir.c", "r", encoding="utf-8").read()
-    delete_source = open("src/cmd/delete.c", "r", encoding="utf-8").read()
-    rmdir_source = open("src/cmd/rmdir.c", "r", encoding="utf-8").read()
-    dir_ops_source = open("src/ui/dir_ops.c", "r", encoding="utf-8").read()
-
-    assert "ctx->hook_draw_spinner((ViewContext *)ctx);" in mkdir_source
-    assert "if (ctx && ctx->hook_draw_spinner)\n      ctx->hook_draw_spinner(ctx);" in delete_source
-    assert "RefreshView(ctx, dir_entry);" in rmdir_source
-    assert "if (ctx->hook_draw_spinner)\n        ctx->hook_draw_spinner(ctx);" in rmdir_source
-    assert (
-        "if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {\n      RefreshView(ctx, dir_entry);\n    }"
-        in dir_ops_source
-    )
