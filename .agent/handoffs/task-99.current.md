@@ -371,3 +371,17 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Viewer runtime and harness: **intentionally unchanged** — focused return contracts passed without runtime evidence.
 - Baseline: **addressed** — both rows absent after regeneration.
 - Validation: focused viewer return tests and resilience guard passed; `git diff --check` passed.
+
+## Next active family — contextual-help semantic navigation
+
+**Selected defect family:** the two remaining contextual-help fixed-navigation helpers share modal link/scroll state and Task 99.2 semantic action-driver ownership.
+
+### Inventory and closure criteria
+
+- `tests/test_help_text_contract.py::_follow_visible_help_link` and `_capture_help_scroll_output`: **in progress** — replace fixed navigation with visible selectable-link/modal state predicates, preserving Task 99.4’s authored-link behavior.
+- Help presentation assertions: **intentionally unchanged** — Task 99.3 owns their prose/layout remediation.
+- Other remaining rows: **deferred** — different action/state boundaries.
+
+## Deferred refresh-race boundary
+
+`tests/test_refresh_race.py` is deferred from the current help family: its deletion wave needs an observable scan-start hook, a materially different concurrency/runtime validation path. It is not safe to replace its race trigger with another elapsed delay.
