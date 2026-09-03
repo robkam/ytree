@@ -1,38 +1,56 @@
-from pathlib import Path
+import os
+import subprocess
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+def _assert_init_config_surfaces(binary, env, config_home):
+    result = subprocess.run([binary, "--init"], capture_output=True, text=True, env=env)
+
+    assert result.returncode == 0, result.stderr
+    config_dir = config_home / "ytnova"
+    for filename in (
+        "ytnova.conf",
+        "commands.conf",
+        "themes.conf",
+        "applications.conf",
+    ):
+        assert (config_dir / filename).exists(), (
+            "--init must create every user configuration surface under "
+            "$XDG_CONFIG_HOME/ytnova when XDG_CONFIG_HOME is set"
+        )
 
 
-def _read(relative_path):
-    return (REPO_ROOT / relative_path).read_text()
+def test_init_uses_xdg_config_home_for_every_config_surface(ytnova_binary, tmp_path):
+    home = tmp_path / "home"
+    xdg_config_home = tmp_path / "xdg-config"
+    home.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["XDG_CONFIG_HOME"] = str(xdg_config_home)
+    _assert_init_config_surfaces(ytnova_binary, env, xdg_config_home)
+    assert not (home / ".config" / "ytnova").exists()
 
 
-def test_config_paths_prefer_xdg_and_use_home_fallback_only_when_xdg_is_unavailable():
-    defs = _read("include/ytnova_defs.h")
-    config_paths_source = _read("src/core/config_paths.c")
-    init_source = _read("src/core/init.c")
-    edit_source = _read("src/ui/ui_edit_config.c")
-    history_source = _read("src/util/history_utils.c")
-    quit_source = _read("src/core/quit.c")
+def test_init_uses_absolute_xdg_config_home_without_home(ytnova_binary, tmp_path):
+    xdg_config_home = tmp_path / "xdg-config"
+    env = os.environ.copy()
+    env.pop("HOME", None)
+    env["XDG_CONFIG_HOME"] = str(xdg_config_home)
 
-    assert '#define PROFILE_CONFIG_HOME_PATH ".config/ytnova/ytnova.conf"' in defs
-    assert '#define PROFILE_CONFIG_HOME_PARENT ".config"' in defs
-    assert '#define PROFILE_FILENAME ".ytnova"' in defs
-    assert '#define HISTORY_STATE_HOME_ENV "XDG_STATE_HOME"' in defs
-    assert '#define HISTORY_STATE_HOME_PATH "ytnova/ytnova.hst"' in defs
-    assert '#define HISTORY_STATE_HOME_FALLBACK ".local/state/ytnova/ytnova.hst"' in defs
-    assert '#define HISTORY_LEGACY_FILENAME ".ytnova-hst"' in defs
-    assert "PROFILE_CONFIG_HOME_PATH" in config_paths_source
-    assert "PROFILE_FILENAME" in config_paths_source
-    assert "ConfigPaths_ResolveActiveEditPath" in edit_source
-    assert "CONFIG_SURFACE_PROFILE" in edit_source
-    assert "CreateProfileFromRuntimeState" in edit_source
-    assert "HISTORY_STATE_HOME_ENV" in history_source
-    assert "HISTORY_STATE_HOME_PATH" in history_source
-    assert "HISTORY_STATE_HOME_FALLBACK" in history_source
-    assert "ResolvePreferredHistoryPath" in init_source
-    assert "ResolveLegacyHistoryPath" in init_source
-    assert "ctx->history_file_path" in init_source
-    assert "ctx->history_file_path" in quit_source
-    assert "access(themes_path, F_OK) != 0" not in edit_source
+    _assert_init_config_surfaces(ytnova_binary, env, xdg_config_home)
+
+
+def test_init_ignores_relative_xdg_config_home(ytnova_binary, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["XDG_CONFIG_HOME"] = "relative-config"
+
+    result = subprocess.run(
+        [ytnova_binary, "--init"], capture_output=True, text=True, env=env, cwd=tmp_path
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (home / ".config" / "ytnova" / "ytnova.conf").exists()
+    assert not (tmp_path / "relative-config").exists()
