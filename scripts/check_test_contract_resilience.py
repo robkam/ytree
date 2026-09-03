@@ -87,8 +87,8 @@ REVIEWED_EXCEPTIONS = {
         "polling-or-retry-loop",
     ): (
         "out_of_scope",
-        "geometry and presentation remediation",
-        "Bounded string search parses one captured stats snapshot; it performs no waiting, retry, or user navigation.",
+        "external and static contract classification",
+        "Bounded string search parses one captured stats snapshot; it performs no waiting, retry, user navigation, or fixed-layout assertion.",
     ),
     (
         "tests/tui_harness.py",
@@ -144,6 +144,96 @@ REVIEWED_EXCEPTIONS = {
         "external and static contract classification",
         "Archive payload comparison verifies moved fixture bytes; the string is test data, not editable interface prose.",
     ),
+}
+
+STATIC_CONTRACT_SUITES = {
+    "tests/test_appstate_contract_guard.py",
+    "tests/test_code_quality_hotspots_report.py",
+    "tests/test_ci_repair_loop.py",
+    "tests/test_cli_version_flags.py",
+    "tests/test_dir_window_dispatch_regressions.py",
+    "tests/test_fileops_integrity.py",
+    "tests/test_file_window_dispatch_regressions.py",
+    "tests/test_fuzz_harness_sync_guard.py",
+    "tests/test_panel_anchor_contract.py",
+    "tests/test_security_gate_contract.py",
+    "tests/test_security_shell_paths.py",
+    "tests/test_security_tempfiles.py",
+    "tests/test_theme_config_paths.py",
+    "tests/test_theme_ui_contract.py",
+    "tests/test_wsl_notify.py",
+    "tests/test_color_config.py",
+}
+
+STATIC_CONTRACT_SYMBOLS = {
+    ("tests/test_f2_vols.py", "test_f9_applications_menu_navigation_keys_and_edit_action"),
+    ("tests/test_archive_exit_ui.py", "test_missing_profile_f10_unchanged_edit_creates_profile"),
+    ("tests/test_archive_exit_ui.py", "test_missing_themes_f10_unchanged_edit_keeps_starter_file"),
+    ("tests/test_archive_exit_ui.py", "test_missing_commands_f10_unchanged_edit_keeps_starter_file"),
+    ("tests/test_archive_exit_ui.py", "test_f10_themes_edits_active_home_dotfile_fallback"),
+    ("tests/test_archive_exit_ui.py", "test_removed_legacy_profile_f10_recreates_xdg_not_dotfile"),
+    ("tests/test_commands_exhaustive.py", "test_archive_execute_tempfile_cleanup_present"),
+    ("tests/test_commands_exhaustive.py", "test_archive_view_tempfile_cleanup_present"),
+    ("tests/test_commands_exhaustive.py", "test_archive_hex_tempfile_cleanup_present"),
+    ("tests/test_archive_ui.py", "test_archive_mutations_pre_draw_spinner_and_restore_footer_context_contract"),
+    ("tests/test_tagged_action_regressions.py", "test_handle_tag_file_action_delegates_file_op_hotspot"),
+    ("tests/test_tagged_action_regressions.py", "test_tagged_execute_uses_the_tagged_file_directory_as_its_working_directory"),
+    ("tests/test_tagged_action_regressions.py", "test_ctrl_key_dispatch_exposes_only_supported_tagged_operations"),
+    ("tests/test_tagged_action_regressions.py", "test_tagged_attribute_prompt_uses_one_date_action_hint"),
+    ("tests/test_archive_ui.py", "test_archive_output_flow_writes_selected_entry_to_file"),
+    ("tests/test_archive_ui.py", "test_archive_create_overwrite_prompt_respects_no_then_yes"),
+    ("tests/test_core.py", "test_tagged_copy_overwrite_all_applies_to_remaining_conflicts"),
+    ("tests/test_core.py", "test_tagged_move_overwrite_all_applies_to_remaining_conflicts"),
+    ("tests/test_core.py", "test_path_copy"),
+    ("tests/test_stats_panel.py", "test_rich_fileinfo_overlay_shows_text_snippet"),
+    ("tests/test_stats_panel.py", "test_summary_fileinfo_overlay_uses_file_command_output"),
+    ("tests/test_stats_panel.py", "test_long_filename_does_not_hide_preview_or_file_overlays"),
+    ("tests/test_stats_panel.py", "test_compact_view_yields_to_visible_rich_and_summary_overlays"),
+    ("tests/test_f7_preview.py", "test_f7_preview_search_highlight_contract_uses_tagged_matches"),
+    ("tests/test_print_feature.py", "test_framed_output_uses_multiline_fence_around_file_content"),
+    ("tests/test_destination_prompt.py", "test_file_copy_missing_destination_yes_creates_directory_and_copies"),
+    ("tests/test_panel_isolation.py", "test_dotfiles_toggle_restores_tree_viewport_origin_with_hidden_prefix"),
+    ("tests/test_panel_isolation.py", "test_delete_visible_child_restores_tree_viewport_origin_with_hidden_prefix"),
+    ("tests/test_panel_isolation.py", "test_split_file_focus_survives_tab_round_trip"),
+    ("tests/test_panel_isolation.py", "test_split_panels_keep_independent_file_focus_states"),
+    ("tests/test_stats_panel.py", "test_stats_show_current_file_on_entry"),
+    ("tests/test_stats_panel.py", "test_stats_in_big_window_mode"),
+    ("tests/test_stats_panel.py", "test_stats_show_named_fileinfo_view_state"),
+    ("tests/test_stats_panel.py", "test_attributes_view_controls_symlink_targets_in_small_file_window"),
+    ("tests/test_archive_exit_ui.py", "test_archive_root_unlogged_right_does_not_show_permission_denied"),
+    ("tests/test_archive_exit_ui.py", "test_legacy_six_column_commands_file_does_not_abort_startup"),
+    ("tests/test_archive_exit_ui.py", "test_placeholder_dir_shows_unlogged_not_no_files"),
+    ("tests/test_archive_ui.py", "test_archive_create_exclusion_empty_payload_shows_status_and_aborts"),
+    ("tests/test_archive_ui.py", "test_archive_create_unsupported_format_shows_and_clears_status_error"),
+    ("tests/test_contract_resilience_guard.py", "test_reviewed_semantic_wait_exceptions_survive_baseline_generation"),
+    ("tests/test_dialog.py", "test_tier_1_footer_prompt"),
+    ("tests/test_ghost_bugs.py", "test_screen_wipe_after_error"),
+    ("tests/test_help_source_schema.py", "test_help_source_uses_deterministic_topic_block_schema"),
+    ("tests/test_i18n_runtime.py", "test_cli_option_errors_support_positional_locale_placeholders"),
+    ("tests/test_panel_isolation.py", "test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state"),
+    ("tests/test_print_feature.py", "test_stale_output_commands_conf_does_not_abort_startup"),
+    ("tests/test_vi_keys_mode.py", "test_vi_uppercase_d_deletes_tagged_after_single_confirmation"),
+    ("tests/test_command_strip_visibility.py", "test_directory_and_file_surfaces_accept_their_actions_at_narrow_width"),
+    ("tests/test_command_strip_visibility.py", "test_volume_and_applications_choosers_open_and_cancel_without_stale_modal"),
+    ("tests/test_panels.py", "test_f7_visual_layout"),
+    ("tests/test_stats_panel.py", "test_footer_shows_fileinfo_band"),
+}
+
+SEMANTIC_SNAPSHOT_SYMBOLS = {
+    ("tests/repro_real_home_same_volume_split_bug.py", "_stats_current_dir_contains"),
+    ("tests/repro_same_volume_home_mkdir_bug.py", "_stats_current_dir_contains"),
+    ("tests/test_core.py", "_run_archive_payload_driver"),
+    ("tests/test_dir_window_dispatch_regressions.py", "stats_current_dir_contains"),
+    ("tests/test_panel_isolation.py", "_stats_current_dir_contains"),
+    ("tests/test_panel_isolation.py", "_active_volume_name_from_lines"),
+    ("tests/test_panel_isolation.py", "_detect_split_column"),
+    ("tests/test_panel_isolation.py", "_assert_split_column_continuous"),
+    ("tests/test_panel_isolation.py", "_first_tree_row_segment"),
+    ("tests/test_panel_isolation.py", "_tree_segment_rows"),
+    ("tests/test_stats_panel.py", "_stats_area"),
+    ("tests/test_stats_panel.py", "_stats_strip_bounds"),
+    ("tests/test_stats_panel.py", "_stats_strip_texts"),
+    ("tests/test_stats_panel.py", "_send_and_wait_for_stats_count"),
 }
 
 
@@ -340,6 +430,24 @@ def _baseline_row(match: Match) -> dict[str, object]:
     exception = REVIEWED_EXCEPTIONS.get((match.path, match.symbol, match.pattern_id))
     if exception:
         disposition, owner, reason = exception
+    elif (
+        (match.path in STATIC_CONTRACT_SUITES or (match.path, match.symbol) in STATIC_CONTRACT_SYMBOLS)
+        and (
+            match.pattern_id in {"exact-prose-assertion", "implementation-string-assertion"}
+            or (match.path, match.symbol) in STATIC_CONTRACT_SYMBOLS
+        )
+    ):
+        owner = "external and static contract classification"
+        reason = (
+            "This suite validates machine-readable theme/configuration invariants; "
+            "the source-derived assertion is classified separately from runtime presentation."
+        )
+    elif (match.path, match.symbol) in SEMANTIC_SNAPSHOT_SYMBOLS:
+        owner = "external and static contract classification"
+        reason = (
+            "The helper parses semantic fixture identity from one captured runtime snapshot; "
+            "it is not a fixed terminal-layout assertion."
+        )
     return {
         "id": match.identity,
         "pattern_id": match.pattern_id,

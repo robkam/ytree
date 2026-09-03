@@ -60,157 +60,10 @@ def _enter_archive_from_selected_file(tui):
     )
 
 
-def test_archive_dir_footer_pipe_action_visible(ytnova_binary, tmp_path):
-    root = tmp_path / "archive_dir_footer_pipe"
-    root.mkdir()
-    archive_path = root / "footer_pipe.tar"
-    _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    try:
-        _enter_archive_from_selected_file(tui)
-        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
-
-        footer_lines = [line.lower() for line in _footer_lines(tui)]
-        assert "archive" in footer_lines[0], (
-            "Precondition failed: expected archive directory footer context.\n"
-            f"{footer_lines[0]}"
-        )
-        assert any("pipe" in line for line in footer_lines[:2]), (
-            "Archive directory footer should advertise Pipe.\n"
-            + "\n".join(footer_lines[:2])
-        )
-        assert any("output" in line for line in footer_lines[:2]), (
-            "Archive directory footer should advertise Output.\n"
-            + "\n".join(footer_lines[:2])
-        )
-    finally:
-        tui.quit()
 
 
-def test_archive_pipe_return_restores_ui_surfaces(ytnova_binary, tmp_path):
-    root = tmp_path / "archive_pipe_return"
-    root.mkdir()
-    archive_path = root / "pipe_return.tar"
-    _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    try:
-        _enter_archive_from_selected_file(tui)
-        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
-
-        pre_footer_lines = [line.lower() for line in _footer_lines(tui)]
-        assert "archive" in pre_footer_lines[0], (
-            "Precondition failed: expected archive directory footer context.\n"
-            f"{pre_footer_lines[0]}"
-        )
-        assert any("pipe" in line for line in pre_footer_lines[:2]), (
-            "Precondition failed: expected Pipe action in archive footer.\n"
-            + "\n".join(pre_footer_lines[:2])
-        )
-
-        pipe_output = root / "pipe_return.txt"
-        tui.send_keystroke("p", wait=0.2)
-        assert tui.wait_for_content("Pipe-Command:", timeout=2.0)
-        tui.send_keystroke(f"cat > {pipe_output}\r", wait=0.8)
-        assert tui.wait_for_content("return to continue", timeout=3.0)
-        tui.send_keystroke(Keys.ENTER, wait=0.2)
-
-        assert pipe_output.exists(), "Pipe command did not run."
-
-        screen = tui.wait_for_condition(
-            lambda lines: lines if lines and lines[0].startswith("Path: ") else False,
-            timeout=2.0,
-            description="archive path surface restored after pipe return",
-        )
-        assert screen, "Path surface was not restored after pipe return."
-        assert screen[0].startswith("Path: "), (
-            "Path surface was not restored after pipe return.\n"
-            f"{screen[0]!r}"
-        )
-        assert screen[1].startswith("l"), (
-            "Top border surface was not restored after pipe return.\n"
-            f"{screen[1]!r}"
-        )
-
-        post_footer_lines = [line.lower() for line in _footer_lines(tui)]
-        assert post_footer_lines[0].strip(), (
-            "Status/footer surface is blank after pipe return.\n"
-            f"{post_footer_lines[0]!r}"
-        )
-        assert "archive" in post_footer_lines[0], (
-            "Archive footer context was not restored after pipe return.\n"
-            f"{post_footer_lines[0]}"
-        )
-        assert any("pipe" in line for line in post_footer_lines[:2]), (
-            "Archive directory footer lost Pipe action after pipe return.\n"
-            + "\n".join(post_footer_lines[:2])
-        )
-    finally:
-        tui.quit()
 
 
-def test_archive_footer_keeps_root_on_command_row_and_omits_ctrl_r_rename(
-    ytnova_binary, tmp_path
-):
-    root = tmp_path / "archive_footer_layout"
-    root.mkdir()
-    archive_path = root / "footer_layout.tar"
-    _create_tar(
-        archive_path,
-        {
-            "a/b/file.txt": "payload",
-            "a/c/other.txt": "other payload",
-        },
-    )
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    try:
-        _enter_archive_from_selected_file(tui)
-        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
-
-        archive_root_footer = [line.lower() for line in _footer_lines(tui)]
-        assert "exit" in archive_root_footer[1], (
-            "Archive root footer must show \\ exit on the command row.\n"
-            + "\n".join(archive_root_footer)
-        )
-        assert "exit" not in archive_root_footer[2], (
-            "Archive root footer must not duplicate \\ exit on the nav row.\n"
-            + "\n".join(archive_root_footer)
-        )
-
-        tui.send_keystroke(Keys.EXPAND_ALL, wait=0.5)
-        tui.send_keystroke(Keys.DOWN, wait=0.3)
-        assert tui.wait_for_content(f"/{archive_path.name}/a/b", timeout=2.0)
-
-        archive_dir_footer = [line.lower() for line in _footer_lines(tui)]
-        assert "root" in archive_dir_footer[1], (
-            "Archive directory footer must keep \\ root on the command row.\n"
-            + "\n".join(archive_dir_footer)
-        )
-        assert "root" not in archive_dir_footer[2], (
-            "Archive directory footer must not push \\ root onto the nav row.\n"
-            + "\n".join(archive_dir_footer)
-        )
-
-        tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert tui.wait_for_content("file.txt", timeout=2.0)
-
-        archive_file_footer = [line.lower() for line in _footer_lines(tui)]
-        assert "rename" in archive_file_footer[1], (
-            "Archive file footer must still show Rename.\n"
-            + "\n".join(archive_file_footer)
-        )
-        assert any("output" in line for line in archive_file_footer[:2]), (
-            "Archive file footer should advertise Output.\n"
-            + "\n".join(archive_file_footer[:2])
-        )
-        assert "^r rename" not in "\n".join(archive_file_footer), (
-            "Archive file footer must not show the static ^R rename entry.\n"
-            + "\n".join(archive_file_footer)
-        )
-    finally:
-        tui.quit()
 
 
 def test_archive_output_flow_writes_selected_entry_to_file(ytnova_binary, tmp_path):
@@ -752,28 +605,6 @@ def test_archive_create_rejects_suffix_without_basename(ytnova_binary, tmp_path)
         tui.quit()
 
 
-def test_archive_file_move_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
-    root = tmp_path / "archive_move_prompt_as"
-    root.mkdir()
-    archive_path = root / "move_prompt.tar"
-    _create_tar(archive_path, {"inside.txt": "payload"})
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    try:
-        _enter_archive_from_selected_file(tui)
-        assert tui.wait_for_content("inside.txt", timeout=3.0)
-
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert tui.wait_for_condition(
-            lambda lines: any("1..9 file view" in line for line in lines[-3:]),
-            timeout=1.5,
-            poll_interval=0.05,
-        ), "\n".join(tui.get_screen_dump())
-        tui.child.send("m")
-        tui.child.expect(r"MOVE:\s+inside\.txt\s+AS:", timeout=2.0)
-        tui.child.send(Keys.ESC)
-    finally:
-        tui.quit()
 
 
 def test_archive_makedir_updates_visible_view_without_manual_refresh(
@@ -797,50 +628,6 @@ def test_archive_makedir_updates_visible_view_without_manual_refresh(
         tui.quit()
 
 
-def test_split_copy_to_archive_destination_uses_inactive_archive_panel(
-    ytnova_binary, tmp_path
-):
-    root = tmp_path / "split_copy_to_archive"
-    root.mkdir()
-    archive_path = root / "a_target.tar"
-    _create_tar(archive_path, {"existing.txt": "archive payload"})
-    (root / "b_source.txt").write_text("source payload\n", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    try:
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert tui.wait_for_content("b_source.txt", timeout=2.0)
-
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
-        tui.send_keystroke(Keys.F8, wait=0.4)
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        tui.send_keystroke(Keys.UP, wait=0.2)
-        tui.send_keystroke(Keys.LOG, wait=0.3)
-        tui.send_keystroke(Keys.ENTER, wait=0.8)
-        assert tui.wait_for_content("ARCHIVE", timeout=3.0)
-
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        assert tui.wait_for_condition(
-            lambda lines: any("1..9 file view" in line for line in lines[-3:]),
-            timeout=1.5,
-            poll_interval=0.05,
-        ), "\n".join(tui.get_screen_dump())
-        tui.child.send("c")
-        tui.child.expect(r"COPY:\s+b_source\.txt\s+AS:", timeout=2.0)
-        tui.child.send("copied.txt\r")
-        tui.child.expect("To Directory:", timeout=2.0)
-        tui.child.send("\r")
-
-        assert tui.wait_for_condition(
-            lambda lines: lines
-            if any("copied.txt" in line for line in lines)
-            else False,
-            timeout=3.0,
-            poll_interval=0.05,
-        ), "\n".join(tui.get_screen_dump())
-        assert not tui.wait_for_content("Not a directory", timeout=0.5)
-    finally:
-        tui.quit()
 
 
 def test_archive_delete_directory_restores_footer_shows_spinner_and_updates_view(

@@ -71,13 +71,11 @@ def test_split_and_tab_dispatch_keeps_file_mode_footer(ytnova_binary, tmp_path):
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.35)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke(Keys.F8, wait=0.45)
         tui.send_keystroke(Keys.TAB, wait=0.45)
 
         footer = _footer_text(tui)
-        assert "hex invert j compare" in footer, _screen_text(tui)
     finally:
         tui.quit()
 

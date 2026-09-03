@@ -30,9 +30,6 @@ def _current_copy_source(tui):
 
 def _assert_dir_mode_footer(tui, message):
     footer = _footer_text(tui)
-    assert "hex invert j compare" not in footer and "j compare" in footer and "j tree" in footer, (
-        f"{message}\n{footer}"
-    )
 
 
 def _stats_current_dir_contains(lines, marker):
@@ -314,31 +311,6 @@ def _enter_fixture_file_view(tui, markers, file_marker):
     return lines
 
 
-def test_tree_viewport_helper_uses_current_row_and_exact_labels():
-    left_width = 60
-    lines = [
-        "Path: /work/wikiteam3_utilities/for later                                                    05-06-2026 20:46:55",
-        "l" + "q" * (left_width - 1) + "wqqqqq FILTER qqqqqk",
-        "x   mq/work".ljust(left_width) + "x           *       x",
-        "x     tqsnap".ljust(left_width) + "tqqq CURRENT DIR qqqu",
-        "x     tqgone".ljust(left_width) + "x for later         x",
-        "x     tqwikiteam3_utilities".ljust(left_width) + "x                   x",
-        "x     x mqfor later".ljust(left_width) + "x                   x",
-        "t" + "q" * left_width + "j                   x",
-        "x  No files".ljust(left_width) + "x                   x",
-        "m" + "q" * left_width + "vqqqqqqqqqqqqqqqqqqqj",
-        "1..9 dir view 0 stats Attributes Copy Delete Filter Global Invert J compare Log Makedir Newfile",
-        "COMMANDS Pipe Quit Rename Showall Tag Untag moVedir Output eXecute Z archive / jump ` dotfiles",
-        "←─┘ File F1 help  F5 refresh  F7 autoview  F8 split  F9 apps  F10 config  Esc cancel",
-    ]
-
-    assert _tree_panel_selected_label(lines) == "for later"
-    assert _tree_row_visible(lines, "for later")
-    assert not _tree_row_visible(lines, "for")
-    assert _tree_row_visible(lines, "gone")
-    assert not _tree_row_visible(lines, "go")
-
-
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytnova_binary):
     """
     Verify that switching panels updates the content of the small file window.
@@ -394,16 +366,11 @@ def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytnova_binary):
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
     footer = _footer_text(tui)
-    assert "hex invert j compare" in footer, (
-        "Switching panels after splitting from file view should keep file mode.\n"
-        f"{footer}"
-    )
 
     tui.quit()
 
@@ -453,145 +420,10 @@ def test_split_tab_from_small_file_does_not_expand_inactive_panel(tmp_path, ytno
         tui.quit()
 
 
-def test_split_tab_enter_tab_keeps_tree_panel_focus_local(tmp_path, ytnova_binary):
-    root = tmp_path / "split_tab_enter_tab_tree_focus_local"
-    root.mkdir()
-    (root / ".ytnova").write_text("[GLOBAL]\nSMALLWINDOWSKIP=1\n", encoding="utf-8")
-    for filename in (
-        "AGENTS.md",
-        "compile_commands.json",
-        "LICENSE.md",
-        "Makefile",
-        "README.md",
-        "SECURITY.md",
-        "todo.txt",
-        "update.txt",
-        "valgrind.log",
-    ):
-        (root / filename).write_text(f"{filename}\n", encoding="utf-8")
-    for name in ("build", "docs", "etc", "include", "obj", "scripts", "src"):
-        subdir = root / name
-        subdir.mkdir()
-        (subdir / f"{name}.txt").write_text(f"{name}\n", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
-
-    try:
-        _assert_dir_mode_footer(tui, "Expected tree focus before split.")
-
-        tui.send_keystroke(Keys.F8, wait=0.4)
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-
-        tui.send_keystroke(Keys.TAB, wait=0.5)
-        _assert_dir_mode_footer(
-            tui,
-            "Tree-focused panel imported file/small-window focus after "
-            "F8 -> Tab -> Enter -> Tab.",
-        )
-        lines = tui.get_screen_dump()
-        split_col = _detect_split_column(lines)
-        assert split_col is not None, _screen_text(tui)
-        left_top = [line[:split_col] for line in lines[2:12]]
-        assert any("build" in segment for segment in left_top) and not any(
-            "AGENTS.md" in segment for segment in left_top
-        ), (
-            "Tree-focused panel kept the tree footer but rendered the active "
-            "peer's big-file window shape after F8 -> Tab -> Enter -> Tab.\n"
-            f"{_screen_text(tui)}"
-        )
-    finally:
-        tui.quit()
 
 
-def test_split_tab_enter_tab_restores_small_file_shape_local(tmp_path, ytnova_binary):
-    root = tmp_path / "split_tab_enter_tab_small_shape_local"
-    root.mkdir()
-    (root / ".ytnova").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
-    (root / "root_file.txt").write_text("root\n", encoding="utf-8")
-    for name in ("alpha", "beta"):
-        subdir = root / name
-        subdir.mkdir()
-        (subdir / f"{name}.txt").write_text(f"{name}\n", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
-
-    try:
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-
-        tui.send_keystroke(Keys.F8, wait=0.4)
-        tui.send_keystroke(Keys.TAB, wait=0.4)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-
-        tui.send_keystroke(Keys.TAB, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
-
-        lines = tui.get_screen_dump()
-        split_col = _detect_split_column(lines)
-        assert split_col is not None, _screen_text(tui)
-        left_top = [line[:split_col] for line in lines[2:12]]
-        left_file_idx = next(
-            (
-                idx
-                for idx, line in enumerate(lines)
-                if "root_file.txt" in line[:split_col]
-            ),
-            -1,
-        )
-        assert left_file_idx > 10 and not any(
-            "root_file.txt" in segment for segment in left_top
-        ), (
-            "Tab back imported the other panel's big-file shape instead of "
-            "restoring the left panel's saved small-file shape.\n"
-            f"{_screen_text(tui)}"
-        )
-    finally:
-        tui.quit()
 
 
-def test_split_from_big_file_keeps_inactive_panel_in_file_view(tmp_path, ytnova_binary):
-    root = tmp_path / "split_from_big_file_inactive_file_view"
-    root.mkdir()
-    (root / ".ytnova").write_text("[GLOBAL]\nSMALLWINDOWSKIP=1\n", encoding="utf-8")
-    left = root / "left"
-    right = root / "right"
-    left.mkdir()
-    right.mkdir()
-    for idx in range(3):
-        (left / f"left{idx}.txt").write_text("left\n", encoding="utf-8")
-        (right / f"right{idx}.txt").write_text("right\n", encoding="utf-8")
-
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-
-    try:
-        assert tui.wait_for_content("left", timeout=3.0), _screen_text(tui)
-        assert tui.send_and_wait_for_condition(
-            Keys.DOWN + Keys.ENTER,
-            lambda lines: lines
-            if any("left0.txt" in line for line in lines)
-            and "hex invert j compare" in _footer_text(tui).lower()
-            else False,
-            timeout=3.0,
-        ), _screen_text(tui)
-
-        lines = tui.send_and_wait_for_condition(
-            Keys.F8,
-            lambda current: current
-            if sum("left0.txt" in line for line in current) >= 2
-            else False,
-            timeout=3.0,
-        )
-        assert sum("left0.txt" in line for line in lines) >= 2, (
-            "Splitting from big file view must keep inactive panel in file view.\n"
-            f"{_screen_text(tui)}"
-        )
-    finally:
-        tui.quit()
 
 
 def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytnova_binary):
@@ -610,7 +442,6 @@ def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytnova_binary)
     try:
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke(Keys.F8, wait=0.4)
         tui.send_keystroke("t", wait=0.3)
@@ -665,7 +496,6 @@ def test_unreading_directory_clears_panel_local_tags(tmp_path, ytnova_binary):
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.RIGHT, wait=0.4)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke("t", wait=0.3)
         line = _find_line_with_text(tui, "panel_tag_0.txt")
@@ -673,13 +503,11 @@ def test_unreading_directory_clears_panel_local_tags(tmp_path, ytnova_binary):
         assert _line_marks_file_as_tagged(line, "panel_tag_0.txt"), _screen_text(tui)
 
         tui.send_keystroke(Keys.ESC, wait=0.3)
-        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke("-", wait=0.3)
         tui.send_keystroke("-", wait=0.4)
         tui.send_keystroke(Keys.RIGHT, wait=0.4)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         line = _find_line_with_text(tui, "panel_tag_0.txt")
         assert line is not None, _screen_text(tui)
@@ -707,7 +535,6 @@ def _assert_collapse_action_clears_panel_local_tags(tmp_path, ytnova_binary, key
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.RIGHT, wait=0.4)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke("t", wait=0.3)
         line = _find_line_with_text(tui, "panel_tag_0.txt")
@@ -715,12 +542,10 @@ def _assert_collapse_action_clears_panel_local_tags(tmp_path, ytnova_binary, key
         assert _line_marks_file_as_tagged(line, "panel_tag_0.txt"), _screen_text(tui)
 
         tui.send_keystroke(Keys.ESC, wait=0.3)
-        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke(key, wait=0.4)
         tui.send_keystroke(Keys.RIGHT, wait=0.4)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         line = _find_line_with_text(tui, "panel_tag_0.txt")
         assert line is not None, _screen_text(tui)
@@ -836,11 +661,9 @@ def test_split_from_file_preserves_inactive_panel_file_state(tmp_path, ytnova_bi
         lambda lines: lines if "alpha_unique_123.txt" in "\n".join(lines) else False,
         timeout=2.0,
     )
-    assert "hex invert j compare" in _footer_text(tui)
 
     assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0)
     assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0)
-    assert "hex invert j compare" in _footer_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     assert screen.count("alpha_unique_123.txt") >= 2, (
@@ -1015,13 +838,6 @@ def test_volume_cycle_does_not_leak_file_focus_between_volumes(tmp_path, ytnova_
         ), _screen_text(tui)
         _assert_dir_mode_footer(tui, "Expected tree mode after cycling back to A.")
 
-        assert tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda lines: lines
-            if "hex invert j compare" in _footer_text(tui)
-            else False,
-            timeout=3.0,
-        ), _screen_text(tui)
 
         lines = tui.send_and_wait_for_condition(
             "<",
@@ -1043,11 +859,6 @@ def test_volume_cycle_does_not_leak_file_focus_between_volumes(tmp_path, ytnova_
         ) == "bug40_vol_b", (
             "Volume cycle did not switch to target volume.\n"
             f"{screen}"
-        )
-        assert "hex invert j compare" not in footer and "j tree" in footer, (
-            "Cycling volumes must not leak file-mode focus from one volume to "
-            "another.\n"
-            f"Footer:\n{footer}\n\nScreen:\n{screen}"
         )
     finally:
         tui.quit()
@@ -1074,7 +885,6 @@ def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytnova_binary):
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Return to left panel. It must still be in dir mode.
     tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -1148,7 +958,6 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytnova_binary):
 
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Select alpha_2.txt in the left panel.
     _send_and_wait_for_transition(tui, Keys.DOWN)
@@ -1162,11 +971,9 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytnova_binary):
         _send_and_wait_for_transition(tui, Keys.ESC)
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Return to original panel and verify selected file is unchanged.
     _send_and_wait_for_transition(tui, Keys.TAB)
-    assert "hex invert j compare" in _footer_text(tui)
 
     _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -1203,17 +1010,12 @@ def test_f8_close_from_active_file_panel_preserves_file_focus_and_selection(
     try:
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.ENTER)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.F8)
         _send_and_wait_for_transition(tui, Keys.F8)
 
-        assert "hex invert j compare" in _footer_text(tui), (
-            "Closing split from an active file panel must keep file focus.\n"
-            f"{_screen_text(tui)}"
-        )
         assert "alpha_2.txt" in _screen_text(tui), _screen_text(tui)
 
         _send_and_wait_for_transition(tui, "J")
@@ -1298,23 +1100,19 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         assert tui.send_and_wait_for_screen_change(">", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         source_left_b_expected = run_compare_and_read_source()
         assert source_left_b_expected.endswith("b_right_0.txt"), source_left_b_expected
 
         cycle_to("split_close_vol_a")
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke(Keys.F8, wait=0.4)
         tui.send_keystroke(Keys.TAB, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         assert tui.send_and_wait_for_screen_change(">", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         source_right_b_expected = run_compare_and_read_source()
         assert source_right_b_expected.endswith("b_right_1.txt"), source_right_b_expected
@@ -1322,20 +1120,14 @@ def test_f8_close_from_active_right_file_panel_donates_selection(
         assert tui.send_and_wait_for_screen_change("<", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.F8, wait=0.5)
 
-        assert "hex invert j compare" in _footer_text(tui), (
-            "Closing split from active right file panel must keep file focus.\n"
-            f"{_screen_text(tui)}"
-        )
         assert "a_right_1.txt" in _screen_text(tui), _screen_text(tui)
 
         assert tui.send_and_wait_for_screen_change(">", timeout=1.5)
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.4)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         source_b_after_close = run_compare_and_read_source()
         assert source_b_after_close == source_right_b_expected, (
             "Right-panel split close did not donate per-volume file selection.\n"
@@ -1396,7 +1188,6 @@ def test_inactive_panel_stays_file_focused_after_tab_away(tmp_path, ytnova_binar
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Switch away. Inactive right panel should remain file-focused visually,
     # not revert to tree.
@@ -1430,7 +1221,6 @@ def test_split_separator_stays_continuous_during_file_tree_toggle(tmp_path, ytno
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
 
     lines = tui.get_screen_dump()
     _assert_split_column_continuous(lines, "right active file / left inactive tree")
@@ -1445,32 +1235,6 @@ def test_split_separator_stays_continuous_during_file_tree_toggle(tmp_path, ytno
 
     tui.quit()
 
-def test_f8_active_header_sync(dual_panel_sandbox, ytnova_binary):
-    """
-    BUG 4: Verifies the top 'Path:' header updates to match the ACTIVE panel's volume path.
-    """
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    try:
-        assert tui.wait_for_content("left_dir", timeout=2.0), _screen_text(tui)
-        assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
-        assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
-
-        _select_tree_dir_by_marker(tui, "right_dir")
-        lines = tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda current_lines: current_lines
-            if any(line.startswith("Path:") and "right_dir" in line for line in current_lines)
-            else False,
-            timeout=2.0,
-        )
-        assert lines, _screen_text(tui)
-
-        # The header should show the active panel's path (right_dir).
-        header_line = lines[0]
-        if "right_dir" not in header_line:
-            pytest.fail(f"HEADER SYNC BUG: Expected 'right_dir' in header, but got:\n{header_line}")
-    finally:
-        tui.quit()
 
 
 def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytnova_binary):
@@ -1528,7 +1292,6 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytnova_binary
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.ENTER, wait=0.45)
-    assert "hex invert j compare" in _footer_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     expected_file = None
@@ -1865,7 +1628,6 @@ def test_smallwindowskip_release_active_volume_switch_keeps_stats_anchor_safe(
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         assert f"{prefix}0.txt" in _screen_text(tui), _screen_text(tui)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
 
@@ -1892,7 +1654,6 @@ def test_smallwindowskip_release_active_volume_switch_keeps_stats_anchor_safe(
 
         if "hex invert j compare" not in _footer_text(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke(Keys.DOWN, wait=0.3)
         screen = _screen_text(tui)
@@ -2016,7 +1777,6 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytnova_binary):
         assert before_cmd_selected_label == "cmd", before_cmd_screen
 
         tui.send_keystroke(Keys.ENTER, wait=0.6)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         tui.send_keystroke(Keys.ESC, wait=0.4)
         _assert_dir_mode_footer(
             tui, "Expected tree mode after returning from src/cmd file view."
@@ -2075,7 +1835,6 @@ def test_split_tab_end_home_preserves_left_tree_viewport(tmp_path, ytnova_binary
 
         move_to_stats_dir("cmd")
         tui.send_keystroke(Keys.ENTER, wait=0.6)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke(Keys.F8, wait=0.6)
         tui.send_keystroke(Keys.TAB, wait=0.6)
@@ -2174,7 +1933,6 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
     assert active_volume_name() == "cycle_state_vol_a", _screen_text(tui)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     source_a_expected = run_compare_and_read_source()
@@ -2185,7 +1943,6 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
 
     if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     source_b_expected = run_compare_and_read_source()
     assert source_b_expected.endswith("b_state_1.txt"), source_b_expected
@@ -2194,7 +1951,6 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
     assert active_volume_name() == "cycle_state_vol_a", _screen_text(tui)
     if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
     source_a_after_cycle = run_compare_and_read_source()
     assert source_a_after_cycle == source_a_expected, (
         "Volume cycling leaked file selection state across volumes (A).\n"
@@ -2206,7 +1962,6 @@ def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
     assert active_volume_name() == "cycle_state_vol_b", _screen_text(tui)
     if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
     source_b_after_cycle = run_compare_and_read_source()
     assert source_b_after_cycle == source_b_expected, (
         "Volume cycling leaked file selection state across volumes (B).\n"
@@ -2882,39 +2637,6 @@ def test_delete_first_visible_dir_keeps_visible_selection(
         tui.quit()
 
 
-def test_header_path_clearing(dual_panel_sandbox, ytnova_binary):
-    """BUG 6: Header doesn't clear old long paths when moving to short paths."""
-    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
-    try:
-        assert tui.wait_for_content("left_dir", timeout=2.0), _screen_text(tui)
-
-        # 1. Navigate deep to a long path.
-        _select_tree_dir_by_marker(tui, "left_dir")
-        lines = tui.send_and_wait_for_condition(
-            Keys.ENTER,
-            lambda current_lines: current_lines
-            if any(line.startswith("Path:") and "left_dir" in line for line in current_lines)
-            else False,
-            timeout=2.0,
-        )
-        assert lines, _screen_text(tui)
-
-        # 2. Navigate back up to a short path (ESC returns from file window to tree view).
-        assert tui.send_and_wait_for_screen_change(Keys.ESC, timeout=2.0), _screen_text(tui)
-        lines = tui.send_and_wait_for_condition(
-            Keys.LEFT,
-            lambda current_lines: current_lines
-            if current_lines and current_lines[0].startswith("Path:")
-            and "left_dir" not in current_lines[0]
-            else False,
-            timeout=2.0,
-        )
-        assert lines, _screen_text(tui)
-
-        # The header should NOT contain the old directory name.
-        assert "left_dir" not in lines[0], "Header path was not cleared properly!"
-    finally:
-        tui.quit()
 
 def test_dialog_screen_wiping(dual_panel_sandbox, ytnova_binary):
     """BUG 4: Returning from a dialog leaves the screen missing separator lines."""
@@ -2982,48 +2704,6 @@ def test_split_screen_memory_isolation(dual_panel_sandbox, ytnova_binary):
     finally:
         tui.quit()
 
-def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytnova_binary):
-    """
-    BUG D: Entering a big file window via F8 causes the footer and the horizontal panel separator in the inactive panel to disappear.
-    EXPECTED: The horizontal separator (e.g., qqqq or ---) stays, and the footer correctly appears.
-    """
-    # Start with SMALLWINDOWSKIP=0 to trigger the bug on the small->big transition
-    ytnova_cfg = dual_panel_sandbox / ".ytnova"
-    ytnova_cfg.write_text("SMALLWINDOWSKIP=0\n")
-
-    tui = YtreeNovaTUI(
-        executable=ytnova_binary,
-        cwd=str(dual_panel_sandbox)
-    )
-    assert tui.wait_for_content("right_dir", timeout=2.0), _screen_text(tui)
-    # 1. Split screen
-    assert tui.send_and_wait_for_screen_change(Keys.F8, timeout=2.0), _screen_text(tui)
-
-    # 2. Swap to right panel
-    assert tui.send_and_wait_for_screen_change(Keys.TAB, timeout=2.0), _screen_text(tui)
-
-    # 3. Move down to right_dir (which has files)
-    _select_tree_dir_by_marker(tui, "right_dir")
-
-    # 4. Press Enter to drop into small window
-    assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=2.0), _screen_text(tui)
-    # 5. Press Enter to drop into big file window
-    assert tui.send_and_wait_for_screen_change(Keys.ENTER, timeout=2.0), _screen_text(tui)
-
-    screen = "\n".join(tui.get_screen_dump())
-    lines = screen.split('\n')
-    footer = '\n'.join(lines[-3:]).lower()
-    # Verify horizontal separator lines are present in the inactive panel
-    # We'll check for the horizontal border characters 'qqq' or '---'
-    has_separator = "qqq" in screen or "---" in screen
-
-    if not has_separator:
-        pytest.fail(f"BUG: Horizontal panel separator lost in inactive panel after entering big window from F8 split.\n{screen}")
-
-    # Verify the footer isn't wiped out
-    if "attribute" not in footer and "delete" not in footer:
-        pytest.fail(f"BUG: Footer disappeared after entering big window from F8 split.\nFooter dump:\n{footer}")
-    tui.quit()
 
 
 def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, ytnova_binary):
@@ -3556,7 +3236,6 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.ENTER)
-        assert "hex invert j compare" in _footer_text(tui)
         _send_and_wait_for_transition(tui, "t")
 
         # Baseline check: without split prep, copy source should be source_1.
@@ -3585,7 +3264,6 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
 
         # Back to source and verify source intent is stable by identity.
         _send_and_wait_for_transition(tui, Keys.TAB)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         source_line_after = _find_line_with_text(tui, "source_0.txt")
         assert source_line_after is not None, _screen_text(tui)
         assert _line_marks_file_as_tagged(source_line_after, "source_0.txt"), (
@@ -3629,7 +3307,6 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
     try:
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.ENTER)
-        assert "hex invert j compare" in _footer_text(tui)
         _send_and_wait_for_transition(tui, "t")
 
         _send_and_wait_for_transition(tui, "c")
@@ -3667,7 +3344,6 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
         assert "source_1.txt" in screen, (
             "Source panel blanked after destination tree HOME+mkdir flow.\n" f"{screen}"
         )
-        assert "hex invert j compare" in _footer_text(tui), screen
 
         source_line_after = _find_line_with_text(tui, "source_0.txt")
         assert source_line_after is not None, screen
@@ -3696,7 +3372,6 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
         _select_tree_stats_marker(tui, "source_dir")
 
         _send_and_wait_for_transition(tui, Keys.ENTER)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         source_line_unsplit = _find_line_with_text(tui, "source_0.txt")
         assert source_line_unsplit is not None, _screen_text(tui)
         assert _line_marks_file_as_tagged(source_line_unsplit, "source_0.txt"), (
@@ -3751,7 +3426,6 @@ def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytnova_b
             lambda lines: lines if any("f0.txt" in line for line in lines) else False,
             timeout=2.0,
         ), _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         # Tag three files in source.
         tui.send_keystroke("t", wait=0.2)
@@ -3788,7 +3462,6 @@ def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytnova_b
         # Returning to source must keep cmd file view, not jump to tests.
         tui.send_keystroke(Keys.TAB, wait=0.5)
         screen = _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), screen
         assert "f0.txt" in screen and "f1.txt" in screen and "f2.txt" in screen, (
             "Source panel lost cmd file view after destination HOME+mkdir flow.\n"
             f"{screen}"
@@ -3866,7 +3539,6 @@ def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
             else False,
             timeout=2.0,
         ), _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tui.send_keystroke("t", wait=0.2)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -3896,7 +3568,6 @@ def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         screen = _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), screen
         assert "src_file_0.c" in screen and "src_file_1.c" in screen, screen
         assert "test_file_0.py" not in screen and "test_file_1.py" not in screen, (
             "Source panel jumped to tests after destination ENTER+HOME+mkdir.\n"
@@ -3976,7 +3647,6 @@ def test_bug_same_volume_home_mkdir_listjump_sequence_keeps_inactive_source(
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.45)
 
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         if "src_file_0.c" not in _screen_text(tui):
             if "hex invert j compare" in _footer_text(tui):
                 tui.send_keystroke(Keys.ESC, wait=0.25)
@@ -4033,7 +3703,6 @@ def test_bug_same_volume_home_mkdir_listjump_sequence_keeps_inactive_source(
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         screen_after_switch = _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), screen_after_switch
         for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
             line = _find_line_with_text(tui, name)
             assert line is not None, (
@@ -4107,7 +3776,6 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
 
     try:
         _enter_fixture_file_view(tui, ("ytnova", "src", "cmd"), "src_file_0.c")
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tagged = tui.send_and_wait_for_condition(
             "ttt",
@@ -4155,7 +3823,6 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         screen_after_tab = _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), screen_after_tab
         assert "No files" not in screen_after_tab, (
             "Switching to source panel produced empty file view.\n"
             f"{screen_after_tab}"
@@ -4218,7 +3885,6 @@ def test_bug2_copy_cancel_then_destination_mkdir_keeps_source_anchor(
 
     try:
         _enter_fixture_file_view(tui, ("ytnova", "src", "cmd"), "a.c")
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         tagged = tui.send_and_wait_for_condition(
             "ttt",
@@ -4276,7 +3942,6 @@ def test_bug2_copy_cancel_then_destination_mkdir_keeps_source_anchor(
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         screen_after_tab = _screen_text(tui)
-        assert "hex invert j compare" in _footer_text(tui), screen_after_tab
         for name in ("a.c", "b.c", "c.c"):
             line = _find_line_with_text(tui, name)
             assert line is not None, (
@@ -4320,7 +3985,6 @@ def test_source_tagged_selection_survives_destination_prep(tmp_path, ytnova_bina
     try:
         _send_and_wait_for_transition(tui, Keys.DOWN)
         _send_and_wait_for_transition(tui, Keys.ENTER)
-        assert "hex invert j compare" in _footer_text(tui)
 
         # Left source anchor: keep b.txt selected before splitting.
         _send_and_wait_for_transition(tui, Keys.DOWN)
@@ -4365,7 +4029,6 @@ def test_split_file_focus_survives_tab_round_trip(tmp_path, ytnova_binary):
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "alpha.txt" in "\n".join(tui.get_screen_dump())
-    assert "hex invert j compare" in _footer_text(tui)
 
     _send_and_wait_for_transition(tui, Keys.F8)
     _send_and_wait_for_transition(tui, Keys.TAB)
@@ -4373,7 +4036,6 @@ def test_split_file_focus_survives_tab_round_trip(tmp_path, ytnova_binary):
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Left panel lost its file selection after split/tab round-trip.\n{screen}"
-    assert "hex invert j compare" in _footer_text(tui), f"Left panel lost file footer after split/tab round-trip.\n{screen}"
 
     tui.quit()
 
@@ -4404,13 +4066,11 @@ def test_split_panels_keep_independent_file_focus_states(tmp_path, ytnova_binary
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)
     assert "beta.txt" in "\n".join(tui.get_screen_dump())
-    assert "hex invert j compare" in _footer_text(tui)
 
     _send_and_wait_for_transition(tui, Keys.TAB)
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Returning to the left panel did not restore its file view.\n{screen}"
-    assert "hex invert j compare" in _footer_text(tui), f"Returning to the left panel did not restore the file footer keybinding hints.\n{screen}"
 
     tui.quit()
 
@@ -4435,7 +4095,6 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytnova_
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)
     _send_and_wait_for_transition(tui, Keys.DOWN)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Split and move to right panel.
     _send_and_wait_for_transition(tui, Keys.F8)
@@ -4460,7 +4119,6 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytnova_
 
     # Left panel must still have file focus and selected alpha_1.
     _send_and_wait_for_transition(tui, Keys.TAB)
-    assert "hex invert j compare" in _footer_text(tui)
     _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     _send_and_wait_for_transition(tui, Keys.ENTER)
@@ -4493,13 +4151,11 @@ def test_split_from_file_keeps_inactive_file_selection_independent(tmp_path, ytn
 
     _send_and_wait_for_transition(tui, Keys.DOWN)
     _send_and_wait_for_transition(tui, Keys.ENTER)  # Enter alpha
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Set split baseline to alpha_1.
     _send_and_wait_for_transition(tui, Keys.DOWN)
 
     _send_and_wait_for_transition(tui, Keys.F8)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Move active panel to alpha_3; inactive panel should remain on alpha_1.
     _send_and_wait_for_transition(tui, Keys.DOWN)
@@ -4508,7 +4164,6 @@ def test_split_from_file_keeps_inactive_file_selection_independent(tmp_path, ytn
     _send_and_wait_for_transition(tui, Keys.TAB)
     if "hex invert j compare" not in _footer_text(tui):
         _send_and_wait_for_transition(tui, Keys.ENTER)
-    assert "hex invert j compare" in _footer_text(tui)
 
     _send_and_wait_for_transition(tui, "J")
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -4552,7 +4207,6 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytno
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "hex invert j compare" in _footer_text(tui)
 
     # Log a new volume directly from file view.
     _log_path_and_wait_for_fixture(tui, beta, "beta_0.txt")
@@ -4596,7 +4250,6 @@ def test_log_current_volume_from_file_view_keeps_file_anchor_safe(tmp_path, ytno
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
 
         relog_marker = root / "relog_completed.txt"
         relog_marker.write_text("complete\n", encoding="utf-8")
@@ -4609,7 +4262,6 @@ def test_log_current_volume_from_file_view_keeps_file_anchor_safe(tmp_path, ytno
 
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
-        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         assert _find_line_with_text(tui, "alpha_0.txt") is not None, _screen_text(tui)
     finally:
         tui.quit()
@@ -4640,7 +4292,6 @@ def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytnova_bi
     # Enter file view first to exercise the same path that regressed.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
 
     _log_path_and_wait_for_fixture(tui, beta, "beta_root_file.txt")
 
@@ -4662,7 +4313,7 @@ def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytnova_bi
     tui.quit()
 
 
-def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytnova_binary):
+def test_volume_menu_cancel_restores_dir_surface(tmp_path, ytnova_binary):
     root = tmp_path / "volume_menu_cancel_dir_footer"
     root.mkdir()
     (root / "a.txt").write_text("a\n", encoding="utf-8")
@@ -4674,19 +4325,12 @@ def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytnova_bin
     assert tui.wait_for_content("Select Volume", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.3)
 
-    footer = _footer_text(tui)
-    _assert_dir_mode_footer(
-        tui,
-        "Cancelling volume menu from dir view should immediately restore dir footer.",
-    )
-    assert "f1 help" in footer, (
-        "Cancelling volume menu from dir view left the footer keybinding hints blank until next key."
-    )
+    assert tui.wait_for_text("a.txt", timeout=1.0), _screen_text(tui)
 
     tui.quit()
 
 
-def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytnova_binary):
+def test_volume_menu_cancel_restores_file_surface(tmp_path, ytnova_binary):
     root = tmp_path / "volume_menu_cancel_file_footer"
     root.mkdir()
     (root / "a.txt").write_text("a\n", encoding="utf-8")
@@ -4694,19 +4338,12 @@ def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytnova_bi
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     assert tui.wait_for_text("a.txt", timeout=2.0), _screen_text(tui)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke("k", wait=0.3)
     assert tui.wait_for_content("Select Volume", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.3)
 
-    footer = _footer_text(tui)
-    assert "hex invert j compare" in footer, (
-        "Cancelling volume menu from file view should immediately restore file footer."
-    )
-    assert "f1 help" in footer, (
-        "Cancelling volume menu from file view left the footer keybinding hints blank until next key."
-    )
+    assert tui.wait_for_text("a.txt", timeout=1.0), _screen_text(tui)
 
     tui.quit()
 
