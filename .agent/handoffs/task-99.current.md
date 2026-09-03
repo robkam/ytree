@@ -454,3 +454,40 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/reproduce_sort_bug.py::test_sort_help_missing_options tests/test_ui_layout.py::test_ui_layout_dynamic_resizing tests/test_contract_resilience_guard.py` — 8 passed; selected rows absent.
 - Green: `git diff --check`.
 - Deliberately unrun: local full QA and C build; this batch changes Python PTY synchronization, a generated inventory, and roadmap status only. Required PR full-QA CI remains the merge gate.
+
+## Next active family — semantic scan and canonical event-wait contracts
+
+**Selected defect family:** four remaining detector matches do not encode brittle interaction timing: the preview and stats loops scan an already captured screen, while the two `wait_for_condition` implementations are the canonical event-driven PTY/control predicates explicitly permitted by Task 99.2. They share the baseline-classification boundary and require retained durable reasons rather than artificial rewrites.
+
+### In-scope inventory and closure criteria
+
+- `tests/test_f7_preview.py::test_f7_file_name_clipping_at_boundaries`: **in progress** — classify its bounded scan of an already captured screen as a presentation-scanning concern, not polling. Do not alter the preview geometry assertions in this family.
+- `tests/test_stats_panel.py::_stats_strip_bounds`: **in progress** — classify its bounded string-search loop as deterministic snapshot parsing, not synchronization. Do not alter the stats presentation assertions in this family.
+- `tests/tui_harness.py::YtreeNovaTUI.wait_for_condition`: **in progress** — retain with a specific reason: it is the shared event-driven PTY-output predicate with deadline diagnostics, not a test-specific retry or sleep.
+- `tests/ytnova_control.py::YtreeNovaController.wait_for_condition`: **in progress** — retain with the corresponding control-session event predicate reason.
+- `tests/contract_resilience_baseline.json`: **pending** — retain/reassign the four matches with accurate durable reasons so they no longer represent unreconciled waiting/navigation work.
+- `docs/ROADMAP.md`: **intentionally unchanged unless an in-progress status clarification is necessary** — Task 99 and Task 99.2 must remain In Progress.
+- Help scroll, archive-volume, and refresh-race rows: **deferred** — modal-scroll, volume-lifecycle, and concurrent-deletion predicates are distinct runtime/action families.
+
+**Closure:** the four candidates have explicit accurate retained/reassigned dispositions; no direct time wait or action-count navigation is normalized as exempt; the resilience guard validates the registry; all inventory items are reconciled.
+
+**Inventory extension:** `scripts/check_test_contract_resilience.py` currently regenerates every match from pattern defaults, so per-row retained classifications cannot survive `--write-baseline`. `tests/test_contract_resilience_guard.py` is added to this family to prove exact reviewed exceptions survive generation. A narrow exact-match override registry is required; a broad detector suppression is excluded because it would conceal future genuine waits.
+
+### Closure reconciliation — semantic scan and canonical event-wait contracts
+
+- `tests/test_f7_preview.py::test_f7_file_name_clipping_at_boundaries`: **addressed by reclassification** — its bounded post-capture scan is now owned by geometry/presentation; it is not waiting or navigation.
+- `tests/test_stats_panel.py::_stats_strip_bounds`: **addressed by reclassification** — its bounded string search parses one snapshot and is now owned by geometry/presentation.
+- `tests/tui_harness.py::YtreeNovaTUI.wait_for_condition`: **retained with a durable reason** — it is the canonical event-driven PTY predicate with deadline diagnostics, not a time delay or test-specific retry.
+- `tests/ytnova_control.py::YtreeNovaController.wait_for_condition`: **retained with a durable reason** — it is the corresponding canonical control-session event predicate.
+- `scripts/check_test_contract_resilience.py::REVIEWED_EXCEPTIONS`: **addressed** — a narrow exact-match registry preserves reviewed classifications through baseline regeneration; it is not a broad detector suppression.
+- `tests/test_contract_resilience_guard.py::test_reviewed_semantic_wait_exceptions_survive_baseline_generation`: **addressed** — proves the presentation-scan reassignment and retained canonical wait disposition survive generation.
+- `tests/contract_resilience_baseline.json`: **addressed** — regenerated; only 4 waiting/navigation rows remain, belonging to help-scroll, archive-volume lifecycle, and refresh-race families.
+- `docs/ROADMAP.md`: **intentionally unchanged** — the existing in-progress wording remains accurate; no Task 99.2 completion claim is justified.
+- Help scroll, archive-volume, and refresh-race rows: **deferred** — modal-scroll, volume-lifecycle, and concurrent-deletion state predicates remain distinct coherent families.
+
+### Validation
+
+- Red: a manual baseline classification edit was lost by `--write-baseline`, proving the generator needed an exact reviewed-exception mechanism rather than a hand-edited registry.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` — 7 passed; reviewed classifications survived regeneration.
+- Green: `git diff --check`.
+- Deliberately unrun: local full QA and C build; this batch changes the Python baseline generator, its guard, generated registry, and recovery handoff. Required PR full-QA CI remains the merge gate.

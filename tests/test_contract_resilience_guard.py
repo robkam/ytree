@@ -102,3 +102,27 @@ def test_baseline_is_json_object() -> None:
     document = json.loads(baseline.read_text(encoding="utf-8"))
 
     assert document["schema_version"] == guard.SCHEMA_VERSION
+
+
+def test_reviewed_semantic_wait_exceptions_survive_baseline_generation() -> None:
+    preview = guard._baseline_row(
+        guard.Match(
+            "polling-or-retry-loop",
+            "tests/test_f7_preview.py",
+            "test_f7_file_name_clipping_at_boundaries",
+            309,
+            "for y in range(BORDER_MIN_Y, BORDER_MAX_Y + 1):",
+        )
+    )
+    harness = guard._baseline_row(
+        guard.Match(
+            "polling-or-retry-loop",
+            "tests/tui_harness.py",
+            "wait_for_condition",
+            91,
+            "while True:",
+        )
+    )
+
+    assert preview["owner"] == "geometry and presentation remediation"
+    assert harness["disposition"] == "retained"

@@ -71,6 +71,45 @@ DEFAULT_DISPOSITIONS = {
     ),
 }
 
+REVIEWED_EXCEPTIONS = {
+    (
+        "tests/test_f7_preview.py",
+        "test_f7_file_name_clipping_at_boundaries",
+        "polling-or-retry-loop",
+    ): (
+        "out_of_scope",
+        "geometry and presentation remediation",
+        "Bounded scan parses one captured preview snapshot; it performs no waiting, retry, or user navigation.",
+    ),
+    (
+        "tests/test_stats_panel.py",
+        "_stats_strip_bounds",
+        "polling-or-retry-loop",
+    ): (
+        "out_of_scope",
+        "geometry and presentation remediation",
+        "Bounded string search parses one captured stats snapshot; it performs no waiting, retry, or user navigation.",
+    ),
+    (
+        "tests/tui_harness.py",
+        "wait_for_condition",
+        "polling-or-retry-loop",
+    ): (
+        "retained",
+        "waiting and navigation remediation",
+        "Canonical event-driven PTY-output predicate: waits for observable state with a deadline and diagnostic, never an elapsed test delay or fixed action count.",
+    ),
+    (
+        "tests/ytnova_control.py",
+        "wait_for_condition",
+        "polling-or-retry-loop",
+    ): (
+        "retained",
+        "waiting and navigation remediation",
+        "Canonical control-session event predicate: waits for observable state with a deadline and diagnostic, never an elapsed test delay or fixed action count.",
+    ),
+}
+
 
 class PatternVisitor(ast.NodeVisitor):
     def __init__(self, path: str, lines: list[str]) -> None:
@@ -260,7 +299,11 @@ def scan(root: Path) -> list[Match]:
 
 
 def _baseline_row(match: Match) -> dict[str, object]:
+    disposition = "out_of_scope"
     owner, reason = DEFAULT_DISPOSITIONS[match.pattern_id]
+    exception = REVIEWED_EXCEPTIONS.get((match.path, match.symbol, match.pattern_id))
+    if exception:
+        disposition, owner, reason = exception
     return {
         "id": match.identity,
         "pattern_id": match.pattern_id,
@@ -268,7 +311,7 @@ def _baseline_row(match: Match) -> dict[str, object]:
         "symbol": match.symbol,
         "line": match.line,
         "evidence": match.evidence,
-        "disposition": "out_of_scope",
+        "disposition": disposition,
         "reason": reason,
         "owner": owner,
     }
