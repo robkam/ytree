@@ -16,6 +16,18 @@ REQUIRED_BRANCH_PROTECTION_CHECKS = (
 )
 
 
+def _assert_invariant(condition: bool, invariant: str) -> None:
+    assert condition, (
+        f"{invariant} Runtime execution cannot safely prove that workflow, branch-policy, "
+        "and template safeguards remain configured."
+    )
+
+
+WORKFLOW_SECURITY_INVARIANT = (
+    "Security-policy invariant: required CI gates and merge-validation evidence remain configured."
+)
+
+
 def _read(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
 
@@ -23,32 +35,34 @@ def _read(path: str) -> str:
 def test_full_qa_workflow_retains_runtime_and_security_gate_contract() -> None:
     source = _read(".github/workflows/full-qa.yml")
 
-    assert "runtime-and-security:" in source
-    assert "name: Runtime and security gate" in source
-    assert "make qa-valgrind" in source
-    assert 'make qa-fuzz FUZZ_CC="ccache clang"' in source
-    assert "make qa-gitleaks" in source
-    assert "name: qa-runtime-security-log" in source
+    _assert_invariant("runtime-and-security:" in source, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("name: Runtime and security gate" in source, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("make qa-valgrind" in source, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant(
+        'make qa-fuzz FUZZ_CC="ccache clang"' in source, WORKFLOW_SECURITY_INVARIANT
+    )
+    _assert_invariant("make qa-gitleaks" in source, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("name: qa-runtime-security-log" in source, WORKFLOW_SECURITY_INVARIANT)
 
 
 def test_docs_list_current_required_checks_for_merge_policy() -> None:
     for path in ("docs/AUDIT.md", "docs/CONTRIBUTING.md"):
         source = _read(path)
         for check_name in REQUIRED_BRANCH_PROTECTION_CHECKS:
-            assert check_name in source, f"{path} missing required check {check_name}"
+            _assert_invariant(check_name in source, WORKFLOW_SECURITY_INVARIANT)
 
 
 def test_pr_gate_and_template_require_security_validation_evidence() -> None:
     pr_gate = _read("docs/PR_GATE.md")
     template = _read(".github/pull_request_template.md")
 
-    assert "non-trivial PR" in pr_gate
-    assert ".github/workflows/full-qa.yml" in pr_gate
-    assert "Runtime and security gate" in pr_gate
-    assert "make qa-unsafe-apis" in pr_gate
-    assert "make qa-fileops-integrity" in pr_gate
+    _assert_invariant("non-trivial PR" in pr_gate, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant(".github/workflows/full-qa.yml" in pr_gate, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("Runtime and security gate" in pr_gate, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("make qa-unsafe-apis" in pr_gate, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("make qa-fileops-integrity" in pr_gate, WORKFLOW_SECURITY_INVARIANT)
 
-    assert "## Validation" in template
-    assert "make qa-unsafe-apis" in template
-    assert "make qa-fileops-integrity" in template
-    assert ".github/workflows/full-qa.yml" in template
+    _assert_invariant("## Validation" in template, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("make qa-unsafe-apis" in template, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant("make qa-fileops-integrity" in template, WORKFLOW_SECURITY_INVARIANT)
+    _assert_invariant(".github/workflows/full-qa.yml" in template, WORKFLOW_SECURITY_INVARIANT)

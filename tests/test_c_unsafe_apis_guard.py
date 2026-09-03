@@ -27,6 +27,19 @@ FORMER_LEGACY_SNIPPETS = {
 }
 
 
+RUNTIME_LAUNCH_INVARIANT = (
+    "Runtime-launch security invariant: the source tree contains no injection-capable "
+    "process-launch API."
+)
+
+
+def _assert_invariant(condition: bool) -> None:
+    assert condition, (
+        f"{RUNTIME_LAUNCH_INVARIANT} Runtime execution cannot safely prove the global "
+        "absence of every forbidden launch path."
+    )
+
+
 def _write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -55,7 +68,7 @@ def test_guard_rejects_runtime_launch_denylist(
 
     violations = guard.iter_violations(tmp_path)
 
-    assert violations == [("src/ui/example.c", 1, expected_call)]
+    _assert_invariant(violations == [("src/ui/example.c", 1, expected_call)])
 
 
 def test_find_banned_calls_skips_comments_and_strings() -> None:
@@ -73,11 +86,11 @@ def test_find_banned_calls_skips_comments_and_strings() -> None:
         )
     )
 
-    assert findings == []
+    _assert_invariant(findings == [])
 
 
 def test_guard_no_longer_grandfathers_runtime_launch_debt() -> None:
-    assert guard.ALLOWLIST == {}
+    _assert_invariant(guard.ALLOWLIST == {})
 
 
 def test_guard_rejects_former_legacy_runtime_debt_snippets(tmp_path: Path) -> None:
@@ -112,7 +125,7 @@ def test_guard_rejects_former_legacy_runtime_debt_snippets(tmp_path: Path) -> No
         FORMER_LEGACY_SNIPPETS["src/ui/render_file.c"] + "\n",
     )
 
-    assert guard.iter_violations(tmp_path) == [
+    _assert_invariant(guard.iter_violations(tmp_path) == [
         ("src/cmd/print_ops.c", 1, "popen("),
         ("src/cmd/system.c", 1, "system("),
         ("src/cmd/system.c", 2, "execl("),
@@ -120,7 +133,7 @@ def test_guard_rejects_former_legacy_runtime_debt_snippets(tmp_path: Path) -> No
         ("src/ui/ctrl_file_ops.c", 1, "popen("),
         ("src/ui/fileinfo_git.c", 1, "popen("),
         ("src/ui/render_file.c", 1, "popen("),
-    ]
+    ])
 
 
 def test_guard_rejects_runtime_launch_violation_inside_historic_path(tmp_path: Path) -> None:
@@ -135,10 +148,10 @@ def test_guard_rejects_runtime_launch_violation_inside_historic_path(tmp_path: P
         + "\n",
     )
 
-    assert guard.iter_violations(tmp_path) == [
+    _assert_invariant(guard.iter_violations(tmp_path) == [
         ("src/cmd/system.c", 1, "system("),
         ("src/cmd/system.c", 2, "system("),
-    ]
+    ])
 
 
 def test_current_repository_baseline_passes() -> None:
@@ -150,4 +163,4 @@ def test_current_repository_baseline_passes() -> None:
         text=True,
         check=False,
     )
-    assert run.returncode == 0, run.stdout + run.stderr
+    _assert_invariant(run.returncode == 0)

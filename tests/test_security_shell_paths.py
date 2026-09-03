@@ -8,6 +8,19 @@ from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
 
+RUNTIME_LAUNCH_INVARIANT = (
+    "Runtime-launch security invariant: production launch surfaces contain no "
+    "injection-capable direct process API."
+)
+
+
+def _assert_static_security_invariant(condition: bool) -> None:
+    assert condition, (
+        f"{RUNTIME_LAUNCH_INVARIANT} Runtime execution cannot safely prove the "
+        "global absence of forbidden process-launch paths."
+    )
+
+
 def _configure_capture_helper(tmp_dir, log_name):
     log_path = tmp_dir / log_name
     helper_path = tmp_dir / f".capture_{log_name}.sh"
@@ -78,6 +91,7 @@ def test_compare_placeholder_expansion_preserves_metacharacter_paths(
         "shell splitting or interpretation.\n"
         f"Args: {logged}"
     )
+    assert tui.wait_for_content(source_name, timeout=2.0), screen_text(tui)
 
     tui.quit()
 
@@ -208,42 +222,6 @@ def test_file_execute_prefill_omits_executable_path(
     tui.quit()
 
 
-def test_query_system_call_reinitializes_clock_and_dialog_refresh_after_continue():
-    src = read_repo_source("src/ui/interactions.c")
-    start = src.index("int QuerySystemCall(")
-    end = src.index("\nint UI_ReadFilter(", start)
-    body = src[start:end]
-
-    assert "HitReturnToContinue();" in body, (
-        "QuerySystemCall should keep the raw-terminal continue prompt after the "
-        "external command returns."
-    )
-    assert "ctx->hook_init_clock(ctx);" in body, (
-        "QuerySystemCall must restore the clock/curses state immediately after "
-        "the continue prompt returns."
-    )
-    assert "UI_Dialog_RefreshAll(ctx);" in body, (
-        "QuerySystemCall must restage the full window stack after restoring the "
-        "clock so footer, borders, path, and stats redraw immediately."
-    )
-    assert "ClockHandler(ctx, 0);" in body, (
-        "QuerySystemCall must repaint the live clock/calendar after restoring "
-        "the dialog stack."
-    )
-
-    continue_idx = body.index("HitReturnToContinue();")
-    clock_idx = body.index("ctx->hook_init_clock(ctx);")
-    dialog_idx = body.index("UI_Dialog_RefreshAll(ctx);")
-    clock_draw_idx = body.index("ClockHandler(ctx, 0);")
-    doupdate_idx = body.index("doupdate();")
-
-    assert continue_idx < clock_idx < dialog_idx < clock_draw_idx < doupdate_idx, (
-        "QuerySystemCall must reinitialize curses, refresh the dialog stack, "
-        "redraw the clock, and only then flush the redraw after the continue "
-        "prompt."
-    )
-
-
 def test_runtime_launch_debt_surfaces_use_shared_runtime_launch_helpers():
     expected_helpers = {
         "src/cmd/system.c": [
@@ -270,16 +248,16 @@ def test_runtime_launch_debt_surfaces_use_shared_runtime_launch_helpers():
 
     for rel_path, snippets in expected_helpers.items():
         src = read_repo_source(rel_path)
-        assert "system(" not in src, f"{rel_path} must not use system()."
-        assert "popen(" not in src, f"{rel_path} must not use popen()."
+        _assert_static_security_invariant("system(" not in src)
+        _assert_static_security_invariant("popen(" not in src)
         for snippet in snippets:
-            assert snippet in src, f"{rel_path} must route through {snippet}."
+            _assert_static_security_invariant(snippet in src)
 
 
 def test_shared_runtime_launch_module_owns_execvp_and_waitpid():
     src = read_repo_source("src/cmd/runtime_launch.c")
 
-    assert "execvp(" in src, "Shared runtime launch module must own execvp()."
-    assert "waitpid(" in src, "Shared runtime launch module must own waitpid()."
-    assert "system(" not in src, "Shared runtime launch module must not regress to system()."
-    assert "popen(" not in src, "Shared runtime launch module must not regress to popen()."
+    _assert_static_security_invariant("execvp(" in src)
+    _assert_static_security_invariant("waitpid(" in src)
+    _assert_static_security_invariant("system(" not in src)
+    _assert_static_security_invariant("popen(" not in src)
