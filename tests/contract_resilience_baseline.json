@@ -26304,20 +26304,9 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_viewer_return_ui.py:73:e37eaf549f4067e7",
-      "line": 73,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_viewer_return_ui.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_internal_viewer_return_restores_full_ui_frame"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "assert \"next page/file\" not in footer, footer",
-      "id": "exact-prose-assertion:tests/test_viewer_return_ui.py:121:0a8f4ed8bc7affd2",
-      "line": 121,
+      "id": "exact-prose-assertion:tests/test_viewer_return_ui.py:120:1911144641e5004e",
+      "line": 120,
       "owner": "geometry and presentation remediation",
       "path": "tests/test_viewer_return_ui.py",
       "pattern_id": "exact-prose-assertion",
@@ -26327,8 +26316,8 @@
     {
       "disposition": "out_of_scope",
       "evidence": "assert \"next page\" in footer and \"next file\" in footer, footer",
-      "id": "exact-prose-assertion:tests/test_viewer_return_ui.py:122:110d5cb6fd785351",
-      "line": 122,
+      "id": "exact-prose-assertion:tests/test_viewer_return_ui.py:121:fda81471310c1701",
+      "line": 121,
       "owner": "geometry and presentation remediation",
       "path": "tests/test_viewer_return_ui.py",
       "pattern_id": "exact-prose-assertion",
@@ -26338,24 +26327,13 @@
     {
       "disposition": "out_of_scope",
       "evidence": "assert \"next hit\" in footer and \"prev hit\" in footer, footer",
-      "id": "exact-prose-assertion:tests/test_viewer_return_ui.py:123:68b00b10094f7328",
-      "line": 123,
+      "id": "exact-prose-assertion:tests/test_viewer_return_ui.py:122:c95e5b6af9f2cd80",
+      "line": 122,
       "owner": "geometry and presentation remediation",
       "path": "tests/test_viewer_return_ui.py",
       "pattern_id": "exact-prose-assertion",
       "reason": "Editable presentation prose requires a durable behavioural replacement.",
       "symbol": "test_internal_tagged_viewer_separates_file_and_hit_navigation"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.8)",
-      "id": "direct-time-sleep:tests/test_viewer_return_ui.py:142:c4f907aa6939ef3c",
-      "line": 142,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_viewer_return_ui.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_internal_viewer_return_in_archive_mode_restores_full_ui_frame"
     },
     {
       "disposition": "out_of_scope",

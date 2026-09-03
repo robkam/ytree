@@ -1,4 +1,3 @@
-import time
 import tarfile
 import shutil
 
@@ -70,7 +69,7 @@ def test_internal_viewer_return_restores_full_ui_frame(tmp_path, ytnova_binary):
     (root / "alpha.txt").write_text("alpha", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text("alpha.txt", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.5)
@@ -139,7 +138,7 @@ def test_internal_viewer_return_in_archive_mode_restores_full_ui_frame(
     _create_archive(root, "archive.tar")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text("archive.tar", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
