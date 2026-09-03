@@ -162,6 +162,15 @@ CI_REPAIR_PROTOCOL_SYMBOLS = {
 
 APPSTATE_CONTRACT_SUITE = "tests/test_appstate_contract_guard.py"
 
+RETAINED_TASK_CONTRACT_SUITES = {
+    "tests/test_color_config.py", "tests/test_theme_ui_contract.py",
+    "tests/test_security_shell_paths.py", "tests/test_archive_ui.py",
+    "tests/test_archive_write_parity.py", "tests/test_core.py",
+    "tests/test_destination_prompt.py", "tests/test_dir_window_dispatch_regressions.py",
+    "tests/test_command_strip_visibility.py",
+}
+
+
 
 GENERATED_TEMPLATE_SYMBOLS = {
     ("tests/test_profile_template_sync.py", "test_default_profile_template_header_matches_packaged_config"),
@@ -463,6 +472,13 @@ def _baseline_row(match: Match) -> dict[str, object]:
             "The named AppState registry or source-boundary invariant prevents unregistered "
             "writes, stale state reuse, or fail-open dispatch; runtime execution cannot safely "
             "prove their global absence across every generated registry and call path."
+        )
+    elif match.path in RETAINED_TASK_CONTRACT_SUITES:
+        disposition = "retained"
+        owner = "classified Task 99.5 behavioral and static contracts"
+        reason = (
+            "The named test protects a published configuration, non-observable security, or "
+            "filesystem/archive end-state contract; its exact fixture payload or static guard is not editable presentation prose."
         )
     elif (match.path, match.symbol) in GENERATED_TEMPLATE_SYMBOLS:
         disposition = "retained"
