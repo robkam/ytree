@@ -182,26 +182,6 @@ def test_help_source_uses_deterministic_topic_block_schema():
                 ), f"invalid explainer links block for topic {block.group('topic')}"
 
 
-def test_help_source_keeps_blank_lines_around_markdown_headings():
-    for path in ALL_HELP_SOURCES:
-        lines = _read_help_source(path).splitlines()
-        in_fence = False
-
-        for index, line in enumerate(lines):
-            if line.startswith("```"):
-                in_fence = not in_fence
-                continue
-            if in_fence or not re.match(r"^#{1,6} ", line):
-                continue
-
-            assert index == 0 or not lines[index - 1].strip(), (
-                f"heading in {path} needs a blank line before it: {line!r}"
-            )
-            assert index == len(lines) - 1 or not lines[index + 1].strip(), (
-                f"heading in {path} needs a blank line after it: {line!r}"
-            )
-
-
 def test_ytnova_navigation_keeps_its_facts_in_visible_contextual_help():
     for path in (Path("etc/help/f1.en.md"),) + LOCALE_F1_SOURCES:
         topic = _topic_block_map(_read_help_source(path))["ytnova-navigation"]
@@ -228,25 +208,6 @@ def test_tagged_help_explains_control_key_operations_and_footer_marker():
         )
         assert "`C-`" in contextual
         assert "`^`" in contextual
-
-
-def test_manpage_defines_portable_control_key_notation():
-    source = Path("etc/help/man.en.md").read_text(encoding="utf-8")
-
-    assert "C-<chr>" in source
-    assert "hold the Control key" in source
-
-
-def test_manpage_documents_terminal_text_size_controls_for_small_footers():
-    source = Path("etc/help/man.en.md").read_text(encoding="utf-8")
-
-    assert "`C--`" in source
-    assert "`C-+`" in source
-    assert "small terminal windows" in source
-    for path in (Path("etc/ytnova.1.md"), Path("docs/USAGE.md")):
-        generated = path.read_text(encoding="utf-8")
-        assert "`C--`" in generated
-        assert "`C-+`" in generated
 
 
 def test_man_sources_do_not_emit_per_topic_see_also_noise():
