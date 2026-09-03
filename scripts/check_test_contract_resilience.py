@@ -160,6 +160,9 @@ CI_REPAIR_PROTOCOL_SYMBOLS = {
     ("tests/test_ci_repair_loop.py", "test_main_detach_prints_started_message"),
 }
 
+APPSTATE_CONTRACT_SUITE = "tests/test_appstate_contract_guard.py"
+
+
 GENERATED_TEMPLATE_SYMBOLS = {
     ("tests/test_profile_template_sync.py", "test_default_profile_template_header_matches_packaged_config"),
     ("tests/test_profile_template_sync.py", "test_default_commands_catalog_header_matches_packaged_commands"),
@@ -453,6 +456,14 @@ def _baseline_row(match: Match) -> dict[str, object]:
     exception = REVIEWED_EXCEPTIONS.get((match.path, match.symbol, match.pattern_id))
     if exception:
         disposition, owner, reason = exception
+    elif match.path == APPSTATE_CONTRACT_SUITE:
+        disposition = "retained"
+        owner = "generated AppState ownership and transition contracts"
+        reason = (
+            "The named AppState registry or source-boundary invariant prevents unregistered "
+            "writes, stale state reuse, or fail-open dispatch; runtime execution cannot safely "
+            "prove their global absence across every generated registry and call path."
+        )
     elif (match.path, match.symbol) in GENERATED_TEMPLATE_SYMBOLS:
         disposition = "retained"
         owner = "published template generation contracts"
