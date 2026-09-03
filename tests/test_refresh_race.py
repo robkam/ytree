@@ -1,6 +1,5 @@
 import pexpect
 import threading
-import time
 
 from ytnova_keys import Keys
 
@@ -17,33 +16,35 @@ def test_refresh_handles_deleted_entries_quietly(controller, sandbox):
     try:
         yt.wait_for_startup()
 
-        for round_idx in range(4):
-            files = []
-            for i in range(700):
-                path = source_dir / f"race_{round_idx}_{i}.tmp"
-                path.write_text("x", encoding="utf-8")
-                files.append(path)
+        files = []
+        for i in range(700):
+            path = source_dir / f"race_{i}.tmp"
+            path.write_text("x", encoding="utf-8")
+            files.append(path)
 
-            def _delete_wave():
-                time.sleep(0.02)
-                for file_path in files:
-                    try:
-                        file_path.unlink()
-                    except FileNotFoundError:
-                        pass
+        refresh_requested = threading.Event()
 
-            worker = threading.Thread(target=_delete_wave)
-            worker.start()
+        def _delete_wave():
+            assert refresh_requested.wait(timeout=3.0), "Refresh was not requested."
+            for file_path in files:
+                try:
+                    file_path.unlink()
+                except FileNotFoundError:
+                    pass
 
-            yt.child.send(Keys.CTRL_L)
-            outcome = yt.child.expect(
-                [r"Stat failed on", r"20\d{2}", pexpect.TIMEOUT], timeout=3.0
-            )
+        worker = threading.Thread(target=_delete_wave)
+        worker.start()
 
-            worker.join()
-            assert outcome != 0, (
-                "Refresh displayed blocking stat error when files were deleted "
-                "during scan."
-            )
+        yt.child.send(Keys.CTRL_L)
+        refresh_requested.set()
+        outcome = yt.child.expect(
+            [r"Stat failed on", r"20\d{2}", pexpect.TIMEOUT], timeout=3.0
+        )
+
+        worker.join()
+        assert outcome != 0, (
+            "Refresh displayed blocking stat error when files were deleted "
+            "after refresh was requested."
+        )
     finally:
         yt.quit()

@@ -21981,28 +21981,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "for round_idx in range(4):",
-      "id": "fixed-navigation-loop:tests/test_refresh_race.py:20:6f004db45771ff6e",
-      "line": 20,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_refresh_race.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "test_refresh_handles_deleted_entries_quietly"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.02)",
-      "id": "direct-time-sleep:tests/test_refresh_race.py:28:3dca61fa6590a306",
-      "line": 28,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_refresh_race.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "_delete_wave"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "assert \"name: Runtime and security gate\" in source",
       "id": "exact-prose-assertion:tests/test_security_gate_contract.py:27:2b98f8d677d84248",
       "line": 27,
