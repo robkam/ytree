@@ -213,7 +213,7 @@ def _visible_cell_style(tui, needle):
     raise AssertionError(f"Could not find visible cell for {needle!r}.\n{screen_text(tui)}")
 
 
-def _capture_help_scroll_output(root, *, down_presses=12, rows=40, cols=142):
+def _capture_help_scroll_output(root, *, max_actions=12, rows=40, cols=142):
     raw_output = io.BytesIO()
     child = pexpect.spawn(
         YTNOVA_BIN,
@@ -231,8 +231,10 @@ def _capture_help_scroll_output(root, *, down_presses=12, rows=40, cols=142):
         child.expect(_help_topic_title("directory").encode("utf-8"))
         raw_output.seek(0)
         raw_output.truncate(0)
-        for _ in range(down_presses):
+        attempts = 0
+        while attempts < max_actions:
             child.send(Keys.DOWN.encode("ascii"))
+            attempts += 1
         child.send(b"q")
         child.expect(b"alpha.txt")
         child.send(b"q")

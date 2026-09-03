@@ -523,3 +523,17 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Green: `source .venv/bin/activate && pytest -q tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly` — 1 passed.
 - Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly tests/test_contract_resilience_guard.py` — 8 passed; refresh rows absent.
 - Green: `git diff --check`.
+
+## Next active family — contextual-help scroll output synchronization
+
+**Selected defect family:** `tests/test_help_text_contract.py::_capture_help_scroll_output` uses a fixed Down-key count only to reach a terminal-scroll emission condition. The helper and its raw terminal-output consumer share the modal-scroll action/state boundary.
+
+### In-scope inventory and closure criteria
+
+- `tests/test_help_text_contract.py::_capture_help_scroll_output`: **in progress** — replace the fixed navigation loop with a bounded action driver whose stopping predicate is observable help scroll output; retain the cap only as diagnostic protection.
+- `tests/test_help_text_contract.py::test_contextual_help_scroll_does_not_emit_partial_scroll_regions`: **in progress** — preserve its terminal-control-sequence invariant without asserting a key count.
+- Help popup runtime: **intentionally unchanged unless focused red evidence shows an emitted scroll-region defect**.
+- `tests/contract_resilience_baseline.json`: **pending** — selected fixed-navigation row must be absent after regeneration.
+- Archive-volume lifecycle: **deferred** — separate fixture-registration state machine.
+
+**Closure:** help scrolling is driven until an observable terminal scroll condition; no claimed interaction count remains; terminal-region invariant and guard pass.
