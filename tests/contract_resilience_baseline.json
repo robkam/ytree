@@ -135,28 +135,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.9)",
-      "id": "direct-time-sleep:tests/repro_real_home_same_volume_split_bug.py:96:fc0565ed503eef27",
-      "line": 96,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/repro_real_home_same_volume_split_bug.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "main"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "for _ in range(3):",
-      "id": "fixed-navigation-loop:tests/repro_real_home_same_volume_split_bug.py:120:b01be612be51de0e",
-      "line": 120,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/repro_real_home_same_volume_split_bug.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "main"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "candidate = lines[idx][split_x:] if split_x is not None else lines[idx]",
       "id": "screen-slice-or-grid:tests/repro_same_volume_home_mkdir_bug.py:34:b9831f7c2ed963cb",
       "line": 34,
@@ -165,39 +143,6 @@
       "pattern_id": "screen-slice-or-grid",
       "reason": "Screen-grid assertions require semantic visual-state replacement.",
       "symbol": "_stats_current_dir_contains"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "for _ in range(3):",
-      "id": "fixed-navigation-loop:tests/repro_same_volume_home_mkdir_bug.py:69:49e8a1edce5a954d",
-      "line": 69,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/repro_same_volume_home_mkdir_bug.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "_run_sequence_a"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "while not _stats_current_dir_contains(tui.get_screen_dump(), \"cmd\"):",
-      "id": "polling-or-retry-loop:tests/repro_same_volume_home_mkdir_bug.py:116:6b5086ff3efb1e03",
-      "line": 116,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/repro_same_volume_home_mkdir_bug.py",
-      "pattern_id": "polling-or-retry-loop",
-      "reason": "Polling and retry mechanisms belong to the semantic waiting boundary.",
-      "symbol": "_run_sequence_b"
-    },
-    {
-      "disposition": "out_of_scope",
-      "evidence": "time.sleep(0.9)",
-      "id": "direct-time-sleep:tests/repro_same_volume_home_mkdir_bug.py:195:efac50dbb6911b91",
-      "line": 195,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/repro_same_volume_home_mkdir_bug.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "main"
     },
     {
       "disposition": "out_of_scope",

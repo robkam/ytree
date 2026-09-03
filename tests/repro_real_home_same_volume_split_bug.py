@@ -18,13 +18,13 @@ Exit codes:
 import os
 import re
 import shutil
-import time
 from pathlib import Path
 
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import line_marks_file_as_tagged as _line_marks_file_as_tagged
 from helpers_ui import screen_text as _screen_text
+from helpers_ui import drive_action_until
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -67,13 +67,11 @@ def _discover_track_names(screen):
 
 
 def _goto_marker(tui, marker, steps=300):
-    attempts = 0
-    while not _stats_current_dir_contains(tui.get_screen_dump(), marker):
-        if attempts >= steps:
-            return False
-        tui.send_keystroke(Keys.DOWN, wait=0.08)
-        attempts += 1
-    return True
+    return bool(drive_action_until(
+        tui, Keys.DOWN,
+        lambda lines: lines if _stats_current_dir_contains(lines, marker) else False,
+        max_actions=steps,
+    ))
 
 
 def main():
@@ -93,7 +91,9 @@ def main():
         home / "ytnova" / "src" / "cmd" / mkdir_name,
     ]
     tui = YtreeNovaTUI(executable=exe, cwd=str(home), env_extra={"HOME": str(home)})
-    time.sleep(0.9)
+    if not tui.wait_for_text(home.name, timeout=2.0):
+        print("SETUP_FAIL: HOME tree did not render")
+        return 2
     try:
         if not _goto_marker(tui, "ytnova"):
             print("SETUP_FAIL: ytnova dir not found in HOME listing")
@@ -117,8 +117,15 @@ def main():
             print(_screen_text(tui))
             return 2
 
-        for _ in range(3):
-            tui.send_keystroke("t", wait=0.2)
+        tagged = drive_action_until(
+            tui, "t" + Keys.DOWN,
+            lambda lines: lines if sum("*" in line.split(".c")[0] for line in lines if ".c" in line) >= 3 else False,
+            max_actions=3,
+        )
+        if not tagged:
+            print("SETUP_FAIL: could not tag three src files")
+            print(_screen_text(tui))
+            return 2
 
         before = _screen_text(tui)
         tracked = {}

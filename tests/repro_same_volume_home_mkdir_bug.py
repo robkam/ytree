@@ -10,13 +10,13 @@ Exit codes:
 
 import os
 import sys
-import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
+from helpers_ui import drive_action_until
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
@@ -38,21 +38,21 @@ def _stats_current_dir_contains(lines, marker):
 
 
 def _navigate_to_src_cmd_file_mode(tui):
-    attempts = 0
-    while not _stats_current_dir_contains(tui.get_screen_dump(), "src"):
-        if attempts >= 80:
-            return False, f"SETUP_FAIL: could not focus src\n{_screen_text(tui)}"
-        tui.send_keystroke(Keys.DOWN, wait=0.12)
-        attempts += 1
+    if not drive_action_until(
+        tui, Keys.DOWN,
+        lambda lines: lines if _stats_current_dir_contains(lines, "src") else False,
+        max_actions=128,
+    ):
+        return False, f"SETUP_FAIL: could not focus src\n{_screen_text(tui)}"
 
     tui.send_keystroke(Keys.RIGHT, wait=0.25)
 
-    attempts = 0
-    while not _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-        if attempts >= 80:
-            return False, f"SETUP_FAIL: could not focus src/cmd\n{_screen_text(tui)}"
-        tui.send_keystroke(Keys.DOWN, wait=0.12)
-        attempts += 1
+    if not drive_action_until(
+        tui, Keys.DOWN,
+        lambda lines: lines if _stats_current_dir_contains(lines, "cmd") else False,
+        max_actions=128,
+    ):
+        return False, f"SETUP_FAIL: could not focus src/cmd\n{_screen_text(tui)}"
 
     tui.send_keystroke(Keys.RIGHT, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.45)
@@ -66,9 +66,13 @@ def _run_sequence_a(tui):
     if not ok:
         return 2, err, _screen_text(tui)
 
-    for _ in range(3):
-        tui.send_keystroke("t", wait=0.2)
-        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tagged = drive_action_until(
+        tui, "t" + Keys.DOWN,
+        lambda lines: lines if sum("*" in line.split(".c")[0] for line in lines if ".c" in line) >= 3 else False,
+        max_actions=3,
+    )
+    if not tagged:
+        return 2, "SETUP_FAIL: could not tag three src files", _screen_text(tui)
 
     # Original manual sequence: f8 tab enter home m 00
     tui.send_keystroke(Keys.F8, wait=0.4)
@@ -112,22 +116,21 @@ def _run_sequence_b(tui, home):
         return 2, "SETUP_FAIL: variant B did not reach file mode", _screen_text(tui)
     if "src_file_0.c" not in _screen_text(tui):
         tui.send_keystroke(Keys.ESC, wait=0.25)
-        attempts = 0
-        while not _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-            if attempts >= 40:
-                break
-            tui.send_keystroke(Keys.UP, wait=0.12)
-            attempts += 1
-        attempts = 0
-        while not _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
-            if attempts >= 120:
-                return (
-                    2,
-                    "SETUP_FAIL: variant B could not re-focus src/cmd",
-                    _screen_text(tui),
-                )
-            tui.send_keystroke(Keys.DOWN, wait=0.12)
-            attempts += 1
+        selected = drive_action_until(
+            tui, Keys.UP,
+            lambda lines: lines if _stats_current_dir_contains(lines, "cmd") else False,
+            max_actions=40,
+        ) or drive_action_until(
+            tui, Keys.DOWN,
+            lambda lines: lines if _stats_current_dir_contains(lines, "cmd") else False,
+            max_actions=120,
+        )
+        if not selected:
+            return (
+                2,
+                "SETUP_FAIL: variant B could not re-focus src/cmd",
+                _screen_text(tui),
+            )
         tui.send_keystroke(Keys.ENTER, wait=0.45)
         if "src_file_0.c" not in _screen_text(tui):
             return 2, "SETUP_FAIL: variant B did not enter src/cmd file mode", _screen_text(tui)
@@ -192,7 +195,9 @@ def main():
             ("B", lambda t: _run_sequence_b(t, home)),
         ):
             tui = YtreeNovaTUI(executable=exe, cwd=str(repo), env_extra={"HOME": str(home)})
-            time.sleep(0.9)
+            if not tui.wait_for_text("src", timeout=2.0):
+                print("SETUP_FAIL: fixture tree did not render")
+                return 2
             try:
                 code, msg, screen = runner(tui)
                 print(msg)

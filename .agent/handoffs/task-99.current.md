@@ -335,3 +335,21 @@ This relay owns the complete Test Contract Resilience Remediation mission. Task 
 - Baseline: **addressed** — normal selected rows are absent; remaining Task 99.2 rows belong to other recorded families.
 
 Validation: focused normal-panel transition matrix passed, then `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` passed (6). `git diff --check` passed. Full local QA deliberately unrun; PR full-QA CI is the merge gate.
+
+## Next active family — same-volume manual reproducer navigation
+
+**Selected defect family:** the five highest-count remaining rows are the real-home and synthetic same-volume mkdir/split reproducers. They share a manual compatibility action/state path and require an observed-tag progression predicate rather than filename-only selection.
+
+### Inventory and closure criteria
+
+- `tests/repro_real_home_same_volume_split_bug.py::main`: **in progress** — replace its startup delay and fixed navigation by observed real-home selection/volume identity.
+- `tests/repro_same_volume_home_mkdir_bug.py::_run_sequence_a`, `_run_sequence_b`, and `main`: **in progress** — model synthetic tag progression with observable state before replacing navigation and retry mechanics.
+- Existing fixture identity and action driver helpers: **in progress** — reuse or extend only after observing the exact tag progression.
+- Archive-volume release, help, preview, refresh, viewer, layout, and harness rows: **deferred** — separate state/validation boundaries.
+- Baseline and roadmap: **pending** — only update after this family reconciles; Task 99/99.2 stay In Progress.
+
+### Same-volume reproducer reconciliation
+
+- Synthetic and real-home startup waits, target navigation, and tag progression: **addressed** through shared semantic action/state predicates.
+- Direct waiting/navigation baseline rows in both reproducers: **addressed** — absent after authoritative regeneration.
+- Validation: `python3 -m py_compile tests/repro_same_volume_home_mkdir_bug.py tests/repro_real_home_same_volume_split_bug.py`; resilience guard passed (6); `git diff --check` passed. Manual real-home execution is deliberately unrun because it mutates the caller HOME workflow; CI validates repository tests.
