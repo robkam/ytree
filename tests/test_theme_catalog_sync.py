@@ -31,5 +31,7 @@ def test_theme_catalog_drift_checker_rejects_stale_header(tmp_path):
         text=True,
     )
 
-    assert result.returncode != 0
-
+    assert result.returncode != 0, (
+        "Generated theme catalog invariant: the drift checker must reject a stale header; "
+        "runtime execution cannot safely reveal pre-build source/generated divergence."
+    )

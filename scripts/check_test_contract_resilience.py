@@ -146,6 +146,29 @@ REVIEWED_EXCEPTIONS = {
     ),
 }
 
+EXTERNAL_CONTRACT_SYMBOLS = {
+    ("tests/test_cli_version_flags.py", "test_init_creates_profile_only_if_missing"),
+    ("tests/test_cli_version_flags.py", "test_init_with_explicit_profile_path_preserves_target"),
+    ("tests/test_theme_config_paths.py", "test_init_uses_xdg_config_home_for_every_config_surface"),
+    ("tests/test_theme_config_paths.py", "test_init_ignores_relative_xdg_config_home"),
+}
+
+CI_REPAIR_PROTOCOL_SYMBOLS = {
+    ("tests/test_ci_repair_loop.py", "test_build_failure_packet_includes_failed_jobs_and_log_excerpt"),
+    ("tests/test_ci_repair_loop.py", "test_main_retries_failed_branch_until_green"),
+    ("tests/test_ci_repair_loop.py", "test_main_blocks_when_same_failed_run_set_stays_red"),
+    ("tests/test_ci_repair_loop.py", "test_main_detach_prints_started_message"),
+}
+
+GENERATED_TEMPLATE_SYMBOLS = {
+    ("tests/test_profile_template_sync.py", "test_default_profile_template_header_matches_packaged_config"),
+    ("tests/test_profile_template_sync.py", "test_default_commands_catalog_header_matches_packaged_commands"),
+    (
+        "tests/test_profile_template_sync.py",
+        "test_default_command_presets_catalog_header_matches_packaged_presets",
+    ),
+}
+
 STATIC_CONTRACT_SUITES = {
     "tests/test_appstate_contract_guard.py",
     "tests/test_code_quality_hotspots_report.py",
@@ -430,6 +453,27 @@ def _baseline_row(match: Match) -> dict[str, object]:
     exception = REVIEWED_EXCEPTIONS.get((match.path, match.symbol, match.pattern_id))
     if exception:
         disposition, owner, reason = exception
+    elif (match.path, match.symbol) in GENERATED_TEMPLATE_SYMBOLS:
+        disposition = "retained"
+        owner = "published template generation contracts"
+        reason = (
+            "Packaged source and generated starter-header content must remain synchronized; "
+            "runtime execution cannot safely prove pre-build generated-artifact drift."
+        )
+    elif (match.path, match.symbol) in EXTERNAL_CONTRACT_SYMBOLS:
+        disposition = "retained"
+        owner = "published command and configuration contracts"
+        reason = (
+            "The assertion verifies a documented CLI bootstrap or XDG configuration "
+            "contract, not incidental display prose or whitespace."
+        )
+    elif (match.path, match.symbol) in CI_REPAIR_PROTOCOL_SYMBOLS:
+        disposition = "retained"
+        owner = "machine-consumed CI recovery protocol"
+        reason = (
+            "The assertion verifies failure-packet, handoff, or detached-loop protocol "
+            "tokens consumed by automated CI recovery rather than editable presentation prose."
+        )
     elif (
         (match.path in STATIC_CONTRACT_SUITES or (match.path, match.symbol) in STATIC_CONTRACT_SYMBOLS)
         and (
