@@ -105,9 +105,9 @@ jobs:
           tests/test_color_config.py::test_spec_documents_user_visible_theme_contract \
           tests/test_color_config.py::test_manpage_documents_user_visible_theme_contract \
           tests/test_color_config.py::test_architecture_documents_theme_boundaries \
-          tests/test_theme_ui_contract.py::test_incremental_jump_uses_slash_without_f12_alias \
-          tests/test_theme_ui_contract.py::test_disabled_role_is_not_advertised_in_starter_theme_contract \
-          tests/test_theme_ui_contract.py::test_theme_docs_capture_role_routing_invariants \
+          tests/test_theme_ui_contract.py::test_incremental_jump_docs_exclude_retired_f12_alias \
+          tests/test_theme_ui_contract.py::test_starter_theme_docs_exclude_disabled_role \
+          tests/test_theme_ui_contract.py::test_theme_docs_describe_role_routing_contracts \
           tests/test_appstate_contract_guard.py::test_appstate_contract_docs_share_active_registry_reference
 
   guard-fuzz-sync:
