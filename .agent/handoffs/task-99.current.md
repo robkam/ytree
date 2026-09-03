@@ -537,3 +537,37 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Archive-volume lifecycle: **deferred** — separate fixture-registration state machine.
 
 **Closure:** help scrolling is driven until an observable terminal scroll condition; no claimed interaction count remains; terminal-region invariant and guard pass.
+
+## Next active family — archive-active inactive-volume release
+
+**Selected defect family:** the final non-retained Task 99.2 baseline row drives archive-volume selection through a fixed `<` loop before the F8 inactive-volume release lifecycle. Its observable target is the active archive path identity.
+
+### In-scope inventory and closure criteria
+
+- `tests/test_panel_isolation.py::test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable`: **in progress** — use the shared target driver to reach `sample.tar`, preserving volume-release and active-archive pane invariants.
+- `tests/helpers_ui.py::drive_action_until`: **intentionally unchanged** — reusable semantic driver already supplies the action/effect behavior.
+- Runtime volume/split lifecycle: **intentionally unchanged unless focused red evidence shows a runtime defect**.
+- Baseline/roadmap: **pending** — regenerate after removal; complete Task 99.2 only after final sweep including retained canonical waits.
+
+**Closure:** archive target is observed without a fixed loop, focused lifecycle test and guard pass, baseline contains only explicit retained canonical waits.
+
+### Closure reconciliation — archive-active inactive-volume release
+
+- `tests/test_panel_isolation.py::test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable`: **addressed** — drives archive selection until the `sample.tar` identity is visible, with a diagnostic-only action cap; volume-release regression assertions remain intact.
+- `tests/helpers_ui.py::drive_action_until`: **intentionally unchanged** — existing shared semantic driver is reused.
+- Runtime volume/split lifecycle: **intentionally unchanged** — focused test shows no runtime defect.
+- `tests/contract_resilience_baseline.json`: **addressed** — regenerated; every non-retained Task 99.2 row is absent.
+- `docs/ROADMAP.md`: **addressed** — Task 99.2 is Complete; Task 99 remains In Progress.
+
+### Final Task 99.2 sweep
+
+- Authoritative baseline: **complete** — only `tests/tui_harness.py::wait_for_condition` and `tests/ytnova_control.py::wait_for_condition` remain under the waiting/navigation owner, both explicitly retained canonical event predicates with specific durable reasons.
+- Help scroll, archive-volume lifecycle, refresh-race, normal panel, same-volume, viewer, display, startup, and configuration families: **complete** — reconciled in the inventories above; no direct sleep, fixed navigation loop, or unclassified polling row remains in Task 99.2 ownership.
+- Task 99.3/99.5 presentation/static-contract work: **intentionally unchanged** — outside the completed waiting/navigation validation boundary.
+
+### Validation
+
+- Green: `source .venv/bin/activate && pytest -q tests/test_panel_isolation.py::test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable` — 1 passed.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` — 7 passed.
+- Green: `git diff --check`.
+- Deliberately unrun: local full QA and C build; required PR full-QA CI is the merge gate.

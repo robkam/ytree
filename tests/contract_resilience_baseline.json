@@ -21805,17 +21805,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "for _ in range(6):",
-      "id": "fixed-navigation-loop:tests/test_panel_isolation.py:4811:2852cca64ecc602b",
-      "line": 4811,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_panel_isolation.py",
-      "pattern_id": "fixed-navigation-loop",
-      "reason": "Fixed key-count navigation must be replaced with target-identity navigation.",
-      "symbol": "test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "assert len(screen[0]) == 120",
       "id": "screen-slice-or-grid:tests/test_panels.py:183:f38f6763adbb3071",
       "line": 183,
