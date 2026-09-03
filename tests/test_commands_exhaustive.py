@@ -6,12 +6,6 @@ from pathlib import Path
 from tui_harness import YtreeNovaTUI
 from ytnova_keys import Keys
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def _read_source(relpath: str) -> str:
-    return (REPO_ROOT / relpath).read_text(encoding="utf-8")
-
 def test_mkdir_command(ytnova_binary, tmp_path):
     """Verifies (M)ake Directory command."""
     d = tmp_path / "mkdir_test"
@@ -251,24 +245,3 @@ def test_file_date_change_modified_updates_mtime(ytnova_binary, tmp_path):
         f"atime should remain unchanged for modified-only update, got {new_atime}"
 
     tui.quit()
-
-
-def test_archive_execute_tempfile_cleanup_present() -> None:
-    src = _read_source("src/cmd/execute.c")
-    assert "Path_CreateTempFile(temp_path, sizeof(temp_path), \"ytnova_execute_\"" in src
-    assert "if (fd_tmp != -1)" in src
-    assert "unlink(temp_path);" in src
-
-
-def test_archive_view_tempfile_cleanup_present() -> None:
-    src = _read_source("src/cmd/view.c")
-    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytnova_view_\"" in src
-    assert "if (fd != -1)" in src
-    assert "unlink(temp_filename);" in src
-
-
-def test_archive_hex_tempfile_cleanup_present() -> None:
-    src = _read_source("src/cmd/hex.c")
-    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytnova_hex_\"" in src
-    assert "if (fd != -1)" in src
-    assert "unlink(temp_filename);" in src

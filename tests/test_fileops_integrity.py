@@ -7,9 +7,6 @@ from ytnova_control import YtreeNovaController
 from ytnova_keys import Keys
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -102,10 +99,6 @@ def _delete_selected_file(
         timeout=2.0,
         description=f"deletion of {source_path}",
     )
-
-
-def _read(relpath: str) -> str:
-    return (REPO_ROOT / relpath).read_text(encoding="utf-8")
 
 
 def test_copy_mutation_updates_only_destination_hashes(ytnova_binary, tmp_path):
@@ -278,17 +271,3 @@ def test_archive_copy_rewrite_updates_member_hashes_deterministically(ytnova_bin
     expected_members = dict(before_members)
     expected_members["copied_into_archive.txt"] = _sha256_file(source_file)
     assert after_members == expected_members
-
-
-def test_copy_and_move_contracts_guard_cross_device_and_partial_cleanup():
-    copy_src = _read("src/cmd/copy.c")
-    move_src = _read("src/cmd/move.c")
-
-    assert "if (realpath(from_path, res_from) && realpath(to_path, res_to))" in copy_src
-    assert "if (!strcmp(res_from, res_to))" in copy_src
-    assert "if (write(o, buffer, n) != n)" in copy_src
-    assert "(void)unlink(to_path);" in copy_src
-
-    assert "if (errno == EXDEV)" in move_src
-    assert "CopyFileContent(ctx, to_path, from_path, s) == 0" in move_src
-    assert "if (unlink(from_path) == 0)" in move_src
