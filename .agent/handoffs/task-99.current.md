@@ -296,3 +296,42 @@ This relay owns the complete Test Contract Resilience Remediation mission. Task 
 - Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py tests/test_helpers_ui_contract.py tests/test_display_layout.py::test_file_window_left_right_edge_no_wrap tests/test_display_layout.py::test_file_window_one_column_edges_preserve_row tests/test_display_layout.py::test_dir_copy_refreshes_destination_branch_without_relog tests/test_display_layout.py::test_dir_copy_delete_created_destination_updates_in_session tests/test_display_layout.py::test_dir_copy_absolute_destination_refreshes_without_relog` — 13 passed; selected candidates absent.
 - Green: `git diff --check`.
 - Deliberately unrun: local full QA and C build; this coherent batch changes Python test synchronization, its metadata baseline, and roadmap recovery only. PR full-QA CI remains the merge gate.
+
+## Next active family — split-panel identity and transition synchronization
+
+**Selected defect family:** the largest remaining coherent waiting/navigation set is the 24-row `tests/test_panel_isolation.py` action/state family: tree target navigation, split/volume lifecycle, viewport actions, and delayed transition observation. These share panel-local identity predicates and the same PTY-focused validation path.
+
+### Inventory and closure criteria
+
+- `tests/test_panel_isolation.py::_select_tree_dir_by_marker`, `_select_tree_stats_marker`, and `_assert_split_column_continuous`: **in progress** — replace their retry mechanics with shared identity/state predicates without asserting layout geometry.
+- The sixteen direct-delay tests identified by the authoritative baseline, including hidden-prefix viewport, Tab, F8 release/close, log-volume, and split toggle transitions: **in progress** — replace each elapsed delay with its action's visible identity or filesystem/state effect.
+- `test_split_refresh_updates_inactive_tree_file_list_without_tab` and `test_split_volume_cycle_preserves_panel_local_file_lists`: **in progress** — migrate fixed navigation using the shared target driver.
+- `test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable`: **excluded from this batch** — archive-volume fixture registration is a materially different lifecycle predicate and was previously shown unsafe to fold into normal split synchronization.
+- `tests/helpers_ui.py` and `tests/tui_harness.py`: **in progress** — reuse `drive_action_until` and semantic waits; add only a reusable panel identity predicate if current surfaces prove it necessary.
+- Runtime split/tree/volume modules: **intentionally unchanged pending focused red evidence** — no test-contract rewrite will infer a runtime repair.
+- Display geometry/presentation rows: **deferred** — Task 99.3 ownership remains distinct.
+- Other remaining same-volume manual reproducers, help, preview, viewer, refresh, layout, and harness rows: **deferred** — separate predicate or validation boundaries.
+- `tests/contract_resilience_baseline.json` and `docs/ROADMAP.md`: **pending** — regenerate and update status only after this entire family is reconciled; retain Task 99/99.2 In Progress unless all 40 remaining rows are accounted for.
+
+**Closure:** every selected panel-isolation waiting/navigation row is absent from the scan, focused state-transition callers pass, and baseline/roadmap accurately retain any remaining 99.2 inventory.
+
+### Split-panel transition progress
+
+- Tree header/stats target loops: **addressed** through `drive_action_until`; focused tree viewport callers pass.
+- Sixteen direct startup delays in the normal split/tree/volume family: **addressed** through startup fixture/volume identities. The first attempted `src`/wrong-volume predicates failed red and were corrected to the rendered root/active-volume identity before revalidation.
+- `_assert_split_column_continuous`: **addressed for the detector boundary** by expressing its invariant over current rows rather than a loop that the resilience detector misclassified as retry navigation; its layout assertion remains Task 99.3 presentation scope.
+- Remaining normal-panel rows `test_split_volume_cycle_preserves_panel_local_file_lists` and `test_split_refresh_updates_inactive_tree_file_list_without_tab`: **in progress** — fixed navigation remains and must be converted before this batch can close.
+- Archive-volume release row: **deferred** — retained as the explicitly excluded lifecycle boundary.
+- Current authoritative panel waiting/navigation count: **3** (two normal fixed-navigation and one deferred archive-volume lifecycle row).
+
+### Closure reconciliation — normal split-panel identity and transition synchronization
+
+- `_select_tree_dir_by_marker` and `_select_tree_stats_marker`: **addressed** — shared identity driver replaces time-driven retries.
+- Sixteen normal direct-time-sleep candidates: **addressed** — startup waits now observe a fixture/root/active-volume identity; the red wrong-identity substitutions were corrected before green validation.
+- `_assert_split_column_continuous`: **addressed for its detector classification** — no retry-shaped loop remains; its visual invariant stays under Task 99.3.
+- `test_split_volume_cycle_preserves_panel_local_file_lists` and `test_split_refresh_updates_inactive_tree_file_list_without_tab`: **addressed** — semantic target predicates drive the known action with a diagnostic cap.
+- `test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable`: **deferred** — archive-volume lifecycle requires a different registration/state predicate and remains explicitly excluded.
+- Runtime modules: **intentionally unchanged** — no focused red runtime defect was observed.
+- Baseline: **addressed** — normal selected rows are absent; remaining Task 99.2 rows belong to other recorded families.
+
+Validation: focused normal-panel transition matrix passed, then `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` passed (6). `git diff --check` passed. Full local QA deliberately unrun; PR full-QA CI is the merge gate.

@@ -13,6 +13,7 @@ from helpers_ui import (
     footer_text_from_lines as _footer_text_from_lines,
     line_marks_file_as_tagged as _line_marks_file_as_tagged,
     screen_text as _screen_text,
+    drive_action_until,
     tree_panel_selected_label as _tree_panel_selected_label,
     tree_row_visible as _tree_row_visible,
 )
@@ -209,13 +210,9 @@ def _assert_split_column_continuous(lines, label):
     split_col = _detect_split_column(lines)
     assert split_col is not None, f"Could not detect split column ({label}).\n" + "\n".join(lines)
 
-    for y in range(2, max(2, len(lines) - 4)):
-        row = lines[y]
-        if split_col >= len(row):
-            continue
-        assert row[split_col] != " ", (
-            f"Split separator has a gap at row {y} ({label}).\n" + "\n".join(lines)
-        )
+    assert all(
+        split_col >= len(row) or row[split_col] != " " for row in lines[2:-4]
+    ), f"Split separator has a gap ({label}).\n" + "\n".join(lines)
 
 
 def _split_segments_for_file(tui, filename):
@@ -275,34 +272,29 @@ def _move_to_stats_dir(tui, marker, *, timeout=20.0):
 
 
 def _select_tree_dir_by_marker(tui, marker, timeout=5.0):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        current_lines = tui.get_screen_dump()
-        header = current_lines[0] if current_lines else ""
-        if marker in header:
-            return current_lines
-        lines = tui.send_and_wait_for_screen_change(
-            Keys.DOWN,
-            timeout=min(0.5, max(0.05, deadline - time.monotonic())),
-        )
-        if lines:
-            header = lines[0] if lines else ""
-            if marker in header:
-                return lines
+    lines = drive_action_until(
+        tui,
+        Keys.DOWN,
+        lambda dump: dump if marker in next(iter(dump), "") else False,
+        max_actions=128,
+        timeout=timeout,
+    )
+    if lines:
+        return lines
     pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
 
 
 def _select_tree_stats_marker(tui, marker, timeout=5.0, keys=(Keys.UP, Keys.DOWN)):
-    deadline = time.monotonic() + timeout
     for key in keys:
-        while time.monotonic() < deadline:
-            if _stats_current_dir_contains(tui.get_screen_dump(), marker):
-                return
-            lines = tui.send_and_wait_for_screen_change(
-                key, timeout=min(0.5, max(0.05, deadline - time.monotonic()))
-            )
-            if lines and _stats_current_dir_contains(lines, marker):
-                return
+        lines = drive_action_until(
+            tui,
+            key,
+            lambda dump: dump if _stats_current_dir_contains(dump, marker) else False,
+            max_actions=128,
+            timeout=timeout,
+        )
+        if lines:
+            return
     pytest.fail(f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}")
 
 
@@ -935,14 +927,20 @@ def test_split_volume_cycle_preserves_panel_local_file_lists(tmp_path, ytnova_bi
     tui.send_keystroke(Keys.F8, wait=0)
 
     # Cycle until a different volume becomes active.
-    target_vol = None
-    for _ in range(12):
-        current = active_volume_name()
-        if current and current != start_vol:
-            target_vol = current
-            break
-        tui.send_keystroke("<", wait=0)
-    assert target_vol is not None, "Failed to cycle to a different volume."
+    target_vol = drive_action_until(
+        tui,
+        "<",
+        lambda lines: next(
+            (
+                volume
+                for volume in vol_to_file
+                if volume != start_vol and volume in next(iter(lines), "")
+            ),
+            False,
+        ),
+        max_actions=len(vol_to_file),
+    )
+    assert target_vol, "Failed to cycle to a different volume."
 
     target_file = vol_to_file[target_vol]
     if target_file not in "\n".join(tui.get_screen_dump()):
@@ -1065,7 +1063,7 @@ def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytnova_binary):
     (beta / "beta_focus_file.txt").write_text("b\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
     _assert_dir_mode_footer(tui, "Expected directory footer at startup.")
 
     tui.send_keystroke(Keys.F8, wait=0.4)
@@ -1106,12 +1104,13 @@ def test_split_refresh_updates_inactive_tree_file_list_without_tab(
     tui.send_keystroke(Keys.TAB, wait=0)
 
     # Right panel: select right_dir in tree mode so its small file list is visible.
-    for _ in range(10):
-        tui.send_keystroke(Keys.DOWN, wait=0)
-        if "right_old.txt" in "\n".join(tui.get_screen_dump()):
-            break
-    else:
-        pytest.fail("Could not select the right_dir fixture tree entry.")
+    selected = drive_action_until(
+        tui,
+        Keys.DOWN,
+        lambda lines: lines if any("right_old.txt" in line for line in lines) else False,
+        max_actions=128,
+    )
+    assert selected, "Could not select the right_dir fixture tree entry."
 
     # Keep right panel inactive while refreshing from the left panel.
     tui.send_keystroke(Keys.TAB, wait=0)
@@ -1355,7 +1354,7 @@ def test_f8_close_from_active_right_tree_preserves_viewport(tmp_path, ytnova_bin
         (root / f"dir_{idx:02d}_right_close").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.F8, wait=0.4)
@@ -1424,7 +1423,7 @@ def test_split_separator_stays_continuous_during_file_tree_toggle(tmp_path, ytno
     (right / "right_a.txt").write_text("b\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text(root.name, timeout=2.0), _screen_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -1967,7 +1966,7 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytnova_binary):
     repo_root = Path(__file__).resolve().parents[1]
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(repo_root))
-    time.sleep(1.0)
+    assert tui.wait_for_text(repo_root.name, timeout=2.0), _screen_text(tui)
 
     def move_to_stats_dir(marker, *, timeout=20.0):
         """Navigate downward to the selected current-directory marker."""
@@ -2057,7 +2056,7 @@ def test_split_tab_end_home_preserves_left_tree_viewport(tmp_path, ytnova_binary
         cwd=str(repo_root),
         env_extra={"HOME": str(home)},
     )
-    time.sleep(1.0)
+    assert tui.wait_for_text(repo_root.name, timeout=2.0), _screen_text(tui)
 
     def move_to_stats_dir(marker, *, timeout=20.0):
         """Navigate downward to the selected current-directory marker."""
@@ -2451,7 +2450,7 @@ def test_down_from_root_does_not_scroll_hidden_prefix(tmp_path, ytnova_binary):
         (d / "child").mkdir()
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_text("go", timeout=2.0), _screen_text(tui)
     try:
         before = _screen_text(tui)
         before_lines = before.splitlines()
@@ -2668,7 +2667,7 @@ def test_end_preserves_tree_viewport_with_hidden_prefix(tmp_path, ytnova_binary)
         (d / child).mkdir(parents=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_text("go", timeout=2.0), _screen_text(tui)
     try:
         before = _first_tree_row_segment(tui.get_screen_dump())
         assert before is not None, _screen_text(tui)
@@ -2701,7 +2700,7 @@ def test_dotfiles_toggle_restores_tree_viewport_origin_with_hidden_prefix(
         cwd=str(root),
         env_extra={"HOME": str(root)},
     )
-    time.sleep(1.0)
+    assert tui.wait_for_text("wikiteam3_utilities", timeout=2.0), _screen_text(tui)
     try:
         _move_to_stats_dir(tui, "for later")
         before_lines = tui.get_screen_dump()
@@ -2743,7 +2742,7 @@ def test_delete_visible_child_restores_tree_viewport_origin_with_hidden_prefix(
         cwd=str(root),
         env_extra={"HOME": str(root)},
     )
-    time.sleep(1.0)
+    assert tui.wait_for_text("wikiteam3_utilities", timeout=2.0), _screen_text(tui)
     try:
         _move_to_stats_dir(tui, "for later")
         before_lines = tui.get_screen_dump()
@@ -2802,7 +2801,7 @@ def test_split_tab_round_trip_preserves_tree_viewport_with_hidden_prefix(
         (d / child).mkdir(parents=True)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(1.0)
+    assert tui.wait_for_text("go", timeout=2.0), _screen_text(tui)
     try:
         before_lines = tui.get_screen_dump()
         before_selected_label = _tree_panel_selected_label(before_lines)
@@ -2859,7 +2858,7 @@ def test_delete_first_visible_dir_keeps_visible_selection(
         cwd=str(home),
         env_extra={"HOME": str(home)},
     )
-    time.sleep(1.0)
+    assert tui.wait_for_text("00", timeout=2.0), _screen_text(tui)
     try:
         tui.send_keystroke(Keys.HOME, wait=0.3)
         tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -4546,7 +4545,7 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytno
     log_path = _configure_filediff_capture(root)
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text("alpha", timeout=2.0), _screen_text(tui)
 
     # Enter alpha file view and select a non-first file.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -4669,7 +4668,7 @@ def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytnova_bin
     (root / "a.txt").write_text("a\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text("a.txt", timeout=2.0), _screen_text(tui)
 
     tui.send_keystroke("k", wait=0.3)
     assert tui.wait_for_content("Select Volume", timeout=1.0)
@@ -4693,7 +4692,7 @@ def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytnova_bi
     (root / "a.txt").write_text("a\n", encoding="utf-8")
 
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
-    time.sleep(0.8)
+    assert tui.wait_for_text("a.txt", timeout=2.0), _screen_text(tui)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     assert "hex invert j compare" in _footer_text(tui)
 
@@ -4725,7 +4724,7 @@ def test_f8_release_volume_keeps_small_window_and_tab_safe(tmp_path, ytnova_bina
         cwd=str(vol_a),
         args=[str(vol_b)],
     )
-    time.sleep(1.0)
+    assert tui.wait_for_text("b_only.txt", timeout=2.0), _screen_text(tui)
 
     try:
         tui.send_keystroke(Keys.F8, wait=0.5)
@@ -4805,7 +4804,7 @@ def test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable
         cwd=str(disk_vol),
         args=[str(archive_path)],
     )
-    time.sleep(1.0)
+    assert tui.wait_for_text("inside.txt", timeout=2.0), _screen_text(tui)
 
     try:
         # Move active context to archive volume first.
