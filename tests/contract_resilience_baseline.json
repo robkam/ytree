@@ -16371,6 +16371,17 @@
     },
     {
       "disposition": "out_of_scope",
+      "evidence": "assert preview[\"owner\"] == \"geometry and presentation remediation\"",
+      "id": "exact-prose-assertion:tests/test_contract_resilience_guard.py:127:1be290ae8680d43d",
+      "line": 127,
+      "owner": "geometry and presentation remediation",
+      "path": "tests/test_contract_resilience_guard.py",
+      "pattern_id": "exact-prose-assertion",
+      "reason": "Editable presentation prose requires a durable behavioural replacement.",
+      "symbol": "test_reviewed_semantic_wait_exceptions_survive_baseline_generation"
+    },
+    {
+      "disposition": "out_of_scope",
       "evidence": "rc = int(lines[0].split(\"=\", 1)[1])",
       "id": "screen-slice-or-grid:tests/test_core.py:41:4d239ad224cfd1b0",
       "line": 41,
@@ -18255,10 +18266,10 @@
       "evidence": "for y in range(BORDER_MIN_Y, BORDER_MAX_Y + 1):",
       "id": "polling-or-retry-loop:tests/test_f7_preview.py:309:a5332c737ec8d8b5",
       "line": 309,
-      "owner": "waiting and navigation remediation",
+      "owner": "geometry and presentation remediation",
       "path": "tests/test_f7_preview.py",
       "pattern_id": "polling-or-retry-loop",
-      "reason": "Polling and retry mechanisms belong to the semantic waiting boundary.",
+      "reason": "Bounded scan parses one captured preview snapshot; it performs no waiting, retry, or user navigation.",
       "symbol": "test_f7_file_name_clipping_at_boundaries"
     },
     {
@@ -22490,10 +22501,10 @@
       "evidence": "while True:",
       "id": "polling-or-retry-loop:tests/test_stats_panel.py:99:19cea9fe2560a7c8",
       "line": 99,
-      "owner": "waiting and navigation remediation",
+      "owner": "geometry and presentation remediation",
       "path": "tests/test_stats_panel.py",
       "pattern_id": "polling-or-retry-loop",
-      "reason": "Polling and retry mechanisms belong to the semantic waiting boundary.",
+      "reason": "Bounded string search parses one captured stats snapshot; it performs no waiting, retry, or user navigation.",
       "symbol": "_stats_strip_bounds"
     },
     {
@@ -26292,25 +26303,25 @@
       "symbol": "test_wsl_notify_preserves_explicit_milestone_message"
     },
     {
-      "disposition": "out_of_scope",
+      "disposition": "retained",
       "evidence": "while True:",
       "id": "polling-or-retry-loop:tests/tui_harness.py:91:a458abea0ac708e9",
       "line": 91,
       "owner": "waiting and navigation remediation",
       "path": "tests/tui_harness.py",
       "pattern_id": "polling-or-retry-loop",
-      "reason": "Polling and retry mechanisms belong to the semantic waiting boundary.",
+      "reason": "Canonical event-driven PTY-output predicate: waits for observable state with a deadline and diagnostic, never an elapsed test delay or fixed action count.",
       "symbol": "wait_for_condition"
     },
     {
-      "disposition": "out_of_scope",
+      "disposition": "retained",
       "evidence": "while True:",
       "id": "polling-or-retry-loop:tests/ytnova_control.py:75:6f96abecfa3bc840",
       "line": 75,
       "owner": "waiting and navigation remediation",
       "path": "tests/ytnova_control.py",
       "pattern_id": "polling-or-retry-loop",
-      "reason": "Polling and retry mechanisms belong to the semantic waiting boundary.",
+      "reason": "Canonical control-session event predicate: waits for observable state with a deadline and diagnostic, never an elapsed test delay or fixed action count.",
       "symbol": "wait_for_condition"
     }
   ],
