@@ -22509,17 +22509,6 @@
     },
     {
       "disposition": "out_of_scope",
-      "evidence": "time.sleep(1.0) # Wait for UI to fully settle",
-      "id": "direct-time-sleep:tests/test_state_collision.py:22:bf1a817855144a35",
-      "line": 22,
-      "owner": "waiting and navigation remediation",
-      "path": "tests/test_state_collision.py",
-      "pattern_id": "direct-time-sleep",
-      "reason": "Direct timing waits require event-driven synchronization redesign.",
-      "symbol": "test_state_collision_cursor_pos"
-    },
-    {
-      "disposition": "out_of_scope",
       "evidence": "for line in lines[:-3]:",
       "id": "screen-slice-or-grid:tests/test_stats_panel.py:87:19eab88cc0290a67",
       "line": 87,

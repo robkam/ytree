@@ -385,3 +385,37 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 ## Deferred refresh-race boundary
 
 `tests/test_refresh_race.py` is deferred from the current help family: its deletion wave needs an observable scan-start hook, a materially different concurrency/runtime validation path. It is not safe to replace its race trigger with another elapsed delay.
+
+## Next active family — panel-local selection identity preservation
+
+**Selected defect family:** `tests/test_state_collision.py::test_state_collision_cursor_pos` combines a direct startup sleep with fixed repeated Down actions and static per-key waits.  Its one user-visible contract spans the tree selection, split/Tab ownership transition, and final file-list identity; these share the panel-local state boundary and focused PTY validation path.
+
+### In-scope inventory and closure criteria
+
+- `tests/test_state_collision.py::test_state_collision_cursor_pos`: **in progress** — replace the elapsed readiness sleep, “just in case” Down action, and static per-key waits with observable selection/path/file-list predicates. Preserve the regression: entering a directory from the left panel after the right panel has navigated must still show the left panel's selected directory contents.
+- `tests/conftest.py::dual_panel_sandbox`: **intentionally unchanged** — it already supplies unique directory and file identities needed for semantic predicates.
+- `tests/tui_harness.py::{wait_for_condition,send_and_wait_for_condition}`: **intentionally unchanged** — existing event-driven PTY synchronization is the correct reusable primitive; no new generic helper is justified until the focused red path proves a missing operation.
+- Panel split/tree/file runtime controllers: **intentionally unchanged unless focused red evidence demonstrates runtime state collision** — this is a test-contract synchronization rewrite, not an inferred runtime repair.
+- `tests/contract_resilience_baseline.json`: **pending** — regenerate after the direct sleep and fixed-action synchronization are removed; selected row must no longer appear.
+- `docs/ROADMAP.md`: **pending** — include the maintainer-requested roadmap update while retaining Task 99 and Task 99.2 In Progress because the broader baseline remains unresolved.
+- Remaining sort/help, preview, archive-volume, refresh-race, stats, resize, and harness rows: **deferred** — each has a materially distinct action/state or runtime/concurrency validation boundary; do not mix them with panel-local selection identity preservation.
+
+**Closure:** semantic readiness, tree selection, split/Tab transition, and final left-panel file-list identity are all observed; the selected baseline row is absent after regeneration; focused regression plus resilience guard pass; roadmap/handoff reconcile every inventoried surface.
+
+### Closure reconciliation — panel-local selection identity preservation
+
+- `tests/test_state_collision.py::test_state_collision_cursor_pos`: **addressed** — selection now advances only until the `right_dir` fixture identity is visibly selected; split, panel switches, and directory entry each wait for a rendered state transition or the active `Path:`/file-list identity. The “just in case” action and all elapsed waits are removed while preserving the panel-isolation regression.
+- `tests/conftest.py::dual_panel_sandbox`: **intentionally unchanged** — its `right_dir` and numbered files already provide the semantic identities required by the test.
+- `tests/tui_harness.py::{wait_for_condition,send_and_wait_for_condition}`: **intentionally unchanged** — the existing event-driven PTY primitives are reused; no duplicate helper was necessary.
+- Panel runtime controllers: **intentionally unchanged** — focused proof did not show a runtime state collision.
+- `tests/contract_resilience_baseline.json`: **addressed** — regenerated; the selected direct-time-sleep row is absent and 10 waiting/navigation rows remain for their recorded separate families.
+- `docs/ROADMAP.md`: **addressed** — records panel-local selection preservation while retaining Task 99 and Task 99.2 In Progress.
+- Sort/help, preview, archive-volume, refresh-race, stats, resize, and harness families: **deferred** — unchanged for the distinct action/state, presentation, concurrency, or retained-predicate reasons recorded above.
+
+### Validation
+
+- Red: a targeted authoritative-baseline assertion failed before implementation because `test_state_collision_cursor_pos` still contained the direct UI-settling sleep.
+- Green: `source .venv/bin/activate && pytest -q tests/test_state_collision.py::test_state_collision_cursor_pos` — 1 passed.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_state_collision.py::test_state_collision_cursor_pos tests/test_contract_resilience_guard.py` — 7 passed; selected row absent.
+- Green: `git diff --check`.
+- Deliberately unrun: local full QA and C build; this batch changes Python PTY synchronization, its generated inventory, and roadmap status only. Required PR full-QA CI remains the merge gate.
