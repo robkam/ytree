@@ -130,7 +130,13 @@ def test_archive_copy_matrix_fs_to_vfs(ytnova_binary, tmp_path):
     yt.select_file("fs_source.txt")
     _copy_selected_file(yt, "copied_from_fs.txt", dst_archive)
 
-    assert "copied_from_fs.txt" in _archive_names(dst_archive)
+    dst_names = _wait_for_archive_names(
+        yt,
+        dst_archive,
+        lambda names: "copied_from_fs.txt" in names,
+        "destination member after filesystem-to-archive copy",
+    )
+    assert "copied_from_fs.txt" in dst_names
     assert _archive_read_text(dst_archive, "copied_from_fs.txt") == "fs payload"
 
     yt.quit()
