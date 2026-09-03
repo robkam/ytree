@@ -78,6 +78,7 @@ jobs:
 
     - name: Install System Dependencies
       run: |
+        sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         sudo apt-get install -y cmark libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools
 
@@ -160,6 +161,7 @@ jobs:
 
     - name: Install System Dependencies
       run: |
+        sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev
 
@@ -212,6 +214,7 @@ jobs:
 
     - name: Install System Dependencies
       run: |
+        sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools cmark
 
@@ -266,6 +269,7 @@ jobs:
 
     - name: Install System Dependencies
       run: |
+        sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         sudo apt-get install -y ccache clang llvm libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools cmark lcov
 
@@ -333,6 +337,7 @@ jobs:
 
     - name: Install System Dependencies
       run: |
+        sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         sudo apt-get install -y ccache clang
 

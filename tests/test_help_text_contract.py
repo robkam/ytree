@@ -120,11 +120,13 @@ def _send_help_key_until_text(tui, key, text, *, timeout=1.0):
 
 def _follow_visible_help_link(tui, *, safety_cap=80):
     """Follow any selectable help link without coupling to its editable prose."""
-    for _ in range(safety_cap):
+    attempts = 0
+    while attempts < safety_cap:
         tui.send_keystroke(Keys.DOWN, wait=0)
         linked = tui.send_and_wait_for_screen_change(Keys.RIGHT, timeout=0.2)
         if linked:
             return linked
+        attempts += 1
     pytest.fail("Could not reach a selectable help link before the safety cap.")
 
 
