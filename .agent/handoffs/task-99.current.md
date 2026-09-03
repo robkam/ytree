@@ -353,3 +353,21 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Synthetic and real-home startup waits, target navigation, and tag progression: **addressed** through shared semantic action/state predicates.
 - Direct waiting/navigation baseline rows in both reproducers: **addressed** — absent after authoritative regeneration.
 - Validation: `python3 -m py_compile tests/repro_same_volume_home_mkdir_bug.py tests/repro_real_home_same_volume_split_bug.py`; resilience guard passed (6); `git diff --check` passed. Manual real-home execution is deliberately unrun because it mutates the caller HOME workflow; CI validates repository tests.
+
+## Next active family — internal viewer return completion
+
+**Selected defect family:** the two `tests/test_viewer_return_ui.py` waits share the same viewer subprocess-return/redraw completion boundary.
+
+### Inventory and closure criteria
+
+- Both internal viewer return tests: **in progress** — replace elapsed waits with return-to-full-UI fixture/state predicates.
+- `tests/tui_harness.py` and viewer runtime: **intentionally unchanged pending focused red evidence** — reuse existing semantic waiting primitives.
+- All other remaining rows: **deferred** — distinct prompt, archive-volume, refresh, layout, or retained-harness boundaries.
+- Baseline and roadmap: **pending** — update only after this family is reconciled; Task 99/99.2 remain In Progress.
+
+### Internal viewer return reconciliation
+
+- Both internal viewer startup waits: **addressed** — fixture identities establish readiness before entering file/archive mode.
+- Viewer runtime and harness: **intentionally unchanged** — focused return contracts passed without runtime evidence.
+- Baseline: **addressed** — both rows absent after regeneration.
+- Validation: focused viewer return tests and resilience guard passed; `git diff --check` passed.
