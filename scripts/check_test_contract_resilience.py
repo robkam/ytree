@@ -108,6 +108,42 @@ REVIEWED_EXCEPTIONS = {
         "waiting and navigation remediation",
         "Canonical control-session event predicate: waits for observable state with a deadline and diagnostic, never an elapsed test delay or fixed action count.",
     ),
+    (
+        "tests/test_archive_write_parity.py",
+        "test_archive_copy_matrix_fs_to_vfs",
+        "exact-prose-assertion",
+    ): (
+        "retained",
+        "external and static contract classification",
+        "Archive payload comparison verifies copied fixture bytes; the string is test data, not editable interface prose.",
+    ),
+    (
+        "tests/test_archive_write_parity.py",
+        "test_archive_copy_matrix_vfs_to_vfs",
+        "exact-prose-assertion",
+    ): (
+        "retained",
+        "external and static contract classification",
+        "Archive payload comparison verifies copied fixture bytes; the string is test data, not editable interface prose.",
+    ),
+    (
+        "tests/test_archive_write_parity.py",
+        "test_archive_move_matrix_fs_to_vfs",
+        "exact-prose-assertion",
+    ): (
+        "retained",
+        "external and static contract classification",
+        "Archive payload comparison verifies moved fixture bytes; the string is test data, not editable interface prose.",
+    ),
+    (
+        "tests/test_archive_write_parity.py",
+        "test_archive_move_matrix_vfs_to_vfs",
+        "exact-prose-assertion",
+    ): (
+        "retained",
+        "external and static contract classification",
+        "Archive payload comparison verifies moved fixture bytes; the string is test data, not editable interface prose.",
+    ),
 }
 
 

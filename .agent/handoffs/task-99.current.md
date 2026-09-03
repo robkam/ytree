@@ -571,3 +571,24 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` — 7 passed.
 - Green: `git diff --check`.
 - Deliberately unrun: local full QA and C build; required PR full-QA CI is the merge gate.
+
+## Active baseline reconciliation — archive payload assertions
+
+**Inventory:** `tests/test_archive_write_parity.py` has four `exact-prose-assertion` rows in the authoritative baseline: filesystem-to-archive copy, archive-to-archive copy, filesystem-to-archive move, and archive-to-archive move. The detector line identities drifted after lifecycle synchronization edits. All four assert deterministic fixture payload bytes, not editable UI prose.
+
+**Closure criteria:** preserve all four archive data-integrity assertions; classify each as `retained` under `external and static contract classification` with a payload-specific reason; make the exact overrides survive baseline regeneration; run the baseline checker and `tests/test_contract_resilience_guard.py`. Task 99.2 status is intentionally unchanged.
+
+### Closure reconciliation — archive payload baseline rows
+
+- `scripts/check_test_contract_resilience.py::REVIEWED_EXCEPTIONS`: **addressed** — exact symbol-level exceptions preserve archive payload classifications across regeneration.
+- `tests/contract_resilience_baseline.json`: **addressed** — all four current archive payload rows are retained under `external and static contract classification` with specific test-data reasons.
+- `tests/test_contract_resilience_guard.py`: **intentionally unchanged** — its current baseline-pass coverage validates the regenerated authoritative inventory without adding detector-visible guard fixtures.
+- `tests/test_archive_write_parity.py`: **intentionally unchanged** — the assertions correctly verify archive copy/move payload integrity; only their stale baseline identities and erroneous presentation disposition required repair.
+- Task 99.2 roadmap status: **intentionally unchanged** — the four rows belong to archive data-integrity/static-contract classification, not waiting/navigation.
+
+### Validation
+
+- Red: `python3 scripts/check_test_contract_resilience.py` reported four unreviewed and four stale archive payload rows.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && python3 scripts/check_test_contract_resilience.py`.
+- Green: `source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` — 8 passed.
+- Green: `git diff --check`.
