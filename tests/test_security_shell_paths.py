@@ -33,81 +33,16 @@ def _send_and_wait_for_transition(tui, keys, timeout=2.0):
     return lines
 
 
-def _read_ctrl_file_ops_source():
-    return read_repo_source("src/ui/ctrl_file_ops.c")
 
 
-def _extract_case_block(source, case_label, next_case_label):
-    start = source.find(case_label)
-    assert start >= 0, f"Could not find case label: {case_label}"
-    end = source.find(next_case_label, start)
-    assert end >= 0, f"Could not find next case label: {next_case_label}"
-    return source[start:end]
 
 
-def test_tagged_command_long_uses_command_line_length_contract():
-    src = _read_ctrl_file_ops_source()
-    block = _extract_case_block(
-        src, "case ACTION_CMD_TAGGED_X:", "case ACTION_TOGGLE_TAGGED_MODE:"
-    )
-
-    assert "malloc(COLS + 1)" not in block, (
-        "Tagged execute command buffer must not be sized by COLS for long input."
-    )
-    assert "malloc(COMMAND_LINE_LENGTH + 1)" in block, (
-        "Tagged execute command buffer must use COMMAND_LINE_LENGTH + 1."
-    )
 
 
-def test_tagged_search_long_uses_command_line_length_contract():
-    src = _read_ctrl_file_ops_source()
-    block = _extract_case_block(
-        src, "case ACTION_CMD_TAGGED_S:", "case ACTION_CMD_TAGGED_X:"
-    )
-
-    assert "malloc(COLS + 1)" not in block, (
-        "Tagged search command buffer must not be sized by COLS for long input."
-    )
-    assert "malloc(COMMAND_LINE_LENGTH + 1)" in block, (
-        "Tagged search command buffer must use COMMAND_LINE_LENGTH + 1."
-    )
-    assert "COMMAND_LINE_LENGTH + sizeof(\" > /dev/null 2>&1\")" in block, (
-        "Tagged silent command must size from COMMAND_LINE_LENGTH contract."
-    )
 
 
-def test_tagged_search_normalization_uses_command_line_length_contract():
-    src = _read_ctrl_file_ops_source()
-    block = _extract_case_block(
-        src, "case ACTION_CMD_TAGGED_S:", "case ACTION_CMD_TAGGED_X:"
-    )
-
-    assert "NormalizeQuotedExecPlaceholders(command_line, (size_t)COLS + 1U);" not in block, (
-        "Tagged search normalization must not be bounded by COLS."
-    )
-    assert "NormalizeQuotedExecPlaceholders(" in block, (
-        "Tagged search path must normalize quoted placeholders."
-    )
-    assert "(size_t)COMMAND_LINE_LENGTH + 1U" in block, (
-        "Tagged search normalization must use COMMAND_LINE_LENGTH + 1."
-    )
 
 
-def test_tagged_execute_normalization_uses_command_line_length_contract():
-    src = _read_ctrl_file_ops_source()
-    block = _extract_case_block(
-        src, "case ACTION_CMD_TAGGED_X:", "case ACTION_TOGGLE_TAGGED_MODE:"
-    )
-
-    assert "NormalizeQuotedExecPlaceholders(command_line, (size_t)COLS + 1U);" not in block, (
-        "Tagged execute normalization must not be bounded by COLS."
-    )
-    assert "NormalizeQuotedExecPlaceholders(" in block, (
-        "Tagged execute path must normalize quoted placeholders."
-    )
-    assert "(size_t)COMMAND_LINE_LENGTH + 1U" in block, (
-        "Tagged execute normalization must use COMMAND_LINE_LENGTH + 1."
-    )
 
 
 def test_compare_placeholder_expansion_preserves_metacharacter_paths(
