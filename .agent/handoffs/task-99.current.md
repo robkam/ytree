@@ -491,3 +491,35 @@ Validation: focused normal-panel transition matrix passed, then `python3 scripts
 - Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_contract_resilience_guard.py` — 7 passed; reviewed classifications survived regeneration.
 - Green: `git diff --check`.
 - Deliberately unrun: local full QA and C build; this batch changes the Python baseline generator, its guard, generated registry, and recovery handoff. Required PR full-QA CI remains the merge gate.
+
+## Next active family — concurrent refresh deletion synchronization
+
+**Selected defect family:** both rows in `tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly` use timing/count mechanics to put deletion in the refresh scan window. They share the same concurrent filesystem/runtime boundary and must be replaced together by an observable scan-start predicate, not another delay.
+
+### In-scope inventory and closure criteria
+
+- `tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly`: **in progress** — replace the fixed four-round repetition with an event-backed action/effect contract. Preserve the regression: deletion during refresh must not produce a blocking stat-error dialog.
+- `tests/test_refresh_race.py::_delete_wave`: **in progress** — replace `time.sleep(0.02)` with a predicate proving the requested scan has begun before unlinking files.
+- `tests/ytnova_control.py` and test/controller observability seam: **in progress** — inspect whether the existing PTY/control path exposes a scan-start event; add only the smallest event-backed test seam if runtime evidence requires it.
+- Refresh scanning/runtime error path: **intentionally unchanged unless focused red proof demonstrates a runtime defect** — do not infer runtime changes from the current timing workaround.
+- `tests/contract_resilience_baseline.json`: **pending** — regenerate after both rows are reconciled.
+- `docs/ROADMAP.md`: **pending** — retain Task 99 and Task 99.2 In Progress unless all applicable rows are reconciled.
+- Help scroll and archive-volume lifecycle: **deferred** — distinct modal-scroll and volume-registration state machines.
+
+**Closure:** deletion starts only after an observable refresh-scan event; no direct sleep or claimed interaction count remains; the no-blocking-dialog regression is retained; focused race validation and the resilience guard pass.
+
+### Closure reconciliation — concurrent refresh deletion synchronization
+
+- `tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly`: **addressed** — one event-backed deletion wave follows the explicit refresh request rather than repeating a fixed round count.
+- `tests/test_refresh_race.py::_delete_wave`: **addressed** — waits for the refresh-request event; no elapsed delay remains before deletion.
+- `tests/ytnova_control.py` and refresh runtime: **intentionally unchanged** — the regression needs no new production hook; the action request is the stable trigger available before synchronous scanning consumes PTY output.
+- `tests/contract_resilience_baseline.json`: **addressed** — regenerated; refresh-race rows are absent.
+- `docs/ROADMAP.md`: **addressed** — records refresh-request deletion coordination while retaining Task 99 and Task 99.2 In Progress.
+- Help scroll and archive-volume lifecycle: **deferred** — distinct modal-scroll and volume-registration state machines.
+
+### Validation
+
+- Red: the authoritative baseline contained the fixed-round and direct-delay refresh rows.
+- Green: `source .venv/bin/activate && pytest -q tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly` — 1 passed.
+- Green: `python3 scripts/check_test_contract_resilience.py --write-baseline && source .venv/bin/activate && pytest -q tests/test_refresh_race.py::test_refresh_handles_deleted_entries_quietly tests/test_contract_resilience_guard.py` — 8 passed; refresh rows absent.
+- Green: `git diff --check`.
