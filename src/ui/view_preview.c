@@ -322,21 +322,6 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
   wnoutrefresh(win);
 }
 
-static int PreviewProgressCallback(int status, const char *msg,
-                                   void *user_data) {
-  ViewContext *ctx = (ViewContext *)user_data;
-  (void)msg;
-
-  if (status == ARCHIVE_STATUS_PROGRESS) {
-    if (ctx)
-      DrawSpinner(ctx);
-    if (EscapeKeyPressed()) {
-      return ARCHIVE_CB_ABORT;
-    }
-  }
-  return ARCHIVE_CB_CONTINUE;
-}
-
 void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                           const char *archive_path, const char *internal_path,
                           long *line_offset_ptr) {
@@ -363,6 +348,8 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
 
   if (needs_extract) {
     int fd = -1;
+    int extract_result;
+    BOOL owns_progress;
 
     InvalidatePreviewCache();
     if (!Path_CreateTempFile(preview_cache_file, sizeof(preview_cache_file),
@@ -378,8 +365,14 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
       preview_cache_cleanup_registered = 1;
     }
 
-    if (ExtractArchiveEntry(archive_path, canonical_internal_path, fd,
-                            PreviewProgressCallback, ctx) != 0) {
+    owns_progress = !ctx->progress.active;
+    if (owns_progress)
+      Progress_Start(ctx, "ARCHIVE PREVIEW", canonical_internal_path, "", 0, 0);
+    extract_result = ExtractArchiveEntry(
+        archive_path, canonical_internal_path, fd, UI_ArchiveCallback, ctx);
+    if (owns_progress)
+      Progress_Finish(ctx);
+    if (extract_result != 0) {
       goto extract_failed;
     }
 

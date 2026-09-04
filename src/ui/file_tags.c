@@ -58,6 +58,7 @@ void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
 
       RefreshWindow(ctx->ctx_file_window);
       doupdate();
+      DrawSpinner(ctx);
       result = fkt(ctx, fe_ptr, walking_package);
 
       /* Handle case where file was removed/moved away */
@@ -179,6 +180,9 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
   if (baudrate() >= QUICK_BAUD_RATE)
     typeahead(0);
 
+  Progress_Start(ctx, "DELETING", s->log_path, "", 0,
+                 (unsigned int)tagged_count);
+
   for (i = 0; i < (int)ctx->active->file_count && result == 0;) {
     BOOL deleted = FALSE;
 
@@ -220,6 +224,8 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
         DisplayAvailBytes(ctx, s);
 
         FileList_RemoveFileEntry(ctx, start_file + cursor_pos);
+        if (!Progress_Update(ctx, 0, ctx->progress.items_done + 1))
+          result = -1;
       }
     }
     if (!deleted)
@@ -227,6 +233,7 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
   }
   if (baudrate() >= QUICK_BAUD_RATE)
     typeahead(-1);
+  Progress_Finish(ctx);
 
   return (result);
 }

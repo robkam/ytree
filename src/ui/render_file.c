@@ -14,6 +14,7 @@
 #include <ctype.h>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define ARCHIVE_RATIO_BASE 1.0
 
 static char GetTypeOfFile(struct stat fst);
 static int GetVisualFileEntryLength(ViewContext *ctx, YtreeNovaPanel *p);
@@ -265,12 +266,30 @@ static void FormatBinarySize(const ViewContext *ctx, long long value,
   }
 }
 
-static void FormatPanelSize(const ViewContext *ctx, const YtreeNovaPanel *panel,
-                            long long value, char *buffer, size_t buffer_size) {
+static void FormatHumanSize(long long value, char *buffer,
+                            size_t buffer_size) {
   double scaled = (double)value;
   int unit_index = 0;
   static const char *units[] = {"B", "K", "M", "G", "T", "P"};
 
+  if (!buffer || buffer_size == 0)
+    return;
+  if (value < 0) {
+    snprintf(buffer, buffer_size, "Err");
+    return;
+  }
+  while (scaled >= 999.5 && unit_index < 5) {
+    scaled /= 1024.0;
+    unit_index++;
+  }
+  if (unit_index == 0)
+    snprintf(buffer, buffer_size, "%lld%s", value, units[unit_index]);
+  else
+    snprintf(buffer, buffer_size, "%.1f%s", scaled, units[unit_index]);
+}
+
+static void FormatPanelSize(const ViewContext *ctx, const YtreeNovaPanel *panel,
+                            long long value, char *buffer, size_t buffer_size) {
   if (!buffer || buffer_size == 0)
     return;
 
@@ -279,21 +298,7 @@ static void FormatPanelSize(const ViewContext *ctx, const YtreeNovaPanel *panel,
     return;
   }
 
-  if (value < 0) {
-    snprintf(buffer, buffer_size, "Err");
-    return;
-  }
-
-  while (scaled >= 999.5 && unit_index < 5) {
-    scaled /= 1024.0;
-    unit_index++;
-  }
-
-  if (unit_index == 0) {
-    snprintf(buffer, buffer_size, "%lld%s", value, units[unit_index]);
-  } else {
-    snprintf(buffer, buffer_size, "%.1f%s", scaled, units[unit_index]);
-  }
+  FormatHumanSize(value, buffer, buffer_size);
 }
 
 static void BuildOverlayDetail(const ViewContext *ctx,
@@ -324,6 +329,34 @@ static void BuildOverlayDetail(const ViewContext *ctx,
 
   if (panel->fileinfo_overlay_mode == FILEINFO_OVERLAY_GIT) {
     FileInfoGitDescribe(panel, fe_ptr, buffer, buffer_size);
+    return;
+  }
+
+  if (panel->fileinfo_overlay_mode == FILEINFO_OVERLAY_ARCHIVE) {
+    char packed_buf[32];
+    char ratio_buf[16];
+
+    FormatHumanSize((long long)fe_ptr->stat_struct.st_size, size_buf,
+                    sizeof(size_buf));
+    if (fe_ptr->archive_packed_size_known) {
+      FormatHumanSize(fe_ptr->archive_packed_size, packed_buf,
+                      sizeof(packed_buf));
+      if (fe_ptr->stat_struct.st_size > 0) {
+        double ratio = 100.0 *
+                       (ARCHIVE_RATIO_BASE -
+                        ((double)fe_ptr->archive_packed_size /
+                               (double)fe_ptr->stat_struct.st_size));
+        snprintf(ratio_buf, sizeof(ratio_buf), "%.0f%%", ratio);
+      } else {
+        snprintf(ratio_buf, sizeof(ratio_buf), "-");
+      }
+    } else {
+      snprintf(packed_buf, sizeof(packed_buf), "-");
+      snprintf(ratio_buf, sizeof(ratio_buf), "-");
+    }
+    (void)snprintf(buffer, buffer_size,
+                   " Size: %s Packed: %s Ratio: %s", size_buf, packed_buf,
+                   ratio_buf);
     return;
   }
 
@@ -490,6 +523,8 @@ static int OverlayDetailBudget(const YtreeNovaPanel *panel) {
     return 56;
   case FILEINFO_OVERLAY_GIT:
     return 14;
+  case FILEINFO_OVERLAY_ARCHIVE:
+    return 48;
   default:
     return 0;
   }

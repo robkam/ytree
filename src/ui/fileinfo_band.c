@@ -8,6 +8,8 @@
 #include "ytnova_appstate_layout.h"
 #include "ytnova_appstate_mode.h"
 #include "ytnova_appstate_panel.h"
+#include "ytnova_appstate_render.h"
+#include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
 #include <stdlib.h>
@@ -159,6 +161,8 @@ static BOOL ApplyFileProjectionToggleSelection(ViewContext *ctx,
       return TRUE;
     return SelectVisibleOverlayMode(ctx, panel, FILEINFO_OVERLAY_GIT);
   case 0:
+    if (panel->vol && panel->vol->vol_stats.log_mode == ARCHIVE_MODE)
+      return SelectVisibleOverlayMode(ctx, panel, FILEINFO_OVERLAY_ARCHIVE);
     return TRUE;
   default:
     return FALSE;

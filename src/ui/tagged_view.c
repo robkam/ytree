@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <libgen.h>
+#include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -432,6 +433,77 @@ static int RunExternalTaggedViewer(ViewContext *ctx, char **view_paths,
   return 0;
 }
 
+static int PrepareTaggedView(ViewContext *ctx, const Statistic *s,
+                             char (*temp_dir_template)[PATH_LENGTH],
+                             const char **temp_dir_out, char ***view_paths_out,
+                             char ***display_paths_out,
+                             int *tagged_count_out) {
+  int i;
+  int tagged_count = 0;
+
+  if (s->log_mode == ARCHIVE_MODE) {
+    if (!Path_BuildTempTemplate(*temp_dir_template,
+                                sizeof(*temp_dir_template),
+                                "ytnova_view_")) {
+      UI_Error(ctx, __FILE__, __LINE__,
+               "Could not prepare temp dir template for viewing");
+      return -1;
+    }
+    *temp_dir_out = mkdtemp(*temp_dir_template);
+    if (!*temp_dir_out) {
+      UI_Error(ctx, __FILE__, __LINE__,
+               "Could not create temp dir for viewing");
+      return -1;
+    }
+  }
+
+  for (i = 0; i < (int)ctx->active->file_count; i++) {
+    const FileEntry *fe = ctx->active->file_entry_list[i].file;
+
+    if (fe->tagged && fe->matching)
+      tagged_count++;
+  }
+  *tagged_count_out = tagged_count;
+  if (tagged_count == 0)
+    return 1;
+
+  *view_paths_out = (char **)xcalloc((size_t)tagged_count, sizeof(char *));
+  *display_paths_out = (char **)xcalloc((size_t)tagged_count, sizeof(char *));
+  if (!*view_paths_out || !*display_paths_out) {
+    UI_Error(ctx, __FILE__, __LINE__,
+             "Out of memory while preparing tagged view");
+    return -1;
+  }
+  return 0;
+}
+
+static BOOL StartTaggedArchiveProgress(ViewContext *ctx, const Statistic *s) {
+  long long bytes = 0;
+  unsigned int items = 0;
+  BOOL bytes_known = TRUE;
+  int i;
+
+  if (!ctx || !ctx->active || !s || s->log_mode != ARCHIVE_MODE ||
+      ctx->progress.active)
+    return FALSE;
+  for (i = 0; i < (int)ctx->active->file_count && items < 100; i++) {
+    FileEntry *file_entry = ctx->active->file_entry_list[i].file;
+
+    if (!(file_entry->tagged && file_entry->matching))
+      continue;
+    items++;
+    if (file_entry->stat_struct.st_size < 0 ||
+        bytes > LLONG_MAX - file_entry->stat_struct.st_size) {
+      bytes_known = FALSE;
+    } else if (bytes_known) {
+      bytes += file_entry->stat_struct.st_size;
+    }
+  }
+  Progress_Start(ctx, "ARCHIVE VIEW", s->log_path, "",
+                 bytes_known ? bytes : 0, items);
+  return TRUE;
+}
+
 int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   FileEntry *fe;
   const char *temp_dir = NULL;
@@ -446,6 +518,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   Statistic *s;
   const char *tagged_viewer;
   int result = 0;
+  BOOL owns_progress = FALSE;
 
   (void)dir_entry;
   if (!ctx || !ctx->active || !ctx->active->vol ||
@@ -461,39 +534,15 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     use_internal_view = TRUE;
   }
 
-  if (s->log_mode == ARCHIVE_MODE) {
-    if (!Path_BuildTempTemplate(temp_dir_template, sizeof(temp_dir_template),
-                                "ytnova_view_")) {
-      UI_Error(ctx, __FILE__, __LINE__,
-               "Could not prepare temp dir template for viewing");
-      return -1;
-    }
-    temp_dir = mkdtemp(temp_dir_template);
-    if (!temp_dir) {
-      UI_Error(ctx, __FILE__, __LINE__,
-               "Could not create temp dir for viewing");
-      return -1;
-    }
-  }
-
-  for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe = ctx->active->file_entry_list[i].file;
-    if (fe->tagged && fe->matching)
-      tagged_count++;
-  }
-
-  if (tagged_count <= 0) {
+  result = PrepareTaggedView(ctx, s, &temp_dir_template, &temp_dir, &view_paths,
+                             &display_paths, &tagged_count);
+  if (result != 0) {
+    if (result > 0)
+      result = 0;
     goto cleanup;
   }
 
-  view_paths = (char **)xcalloc((size_t)tagged_count, sizeof(char *));
-  display_paths = (char **)xcalloc((size_t)tagged_count, sizeof(char *));
-  if (!view_paths || !display_paths) {
-    UI_Error(ctx, __FILE__, __LINE__,
-             "Out of memory while preparing tagged view");
-    result = -1;
-    goto cleanup;
-  }
+  owns_progress = StartTaggedArchiveProgress(ctx, s);
 
   for (i = 0; i < (int)ctx->active->file_count; i++) {
     fe = ctx->active->file_entry_list[i].file;
@@ -622,6 +671,10 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     }
   }
 
+  if (owns_progress) {
+    Progress_Finish(ctx);
+    owns_progress = FALSE;
+  }
   if (path_count > 0) {
     if (use_internal_view) {
       RunTaggedViewLoop(ctx, view_paths, display_paths, path_count);
@@ -633,6 +686,8 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
 cleanup:
+  if (owns_progress)
+    Progress_Finish(ctx);
   for (i = 0; i < tagged_count; i++) {
     if (view_paths && view_paths[i])
       free(view_paths[i]);

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -67,9 +68,24 @@ def test_archive_tempfile_cleanup_paths_remain_present() -> None:
 def test_tagged_archive_view_temp_root_avoids_fixed_tmp_template_name() -> None:
     src = _read("src/ui/tagged_view.c")
     _assert_invariant("/tmp/ytnova_view_XXXXXX" not in src)
-    _assert_invariant("Path_BuildTempTemplate(temp_dir_template, sizeof(temp_dir_template)," in src)
+    _assert_invariant("char (*temp_dir_template)[PATH_LENGTH]" in src)
+    _assert_invariant(
+        re.search(
+            r"Path_BuildTempTemplate\(\*temp_dir_template,\s*"
+            r"sizeof\(\*temp_dir_template\),",
+            src,
+        )
+        is not None
+    )
+    _assert_invariant(
+        re.search(
+            r"PrepareTaggedView\(ctx,\s*s,\s*&temp_dir_template,\s*&temp_dir",
+            src,
+        )
+        is not None
+    )
     _assert_invariant('"ytnova_view_")' in src)
-    _assert_invariant("temp_dir = mkdtemp(temp_dir_template);" in src)
+    _assert_invariant("*temp_dir_out = mkdtemp(*temp_dir_template);" in src)
     _assert_invariant("recursive_rmdir(temp_dir);" in src)
 
 

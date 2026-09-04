@@ -323,7 +323,8 @@ static void free_visited(VisitedDirNode *visited) {
 static int expand_directory_path(const char *root_dir,
                                  const char *current_dir,
                                  ArchiveExpandedEntry **expanded_list,
-                                 VisitedDirNode **visited) {
+                                 VisitedDirNode **visited,
+                                 ArchiveProgressCallback cb, void *user_data) {
   DIR *dir;
   const struct dirent *entry;
   struct stat st;
@@ -368,8 +369,15 @@ static int expand_directory_path(const char *root_dir,
       break;
     }
 
+    if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, user_data) ==
+                  ARCHIVE_CB_ABORT) {
+      rc = -1;
+      break;
+    }
+
     if (S_ISDIR(child_st.st_mode)) {
-      rc = expand_directory_path(root_dir, child_path, expanded_list, visited);
+      rc = expand_directory_path(root_dir, child_path, expanded_list, visited,
+                                 cb, user_data);
       if (rc != 0)
         break;
       continue;
@@ -400,7 +408,9 @@ static int expand_directory_path(const char *root_dir,
 
 static int expand_directory_path_non_recursive(const char *root_dir,
                                                ArchiveExpandedEntry **expanded_list,
-                                               VisitedDirNode **visited) {
+                                               VisitedDirNode **visited,
+                                               ArchiveProgressCallback cb,
+                                               void *user_data) {
   DIR *dir;
   const struct dirent *entry;
   struct stat st;
@@ -445,6 +455,12 @@ static int expand_directory_path_non_recursive(const char *root_dir,
       break;
     }
 
+    if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, user_data) ==
+                  ARCHIVE_CB_ABORT) {
+      rc = -1;
+      break;
+    }
+
     if (S_ISDIR(child_st.st_mode))
       continue;
 
@@ -471,10 +487,10 @@ static int expand_directory_path_non_recursive(const char *root_dir,
   return rc;
 }
 
-int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
-                                    size_t source_count,
-                                    BOOL recursive_directories,
-                                    ArchivePayload *payload) {
+int UI_BuildArchivePayloadFromPathsWithProgress(
+    const char *const *source_paths, size_t source_count,
+    BOOL recursive_directories, ArchivePayload *payload,
+    ArchiveProgressCallback cb, void *user_data) {
   size_t i;
   BOOL *is_directory = NULL;
   char common_file_base[PATH_LENGTH + 1];
@@ -505,6 +521,9 @@ int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
       goto fail;
 
     is_directory[i] = S_ISDIR(st.st_mode) ? TRUE : FALSE;
+    if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, user_data) ==
+                  ARCHIVE_CB_ABORT)
+      goto fail;
   }
 
   if (compute_common_file_base(source_paths, is_directory, source_count,
@@ -520,10 +539,12 @@ int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
       if (recursive_directories) {
         expand_rc =
             expand_directory_path(source_paths[i], source_paths[i],
-                                  &payload->expanded_file_list, &visited);
+                                  &payload->expanded_file_list, &visited, cb,
+                                  user_data);
       } else {
         expand_rc = expand_directory_path_non_recursive(
-            source_paths[i], &payload->expanded_file_list, &visited);
+            source_paths[i], &payload->expanded_file_list, &visited, cb,
+            user_data);
       }
       free_visited(visited);
       if (expand_rc != 0)
@@ -559,4 +580,12 @@ fail:
   free(is_directory);
   UI_FreeArchivePayload(payload);
   return -1;
+}
+
+int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
+                                    size_t source_count,
+                                    BOOL recursive_directories,
+                                    ArchivePayload *payload) {
+  return UI_BuildArchivePayloadFromPathsWithProgress(
+      source_paths, source_count, recursive_directories, payload, NULL, NULL);
 }

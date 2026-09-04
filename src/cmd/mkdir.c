@@ -13,6 +13,7 @@
 #include "ytnova_fs.h"
 #include <dirent.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,14 +40,13 @@ static DirEntry *MakeArchiveDirEntry(const ViewContext *ctx,
                                      const char *parent_path);
 
 /* Helper for Archive Callback */
-static int ArchiveUICallback(int status, const char *msg, void *user_data) {
+static int ArchiveUICallback(int status, const char *msg, long long bytes_delta,
+                             unsigned int items_delta, void *user_data) {
   ViewContext *ctx = (ViewContext *)user_data;
 
-  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
-    ctx->hook_draw_spinner(ctx);
-  (void)status;
-  (void)msg;
-  /* Archive callbacks stay non-interactive in this flow. */
+  if (ctx && ctx->hook_archive_callback)
+    return ctx->hook_archive_callback(status, msg, bytes_delta, items_delta,
+                                      user_data);
   return ARCHIVE_CB_CONTINUE;
 }
 
@@ -56,6 +56,9 @@ int MakeDirectory(const ViewContext *ctx, YtreeNovaPanel *panel,
   int result = -1;
 
   if (!dir_name || !*dir_name)
+    return -1;
+  if (panel && panel->vol && panel->vol->vol_stats.log_mode == ARCHIVE_MODE &&
+      !(panel->vol->vol_stats.archive_capabilities & ARCHIVE_CAP_ADD))
     return -1;
 
   if (MakeDirEntry(ctx, panel, father_dir_entry, dir_name, s) != NULL) {
@@ -76,6 +79,9 @@ static DirEntry *MakeArchiveDirEntry(const ViewContext *ctx,
   char archive_path[PATH_LENGTH + 1];
   char archive_dir_path[PATH_LENGTH + 1];
   struct stat archive_stat;
+  ViewContext *mutable_ctx = (ViewContext *)ctx;
+  BOOL owns_progress = FALSE;
+  int archive_result;
 
   {
     int n = snprintf(root_path, sizeof(root_path), "%s",
@@ -105,11 +111,25 @@ static DirEntry *MakeArchiveDirEntry(const ViewContext *ctx,
     return NULL;
   }
 
-  if (ctx && ctx->hook_draw_spinner)
-    ctx->hook_draw_spinner((ViewContext *)ctx);
-
-  if (Archive_AddFile(panel->vol->vol_stats.log_path, NULL, archive_path, TRUE,
-                      ArchiveUICallback, (void *)ctx) != 0) {
+  owns_progress = mutable_ctx && !mutable_ctx->progress.active &&
+                  mutable_ctx->hook_progress_start &&
+                  mutable_ctx->hook_progress_finish;
+  if (owns_progress)
+    mutable_ctx->hook_progress_start(mutable_ctx, "ARCHIVE CREATE DIRECTORY",
+                                     archive_path, "",
+                                     panel->vol->vol_stats.disk_total_bytes,
+                                     panel->vol->vol_stats.archive_member_count <
+                                             UINT_MAX
+                                         ? panel->vol->vol_stats
+                                                   .archive_member_count +
+                                               1
+                                         : UINT_MAX);
+  archive_result =
+      Archive_AddFile(panel->vol->vol_stats.log_path, NULL, archive_path, TRUE,
+                      ArchiveUICallback, mutable_ctx);
+  if (archive_result != 0) {
+    if (owns_progress)
+      mutable_ctx->hook_progress_finish(mutable_ctx);
     return NULL;
   }
 
@@ -117,10 +137,16 @@ static DirEntry *MakeArchiveDirEntry(const ViewContext *ctx,
   archive_stat.st_mode = S_IFDIR;
   if (snprintf(archive_dir_path, sizeof(archive_dir_path), "%s/", archive_path) <
           0 ||
-      TryInsertArchiveDirEntry((ViewContext *)ctx, panel->vol->vol_stats.tree,
+      TryInsertArchiveDirEntry(mutable_ctx, panel->vol->vol_stats.tree,
                                archive_dir_path, &archive_stat, s) != 0) {
+    if (owns_progress)
+      mutable_ctx->hook_progress_finish(mutable_ctx);
     return NULL;
   }
+  if (panel->vol->vol_stats.archive_member_count < UINT_MAX)
+    panel->vol->vol_stats.archive_member_count++;
+  if (owns_progress)
+    mutable_ctx->hook_progress_finish(mutable_ctx);
 
   return father_dir_entry;
 #else

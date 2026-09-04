@@ -6,7 +6,11 @@
  ***************************************************************************/
 
 #include "ytnova_fs.h"
+#include <limits.h>
 #include <stdarg.h>
+
+#define ARCHIVE_READ_BLOCK_SIZE 10240
+#define ARCHIVE_EXTRACT_DIR_MODE 0700
 
 static void ArchiveMessageWithBoundary(ViewContext *ctx, const char *fmt, ...);
 static BOOL ArchiveKeyPressedWithBoundary(const ViewContext *ctx);
@@ -18,6 +22,62 @@ static int ArchiveCanonicalizeRequestPath(const char *archive_path,
                                           char *canonical_path,
                                           size_t canonical_size);
 static BOOL ArchiveIsRootMarkerPath(const char *path);
+static int GetArchiveDirEntry(DirEntry *tree, const char *path,
+                              DirEntry **dir_entry);
+
+unsigned int Archive_ProbeCapabilities(const char *archive_path) {
+#ifdef HAVE_LIBARCHIVE
+  struct archive *reader;
+  struct archive *writer;
+  struct archive_entry *entry;
+  unsigned int capabilities = 0;
+  int format_code;
+
+  if (!archive_path || archive_path[0] == '\0')
+    return 0;
+
+  reader = archive_read_new();
+  if (!reader)
+    return 0;
+  archive_read_support_filter_all(reader);
+  archive_read_support_format_all(reader);
+  if (archive_read_open_filename(reader, archive_path,
+                                 ARCHIVE_READ_BLOCK_SIZE) != ARCHIVE_OK) {
+    archive_read_free(reader);
+    return 0;
+  }
+
+  capabilities = ARCHIVE_CAP_BROWSE | ARCHIVE_CAP_COPY_OUT;
+  (void)archive_read_next_header(reader, &entry);
+  format_code = archive_format(reader);
+  writer = archive_write_new();
+  if (writer && format_code != 0 &&
+      archive_write_set_format(writer, format_code) == ARCHIVE_OK) {
+    int filter_index;
+
+    for (filter_index = 0;
+         archive_filter_code(reader, filter_index) != ARCHIVE_FILTER_NONE;
+         ++filter_index) {
+      if (archive_write_add_filter(writer,
+                                   archive_filter_code(reader, filter_index)) !=
+          ARCHIVE_OK) {
+        break;
+      }
+    }
+    if (archive_filter_code(reader, filter_index) == ARCHIVE_FILTER_NONE) {
+      capabilities |= ARCHIVE_CAP_ADD | ARCHIVE_CAP_DELETE |
+                      ARCHIVE_CAP_RENAME | ARCHIVE_CAP_MOVE;
+    }
+  }
+  if (writer)
+    archive_write_free(writer);
+  archive_read_free(reader);
+  return capabilities;
+#else
+  (void)archive_path;
+  return 0;
+#endif
+}
 
 int Archive_ValidateInternalPath(const char *path, char *canonical_path,
                                  size_t canonical_size) {
@@ -176,7 +236,8 @@ static void ArchiveRecalculateSysStatsWithBoundary(ViewContext *ctx,
 #define REPORT_PROGRESS(cb, user_data)                                         \
   do {                                                                         \
     if ((cb) &&                                                                \
-        (cb)(ARCHIVE_STATUS_PROGRESS, NULL, (user_data)) == ARCHIVE_CB_ABORT)  \
+        (cb)(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, (user_data)) ==             \
+            ARCHIVE_CB_ABORT)                                                  \
       return ARCHIVE_CB_ABORT;                                                 \
   } while (0)
 
@@ -185,7 +246,7 @@ static void ArchiveRecalculateSysStatsWithBoundary(ViewContext *ctx,
     char _msg[1024];                                                           \
     snprintf(_msg, sizeof(_msg), fmt, ##__VA_ARGS__);                          \
     if (cb)                                                                    \
-      (cb)(ARCHIVE_STATUS_ERROR, _msg, (user_data));                           \
+      (cb)(ARCHIVE_STATUS_ERROR, _msg, 0, 0, (user_data));                     \
   } while (0)
 
 #define REPORT_WARNING(cb, user_data, fmt, ...)                                \
@@ -193,7 +254,7 @@ static void ArchiveRecalculateSysStatsWithBoundary(ViewContext *ctx,
     char _msg[1024];                                                           \
     snprintf(_msg, sizeof(_msg), fmt, ##__VA_ARGS__);                          \
     if (cb)                                                                    \
-      (cb)(ARCHIVE_STATUS_WARNING, _msg, (user_data));                         \
+      (cb)(ARCHIVE_STATUS_WARNING, _msg, 0, 0, (user_data));                   \
   } while (0)
 
 /*
@@ -254,16 +315,27 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
     }
 
     if (strcmp(canonical_entry_path, canonical_member_path) == 0) {
+      la_int64_t entry_size = archive_entry_size(entry);
+
       found = 1;
+      if (cb && cb(ARCHIVE_STATUS_TOTAL, NULL,
+                   entry_size > 0 ? (long long)entry_size : 0, 1,
+                   user_data) == ARCHIVE_CB_ABORT) {
+        found = 0;
+        break;
+      }
+      if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, user_data) ==
+                    ARCHIVE_CB_ABORT) {
+        found = 0;
+        break;
+      }
       while ((r = archive_read_data_block(a, &buff, &size, &offset)) ==
              ARCHIVE_OK) {
-        if ((++spin_counter % 100) == 0) {
-          if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) ==
-                        ARCHIVE_CB_ABORT) {
-            REPORT_ERROR(cb, user_data, "Operation Interrupted");
-            found = 0;
-            break;
-          }
+        if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, (long long)size, 0,
+                     user_data) == ARCHIVE_CB_ABORT) {
+          REPORT_ERROR(cb, user_data, "Operation Interrupted");
+          found = 0;
+          break;
         }
         if (write(out_fd, buff, size) != (ssize_t)size) {
           found = 0; /* Write error */
@@ -278,7 +350,8 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
     /* Update spinner while searching headers too */
     if ((++spin_counter % 50) == 0) {
       if (cb &&
-          cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) == ARCHIVE_CB_ABORT) {
+          cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 0, user_data) ==
+              ARCHIVE_CB_ABORT) {
         REPORT_ERROR(cb, user_data, "Operation Interrupted");
         found = 0;
         break;
@@ -330,7 +403,8 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
     /* Update spinner and check ESC */
     if ((++spin_counter % 50) == 0) {
       if (cb &&
-          cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) == ARCHIVE_CB_ABORT) {
+          cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 0, user_data) ==
+              ARCHIVE_CB_ABORT) {
         REPORT_ERROR(cb, user_data, "Operation Interrupted");
         archive_read_free(a);
         return -1;
@@ -355,7 +429,20 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
 
     if (strcmp(canonical_entry_path, canonical_member_path) == 0) {
       /* MATCH FOUND! */
+      la_int64_t entry_size = archive_entry_size(entry);
+
       found = 1;
+      if (cb && cb(ARCHIVE_STATUS_TOTAL, NULL,
+                   entry_size > 0 ? (long long)entry_size : 0, 1,
+                   user_data) == ARCHIVE_CB_ABORT) {
+        found = 0;
+        break;
+      }
+      if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, user_data) ==
+                    ARCHIVE_CB_ABORT) {
+        found = 0;
+        break;
+      }
       mode_t type = archive_entry_filetype(entry);
 
       if (type == AE_IFLNK) {
@@ -380,13 +467,11 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
         } else {
           while ((r = archive_read_data_block(a, &buff, &size, &offset)) ==
                  ARCHIVE_OK) {
-            if ((++spin_counter % 100) == 0) {
-              if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) ==
-                            ARCHIVE_CB_ABORT) {
-                REPORT_ERROR(cb, user_data, "Operation Interrupted");
-                found = 0;
-                break;
-              }
+            if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, (long long)size, 0,
+                         user_data) == ARCHIVE_CB_ABORT) {
+              REPORT_ERROR(cb, user_data, "Operation Interrupted");
+              found = 0;
+              break;
             }
             if (write(fd, buff, size) != (ssize_t)size) {
               found = 0; /* Write error */
@@ -418,6 +503,136 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
   return (found) ? 0 : -1;
 }
 
+static int ArchiveEnsureParentDirectories(char *path) {
+  char *cursor;
+
+  for (cursor = path + 1; *cursor != '\0'; ++cursor) {
+    if (*cursor == FILE_SEPARATOR_CHAR) {
+      *cursor = '\0';
+      if (mkdir(path, ARCHIVE_EXTRACT_DIR_MODE) != 0 && errno != EEXIST) {
+        *cursor = FILE_SEPARATOR_CHAR;
+        return -1;
+      }
+      *cursor = FILE_SEPARATOR_CHAR;
+    }
+  }
+  return 0;
+}
+
+static int ArchiveExtractEntryBlocks(struct archive *archive, int output_fd,
+                                  ArchiveProgressCallback cb,
+                                  void *user_data) {
+  const void *buffer;
+  size_t size;
+  la_int64_t offset;
+  int result;
+
+  while ((result = archive_read_data_block(archive, &buffer, &size, &offset)) ==
+         ARCHIVE_OK) {
+    size_t written = 0;
+
+    (void)offset;
+    while (written < size) {
+      ssize_t count =
+          write(output_fd, (const char *)buffer + written, size - written);
+      if (count < 0 && errno == EINTR)
+        continue;
+      if (count <= 0)
+        return -1;
+      written += (size_t)count;
+    }
+    if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, (long long)size, 0,
+                 user_data) == ARCHIVE_CB_ABORT)
+      return -1;
+  }
+  return result == ARCHIVE_EOF ? 0 : -1;
+}
+
+int ExtractArchiveTree(const char *archive_path, const char *tree_path,
+                       const char *dest_path, ArchiveProgressCallback cb,
+                       void *user_data) {
+  struct archive *archive;
+  struct archive_entry *entry;
+  char canonical_tree[PATH_LENGTH + 1];
+  int found = 0;
+  int read_status;
+
+  if (!archive_path || !tree_path || !dest_path ||
+      ArchiveCanonicalizeRequestPath(archive_path, tree_path, canonical_tree,
+                                     sizeof(canonical_tree)) != 0)
+    return -1;
+
+  archive = archive_read_new();
+  if (!archive)
+    return -1;
+  archive_read_support_filter_all(archive);
+  archive_read_support_format_all(archive);
+  if (archive_read_open_filename(archive, archive_path,
+                                 ARCHIVE_READ_BLOCK_SIZE) != ARCHIVE_OK) {
+    archive_read_free(archive);
+    return -1;
+  }
+
+  while ((read_status = archive_read_next_header(archive, &entry)) ==
+         ARCHIVE_OK) {
+    const char *member = archive_entry_pathname(entry);
+    char canonical_member[PATH_LENGTH + 1];
+    char output_path[PATH_LENGTH + 1];
+    const char *suffix;
+    int fd;
+
+    if (cb &&
+        cb(ARCHIVE_STATUS_PROGRESS, NULL, 0, 1, user_data) ==
+            ARCHIVE_CB_ABORT)
+      goto failed;
+    if (!member || Archive_ValidateInternalPath(member, canonical_member,
+                                                sizeof(canonical_member)) != 0)
+      continue;
+    {
+      size_t member_len = strlen(canonical_member);
+      while (member_len > 0 &&
+             canonical_member[member_len - 1] == FILE_SEPARATOR_CHAR)
+        canonical_member[--member_len] = '\0';
+    }
+    if (strcmp(canonical_member, canonical_tree) == 0) {
+      suffix = "";
+    } else if (strncmp(canonical_member, canonical_tree,
+                       strlen(canonical_tree)) == 0 &&
+               canonical_member[strlen(canonical_tree)] == FILE_SEPARATOR_CHAR) {
+      suffix = canonical_member + strlen(canonical_tree) + 1;
+    } else {
+      continue;
+    }
+    if (Path_Join(output_path, sizeof(output_path), dest_path, suffix) != 0 ||
+        ArchiveEnsureParentDirectories(output_path) != 0)
+      goto failed;
+    found = 1;
+    if (archive_entry_filetype(entry) == AE_IFDIR) {
+      if (mkdir(output_path, ARCHIVE_EXTRACT_DIR_MODE) != 0 && errno != EEXIST)
+        goto failed;
+      continue;
+    }
+    if (archive_entry_filetype(entry) != AE_IFREG)
+      goto failed;
+    fd = open(output_path, O_CREAT | O_WRONLY | O_TRUNC, 0600);
+    if (fd < 0)
+      goto failed;
+    if (ArchiveExtractEntryBlocks(archive, fd, cb, user_data) != 0) {
+      close(fd);
+      goto failed;
+    }
+    close(fd);
+  }
+  if (read_status != ARCHIVE_EOF)
+    goto failed;
+  archive_read_free(archive);
+  return found ? 0 : -1;
+
+failed:
+  archive_read_free(archive);
+  return -1;
+}
+
 #else
 /* Dummy implementations if libarchive is not available */
 int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
@@ -426,6 +641,11 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
   return -1;
 }
 int ExtractArchiveNode(const char *archive_path, const char *entry_path,
+                       const char *dest_path, ArchiveProgressCallback cb,
+                       void *user_data) {
+  return -1;
+}
+int ExtractArchiveTree(const char *archive_path, const char *tree_path,
                        const char *dest_path, ArchiveProgressCallback cb,
                        void *user_data) {
   return -1;
@@ -629,6 +849,53 @@ static int GetArchiveDirEntry(DirEntry *tree, const char *path,
   return 0;
 }
 
+static FileEntry *FindArchiveFileEntry(DirEntry *tree,
+                                       const char *canonical_path) {
+  char path[PATH_LENGTH + 1];
+  char dir[PATH_LENGTH + 1];
+  char file[PATH_LENGTH + 1];
+  DirEntry *dir_entry;
+  FileEntry *file_entry;
+
+  if (!tree || !canonical_path ||
+      snprintf(path, sizeof(path), "%s", canonical_path) < 0 ||
+      strlen(canonical_path) >= sizeof(path))
+    return NULL;
+  Fnsplit(path, dir, file);
+  if (GetArchiveDirEntry(tree, dir, &dir_entry) != 0 ||
+      GetFileEntry(dir_entry, file, &file_entry) != 0)
+    return NULL;
+  return file_entry;
+}
+
+static BOOL ArchiveReadCurrentPackedSize(struct archive *reader,
+                                         long long *packed_size,
+                                         ViewContext *ctx,
+                                         ScanProgressCallback cb,
+                                         void *cb_data) {
+  unsigned char buffer[ARCHIVE_READ_BLOCK_SIZE];
+  la_int64_t packed_after;
+  la_int64_t packed_before;
+  la_ssize_t count;
+
+  if (!reader || !packed_size)
+    return FALSE;
+  packed_before = archive_filter_bytes(reader, -1);
+  while ((count = archive_read_data(reader, buffer, sizeof(buffer))) > 0) {
+    if (cb)
+      cb(ctx, cb_data);
+    if (ArchiveKeyPressedWithBoundary(ctx))
+      ArchiveQuitWithBoundary(ctx);
+  }
+  if (count < 0)
+    return FALSE;
+  packed_after = archive_filter_bytes(reader, -1);
+  if (packed_before < 0 || packed_after < packed_before)
+    return FALSE;
+  *packed_size = packed_after - packed_before;
+  return TRUE;
+}
+
 int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, const char *dir,
                              const struct stat *stat, Statistic *s) {
   char *path_copy;
@@ -676,78 +943,6 @@ int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, const char *dir,
 
   free(path_copy);
   return 0;
-}
-
-void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s) {
-  DirEntry *tree = *tree_ptr;
-  DirEntry *de_ptr, *de1_ptr;
-  DirEntry *next_ptr;
-  FileEntry *fe_ptr;
-
-  /* 1. Collapse Root if empty and has siblings */
-  if (tree->prev == NULL && tree->next != NULL && tree->file == NULL &&
-      tree->sub_tree == NULL) {
-    DirEntry *new_root = tree->next;
-    *tree_ptr = new_root;
-    new_root->prev = NULL;
-    new_root->up_tree = NULL;
-    s->disk_total_directories--;
-    free(tree);
-    tree = new_root;
-  }
-
-  /* 2. Collapse empty leaf directories in sub-trees */
-  for (de_ptr = tree->sub_tree; de_ptr; de_ptr = next_ptr) {
-    next_ptr = de_ptr->next;
-
-    if (de_ptr->prev == NULL && de_ptr->next == NULL && de_ptr->file == NULL) {
-      if (strcmp(tree->name, FILE_SEPARATOR_STRING)) {
-        (void)AppendBoundedString(tree->name, PATH_LENGTH,
-                                  FILE_SEPARATOR_STRING);
-      }
-      (void)AppendBoundedString(tree->name, PATH_LENGTH, de_ptr->name);
-
-      s->disk_total_directories--;
-
-      tree->sub_tree = de_ptr->sub_tree;
-
-      for (de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next)
-        de1_ptr->up_tree = tree;
-
-      free(de_ptr);
-      continue;
-    }
-    break;
-  }
-
-  /* 3. Collapse root into its single child if applicable */
-  if (tree->prev == NULL && tree->next == NULL && tree->file == NULL &&
-      tree->sub_tree && tree->sub_tree->prev == NULL &&
-      tree->sub_tree->next == NULL) {
-    de_ptr = tree->sub_tree;
-
-    if (strcmp(tree->name, FILE_SEPARATOR_STRING)) {
-      (void)AppendBoundedString(tree->name, PATH_LENGTH,
-                                FILE_SEPARATOR_STRING);
-    }
-    (void)AppendBoundedString(tree->name, PATH_LENGTH, de_ptr->name);
-
-    tree->file = de_ptr->file;
-    for (fe_ptr = tree->file; fe_ptr; fe_ptr = fe_ptr->next)
-      fe_ptr->dir_entry = tree;
-
-    (void)memcpy((char *)&tree->stat_struct, (char *)&de_ptr->stat_struct,
-                 sizeof(struct stat));
-
-    s->disk_total_directories--;
-
-    tree->sub_tree = de_ptr->sub_tree;
-    for (de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next)
-      de1_ptr->up_tree = tree;
-
-    free(de_ptr);
-  }
-  return;
 }
 
 /*
@@ -836,8 +1031,13 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
     return -1;
   }
 
+  s->archive_capabilities = Archive_ProbeCapabilities(filename);
+
   while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
     const char *pathname = archive_entry_pathname(entry);
+
+    if (s->archive_member_count < UINT_MAX)
+      s->archive_member_count++;
 
     if (pathname == NULL) {
       continue;
@@ -877,6 +1077,8 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
       (void)TryInsertArchiveDirEntry(ctx, dir_entry, path_buffer, &stat_buf, s);
 
     } else if (S_ISREG(stat_buf.st_mode) || S_ISLNK(stat_buf.st_mode)) {
+      long long packed_size;
+
       /* Safer string copy */
       int copied = snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
       if (copied < 0 || (size_t)copied >= sizeof(path_buffer)) {
@@ -901,7 +1103,20 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
           }
         }
       }
-      (void)InsertArchiveFileEntry(ctx, dir_entry, path_buffer, &stat_buf, s);
+      if (InsertArchiveFileEntry(ctx, dir_entry, path_buffer, &stat_buf, s) ==
+              0 &&
+          S_ISREG(stat_buf.st_mode) &&
+          (archive_format(a) & ARCHIVE_FORMAT_BASE_MASK) ==
+              ARCHIVE_FORMAT_ZIP &&
+          !archive_entry_is_encrypted(entry) &&
+          ArchiveReadCurrentPackedSize(a, &packed_size, ctx, cb, cb_data)) {
+        FileEntry *file_entry = FindArchiveFileEntry(dir_entry, canonical_path);
+
+        if (file_entry) {
+          file_entry->archive_packed_size = packed_size;
+          file_entry->archive_packed_size_known = TRUE;
+        }
+      }
     }
 
     if (ArchiveKeyPressedWithBoundary(ctx)) {
@@ -914,9 +1129,6 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
         cb(ctx, cb_data);
     }
   }
-
-  /* Pass the double pointer so it can update the root if needed */
-  MinimizeArchiveTree(dir_entry_ptr, s);
 
   archive_read_free(a);
 

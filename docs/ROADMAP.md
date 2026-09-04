@@ -445,7 +445,7 @@ Ordering policy (for all editors, including AI editors):
 *   Capability UI and contextual help never promise unavailable mutations.
 *   Canonical-path collision, traversal, and self-target cases are rejected safely.
 *   Cross-archive move failure preserves the source until destination success and never loses data after a source-side failure.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 14: Path Message Formatting Audit (`//` Artifact Prevention)**
 *   **Goal:** Audit user-facing message/path rendering and eliminate accidental double-slash artifacts in status/error/footer output.
@@ -1135,7 +1135,7 @@ Ordering policy (for all editors, including AI editors):
 *   If a prompt has its own `F1`, the prompt footer must advertise it explicitly (for example `F1 help`) so users are not expected to guess that prompt-local help exists.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, prompt/dialog flows with genuinely non-obvious semantics, and `VI_KEYS=1` variants.
 *   Help popup body text wraps within the available popup width; narrow layouts preserve readable content through wrapping and scrolling instead of right-edge truncation.
-*   Numeric FileInfo band coverage is explicit: when the footer compresses `1..9 dir view` / `1..9 file view`, the matching `F1` help must decode each advertised number's active-surface meaning for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, and Git, while keeping the hidden unassigned `0` behavior out of the advertised band.
+*   Numeric FileInfo band coverage is explicit: when the footer compresses `1..9 dir view` / `1..9 file view`, the matching `F1` help must decode each advertised number's active-surface meaning for Name, Attributes, Owner, Times, Compact, size units, Mini preview, File detail, and Git, and must also explain the active volume's `0` behavior.
 *   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, useful command-line editing, and archive/compress format behavior).
 *   Shared operator topics such as filters, jump/list-jump behavior, wildcard/rename-pattern rules, search/fuzzy-matching semantics, command-line editing, `VI_KEYS=1`, `F10` config, theming/customization, and similar cross-cutting workflows are explained once and linked from local `F1` pages instead of being re-taught on every page.
 *   The `Contents` topic acts as a complete alphabetical link index for operator-facing help topics, so users can discover the owning topic for conceptual, procedural, and semantic questions without guessing which local page might contain it.
@@ -1300,7 +1300,7 @@ Ordering policy (for all editors, including AI editors):
 *   `7` => toggle Mini preview text-snippet view.
 *   `8` => toggle file-type/summary view.
 *   `9` => Git-focused file-info band (status-oriented file view) when the current scope is inside a Git worktree.
-*   `0` => currently unused; silent no-op.
+*   `0` => silent no-op on filesystem volumes; toggle preloaded per-file archive Size, Packed, and Ratio details on archive volumes. `F6` alone toggles the stats panel.
 *   Number keys are grouped by ownership/scope for the active panel:
     *   **Panel-wide toggles (dir + file projections):** `` ` `` dotfiles (existing behavior) and `6` size-unit toggle.
     *   **Shared-by-default display modes:** `1..4` change the active panel's current view, and tree/directory + file windows follow each other by default.
@@ -1316,7 +1316,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `human-readable`) as the seed for `6`.
 *   Add `SEPARATE_DIR_FILE_VIEWS=0|1` profile setting (default `0`) to switch between shared and split `1..4` panel views.
 *   **Keybinding Policy:** Remove `^F` and `B` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 40 scope lock.
-*   **UX/Help Policy:** Footer stays concise (`1..9 dir view` / `1..9 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics live in F1 help/manpage. Unassigned `0` remains a silent no-op but is not advertised in the footer command band or F1 help.
+*   **UX/Help Policy:** Footer stays concise (`1..9 dir view` / `1..9 file view`) and no longer carries a separate `Brief` item; stats name the active `5` state as `Compact`; full key semantics, including the active volume's `0` behavior, live in F1 help and the manpage.
 *   **Spec/Docs Sync Policy:** When delivered, update `docs/SPECIFICATION.md` and `etc/ytnova.1.md` (and regenerated `docs/USAGE.md`) with the same grouped ownership contract.
 *   - [x] **Status:** Completed.
 

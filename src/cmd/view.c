@@ -59,6 +59,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
   char command_line[COMMAND_LINE_LENGTH + 1];
   int fd = -1;
   int result = -1;
+  BOOL owns_progress = FALSE;
 
   const char *pager;
 
@@ -70,8 +71,15 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
     goto cleanup;
   }
 
-  if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
-                          UI_ArchiveCallback, ctx) != 0) {
+  owns_progress = !ctx->progress.active && ctx->hook_progress_start &&
+                  ctx->hook_progress_finish;
+  if (owns_progress)
+    ctx->hook_progress_start(ctx, "ARCHIVE VIEW", file_path, "", 0, 0);
+  result = ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path,
+                               fd, ctx->hook_archive_callback, ctx);
+  if (owns_progress)
+    ctx->hook_progress_finish(ctx);
+  if (result != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     goto cleanup;
   }

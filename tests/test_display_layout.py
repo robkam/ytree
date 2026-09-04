@@ -365,7 +365,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
         assert not src.exists()
 
     if action_key == "c":
-        post = "\n".join(tui.wait_for_text(root.name, timeout=2.0))
+        post = "\n".join(tui.wait_for_text(new_name, timeout=2.0))
         assert new_name in post, (
             "Directory copy did not keep the new directory visible in-session.\n"
             f"{post}"
