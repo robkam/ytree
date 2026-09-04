@@ -21,9 +21,9 @@ google-api-core[grpc]==2.33.0
     #   google-ai-generativelanguage
     #   google-api-python-client
     #   google-generativeai
-google-api-python-client==2.199.0
+google-api-python-client==2.200.0
     # via google-generativeai
-google-auth==2.57.0
+google-auth==2.57.1
     # via
     #   google-ai-generativelanguage
     #   google-api-core
