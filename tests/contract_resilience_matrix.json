@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "locale_sources": {
+    "en": "etc/help/f1.en.md",
+    "de": "etc/help/f1.de.md"
+  },
+  "themes": [
+    "quiet-blue",
+    "bash-black"
+  ],
+  "size_profiles": {
+    "constrained": {
+      "rows": 24,
+      "columns": 80
+    },
+    "normal": {
+      "rows": 36,
+      "columns": 120
+    }
+  },
+  "behavioural_evidence": [
+    "contextual F1 navigation and link return",
+    "footer/menu action and cancellation",
+    "modal prompt cancellation"
+  ]
+}
