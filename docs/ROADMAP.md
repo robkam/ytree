@@ -245,7 +245,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Input Contract:** Input sequences may be tested where they are themselves the user-facing contract, but tests must not depend on incidental menu position, fixed key counts, or presentation details. Exact text and geometry assertions are permitted only for explicitly documented stable contracts.
 *   **Enforcement:** Enforce the policy through automated lint/contract checks, reviewable test helpers/templates, and a checked-in exception allowlist containing the test, rule, rationale, owner, and expiry/removal condition.
 *   **Scope Lock:** Static detection is a first-line guard, not a substitute for semantic review. Keep the allowlist narrow, local, and reviewable; it must not become a blanket suppression mechanism.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Complete. The CI quality gate rejects unreviewed volatile test patterns; every reviewed exception identifies its test, rule, rationale, owner, and removal condition.
 
 ### **Task 9: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.

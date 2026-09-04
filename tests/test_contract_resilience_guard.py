@@ -63,16 +63,18 @@ def test_guard_rejects_unreviewed_and_incomplete_rows(tmp_path: Path) -> None:
     assert any("unreviewed match" in failure for failure in failures)
 
 
-def test_guard_rejects_blank_owner_and_reason(tmp_path: Path) -> None:
+def test_guard_rejects_blank_exception_accountability_fields(tmp_path: Path) -> None:
     _write(tmp_path / "tests" / "test_example.py", "import time\ntime.sleep(0.1)\n")
     document = guard.build_baseline(tmp_path)
     document["matches"][0]["owner"] = ""
     document["matches"][0]["reason"] = ""
+    document["matches"][0]["removal_condition"] = ""
 
     failures = guard.validate_baseline(document, tmp_path)
 
     assert any("owner must be non-empty" in failure for failure in failures)
     assert any("reason must be non-empty" in failure for failure in failures)
+    assert any("removal_condition must be non-empty" in failure for failure in failures)
 
 
 def test_guard_rejects_rows_that_do_not_match_scanned_evidence(tmp_path: Path) -> None:
@@ -102,6 +104,19 @@ def test_baseline_is_json_object() -> None:
     document = json.loads(baseline.read_text(encoding="utf-8"))
 
     assert document["schema_version"] == guard.SCHEMA_VERSION
+    assert document["contract"] == "Reviewed test-contract exception allowlist for Python tests"
+
+
+def test_exception_allowlist_rows_identify_their_accountability() -> None:
+    baseline = Path(__file__).with_name("contract_resilience_baseline.json")
+    document = json.loads(baseline.read_text(encoding="utf-8"))
+
+    for row in document["matches"]:
+        assert isinstance(row["path"], str) and row["path"].startswith("tests/")
+        assert isinstance(row["pattern_id"], str) and row["pattern_id"]
+        assert isinstance(row["reason"], str) and row["reason"].strip()
+        assert isinstance(row["owner"], str) and row["owner"].strip()
+        assert isinstance(row["removal_condition"], str) and row["removal_condition"].strip()
 
 
 def test_reviewed_semantic_wait_exceptions_survive_baseline_generation() -> None:
