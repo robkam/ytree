@@ -178,12 +178,12 @@ Ordering policy (for all editors, including AI editors):
 
 ### Task 90: **Test Contract Resilience Remediation**
 *   **Goal:** Make the test suite resilient to legitimate changes in prose, translations, themes, terminal size, wrapping, footer packing, redraw timing, and internal implementation structure.  A test must prove a durable contract: an action produces its intended effect, an invariant is preserved, or a generated artefact is correct.  It must not fail merely because an editable presentation detail moved or was reworded.
-*   **Status:** In Progress.  The audit is complete; Test Contract Resilience Remediation follows the acceptance boundaries below.  Do not change authored F1 sources (`etc/help/f1.en.md` or `etc/help/f1.de.md`) as part of this work.
+*   **Status:** Complete. Test Contract Resilience Remediation now proves durable behavioural contracts across the reviewed boundary; authored F1 sources (`etc/help/f1.en.md` and `etc/help/f1.de.md`) remain unchanged.
 *   **Definitions:**
     * **Durable assertion:** filesystem/resulting state, mode transition, selected entity, semantic role/style, generated-artifact equivalence, security property, or a user-visible capability reached through its documented action.
     * **Incidental assertion:** an exact editable sentence, translation, command-strip packing/order, terminal row/column, visual grid, wrap point, scroll offset, fixed key-press count, or a particular private function/call branch when another implementation can provide the same behaviour.
     * Exact text remains valid only when the text itself is the external contract: CLI diagnostics/options, a machine-readable format, an intentionally stable config/template syntax, or a documented security warning.  Source inspection remains valid only for a non-observable static property (unsafe API ban, generated-file synchronisation, module-boundary guard, or a security-sensitive construction that cannot be proved safely through runtime execution).
-*   - [~] **Status:** In Progress.
+*   - [x] **Status:** Complete. The reviewed behavioural and static contracts now preserve durable action/result evidence across the resilience boundary.
 
 #### Task 90.1 **Generate and Reconcile a Measurable Brittle-Pattern Baseline**
 *   Generate a checked-in baseline report over every `tests/` Python file for: direct `time.sleep()`; polling/retry loops; hard-coded terminal rows/columns, screen slices, and visual grids; fixed navigation/key-press counts; source reads and implementation-string assertions; and exact user-facing prose assertions.  Each entry must record its file, enclosing test/helper where available, matched pattern, and disposition.
@@ -237,7 +237,7 @@ Ordering policy (for all editors, including AI editors):
 6. **Matrix authority:** add `tests/contract_resilience_matrix.json`, consumed by the selected behavioural tests.  Its locale catalog is the locale sources passed to `make help-assets` (currently `etc/help/f1.en.md` and `etc/help/f1.de.md`); its theme catalog is the deterministic test themes declared in that file, not every user-editable theme; and its supported size profiles are `constrained` = 24 rows x 80 columns and `normal` = 36 rows x 120 columns.  Any catalog/profile change must update this file and the matrix evidence.
 7. Prove resilience positively: run the matrix-selected behavioural tests across every locale/theme/size entry.  The evidence must show F1/context navigation, representative footer/menu actions, and modal/prompt round-trips still work; it must not merely show that brittle assertions were deleted.
 8. Run focused tests per mechanism from the repository root with the virtual environment activated and host permissions.  Do not run full QA for this documentation/audit item unless explicitly requested.  Before a PR, record the baseline reconciliation and targeted matrix evidence.
-*   - [~] **Status:** In Progress.
+*   - [x] **Status:** Complete. The authoritative resilience matrix exercises contextual F1/link navigation, representative footer/menu actions, and modal prompt cancellation across every supported locale, deterministic test theme, and size profile; the baseline guard remains fully reconciled.
 
 ### Task 91: **Enforce Stable Behavioural Test Contracts**
 *   **Goal:** Add a CI-enforced test-authoring guard that prevents new tests from coupling to volatile TUI presentation rather than observable behaviour.

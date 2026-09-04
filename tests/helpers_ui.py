@@ -17,6 +17,18 @@ def drive_action_until(tui, action, predicate, max_actions, timeout=0.5):
     return False
 
 
+def complete_modal_round_trip(tui, action, dismiss_action, timeout=1.5):
+    """Prove dismissal restores the action that opened an overlay."""
+    before = tui.get_screen_dump()
+    if not tui.send_and_wait_for_condition(
+        action, lambda lines: lines if lines != before else False, timeout=timeout
+    ):
+        return False
+    if not tui.send_and_wait_for_screen_change(dismiss_action, timeout=timeout):
+        return False
+    return tui.send_and_wait_for_screen_change(action, timeout=timeout)
+
+
 def dismiss_archive_unsafe_warnings(tui, warning_text, archive_text, enter_key, timeout=2.0):
     """Dismiss archive safety warnings until the archive view is rendered."""
     def archive_or_warning(snapshot):
