@@ -94,7 +94,7 @@ BOOL AppStateCommitPanelFileInfoOverlayMode(YtreeNovaPanel *panel,
   if (!panel)
     return FALSE;
   if (overlay_mode < FILEINFO_OVERLAY_NONE ||
-      overlay_mode > FILEINFO_OVERLAY_GIT)
+      overlay_mode > FILEINFO_OVERLAY_ARCHIVE)
     return FALSE;
 
   panel->fileinfo_overlay_mode = overlay_mode;

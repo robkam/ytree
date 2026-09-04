@@ -2313,14 +2313,27 @@ def test_mkdir_preserves_collapsed_children_after_left_enter(
     tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         assert tui.wait_for_content("tqgo", timeout=3.0), _screen_text(tui)
-        tui.send_keystroke(Keys.LEFT, wait=0.3)
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke(Keys.LEFT, wait=0)
+        collapsed = tui.wait_for_condition(
+            lambda lines: lines
+            if "tqgo" not in "\n".join(lines) and "pkg" not in "\n".join(lines)
+            else False,
+            timeout=3.0,
+            description="collapsed root tree",
+        )
+        assert collapsed, _screen_text(tui)
 
-        collapsed = _screen_text(tui)
-        assert "tqgo" not in collapsed, collapsed
-        assert "pkg" not in collapsed, collapsed
+        tui.send_keystroke(Keys.ENTER, wait=0)
+        entered = tui.wait_for_condition(
+            lambda lines: lines
+            if "tqgo" in "\n".join(lines) and "pkg" not in "\n".join(lines)
+            else False,
+            timeout=3.0,
+            description="restored root children with descendants collapsed",
+        )
+        assert entered, _screen_text(tui)
 
-        tui.send_keystroke("M", wait=0.2)
+        tui.send_keystroke("M", wait=0)
         assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(
             tui
         )
@@ -4441,7 +4454,7 @@ def test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable
         cwd=str(disk_vol),
         args=[str(archive_path)],
     )
-    assert tui.wait_for_text("inside.txt", timeout=2.0), _screen_text(tui)
+    assert tui.wait_for_text("inside_dir", timeout=2.0), _screen_text(tui)
 
     try:
         # Move active context to the archive volume by its visible identity.
@@ -4451,6 +4464,8 @@ def test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable
             lambda lines: lines if "sample.tar" in next(iter(lines), "") else False,
             max_actions=32,
         ), _screen_text(tui)
+        assert tui.send_and_wait_for_screen_change(Keys.DOWN, timeout=2.0)
+        assert tui.wait_for_text("inside.txt", timeout=2.0), _screen_text(tui)
 
         tui.send_keystroke(Keys.F8, wait=0.5)
         tui.send_keystroke("k", wait=0.3)

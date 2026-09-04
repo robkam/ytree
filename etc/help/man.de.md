@@ -329,7 +329,7 @@ Er besitzt Verzeichnisnavigation, Baumaufbau und verzeichnisbezogene Befehle.
 
 #### Befehlsfamilien
 
-* **Darstellung und Bereich**: `1..9 view` ändert die Paneldarstellung. `Filter`, `Showall`, `Global` und `Jump` ändern den projizierten oder sichtbaren Teil.
+* **Darstellung und Bereich**: `1..9 view` ändert die Paneldarstellung. `0` ist auf Dateisystemen ohne Funktion; `F6` blendet die Statistik ein oder aus. `Filter`, `Showall`, `Global` und `Jump` ändern den projizierten oder sichtbaren Teil.
 * **Dateisystemänderungen**: `Attributes`, `Rename`, `Delete`, `Makedir`, `New File` und `Log` ändern Metadaten oder fügen geloggte Wurzeln hinzu.
 * **Arbeitsmengensteuerung**: `Tag`, `Untag` und `Invert Tags` definieren die Menge für spätere Sammelbefehle.
 * **Transfer und Export**: `Copy`, `MoveDir`, `Output`, `Pipe` und `Archive` arbeiten auf dem gewählten Zweig oder dem getaggten Satz.
@@ -351,7 +351,7 @@ Er besitzt Dateinavigation, dateibezogene Befehle, Tag-Aktionen und Export-Einst
 
 #### Dateinavigation
 
-* **Darstellung**: `1..9 view` bleibt im File Mode und schaltet Name, Attributes, Owner und Times sowie Compact, Größeneinheiten, Mini Preview, File Detail und das Git-Band um.
+* **Darstellung**: `1..9 view` bleibt im File Mode und schaltet Name, Attributes, Owner und Times sowie Compact, Größeneinheiten, Mini Preview, File Detail und das Git-Band um. `0` ist auf Dateisystemen ohne Funktion; `F6` blendet die Statistik ein oder aus.
 * **Enter**: Zwischen eingebettetem Dateifenster und Vollbild-Dateimodus wechseln, ohne dieselbe Liste zu verlassen.
 * **Spalten**: `Left` und `Right` bewegen zwischen sichtbaren Dateispalten; in Einspaltenlayouts blättern sie durch dieselbe Liste.
 
@@ -387,7 +387,7 @@ Sie spiegelt Verzeichnisarbeit, soweit das Archivformat dies zulässt.
 
 #### Archiv-Befehlsfamilien
 
-* **Darstellung und Bereich**: `1..9 view` wählt weiter die Grunddarstellung, nur `9` bleibt im Archiv wirkungslos. `Filter`, `Showall`, `Global` und `Jump` arbeiten auf der archivgestützten sichtbaren Menge.
+* **Darstellung und Bereich**: `1..9 view` wählt weiter die Grunddarstellung, nur `9` bleibt im Archiv wirkungslos. `0` ergänzt jede sichtbare Archiv-Dateizeile um Size, Packed und Ratio. Size ist die ursprüngliche Dateigröße, Packed der im Archiv belegte Platz und Ratio der eingesparte Platz in Prozent. Ein Bindestrich bedeutet, dass das Format keine verlässliche gepackte Größe liefert. Die Werte werden beim Laden des Archivs erfasst, sodass `0` nur die Anzeige ändert; erneutes Drücken blendet sie aus. `Filter`, `Showall`, `Global` und `Jump` arbeiten auf der archivgestützten sichtbaren Menge.
 * **Archivbewusste Änderungen**: `Delete`, `Rename` und `Makedir` funktionieren nur, wenn Format und Zugriffspfad Rückschreiben zulassen.
 * **Arbeitsmenge**: `Tag` und `Untag` gelten für den aktuellen virtuellen Verzeichnisbereich.
 * **Transfer und Export**: `Output`, `Pipe`, `Compare`, `Log` und `Volume` benutzen archivgestützte Pfade oder wechseln zu anderen geloggten Wurzeln.
@@ -409,7 +409,7 @@ Einige Dateisystembefehle fehlen dort oder verhalten sich archivspezifisch.
 
 #### Archiv-Dateinavigation
 
-* **Darstellung**: `1..8` behalten die üblichen Dateibänder; `9` bleibt wirkungslos, weil Archiv-Einträge kein Git-Band besitzen.
+* **Darstellung**: `1..8` behalten die üblichen Dateibänder; `9` bleibt wirkungslos, weil Archiv-Einträge kein Git-Band besitzen. `0` ergänzt jede sichtbare Archiv-Dateizeile um Size, Packed und Ratio. Size ist die ursprüngliche Dateigröße, Packed der im Archiv belegte Platz und Ratio der eingesparte Platz in Prozent. Ein Bindestrich bedeutet, dass das Format keine verlässliche gepackte Größe liefert. Die Werte werden beim Laden des Archivs erfasst, sodass `0` nur die Anzeige ändert; erneutes Drücken blendet sie aus.
 * **Enter**: Zurück in den Archive Directory Mode derselben Archivsitzung.
 * **Listensteuerung**: `Jump`, `Filter` und `Sort` wirken weiter auf die sichtbare archivgestützte Dateiliste.
 

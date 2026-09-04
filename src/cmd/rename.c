@@ -20,13 +20,13 @@
 #define STAT_(a, b) stat(a, b)
 #endif
 
-static int ArchiveUICallback(int status, const char *msg, void *user_data) {
+static int ArchiveUICallback(int status, const char *msg, long long bytes_delta,
+                             unsigned int items_delta, void *user_data) {
   ViewContext *ctx = (ViewContext *)user_data;
 
-  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
-    ctx->hook_draw_spinner(ctx);
-  (void)status;
-  (void)msg;
+  if (ctx && ctx->hook_archive_callback)
+    return ctx->hook_archive_callback(status, msg, bytes_delta, items_delta,
+                                      user_data);
   return ARCHIVE_CB_CONTINUE;
 }
 
@@ -54,10 +54,29 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
   if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
-    if (Archive_RenameEntry(ctx->active->vol->vol_stats.log_path, from_path,
-                            new_name, ArchiveUICallback, ctx) == 0) {
+    BOOL owns_progress;
+    int archive_result;
+
+    if (!(ctx->active->vol->vol_stats.archive_capabilities &
+          ARCHIVE_CAP_RENAME))
+      return -1;
+    owns_progress = !ctx->progress.active && ctx->hook_progress_start &&
+                    ctx->hook_progress_finish;
+    if (owns_progress)
+      ctx->hook_progress_start(
+          ctx, "ARCHIVE RENAME", from_path, new_name,
+          ctx->active->vol->vol_stats.disk_total_bytes,
+          ctx->active->vol->vol_stats.archive_member_count);
+    archive_result = Archive_RenameEntry(
+        ctx->active->vol->vol_stats.log_path, from_path, new_name,
+        ArchiveUICallback, ctx);
+    if (archive_result == 0) {
+      if (owns_progress)
+        ctx->hook_progress_finish(ctx);
       return 0;
     }
+    if (owns_progress)
+      ctx->hook_progress_finish(ctx);
     return -1;
   }
 #endif
@@ -170,10 +189,29 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
   if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
-    if (Archive_RenameEntry(ctx->active->vol->vol_stats.log_path, from_path,
-                            new_name, ArchiveUICallback, NULL) == 0) {
+    BOOL owns_progress;
+    int archive_result;
+
+    if (!(ctx->active->vol->vol_stats.archive_capabilities &
+          ARCHIVE_CAP_RENAME))
+      return -1;
+    owns_progress = !ctx->progress.active && ctx->hook_progress_start &&
+                    ctx->hook_progress_finish;
+    if (owns_progress)
+      ctx->hook_progress_start(
+          ctx, "ARCHIVE RENAME", from_path, new_name,
+          ctx->active->vol->vol_stats.disk_total_bytes,
+          ctx->active->vol->vol_stats.archive_member_count);
+    archive_result = Archive_RenameEntry(
+        ctx->active->vol->vol_stats.log_path, from_path, new_name,
+        ArchiveUICallback, ctx);
+    if (archive_result == 0) {
+      if (owns_progress)
+        ctx->hook_progress_finish(ctx);
       return 0;
     }
+    if (owns_progress)
+      ctx->hook_progress_finish(ctx);
     return -1;
   }
 #endif

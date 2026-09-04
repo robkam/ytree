@@ -45,7 +45,6 @@ typedef struct _ViewContext ViewContext;
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <time.h>
 #include <unistd.h>
 
 #ifdef HAVE_LIBARCHIVE
@@ -281,6 +280,7 @@ typedef struct _ViewContext ViewContext;
 #define FILEINFO_OVERLAY_RICH 1
 #define FILEINFO_OVERLAY_SUMMARY 2
 #define FILEINFO_OVERLAY_GIT 3
+#define FILEINFO_OVERLAY_ARCHIVE 4
 
 #define BOOL unsigned char
 #ifndef TRUE
@@ -566,11 +566,15 @@ typedef struct {
 #define AR_SKIP 1
 #define AR_ABORT -1
 typedef int (*ArchiveProgressCallback)(int status, const char *msg,
+                                       long long bytes_delta,
+                                       unsigned int items_delta,
                                        void *user_data);
 typedef int (*RewriteCallback)(struct archive *r, struct archive *w,
                                struct archive_entry *entry, void *user_data);
 #else
 typedef int (*ArchiveProgressCallback)(int status, const char *msg,
+                                       long long bytes_delta,
+                                       unsigned int items_delta,
                                        void *user_data);
 #endif
 
@@ -578,6 +582,7 @@ typedef int (*ArchiveProgressCallback)(int status, const char *msg,
 #define ARCHIVE_STATUS_PROGRESS 1
 #define ARCHIVE_STATUS_ERROR 2
 #define ARCHIVE_STATUS_WARNING 3
+#define ARCHIVE_STATUS_TOTAL 4
 #define ARCHIVE_CB_CONTINUE 0
 #define ARCHIVE_CB_ABORT -1
 
@@ -623,6 +628,8 @@ extern char *xstrdup(const char *s);
 
 /* string_utils.c */
 extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
+extern void String_FormatCompactDuration(int seconds, char *buffer,
+                                         size_t buffer_size);
 extern int String_Replace(char *dest, size_t dest_size, const char *src,
                           const char *token, const char *replacement);
 extern BOOL String_HasNonWhitespace(const char *text);
@@ -654,8 +661,10 @@ typedef struct _file_entry {
   struct _file_entry *prev;
   struct _dir_entry *dir_entry;
   struct stat stat_struct;
+  long long archive_packed_size;
   BOOL tagged;
   BOOL matching;
+  BOOL archive_packed_size_known;
   char name[];
 } FileEntry;
 
@@ -712,8 +721,10 @@ typedef struct {
   long long disk_tagged_files;
   long long disk_tagged_bytes;
   unsigned int disk_total_directories;
+  unsigned int archive_member_count;
   int kind_of_sort;
   int log_mode;
+  unsigned int archive_capabilities;
   char log_path[PATH_LENGTH + 1];
   char path[PATH_LENGTH + 1];
   char file_spec[FILE_SPEC_LENGTH + 1];
@@ -914,6 +925,8 @@ typedef struct {
 
 typedef struct {
   BOOL active;        /* Progress display currently shown */
+  BOOL promoted;      /* Long-running progress bar is visible */
+  WINDOW *window;     /* Separately owned centered progress surface */
   char operation[32]; /* "COPYING", "MOVING", etc */
   char source_path[PATH_LENGTH + 1];
   char dest_path[PATH_LENGTH + 1]; /* Empty string for delete/scan ops */
@@ -923,10 +936,13 @@ typedef struct {
   long long bytes_done;
   unsigned int items_total; /* File/directory count (0 if N/A) */
   unsigned int items_done;
+  char error_message[1024];
 
   /* ETA Calculation */
-  time_t start_time;
+  double start_monotonic_seconds;
+  double last_render_monotonic_seconds;
   double bytes_per_sec; /* Rolling average transfer rate */
+  double items_per_sec;
   int eta_seconds;      /* Estimated time remaining */
 
   /* Cancellation */
@@ -1177,6 +1193,14 @@ typedef struct _ViewContext {
   int (*hook_ui_message)(ViewContext *ctx, const char *fmt, ...);
   int (*hook_ui_notice)(ViewContext *ctx, const char *fmt, ...);
   void (*hook_draw_spinner)(ViewContext *ctx);
+  void (*hook_progress_start)(ViewContext *ctx, const char *operation,
+                              const char *source, const char *destination,
+                              long long bytes_total,
+                              unsigned int items_total);
+  BOOL (*hook_progress_update)(ViewContext *ctx, long long bytes_done,
+                               unsigned int items_done);
+  void (*hook_progress_finish)(ViewContext *ctx);
+  ArchiveProgressCallback hook_archive_callback;
   void (*hook_clock_handler)(ViewContext *ctx, int sig);
   void (*hook_draw_animation_step)(ViewContext *ctx, WINDOW *win);
   void (*hook_display_disk_statistic)(ViewContext *ctx, const Statistic *s);

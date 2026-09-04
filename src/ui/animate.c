@@ -97,12 +97,21 @@ void DrawAnimationStep(ViewContext *ctx, WINDOW *win) {
 
 /* New Activity Spinner Implementation */
 void DrawSpinner(ViewContext *ctx) {
-  if (LINES > 0 && COLS > 0) {
-    static char spin_chars[] = "|/-\\";
-    /* Draw at bottom right (menu line) */
-    mvaddch(LINES - 2, COLS - 2, spin_chars[ctx->spin_counter++ % 4]);
+  static const char spin_chars[] = "|/-\\";
+  WINDOW *window;
+  int height;
+  int width;
 
-    /* Force immediate update to screen */
-    doupdate();
-  }
+  if (!ctx)
+    return;
+  window = ctx->ctx_menu_window ? ctx->ctx_menu_window : stdscr;
+  getmaxyx(window, height, width);
+  if (height < 2 || width < 2)
+    return;
+
+  mvwaddch(window, height - 2, width - 2,
+           spin_chars[ctx->spin_counter++ % 4]);
+  wrefresh(window);
+  if (ctx->progress.active)
+    Progress_Render(ctx);
 }

@@ -1095,7 +1095,9 @@ def test_compact_key_is_ignored_in_dense_dir_views(tmp_path, ytnova_binary):
     tui.quit()
 
 
-def test_f6_toggles_stats_panel_and_zero_remains_noop(tmp_path, ytnova_binary):
+def test_only_f6_toggles_stats_panel_without_changing_view(
+    tmp_path, ytnova_binary
+):
     test_root = tmp_path / "stats_toggle_f6"
     test_root.mkdir()
     with (test_root / "alpha.bin").open("wb") as handle:
@@ -1112,36 +1114,25 @@ def test_f6_toggles_stats_panel_and_zero_remains_noop(tmp_path, ytnova_binary):
         "Precondition failed: key 5 should first enable Compact.\n" + screen
     )
 
-    _send_and_expect_noop(
+    _send_and_wait(
         tui,
         "0",
-        lambda lines: _stats_view_value(lines) == "Compact"
-        and _line_tokens(_line_with_text(lines, "alpha.bin"))
-        == _line_tokens(compact_line),
-        message="Key 0 should be an unassigned no-op while stats are visible.",
+        timeout=0.4,
     )
     screen = "\n".join(tui.get_screen_dump())
+    unchanged_line = _line_with_text(screen.split("\n"), "alpha.bin")
     assert _stats_view_value(screen) == "Compact", (
-        "Key 0 should leave the visible stats view unchanged.\n"
-        + screen
+        "Key 0 should not toggle filesystem stats.\n" + screen
+    )
+    assert _line_tokens(unchanged_line) == _line_tokens(compact_line), (
+        "Filesystem key 0 should be a display no-op.\n"
+        f"Before: {compact_line}\nAfter:  {unchanged_line}\n\nFull screen:\n{screen}"
     )
 
     _send_and_wait(tui, Keys.F6, timeout=0.4)
     screen = "\n".join(tui.get_screen_dump())
     assert _stats_area(screen) == [], (
         "F6 should hide the stats panel.\n"
-        + screen
-    )
-
-    _send_and_expect_noop(
-        tui,
-        "0",
-        lambda lines: _stats_area(lines) == [],
-        message="Key 0 should remain an unassigned no-op while stats are hidden.",
-    )
-    screen = "\n".join(tui.get_screen_dump())
-    assert _stats_area(screen) == [], (
-        "Key 0 should remain a no-op while stats are hidden.\n"
         + screen
     )
 

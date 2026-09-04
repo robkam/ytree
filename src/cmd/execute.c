@@ -28,6 +28,7 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
   int result = -1;
   int written;
   BOOL temp_file_created = FALSE;
+  BOOL owns_progress = FALSE;
 
   temp_path[0] = '\0';
 
@@ -92,9 +93,17 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
       goto cleanup;
     }
 
-    if (ExtractArchiveEntry(s->log_path, canonical_internal_path, fd_tmp, cb,
-                            NULL) !=
-        0) {
+    owns_progress =
+        ctx && !ctx->progress.active && ctx->hook_progress_start &&
+        ctx->hook_progress_finish;
+    if (owns_progress)
+      ctx->hook_progress_start(ctx, "ARCHIVE EXECUTE", canonical_internal_path,
+                               "", file_entry->stat_struct.st_size, 0);
+    result = ExtractArchiveEntry(s->log_path, canonical_internal_path, fd_tmp,
+                                 cb, ctx);
+    if (owns_progress)
+      ctx->hook_progress_finish(ctx);
+    if (result != 0) {
       goto cleanup;
     }
   } else {

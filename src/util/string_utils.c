@@ -9,6 +9,27 @@
 #include <ctype.h>
 #include <string.h>
 
+#define SECONDS_PER_MINUTE 60
+#define SECONDS_PER_HOUR (60 * SECONDS_PER_MINUTE)
+
+void String_FormatCompactDuration(int seconds, char *buffer,
+                                  size_t buffer_size) {
+  if (!buffer || buffer_size == 0)
+    return;
+  if (seconds < 0)
+    seconds = 0;
+  if (seconds >= SECONDS_PER_HOUR)
+    snprintf(buffer, buffer_size, "%dh %02dm %02ds",
+             seconds / SECONDS_PER_HOUR,
+             (seconds / SECONDS_PER_MINUTE) % SECONDS_PER_MINUTE,
+             seconds % SECONDS_PER_MINUTE);
+  else if (seconds >= SECONDS_PER_MINUTE)
+    snprintf(buffer, buffer_size, "%dm %02ds",
+             seconds / SECONDS_PER_MINUTE, seconds % SECONDS_PER_MINUTE);
+  else
+    snprintf(buffer, buffer_size, "%ds", seconds);
+}
+
 int BuildFilename(char *in_filename, char *pattern, char *out_filename) {
   const char *s = in_filename;
   const char *p = pattern;

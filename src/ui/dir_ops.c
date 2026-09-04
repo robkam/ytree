@@ -32,7 +32,10 @@
 /* Progress callback for directory operations */
 static void Dir_Progress(ViewContext *ctx, void *data) {
   (void)data; /* Suppress unused parameter warning */
-  DrawSpinner(ctx);
+  if (ctx && ctx->progress.active && ctx->progress.items_total == 0)
+    ctx->progress.items_done++;
+  if (ctx && Progress_ShouldRender(ctx))
+    DrawSpinner(ctx);
 }
 
 static void CaptureInactiveFallback(ViewContext *ctx, YtreeNovaPanel *p,
@@ -201,7 +204,15 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
       if (read_depth < 0)
         read_depth = 0;
     }
-    ReadTree(ctx, dir_entry, new_log_path, read_depth, s, Dir_Progress, NULL);
+    {
+      BOOL owns_progress = !ctx->progress.active;
+
+      if (owns_progress)
+        Progress_Start(ctx, "SCANNING", new_log_path, "", 0, 0);
+      ReadTree(ctx, dir_entry, new_log_path, read_depth, s, Dir_Progress, NULL);
+      if (owns_progress)
+        Progress_Finish(ctx);
+    }
     ApplyFilter(dir_entry, s);
     InitClock(ctx); /* Resume clock after scanning */
 
@@ -1407,10 +1418,20 @@ void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx, YtreeNovaPanel *pan
   DEBUG_LOG("RestorePanelFileSelection:tag_snapshot panel=%d tree=%d",
             CountPathSnapshot(panel_tagged), CountPathSnapshot(tagged));
   InvalidateVolumePanels(ctx, panel->vol);
-  if (RescanDir(ctx, dir_entry, 0, stats, Dir_Progress, ctx) == 0) {
-    RestoreTreeState(ctx, stats->tree, &expanded, tagged, stats);
-    RestoreTaggedSnapshot(ctx, panel->vol, panel_tagged);
-    PanelTags_Restore(ctx, panel);
+  {
+    BOOL owns_progress = !ctx->progress.active;
+    int rescan_result;
+
+    if (owns_progress)
+      Progress_Start(ctx, "REFRESHING", stats->log_path, "", 0, 0);
+    rescan_result = RescanDir(ctx, dir_entry, 0, stats, Dir_Progress, ctx);
+    if (owns_progress)
+      Progress_Finish(ctx);
+    if (rescan_result == 0) {
+      RestoreTreeState(ctx, stats->tree, &expanded, tagged, stats);
+      RestoreTaggedSnapshot(ctx, panel->vol, panel_tagged);
+      PanelTags_Restore(ctx, panel);
+    }
   }
   FreePathList(expanded);
   FreePathList(tagged);
@@ -2084,7 +2105,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
   BOOL saved_global_all_volumes = entry->global_all_volumes;
   BOOL saved_tagged_flag = entry->tagged_flag;
 
-  if (ctx->view_mode != ARCHIVE_MODE) {
+  if (s->log_mode != ARCHIVE_MODE) {
     PathList *expanded = NULL;
     PathList *collapsed = NULL;
     PathList *tagged = NULL;
@@ -2103,7 +2124,15 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     CaptureCollapsedTreeState(s->tree, &collapsed);
 
     /* 2. Destructive Rescan */
-    RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
+    {
+      BOOL owns_progress = !ctx->progress.active;
+
+      if (owns_progress)
+        Progress_Start(ctx, "REFRESHING", saved_path, "", 0, 0);
+      RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
+      if (owns_progress)
+        Progress_Finish(ctx);
+    }
 
     /* 2a. Restore critical flags destroyed by ReadTree */
     if (!AppStateCommitDirEntryFileShape(entry, saved_big_window))
@@ -2193,7 +2222,15 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     }
   } else {
     /* Archive Mode - Standard Rescan */
-    RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
+    {
+      BOOL owns_progress = !ctx->progress.active;
+
+      if (owns_progress)
+        Progress_Start(ctx, "REFRESHING", s->log_path, "", 0, 0);
+      RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
+      if (owns_progress)
+        Progress_Finish(ctx);
+    }
     /* Restore flags for Archive mode too, as RescanDir/ReadTree clears them */
     if (!AppStateCommitDirEntryFileShape(entry, saved_big_window))
       return entry;
@@ -2229,30 +2266,47 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
 
 int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   DirEntry *de_ptr;
+  BOOL owns_progress;
+  int result = 0;
+  char progress_path[PATH_LENGTH + 1];
+
+  if (!ctx || !dir_entry || !s)
+    return -1;
+  owns_progress = !ctx->progress.active;
+  if (owns_progress) {
+    GetPath(dir_entry, progress_path);
+    Progress_Start(ctx, "SCANNING", progress_path, "", 0, 0);
+  }
 
   if (dir_entry->not_scanned) {
     char new_log_path[PATH_LENGTH + 1];
+
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
       GetPath(de_ptr, new_log_path);
-      if (ReadTree(ctx, de_ptr, new_log_path, 999, s, Dir_Progress, ctx) ==
-          -1) {
-        /* Abort signal received from ReadTree */
-        return -1;
+      if (ReadTree(ctx, de_ptr, new_log_path, 999, s, Dir_Progress, ctx) == -1) {
+        result = -1;
+        goto finished;
       }
       ApplyFilter(de_ptr, s);
     }
     if (!AppStateCommitDirEntryLoggedState(dir_entry, FALSE,
-                                           dir_entry->unlogged_flag))
-      return -1;
+                                           dir_entry->unlogged_flag)) {
+      result = -1;
+      goto finished;
+    }
   } else {
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
       if (ScanSubTree(ctx, de_ptr, s) == -1) {
-        /* Abort signal received from recursive ScanSubTree */
-        return -1;
+        result = -1;
+        goto finished;
       }
     }
   }
-  return (0);
+
+finished:
+  if (owns_progress)
+    Progress_Finish(ctx);
+  return result;
 }
 
 int RefreshDirWindow(ViewContext *ctx, YtreeNovaPanel *p) {

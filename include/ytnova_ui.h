@@ -116,6 +116,24 @@ extern void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p);
 extern BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry);
 extern void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                                    Statistic *s);
+extern int ArchiveDirectoryTransferProgress(int status, const char *message,
+                                            long long bytes_delta,
+                                            unsigned int items_delta,
+                                            void *user_data);
+extern void ArchiveDirectoryTransferRemoveTemporary(const char *path);
+typedef enum {
+  ARCHIVE_DIRECTORY_COPY,
+  ARCHIVE_DIRECTORY_MOVE
+} ArchiveDirectoryTransferMode;
+
+extern void ArchiveDirectoryTransfer(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                                     ArchiveDirectoryTransferMode mode,
+                                     const char *src_path,
+                                     const char *dest_dir_path,
+                                     const char *dest_path);
+extern int FilesystemDirectoryTransferToArchive(
+    ViewContext *ctx, ArchiveDirectoryTransferMode mode, const char *src_path,
+    const char *dest_dir_path, const char *dest_path);
 extern DirEntry *HandleDirDeleteDirectory(ViewContext *ctx,
                                           DirEntry *dir_entry);
 extern DirEntry *HandleDirRenameDirectory(ViewContext *ctx,
@@ -616,13 +634,19 @@ extern int GetNewGroup(ViewContext *ctx, int st_gid);
 extern int ChangeFileOrDirOwnership(ViewContext *ctx, const char *path,
                                     struct stat *stat_buf, BOOL change_owner,
                                     BOOL change_group);
-extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
+extern int UI_ArchiveCallback(int status, const char *msg,
+                              long long bytes_delta,
+                              unsigned int items_delta, void *user_data);
 extern int recursive_mkdir(char *path);
 extern int recursive_rmdir(const char *path);
 extern int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
                                            size_t source_count,
                                            BOOL recursive_directories,
                                            ArchivePayload *payload);
+extern int UI_BuildArchivePayloadFromPathsWithProgress(
+    const char *const *source_paths, size_t source_count,
+    BOOL recursive_directories, ArchivePayload *payload,
+    ArchiveProgressCallback cb, void *user_data);
 extern int UI_GatherArchivePayload(ViewContext *ctx, DirEntry *selected_dir,
                                    FileEntry *selected_file,
                                    ArchivePayload *payload);
@@ -682,8 +706,13 @@ extern void FileList_ChangeFileEntry(ViewContext *ctx);
 extern void Progress_Start(ViewContext *ctx, const char *operation,
                            const char *source_path, const char *dest_path,
                            long long bytes_total, unsigned int items_total);
+extern BOOL Progress_ShouldRender(ViewContext *ctx);
 extern BOOL Progress_Update(ViewContext *ctx, long long bytes_done,
                             unsigned int items_done);
+extern void Progress_SetTotals(ViewContext *ctx, long long bytes_total,
+                               unsigned int items_total);
+extern BOOL Progress_Advance(ViewContext *ctx, long long bytes_delta,
+                             unsigned int items_delta);
 extern void Progress_Finish(ViewContext *ctx);
 extern void Progress_Render(ViewContext *ctx);
 

@@ -7,6 +7,7 @@
 
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
+#include <limits.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -22,14 +23,70 @@ static int DeleteSubTree(ViewContext *ctx, DirEntry *dir_entry,
 static int DeleteSingleDirectory(ViewContext *ctx, DirEntry *dir_entry,
                                  ChoiceCallback choice_cb);
 
-static int RmdirProgressCallback(int status, const char *msg, void *user_data) {
+static int RmdirProgressCallback(int status, const char *msg,
+                                 long long bytes_delta,
+                                 unsigned int items_delta, void *user_data) {
   ViewContext *ctx = (ViewContext *)user_data;
 
-  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
-    ctx->hook_draw_spinner(ctx);
-  (void)status;
-  (void)msg;
+  if (ctx && ctx->hook_archive_callback)
+    return ctx->hook_archive_callback(status, msg, bytes_delta, items_delta,
+                                      user_data);
   return ARCHIVE_CB_CONTINUE;
+}
+
+static int CountDirectoryTree(const DirEntry *dir_entry) {
+  const DirEntry *child;
+  int count = 1;
+
+  for (child = dir_entry ? dir_entry->sub_tree : NULL; child != NULL;
+       child = child->next)
+    count += CountDirectoryTree(child);
+  return count;
+}
+
+static unsigned int CountDirectoryItems(const DirEntry *dir_entry) {
+  const DirEntry *child;
+  const FileEntry *file;
+  unsigned int count = 1;
+
+  if (!dir_entry)
+    return 0;
+  for (file = dir_entry->file; file; file = file->next) {
+    if (count == UINT_MAX)
+      return UINT_MAX;
+    count++;
+  }
+  for (child = dir_entry->sub_tree; child; child = child->next) {
+    unsigned int child_count = CountDirectoryItems(child);
+
+    if (child_count > UINT_MAX - count)
+      return UINT_MAX;
+    count += child_count;
+  }
+  return count;
+}
+
+static long long CountDirectoryBytes(const DirEntry *dir_entry) {
+  const DirEntry *child;
+  const FileEntry *file;
+  long long bytes = 0;
+
+  if (!dir_entry)
+    return 0;
+  for (file = dir_entry->file; file; file = file->next) {
+    if (file->stat_struct.st_size < 0 ||
+        bytes > LLONG_MAX - file->stat_struct.st_size)
+      return -1;
+    bytes += file->stat_struct.st_size;
+  }
+  for (child = dir_entry->sub_tree; child; child = child->next) {
+    long long child_bytes = CountDirectoryBytes(child);
+
+    if (child_bytes < 0 || bytes > LLONG_MAX - child_bytes)
+      return -1;
+    bytes += child_bytes;
+  }
+  return bytes;
 }
 
 int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
@@ -44,19 +101,35 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
   }
 #ifdef HAVE_LIBARCHIVE
   else if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
-    if (dir_entry->file || dir_entry->sub_tree) {
+    if (!(ctx->active->vol->vol_stats.archive_capabilities & ARCHIVE_CAP_DELETE))
       return -1;
-    } else if (choice_cb && choice_cb(ctx, "Delete this directory (Y/N) ? ",
-                                      "YN\033") == 'Y') {
+    if (choice_cb && choice_cb(ctx, "Delete this directory (Y/N) ? ",
+                               "YN\033") == 'Y') {
+      BOOL owns_progress;
+      int archive_result;
+      unsigned int selected_items = CountDirectoryItems(dir_entry);
+
       RefreshView(ctx, dir_entry);
-      if (ctx->hook_draw_spinner)
-        ctx->hook_draw_spinner(ctx);
       GetPath(dir_entry, buffer);
+      owns_progress = !ctx->progress.active && ctx->hook_progress_start &&
+                      ctx->hook_progress_finish;
+      if (owns_progress) {
+        long long selected_bytes = CountDirectoryBytes(dir_entry);
+        long long remaining_bytes =
+            ctx->active->vol->vol_stats.disk_total_bytes;
 
-      if (Archive_DeleteEntry(ctx->active->vol->vol_stats.log_path, buffer,
-                              RmdirProgressCallback, ctx) == 0) {
-        ctx->active->vol->vol_stats.disk_total_directories--;
-
+        if (selected_bytes >= 0 && remaining_bytes >= selected_bytes)
+          remaining_bytes -= selected_bytes;
+        else
+          remaining_bytes = 0;
+        ctx->hook_progress_start(
+            ctx, "ARCHIVE DELETE", buffer, "", remaining_bytes,
+            ctx->active->vol->vol_stats.archive_member_count);
+      }
+      archive_result = Archive_DeleteTree(
+          ctx->active->vol->vol_stats.log_path, buffer,
+          RmdirProgressCallback, ctx);
+      if (archive_result == 0) {
         if (dir_entry->prev)
           dir_entry->prev->next = dir_entry->next;
         else
@@ -65,27 +138,53 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
         if (dir_entry->next)
           dir_entry->next->prev = dir_entry->prev;
 
-        free(dir_entry);
+        ctx->active->vol->vol_stats.disk_total_directories -=
+            CountDirectoryTree(dir_entry);
+        if (selected_items <=
+            ctx->active->vol->vol_stats.archive_member_count)
+          ctx->active->vol->vol_stats.archive_member_count -= selected_items;
+        else
+          ctx->active->vol->vol_stats.archive_member_count = 0;
+        DeleteTree(dir_entry);
         result = 0;
       }
+      if (owns_progress)
+        ctx->hook_progress_finish(ctx);
     }
   }
 #endif
   else if (dir_entry->file || dir_entry->sub_tree) {
     if (choice_cb && choice_cb(ctx, "Directory not empty, PRUNE ? (Y/N) ? ",
                                "YN\033") == 'Y') {
+      BOOL owns_progress;
+
       if (dir_entry->sub_tree) {
         if (!ctx->hook_scan_subtree ||
             ctx->hook_scan_subtree(ctx, dir_entry, &ctx->active->vol->vol_stats)) {
           return -1;
         }
+      }
+      owns_progress = !ctx->progress.active && ctx->hook_progress_start &&
+                      ctx->hook_progress_finish;
+      if (owns_progress) {
+        GetPath(dir_entry, buffer);
+        ctx->hook_progress_start(ctx, "DELETING", buffer, "", 0,
+                                 CountDirectoryItems(dir_entry));
+      }
+      if (dir_entry->sub_tree) {
         if (DeleteSubTree(ctx, dir_entry->sub_tree, choice_cb)) {
+          if (owns_progress)
+            ctx->hook_progress_finish(ctx);
           return -1;
         }
       }
       if (DeleteSingleDirectory(ctx, dir_entry, choice_cb)) {
+        if (owns_progress)
+          ctx->hook_progress_finish(ctx);
         return -1;
       }
+      if (owns_progress)
+        ctx->hook_progress_finish(ctx);
       return 0;
     }
   } else if (choice_cb && choice_cb(ctx, "Delete this directory (Y/N) ? ",
@@ -158,6 +257,10 @@ static int DeleteSingleDirectory(ViewContext *ctx, DirEntry *dir_entry,
                    choice_cb)) {
       return -1;
     }
+    if (ctx->progress.active && ctx->progress.items_total > 0 &&
+        ctx->hook_progress_update &&
+        !ctx->hook_progress_update(ctx, 0, ctx->progress.items_done + 1))
+      return -1;
   }
 
   if (rmdir(buffer)) {
@@ -175,6 +278,11 @@ static int DeleteSingleDirectory(ViewContext *ctx, DirEntry *dir_entry,
     dir_entry->next->prev = dir_entry->prev;
 
   free(dir_entry);
+
+  if (ctx->progress.active && ctx->progress.items_total > 0 &&
+      ctx->hook_progress_update &&
+      !ctx->hook_progress_update(ctx, 0, ctx->progress.items_done + 1))
+    return -1;
 
   result = 0;
   return (result);

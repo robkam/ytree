@@ -128,6 +128,10 @@ static void CoreInit_BindRuntimeHooks(ViewContext *ctx) {
   ctx->hook_ui_message = UI_Message;
   ctx->hook_ui_notice = UI_Notice;
   ctx->hook_draw_spinner = DrawSpinner;
+  ctx->hook_progress_start = Progress_Start;
+  ctx->hook_progress_update = Progress_Update;
+  ctx->hook_progress_finish = Progress_Finish;
+  ctx->hook_archive_callback = UI_ArchiveCallback;
   ctx->hook_clock_handler = ClockHandler;
   ctx->hook_draw_animation_step = DrawAnimationStep;
   ctx->hook_display_disk_statistic = DisplayDiskStatistic;

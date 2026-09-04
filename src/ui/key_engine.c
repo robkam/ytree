@@ -870,6 +870,8 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
     return AppStateValidatedKeyAction(ACTION_FILEINFO_8);
   case '9':
     return AppStateValidatedKeyAction(ACTION_FILEINFO_9);
+  case '0':
+    return AppStateValidatedKeyAction(ACTION_FILEINFO_0);
   case 0x0C:
     return AppStateValidatedKeyAction(ACTION_REFRESH);
   case KEY_RESIZE:

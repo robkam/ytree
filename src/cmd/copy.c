@@ -9,6 +9,7 @@
 #include "ytnova_appstate_volume.h"
 #include "ytnova_fs.h"
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -265,7 +266,9 @@ static int CopyPrepareArchiveSourceFile(CopyOperation *op,
     (void)unlink(extracted_path);
 
     if (ExtractArchiveNode(op->source_stats->log_path, op->from_path,
-                           extracted_path, UI_ArchiveCallback, op->ctx) != 0) {
+                           extracted_path,
+                           op->ctx ? op->ctx->hook_archive_callback : NULL,
+                           op->ctx) != 0) {
       (void)unlink(extracted_path);
       return -1;
     }
@@ -351,6 +354,8 @@ static int CopyTryArchiveDestination(CopyOperation *op) {
     const char *archive_src_path;
     char extracted_path[PATH_LENGTH + 1];
     BOOL extracted_from_archive;
+    BOOL owns_progress = FALSE;
+    int archive_add_result;
 
     if (strncmp(op->to_path, archive_root_path, strlen(archive_root_path)) == 0) {
       char *ptr = op->to_path + strlen(archive_root_path);
@@ -372,10 +377,50 @@ static int CopyTryArchiveDestination(CopyOperation *op) {
     }
 
     if (Path_Join(archive_entry_path, sizeof(archive_entry_path), relative_path,
-                  op->to_file) != 0 ||
-        CopyPrepareArchiveSourceFile(op, &archive_src_path, extracted_path,
+                  op->to_file) != 0) {
+      return -1;
+    }
+    if (op->ctx && !op->ctx->progress.active &&
+        op->ctx->hook_progress_start && op->ctx->hook_progress_finish) {
+      long long progress_total = 0;
+      unsigned int progress_items = 0;
+
+      owns_progress = TRUE;
+      if (op->target.target_stats &&
+          op->target.target_stats->disk_total_bytes >= 0 &&
+          op->source_file->stat_struct.st_size >= 0) {
+        long long source_bytes = op->source_file->stat_struct.st_size;
+
+        progress_total = op->target.target_stats->disk_total_bytes;
+        if (source_bytes <= LLONG_MAX - progress_total)
+          progress_total += source_bytes;
+        else
+          progress_total = 0;
+        if (progress_total > 0 &&
+            op->source_stats->log_mode == ARCHIVE_MODE) {
+          if (source_bytes <= LLONG_MAX - progress_total)
+            progress_total += source_bytes;
+          else
+            progress_total = 0;
+        }
+      }
+      if (op->target.target_stats) {
+        progress_items = op->target.target_stats->archive_member_count;
+        if (progress_items < UINT_MAX)
+          progress_items++;
+        if (op->source_stats->log_mode == ARCHIVE_MODE &&
+            progress_items < UINT_MAX)
+          progress_items++;
+      }
+      op->ctx->hook_progress_start(op->ctx, "ARCHIVE COPY", op->from_path,
+                                   archive_entry_path, progress_total,
+                                   progress_items);
+    }
+    if (CopyPrepareArchiveSourceFile(op, &archive_src_path, extracted_path,
                                      sizeof(extracted_path),
                                      &extracted_from_archive) != 0) {
+      if (op->ctx && owns_progress)
+        op->ctx->hook_progress_finish(op->ctx);
       return -1;
     }
 
@@ -383,17 +428,22 @@ static int CopyTryArchiveDestination(CopyOperation *op) {
       if (extracted_from_archive) {
         (void)unlink(extracted_path);
       }
+      if (op->ctx && owns_progress)
+        op->ctx->hook_progress_finish(op->ctx);
       return -1;
     }
 
-    if (Archive_AddFile(archive_log_path, (char *)archive_src_path,
-                        archive_entry_path, FALSE, UI_ArchiveCallback,
-                        op->ctx) != 0) {
+    archive_add_result = Archive_AddFile(
+        archive_log_path, archive_src_path, archive_entry_path, FALSE,
+        op->ctx ? op->ctx->hook_archive_callback : NULL, op->ctx);
+    if (archive_add_result != 0) {
       DEBUG_LOG("CopyFile Archive_AddFile failed: archive=%s entry=%s",
                 archive_log_path, archive_entry_path);
       if (extracted_from_archive) {
         (void)unlink(extracted_path);
       }
+      if (op->ctx && owns_progress)
+        op->ctx->hook_progress_finish(op->ctx);
       return -1;
     }
 
@@ -404,12 +454,19 @@ static int CopyTryArchiveDestination(CopyOperation *op) {
       if (extracted_from_archive) {
         (void)unlink(extracted_path);
       }
+      if (op->ctx && owns_progress)
+        op->ctx->hook_progress_finish(op->ctx);
       return -1;
     }
+    if (op->target.target_stats &&
+        op->target.target_stats->archive_member_count < UINT_MAX)
+      op->target.target_stats->archive_member_count++;
 
     if (extracted_from_archive) {
       (void)unlink(extracted_path);
     }
+    if (op->ctx && owns_progress)
+      op->ctx->hook_progress_finish(op->ctx);
   }
 
   return 1;
@@ -729,70 +786,68 @@ int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
                     const Statistic *s) {
   int i, o, n;
   char buffer[2048];
-  int spin_counter = 0;
+  long long bytes_done = 0;
+  long long bytes_total = 0;
+  BOOL owns_progress = FALSE;
+  int result = -1;
+  struct stat source_stat;
 
-  /* Renamed usage: s->mode -> s->log_mode */
-  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE) {
-    return (CopyArchiveFile(ctx, to_path, from_path, s));
-  }
+  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE)
+    return CopyArchiveFile(ctx, to_path, from_path, s);
 
-  /* FIX: Use realpath to resolve both paths for comparison to avoid
-     false positives with relative vs absolute paths */
-  char res_from[PATH_LENGTH + 1];
-  char res_to[PATH_LENGTH + 1];
+  {
+    char res_from[PATH_LENGTH + 1];
+    char res_to[PATH_LENGTH + 1];
 
-  if (realpath(from_path, res_from) && realpath(to_path, res_to)) {
-    if (!strcmp(res_from, res_to)) {
-      /* MESSAGE( "Can't copy file into itself" ); */
-      return (-1);
-    }
-  } else {
-    /* If realpath fails (e.g. destination doesn't exist yet),
-       fallback to simple strcmp */
-    if (!strcmp(to_path, from_path)) {
-      /* MESSAGE( "Can't copy file into itself" ); */
-      return (-1);
+    if (realpath(from_path, res_from) && realpath(to_path, res_to)) {
+      if (!strcmp(res_from, res_to))
+        return -1;
+    } else if (!strcmp(to_path, from_path)) {
+      return -1;
     }
   }
 
-  if ((i = open(from_path, O_RDONLY)) == -1) {
-    /* MESSAGE( "Can't open file*\"%s\"*%s", from_path, strerror(errno) ); */
-    return (-1);
-  }
+  i = open(from_path, O_RDONLY);
+  if (i == -1)
+    return -1;
+  if (fstat(i, &source_stat) == 0 && source_stat.st_size > 0)
+    bytes_total = source_stat.st_size;
 
-  if ((o = open(to_path, O_CREAT | O_TRUNC | O_WRONLY,
-                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
-    /* MESSAGE( "Can't create file*\"%s\"*%s", to_path, strerror(errno) ); */
+  o = open(to_path, O_CREAT | O_TRUNC | O_WRONLY,
+           S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  if (o == -1) {
     (void)close(i);
-    return (-1);
+    return -1;
+  }
+
+  if (ctx && !ctx->progress.active && ctx->hook_progress_start &&
+      ctx->hook_progress_finish) {
+    owns_progress = TRUE;
+    ctx->hook_progress_start(ctx, "COPY", from_path, to_path, bytes_total, 0);
   }
 
   while ((n = read(i, buffer, sizeof(buffer))) > 0) {
-    /* Update activity spinner every 100 chunks */
-    if ((++spin_counter % 100) == 0) {
-      if (UI_ArchiveCallback(ARCHIVE_STATUS_PROGRESS, NULL, ctx) ==
-          ARCHIVE_CB_ABORT) {
-        /* MESSAGE("Operation Interrupted"); */
-        close(i);
-        close(o);
-        unlink(to_path);
-        return -1;
-      }
-    }
-
-    if (write(o, buffer, n) != n) {
-      /* MESSAGE( "Write-Error!*%s", strerror(errno) ); */
-      (void)close(i);
-      (void)close(o);
-      (void)unlink(to_path);
-      return (-1);
-    }
+    if (write(o, buffer, n) != n)
+      goto failed;
+    bytes_done += n;
+    if (ctx && ctx->progress.active && ctx->hook_progress_update &&
+        !ctx->hook_progress_update(ctx, bytes_done, 0))
+      goto failed;
   }
+  if (n < 0)
+    goto failed;
 
+  result = 0;
+  goto finished;
+
+failed:
+  (void)unlink(to_path);
+finished:
   (void)close(i);
   (void)close(o);
-
-  return (0);
+  if (ctx && owns_progress)
+    ctx->hook_progress_finish(ctx);
+  return result;
 }
 
 int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
@@ -836,13 +891,20 @@ static int CopyArchiveFile(ViewContext *ctx, char *to_path,
                            const char *from_path,
                            const Statistic *s) {
 #ifdef HAVE_LIBARCHIVE
-  int result =
-      ExtractArchiveNode(s->log_path, from_path, to_path, UI_ArchiveCallback,
-                         ctx);
-  if (result != 0) {
-    /* WARNING("Can't copy file*%s*to file*%s", from_path, to_path); */
-    unlink(to_path); /* Clean up partial file on failure */
+  BOOL owns_progress = FALSE;
+  int result;
+
+  if (ctx && !ctx->progress.active && ctx->hook_progress_start &&
+      ctx->hook_progress_finish) {
+    owns_progress = TRUE;
+    ctx->hook_progress_start(ctx, "ARCHIVE COPY", from_path, to_path, 0, 0);
   }
+  result = ExtractArchiveNode(s->log_path, from_path, to_path,
+                              ctx ? ctx->hook_archive_callback : NULL, ctx);
+  if (ctx && owns_progress)
+    ctx->hook_progress_finish(ctx);
+  if (result != 0)
+    unlink(to_path);
   return result;
 #else
   (void)ctx;

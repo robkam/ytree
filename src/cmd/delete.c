@@ -23,13 +23,13 @@
 #endif
 
 /* Helper for Archive Callback */
-static int ArchiveUICallback(int status, const char *msg, void *user_data) {
+static int ArchiveUICallback(int status, const char *msg, long long bytes_delta,
+                             unsigned int items_delta, void *user_data) {
   ViewContext *ctx = (ViewContext *)user_data;
 
-  if (status == ARCHIVE_STATUS_PROGRESS && ctx && ctx->hook_draw_spinner)
-    ctx->hook_draw_spinner(ctx);
-  (void)status;
-  (void)msg;
+  if (ctx && ctx->hook_archive_callback)
+    return ctx->hook_archive_callback(status, msg, bytes_delta, items_delta,
+                                      user_data);
   return ARCHIVE_CB_CONTINUE;
 }
 
@@ -45,19 +45,41 @@ int DeleteFile(ViewContext *ctx, FileEntry *fe_ptr, int *auto_override,
 /* Handle Archive Mode Deletion Hook */
 #ifdef HAVE_LIBARCHIVE
   if (s->log_mode == ARCHIVE_MODE) {
+    BOOL owns_progress =
+        ctx && !ctx->progress.active && ctx->hook_progress_start &&
+        ctx->hook_progress_finish;
+    int archive_result;
+
     /* In archive mode, permissions are virtual. We skip access checks and
      * unlink. We rely on the Rewrite Engine to handle the deletion.
      */
-    if (ctx && ctx->hook_draw_spinner)
-      ctx->hook_draw_spinner(ctx);
-    if (Archive_DeleteEntry(s->log_path, filepath, ArchiveUICallback, ctx) ==
-        0) {
+    if (owns_progress) {
+      long long remaining_bytes = s->disk_total_bytes;
+
+      if (fe_ptr->stat_struct.st_size >= 0 &&
+          remaining_bytes >= fe_ptr->stat_struct.st_size)
+        remaining_bytes -= fe_ptr->stat_struct.st_size;
+      ctx->hook_progress_start(ctx, "ARCHIVE DELETE", filepath, "",
+                               remaining_bytes, s->archive_member_count);
+    }
+    archive_result =
+        Archive_DeleteEntry(s->log_path, filepath, ArchiveUICallback, ctx);
+    if (archive_result == 0) {
+      int remove_result;
+
       /* Success. The archive container has been rewritten.
        * Remove the in-memory file entry now so the caller's refresh sees the
        * updated archive view immediately.
        */
-      return RemoveFile(ctx, fe_ptr, s);
+      remove_result = RemoveFile(ctx, fe_ptr, s);
+      if (remove_result == 0 && s->archive_member_count > 0)
+        s->archive_member_count--;
+      if (owns_progress)
+        ctx->hook_progress_finish(ctx);
+      return remove_result;
     } else {
+      if (owns_progress)
+        ctx->hook_progress_finish(ctx);
       return -1;
     }
   }

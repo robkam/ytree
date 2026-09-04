@@ -459,9 +459,13 @@ int UI_GatherArchivePayload(ViewContext *ctx, DirEntry *selected_dir,
     }
   }
 
-  rc = UI_BuildArchivePayloadFromPaths((const char *const *)selected_paths,
-                                       selected_count, recursive_directories,
-                                       payload);
+  Progress_Start(ctx, "ARCHIVE CREATE", selected_paths[0], NULL, 0, 0);
+  rc = UI_BuildArchivePayloadFromPathsWithProgress(
+      (const char *const *)selected_paths, selected_count, recursive_directories,
+      payload, UI_ArchiveCallback, ctx);
+  if (ctx->progress.cancel_requested)
+    rc = 1;
+  Progress_Finish(ctx);
 
 cleanup:
   if (selected_paths) {
@@ -665,8 +669,12 @@ int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload)
     archive_paths[idx - 1] = entry->archive_path;
   }
 
-  rc = Archive_CreateFromPaths(destination_path, source_paths, archive_paths,
-                               source_count);
+  Progress_Start(ctx, "ARCHIVE CREATE", payload->original_source_list->path,
+                 destination_path, 0, 0);
+  rc = Archive_CreateFromPathsWithProgress(
+      destination_path, source_paths, archive_paths, source_count,
+      UI_ArchiveCallback, ctx);
+  Progress_Finish(ctx);
   free((void *)source_paths);
   free((void *)archive_paths);
   if (rc == 0)
@@ -715,17 +723,36 @@ int GetRenameParameter(ViewContext *ctx, const char *old_name, char *new_name) {
   return (0);
 }
 
-int UI_ArchiveCallback(int status, const char *msg, void *user_data) {
+int UI_ArchiveCallback(int status, const char *msg, long long bytes_delta,
+                       unsigned int items_delta, void *user_data) {
   ViewContext *ctx = (ViewContext *)user_data;
-  if (status == ARCHIVE_STATUS_PROGRESS) {
-    if (ctx)
+  if (status == ARCHIVE_STATUS_TOTAL) {
+    if (ctx && ctx->progress.active && ctx->progress.bytes_total == 0 &&
+        ctx->progress.items_total == 0)
+      Progress_SetTotals(ctx, bytes_delta, items_delta);
+  } else if (status == ARCHIVE_STATUS_PROGRESS) {
+    if (ctx && ctx->progress.active) {
+      if (bytes_delta == 0 && items_delta == 0 &&
+          ctx->progress.bytes_total == 0 && ctx->progress.items_total == 0)
+        items_delta = 1;
+      if (!Progress_Advance(ctx, bytes_delta, items_delta))
+        return ARCHIVE_CB_ABORT;
+    } else if (ctx && Progress_ShouldRender(ctx)) {
       DrawSpinner(ctx);
+    }
     if (EscapeKeyPressed()) {
       return ARCHIVE_CB_ABORT;
     }
   } else if (status == ARCHIVE_STATUS_ERROR) {
-    if (msg && ctx)
-      UI_Message(ctx, "%s", msg);
+    if (msg && ctx) {
+      if (ctx->progress.active) {
+        if (!ctx->progress.error_message[0])
+          (void)snprintf(ctx->progress.error_message,
+                         sizeof(ctx->progress.error_message), "%s", msg);
+      } else {
+        UI_Message(ctx, "%s", msg);
+      }
+    }
   } else if (status == ARCHIVE_STATUS_WARNING) {
     if (msg && ctx)
       UI_Warning(ctx, "%s", msg);

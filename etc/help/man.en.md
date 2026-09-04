@@ -338,7 +338,7 @@ It owns directory navigation, tree expansion, and directory-scoped commands.
 
 #### Directory command families
 
-* **Presentation and scope**: `1..9 view` changes the panel presentation. `Filter`, `Showall`, `Global`, and `Jump` change which projected file set or visible subset you are inspecting.
+* **Presentation and scope**: `1..9 view` changes the panel presentation. `0` is a silent no-op on filesystem volumes; use `F6` to show or hide stats. `Filter`, `Showall`, `Global`, and `Jump` change which projected file set or visible subset you are inspecting.
 * **Filesystem changes**: `Attributes`, `Rename`, `Delete`, `Makedir`, and `New File` change metadata or create/remove entries. `Log` adds or reloads a logged root.
 * **Working-set control**: `Tag`, `Untag`, and `Invert Tags` define the set that later bulk commands consume.
 * **Transfer and export**: `Copy`, `MoveDir`, `Output`, `Pipe`, and `Archive` act on the selected branch or on the tagged set, depending on the command.
@@ -360,7 +360,7 @@ It owns file navigation, file-scoped commands, tagged actions, and export entry 
 
 #### File navigation
 
-* **Presentation**: `1..9 view` stays in file mode and changes Name, Attributes, Owner, and Times plus Compact, size units, Mini preview, File detail, and the Git band where they apply.
+* **Presentation**: `1..9 view` stays in file mode and changes Name, Attributes, Owner, and Times plus Compact, size units, Mini preview, File detail, and the Git band where they apply. `0` is a silent no-op on filesystem volumes; use `F6` to show or hide stats.
 * **Enter**: Switch between the embedded file window and full-screen file mode without leaving the same file list.
 * **Columns**: `Left` and `Right` move across visible file columns. In single-column layouts they page backward and forward through the same list.
 
@@ -396,8 +396,8 @@ It mirrors directory work where the archive format permits it.
 
 #### Archive directory command families
 
-* **Presentation and scope**: `1..9 view` still selects the base directory/file presentation, except `9` stays inert in archives. `Filter`, `Showall`, `Global`, and `Jump` still operate on the archive-backed visible set.
-* **Archive-aware edits**: `Delete`, `Rename`, and `Makedir` only work when the current archive format and access path support write-back semantics.
+* **Presentation and scope**: `1..9 view` still selects the base directory/file presentation, except `9` stays inert in archives. `0` adds Size, Packed, and Ratio to each visible archive file row. Size is the original file size, Packed is the space used inside the archive, and Ratio is the percentage of space saved. A dash means the format cannot provide a trustworthy packed size. Packed values are collected while the archive is loaded, so pressing `0` only changes the display; press it again to hide the columns. `Filter`, `Showall`, `Global`, and `Jump` still operate on the archive-backed visible set.
+* **Archive-aware edits**: `Copy`, `Pathcopy`, `Move`, `Delete`, `Rename`, and `Makedir` only work when the current archive format and access path support write-back semantics. Directory transfers are recursive and reject a destination inside the source subtree. Common writable formats include `.tar`, `.tar.gz`, `.tar.bz2`, `.tar.xz`, and `.zip`; actual availability depends on the installed libarchive and archive properties.
 * **Working-set control**: `Tag` and `Untag` operate on the current virtual directory scope.
 * **Transfers and export**: `Output`, `Pipe`, and `Compare` use archive-backed paths. `Log` and `Volume` switch away to other logged roots or volumes when needed.
 * **Session controls**: `Dotfiles` toggles hidden archive entries where the format exposes them, and `Quit` exits ytnova.
@@ -418,7 +418,7 @@ Some filesystem commands are unavailable or become archive-aware here.
 
 #### Archive file navigation
 
-* **Presentation**: `1..8` keeps the usual file-view bands, while `9` remains a no-op because archive entries do not expose the Git band surface.
+* **Presentation**: `1..8` keeps the usual file-view bands, while `9` remains a no-op because archive entries do not expose the Git band surface. `0` adds Size, Packed, and Ratio to each visible archive file row. Size is the original file size, Packed is the space used inside the archive, and Ratio is the percentage of space saved. A dash means the format cannot provide a trustworthy packed size. Packed values are collected while the archive is loaded, so pressing `0` only changes the display; press it again to hide the columns.
 * **Enter**: Return to Archive Directory Mode for the same archive.
 * **List control**: `Jump`, `Filter`, and `Sort` still operate on the archive-backed visible file list.
 
