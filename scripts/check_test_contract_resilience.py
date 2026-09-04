@@ -14,7 +14,7 @@ from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BASELINE_PATH = REPO_ROOT / "tests" / "contract_resilience_baseline.json"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DISPOSITIONS = {"remediated", "retained", "out_of_scope"}
 
 
@@ -529,13 +529,17 @@ def _baseline_row(match: Match) -> dict[str, object]:
         "disposition": disposition,
         "reason": reason,
         "owner": owner,
+        "removal_condition": (
+            "Remove this exception when the test is replaced by an observable behavioural "
+            "contract or the underlying stable external contract is retired."
+        ),
     }
 
 
 def build_baseline(root: Path) -> dict[str, object]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "contract": "Reviewed brittle-pattern inventory for Python tests",
+        "contract": "Reviewed test-contract exception allowlist for Python tests",
         "matches": [_baseline_row(match) for match in scan(root)],
     }
 
@@ -552,7 +556,18 @@ def validate_baseline(document: object, root: Path) -> list[str]:
     failures: list[str] = []
     expected = {match.identity: match for match in scan(root)}
     observed: dict[str, dict[str, object]] = {}
-    required = {"id", "pattern_id", "path", "symbol", "line", "evidence", "disposition", "reason", "owner"}
+    required = {
+        "id",
+        "pattern_id",
+        "path",
+        "symbol",
+        "line",
+        "evidence",
+        "disposition",
+        "reason",
+        "owner",
+        "removal_condition",
+    }
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             failures.append(f"matches[{index}] must be an object")
@@ -582,7 +597,7 @@ def validate_baseline(document: object, root: Path) -> list[str]:
                     failures.append(f"{row_id}: {field} does not match scanned evidence")
         if row.get("disposition") not in DISPOSITIONS:
             failures.append(f"{row_id}: invalid disposition")
-        for field in ("reason", "owner"):
+        for field in ("reason", "owner", "removal_condition"):
             if not isinstance(row.get(field), str) or not row[field].strip():
                 failures.append(f"{row_id}: {field} must be non-empty")
 
@@ -621,7 +636,7 @@ def main() -> int:
         for failure in failures:
             print(f"FAIL: {failure}")
         return 1
-    print("PASS: test-contract resilience baseline is fully reconciled")
+    print("PASS: test-contract exception allowlist is fully reconciled")
     return 0
 
 
