@@ -447,6 +447,39 @@ Ordering policy (for all editors, including AI editors):
 *   Cross-archive move failure preserves the source until destination success and never loses data after a source-side failure.
 *   - [x] **Status:** Completed.
 
+### Task 92: **Footer Command Completeness Before Contextual F1**
+*   **Goal:** Finalize the remaining footer surfaces before Task 44.5 contextual `F1` help work. Task 92.1 produces the complete repair inventory; Task 92.2 implements and proves every repair.
+*   **Footer Inventory:** The six surfaces are filesystem directory, filesystem file, filesystem `F7`/preview, archive directory, archive file, and archive `F7`/preview. `Global` and `Showall` are file-footer states, not separate footer surfaces. Filesystem directory and filesystem file are the maintainer-checked baseline; the remaining audit scope is filesystem `F7`/preview, archive directory, archive file, and archive `F7`/preview.
+*   **Completion Contract:** Before any contextual `F1` source explains a footer, every command that is available in that footer's mode must be displayed and work correctly; a command that is unavailable in that mode must be absent. Read/write archives retain every parity command their runtime capabilities support. Read-only archives omit only mutation commands; browse and supported read/copy-out commands remain available. Commands unsupported by every VFS remain absent in every context.
+*   **Scope Lock:** Do not author or expand `etc/help/f1.en.md` under Task 44.5 until Task 92.2 is complete and its final inventory is reconciled.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 92.1: Audit Remaining Footer Command Completeness**
+*   **Goal:** Audit the four remaining footer surfaces and give the maintainer the complete, actionable footer-repair inventory before any footer changes are made.
+*   **Audit Contract:** Compare archive directory with filesystem directory and archive file with filesystem file, in both untagged and tagged states; compare archive `F7`/preview with filesystem `F7`/preview. Include the file-footer `Global`/`Showall` states where applicable.
+*   **Output Contract:** Report each finding as `Missing: <command> from <footer>`, `Inapplicable: <command> offered by <footer>`, or `Repair: <footer> — <required change>`. State `None` explicitly for every empty category, and distinguish writable-archive, read-only-archive, and universally unsupported-VFS exceptions.
+*   **Acceptance Criteria:**
+*   The maintainer receives a footer-by-footer missing-command, inapplicable-command, and required-repair inventory for every audited surface.
+*   Every inventory entry identifies its capability exception or expected filesystem-parity counterpart.
+*   **Audit Inventory:**
+    *   **Filesystem `F7`/preview:** Missing: None. Inapplicable: None. `Hex`, `Log`, `Volume`, and `Sort` are intentionally excluded by the established preview action filter; `Global` and `Showall` are file-list states, not preview actions. Repair: preview packing must use the capability-filtered command count, not the source-spec count.
+    *   **Archive directory:** Missing: `Invert` from archive directory; it has no archive-capability exception and is dispatched by the shared directory tag path. Inapplicable: None. `Attributes` and `Newfile` are absent because their dispatch explicitly accepts only filesystem modes; writable archives otherwise retain their supported copy/mutation commands, while read-only archives omit `Copy`, `Delete`, `Makedir`, `MoveDir`, `Pathcopy`, and `Rename` when their runtime capabilities are absent. Repair: add `Invert`; pack the filtered command list by its resolved count so omitted capability commands cannot leave uninitialised slots visible.
+    *   **Archive file, including tagged, `Global`, and `Showall` states:** Missing: None for the runtime-supported archive operation set. Inapplicable: None. `Attributes`, `Edit`, `Newfile`, `Execute`, and `Archive` are absent because archive-file specifications do not offer them; writable archives retain `Copy`/`Pathcopy`, `Delete`, `Move`, and `Rename` only when the corresponding runtime capability is present, and read-only archives omit those mutations. `Global` and `Showall` retain the shared file-footer navigation contract. Repair: pack the filtered command list by its resolved count.
+    *   **Archive `F7`/preview:** Missing: None. Inapplicable: `Attributes`, `Edit`, `Newfile`, `Execute`, and `Archive` are offered by the shared preview footer even though the archive-file footer omits them and archive dispatch has no matching VFS implementation. Read-only archives correctly omit only the capability-gated mutations that the resolver recognises. Repair: make archive preview use the archive-file capability/inapplicability set, then pack its filtered command list by its resolved count.
+    *   **Universally unsupported VFS operations:** None are offered by the archive directory or archive file footer. The archive-preview inapplicable set above is the remaining exception to repair.
+*   **Repair Family for Task 92.2:** `ResolveFooterCommandList()` already applies archive mutation capabilities, but directory, file, and preview packing pass their unfiltered specification counts. Use its returned count at every packing call; add archive-directory `Invert`; and prevent archive preview from advertising archive-file-inapplicable commands. Prove the full writable/read-only, tagged/untagged matrix against dispatch.
+*   - [x] **Status:** Completed.
+
+#### **Task 92.2: Repair and Prove Footer Command Completeness**
+*   **Goal:** Implement every repair identified by Task 92.1 and establish the final command inventory that Task 44.5 may explain.
+*   **Scope Lock:** Correct footer command availability, dispatch alignment, and shared capability resolution only; do not change command semantics, bindings, or archive backend capabilities.
+*   **Acceptance Criteria:**
+*   Every Task 92.1 repair is reconciled; each displayed command is available and works through its advertised action; each available command is displayed; and unavailable commands are absent.
+*   A focused regression matrix proves writable archives match filesystem command sets except universally unsupported VFS operations, while read-only archives differ only by mutation commands and universally unsupported VFS operations.
+*   Footer visibility is derived from the same capability decision used by command dispatch, so unavailable commands cannot be advertised.
+*   Completion records the final command inventory for all six footer surfaces as the input to Task 44.5 contextual `F1` documentation work.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 14: Path Message Formatting Audit (`//` Artifact Prevention)**
 *   **Goal:** Audit user-facing message/path rendering and eliminate accidental double-slash artifacts in status/error/footer output.
 *   **Rationale:** Message correctness is a trust surface; inconsistent path rendering invites avoidable bug reports and operator confusion.
