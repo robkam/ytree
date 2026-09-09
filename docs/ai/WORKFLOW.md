@@ -50,6 +50,10 @@ Required agent behavior:
 *   **Recommend before encoding:** State the better conventional or best-practice choice before baking the literal wording into specs, prompts, or code.
 *   **Explain the tradeoff:** When deviating from the user's literal wording, explain why the recommended version is stronger.
 *   **Do not silently comply with weak specifics:** You MUST NOT turn a guessed interaction detail into lasting project behavior without explicit user review.
+*   **Do not weaken ordinary language:** In maintainer and task language, `should`, `may`, `can`, and similar modal words express mandatory intent rather than optional permission unless the maintainer explicitly offers alternatives or asks a genuine question. Only an applicable quoted formal standard may supply a different modal definition.
+*   **Establish the behavior before implementing:** Identify the nearest established behavior and its invariants, state a one-sentence behavioral contract for the requested outcome, and separate directly specified requirements from unresolved decisions. Implement specified behavior as an extension of the established pattern, not as a new interpretation or parallel interaction.
+*   **Resolve new contracts before encoding them:** When a required behavior needs a new user-visible policy, error contract, architecture decision, or other durable choice that is neither specified nor established locally, list the unresolved choices, recommend the conventional outcome with its tradeoffs, and obtain approval before writing code, tests, help, or specifications. A regression test preserves an agreed or established contract; it MUST NOT convert an AI inference into a project requirement.
+*   **Validate the outcome itself:** For an interactive, visual, performance, safety, or integration surface that can be exercised, run the supplied reproducer or equivalent real-runtime check, report the observed result to the maintainer before broad QA, and reconcile it with the original request and adjacent contracts before claiming readiness. Automated checks complement that evidence; they do not replace it.
 
 ### 1.4 UX Economy Gate (Mandatory)
 
